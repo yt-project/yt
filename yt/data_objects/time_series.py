@@ -258,9 +258,12 @@ class TimeSeriesData(object):
         ...     SlicePlot(pf, "x", "Density").save()
 
         """
+        
         if isinstance(filenames, types.StringTypes):
             filenames = glob.glob(filenames)
             filenames.sort()
+        if len(filenames) == 0:
+            raise YTOutputNotIdentified(filenames, {})
         obj = cls(filenames[:], parallel = parallel, **kwargs)
         return obj
 
