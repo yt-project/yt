@@ -32,7 +32,8 @@ from yt.funcs import *
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
-from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d
+from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d, \
+                             new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 
@@ -842,8 +843,9 @@ class ProfileND(ParallelAnalysisInterface):
                    fractional = False):
         # We can share an instance of ProfileFieldInfo between all the fields
         # here-defined
+        fields = ensure_list(fields)
         pfi = ProfileFieldInfo(weight, accumulation, fractional)
-        if weight in fields:
+        if weight is not None and weight in fields:
             raise RuntimeError
         for field in fields:
             if field in self.field_spec:
@@ -965,7 +967,7 @@ class Profile3D(ProfileND):
                  x_field, x_n, x_min, x_max, x_log,
                  y_field, y_n, y_min, y_max, y_log,
                  z_field, z_n, z_min, z_max, z_log):
-        super(Profile2D, self).__init__(data_source)
+        super(Profile3D, self).__init__(data_source)
         # X
         self.x_field = x_field
         self.x_log = x_log

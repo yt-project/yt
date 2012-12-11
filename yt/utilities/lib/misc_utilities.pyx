@@ -107,7 +107,7 @@ def new_bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=4] bresult,
                   np.ndarray[np.float64_t, ndim=4] mresult,
                   np.ndarray[np.float64_t, ndim=4] qresult,
-                  np.ndarray[np.uint8_t, ndim=2, cast=True] used):
+                  np.ndarray[np.uint8_t, ndim=3, cast=True] used):
     cdef int n, fi, bin_x, bin_y, bin_z
     cdef np.float64_t wval, bval, oldwr
     cdef int nb = bins_x.shape[0]
@@ -123,7 +123,7 @@ def new_bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
             bval = bsource[n,fi]
             # qresult has to have the previous wresult
             qresult[bin_x,bin_y,bin_z,fi] += \
-                (oldwr * wval * (bval - mresult[bin_x,bin_y,fi])**2) / \
+                (oldwr * wval * (bval - mresult[bin_x,bin_y,bin_z,fi])**2) / \
                 (oldwr + wval)
             bresult[bin_x,bin_y,bin_z,fi] += wval*bval
             # mresult needs the new wresult
