@@ -1059,7 +1059,7 @@ class SlicePlot(PWViewerMPL):
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        slc = pf.h.slice(axis, center[axis], fields=fields)
+        slc = pf.h.slice(axis, center[axis], center=center, fields=fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
         self.set_axes_unit(axes_unit)
 
