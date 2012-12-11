@@ -248,6 +248,8 @@ class GDFStaticOutput(StaticOutput):
             fileh = h5py.File(args[0],'r')
             if "gridded_data_format" in fileh:
                 return True
+                fileh.close()
+            fileh.close()
         except:
             pass
         return False
