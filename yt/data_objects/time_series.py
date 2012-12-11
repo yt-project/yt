@@ -260,6 +260,8 @@ class TimeSeriesData(object):
         """
         if isinstance(filenames, types.StringTypes):
             filenames = glob.glob(filenames)
+            if len(filenames) == 0:
+                raise YTOutputNotIdentified(filenames, {})
             filenames.sort()
         obj = cls(filenames[:], parallel = parallel, **kwargs)
         return obj
