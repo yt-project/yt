@@ -259,11 +259,11 @@ class TimeSeriesData(object):
 
         """
         if isinstance(filenames, types.StringTypes):
-            pflist = glob.glob(filenames)
-            if len(pflist) == 0:
+            pf_list = glob.glob(filenames)
+            if len(pf_list) == 0:
                 raise YTOutputNotIdentified(filenames, {})
-            pflist.sort()
-        obj = cls(pflist[:], parallel = parallel, **kwargs)
+            pf_list.sort()
+        obj = cls(pf_list[:], parallel = parallel, **kwargs)
         return obj
 
     @classmethod
