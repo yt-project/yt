@@ -131,8 +131,9 @@ class EmissivityIntegrator(object):
             
         """
         if filename is None:
-            filename = os.path.join(os.path.dirname(__file__),
-                                    "xray_emissivity.h5")
+            filename = os.path.join(os.environ["YT_DEST"], 
+                                    "data", "xray_emissivity.h5")
+
         if not os.path.exists(filename):
             raise IOError("File does not exist: %s." % filename)
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
