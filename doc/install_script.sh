@@ -399,6 +399,14 @@ function get_ytproject
     ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
+function get_ytdata
+{
+    echo "Downloading $1 from yt-project.org"
+    [ -e $1 ] && return
+    ${GETFILE} "http://yt-project.org/data/$1" || do_exit
+    ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
+}
+
 ORIG_PWD=`pwd`
 
 if [ -z "${DEST_DIR}" ]
@@ -406,6 +414,13 @@ then
     echo "Edit this script, set the DEST_DIR parameter and re-run."
     exit 1
 fi
+
+# Get supplemental data.
+
+mkdir -p ${DEST_DIR}/data
+cd ${DEST_DIR}/data
+echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  xray_emissivity.h5' > xray_emissivity.h5.sha512
+get_ytdata xray_emissivity.h5
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
