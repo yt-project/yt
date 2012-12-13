@@ -591,19 +591,6 @@ class YTBootstrapDevCmd(YTCommand):
             print
             loki = raw_input("Press enter to go on, Ctrl-C to exit.")
             cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
-        bb_fp = "81:2b:08:90:dc:d3:71:ee:e0:7c:b4:75:ce:9b:6c:48:94:56:a1:fe"
-        if uu.config("hostfingerprints", "bitbucket.org", None) is None:
-            print "Let's also add bitbucket.org to the known hosts, so hg"
-            print "doesn't warn us about bitbucket."
-            print "We will add this:"
-            print
-            print "   [hostfingerprints]"
-            print "   bitbucket.org = %s" % (bb_fp)
-            print
-            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
-            cedit.config.setoption(uu, hgrc_path,
-                                   "hostfingerprints.bitbucket.org=%s" % bb_fp)
-
         # We now reload the UI's config file so that it catches the [bb]
         # section changes.
         uu.readconfig(hgrc_path[0])

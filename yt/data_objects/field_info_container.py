@@ -280,7 +280,7 @@ class FieldDetector(defaultdict):
             return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
-    def get_field_parameter(self, param):
+    def get_field_parameter(self, param, default = None):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return np.random.random(3) * 1e-2

@@ -450,6 +450,8 @@ class FLASHStaticOutput(StaticOutput):
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
     def __del__(self):
+        if self._handle is not self._particle_handle:
+            self._particle_handle.close()
         self._handle.close()
 
     @classmethod

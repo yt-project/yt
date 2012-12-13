@@ -330,7 +330,8 @@ class WithDensityParticleGenerator(ParticleGenerator) :
         ParticleGenerator.__init__(self, pf, num_particles, field_list)
 
         num_cells = len(data_source["x"].flat)
-        max_density = data_source[density_field].max()
+        max_mass = (data_source[density_field]*
+                    data_source["CellVolume"]).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -341,12 +342,13 @@ class WithDensityParticleGenerator(ParticleGenerator) :
         
         while num_particles_left > 0:
 
-            rho = np.random.uniform(high=1.01*max_density,
-                                    size=num_particles_left)
+            m = np.random.uniform(high=1.01*max_mass,
+                                  size=num_particles_left)
             idxs = np.random.random_integers(low=0, high=num_cells-1,
                                              size=num_particles_left)
-            rho_true = data_source[density_field].flat[idxs]
-            accept = rho <= rho_true
+            m_true = (data_source[density_field]*
+                      data_source["CellVolume"]).flat[idxs]
+            accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
             
