@@ -33,4 +33,5 @@ from .spectral_frequency_integrator import \
     create_table_from_textfiles, \
     EmissivityIntegrator, \
     add_xray_emissivity_field, \
-    add_xray_luminosity_field
+    add_xray_luminosity_field, \
+    add_xray_photon_emissivity_field
