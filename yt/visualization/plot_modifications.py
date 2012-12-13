@@ -658,24 +658,25 @@ class ClumpContourCallback(PlotCallback):
 
         xf = axis_names[px_index]
         yf = axis_names[py_index]
+        dxf = "d%s" % xf
+        dyf = "d%s" % yf
 
         DomainRight = plot.data.pf.domain_right_edge
         DomainLeft = plot.data.pf.domain_left_edge
         DomainWidth = DomainRight - DomainLeft
-        
+
         nx, ny = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.debug("Pixelizing contour %s", i)
 
-
             xf_copy = clump[xf].copy()
             yf_copy = clump[yf].copy()
-            
-            temp = _MPL.Pixelize(xf_copy, yf_copy, 
-                                 clump['dx']/2.0,
-                                 clump['dy']/2.0,
-                                 clump['dx']*0.0+i+1, # inits inside Pixelize
+
+            temp = _MPL.Pixelize(xf_copy, yf_copy,
+                                 clump[dxf]/2.0,
+                                 clump[dyf]/2.0,
+                                 clump[dxf]*0.0+i+1, # inits inside Pixelize
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
