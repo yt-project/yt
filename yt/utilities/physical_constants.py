@@ -35,13 +35,13 @@ mpc_per_pc    = 1e-6
 mpc_per_au    = 4.847e-12
 mpc_per_rsun  = 2.253e-14
 mpc_per_miles = 5.216e-20
-mpc_per_cm    = 3.24e-25
+mpc_per_cm    = 3.24077929e-25
 km_per_pc     = 1.3806504e13
 km_per_m      = 1e-3
 km_per_cm     = 1e-5
-pc_per_cm     = 3.24e-19
+pc_per_cm     = 3.24077929e-19
 
-m_per_fpc     = 0.0324077649
+m_per_fpc     = 0.0324077929
 
 kpc_per_mpc   = 1.0 / mpc_per_kpc
 pc_per_mpc    = 1.0 / mpc_per_pc
