@@ -1397,7 +1397,7 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Run the Web GUI Reason
+        Run the IPython Notebook
         """
     def __call__(self, args):
         from IPython.frontend.html.notebook.notebookapp import NotebookApp
