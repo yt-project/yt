@@ -1394,15 +1394,19 @@ class YTNotebookCmd(YTCommand):
             dict(short="-p", long="--port", action="store",
                  default = 0, dest='port',
                  help="Port to listen on; defaults to auto-detection."),
+            dict(short="-n", long="--no-password", action="store_true",
+                 default = False, dest='no_password',
+                 help="If set, do not prompt or use a password."),
             )
     description = \
         """
         Run the IPython Notebook
         """
     def __call__(self, args):
+        kwargs = {}
         from IPython.frontend.html.notebook.notebookapp import NotebookApp
         pw = ytcfg.get("yt", "notebook_password")
-        if len(pw) == 0:
+        if len(pw) == 0 and not args.no_password:
             import IPython.lib
             pw = IPython.lib.passwd()
             print "If you would like to use this password in the future,"
@@ -1411,17 +1415,24 @@ class YTNotebookCmd(YTCommand):
             print
             print "notebook_password = %s" % pw
             print
-        kwargs = {}
+        elif args.no_password:
+            pw = None
         if args.port != 0:
             kwargs['port'] = int(args.port)
-        app = NotebookApp(password=pw, open_browser=args.open_browser,
+        if pw is not None:
+            kwargs['password'] = pw
+        app = NotebookApp(open_browser=args.open_browser,
                           **kwargs)
+        app.initialize(argv=[])
         print
         print "***************************************************************"
         print
+        print "The notebook is now live at:"
+        print
+        print "     http://127.0.0.1:%s/" % app.port
+        print
         print "Recall you can create a new SSH tunnel dynamically by pressing"
-        print "~C and then typing -LPORT:localhost:PORT where PORT is the port"
-        print "number that IPython prints out."
+        print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
         print
         print "Additionally, while in the notebook, we recommend you start by"
         print "replacing 'yt.mods' with 'yt.imods' like so:"
@@ -1432,7 +1443,6 @@ class YTNotebookCmd(YTCommand):
         print
         print "***************************************************************"
         print
-        app.initialize()
         app.start()
 
 
