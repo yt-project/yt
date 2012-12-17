@@ -757,6 +757,12 @@ then
     ${DEST_DIR}/bin/pip install readline 1>> ${LOG_FILE}
 fi
 
+if !(${DEST_DIR}/bin/python2.7 -c "import magic" >> ${LOG_FILE})
+then
+    echo "Installing python-magic"
+    ${DEST_DIR}/bin/pip install python-magic 1>> ${LOG_FILE}
+fi
+
 if [ $INST_ENZO -eq 1 ]
 then
     echo "Cloning a copy of Enzo."
