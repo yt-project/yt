@@ -13,7 +13,6 @@ def teardown_func(fns):
 
 def assert_fn(fn, fns):
     if fn is not None:
-        print fn, fns[-1]
         assert fn == fns[-1]
 
 def test_plotwindow():
