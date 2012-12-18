@@ -30,7 +30,7 @@ from yt.mods import *
 from yt.funcs import *
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import urllib, urllib2, base64
+import urllib, urllib2, base64, os
 
 def _fix_pf(arg):
     if os.path.isdir("%s" % arg) and \
@@ -1384,6 +1384,67 @@ class YTRPDBCmd(YTCommand):
     def __call__(self, args):
         import rpdb
         rpdb.run_rpdb(int(args.task))
+
+class YTNotebookCmd(YTCommand):
+    name = ["notebook"]
+    args = (
+            dict(short="-o", long="--open-browser", action="store_true",
+                 default = False, dest='open_browser',
+                 help="Open a web browser."),
+            dict(short="-p", long="--port", action="store",
+                 default = 0, dest='port',
+                 help="Port to listen on; defaults to auto-detection."),
+            dict(short="-n", long="--no-password", action="store_true",
+                 default = False, dest='no_password',
+                 help="If set, do not prompt or use a password."),
+            )
+    description = \
+        """
+        Run the IPython Notebook
+        """
+    def __call__(self, args):
+        kwargs = {}
+        from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        pw = ytcfg.get("yt", "notebook_password")
+        if len(pw) == 0 and not args.no_password:
+            import IPython.lib
+            pw = IPython.lib.passwd()
+            print "If you would like to use this password in the future,"
+            print "place a line like this inside the [yt] section in your"
+            print "yt configuration file at ~/.yt/config"
+            print
+            print "notebook_password = %s" % pw
+            print
+        elif args.no_password:
+            pw = None
+        if args.port != 0:
+            kwargs['port'] = int(args.port)
+        if pw is not None:
+            kwargs['password'] = pw
+        app = NotebookApp(open_browser=args.open_browser,
+                          **kwargs)
+        app.initialize(argv=[])
+        print
+        print "***************************************************************"
+        print
+        print "The notebook is now live at:"
+        print
+        print "     http://127.0.0.1:%s/" % app.port
+        print
+        print "Recall you can create a new SSH tunnel dynamically by pressing"
+        print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
+        print
+        print "Additionally, while in the notebook, we recommend you start by"
+        print "replacing 'yt.mods' with 'yt.imods' like so:"
+        print
+        print "    from yt.imods import *"
+        print
+        print "This will enable some IPython-specific extensions to yt."
+        print
+        print "***************************************************************"
+        print
+        app.start()
+
 
 class YTGUICmd(YTCommand):
     name = ["serve", "reason"]
