@@ -799,7 +799,7 @@ class Communicator(object):
                 if target < size:
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
-                    qto = QuadTree(tgd, args[2])
+                    qto = QuadTree(tgd, args[2], qt.bounds)
                     qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
                     merge_quadtrees(qt, qto, style = merge_style)
                     del qto
@@ -819,7 +819,7 @@ class Communicator(object):
         self.comm.Bcast([buf[2], MPI.DOUBLE], root=0)
         self.refined = buf[0]
         if rank != 0:
-            qt = QuadTree(tgd, args[2])
+            qt = QuadTree(tgd, args[2], qt.bounds)
             qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 
