@@ -106,7 +106,7 @@ class ChomboHierarchy(AMRHierarchy):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.hierarchy = os.path.abspath(self.hierarchy_filename)
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.directory = pf.fullpath
         self._fhandle = h5py.File(self.hierarchy_filename, 'r')
 
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
