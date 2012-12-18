@@ -29,6 +29,7 @@ import hashlib
 import contextlib
 import urllib2
 import cPickle
+import sys
 
 from nose.plugins import Plugin
 from yt.testing import *
@@ -44,62 +45,103 @@ from yt.utilities.command_line import get_yt_version
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
 
-_latest = "gold001"
+# Set the latest gold and local standard filenames
+_latest = ytcfg.get("yt", "gold_standard_filename")
+_latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
+    _my_version = None
 
     def options(self, parser, env=os.environ):
         super(AnswerTesting, self).options(parser, env=env)
-        parser.add_option("--answer-compare", dest="compare_name",
-            default=_latest, help="The name against which we will compare")
+        parser.add_option("--answer-name", dest="answer_name", metavar='str',
+            default=None, help="The name of the standard to store/compare against")
+        parser.add_option("--answer-store", dest="store_results", metavar='bool',
+            default=False, action="store_true",
+            help="Should we store this result instead of comparing?")
+        parser.add_option("--local", dest="local_results",
+            default=False, action="store_true", help="Store/load reference results locally?")
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
-        parser.add_option("--answer-name", dest="this_name",
-            default=None,
-            help="The name we'll call this set of tests")
-        parser.add_option("--answer-store", dest="store_results",
-            default=False, action="store_true")
-        parser.add_option("--local-store", dest="store_local_results",
-            default=False, action="store_true", help="Store/Load local results?")
+
+    @property
+    def my_version(self, version=None):
+        if self._my_version is not None:
+            return self._my_version
+        if version is None:
+            try:
+                version = get_yt_version()
+            except:
+                version = "UNKNOWN%s" % (time.time())
+        self._my_version = version
+        return self._my_version
 
     def configure(self, options, conf):
         super(AnswerTesting, self).configure(options, conf)
         if not self.enabled:
             return
         disable_stream_logging()
-        try:
-            my_hash = get_yt_version()
-        except:
-            my_hash = "UNKNOWN%s" % (time.time())
-        if options.this_name is None: options.this_name = my_hash
-        from yt.config import ytcfg
+
+        # Parse through the storage flags to make sense of them
+        # and use reasonable defaults
+        # If we're storing the data, default storage name is local
+        # latest version
+        if options.store_results:
+            if options.answer_name is None:
+                self.store_name = _latest_local
+            else:
+                self.store_name = options.answer_name
+            self.compare_name = None
+        # if we're not storing, then we're comparing, and we want default
+        # comparison name to be the latest gold standard 
+        # either on network or local
+        else:
+            if options.answer_name is None:
+                if options.local_results:
+                    self.compare_name = _latest_local
+                else:
+                    self.compare_name = _latest
+            else:
+                self.compare_name = options.answer_name
+            self.store_name = self.my_version
+
+        self.store_results = options.store_results
+
         ytcfg["yt","__withintesting"] = "True"
         AnswerTestingTest.result_storage = \
             self.result_storage = defaultdict(dict)
-        if options.compare_name == "SKIP":
-            options.compare_name = None
-        elif options.compare_name == "latest":
-            options.compare_name = _latest
-
-        # We only either store or test.
-        if options.store_local_results:
-            if options.compare_name is not None:
-                options.compare_name = "%s/%s" % \
-                        (os.path.realpath(options.output_dir), 
-                         options.compare_name)
-            AnswerTestingTest.reference_storage = \
-                self.storage = \
-                    AnswerTestLocalStorage(options.compare_name, 
-                                           not options.store_results)
+        if self.compare_name == "SKIP":
+            self.compare_name = None
+        elif self.compare_name == "latest":
+            self.compare_name = _latest
+            
+        # Local/Cloud storage 
+        if options.local_results:
+            storage_class = AnswerTestLocalStorage
+            # Fix up filename for local storage 
+            if self.compare_name is not None:
+                self.compare_name = "%s/%s/%s" % \
+                    (os.path.realpath(options.output_dir), self.compare_name, 
+                     self.compare_name)
+            if self.store_name is not None:
+                name_dir_path = "%s/%s" % \
+                    (os.path.realpath(options.output_dir), 
+                    self.store_name)
+                if not os.path.isdir(name_dir_path):
+                    os.makedirs(name_dir_path)
+                self.store_name= "%s/%s" % \
+                        (name_dir_path, self.store_name)
         else:
-            AnswerTestingTest.reference_storage = \
-                self.storage = AnswerTestCloudStorage(options.compare_name, not options.store_results)
+            storage_class = AnswerTestCloudStorage
 
-        self.store_results = options.store_results
-        self.store_local_results = options.store_local_results
+        # Initialize answer/reference storage
+        AnswerTestingTest.reference_storage = self.storage = \
+                storage_class(self.compare_name, self.store_name)
+
+        self.local_results = options.local_results
         global run_big_data
         run_big_data = options.big_data
 
@@ -108,10 +150,10 @@ class AnswerTesting(Plugin):
         self.storage.dump(self.result_storage)        
 
 class AnswerTestStorage(object):
-    def __init__(self, reference_name, read=True):
+    def __init__(self, reference_name=None, answer_name=None):
         self.reference_name = reference_name
+        self.answer_name = answer_name
         self.cache = {}
-        self.read = read
     def dump(self, result_storage, result):
         raise NotImplementedError 
     def get(self, pf_name, default=None):
@@ -119,23 +161,32 @@ class AnswerTestStorage(object):
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, pf_name, default = None):
-        if not self.read: return default
+        if self.reference_name is None: return default
         if pf_name in self.cache: return self.cache[pf_name]
         url = _url_path % (self.reference_name, pf_name)
         try:
             resp = urllib2.urlopen(url)
-            # This is dangerous, but we have a controlled S3 environment
-            data = resp.read()
-            rv = cPickle.loads(data)
         except urllib2.HTTPError as ex:
             raise YTNoOldAnswer(url)
-            mylog.warning("Missing %s (%s)", url, ex)
-            rv = default
+        else:
+            for this_try in range(3):
+                try:
+                    data = resp.read()
+                except:
+                    time.sleep(0.01)
+                else:
+                    # We were succesful
+                    break
+            else:
+                # Raise error if all tries were unsuccessful
+                raise YTCloudError(url)
+            # This is dangerous, but we have a controlled S3 environment
+            rv = cPickle.loads(data)
         self.cache[pf_name] = rv
         return rv
 
     def dump(self, result_storage):
-        if self.read: return
+        if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
         import boto
@@ -144,18 +195,18 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.reference_name, pf_name)) 
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
             if tk is not None: tk.delete()
             k = Key(bucket)
-            k.key = "%s_%s" % (self.reference_name, pf_name)
+            k.key = "%s_%s" % (self.answer_name, pf_name)
             k.set_contents_from_string(rs)
             k.set_acl("public-read")
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
-        if self.read: return 
+        if self.answer_name is None: return
         # Store data using shelve
-        ds = shelve.open(self.reference_name, protocol=-1)
+        ds = shelve.open(self.answer_name, protocol=-1)
         for pf_name in result_storage:
             answer_name = "%s" % pf_name
             if name in ds:
@@ -164,7 +215,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         ds.close()
 
     def get(self, pf_name, default=None):
-        if not self.read: return default
+        if self.reference_name is None: return default
         # Read data using shelve
         answer_name = "%s" % pf_name
         ds = shelve.open(self.reference_name, protocol=-1)
@@ -183,11 +234,11 @@ def temp_cwd(cwd):
     os.chdir(oldcwd)
 
 def can_run_pf(pf_fn):
+    if isinstance(pf_fn, StaticOutput):
+        return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
-    if isinstance(pf_fn, StaticOutput):
-        return AnswerTestingTest.result_storage is not None
     with temp_cwd(path):
         try:
             load(pf_fn)
@@ -197,9 +248,9 @@ def can_run_pf(pf_fn):
 
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
+    if isinstance(pf_fn, StaticOutput): return pf_fn
     if not os.path.isdir(path):
         return False
-    if isinstance(pf_fn, StaticOutput): return pf_fn
     with temp_cwd(path):
         pf = load(pf_fn)
         pf.h
@@ -224,10 +275,10 @@ class AnswerTestingTest(object):
 
     def __call__(self):
         nv = self.run()
-        if self.reference_storage.read and \
-           self.reference_storage.reference_name is not None:
+        if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
-            if dd is None: raise YTNoOldAnswer(self.storage_name)
+            if dd is None or self.description not in dd: 
+                raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -309,8 +360,8 @@ class FieldValuesTest(AnswerTestingTest):
             assert_equal(new_result, old_result, 
                          err_msg=err_msg, verbose=True)
         else:
-            assert_rel_equal(new_result, old_result, self.decimals,
-                             err_msg=err_msg)
+            assert_allclose(new_result, old_result, 10.**(-self.decimals),
+                             err_msg=err_msg, verbose=True)
 
 class AllFieldValuesTest(AnswerTestingTest):
     _type_name = "AllFieldValues"
@@ -334,7 +385,7 @@ class AllFieldValuesTest(AnswerTestingTest):
                          err_msg=err_msg, verbose=True)
         else:
             assert_rel_equal(new_result, old_result, self.decimals,
-                             err_msg=err_msg)
+                             err_msg=err_msg, verbose=True)
             
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
@@ -345,7 +396,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         super(ProjectionValuesTest, self).__init__(pf_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
         self.decimals = decimals
 
@@ -354,24 +405,29 @@ class ProjectionValuesTest(AnswerTestingTest):
             obj = self.create_obj(self.pf, self.obj_type)
         else:
             obj = None
+        if self.pf.domain_dimensions[self.axis] == 1: return None
         proj = self.pf.h.proj(self.axis, self.field,
                               weight_field=self.weight_field,
                               data_source = obj)
         return proj.field_data
 
     def compare(self, new_result, old_result):
+        if new_result is None:
+            return
         assert(len(new_result) == len(old_result))
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
             err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
               (k, self.field, self.weight_field, self.axis)
+            if k == 'weight_field' and self.weight_field is None:
+                continue
             if self.decimals is None:
                 assert_equal(new_result[k], old_result[k],
                              err_msg=err_msg)
             else:
-                assert_rel_equal(new_result[k], old_result[k], 
-                                 self.decimals, err_msg=err_msg)
+                assert_allclose(new_result[k], old_result[k], 
+                                 10.**-(self.decimals), err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"
@@ -532,3 +588,18 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+class AssertWrapper(object):
+    """
+    Used to wrap a numpy testing assertion, in order to provide a useful name
+    for a given assertion test.
+    """
+    def __init__(self, description, *args):
+        # The key here is to add a description attribute, which nose will pick
+        # up.
+        self.args = args
+        self.description = description
+
+    def __call__(self):
+        self.args[0](*self.args[1:])
+

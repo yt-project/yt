@@ -59,6 +59,11 @@ ytcfgDefaults = dict(
     hub_url = 'https://hub.yt-project.org/upload',
     hub_api_key = '',
     ipython_notebook = 'False',
+    answer_testing_tolerance = '3',
+    answer_testing_bitwise = 'False',
+    gold_standard_filename = 'gold004',
+    local_standard_filename = 'local001',
+    sketchfab_api_key = 'None'
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

@@ -101,14 +101,13 @@ class YTCannotParseUnitDisplayName(YTException):
                 "contains the following LaTeX parser errors:\n" ) \
             % (self.unit_name, self.field_name) + self.mathtext_error
 
-class AmbiguousOutputs(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf)
+class InvalidSimulationTimeSeries(YTException):
+    def __init__(self, message):
+        self.message = message
 
     def __str__(self):
-        return "Simulation %s has both dtDataDump and CycleSkipDataDump set.  Unable to calculate datasets." % \
-            self.pf
-
+        return self.message
+            
 class MissingParameter(YTException):
     def __init__(self, pf, parameter):
         YTException.__init__(self, pf)
@@ -164,6 +163,14 @@ class YTNoOldAnswer(YTException):
         return "There is no old answer available.\n" + \
                str(self.path)
 
+class YTCloudError(YTException):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "Failed to retrieve cloud data. Connection may be broken.\n" + \
+               str(self.path)
+
 class YTEllipsoidOrdering(YTException):
     def __init__(self, pf, A, B, C):
         YTException.__init__(self, pf)
@@ -182,3 +189,22 @@ class EnzoTestOutputFileNonExistent(YTException):
     def __str__(self):
         return "Enzo test output file (OutputLog) not generated for: " + \
             "'%s'" % (self.testname) + ".\nTest did not complete."
+
+class YTNoAPIKey(YTException):
+    def __init__(self, service, config_name):
+        self.service = service
+        self.config_name = config_name
+
+    def __str__(self):
+        return "You need to set an API key for %s in ~/.yt/config as %s" % (
+            self.service, self.config_name)
+
+class YTTooManyVertices(YTException):
+    def __init__(self, nv, fn):
+        self.nv = nv
+        self.fn = fn
+
+    def __str__(self):
+        s = "There are too many vertices (%s) to upload to Sketchfab. " % (self.nv)
+        s += "Your model has been saved as %s .  You should upload manually." % (self.fn)
+        return s

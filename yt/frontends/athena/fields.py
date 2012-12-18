@@ -26,6 +26,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as np
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
@@ -36,6 +37,8 @@ from yt.data_objects.field_info_container import \
     ValidateGridType, \
     NullFunc, \
     TranslationFunc
+from yt.utilities.physical_constants import \
+    kboltz,mh
 import yt.data_objects.universal_fields
 
 log_translation_dict = {}
@@ -44,10 +47,7 @@ translation_dict = {"Density": "density",
                     "Pressure": "pressure",
                     "x-velocity": "velocity_x",
                     "y-velocity": "velocity_y",
-                    "z-velocity": "velocity_z",
-                    "mag_field_x": "cell_centered_B_x ",
-                    "mag_field_y": "cell_centered_B_y ",
-                    "mag_field_z": "cell_centered_B_z "}
+                    "z-velocity": "velocity_z"}
 
 AthenaFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = AthenaFieldInfo.add_field
@@ -72,17 +72,44 @@ add_athena_field("velocity_z", function=NullFunc, take_log=False,
           units=r"")
 
 add_athena_field("cell_centered_B_x", function=NullFunc, take_log=False,
-          units=r"")
+          units=r"", display_name=r"$\rm{cell\ centered\ B_x}$")
 
 add_athena_field("cell_centered_B_y", function=NullFunc, take_log=False,
-          units=r"")
+          units=r"", display_name=r"$\rm{cell\ centered\ B_y}$")
 
 add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
-          units=r"")
+          units=r"", display_name=r"$\rm{cell\ centered\ B_z}$")
 
 for f,v in log_translation_dict.items():
     add_field(f, TranslationFunc(v), take_log=True)
 
 for f,v in translation_dict.items():
     add_field(f, TranslationFunc(v), take_log=False)
+
+def _Temperature(fields, data):
+    if data.has_field_parameter("mu") :
+        mu = data.get_field_parameter("mu")
+    else:
+        mu = 0.6
+    return mu*mh*data["Pressure"]/data["Density"]/kboltz
+add_field("Temperature", function=_Temperature, take_log=False,
+          units=r"\rm{K}")
+
+def _Bx(fields, data):
+    factor = np.sqrt(4.*np.pi)
+    return data['cell_centered_B_x']*factor
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_x")
+
+def _By(fields, data):
+    factor = np.sqrt(4.*np.pi)
+    return data['cell_centered_B_y']*factor
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_y")
+
+def _Bz(fields, data):
+    factor = np.sqrt(4.*np.pi)
+    return data['cell_centered_B_z']*factor
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_z")
 

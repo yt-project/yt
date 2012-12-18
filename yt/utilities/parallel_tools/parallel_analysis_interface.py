@@ -252,9 +252,10 @@ def parallel_root_only(func):
     @wraps(func)
     def root_only(*args, **kwargs):
         comm = _get_comm(args)
+        rv = None
         if comm.rank == 0:
             try:
-                func(*args, **kwargs)
+                rv = func(*args, **kwargs)
                 all_clear = 1
             except:
                 traceback.print_last()
@@ -263,6 +264,7 @@ def parallel_root_only(func):
             all_clear = None
         all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
+        return rv
     if parallel_capable: return root_only
     return func
 
@@ -290,13 +292,14 @@ class ProcessorPool(object):
         if size is None:
             size = len(self.available_ranks)
         if len(self.available_ranks) < size:
-            print 'Not enough resources available', size, self.available_ranks
+            mylog.error('Not enough resources available, asked for %d have %d',
+                size, self.available_ranks)
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
         # Default name to the workgroup number.
         if name is None: 
-            name = string(len(self.workgroups))
+            name = str(len(self.workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:

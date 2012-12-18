@@ -43,6 +43,7 @@ INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
+INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -398,6 +399,14 @@ function get_ytproject
     ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
+function get_ytdata
+{
+    echo "Downloading $1 from yt-project.org"
+    [ -e $1 ] && return
+    ${GETFILE} "http://yt-project.org/data/$1" || do_exit
+    ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
+}
+
 ORIG_PWD=`pwd`
 
 if [ -z "${DEST_DIR}" ]
@@ -405,6 +414,13 @@ then
     echo "Edit this script, set the DEST_DIR parameter and re-run."
     exit 1
 fi
+
+# Get supplemental data.
+
+mkdir -p ${DEST_DIR}/data
+cd ${DEST_DIR}/data
+echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  xray_emissivity.h5' > xray_emissivity.h5.sha512
+get_ytdata xray_emissivity.h5
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
@@ -433,7 +449,7 @@ echo '1332e3d5465ca249c357314cf15d2a4e5e83a941841021b8f6a17a107dce268a7a082838ad
 echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065ae4f21b662e87f2aaedf6ea424ea58dfa9d3d73c06281f806d15dd  nose-1.2.1.tar.gz' > nose-1.2.1.tar.gz.sha512
 echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
 echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
-
+echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
@@ -457,6 +473,7 @@ get_ytproject Forthon-0.8.10.tar.gz
 get_ytproject nose-1.2.1.tar.gz 
 get_ytproject python-hglib-0.2.tar.gz
 get_ytproject sympy-0.7.2.tar.gz
+get_ytproject rockstar-0.99.6.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e bzip2-1.0.5/done ]
@@ -699,6 +716,23 @@ do_setup_py python-hglib-0.2
 do_setup_py sympy-0.7.2
 [ $INST_PYX -eq 1 ] && do_setup_py PyX-0.11.1
 
+# Now we build Rockstar and set its environment variable.
+if [ $INST_ROCKSTAR -eq 1 ]
+then
+    if [ ! -e Rockstar/done ]
+    then
+        [ ! -e Rockstar ] && tar xfz rockstar-0.99.6.tar.gz
+        echo "Building Rockstar"
+        cd Rockstar
+        ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        cp librockstar.so ${DEST_DIR}/lib
+        ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar
+        echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
+        touch done
+        cd ..
+    fi
+fi
+
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
 cd $YT_DIR
@@ -727,7 +761,7 @@ if [ $INST_ENZO -eq 1 ]
 then
     echo "Cloning a copy of Enzo."
     cd ${DEST_DIR}/src/
-    ${HG_EXEC} clone https://enzo.googlecode.com/hg/ ./enzo-hg-stable
+    ${HG_EXEC} clone https://bitbucket.org/enzo/enzo-stable ./enzo-hg-stable
     cd $MY_PWD
 fi
 
