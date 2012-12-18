@@ -59,7 +59,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         size = 0
         for chunk in chunks:
             data = self._read_chunk_data(chunk, pfields, 'active', 
-                        "/ActiveParticles/%s" % ptypes[0])
+                        "/Particles/%s" % ptypes[0])
             for g in chunk.objs:
                 if g.NumberOfActiveParticles == 0: continue
                 x, y, z = (data[g.id].pop(fn) for ft, fn in pfields)
@@ -73,7 +73,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         ind = 0
         for chunk in chunks:
             data = self._read_chunk_data(chunk, read_fields, 'active',
-                        "/ActiveParticles/%s" % ptypes[0])
+                        "/Particles/%s" % ptypes[0])
             for g in chunk.objs:
                 if g.NumberOfActiveParticles == 0: continue
                 x, y, z = (data[g.id][fn] for ft, fn in pfields)

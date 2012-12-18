@@ -435,7 +435,8 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     to_share = {}
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
-    for obj_id, obj in enumerate(objects):
+    oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+    for obj_id, obj in oiter:
         result_id = obj_id * njobs + my_new_id
         if storage is not None:
             rstore = ResultsStorage()
