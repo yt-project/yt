@@ -9,6 +9,7 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('geometry',parent_package,top_path)
     config.add_extension("oct_container", 
                 ["yt/geometry/oct_container.pyx"],
+                include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/geometry/oct_container.pxd",
