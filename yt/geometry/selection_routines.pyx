@@ -26,7 +26,7 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
 from cython.parallel import prange, parallel, threadid
 from selection_routines cimport SelectorObject
@@ -159,9 +159,9 @@ cdef class SelectorObject:
                     self.recursively_select_octs(
                         octree.root_mesh[i][j][k],
                         pos, dds, mask)
-                    pos[2] += dds[2]
-                pos[1] += dds[2]
-            pos[0] += dds[2]
+                    pos[2] += dds[2] 
+                pos[1] += dds[1]
+            pos[0] += dds[0] 
         return mask.astype("bool")
 
     @cython.boundscheck(False)
