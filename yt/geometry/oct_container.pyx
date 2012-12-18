@@ -87,14 +87,13 @@ cdef void free_octs(
 cdef class OctreeContainer:
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
-        self.nn[0], self.nn[1], self.nn[2] = domain_dimensions
         cdef int i, j, k, p
+        for i in range(3):
+            self.nn[i] = domain_dimensions[i]
         self.max_domain = -1
         p = 0
         self.nocts = 0 # Increment when initialized
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
-        for i in range(3):
-            self.nn[i] = domain_dimensions[i]
         for i in range(self.nn[0]):
             self.root_mesh[i] = <Oct ***> malloc(sizeof(void*) * self.nn[1])
             for j in range(self.nn[1]):
@@ -103,8 +102,8 @@ cdef class OctreeContainer:
                     self.root_mesh[i][j][k] = NULL
         # We don't initialize the octs yet
         for i in range(3):
-            self.DLE[i] = domain_left_edge[i]
-            self.DRE[i] = domain_right_edge[i]
+            self.DLE[i] = domain_left_edge[i] #0
+            self.DRE[i] = domain_right_edge[i] #num_grid
 
     def __dealloc__(self):
         free_octs(self.cont)
@@ -346,12 +345,12 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
-        for p in range(no):
+        for p in range(no): #oct number p out of no octs to allocate
             #for every oct we're trying to add find the 
             #floating point unitary position on this level
             in_boundary = 0
             for i in range(3):
-                pp[i] = pos[p, i]
+                pp[i] = pos[p, i] 
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> (pp[i]/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
@@ -362,7 +361,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
             if cur == NULL:
                 if curlevel != 0:
                     raise RuntimeError
-                cur = &cont.my_octs[cont.n_assigned]
+                cur = &cont.my_octs[cont.n_assigned] #my octs?
                 cur.parent = NULL
                 cur.level = 0
                 for i in range(3):
@@ -396,12 +395,21 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     next.level = level + 1
                     self.nocts += 1
                 cur = next
-            cur.domain = curdom
+            cur.domain = curdom 
             if local == 1:
                 cur.ind = p
             cur.level = curlevel
         return cont.n_assigned - initial
-
+    # ii:mask/art ; ci=ramses loop backward (k<-fast, j ,i<-slow) 
+    # ii=0 000 art 000 ci 000 
+    # ii=1 100 art 100 ci 001 
+    # ii=2 010 art 010 ci 010 
+    # ii=3 110 art 110 ci 011
+    # ii=4 001 art 001 ci 100
+    # ii=5 101 art 011 ci 101
+    # ii=6 011 art 011 ci 110
+    # ii=7 111 art 111 ci 111
+    # keep coords ints so multiply by pow(2,1) when increasing level.
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -418,9 +426,9 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         coords = np.empty((cell_count, 3), dtype="int64")
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
-            for i in range(2):
+            for k in range(2):
                 for j in range(2):
-                    for k in range(2):
+                    for i in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.local_ind, ii] == 0: continue
                         ci = level_counts[o.level]
@@ -501,9 +509,10 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                 # first cell in the grid
                 pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
                 dx[i] = dx[i] / 2.0 # This is now the *offset* 
-            for i in range(2):
+#            raise NotImplementedError #check oct position ordering = ART's output oct ordering"
+            for k in range(2):
                 for j in range(2):
-                    for k in range(2):
+                    for i in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.local_ind, ii] == 0: continue
                         ci = level_counts[o.level]
@@ -516,9 +525,9 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_level(self, int domain, int level, dest_fields, source_fields,
+    def fill_mask(self, int domain, dest_fields, source_fields,
                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
-        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float32_t, ndim=1] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
         cdef Oct *o
@@ -526,19 +535,19 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef int i, j, k, ii
         cdef int local_pos, local_filled
         cdef np.float64_t val
+        print dom.n
         for key in dest_fields:
             local_filled = 0
             dest = dest_fields[key]
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                if o.level != level: continue
-                for i in range(2):
+                for k in range(2):
                     for j in range(2):
-                        for k in range(2):
+                        for i in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
-                            dest[local_filled + offset] = source[o.ind, ii]
+                            dest[local_filled + offset] = source[o.ind*8+ ii]
                             local_filled += 1
         return local_filled
 
@@ -785,7 +794,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
-                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
+                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset): 
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
