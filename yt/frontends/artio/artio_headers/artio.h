@@ -31,7 +31,7 @@ typedef __int64 int64_t;
 /* allocation strategy */
 #define ARTIO_ALLOC_EQUAL_SFC               0
 #define ARTIO_ALLOC_EQUAL_PROC              1
-#define ARTIO_ALLOC_MAX_FILE_SIZE  	        2
+#define ARTIO_ALLOC_MAX_FILE_SIZE  	    2
 
 #define ARTIO_TYPE_STRING                   0
 #define ARTIO_TYPE_CHAR                     1
@@ -171,7 +171,9 @@ int artio_parameter_get_long_array(artio_file handle, char * key,
 typedef void (* GridCallBack)(float * variables, int level, int refined,
 		int64_t sfc_index);
 typedef void (* GridCallBackPos)(double * variables, int level, int refined,
-                int64_t sfc_index, double pos[3]);
+                                 int64_t sfc_index, double pos[3], void * user_data);
+typedef void (* GridCallBackBuffer)(double * variables, int level, int refined,
+                                 int64_t sfc_index, void * user_data);
 
 /*
  * Description:	Add a grid component to a fileset open for writing
@@ -278,8 +280,9 @@ int artio_grid_cache_sfc_range(artio_file handle, int64_t sfc_start, int64_t sfc
  *  option			1. refined nodes; 2 leaf nodes; 3 all nodes
  *  callback			callback function
  */
-int artio_grid_read_sfc_range(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read,int max_level_to_read, int options, GridCallBack callback);
-int artio_grid_read_sfc_range_pos(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read,int max_level_to_read, int options, GridCallBackPos callback);
+int artio_grid_read_sfc_range(       artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBack callback);
+int artio_grid_read_sfc_range_pos(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read,int max_level_to_read, int options, GridCallBackPos callback, void *user_data);
+int artio_grid_read_sfc_range_buffer(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBackBuffer callback, void *user_data);
 		
 
 typedef void (* ParticleCallBack)(int64_t pid, 

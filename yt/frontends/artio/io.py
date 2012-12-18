@@ -22,7 +22,6 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 from collections import defaultdict
 import numpy as np
 
@@ -36,24 +35,12 @@ class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-#chunks: list of YTDataChunk objects
-#selector: SelectorObjects (you can see the definition in yt/geometry/selection_routines.pxd) which can tell you which cells or particles to include in an object
-#fields: list of fields of the form (ftype, fname) where ftype is a string (for the case of multi-fluid simulations) and fname is the name of the fluid type.
-#size: the total (expected) number of cells that intersect, so that fields can be pre-allocated (to avoid memory fragmentation)
-
-        # Chunks in this case will have affiliated domain subset objects
-        # Each domain subset will contain a hydro_offset array, which gives
-        # pointers to level-by-level hydro information
         tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
         cp = 0
-        for chunk in chunks:     #from _chunk_io in grid_geometry_handler.py yielding YTDataChunk 
-            for subset in chunk.objs:        #chunk.objs =  gs = files  [=gobjs appended to gfiles]
-                # Now we read the entire thing
-                f = open(subset.domain.grid_fn, "rb") 
-                # This contains the boundary information, so we skim through
-                # and pick off the right vectors
-                content = cStringIO.StringIO(f.read())
-                rv = subset.fill(content, fields)
+        for chunk in chunks:
+            for subset in chunk.objs:
+                print 'reading from ',fields, subset.domain.grid_fn
+                rv = subset.fill(fields) 
                 for ft, f in fields:
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
                         f, subset.cell_count, rv[f].min(), rv[f].max(),
@@ -63,6 +50,8 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
+        raise NotImplementedError #snl 
+
         size = 0
         masks = {}
         for chunk in chunks:

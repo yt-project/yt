@@ -22,7 +22,6 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 import numpy as np
 import stat
 import weakref
@@ -30,7 +29,7 @@ import cStringIO
 
 from _artio_caller import \
     artio_is_valid, artio_fileset , artio_fileset_grid, \
-    grid_pos_fill, grid_var_fill, count_octs#, read_header 
+    artio_grid_routines#, read_header 
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
@@ -66,136 +65,39 @@ from yt.geometry.oct_container import \
 
 
 
-def cell_pos_callback( level, refined, sfc_index, pos):
-    print pos[0],pos[1],pos[2], 'cell position from callback'
-    ng=1 #until you write something to buffer
-    cpu=0
-    domain_id=0
-    oct_handler.add(cpu + 1, level - min_level, ng, pos, domain_id) 
-
-# the following classes are old RAMSES oct handling until otherwise noted
 class ARTIODomainFile(object):
-    _handle = None
+#    _last_mask = None
+#    _last_selector_id = None
+#    nvar = 6
+#    _handle = None
 
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
         self.part_fn = "%s.p%03i" % (pf.parameter_filename[:-4],domain_id)
         self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)
-        #self.parameter_file = weakref.proxy(pf)
         self._fileset_prefix = pf.parameter_filename[:-4]
-        self._handle = artio_fileset(self._fileset_prefix) 
-
+        self._handle = artio_fileset_grid(self._fileset_prefix) 
+        
+        self.artiogrid = artio_grid_routines(self._handle)
         self._read_grid_header()
         self._read_particle_header()
+        self.level_count
 
-#     @property
-#     def level_count(self):
-#         if self._level_count is not None: return self._level_count
-#         self.hydro_offset
-#         return self._level_count
-
-#     @property
-#     def hydro_offset(self):
-#         if self._hydro_offset is not None: return self._hydro_offset
-#         # We now have to open the file and calculate it
-#         f = open(self.hydro_fn, "rb")
-#         fpu.skip(f, 6)
-#         # It goes: level, CPU, 8-variable
-#         min_level = self.pf.min_level
-#         n_levels = self.grid_header['nlevelmax'] - min_level
-#         hydro_offset = np.zeros(n_levels, dtype='int64')
-#         hydro_offset -= 1
-#         level_count = np.zeros(n_levels, dtype='int64')
-#         for level in range(self.grid_header['nlevelmax']):
-#             for cpu in range(self.grid_header['nboundary'] +
-#                              self.grid_header['ncpu']):
-#                 header = ( ('file_ilevel', 1, 'I'),
-#                            ('file_ncache', 1, 'I') )
-#                 hvals = fpu.read_attrs(f, header)
-#                 if hvals['file_ncache'] == 0: continue
-#                 assert(hvals['file_ilevel'] == level+1)
-#                 if cpu + 1 == self.domain_id and level >= min_level:
-#                     hydro_offset[level - min_level] = f.tell()
-#                     level_count[level - min_level] = hvals['file_ncache']
-#                 fpu.skip(f, 8 * self.nvar)
-#         self._hydro_offset = hydro_offset
-#         self._level_count = level_count
-#         return self._hydro_offset
-
+    ###########################################
     def _read_particle_header(self):
         if not os.path.exists(self.part_fn):
             self.local_particle_count = 0
             self.particle_field_offsets = {}
             return
-#        f = open(self.part_fn, "rb")
-        hvals = {}
-        attrs = ( ('ncpu', 1, 'I'),
-                  ('ndim', 1, 'I'),
-                  ('npart', 1, 'I') )
-#        hvals.update(fpu.read_attrs(f, attrs))
-#        fpu.read_vector(f, 'I')
-
-        attrs = ( ('nstar_tot', 1, 'I'),
-                  ('mstar_tot', 1, 'd'),
-                  ('mstar_lost', 1, 'd'),
-                  ('nsink', 1, 'I') )
-#        hvals.update(fpu.read_attrs(f, attrs))
-#        self.particle_header = hvals
-#        self.local_particle_count = hvals['npart']
-        particle_fields = [
-                ("particle_position_x", "d"),
-                ("particle_position_y", "d"),
-                ("particle_position_z", "d"),
-                ("particle_velocity_x", "d"),
-                ("particle_velocity_y", "d"),
-                ("particle_velocity_z", "d"),
-                ("particle_mass", "d"),
-                ("particle_identifier", "I"),
-                ("particle_refinement_level", "I")]
-#        if hvals["nstar_tot"] > 0:
-#            particle_fields += [("particle_age", "d"),
-#                                ("particle_metallicity", "d")]
-#        field_offsets = {particle_fields[0][0]: f.tell()}
-#        for field, vtype in particle_fields[1:]:
-#            fpu.skip(f, 1)
-#            field_offsets[field] = f.tell()
-#        self.particle_field_offsets = field_offsets
 
     def _read_grid_header(self):
-#        hvals = {}
-#        f = open(self.grid_fn, "rb")
-#        for header in ramses_header(hvals):
-#            hvals.update(fpu.read_attrs(f, header))
-        # That's the header, now we skip a few.
-#        hvals['numbl'] = np.array(hvals['numbl']).reshape(
-#            (hvals['nlevelmax'], hvals['ncpu']))
-#        fpu.skip(f)
-#        if hvals['nboundary'] > 0:
-#            fpu.skip(f, 2)
-#            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
-#        else:
-#            self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-#        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
-#        ordering = fpu.read_vector(f, 'c')
-#        fpu.skip(f, 4)
-        # Now we're at the tree itself
-        # Now we iterate over each level and each CPU.
-#        self.grid_header = hvals
-#        self.grid_offset = f.tell()
-#        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
-        
         sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
-        self.local_oct_count = \
-            count_octs(self._fileset_prefix,
-                       0,sfc_max, 
-                       self.pf.min_level,
-                       self._handle.parameters['grid_max_level'][0], 
-                       self._handle.parameters['num_grid_variables'][0])
-        print self.local_oct_count
+        self.local_oct_count = self.artiogrid.count_octs() #count_octs(self._handle)
+        self.level_count = self.artiogrid.level_count
+        print 'snl data_structures local_octs count',self.local_oct_count
+    ###########################################
         
-
-
     def _read_grid(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain 
@@ -203,20 +105,11 @@ class ARTIODomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
-        sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
-        sfc_max = 5   # for testing
-        grid_pos_fill(self._fileset_prefix, 0,sfc_max, 0, 10)##########
-
-    #snl this is where I would LIKE the callback to go:
-#    def cell_pos_callback(self, level, refined, sfc_index, pos):
-#        print pos[0],pos[1],pos[2], 'snlpos'
-#        ng=1 #until you write something to buffer
-#        cpu=0
-#        self.domain_id=0
-#        oct_handler.add(cpu + 1, level - min_level, ng, pos, self.domain_id) 
+        #oct_handler may not be attributed yet
+        self.artiogrid=artio_grid_routines(self._handle) 
+        self.artiogrid.grid_pos_fill(oct_handler)
+        print 'segfault debug'
         
-    
-
     def select(self, selector):
         if id(selector) == self._last_selector_id:
             return self._last_mask
@@ -232,6 +125,7 @@ class ARTIODomainFile(object):
         return self.count(selector)
 
 class ARTIODomainSubset(object):
+
     def __init__(self, domain, mask, cell_count):
         self.mask = mask
         self.domain = domain
@@ -242,7 +136,11 @@ class ARTIODomainSubset(object):
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
-
+        print 'cumulative masked level counts',self.level_counts
+        
+        self.artiogrid = self.domain.artiogrid
+        #self.artiogrid=artio_grid_routines(self._handle) 
+        
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.cell_count,
@@ -267,8 +165,41 @@ class ARTIODomainSubset(object):
                                      self.cell_count,
                                      self.level_counts.copy())
 
-    #unchanged...
-    def fill(self, content, fields):
+    def fill(self, fields):
+        oct_handler = self.oct_handler
+        all_fields = self.domain.pf.h.fluid_field_list
+        min_level = self.domain.pf.min_level
+        fields = [f for ft, f in fields]
+        print 'all_fields:', all_fields 
+        print 'fields:', fields
+        
+
+
+        tr = {}
+        for field in fields: 
+            tr[field] = np.zeros(self.cell_count, 'float64')
+        temp = {}
+        nc = self.domain.level_count.sum()
+        print 'ncells total',self.cell_count, 'ncells masked', nc
+        for field in fields:
+            #temp[field] = np.empty((no,8), dtype="float64") 
+            temp[field] = np.empty(nc, dtype="float32") 
+
+        #buffer variables 
+        self.artiogrid.grid_var_fill(temp, fields)
+        
+        #mask unused cells 
+        oct_handler = self.oct_handler
+        level_offset = 0
+        level_offset += oct_handler.fill_mask(
+             self.domain.domain_id,
+            tr, temp, self.mask, level_offset) #[oct_container.pyx]
+
+        return tr
+    
+    
+
+    def fill_old(self, content, fields):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -277,9 +208,12 @@ class ARTIODomainSubset(object):
         tr = {}
         filled = pos = level_offset = 0
         min_level = self.domain.pf.min_level
+        print 'hydro offset', self.domain.hydro_offset
+        
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.hydro_offset):
+            print 'level', level, 'offset', offset
             if offset == -1: continue
             content.seek(offset)
             nc = self.domain.level_count[level]
@@ -296,10 +230,12 @@ class ARTIODomainSubset(object):
                         #print "Reading %s in %s : %s" % (field, level,
                         #        self.domain.domain_id)
                         temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
+                        #print field, temp[field][:,i] 
             level_offset += oct_handler.fill_level(self.domain.domain_id, level,
                                    tr, temp, self.mask, level_offset)
             #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, level_offset)
         #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
+        raise NotImplementedError #snl
         return tr
 
 class ARTIOGeometryHandler(OctreeGeometryHandler):
@@ -316,24 +252,24 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         super(ARTIOGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
-        #domains are the class object ... ncpu == 1 for parallelization currently 
+        #domains are the class object ... ncpu == 1 currently 
         #only one file/"domain" for ART
         self.domains = [ARTIODomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
-        #this merely allocates space for the oct tree
-        #and nothing else
+        #this allocates space for the oct tree
         self.oct_handler = ARTIOOctreeContainer(
-            self.parameter_file.domain_dimensions/2,
+            self.parameter_file.domain_dimensions, 
             self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge)
+            self.parameter_file.domain_right_edge) 
         mylog.debug("Allocating octs")
         self.oct_handler.allocate_domains(
             [dom.local_oct_count for dom in self.domains])
         for dom in self.domains:
             dom._read_grid(self.oct_handler)
+        print 'seg fault debugging in _initialize_oct_handler' 
 
     def _detect_fields(self):
-        # TODO: Add additional fields #snl how are field names dealt with in ART?
+        # snl Add additional fields and translator from artio <-> yt
         self.fluid_field_list = [ "Density", "x-velocity", "y-velocity",
 	                        "z-velocity", "Pressure", "Metallicity" ]
         pfl = set([])
@@ -366,14 +302,13 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         raise NotImplementedError
 
     def _chunk_io(self, dobj):
-        raise NotImplementedError
-#        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-#        for subset in oobjs:
-#            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+        # _current_chunk is made from identify_base_chunk 
+        #object = dobj._current_chunk.objs or dobj._current_chunk.${dobj._chunk_info}
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in oobjs:
+            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
 
-
-#snl: the following is for complete and understood header reading and unit setting
 class ARTIOStaticOutput(StaticOutput):
     _handle = None
     _hierarchy_class = ARTIOGeometryHandler
@@ -386,9 +321,6 @@ class ARTIOStaticOutput(StaticOutput):
         self._filename = filename
         self._fileset_prefix = filename[:-4]
         self._handle = artio_fileset(self._fileset_prefix) 
-#        grid_pos_fill(self._fileset_prefix, 0,sfc_max, 0, 10)##########
-#        grid_var_fill(self._fileset_prefix, 0,100, 0, 10)##########
-        
         # Here we want to initiate a traceback, if the reader is not built.
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename 
@@ -421,18 +353,16 @@ class ARTIOStaticOutput(StaticOutput):
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1. # default unit is 1...
-        self.min_level = 0  #self._handle.parameters['grid_min_level']
-        # ^hard-coded
+        self.min_level = 0  # ART has min_level=0. No self._handle.parameters['grid_min_level']
 
         # read header
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
-        self.domain_dimensions = np.ones(3,dtype='int64') * \
-            self._handle.parameters["num_root_cells"][0]**(1./3.)
-
+        num_grid = (int)(self._handle.parameters["num_root_cells"][0]**(1./3.)+0.5)
+        self.domain_dimensions = np.ones(3,dtype='int32') * num_grid
         self.domain_left_edge = np.zeros(3, dtype="float64")
-        self.domain_right_edge = self.domain_dimensions
+        self.domain_right_edge = np.ones(3, dtype='float64')*num_grid
 
         self.min_level = 0
         self.max_level = self._handle.parameters["max_refinement_level"][0]
@@ -454,7 +384,8 @@ class ARTIOStaticOutput(StaticOutput):
         self.parameters['unit_t'] = self._handle.parameters["time_unit"][0]
         self.parameters['unit_m'] = self._handle.parameters["mass_unit"][0]
         self.parameters['unit_d'] = self.parameters['unit_m']/self.parameters['unit_l']**(3.0)
-#snl hard coded number of domains in ART = 1 ... that may change for parallelization 
+
+        # hard coded number of domains in ART = 1 ... that may change for parallelization 
         self.parameters['ncpu'] = 1
 
     @classmethod

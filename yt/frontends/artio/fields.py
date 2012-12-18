@@ -44,6 +44,7 @@ add_field = ARTIOFieldInfo.add_field
 
 #need all of these to be defined
 known_artio_fields = [
+    "VAR_POTENTIAL",
     "Density",
     "x-velocity",
     "y-velocity",
@@ -84,15 +85,21 @@ for ax in ['x','y','z']:
     f.take_log = False
 
 known_artio_particle_fields = [
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_velocity_x",
-    "particle_velocity_y",
-    "particle_velocity_z",
+    "POSITION_X",
+    "POSITION_Y",
+    "POSITION_Z",
+    "VELOCITY_X",
+    "VELOCITY_Y",
+    "VELOCITY_Z",
+#    "particle_position_x",
+#    "particle_position_y",
+#    "particle_position_z",
+#    "particle_velocity_x",
+#    "particle_velocity_y",
+#    "particle_velocity_z",
     "particle_mass",
     "particle_identifier",
-    "particle_refinement_level",
+    "particle_refinement_level"
 ]
 
 for f in known_artio_particle_fields:

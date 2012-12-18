@@ -1,11 +1,12 @@
 """
 
 """
-import sys #snl this is for debugging
+import numpy as np
+cimport numpy as np
+import sys 
 
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
-#from  data_structures  import cell_pos_callback
 import  data_structures  
 
 cdef struct artio_context_struct: 
@@ -21,6 +22,10 @@ cdef extern from "artio.h":
     ctypedef struct artio_file_struct "artio_file_struct" :
         pass
     ctypedef artio_file_struct *artio_file "artio_file"
+    ctypedef struct artio_grid_file_struct "artio_grid_file_struct" :
+        pass
+    ctypedef artio_grid_file_struct *artio_grid_file "artio_grid_file"
+
 
     ctypedef struct artio_context_struct "artio_context_struct" :
         pass
@@ -73,12 +78,20 @@ cdef extern from "artio.h":
                                   float *variables, int32_t *num_oct_levels, int32_t *num_octs_per_level)
     int artio_grid_cache_sfc_range(artio_file handle, int64_t start, int64_t end)
 
-    ctypedef void (* GridCallBackPos)(float * variables, int level, int refined, int64_t sfc_index, double pos[3])
+    ctypedef void (* GridCallBackPos)(float * variables, int level, int refined, int64_t sfc_index, double pos[3], void *)
     int artio_grid_read_sfc_range_pos(artio_file handle,\
                 int64_t sfc1, int64_t sfc2,\
                 int min_level_to_read, int max_level_to_read,\
                 int options,\
-                GridCallBackPos callback)
+                GridCallBackPos callback, void *user_data)
+
+    ctypedef void (* GridCallBackBuffer)(float * variables, int level, int refined, int64_t sfc_index, void *)
+    int artio_grid_read_sfc_range_buffer(artio_file handle,\
+                int64_t sfc1, int64_t sfc2,\
+                int min_level_to_read, int max_level_to_read,\
+                int options,\
+                GridCallBackBuffer callback, void *user_data)
+
     ctypedef void (* GridCallBack)(float * variables, int level, int refined,int64_t sfc_index)
     int artio_grid_read_sfc_range(artio_file handle,\
                 int64_t sfc1, int64_t sfc2,\
@@ -147,18 +160,12 @@ cdef class read_parameters_artio :
 
             self.parameters[key] = parameter
 
-#        print self.parameters
-        
-#    def read_parameters(self) : 
-#        cdef char key[64]
-#        cdef int type
-#        cdef int length
-#        while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
-#            print 'hi!!'
-def check_artio_status(status, name):
-        if status!=ARTIO_SUCCESS :
-            print 'failure with status', status, 'in function ',name 
-            sys.exit(1)
+def check_artio_status(status, fname):
+    callername = sys._getframe().f_code.co_name
+    nline = sys._getframe().f_lineno
+    if status!=ARTIO_SUCCESS :
+        print 'failure with status', status, 'in function',fname,'from caller', callername, nline 
+        sys.exit(1)
 cdef class artio_fileset :
     cdef public object parameters 
     cdef artio_file handle
@@ -172,8 +179,9 @@ cdef class artio_fileset :
         print 'done reading header parameters'
 
 cdef class artio_fileset_grid :
-    cdef public object parameters #is self.parameters public or is parameters public?
+    cdef public object parameters
     cdef artio_file handle
+    cdef public file_prefix
 
     def __init__(self, char *file_prefix) :
         cdef int artio_type = ARTIO_OPEN_GRID
@@ -182,91 +190,163 @@ cdef class artio_fileset_grid :
         d = read_parameters_artio(file_prefix, artio_type)
         self.parameters = {}
         self.parameters = d.parameters
-#        print self.parameters
+        self.file_prefix = file_prefix
         print 'done reading grid parameters'
 
-###### callback for positions #############
-def count_octs(char *file_prefix,
-               int64_t sfc1, int64_t sfc2,
-               int min_level_to_read, int max_level_to_read,
-               int num_grid_variables
-               ) :
-    cdef float * variables  
-    cdef int32_t * num_oct_levels 
-    cdef int32_t * num_octs_per_level 
+#snl: subclass some of this?
+class artio_grid_routines(object) : 
+    def __init__(self, param_handle) :
+        self.oct_handler=None
+        self.source = None
+        self.level_count = None
 
-    length = num_grid_variables * 8
-    variables = <float *>malloc(length*sizeof(float))
-    num_oct_levels = <int32_t *>malloc(1*sizeof(int32_t))
-    length = max_level_to_read
-    num_octs_per_level = <int32_t *>malloc(length*sizeof(int32_t))
+        self.min_level_to_read = 0
+        self.max_level_to_read = param_handle.parameters['grid_max_level'][0]
+        self.sfc1 = 0
+        self.sfc2 = param_handle.parameters['grid_file_sfc_index'][1]-1
+        self.num_grid_variables = param_handle.parameters['num_grid_variables'][0]
+        self.param_handle=param_handle
+        self.ng=1 
+        self.cpu=0
+        self.domain_id=0
 
-    cdef artio_file handle
-    handle = artio_fileset_open( file_prefix, ARTIO_OPEN_GRID, artio_context_global ) 
-    artio_fileset_open_grid( handle ) 
-
-    num_total_octs =0
-    status = artio_grid_cache_sfc_range(handle, sfc1, sfc2)
-    check_artio_status(status, count_octs.__name__)
-    for sfc in xrange(sfc1,sfc2):
-        status = artio_grid_read_root_nocts(handle, sfc,
-                                            variables, num_oct_levels,
-                                            num_octs_per_level)
-        check_artio_status(status, count_octs.__name__)
-        noct_levels = num_oct_levels[0]
-        count_level_octs = {}          
-        count_level_octs = [ num_octs_per_level[i] for i in xrange(noct_levels) ]
-        num_sfc_octs = sum(count_level_octs)
-        num_total_octs += num_sfc_octs
-
-    status = artio_grid_read_root_cell_end(handle)
-    check_artio_status(status, count_octs.__name__)
-    artio_fileset_close_grid(handle)
-
-    return num_total_octs
-
-###### callback for positions #############
-def grid_pos_fill(char *file_prefix,\
-                int64_t sfc1, int64_t sfc2,\
-                int min_level_to_read, int max_level_to_read) :
-    cdef artio_file handle
-    handle = artio_fileset_open( file_prefix, ARTIO_OPEN_GRID, artio_context_global ) 
-    artio_fileset_open_grid( handle ) 
-    status = artio_grid_read_sfc_range_pos(handle,\
-                sfc1, sfc2,\
-                min_level_to_read, max_level_to_read,\
-                ARTIO_READ_LEAFS,\
-                wrap_cell_pos_callback)
-    check_artio_status(status, grid_pos_fill.__name__)
-
-cdef void wrap_cell_pos_callback(float *variables, int level, int refined, int64_t sfc_index, double *pos):
-    position = {}
-    position = [ pos[i] for i in range(3) ]
-    data_structures.cell_pos_callback(level, refined, sfc_index, position)
-
-###### callback for variables #############
-def grid_var_fill(char *file_prefix,\
-                int64_t sfc1, int64_t sfc2,\
-                int min_level_to_read, int max_level_to_read) :
-    cdef artio_file handle
-    handle = artio_fileset_open( file_prefix, ARTIO_OPEN_GRID, artio_context_global ) 
-    artio_fileset_open_grid( handle ) 
-    artio_grid_read_sfc_range(handle,\
-                sfc1, sfc2,\
-                min_level_to_read, max_level_to_read,\
-                ARTIO_READ_LEAFS,\
-                wrap_cell_var_callback)
-def cell_var_callback(level, refined, sfc_index, cell_var):
-    print "variable callback success! ",level, refined, sfc_index 
-cdef void wrap_cell_var_callback(float *variables, int level, int refined, int64_t sfc_index):
-    cell_var={}
-#     cdef int num_grid_variables=1 # really from read_parameters_artio(file_prefix, artio_type)
-#        for label in parameters.grid_variable_labels
-#            cell_var = [ variables[i] for i in range(num_grid_variables) ]
-#            if(label == 'density'): 
-#                cell_var_callback(cell_var, level, refined, sfc_index)
-    cell_var_callback(level, refined, sfc_index, cell_var)
+        self.grid_variable_labels=param_handle.parameters['grid_variable_labels']
  
+        # dictionary from artio to yt ... should go elsewhere
+        self.label_artio_yt = {}
+        for label in self.grid_variable_labels :
+            if label == 'HVAR_GAS_DENSITY' :
+                self.label_artio_yt[label] = 'Density'
+            else :
+                self.label_artio_yt[label] = label
+        print self.label_artio_yt
+
+
+        self.grid_variable_labels        
+        self.label_index = {}
+        self.matched_fields = []
+        # not sure about file handling
+        # self.handle = <object> handle #<------seg faults
+        # and you never bother to close all of these handles
+        
+    def count_octs(self) :
+        cdef int min_level_to_read = self.min_level_to_read
+        cdef int max_level_to_read = self.max_level_to_read
+        cdef int64_t sfc1 = self.sfc1
+        cdef int64_t sfc2 = self.sfc2
+        cdef num_grid_variables = self.num_grid_variables
+        
+        cdef float * variables  
+        cdef int32_t * num_oct_levels 
+        cdef int32_t * num_octs_per_level 
+        
+        length = num_grid_variables * 8
+        variables = <float *>malloc(length*sizeof(float))
+        num_oct_levels = <int32_t *>malloc(1*sizeof(int32_t))
+        length = max_level_to_read
+        num_octs_per_level = <int32_t *>malloc(length*sizeof(int32_t))
+        
+        cdef artio_file handle
+        handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                     ARTIO_OPEN_GRID, artio_context_global ) 
+        artio_fileset_open_grid( handle ) 
+        
+        cdef int64_t num_total_octs =0
+        n_levels = max_level_to_read - min_level_to_read + 1
+        level_count = np.zeros(n_levels, dtype='int64')
+
+        status = artio_grid_cache_sfc_range(handle, sfc1, sfc2)
+        check_artio_status(status, artio_grid_routines.__name__)
+        for sfc in xrange(sfc1,sfc2):
+            status = artio_grid_read_root_nocts(handle, sfc,
+                                                variables, num_oct_levels,
+                                                num_octs_per_level)
+            check_artio_status(status, artio_grid_routines.__name__)
+            noct_levels = num_oct_levels[0]
+            count_level_octs = {}          
+            count_level_octs = [ num_octs_per_level[i] for i in xrange(noct_levels) ]
+            for level in xrange(noct_levels) : 
+                level_count[level] += count_level_octs[level] 
+            num_sfc_octs = sum(count_level_octs)
+            num_total_octs += num_sfc_octs
+            status = artio_grid_read_root_cell_end(handle)
+            check_artio_status(status, artio_grid_routines.__name__)
+            
+            #    check_artio_status(-1, count_octs.__name__)
+            # dont close file until the end of the object... add __del__: artio_fileset_close_grid(handle)
+        self.level_count = level_count
+        return num_total_octs
+
+    def grid_pos_fill(self, oct_handler) :
+        self.oct_handler = oct_handler
+        cdef artio_file handle
+        if self.oct_handler == None :
+            print 'oct_handler is not assigned!'
+            sys.exit(1)
+        handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                     ARTIO_OPEN_GRID, artio_context_global ) 
+        status = artio_grid_read_sfc_range_pos(handle,\
+                    self.sfc1, self.sfc2,\
+                    self.min_level_to_read, self.max_level_to_read,\
+                    ARTIO_READ_REFINED,\
+                    wrap_cell_pos_callback, <void*>self) 
+        check_artio_status(status, artio_grid_routines.__name__)
+        print 'done filling oct positions'
+    def cell_pos_callback(self, level, refined, sfc_index, pos):
+        self.oct_handler.add(self.cpu + 1, level - self.min_level_to_read, self.ng, pos, self.domain_id)
+
+    def grid_var_fill(self, source, fields):
+        self.source = source
+        i=-1
+        for artlabel in self.grid_variable_labels :
+            label = self.label_artio_yt[artlabel]
+            i=i+1
+            for field in fields : 
+                if field == label :
+                    print 'match, in fields?', field,label, fields
+                    print '!!!!!!!!!!!!!!!'
+                    self.label_index[field]=i
+                    self.matched_fields.append(field)
+        print 'matched fields:',self.matched_fields
+        print 'art index of matched fields',self.label_index
+        self.count=0
+        cdef artio_file handle
+        if len(self.label_index) > 0 :
+            handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                         ARTIO_OPEN_GRID, artio_context_global ) 
+            status = artio_grid_read_sfc_range_buffer(
+                handle, self.sfc1, self.sfc2,\
+                    self.min_level_to_read, self.max_level_to_read,\
+                    ARTIO_READ_REFINED,\
+                    wrap_cell_var_callback,\
+                    <void*>self
+                ) #only octs!
+            check_artio_status(status, artio_grid_routines.__name__)
+        print 'done buffering variables'
+    def cell_var_callback(self, level, refined, ichild, cell_var):
+        for field in self.matched_fields : 
+            self.source[field][self.count] = cell_var[self.label_index[field]] 
+        self.count=self.count+1
+ 
+
+###### callbacks #############
+cdef void wrap_cell_pos_callback(float *variables, int level, int refined, 
+                                 int64_t sfc_index, double *pos, void *user_data):
+    position = np.empty((1, 3), dtype='float64')
+    position[0,0] = pos[0] 
+    position[0,1] = pos[1] 
+    position[0,2] = pos[2] 
+    artioroutines = <object>user_data
+    artioroutines.cell_pos_callback(level, refined, sfc_index, position)
+
+cdef void wrap_cell_var_callback(float *variables, int level, int refined, 
+                                 int64_t ichild, void *user_data):
+    artioroutines = <object>user_data
+    cell_var={}
+    cell_var = [ variables[i] for i in range(artioroutines.num_grid_variables) ]
+    artioroutines.cell_var_callback(level, refined, ichild, cell_var)
+
+
 def artio_is_valid( char *file_prefix ) :
     cdef artio_file handle = artio_fileset_open( file_prefix, 
             ARTIO_OPEN_HEADER, artio_context_global )
@@ -275,3 +355,6 @@ def artio_is_valid( char *file_prefix ) :
     else :
         artio_fileset_close(handle) 
     return True
+
+
+

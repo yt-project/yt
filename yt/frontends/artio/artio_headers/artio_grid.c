@@ -976,6 +976,107 @@ int artio_grid_read_sfc_range(artio_file handle,
 
 	return ARTIO_SUCCESS;
 }
+int artio_grid_read_sfc_range_buffer(artio_file handle, 
+		int64_t sfc1, int64_t sfc2,
+		int min_level_to_read, int max_level_to_read, 
+		int options,
+                GridCallBackBuffer callback, 
+                void *userdata) {
+	int64_t sfc;
+	int oct, level, j;
+	int ret;
+	int *octs_per_level = NULL;
+	int refined;
+	int oct_refined[8];
+	int root_tree_levels;
+	float * variables = NULL;
+
+	artio_grid_file ghandle;
+
+	if ( handle == NULL ) {
+		return ARTIO_ERR_INVALID_HANDLE;
+	}
+
+	if (handle->open_mode != ARTIO_FILESET_READ ||
+			!(handle->open_type & ARTIO_OPEN_GRID) ) {
+		return ARTIO_ERR_INVALID_FILESET_MODE;
+	}
+
+	ghandle = handle->grid;
+
+	if ((min_level_to_read < 0) || (min_level_to_read > max_level_to_read)) {
+		return ARTIO_ERR_INVALID_LEVEL;
+	}
+
+	octs_per_level = (int *)malloc(ghandle->file_max_level * sizeof(int));
+	variables = (float *)malloc(8*ghandle->num_grid_variables * sizeof(float));
+
+	if ( octs_per_level == NULL || variables == NULL ) {
+		if ( octs_per_level != NULL ) free(octs_per_level);
+		if ( variables != NULL ) free(variables);
+		return ARTIO_ERR_MEMORY_ALLOCATION;
+	}
+
+	ret = artio_grid_cache_sfc_range(handle, sfc1, sfc2);
+	if ( ret != ARTIO_SUCCESS ) {
+		free(octs_per_level);
+		free(variables);
+		return ret;
+	}
+		
+	for (sfc = sfc1; sfc <= sfc2; sfc++) {
+		ret = artio_grid_read_root_cell_begin(handle, sfc, variables,
+				&root_tree_levels, octs_per_level);
+		if ( ret != ARTIO_SUCCESS ) {
+			free(octs_per_level);
+			free(variables);
+			return ret;
+		}
+
+		if (min_level_to_read == 0 && (options == ARTIO_READ_ALL || 
+				(options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
+				(options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
+			refined = (root_tree_levels > 0) ? 1 : 0;
+                        j=-1;
+			callback(variables, 0, refined, j, userdata);
+		}
+
+		for (level = MAX(min_level_to_read,1); 
+				level <= MIN(root_tree_levels,max_level_to_read); level++) {
+			ret = artio_grid_read_level_begin(handle, level);
+			if ( ret != ARTIO_SUCCESS ) {
+				free(octs_per_level);
+				free(variables);
+				return ret;
+			}
+
+			for (oct = 0; oct < octs_per_level[level - 1]; oct++) {
+				ret = artio_grid_read_oct(handle, variables, oct_refined);
+				if ( ret != ARTIO_SUCCESS ) {
+					free(octs_per_level);
+					free(variables);
+					return ret;
+				}
+
+				for (j = 0; j < 8; j++) {
+					if (options == ARTIO_READ_ALL || 
+							(options == ARTIO_READ_REFINED && oct_refined[j]) ||
+							(options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
+						callback(&variables[j * ghandle->num_grid_variables],
+                                                         level, oct_refined[j], j, userdata);
+					}
+				}
+			}
+			artio_grid_read_level_end(handle);
+		}
+		artio_grid_read_root_cell_end(handle);
+	}
+
+	free(variables);
+	free(octs_per_level);
+
+	return ARTIO_SUCCESS;
+}
 
 
 /* array which describes how child cells are offset from 
@@ -996,10 +1097,12 @@ const double cell_delta_corner[num_children][nDim] = {
 #endif
 };
 int artio_grid_read_sfc_range_pos(artio_file handle, 
-		int64_t sfc1, int64_t sfc2,
-		int min_level_to_read, int max_level_to_read, 
-		int options,
-		GridCallBackPos callback) {
+                                  int64_t sfc1, int64_t sfc2,
+                                  int min_level_to_read, int max_level_to_read, 
+                                  int options,
+                                  GridCallBackPos callback, 
+                                  void *user_data
+    ) {
 	int64_t sfc;
 	int oct, level, j, i;
 	int ret;
@@ -1085,13 +1188,14 @@ int artio_grid_read_sfc_range_pos(artio_file handle,
                 //////////////////////////////////////
                         
 
-		if (min_level_to_read == 0 && (options == ARTIO_READ_ALL || 
-				(options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
-				(options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
+		if (min_level_to_read == 0 && 
+                    (options == ARTIO_READ_ALL || 
+                     (options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
+                     (options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
 			refined = (root_tree_levels > 0) ? 1 : 0;
-			callback(variables, min_level, refined, sfc, pos);
+			callback(variables, min_level, refined, sfc, pos, user_data);
 		}
-// level is the cell_level; current octs live at level-1.
+                // level is the cell_level; current octs live at level-1.
 		for (level = min_level+1; level <= MIN(root_tree_levels,max_level_to_read); level++) { 
 			ret = artio_grid_read_level_begin(handle, level);
 			if ( ret != ARTIO_SUCCESS ) {
@@ -1147,9 +1251,9 @@ int artio_grid_read_sfc_range_pos(artio_file handle,
                                                 num_next_level_octs++ ;
                                         }
 					if (options == ARTIO_READ_ALL || 
-							(options == ARTIO_READ_REFINED && oct_refined[j]) ||
-							(options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
-                                            callback(variables, level, oct_refined[j], sfc, pos);
+                                            (options == ARTIO_READ_REFINED && oct_refined[j]) ||
+                                            (options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
+                                            callback(variables, level, oct_refined[j], sfc, pos, user_data);
 								
 					}
 				}
