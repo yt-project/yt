@@ -108,7 +108,6 @@ class ARTIODomainFile(object):
         #oct_handler may not be attributed yet
         self.artiogrid=artio_grid_routines(self._handle) 
         self.artiogrid.grid_pos_fill(oct_handler)
-        print 'segfault debug'
         
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -266,7 +265,6 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
             [dom.local_oct_count for dom in self.domains])
         for dom in self.domains:
             dom._read_grid(self.oct_handler)
-        print 'seg fault debugging in _initialize_oct_handler' 
 
     def _detect_fields(self):
         # snl Add additional fields and translator from artio <-> yt
