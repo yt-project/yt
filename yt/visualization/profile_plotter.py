@@ -27,6 +27,7 @@ import base64
 import types
 
 from functools import wraps
+from itertools import izip, repeat
 import numpy as np
 
 from .image_writer import \
@@ -38,133 +39,148 @@ from yt.data_objects.profiles import \
     BinnedProfile2D
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.logger import ytLogger as mylog
+from .plot_window import \
+    invalidate_plot, \
+    invalidate_data, \
+    apply_callback, \
+    CallbackWrapper, \
+    FieldTransform, \
+    get_image_suffix
+import _mpl_imports as mpl
+from yt.funcs import *
 
-def invalidate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        args[0]._plot_valid = False
-        args[0]._setup_plot()
-        return f(*args, **kwargs)
-    return newfunc
+def get_canvas(name):
+    suffix = get_image_suffix(name)
+    
+    if suffix == '':
+        suffix = '.png'
+    if suffix == ".png":
+        canvas_cls = mpl.FigureCanvasAgg
+    elif suffix == ".pdf":
+        canvas_cls = mpl.FigureCanvasPdf
+    elif suffix in (".eps", ".ps"):
+        canvas_cls = mpl.FigureCanvasPS
+    else:
+        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+        canvas_cls = FigureCanvasAgg
+    return canvas_cls
 
-class AxisSpec(object):
-    title = None
-    bounds = None
+class FigureContainer(dict):
+    def __init__(self):
+        super(dict, self).__init__()
+
+    def __missing__(self, key):
+        figure = mpl.matplotlib.figure.Figure((10, 8))
+        self[key] = figure
+        return self[key]
+
+class AxesContainer(dict):
+    def __init__(self, fig_container):
+        self.fig_container = fig_container
+        super(dict, self).__init__()
+
+    def __missing__(self, key):
+        figure = self.fig_container[key]
+        self[key] = figure.add_subplot(111)
+        return self[key]
+
+class ProfilePlotter(object):
     scale = None
-    ticks = None
-
-    def calculate_ticks(self):
-        if self.scale == 'log':
-            locator = LogLocator()
-        elif self.scale == 'linear':
-            locator = LinearLocator()
-        else:
-            raise NotImplementedError
-        self.ticks = locator(*self.bounds)
-
-class ColorbarSpec(AxisSpec):
-    cmap = None
-    display = True
-
-class PlotContainer(object):
-    x_spec = None
-    y_spec = None
-    x_values = None
-    y_values = None
     plot_spec = None
+    x_log = None
+    y_log = None
+    x_title = None
+    y_title = None
 
-    def to_mpl(self, place = None):
-        import _mpl_imports as mpl
-        if isinstance(place, mpl.matplotlib.figure.Figure):
-            figure, place = place, None
-            place = None
-        else:
-            figure = mpl.matplotlib.figure.Figure((10,8))
-        if isinstance(place, mpl.matplotlib.axes.Axes):
-            axes, place = place, None
-        else:
-            axes = figure.add_subplot(1,1,1)
-        if self.x_spec.scale == 'log' and \
-           self.y_spec.scale == 'log':
-            func = axes.loglog
-        elif self.x_spec.scale == 'log':
-            func = axes.semilogx
-        elif self.y_spec.scale == 'log':
-            func = axes.semilogy
-        else:
-            func = axes.plot
-        if self.plot_spec is None:
-            kwargs = {}
-        else:
-            kwargs = self.plot_spec
-        func(self.x_values, self.y_values, **kwargs)
-        if self.x_spec.title is not None:
-            axes.set_xlabel(self.x_spec.title)
-        if self.y_spec.title is not None:
-            axes.set_ylabel(self.y_spec.title)
-        if isinstance(place, types.StringTypes):
-            canvas = mpl.FigureCanvasAgg(figure)
-            canvas.print_figure(place)
-        return figure, axes
+    _plot_valid = False
 
-class ImagePlotContainer(object):
-    x_spec = None
-    y_spec = None
-    image = None
-    cbar = None
+    def __init__(self, profiles):
+        if not iterable(profiles):
+            profiles = [profiles]
+        self.y_log = {}
+        self.y_title = {}
+        self.profiles = profiles
+        self.figures = FigureContainer()
+        self.axes = AxesContainer(self.figures)
+        self._setup_plot()
 
-    def to_mpl(self, place = None):
-        import _mpl_imports as mpl
-        if isinstance(place, mpl.matplotlib.figure.Figure):
-            figure, place = place, None
-            place = None
+    def save(self, name = "%(uid)s_profile.png"):
+        if not self._plot_valid: self._setup_plot()
+        unique = set(self.figures.values())
+        if len(unique) < len(self.figures):
+            figiter = izip(xrange(len(unique)), sorted(unique))
         else:
-            figure = mpl.matplotlib.figure.Figure((10,8))
-        if isinstance(place, mpl.matplotlib.axes.Axes):
-            axes, place = place, None
-        else:
-            axes = figure.add_subplot(1,1,1)
-        # We'll go with a mesh here, even if it's inappropriate
-        use_mesh = False
-        xmi, xma = self.x_spec.bounds
-        if self.x_spec.scale == 'log':
-            x_bins = np.logspace(np.log10(xmi), np.log10(xma),
-                                 self.image.shape[0]+1)
-            use_mesh = True
-        else:
-            x_bins = np.logspace(xmi, xma, self.image.shape[0]+1)
+            iters = self.figures.iteritems()
+        canvas_cls = get_canvas(name)
+        for uid, fig in iters:
+            canvas = canvas_cls(fig)
+            fn = name % {'uid':uid}
+            mylog.info("Saving %s", fn)
+            canvas.print_figure(fn)
 
-        ymi, yma = self.y_spec.bounds
-        if self.y_spec.scale == 'log':
-            y_bins = np.logspace(np.log10(ymi), np.log10(yma),
-                                 self.image.shape[0]+1)
-            use_mesh = True
-        else:
-            y_bins = np.logspace(ymi, yma, self.image.shape[0]+1)
+    def _setup_plot(self):
 
-        im = self.image
-        if self.cbar.scale == 'log':
-            norm = mpl.matplotlib.colors.LogNorm()
+        if self.plot_spec is None or isinstance(self.plot_spec, (dict, str)):
+            ps = repeat(self.plot_spec)
+        elif iterable(self.plot_spec):
+            ps = self.plot_spec
         else:
-            norm = mpl.matplotlib.colors.Normalize()
-        if use_mesh:
-            pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
-                                  shading='flat', cmap = self.cbar.cmap,
-                                  rasterized=True)
-            if self.x_spec.scale == 'log': axes.set_xscale("log")
-            if self.y_spec.scale == 'log': axes.set_yscale("log")
+            raise RuntimeError
+        
+        # Profiles need to be the outer loop
+        for profile, spec in izip(self.profiles, ps):
+            if spec is None: spec = {} # Set here for mutability concerns
+            # This only iterates over the y values
+            for field, field_spec, field_data in profile:
+                # Do we want to simply strip the final value?
+                self.axes[field].plot(profile.x[:-1], field_data, **spec)
+
+        # This relies on 'profile' leaking
+        for fname, axes in self.axes.items():
+            xscale, yscale = self._get_field_log(fname, profile)
+            xtitle, ytitle = self._get_field_title(fname, profile)
+            axes.set_xscale(xscale)
+            axes.set_yscale(yscale)
+            axes.set_xlabel(xtitle)
+            axes.set_ylabel(ytitle)
+
+    def _get_field_log(self, field_y, profile):
+        pf = profile.data_source.pf
+        yfi = pf.field_info[field_y]
+        if self.x_log is None:
+            x_log = profile.x_log
         else:
-            axes.imshow(self.image, origin='lower', interpolation='nearest',
-                        cmap = self.cbar.cmap, extent = [xmi,xma,ymi,yma],
-                        norm = norm)
-        if self.x_spec.title is not None:
-            axes.set_xlabel(self.x_spec.title)
-        if self.y_spec.title is not None:
-            axes.set_ylabel(self.y_spec.title)
-        if isinstance(place, types.StringTypes):
-            canvas = mpl.FigureCanvasAgg(figure)
-            canvas.print_figure(place)
-        return figure, axes
+            x_log = self.x_log
+        if field_y in self.y_log:
+            y_log = self.y_log[field_y]
+        else:
+            y_log = yfi.take_log
+        scales = {True: 'log', False: 'linear'}
+        return scales[x_log], scales[y_log]
+
+    def _get_field_label(self, field, field_info):
+        units = field_info.get_units()
+        field_name = field_info.display_name
+        if field_name is None:
+            field_name = r'$\rm{'+field+r'}$'
+        elif field_name.find('$') == -1:
+            field_name = r'$\rm{'+field+r'}$'
+        if units is None or units == '':
+            label = field_name
+        else:
+            label = field_name+r'$\/\/('+units+r')$'
+        return label
+
+    def _get_field_title(self, field_y, profile):
+        pf = profile.data_source.pf
+        field_x = profile.x_field
+        xfi = pf.field_info[field_x]
+        yfi = pf.field_info[field_y]
+        x_title = self.x_title or self._get_field_label(field_x, xfi)
+        y_title = self.y_title.get(field_y, None) or \
+                    self._get_field_label(field_y, yfi)
+        return (x_title, y_title)
+            
 
 class PhasePlotter(object):
     scale = None
@@ -318,123 +334,56 @@ class PhasePlotter(object):
         self.plot.y_spec = yax
         self.plot.cbar = cbar
 
-class PhasePlotterExtWidget(PhasePlotter):
-    _ext_widget_id = None
-    _widget_name = "phase_plot"
-
-    def _setup_plot(self):
-        if self._ext_widget_id is None: return
-        PhasePlotter._setup_plot(self)
-        # Now self.plot exists
-        from yt.gui.reason.bottle_mods import PayloadHandler
-        ph = PayloadHandler()
-        # We set up an x axis, y axis, colorbar, and image
-        xax = self._convert_axis(self.plot.x_spec)
-        yax = self._convert_axis(self.plot.y_spec)
-        cbar = self._convert_axis(self.plot.cbar)
-        cbar['cmap_image'] = self._get_cbar_image()
-        # This is a historical artifact
-        raw_data = self.plot.image[::-1,:]
-
-        if self.plot.cbar.scale == 'log':
-            func = np.log10
+    def to_mpl(self, place = None):
+        import _mpl_imports as mpl
+        if isinstance(place, mpl.matplotlib.figure.Figure):
+            figure, place = place, None
+            place = None
         else:
-            func = lambda a: a
-        raw_data = np.repeat(raw_data, 3, axis=0)
-        raw_data = np.repeat(raw_data, 3, axis=1)
-        to_plot = apply_colormap(raw_data, self.plot.cbar.bounds,
-                                 self.plot.cbar.cmap, func)
-        if self.plot.cbar.scale == 'log':
-            # Now we white-out all those regions
-            #import pdb;pdb.set_trace()
-            to_plot[raw_data == 0.0,:] = 255
-        pngs = write_png_to_string(to_plot)
-        img_data = base64.b64encode(pngs)
-        payload = {'xax':xax, 'yax':yax, 'cbar':cbar,
-                   'type': 'widget_payload', 'widget_id': self._ext_widget_id,
-                   'image_data': img_data}
-        ph.add_payload(payload)
-
-    def _convert_ticks(self, tick_locs, bounds, func, height = 400):
-        # height can be a length too; doesn't quite matter.
-        mi, ma = func(bounds)
-        ticks = []
-        for v1,v2 in zip(tick_locs, func(tick_locs)):
-            if v2 < mi or v2 > ma: continue
-            p = height - height * (v2 - mi)/(ma - mi)
-            ticks.append((p,v1,v2))
-            #print v1, v2, mi, ma, height, p
-        return ticks
-
-    def _convert_axis(self, spec):
-        func = lambda a: a
-        if spec.scale == 'log': func = np.log10
-        tick_info = self._convert_ticks(spec.ticks, spec.bounds, func)
-        ax = {'ticks':tick_info,
-              'title': spec.title}
-        return ax
-
-    def _get_cbar_image(self, height = 400, width = 40):
-        # Right now there's just the single 'cmap', but that will eventually
-        # change.  I think?
-        vals = np.mgrid[1:0:height * 1j] * np.ones(width)[:,None]
-        vals = vals.transpose()
-        to_plot = apply_colormap(vals)
-        pngs = write_png_to_string(to_plot)
-        img_data = base64.b64encode(pngs)
-        return img_data
-
-class ProfilePlotter(object):
-    scale = None
-    _current_field = None
-
-    def __init__(self, data_source, field_x, field_y, 
-                 weight="CellMassMsun", accumulation=False,
-                 x_bins=128, x_log=True, x_bounds=None,
-                 lazy_reader=True, fractional=False):
-        if x_bounds is None:
-            x_min, x_max = data_source.quantities["Extrema"](
-                                    field_x, non_zero = x_log,
-                                    lazy_reader=lazy_reader)[0]
+            figure = mpl.matplotlib.figure.Figure((10,8))
+        if isinstance(place, mpl.matplotlib.axes.Axes):
+            axes, place = place, None
         else:
-            x_min, x_max = x_bounds
-        profile = BinnedProfile1D(data_source,
-                                  x_bins, field_x, x_min, x_max, x_log,
-                                  lazy_reader)
-        # This is a fallback, in case we forget.
-        if field_y.startswith("CellMass") or \
-           field_y.startswith("CellVolume"):
-            mylog.warning("Setting weight to None")
-            weight = None
-        profile.add_fields(field_y, weight=weight, accumulation=accumulation, fractional=fractional)
-        self._current_field = field_y
-        self.profile = profile
-        self.scale = {True:'log', False:'linear'}.get(
-                data_source.pf.field_info[field_y].take_log, "log")
-        self._setup_plot()
-
-    def _setup_plot(self):
-        xax = AxisSpec()
-        xax.title = self.profile.bin_field
-        xax.bounds = (self.profile._bins[0],
-                      self.profile._bins[-1])
-        xax.scale = {True: 'log', False: 'linear'}[self.profile._x_log]
-        xax.calculate_ticks()
-
-        yax = AxisSpec()
-        yax.title = self._current_field
-        if self.scale == 'log':
-            ny = (self.profile[self._current_field] > 0)
-            mi = self.profile[self._current_field][ny].min()
+            axes = figure.add_subplot(1,1,1)
+        # We'll go with a mesh here, even if it's inappropriate
+        use_mesh = False
+        xmi, xma = self.x_spec.bounds
+        if self.x_spec.scale == 'log':
+            x_bins = np.logspace(np.log10(xmi), np.log10(xma),
+                                 self.image.shape[0]+1)
+            use_mesh = True
         else:
-            mi = self.profile[self._current_field].min()
-        ma = self.profile[self._current_field].max()
-        yax.bounds = (mi, ma)
-        yax.scale = self.scale
-        yax.calculate_ticks()
+            x_bins = np.logspace(xmi, xma, self.image.shape[0]+1)
 
-        self.plot = PlotContainer()
-        self.plot.x_values = self.profile._bins
-        self.plot.y_values = self.profile[self._current_field]
-        self.plot.x_spec = xax
-        self.plot.y_spec = yax
+        ymi, yma = self.y_spec.bounds
+        if self.y_spec.scale == 'log':
+            y_bins = np.logspace(np.log10(ymi), np.log10(yma),
+                                 self.image.shape[0]+1)
+            use_mesh = True
+        else:
+            y_bins = np.logspace(ymi, yma, self.image.shape[0]+1)
+
+        im = self.image
+        if self.cbar.scale == 'log':
+            norm = mpl.matplotlib.colors.LogNorm()
+        else:
+            norm = mpl.matplotlib.colors.Normalize()
+        if use_mesh:
+            pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
+                                  shading='flat', cmap = self.cbar.cmap,
+                                  rasterized=True)
+            if self.x_spec.scale == 'log': axes.set_xscale("log")
+            if self.y_spec.scale == 'log': axes.set_yscale("log")
+        else:
+            axes.imshow(self.image, origin='lower', interpolation='nearest',
+                        cmap = self.cbar.cmap, extent = [xmi,xma,ymi,yma],
+                        norm = norm)
+        if self.x_spec.title is not None:
+            axes.set_xlabel(self.x_spec.title)
+        if self.y_spec.title is not None:
+            axes.set_ylabel(self.y_spec.title)
+        if isinstance(place, types.StringTypes):
+            canvas = mpl.FigureCanvasAgg(figure)
+            canvas.print_figure(place)
+        return figure, axes
+

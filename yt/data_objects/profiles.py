@@ -903,6 +903,10 @@ class ProfileND(ParallelAnalysisInterface):
     def __getitem__(self, key):
         return self.field_data[key]
 
+    def __iter__(self):
+        for f in self.field_spec:
+            yield (f, self.field_spec[f], self.field_data[f])
+
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:
             return np.logspace(np.log10(mi), np.log10(ma), n+1)
@@ -1007,13 +1011,13 @@ class Profile3D(ProfileND):
                       storage.used)
         # We've binned it!
 
-def create_profile(data_source, fields, n):
+def create_profile(data_source, fields, n, field_spec = None):
     if len(fields) == 1:
         cls = Profile1D
     elif len(fields) == 2:
         cls = Profile2D
     elif len(fields) == 3:
-        cls = Profile3D # Will fail now
+        cls = Profile3D
     else:
         raise NotImplementedError
     if not iterable(n):
@@ -1024,5 +1028,7 @@ def create_profile(data_source, fields, n):
     for f, n, (mi, ma), l in zip(fields, n, ex, logs):
         args += [f, n, mi, ma, l] 
     obj = cls(*args)
+    if field_spec is not None:
+        obj.add_fields(*field_spec)
     return obj
 
