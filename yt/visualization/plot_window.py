@@ -458,6 +458,8 @@ class PlotWindow(object):
 
         if set_axes_unit:
             self._axes_unit_names = units
+        else:
+            self._axes_unit_names = None
 
         self.xlim = (centerx - width[0][0]/self.pf[units[0]]/2.,
                      centerx + width[0][0]/self.pf[units[0]]/2.)
