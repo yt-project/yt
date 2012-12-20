@@ -67,11 +67,12 @@ class PlotMPL(object):
         return f.read()
 
 class ImagePlotMPL(PlotMPL):
-    def __init__(self, fsize, axrect, caxrect):
+    def __init__(self, fsize, axrect, caxrect, zlim):
         PlotMPL.__init__(self, fsize, axrect)
+        self.zmin, self.zmax = zlim
         self.cax = self.figure.add_axes(caxrect)
 
-    def _init_image(self, data, extent, aspect, cbnorm, cmap):
+    def _init_image(self, data, cbnorm, cmap, extent, aspect=None):
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (cbnorm == 'linear'):

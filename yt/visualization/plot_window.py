@@ -812,8 +812,9 @@ class PWViewerMPL(PWViewer):
             
             image = self._frb[f]
 
-            self.plots[f] = WindowPlotMPL(image, extent, aspect, self._field_transform[f], 
-                                          self._colormaps[f], size, zlim)
+            self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
+                                          self._colormaps[f], extent, aspect, 
+                                          zlim, size)
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
@@ -1476,8 +1477,7 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, extent, aspect, field_transform, cmap, size, zlim):
-        self.zmin, self.zmax = zlim
+    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size):
         fsize, axrect, caxrect = self._get_best_layout(size)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
@@ -1486,8 +1486,8 @@ class WindowPlotMPL(ImagePlotMPL):
                           'and matplotlib.')
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
-        ImagePlotMPL.__init__(self, fsize, axrect, caxrect)
-        self._init_image(data, extent, aspect, field_transform.name, cmap)
+        ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
+        self._init_image(data, cbname, cmap, extent, aspect)
 
     def _get_best_layout(self, size):
         aspect = 1.0*size[0]/size[1]
