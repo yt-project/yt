@@ -25,29 +25,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
-from matplotlib.mathtext import MathTextParser
-from distutils import version
-from base_plot_types import ImagePlotMPL
+import numpy as np
 import matplotlib
-
-# Some magic for dealing with pyparsing being included or not
-# included in matplotlib (not in gentoo, yes in everything else)
-# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
-try:
-    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
-        from matplotlib.pyparsing import ParseFatalException
-    else:
-        from matplotlib.pyparsing_py2 import ParseFatalException
-except ImportError:
-    from pyparsing import ParseFatalException
-
 import cStringIO
 import types
 import __builtin__
+
+from matplotlib.mathtext import MathTextParser
+from distutils import version
 from functools import wraps
 
-import numpy as np
-from ._mpl_imports import *
+from ._mpl_imports import \
+    FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from .color_maps import yt_colormaps, is_colormap
 from .image_writer import \
     write_image, apply_colormap
@@ -58,10 +47,13 @@ from .fixed_resolution import \
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
+from .base_plot_types import ImagePlotMPL
+
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
-
-from yt.funcs import *
+from yt.funcs import \
+    mylog, defaultdict, iterable, ensure_list, \
+    fix_axis, get_image_suffix
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
@@ -74,6 +66,17 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     GroupOwnership
 from yt.data_objects.time_series import \
     TimeSeriesData
+
+# Some magic for dealing with pyparsing being included or not
+# included in matplotlib (not in gentoo, yes in everything else)
+# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
+try:
+    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
+        from matplotlib.pyparsing import ParseFatalException
+    else:
+        from matplotlib.pyparsing_py2 import ParseFatalException
+except ImportError:
+    from pyparsing import ParseFatalException
 
 def invalidate_data(f):
     @wraps(f)
