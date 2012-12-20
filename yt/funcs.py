@@ -185,7 +185,7 @@ def deprecate(func):
 
     .. code-block:: python
 
-       @rootonly
+       @deprecate
        def some_really_old_function(...):
 
     """
@@ -205,7 +205,7 @@ def pdb_run(func):
 
     .. code-block:: python
 
-       @rootonly
+       @pdb_run
        def some_function_to_debug(...):
 
     """
@@ -574,5 +574,5 @@ def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
 
 def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1]
+    suffix = os.path.splitext(name)[1].lstrip('.')
     return suffix if suffix in ['png', 'eps', 'ps', 'pdf'] else ''
