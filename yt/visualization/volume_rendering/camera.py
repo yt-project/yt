@@ -1203,7 +1203,6 @@ class MosaicCamera(Camera):
                                   - 0.5*self.width[2]*self.orienter.unit_vectors[2]
         dx = self.width[0]
         dy = self.width[1]
-        print 'I am the width!', self.width
         offi = (self.imi + 0.5)
         offj = (self.imj + 0.5)
         mylog.info("Mosaic offset: %f %f" % (offi,offj))
@@ -1211,7 +1210,6 @@ class MosaicCamera(Camera):
         self.center = self.origin
         self.center += offi*dx*self.orienter.unit_vectors[0]
         self.center += offj*dy*self.orienter.unit_vectors[1]
-        print 'Setting center to', self.center
         
         self.box_vectors = np.array([self.orienter.unit_vectors[0]*dx*self.nimx,
                                      self.orienter.unit_vectors[1]*dy*self.nimx,
@@ -1236,7 +1234,7 @@ class MosaicCamera(Camera):
             self.initialize_source()
 
             self.imi, self.imj = xy
-            print 'Working on: %i %i' % (self.imi, self.imj)
+            mylog.debug('Working on: %i %i' % (self.imi, self.imj))
             self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
             image = self.new_image()
             args = self.get_sampler_args(image)
@@ -1244,7 +1242,6 @@ class MosaicCamera(Camera):
             image = self._render(double_check, num_threads, image, sampler)
             sto.id = self.imj*self.nimx + self.imi
             sto.result = image
-        print 'after snap:', my_storage.keys()
         image = self.reduce_images(my_storage)
         self.save_image(fn, clip_ratio, image)
         return image
@@ -1257,8 +1254,6 @@ class MosaicCamera(Camera):
             nx,ny = self.resolution
             final_image = np.empty((nx*self.nimx, ny*self.nimy, 4),
                         dtype='float64',order='C')
-            print offxy
-            print im_dict.keys()
             for xy in offxy: 
                 i, j = xy
                 ind = j*self.nimx+i

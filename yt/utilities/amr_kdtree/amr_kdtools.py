@@ -28,9 +28,9 @@ from yt.funcs import *
 from yt.utilities.lib import kdtree_get_choices
 from yt.utilities.parallel_tools.parallel_analysis_interface import _get_comm
 
-def _lchild_id(id): return (id<<1)
-def _rchild_id(id): return (id<<1) + 1
-def _parent_id(id): return (id-1)>>1
+def _lchild_id(node_id): return (node_id<<1)
+def _rchild_id(node_id): return (node_id<<1) + 1
+def _parent_id(node_id): return (node_id-1) >> 1
 
 class Node(object):
     left = None
@@ -41,14 +41,14 @@ class Node(object):
     data = None
     id = None
     def __init__(self, parent, left, right,
-            left_edge, right_edge, grid_id, id):
+            left_edge, right_edge, grid_id, node_id):
         self.left = left
         self.right = right
         self.left_edge = left_edge
         self.right_edge = right_edge
         self.grid = grid_id
         self.parent = parent
-        self.id = id
+        self.id = node_id
 
 class Split(object):
     dim = None
@@ -60,32 +60,30 @@ class Split(object):
 def should_i_build(node, rank, size):
     if (node.id < size) or (node.id >= 2*size):
         return True
-    else:
-        if node.id - size == rank:
-            return True
-        else:
-            return False
-
-def add_grids(node, gles, gres, gids, rank, size):
-    if should_i_build(node, rank, size):
-        if kd_is_leaf(node):
-                insert_grids(node, gles, gres, gids, rank, size)
-        else:
-            less_ids = gles[:,node.split.dim] < node.split.pos
-            if len(less_ids) > 0:
-                add_grids(node.left, gles[less_ids], gres[less_ids],
-                          gids[less_ids], rank, size)
-
-            greater_ids = gres[:,node.split.dim] > node.split.pos
-            if len(greater_ids) > 0:
-                add_grids(node.right, gles[greater_ids], gres[greater_ids],
-                          gids[greater_ids], rank, size)
-
-def should_i_split(node, rank, size):
-    if node.id < size:
+    elif node.id - size == rank:
         return True
     else:
         return False
+
+def add_grids(node, gles, gres, gids, rank, size):
+    if not should_i_build(node, rank, size):
+        return
+
+    if kd_is_leaf(node):
+        insert_grids(node, gles, gres, gids, rank, size)
+    else:
+        less_ids = gles[:,node.split.dim] < node.split.pos
+        if len(less_ids) > 0:
+            add_grids(node.left, gles[less_ids], gres[less_ids],
+                      gids[less_ids], rank, size)
+
+        greater_ids = gres[:,node.split.dim] > node.split.pos
+        if len(greater_ids) > 0:
+            add_grids(node.right, gles[greater_ids], gres[greater_ids],
+                      gids[greater_ids], rank, size)
+
+def should_i_split(node, rank, size):
+    return node.id < size
 
 def geo_split(node, gles, gres, grid_ids, rank, size):
     big_dim = np.argmax(gres[0]-gles[0])
@@ -115,32 +113,27 @@ def geo_split(node, gles, gres, grid_ids, rank, size):
     return
 
 def insert_grids(node, gles, gres, grid_ids, rank, size):
-    if should_i_build(node, rank, size):
-        if len(grid_ids) == 0:
+    if not should_i_build(node, rank, size) or grid_ids.size == 0:
+        return
+
+    if len(grid_ids) == 1:
+        # If we should continue to split based on parallelism, do so!
+        if should_i_split(node, rank, size):
+            geo_split(node, gles, gres, grid_ids, rank, size)
             return
 
-        if len(grid_ids) == 1:
-            # print node.id, gles, gres, grid_ids, rank, size
-            # If we should continue to split based on parallelism, do so!
-            if should_i_split(node, rank, size):
-                #print 'Splitting grid!'
-                #print '%04i '%rank, gles, gres, grid_ids
-                geo_split(node, gles, gres, grid_ids, rank, size)
-                #print '%04i '%rank, gles, gres, grid_ids
-                return
+        if np.all(gles[0] <= node.left_edge) and \
+                np.all(gres[0] >= node.right_edge):
+            node.grid = grid_ids[0]
+            assert(node.grid is not None)
+            return
 
-            if np.all(gles[0] <= node.left_edge) and \
-                    np.all(gres[0] >= node.right_edge):
-                node.grid = grid_ids[0]
-                assert(node.grid is not None)
-                return
-
-        # Split the grids
-        check = split_grids(node, gles, gres, grid_ids, rank, size)
-        # If check is -1, then we have found a place where there are no choices.
-        # Exit out and set the node to None.
-        if check == -1:
-            node.grid = None
+    # Split the grids
+    check = split_grids(node, gles, gres, grid_ids, rank, size)
+    # If check is -1, then we have found a place where there are no choices.
+    # Exit out and set the node to None.
+    if check == -1:
+        node.grid = None
     return
 
 def split_grids(node, gles, gres, grid_ids, rank, size):
@@ -172,18 +165,15 @@ def split_grids(node, gles, gres, grid_ids, rank, size):
     insert_grids(node.right, gles[greater_ids], gres[greater_ids],
                  grid_ids[greater_ids], rank, size)
 
-    del less_ids, greater_ids
     return
 
 def new_right(Node, split):
-    new_right = np.empty(3, dtype='float64')
-    new_right[:] = Node.right_edge[:]
+    new_right = Node.right_edge.copy()
     new_right[split.dim] = split.pos
     return new_right
 
 def new_left(Node, split):
-    new_left = np.empty(3, dtype='float64')
-    new_left[:] = Node.left_edge[:]
+    new_left = Node.left_edge.copy()
     new_left[split.dim] = split.pos
     return new_left
 
@@ -259,17 +249,14 @@ def depth_traverse(tree, max_node=None):
     current = tree.trunk
     previous = None
     if max_node is None:
-        while current is not None:
-            yield current
-            current, previous = step_depth(current, previous)
-    else:
-        while current is not None:
-            yield current
-            current, previous = step_depth(current, previous)
-            if current is None: break
-            if current.id >= max_node:
-                current = current.parent
-                previous = current.right
+        max_node = np.inf
+    while current is not None:
+        yield current
+        current, previous = step_depth(current, previous)
+        if current is None: break
+        if current.id >= max_node:
+            current = current.parent
+            previous = current.right
 
 
 def breadth_traverse(tree):
@@ -358,20 +345,22 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front):
         back = arr2
 
     ta = 1.0 - front[:,:,3]
-    ta[ta<0.0] = 0.0
+    np.maximum(ta, 0.0, ta)
+    # This now does the following calculation, but in a memory
+    # conservative fashion
+    # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
+    image = back.copy()
     for i in range(4):
-        # This is the new way: alpha corresponds to opacity of a given
-        # slice.  Previously it was ill-defined, but represented some
-        # measure of emissivity.
-        image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
+        np.multiply(image[:,:,i], ta, image[:,:,i])
+    np.add(image, front, image)
     return image
 
 def send_to_parent(comm, outgoing_rank, image):
     mylog.debug( 'Sending image to %04i' % outgoing_rank)
-    comm.send_array(image.ravel(), outgoing_rank, tag=comm.rank)
+    comm.send_array(image, outgoing_rank, tag=comm.rank)
 
 def scatter_image(comm, root, image):
-    mylog.debug( 'Scatterming from %04i' % root)
+    mylog.debug( 'Scattering from %04i' % root)
     image = comm.mpi_bcast(image, root=root)
     return image
 

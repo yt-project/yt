@@ -82,9 +82,10 @@ class Tree(object):
                 except:
                     break
                 if grids[0].Level not in lvl_range: continue
-                gles = np.array([g.LeftEdge for g in grids if g in self.grids])
-                gres = np.array([g.RightEdge for g in grids if g in self.grids])
-                gids = np.array([g.id for g in grids if g in self.grids])
+                gmask = np.array([g in self.grids for g in grids])
+                gles =  np.array([g.LeftEdge for g in grids])[gmask]
+                gres =  np.array([g.RightEdge for g in grids])[gmask]
+                gids = np.array([g.id for g in grids])[gmask]
                 my_break()
                 add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
                 del gles, gres, gids, grids
