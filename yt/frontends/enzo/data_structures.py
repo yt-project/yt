@@ -405,7 +405,6 @@ class EnzoHierarchy(GridGeometryHandler):
         ap_list = self.parameter_file["AppendActiveParticleType"]
         _fields = dict((ap, []) for ap in ap_list)
         fields = []
-        skip = []
         for g in grids:
             # We inspect every grid, for now, until we have a list of
             # attributes in a defined location.
@@ -414,11 +413,10 @@ class EnzoHierarchy(GridGeometryHandler):
                 handle = h5py.File(g.filename)
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
-                if ptype in skip: continue
+                if ptype not in _fields: continue
                 for field in (str(f) for f in node[ptype]):
                     _fields[ptype].append(field)
                 fields += [(ptype, field) for field in _fields.pop(ptype)]
-                skip.append(ptype)
             if len(_fields) == 0: break
         if handle is not None: handle.close()
         return set(fields)
