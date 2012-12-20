@@ -812,7 +812,7 @@ class PWViewerMPL(PWViewer):
             
             image = self._frb[f]
 
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent, aspect, self._field_transform[f], 
+            self.plots[f] = WindowPlotMPL(image, extent, aspect, self._field_transform[f], 
                                           self._colormaps[f], size, zlim)
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
