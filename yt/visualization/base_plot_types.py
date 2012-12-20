@@ -31,8 +31,6 @@ class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
     """
-    datalabel = None
-    figure = None
     def __init__(self, fsize, axrect):
         self._plot_valid = True
         self.figure = matplotlib.figure.Figure(figsize = fsize, 
@@ -41,11 +39,12 @@ class PlotMPL(object):
             
     def save(self, name, mpl_kwargs, canvas = None):
         suffix = get_image_suffix(name)
-        
         if suffix == '':
             suffix = '.png'
             name = "%s%s" % (name, suffix)
+        
         mylog.info("Saving plot %s", name)
+        
         if suffix == ".png":
             canvas = FigureCanvasAgg(self.figure)
         elif suffix == ".pdf":
@@ -56,18 +55,13 @@ class PlotMPL(object):
             mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
             canvas = FigureCanvasAgg(self.figure)
 
-
         canvas.print_figure(name,**mpl_kwargs)
         return name
 
-    def _repr_png_(self):
-        canvas = FigureCanvasAgg(self.figure)
-        f = cStringIO.StringIO()
-        canvas.print_figure(f)
-        f.seek(0)
-        return f.read()
-
 class ImagePlotMPL(PlotMPL):
+    """A base class for yt plots made using imshow
+
+    """
     def __init__(self, fsize, axrect, caxrect, zlim):
         PlotMPL.__init__(self, fsize, axrect)
         self.zmin, self.zmax = zlim
