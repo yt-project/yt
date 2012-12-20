@@ -75,4 +75,3 @@ class ImagePlotMPL(PlotMPL):
         self.image = self.axes.imshow(data, origin='lower', extent=extent,
                                       norm=norm, vmin=self.zmin, aspect=aspect, 
                                       vmax=self.zmax, cmap=cmap)
-        self.image.axes.ticklabel_format(scilimits=(-2,3))

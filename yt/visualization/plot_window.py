@@ -1488,6 +1488,7 @@ class WindowPlotMPL(ImagePlotMPL):
             caxrect = (0.87, 0.10, 0.04, 0.80)
         ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
         self._init_image(data, cbname, cmap, extent, aspect)
+        self.image.axes.ticklabel_format(scilimits=(-2,3))
 
     def _get_best_layout(self, size):
         aspect = 1.0*size[0]/size[1]
