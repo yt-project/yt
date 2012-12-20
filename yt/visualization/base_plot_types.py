@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import matplotlib
+import cStringIO
 from ._mpl_imports import *
 from yt.funcs import *
 
