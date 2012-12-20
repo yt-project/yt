@@ -24,6 +24,7 @@ License:
 """
 
 from libc.stdlib cimport malloc, free
+from libc.math cimport floor
 cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
@@ -145,7 +146,7 @@ cdef class OctreeContainer:
         for i in range(3):
             pp[i] = ppos[i] - self.DLE[i]
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> (pp[i]/dds[i])
+            ind[i] = <np.int64_t> (floor(pp[i]/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
         while cur.children[0][0][0] != NULL:
