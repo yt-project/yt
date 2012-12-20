@@ -548,19 +548,19 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             ax = pyplot.axes()
         if label is None:
             label = ''
-        alpha = self.red.y + self.green.y + self.blue.y
+        alpha = self.alpha.y 
         max_alpha = alpha.max()
         norm = max_alpha
-        i_data = na.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
-        i_data[:,:,0] = na.outer(self.funcs[0].y/norm, na.ones(self.alpha.x.size))
-        i_data[:,:,1] = na.outer(self.funcs[1].y/norm, na.ones(self.alpha.x.size))
-        i_data[:,:,2] = na.outer(self.funcs[2].y/norm, na.ones(self.alpha.x.size))
+        i_data = np.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
+        i_data[:,:,0] = np.outer(self.funcs[0].y/norm, np.ones(self.alpha.x.size))
+        i_data[:,:,1] = np.outer(self.funcs[1].y/norm, np.ones(self.alpha.x.size))
+        i_data[:,:,2] = np.outer(self.funcs[2].y/norm, np.ones(self.alpha.x.size))
         ax.imshow(i_data, origin='lower', aspect='auto')
 
-        #ax.fill_between(na.arange(self.alpha.y.size), alpha, y2=max_alpha, color='white')
-        #ax.plot(alpha, na.arange(self.alpha.y.size), 'w')
+        #ax.fill_between(np.arange(self.alpha.y.size), alpha, y2=max_alpha, color='white')
+        #ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
         ax.set_ylim(0, self.alpha.x.size)
-        xticks = na.arange(na.ceil(self.alpha.x[0]), na.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
+        xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
             xticks = xticks[::len(xticks)/5]
@@ -568,7 +568,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
         ax.yaxis.set_major_formatter(FuncFormatter(x_format))
-        yticks = na.linspace(0,1,2,endpoint=True) * max_alpha
+        yticks = np.linspace(0,1,2,endpoint=True) * max_alpha
         ax.xaxis.set_ticks(yticks)
         #balls
         def y_format(y, pos):

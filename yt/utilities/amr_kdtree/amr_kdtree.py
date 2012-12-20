@@ -25,6 +25,7 @@ License:
 """
 from yt.funcs import *
 import numpy as np
+import h5py
 from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids, \
         receive_and_reduce, send_to_parent, scatter_image, find_node
@@ -273,6 +274,154 @@ class AMRKDTree(HomogenizedVolume):
         node.data = brick
         if not self._initialized: self.brick_dimensions.append(dims)
         return brick
+
+    def locate_brick(self, position):
+        r"""Given a position, find the node that contains it.
+        Alias of AMRKDTree.locate_node, to preserve backwards
+        compatibility.
+        """
+        return self.locate_node(position) 
+
+    def locate_neighbors(self, grid, ci):
+        r"""Given a grid and cell index, finds the 26 neighbor grids 
+        and cell indices.
+        
+        Parameters
+        ----------
+        grid: Grid Object
+            Grid containing the cell of interest
+        ci: array-like
+            The cell index of the cell of interest
+
+        Returns
+        -------
+        grids: Numpy array of Grid objects
+        cis: List of neighbor cell index tuples
+
+        Both of these are neighbors that, relative to the current cell
+        index (i,j,k), are ordered as: 
+        
+        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...  
+        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...  
+        (i+1, j+1, k-1), (i-1, j-1, k ), (i+1, j+1, k+1)
+
+        That is they start from the lower left and proceed to upper
+        right varying the third index most frequently. Note that the
+        center cell (i,j,k) is ommitted.
+        
+        """
+        ci = np.array(ci)
+        center_dds = grid.dds
+        position = grid.LeftEdge + (np.array(ci)+0.5)*grid.dds
+        grids = np.empty(26, dtype='object')
+        cis = np.empty([26,3], dtype='int64')
+        offs = 0.5*(center_dds + self.sdx)
+
+        new_cis = ci + steps
+        in_grid = np.all((new_cis >=0)*
+                         (new_cis < grid.ActiveDimensions),axis=1)
+        new_positions = position + steps*offs
+        grids[in_grid] = grid
+                
+        get_them = np.argwhere(in_grid != True).ravel()
+        cis[in_grid] = new_cis[in_grid]
+
+        if (in_grid != True).sum()>0:
+            grids[in_grid != True] = \
+                [self.locate_brick(new_positions[i]).grid for i in get_them]
+            cis[in_grid != True] = \
+                [(new_positions[i]-grids[i].LeftEdge)/
+                 grids[i].dds for i in get_them]
+        cis = [tuple(ci) for ci in cis]
+        return grids, cis
+
+    def locate_neighbors_from_position(self, position):
+        r"""Given a position, finds the 26 neighbor grids 
+        and cell indices.
+
+        This is a mostly a wrapper for locate_neighbors.
+        
+        Parameters
+        ----------
+        position: array-like
+            Position of interest
+
+        Returns
+        -------
+        grids: Numpy array of Grid objects
+        cis: List of neighbor cell index tuples
+
+        Both of these are neighbors that, relative to the current cell
+        index (i,j,k), are ordered as: 
+        
+        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...  
+        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...  
+        (i+1, j+1, k-1), (i-1, j-1, k ), (i+1, j+1, k+1)
+
+        That is they start from the lower left and proceed to upper
+        right varying the third index most frequently. Note that the
+        center cell (i,j,k) is ommitted.
+        
+        """
+        position = np.array(position)
+        grid = self.locate_brick(position).grid
+        ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
+        return self.locate_neighbors(grid,ci)
+
+    def store_kd_bricks(self, fn=None):
+        if not self._initialized:
+            self.initialize_source()
+            self.initialized = True
+        if fn is None:
+            fn = '%s_kd_bricks.h5'%self.pf
+        if self.comm.rank != 0:
+            self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
+        f = h5py.File(fn,'w')
+        for node in depth_traverse(self.tree):
+            i = node.id
+            if node.data is not None:
+                for fi,field in enumerate(self.fields):
+                    try:
+                        f.create_dataset("/brick_%s_%s" % (hex(i),field),
+                                         data = node.data.my_data[fi].astype('float64'))
+                    except:
+                        pass
+        f.close()
+        del f
+        if self.comm.rank != (self.comm.size-1):
+            self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
+        
+    def load_kd_bricks(self,fn=None):
+        if fn is None:
+            fn = '%s_kd_bricks.h5' % self.pf
+        if self.comm.rank != 0:
+            self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
+        try:
+            f = h5py.File(fn,"a")
+            for node in depth_traverse(self.tree):
+                i = node.id
+                if node.grid is not None:
+                    data = [f["brick_%s_%s" %
+                              (hex(i), field)][:].astype('float64') for field in self.fields]
+                    node.data = PartitionedGrid(node.grid.id, data,
+                                                 node.l_corner.copy(), 
+                                                 node.r_corner.copy(), 
+                                                 node.dims.astype('int64'))
+                    
+                    self.bricks.append(node.data)
+                    self.brick_dimensions.append(node.dims)
+
+            self.bricks = np.array(self.bricks)
+            self.brick_dimensions = np.array(self.brick_dimensions)
+
+            self._initialized=True
+            f.close()
+            del f
+        except:
+            pass
+        if self.comm.rank != (self.comm.size-1):
+            self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
+
 
 
 if __name__ == "__main__":

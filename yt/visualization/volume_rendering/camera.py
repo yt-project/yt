@@ -53,6 +53,9 @@ from yt.utilities.lib import \
 
 class Camera(ParallelAnalysisInterface):
     _sampler_object = VolumeRenderSampler
+    _pylab = None
+    _tf_figure = None
+    _render_figure = None
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
@@ -370,9 +373,7 @@ class Camera(ParallelAnalysisInterface):
             label = '$\\rm{log}\\/ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label)
 
-
-
-    def show(self, im, enhance=True):
+    def show_mpl(self, im, enhance=True):
         if self._pylab is None:
             import pylab
             self._pylab = pylab
@@ -382,7 +383,7 @@ class Camera(ParallelAnalysisInterface):
 
         if enhance:
             nz = im[im > 0.0]
-            nim = im / (nz.mean() + 6.0 * na.std(nz))
+            nim = im / (nz.mean() + 6.0 * np.std(nz))
             nim[nim > 1.0] = 1.0
             nim[nim < 0.0] = 0.0
             del nz
@@ -395,7 +396,7 @@ class Camera(ParallelAnalysisInterface):
         self._pylab.draw()
     
     def save_annotated(self, fn, image, enhance=True, dpi=100):
-        ax = self.show(image, enhance=enhance)
+        ax = self.show_mpl(image, enhance=enhance)
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
@@ -1139,7 +1140,7 @@ class MosaicCamera(Camera):
         self.sub_samples = sub_samples
         if not iterable(width):
             width = (width, width, width) # front/back, left/right, top/bottom
-        self.width = na.array([width[0], width[1], width[2]])
+        self.width = np.array([width[0], width[1], width[2]])
         self.center = center
         self.steady_north = steady_north
         self.expand_factor = expand_factor
@@ -1176,7 +1177,7 @@ class MosaicCamera(Camera):
         self.tree_type = tree_type
         self.volume = volume
 
-        # self.cameras = na.empty(self.nimx*self.nimy)
+        # self.cameras = np.empty(self.nimx*self.nimy)
 
     def build_volume(self, volume, fields, log_fields, l_max, no_ghost, tree_type, le, re):
         if volume is None:
@@ -1191,7 +1192,7 @@ class MosaicCamera(Camera):
         return volume
 
     def new_image(self):
-        image = na.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
+        image = np.zeros((self.resolution[0], self.resolution[1], 4), dtype='float64', order='C')
         return image
 
     def _setup_box_properties(self, width, center, unit_vectors):
@@ -1212,7 +1213,7 @@ class MosaicCamera(Camera):
         self.center += offj*dy*self.orienter.unit_vectors[1]
         print 'Setting center to', self.center
         
-        self.box_vectors = na.array([self.orienter.unit_vectors[0]*dx*self.nimx,
+        self.box_vectors = np.array([self.orienter.unit_vectors[0]*dx*self.nimx,
                                      self.orienter.unit_vectors[1]*dy*self.nimx,
                                      self.orienter.unit_vectors[2]*self.width[2]])
         self.back_center = self.center - 0.5*self.width[0]*self.orienter.unit_vectors[2]
@@ -1224,7 +1225,7 @@ class MosaicCamera(Camera):
                  num_threads = 0):
 
         my_storage = {}
-        offx,offy = na.meshgrid(range(self.nimx),range(self.nimy))
+        offx,offy = np.meshgrid(range(self.nimx),range(self.nimy))
         offxy = zip(offx.ravel(), offy.ravel())
 
         for sto, xy in parallel_objects(offxy, self.procs_per_wg, storage = my_storage, 
@@ -1251,10 +1252,10 @@ class MosaicCamera(Camera):
     def reduce_images(self,im_dict):
         final_image = 0
         if self.comm.rank == 0:
-            offx,offy = na.meshgrid(range(self.nimx),range(self.nimy))
+            offx,offy = np.meshgrid(range(self.nimx),range(self.nimy))
             offxy = zip(offx.ravel(), offy.ravel())
             nx,ny = self.resolution
-            final_image = na.empty((nx*self.nimx, ny*self.nimy, 4),
+            final_image = np.empty((nx*self.nimx, ny*self.nimy, 4),
                         dtype='float64',order='C')
             print offxy
             print im_dict.keys()
