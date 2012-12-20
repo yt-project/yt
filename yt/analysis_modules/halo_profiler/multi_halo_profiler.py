@@ -674,7 +674,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 elif self.velocity_center[1] == 'sphere':
                     mylog.info('Calculating sphere bulk velocity.')
                     sphere.set_field_parameter('bulk_velocity',
-                                               sphere.quantities['BulkVelocity']()
+                                               sphere.quantities['BulkVelocity']())
                 else:
                     mylog.error("Invalid parameter: velocity_center.")
                     return None

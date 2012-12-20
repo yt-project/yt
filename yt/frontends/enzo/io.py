@@ -61,7 +61,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             data = self._read_chunk_data(chunk, pfields, 'active', 
                         "/Particles/%s" % ptypes[0])
             for g in chunk.objs:
-                if g.NumberOfActiveParticles == 0: continue
+                if g.NumberOfActiveParticles[ptypes[0]] == 0: continue
                 x, y, z = (data[g.id].pop(fn) for ft, fn in pfields)
                 size += g.count_particles(selector, x, y, z)
         read_fields = fields[:]
@@ -75,7 +75,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             data = self._read_chunk_data(chunk, read_fields, 'active',
                         "/Particles/%s" % ptypes[0])
             for g in chunk.objs:
-                if g.NumberOfActiveParticles == 0: continue
+                if g.NumberOfActiveParticles[ptypes[0]] == 0: continue
                 x, y, z = (data[g.id][fn] for ft, fn in pfields)
                 mask = g.select_particles(selector, x, y, z)
                 if mask is None: continue
@@ -182,7 +182,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if filter_particles == 'any' and g.NumberOfParticles == 0:
                 continue
             elif filter_particles == 'active' and \
-                 g.NumberOfActiveParticles == 0:
+                 g.NumberOfActiveParticles[fields[0][0]] == 0:
                 continue
             grids_by_file[g.filename].append(g.id)
         sets = [fname for ftype, fname in fields]
