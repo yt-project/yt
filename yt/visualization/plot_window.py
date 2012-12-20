@@ -819,7 +819,7 @@ class PWViewerMPL(PWViewer):
                 self.plots[f].image, cax = self.plots[f].cax)
 
             axes_unit_labels = ['', '']
-            for i, un in enumerate([unit_x, unit_y]):
+            for i, un in enumerate((unit_x, unit_y)):
                 if un not in ['1', 'u', 'unitary']:
                     axes_unit_labels[i] = '\/\/('+un+')'
                     
