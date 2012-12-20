@@ -839,31 +839,15 @@ class PWViewerMPL(PWViewer):
 
             self.plots[f].axes.tick_params(labelsize=self.fontsize)
 
-            field_name = self.data_source.pf.field_info[f].display_name
+            colorbar_label = image.info['label']
 
-            if field_name is None:
-                field_name = r'$\rm{'+f+r'}$'
-            elif field_name.find('$') == -1:
-                field_name = r'$\rm{'+field_name+r'}$'
-            
             parser = MathTextParser('Agg')
             try:
-                parser.parse(field_name)
+                parser.parse(colorbar_label)
             except ParseFatalException, err:
-                raise YTCannotParseFieldDisplayName(f,field_name,str(err))
-
-            colorbar_unit = image.info['units']
-
-            if colorbar_unit is None or colorbar_unit == '':
-                label = field_name
-            else:
-                try:
-                    parser.parse(r'$'+colorbar_unit+r'$')
-                except ParseFatalException, err:
-                    raise YTCannotParseUnitDisplayName(f, colorbar_unit, str(err))
-                label = field_name+r'$\/\/('+colorbar_unit+r')$'
-
-            self.plots[f].cb.set_label(label, fontsize=self.fontsize)
+                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
+                
+            self.plots[f].cb.set_label(colorbar_label, fontsize=self.fontsize)
 
             self.plots[f].cb.ax.tick_params(labelsize=self.fontsize)
 
