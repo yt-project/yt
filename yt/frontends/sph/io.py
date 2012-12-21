@@ -26,6 +26,7 @@ License:
 import h5py
 import numpy as np
 from yt.funcs import *
+from yt.utilities.exceptions import *
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -36,39 +37,74 @@ class IOHandlerOWLS(BaseIOHandler):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _read_particle_selection_by_type(self, chunks, selector, fields):
+    def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         # We first need a set of masks for each particle type
-        ptf = defaultdict(lambda: list)
+        ptf = defaultdict(list)
         psize = defaultdict(lambda: 0)
+        chunks = list(chunks)
         for ftype, fname in fields:
             ptf[ftype].append(fname)
         for chunk in chunks: # Will be OWLS domains
             for subset in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
-                    f = h5py.File(subset.domain.filename, "r")
-                    coords = f["/PartType%s/Coordinates" % ptype][:]
-                    psize[ptype] += subset.count_particles(selector,
-                                coords[:,0], coords[:,1], coords[:,2])
+                    f = h5py.File(subset.domain.domain_filename, "r")
+                    coords = f["/%s/Coordinates" % ptype][:].astype("float64")
+                    psize[ptype] += selector.count_points(
+                        coords[:,0], coords[:,1], coords[:,2])
                     del coords
+                    f.close()
         # Now we have all the sizes, and we can allocate
         ind = {}
         for field in fields:
-            rv[field] = np.empty(size, dtype="float64")
+            mylog.debug("Allocating %s values for %s", psize[field[0]], field)
+            rv[field] = np.empty(psize[field[0]], dtype="float64")
             ind[field] = 0
         for chunk in chunks: # Will be OWLS domains
             for subset in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
-                    f = h5py.File(subset.domain.filename, "r")
-                    g = f["/PartType%s" % ptype]
-                    coords = g["Coordinates"][:]
-                    mask = subset.select_particles(selector,
+                    f = h5py.File(subset.domain.domain_filename, "r")
+                    g = f["/%s" % ptype]
+                    coords = g["Coordinates"][:].astype("float64")
+                    mask = selector.select_points(
                                 coords[:,0], coords[:,1], coords[:,2])
                     del coords
                     if mask is None: continue
                     for field in field_list:
                         data = g[field][mask,...]
                         my_ind = ind[ptype, field]
+                        mylog.debug("Filling from %s to %s with %s",
+                            my_ind, my_ind+data.size, field)
                         rv[ptype, field][my_ind:my_ind + data.size] = data
                         ind[ptype, field] += data.shape[0]
+                    f.close()
         return rv
+
+    def _initialize_octree(self, domain, octree):
+        f = h5py.File(domain.domain_filename, "r")
+        for key in f.keys():
+            if not key.startswith("PartType"): continue
+            pos = f[key]["Coordinates"][:].astype("float64")
+            octree.add(pos, domain.domain_number)
+        f.close()
+
+    def _count_particles(self, domain_filename):
+        f = h5py.File(domain_filename, "r")
+        npart = f["/Header"].attrs["NumPart_ThisFile"].sum()
+        f.close()
+        return npart
+
+    def _identify_fields(self, domain_filename):
+        f = h5py.File(domain_filename, "r")
+        fields = []
+        for key in f.keys():
+            if not key.startswith("PartType"): continue
+            g = f[key]
+            #ptype = int(key[8:])
+            ptype = str(key)
+            for k in g.keys():
+                if not hasattr(g[k], "shape"): continue
+                # str => not unicode!
+                fields.append((ptype, str(k)))
+        f.close()
+        return fields

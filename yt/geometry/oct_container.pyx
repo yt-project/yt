@@ -883,3 +883,25 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 tnp += neighbors[i].sd.np
         return tnp
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, SelectorObject selector,
+              np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef int i, j, k, oi
+        # pos here is CELL center, not OCT center.
+        cdef np.float64_t pos[3]
+        cdef int n = mask.shape[0]
+        cdef np.float64_t base_dx[3], dx[3]
+        cdef int eterm[3]
+        cdef np.ndarray[np.int64_t, ndim=1] count
+        count = np.zeros(self.max_domain + 1, 'int64')
+        print count.shape[0], mask.shape[0], mask.shape[1], self.nocts
+        for oi in range(n):
+            o = self.oct_list[oi]
+            if o.domain == -1: continue
+            for i in range(8):
+                count[o.domain] += mask[oi,i]
+        return count
+
+
