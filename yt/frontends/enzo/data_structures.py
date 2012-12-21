@@ -125,6 +125,7 @@ class EnzoGrid(AMRGridPatch):
 
     @property
     def NumberOfActiveParticles(self):
+        if not hasattr(self.hierarchy, "grid_active_particle_count"): return 0
         return self.hierarchy.grid_active_particle_count[self.id - self._id_offset]
 
 class EnzoGridInMemory(EnzoGrid):
@@ -329,7 +330,8 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _initialize_grid_arrays(self):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
-        if len(self.parameters["AppendActiveParticleType"]):
+        if "AppendActiveParticleType" in self.parameters.keys() and \
+                len(self.parameters["AppendActiveParticleType"]):
             pdtype = [(ptype, 'i4') for ptype in
                 self.parameters["AppendActiveParticleType"]]
         else:
@@ -850,7 +852,8 @@ class EnzoStaticOutput(StaticOutput):
         self.particle_types = ["all"]
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
-        if self.parameters["NumberOfParticles"] > 0:
+        if self.parameters["NumberOfParticles"] > 0 and \
+            "AppendActiveParticleType" in self.parameters.keys():
             self.particle_types.append("DarkMatter")
             self.parameters["AppendActiveParticleType"].append("DarkMatter")
 
