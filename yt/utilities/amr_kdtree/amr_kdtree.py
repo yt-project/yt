@@ -39,17 +39,24 @@ def my_break():
     my_debug = False
     if my_debug: pdb.set_trace()
 
+steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
+                  [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],
+                  [-1,  1, -1], [-1,  1,  0], [-1,  1,  1],
+                  
+                  [ 0, -1, -1], [ 0, -1,  0], [ 0, -1,  1],
+                  [ 0,  0, -1],
+                  # [ 0,  0,  0],
+                  [ 0,  0,  1],
+                  [ 0,  1, -1], [ 0,  1,  0], [ 0,  1,  1],
+                  
+                  [ 1, -1, -1], [ 1, -1,  0], [ 1, -1,  1],
+                  [ 1,  0, -1], [ 1,  0,  0], [ 1,  0,  1],
+                  [ 1,  1, -1], [ 1,  1,  0], [ 1,  1,  1] ])
+
 class Tree(object):
-    trunk = None
-    pf = None
-    _id_offset = None
-    min_level = None
-    max_level = None
-    comm_rank = 0
-    comm_size = 1
     def __init__(self, pf, comm_rank=0, comm_size=1, left=None, right=None,
             min_level=None, max_level=None, grids=None):
-
+        
         self.pf = pf
         self._id_offset = self.pf.h.grids[0]._id_offset
         if left is None:
@@ -124,17 +131,6 @@ class Tree(object):
 
 
 class AMRKDTree(HomogenizedVolume):
-    current_vcds = []
-    tree = None
-    no_ghost = True
-    fields = ['Density']
-    log_fields = [True]
-    _id_offset = None
-    current_saved_grids = []
-    pf = None
-    bricks = []
-    brick_dimensions = []
-    _initialized = False
     def __init__(self, pf,  l_max=None, le=None, re=None,
                  fields=None, no_ghost=False, min_level=None, max_level=None,
                  tree_type='domain',log_fields=None, merge_trees=False,
@@ -146,7 +142,12 @@ class AMRKDTree(HomogenizedVolume):
         self.l_max = l_max
         if fields is None: fields = ["Density"]
         self.fields = ensure_list(fields)
+        self.current_vcds = []
+        self.current_saved_grids = []
+        self.bricks = []
+        self.brick_dimensions = []
 
+        self._initialized = False
         self.no_ghost = no_ghost
         if log_fields is not None:
             log_fields = ensure_list(log_fields)
@@ -372,7 +373,6 @@ class AMRKDTree(HomogenizedVolume):
     def store_kd_bricks(self, fn=None):
         if not self._initialized:
             self.initialize_source()
-            self.initialized = True
         if fn is None:
             fn = '%s_kd_bricks.h5'%self.pf
         if self.comm.rank != 0:

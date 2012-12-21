@@ -97,9 +97,8 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
 
     if grey_opacity == 1:
         ta = fmax(1.0 - dt*trgba[3],0.0)
-        for i in range(3):
+        for i in range(4):
             rgba[i] = dt*trgba[i] + ta*rgba[i]
-        rgba[3] = dt*trgba[3] + ta*rgba[3]
     else:
         for i in range(3):
             ta = fmax(1.0-dt*trgba[i], 0.0)

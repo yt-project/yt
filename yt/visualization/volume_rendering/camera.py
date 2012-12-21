@@ -1147,7 +1147,6 @@ class MosaicCamera(Camera):
         # This seems to be necessary for now.  Not sure what goes wrong when not true.
         if north_vector is not None: self.steady_north=True
         self.north_vector = north_vector
-        self.rotation_vector = north_vector
         self.normal_vector = normal_vector
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -1212,7 +1211,7 @@ class MosaicCamera(Camera):
         self.center += offj*dy*self.orienter.unit_vectors[1]
         
         self.box_vectors = np.array([self.orienter.unit_vectors[0]*dx*self.nimx,
-                                     self.orienter.unit_vectors[1]*dy*self.nimx,
+                                     self.orienter.unit_vectors[1]*dy*self.nimy,
                                      self.orienter.unit_vectors[2]*self.width[2]])
         self.back_center = self.center - 0.5*self.width[0]*self.orienter.unit_vectors[2]
         self.front_center = self.center + 0.5*self.width[0]*self.orienter.unit_vectors[2]
