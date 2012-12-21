@@ -123,6 +123,11 @@ class EnzoGrid(AMRGridPatch):
         return [self.hierarchy.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
+    @property
+    def NumberOfActiveParticles(self):
+        if not hasattr(self, '_NumberOfActiveParticles'): return None
+        return self._NumberOfActiveParticles[self.id - self._id_offset]
+
 class EnzoGridInMemory(EnzoGrid):
     __slots__ = ['proc_num']
     def set_filename(self, filename):
@@ -302,13 +307,13 @@ class EnzoHierarchy(GridGeometryHandler):
             # Below we find out what active particles exist in this grid,
             # and add their counts individually.
             if active_particles:
-                types = _next_token_line("PresentParticleTypes", f)
+                ptypes = _next_token_line("PresentParticleTypes", f)
                 counts = [int(c) for c in _next_token_line("ParticleTypeCounts", f)]
-                for type in self.parameters["AppendActiveParticleType"]:
-                    if type in types:
-                        nap[type].append(counts[types.index(type)])
+                for ptype in self.parameters["AppendActiveParticleType"]:
+                    if ptype in ptypes:
+                        nap[ptype].append(counts[ptypes.index(ptype)])
                     else:
-                        nap[type].append(0)
+                        nap[ptype].append(0)
             if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
             for line in f:
                 if len(line) < 2: break
@@ -325,9 +330,9 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _initialize_grid_arrays(self):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
-        self.grid_active_particle_count = {}
-        for type in self.parameters["AppendActiveParticleType"]:
-            self.grid_active_particle_count[type] = np.zeros((self.num_grids,1), 'int32')
+        pdtype = [(ptype, 'i4') for ptype in
+            self.parameters["AppendActiveParticleType"]]
+        self.grid_active_particle_count = np.zeros(self.num_grids, dtype=pdtype)
 
     def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions.flat[:] = ei
@@ -337,8 +342,8 @@ class EnzoHierarchy(GridGeometryHandler):
         self.grid_right_edge.flat[:] = RE
         self.grid_particle_count.flat[:] = npart
         if nap is not None:
-            for type in nap:
-                self.grid_active_particle_count[type].flat[:] = nap[type]
+            for ptype in nap:
+                self.grid_active_particle_count[ptype].flat[:] = nap[ptype]
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -384,10 +389,8 @@ class EnzoHierarchy(GridGeometryHandler):
         reconstruct = ytcfg.getboolean("yt","reconstruct_hierarchy")
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
-            g.NumberOfActiveParticles = {}
-            for type in self.parameters["AppendActiveParticleType"]:
-                g.NumberOfActiveParticles[type] = \
-                    self.grid_active_particle_count[type][g.id - g._id_offset,0]
+            g._NumberOfActiveParticles = \
+                self.grid_active_particle_count
             g._setup_dx()
             g.set_filename(f[0])
             if reconstruct:
@@ -397,8 +400,8 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _detect_active_particle_fields(self):
         select_grids = np.zeros(len(self.grids), dtype='int32')
-        for type in self.grid_active_particle_count:
-            select_grids += self.grid_active_particle_count[type].flat
+        for ptype in self.parameter_file["AppendActiveParticleType"]:
+            select_grids += self.grid_active_particle_count[ptype].flat
         gs = self.grids[select_grids > 0]
         grids = sorted((g for g in gs), key = lambda a: a.filename)
         handle = last = None

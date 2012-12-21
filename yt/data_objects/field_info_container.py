@@ -406,7 +406,8 @@ class DerivedField(object):
         ii = self.check_available(data)
         original_fields = data.keys() # Copy
         dd = self._function(self, data)
-        dd *= self._convert_function(data)
+        if dd is not None:
+            dd *= self._convert_function(data)
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
