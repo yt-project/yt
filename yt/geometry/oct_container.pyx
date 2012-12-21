@@ -24,6 +24,7 @@ License:
 """
 
 from libc.stdlib cimport malloc, free, qsort
+from libc.math cimport floor
 cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
@@ -145,7 +146,7 @@ cdef class OctreeContainer:
         for i in range(3):
             pp[i] = ppos[i] - self.DLE[i]
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> (pp[i]/dds[i])
+            ind[i] = <np.int64_t> (floor(pp[i]/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
         while cur.children[0][0][0] != NULL:
@@ -310,6 +311,25 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             if mask[i] == 1:
                 count[cur.my_octs[i - cur.offset].domain - 1] += 1
         return count
+
+    def check(self, int curdom):
+        cdef int dind, pi
+        cdef Oct oct
+        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
+        cdef int nbad = 0
+        for pi in range(cont.n_assigned):
+            oct = cont.my_octs[pi]
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if oct.children[i][j][k] != NULL and \
+                           oct.children[i][j][k].level != oct.level + 1:
+                            if curdom == 61:
+                                print pi, oct.children[i][j][k].level,
+                                print oct.level
+                            nbad += 1
+        print "DOMAIN % 3i HAS % 9i BAD OCTS (%s / %s / %s)" % (curdom, nbad, 
+            cont.n - cont.n_assigned, cont.n_assigned, cont.n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -691,7 +711,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             malloc(sizeof(ParticleArrays))
         cdef int i, j, k
         my_oct.ind = my_oct.domain = -1
-        my_oct.domain = -1
         my_oct.local_ind = self.nocts - 1
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
