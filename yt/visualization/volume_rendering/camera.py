@@ -193,10 +193,12 @@ class Camera(ParallelAnalysisInterface):
             resolution = (resolution, resolution)
         self.resolution = resolution
         self.sub_samples = sub_samples
+        self.rotation_vector = north_vector
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
-        self.rotation_vector = self.orienter.unit_vectors[1]
+        if not steady_north:
+            self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
