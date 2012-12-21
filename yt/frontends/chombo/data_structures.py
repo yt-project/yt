@@ -143,9 +143,6 @@ class ChomboHierarchy(AMRHierarchy):
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
 
-    def _initialize_data_storage(self):
-        pass
-
     def _detect_fields(self):
         ncomp = int(self._fhandle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._fhandle['/'].attrs.items()[-ncomp:]]
