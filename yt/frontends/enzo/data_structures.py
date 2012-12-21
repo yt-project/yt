@@ -125,8 +125,7 @@ class EnzoGrid(AMRGridPatch):
 
     @property
     def NumberOfActiveParticles(self):
-        if not hasattr(self, '_NumberOfActiveParticles'): return None
-        return self._NumberOfActiveParticles[self.id - self._id_offset]
+        return self.hierarchy.grid_active_particle_count[self.id - self._id_offset]
 
 class EnzoGridInMemory(EnzoGrid):
     __slots__ = ['proc_num']
@@ -330,8 +329,11 @@ class EnzoHierarchy(GridGeometryHandler):
 
     def _initialize_grid_arrays(self):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
-        pdtype = [(ptype, 'i4') for ptype in
-            self.parameters["AppendActiveParticleType"]]
+        if len(self.parameters["AppendActiveParticleType"]):
+            pdtype = [(ptype, 'i4') for ptype in
+                self.parameters["AppendActiveParticleType"]]
+        else:
+            pdtype = None
         self.grid_active_particle_count = np.zeros(self.num_grids, dtype=pdtype)
 
     def _fill_arrays(self, ei, si, LE, RE, npart, nap):
@@ -389,8 +391,6 @@ class EnzoHierarchy(GridGeometryHandler):
         reconstruct = ytcfg.getboolean("yt","reconstruct_hierarchy")
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
-            g._NumberOfActiveParticles = \
-                self.grid_active_particle_count
             g._setup_dx()
             g.set_filename(f[0])
             if reconstruct:
