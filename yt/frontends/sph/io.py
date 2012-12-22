@@ -31,6 +31,8 @@ from yt.utilities.exceptions import *
 from yt.utilities.io_handler import \
     BaseIOHandler
 
+_vector_fields = ("Coordinates", "Velocity")
+
 class IOHandlerOWLS(BaseIOHandler):
     _data_style = "OWLS"
 
@@ -58,7 +60,11 @@ class IOHandlerOWLS(BaseIOHandler):
         ind = {}
         for field in fields:
             mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            rv[field] = np.empty(psize[field[0]], dtype="float64")
+            if field[1] in _vector_fields:
+                shape = (psize[field[0]], 3)
+            else:
+                shape = psize[field[0]]
+            rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         for chunk in chunks: # Will be OWLS domains
             for subset in chunk.objs:
@@ -74,8 +80,8 @@ class IOHandlerOWLS(BaseIOHandler):
                         data = g[field][mask,...]
                         my_ind = ind[ptype, field]
                         mylog.debug("Filling from %s to %s with %s",
-                            my_ind, my_ind+data.size, field)
-                        rv[ptype, field][my_ind:my_ind + data.size] = data
+                            my_ind, my_ind+data.shape[0], field)
+                        rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
                         ind[ptype, field] += data.shape[0]
                     f.close()
         return rv
