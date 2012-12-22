@@ -198,9 +198,9 @@ def parallel_passthrough(func):
     output; otherwise, the function gets called.  Used as a decorator.
     """
     @wraps(func)
-    def passage(self, data, **kwargs):
-        if not self._distributed: return data
-        return func(self, data, **kwargs)
+    def passage(self, *args, **kwargs):
+        if not self._distributed: return args[0]
+        return func(self, *args, **kwargs)
     return passage
 
 def _get_comm(args):

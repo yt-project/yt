@@ -26,20 +26,12 @@ License:
 import numpy as np
 from yt.funcs import *
 from yt.utilities.lib import kdtree_get_choices
-from yt.utilities.parallel_tools.parallel_analysis_interface import _get_comm
 
 def _lchild_id(node_id): return (node_id<<1)
 def _rchild_id(node_id): return (node_id<<1) + 1
 def _parent_id(node_id): return (node_id-1) >> 1
 
 class Node(object):
-    left = None
-    right = None
-    parent = None
-    data = None
-    split = None
-    data = None
-    id = None
     def __init__(self, parent, left, right,
             left_edge, right_edge, grid_id, node_id):
         self.left = left
@@ -51,8 +43,6 @@ class Node(object):
         self.id = node_id
 
 class Split(object):
-    dim = None
-    pos = None
     def __init__(self, dim, pos):
         self.dim = dim
         self.pos = pos
@@ -258,6 +248,23 @@ def depth_traverse(tree, max_node=None):
             current = current.parent
             previous = current.right
 
+def depth_first_touch(tree, max_node=None):
+    '''
+    Yields a depth-first traversal of the kd tree always going to
+    the left child before the right.
+    '''
+    current = tree.trunk
+    previous = None
+    if max_node is None:
+        max_node = np.inf
+    while current is not None:
+        if previous is None or previous.parent != current:
+            yield current
+        current, previous = step_depth(current, previous)
+        if current is None: break
+        if current.id >= max_node:
+            current = current.parent
+            previous = current.right
 
 def breadth_traverse(tree):
     '''

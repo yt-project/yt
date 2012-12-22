@@ -110,7 +110,8 @@ class Streamlines(ParallelAnalysisInterface):
         self.direction = np.sign(direction)
         if volume is None:
             volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
-                            log_fields=[False,False,False], merge_trees=True)
+                            log_fields=[False,False,False])
+            volume.join_parallel_trees()
         self.volume = volume
         if dx is None:
             dx = self.pf.h.get_smallest_dx()

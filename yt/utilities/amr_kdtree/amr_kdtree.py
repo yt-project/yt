@@ -28,15 +28,15 @@ import numpy as np
 import h5py
 from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids, \
-        receive_and_reduce, send_to_parent, scatter_image, find_node
+        receive_and_reduce, send_to_parent, scatter_image, find_node, \
+        depth_first_touch
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface
-from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 import pdb
 
 def my_break():
-    my_debug = False
+    my_debug = False 
     if my_debug: pdb.set_trace()
 
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
@@ -130,10 +130,11 @@ class Tree(object):
         kd_node_check(self.trunk)
 
 
-class AMRKDTree(HomogenizedVolume):
+
+class AMRKDTree(ParallelAnalysisInterface):
     def __init__(self, pf,  l_max=None, le=None, re=None,
                  fields=None, no_ghost=False, min_level=None, max_level=None,
-                 tree_type='domain',log_fields=None, merge_trees=False,
+                 log_fields=None,
                  grids=None):
 
         ParallelAnalysisInterface.__init__(self)
@@ -424,6 +425,73 @@ class AMRKDTree(HomogenizedVolume):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
 
 
+    def join_parallel_trees(self):
+        nid, pid, lid, rid, les, res, gid = self.get_node_arrays()
+        nid = self.comm.par_combine_object(nid, 'cat', 'list') 
+        pid = self.comm.par_combine_object(pid, 'cat', 'list') 
+        lid = self.comm.par_combine_object(lid, 'cat', 'list') 
+        rid = self.comm.par_combine_object(rid, 'cat', 'list') 
+        gid = self.comm.par_combine_object(gid, 'cat', 'list') 
+        les = self.comm.par_combine_object(les, 'cat', 'list') 
+        res = self.comm.par_combine_object(res, 'cat', 'list') 
+        nid = np.array(nid)
+        new_tree = self.rebuild_tree_from_array(nid, pid, lid, 
+            rid, les, res, gid)
+
+    def get_node_arrays(self):
+        nids = []
+        leftids = []
+        rightids = []
+        parentids = []
+        les = []
+        res = []
+        gridids = []
+        for node in depth_first_touch(self.tree):
+            nids.append(node.id) 
+            les.append(node.left_edge) 
+            res.append(node.right_edge) 
+            if node.left is None:
+                leftids.append(-1) 
+            else:
+                leftids.append(node.left.id) 
+            if node.right is None:
+                rightids.append(-1) 
+            else:
+                rightids.append(node.right.id) 
+            if node.parent is None:
+                parentids.append(-1) 
+            else:
+                parentids.append(node.parent.id) 
+            if node.grid is None:
+                gridids.append(-1) 
+            else:
+                gridids.append(node.grid) 
+        return nids, parentids, leftids, rightids, les, res, gridids
+
+    def rebuild_tree_from_array(self, nids, pids, lids,
+                               rids, les, res, gids):
+        del self.tree.trunk
+
+        self.tree.trunk = Node(None, 
+                    None,
+                    None,
+                    les[0], res[0], gids[0], nids[0]) 
+
+        N = nids.shape[0]
+        for i in xrange(N):
+            n = self.get_node(nids[i])
+            n.left_edge = les[i]
+            n.right_edge = res[i]
+            if lids[i] != -1 and n.left is None:
+                n.left = Node(n, None, None, None,  
+                                      None, None, lids[i])
+            if rids[i] != -1 and n.right is None:
+                n.right = Node(n, None, None, None, 
+                                      None, None, rids[i])
+            if gids[i] != -1:
+                n.grid = gids[i]
+        print kd_sum_volume(self.tree.trunk)
+        return self.tree.trunk
 
 if __name__ == "__main__":
     from yt.mods import *
