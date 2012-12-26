@@ -65,11 +65,11 @@ def ensure_list(obj):
 def ensure_numpy_array(obj):
     """
     This function ensures that *obj* is a numpy array. Typically used to
-    convert scalar or list argument passed to functions using Cython.
+    convert scalar, list or tuple argument passed to functions using Cython.
     """
     if isinstance(obj, np.ndarray):
         return obj
-    elif isinstance(obj, types.ListType):
+    elif isinstance(obj, (types.ListType, types.TupleType)):
         return np.asarray(obj)
     else:
         return np.asarray([obj])
