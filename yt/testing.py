@@ -27,7 +27,7 @@ from yt.funcs import *
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
-    assert_allclose
+    assert_allclose, assert_raises
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -43,7 +43,7 @@ def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
                                verbose=verbose)
 
 def amrspace(extent, levels=7, cells=8):
-    """Creates two numpy arrays representing the left and right bounds of 
+    """Creates two numpy arrays representing the left and right bounds of
     an AMR grid as well as an array for the AMR level of each cell.
 
     Parameters
@@ -57,7 +57,7 @@ def amrspace(extent, levels=7, cells=8):
         length ndims), then each dimension will be refined down to this level.
         All values in this array must be the same or zero.  A zero valued dimension
         indicates that this dim should not be refined.  Taking the 3D cylindrical
-        example above if we don't want refine theta but want r and z at 5 we would 
+        example above if we don't want refine theta but want r and z at 5 we would
         set levels=(5, 5, 0).
     cells : int, optional
         This is the number of cells per refinement level.

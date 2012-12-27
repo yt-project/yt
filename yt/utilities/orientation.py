@@ -58,6 +58,8 @@ class Orientation:
         if north_vector is not None: self.steady_north = True
         self.north_vector = north_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
+        if self.north_vector is None:
+            self.north_vector = self.unit_vectors[1] 
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
         # Now we set up our various vectors

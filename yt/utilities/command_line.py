@@ -119,7 +119,11 @@ _common_options = dict(
     log     = dict(short="-l", long="--log",
                    action="store_true",
                    dest="takelog", default=True,
-                   help="Take the log of the field?"),
+                   help="Use logarithmic scale for image"),
+    linear  = dict(long="--linear",
+                   action="store_false",
+                   dest="takelog",
+                   help="Use linear scale for image"),
     text    = dict(short="-t", long="--text",
                    action="store", type=str,
                    dest="text", default=None,
@@ -180,7 +184,7 @@ _common_options = dict(
                    dest="skip", default=1,
                    help="Skip factor for outputs"),
     proj    = dict(short="-p", long="--projection",
-                   action="store_true", 
+                   action="store_true",
                    dest="projection", default=False,
                    help="Use a projection rather than a slice"),
     maxw    = dict(long="--max-width",
@@ -221,7 +225,7 @@ _common_options = dict(
                    dest="threshold", default=None,
                    help="Density threshold"),
     dm_only = dict(long="--all-particles",
-                   action="store_false", 
+                   action="store_false",
                    dest="dm_only", default=True,
                    help="Use all particles"),
     grids   = dict(long="--show-grids",
@@ -630,7 +634,7 @@ class YTBugreportCmd(YTCommand):
         print "At any time in advance of the upload of the bug, you should feel free"
         print "to ctrl-C out and submit the bug report manually by going here:"
         print "   http://hg.yt-project.org/yt/issues/new"
-        print 
+        print
         print "Also, in order to submit a bug through this interface, you"
         print "need a Bitbucket account. If you don't have one, exit this "
         print "bugreport now and run the 'yt bootstrap_dev' command to create one."
@@ -698,7 +702,7 @@ class YTBugreportCmd(YTCommand):
         data['content'] = content
         print
         print "==============================================================="
-        print 
+        print
         print "Okay, we're going to submit with this:"
         print
         print "Summary: %s" % (data['title'])
@@ -718,7 +722,7 @@ class YTBugreportCmd(YTCommand):
         import json
         retval = json.loads(retval)
         url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
-        print 
+        print
         print "==============================================================="
         print
         print "Thanks for your bug report!  Together we'll make yt totally bug free!"
@@ -785,7 +789,7 @@ class YTHubRegisterCmd(YTCommand):
         if len(email) == 0: sys.exit(1)
         print
         print "Please choose a password:"
-        print 
+        print
         while 1:
             password1 = getpass.getpass("Password? ")
             password2 = getpass.getpass("Confirm? ")
@@ -804,7 +808,7 @@ class YTHubRegisterCmd(YTCommand):
         print
         loki = raw_input()
         data = dict(name = name, email = email, username = username,
-                    password = password1, password2 = password2, 
+                    password = password1, password2 = password2,
                     url = url, zap = "rowsdower")
         data = urllib.urlencode(data)
         hub_url = "https://hub.yt-project.org/create_user"
@@ -994,7 +998,7 @@ class YTHubSubmitCmd(YTCommand):
         print
         loki = raw_input()
 
-        mpd = MinimalProjectDescription(title, bb_url, summary, 
+        mpd = MinimalProjectDescription(title, bb_url, summary,
                 categories[cat_id], image_url)
         mpd.upload()
 
@@ -1041,7 +1045,7 @@ class YTInstInfoCmd(YTCommand):
             print
             if "site-packages" not in path:
                 print "This installation CAN be automatically updated."
-                if opts.update_source:  
+                if opts.update_source:
                     update_hg(path)
                 print "Updated successfully."
         elif opts.update_source:
@@ -1093,7 +1097,7 @@ class YTLoadCmd(YTCommand):
             # prepend sys.path with current working directory
             sys.path.insert(0,'')
             IPython.embed(config=cfg,user_ns=local_ns)
-            
+
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -1103,7 +1107,7 @@ class YTMapserverCmd(YTCommand):
                    dest="host", default=None, help="IP Address to bind on"),
             "pf",
             )
-    
+
     name = "mapserver"
     description = \
         """
@@ -1178,7 +1182,7 @@ class YTPastebinGrabCmd(YTCommand):
     name = "pastebin_grab"
     description = \
         """
-        Print an online pastebin to STDOUT for local use. 
+        Print an online pastebin to STDOUT for local use.
         """
 
     def __call__(self, args):
@@ -1220,16 +1224,15 @@ class YTNotebookUploadCmd(YTCommand):
         print
 
 class YTPlotCmd(YTCommand):
-    args = ("width", "unit", "bn", "proj", "center",
-            "zlim", "axis", "field", "weight", "skip",
-            "cmap", "output", "grids", "time", "pf",
-            "max")
-    
+    args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
+            "weight", "skip", "cmap", "output", "grids", "time", "pf", "max",
+            "log", "linear")
+
     name = "plot"
-    
+
     description = \
         """
-        Create a set of images 
+        Create a set of images
 
         """
 
@@ -1268,21 +1271,22 @@ class YTPlotCmd(YTCommand):
                                 width=width)
             if args.grids:
                 plt.annotate_grids()
-            if args.time: 
+            if args.time:
                 time = pf.current_time*pf['Time']*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
+            plt.set_log(args.field, args.takelog)
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)
             if not os.path.isdir(args.output): os.makedirs(args.output)
             plt.save(os.path.join(args.output,"%s" % (pf)))
 
 class YTRenderCmd(YTCommand):
-        
+
     args = ("width", "unit", "center","enhance",'outputfn',
-            "field", "cmap", "contours", "viewpoint",
-            "pixels","up","valrange","log","contour_width", "pf")
+            "field", "cmap", "contours", "viewpoint", "linear",
+            "pixels", "up", "valrange", "log","contour_width", "pf")
     name = "render"
     description = \
         """
@@ -1314,16 +1318,16 @@ class YTRenderCmd(YTCommand):
 
         N = args.pixels
         if N is None:
-            N = 512 
-        
+            N = 512
+
         up = args.up
         if up is None:
             up = [0.,0.,1.]
-            
+
         field = args.field
         if field is None:
             field = 'Density'
-        
+
         log = args.takelog
         if log is None:
             log = True
@@ -1356,7 +1360,7 @@ class YTRenderCmd(YTCommand):
             for i in range(3):
                 image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
             image[image>1.0]=1.0
-            
+
         save_name = args.output
         if save_name is None:
             save_name = "%s"%pf+"_"+field+"_rendering.png"
