@@ -174,6 +174,7 @@ class FixedResolutionBuffer(object):
         if info['label'] is None:
             info['label'] = r'$\rm{'+item+r'}$'
         elif info['label'].find('$') == -1:
+            info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
         if info['units'] is None or info['units'] == '':
             pass
