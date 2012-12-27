@@ -24,6 +24,7 @@ License:
 """
 
 from libc.stdlib cimport malloc, free
+from libc.math cimport floor
 cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
@@ -74,15 +75,6 @@ cdef void free_octs(
         first = cur.next
         free(cur)
 
-# Here is the strategy for RAMSES containers:
-#   * Read each domain individually, creating *all* octs found in that domain
-#     file, even if they reside on other CPUs.
-#   * Only allocate octs that reside on >= domain
-#   * For all octs, insert into tree, which may require traversing existing
-#     octs
-#   * Note that this doesn ot allow OctAllocationContainer to exactly be a
-#     chunk, but it is close.  For IO chunking, we can theoretically examine
-#     those octs that live inside a given allocator.
 
 cdef class OctreeContainer:
 
@@ -144,7 +136,7 @@ cdef class OctreeContainer:
         for i in range(3):
             pp[i] = ppos[i] - self.DLE[i]
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> (pp[i]/dds[i])
+            ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
         while cur.children[0][0][0] != NULL:
@@ -344,15 +336,14 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
-        # How do we bootstrap ourselves?
         for p in range(no): #oct number p out of no octs to allocate
-            #for every oct we're trying to add find the 
+            #for every oct we're trying to add, find the 
             #floating point unitary position on this level
             in_boundary = 0
             for i in range(3):
                 pp[i] = pos[p, i] 
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
@@ -630,7 +621,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
@@ -1012,7 +1003,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
