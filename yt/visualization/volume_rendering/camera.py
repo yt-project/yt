@@ -322,7 +322,6 @@ class Camera(ParallelAnalysisInterface):
                     light_rgba=self.light_rgba, **kwargs)
         else:
             sampler = self._sampler_object(*args, **kwargs)
-        print sampler, kwargs
         return sampler
 
     def finalize_image(self, image):
@@ -1070,6 +1069,9 @@ class FisheyeCamera(Camera):
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields)
         self.volume = volume
+
+    def get_information(self):
+        return {}
 
     def new_image(self):
         image = np.zeros((self.resolution**2,1,3), dtype='float64', order='C')
