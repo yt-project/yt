@@ -22,3 +22,31 @@ def test_extrema():
         (mi, ma), = dd.quantities["Extrema"]("RadialVelocity")
         yield assert_equal, mi, np.nanmin(dd["RadialVelocity"])
         yield assert_equal, ma, np.nanmax(dd["RadialVelocity"])
+
+def test_average():
+    for nprocs in [1, 2, 4, 8]:
+        pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density",))
+        ad = pf.h.all_data()
+        
+        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "Ones")
+        yield assert_rel_equal, my_mean, ad["Density"].mean(), 13
+
+        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "CellMass")
+        a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
+        yield assert_rel_equal, my_mean, a_mean, 14
+
+def test_variance():
+    for nprocs in [1, 2, 4, 8]:
+        pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density", ))
+        ad = pf.h.all_data()
+        
+        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "Ones")
+        yield assert_rel_equal, my_mean, ad["Density"].mean(), 13
+        yield assert_rel_equal, my_std, ad["Density"].std(), 13
+
+        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "CellMass")        
+        a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
+        yield assert_rel_equal, my_mean, a_mean, 13
+        a_std = np.sqrt((ad["CellMass"] * (ad["Density"] - a_mean)**2).sum() / 
+                        ad["CellMass"].sum())
+        yield assert_rel_equal, my_std, a_std, 13
