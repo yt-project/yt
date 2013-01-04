@@ -29,11 +29,11 @@ def test_average():
         ad = pf.h.all_data()
         
         my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "Ones")
-        yield assert_rel_equal, my_mean, ad["Density"].mean(), 13
+        yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
 
         my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "CellMass")
         a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
-        yield assert_rel_equal, my_mean, a_mean, 14
+        yield assert_rel_equal, my_mean, a_mean, 12
 
 def test_variance():
     for nprocs in [1, 2, 4, 8]:
@@ -41,12 +41,12 @@ def test_variance():
         ad = pf.h.all_data()
         
         my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "Ones")
-        yield assert_rel_equal, my_mean, ad["Density"].mean(), 13
-        yield assert_rel_equal, my_std, ad["Density"].std(), 13
+        yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
+        yield assert_rel_equal, my_std, ad["Density"].std(), 12
 
         my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "CellMass")        
         a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
-        yield assert_rel_equal, my_mean, a_mean, 13
+        yield assert_rel_equal, my_mean, a_mean, 12
         a_std = np.sqrt((ad["CellMass"] * (ad["Density"] - a_mean)**2).sum() / 
                         ad["CellMass"].sum())
-        yield assert_rel_equal, my_std, a_std, 13
+        yield assert_rel_equal, my_std, a_std, 12
