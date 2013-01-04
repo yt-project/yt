@@ -433,8 +433,6 @@ class EnzoSimulation(SimulationTimeSeries):
             if self.parameters['CycleSkipDataDump'] <= 0:
                 self.all_outputs.sort(key=lambda obj:obj['time'])
 
-        mylog.info("Total datasets: %d." % len(self.all_outputs))
-
     def _calculate_simulation_bounds(self):
         """
         Figure out the starting and stopping time and redshift for the simulation.
@@ -531,6 +529,12 @@ class EnzoSimulation(SimulationTimeSeries):
         self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
         self.all_outputs.sort(key=lambda obj: obj['time'])
         mylog.info("Located %d total outputs." % len(self.all_outputs))
+
+        # manually set final time and redshift with last output
+        if self.all_outputs:
+            self.final_time = self.all_outputs[-1]['time']
+            if self.cosmological_simulation:
+                self.final_redshift = self.all_outputs[-1]['redshift']
 
     def _check_for_outputs(self, potential_outputs):
         r"""Check a list of files to see if they are valid datasets."""
