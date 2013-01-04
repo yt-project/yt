@@ -26,6 +26,7 @@ yt/utilities/lib/QuadTree.c
 yt/utilities/lib/RayIntegrators.c
 yt/utilities/lib/VolumeIntegrator.c
 yt/utilities/lib/grid_traversal.c
+yt/utilities/lib/GridTree.c
 yt/utilities/lib/marching_cubes.c
 yt/utilities/lib/png_writer.h
 syntax: glob
