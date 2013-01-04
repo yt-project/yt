@@ -214,6 +214,8 @@ def _WeightedVariance(data, field, weight):
     Returns the weighted variance and the weighted mean.
     """
     my_weight = data[weight].sum()
+    if my_weight == 0:
+        return 0.0, 0.0, 0.0
     my_mean = (data[field] * data[weight]).sum() / my_weight
     my_var2 = (data[weight] * (data[field] - my_mean)**2).sum() / my_weight
     return my_weight, my_mean, my_var2
