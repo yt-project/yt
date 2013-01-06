@@ -299,6 +299,17 @@ _common_options = dict(
 
     )
 
+def _get_yt_stack_date():
+    if "YT_DEST" not in os.environ:
+        print "Could not determine when yt stack was last updated."
+        return
+    date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
+    if not os.path.exists(date_file):
+        print "Could not determine when yt stack was last updated."
+        return
+    print "".join(file(date_file, 'r').readlines())
+    print "To update all dependencies, run \"yt update --all\"."
+    
 def _update_yt_stack(path):
     "Rerun the install script to updated all dependencies."
     
@@ -1081,6 +1092,7 @@ class YTInstInfoCmd(YTCommand):
                 if opts.update_source:
                     update_hg(path)
                 print "Updated successfully."
+                _get_yt_stack_date()
         elif opts.update_source:
             print
             print "YT site-packages not in path, so you must"
@@ -1615,6 +1627,7 @@ class YTUpdateCmd(YTCommand):
             print "This installation CAN be automatically updated."
             update_hg(path, skip_rebuild=opts.reinstall)
             print "Updated successfully."
+            _get_yt_stack_date()
             if opts.reinstall:
                 _update_yt_stack(path)
         else:
