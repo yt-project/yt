@@ -10,8 +10,6 @@
 # subversion checkout of YT, you can set YT_DIR, too.  (It'll already
 # check the current directory and one up.
 #
-# NOTE: If you have trouble with wxPython, set INST_WXPYTHON=0 .
-#
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
