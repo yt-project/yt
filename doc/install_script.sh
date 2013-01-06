@@ -15,8 +15,13 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_SUFFIX="yt-`uname -m`"
-DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
+if [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+then
+    DEST_DIR=${YT_DEST}
+else
+    DEST_SUFFIX="yt-`uname -m`"
+    DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
+fi
 BRANCH="yt" # This is the branch to which we will forcibly update.
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
