@@ -269,9 +269,9 @@ def add_xray_emissivity_field(e_min, e_max, filename=None,
     field_name = "Xray_Emissivity_%s_%skeV" % (e_min, e_max)
     add_field(field_name, function=_emissivity_field,
               projection_conversion="cm",
-              display_name=r"\epsilon_{X}\ (%s-%s\ keV)" % (e_min, e_max),
-              units=r"\rm{erg}\ \rm{cm}^{-3}\ \rm{s}^{-1}",
-              projected_units=r"\rm{erg}\ \rm{cm}^{-2}\ \rm{s}^{-1}")
+              display_name=r"\epsilon_{X}\/(%s-%s\/keV)" % (e_min, e_max),
+              units=r"\rm{erg}\/\rm{cm}^{-3}\/\rm{s}^{-1}",
+              projected_units=r"\rm{erg}\/\rm{cm}^{-2}\/\rm{s}^{-1}")
     return field_name
 
 def add_xray_luminosity_field(e_min, e_max, filename=None,
@@ -327,8 +327,8 @@ def add_xray_luminosity_field(e_min, e_max, filename=None,
         return data[em_field] * data["CellVolume"]
     field_name = "Xray_Luminosity_%s_%skeV" % (e_min, e_max)
     add_field(field_name, function=_luminosity_field,
-              display_name=r"\rm{L}_{X}\ (%s-%s\ keV)" % (e_min, e_max),
-              units=r"\rm{erg}\ \rm{s}^{-1}")
+              display_name=r"\rm{L}_{X}\/(%s-%s\/keV)" % (e_min, e_max),
+              units=r"\rm{erg}\/\rm{s}^{-1}")
     return field_name
 
 def add_xray_photon_emissivity_field(e_min, e_max, filename=None,
@@ -403,7 +403,7 @@ def add_xray_photon_emissivity_field(e_min, e_max, filename=None,
     field_name = "Xray_Photon_Emissivity_%s_%skeV" % (e_min, e_max)
     add_field(field_name, function=_emissivity_field,
               projection_conversion="cm",
-              display_name=r"\epsilon_{X}\ (%s-%s\ keV)" % (e_min, e_max),
-              units=r"\rm{photons}\ \rm{cm}^{-3}\ \rm{s}^{-1}",
-              projected_units=r"\rm{photons}\ \rm{cm}^{-2}\ \rm{s}^{-1}")
+              display_name=r"\epsilon_{X}\/(%s-%s\/keV)" % (e_min, e_max),
+              units=r"\rm{photons}\/\rm{cm}^{-3}\/\rm{s}^{-1}",
+              projected_units=r"\rm{photons}\/\rm{cm}^{-2}\/\rm{s}^{-1}")
     return field_name

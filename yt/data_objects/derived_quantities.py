@@ -204,6 +204,29 @@ def _combWeightedAverageQuantity(data, field, weight):
 add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
 
+def _WeightedVariance(data, field, weight):
+    """
+    This function returns the variance of a field.
+
+    :param field: The target field
+    :param weight: The field to weight by
+
+    Returns the weighted variance and the weighted mean.
+    """
+    my_weight = data[weight].sum()
+    if my_weight == 0:
+        return 0.0, 0.0, 0.0
+    my_mean = (data[field] * data[weight]).sum() / my_weight
+    my_var2 = (data[weight] * (data[field] - my_mean)**2).sum() / my_weight
+    return my_weight, my_mean, my_var2
+def _combWeightedVariance(data, my_weight, my_mean, my_var2):
+    all_weight = my_weight.sum()
+    all_mean = (my_weight * my_mean).sum() / all_weight
+    return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
+                    all_weight), all_mean]
+add_quantity("WeightedVariance", function=_WeightedVariance,
+             combine_function=_combWeightedVariance, n_ret=3)
+
 def _BulkVelocity(data):
     """
     This function returns the mass-weighted average velocity in the object.

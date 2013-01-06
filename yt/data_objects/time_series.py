@@ -346,10 +346,10 @@ class SimulationTimeSeries(TimeSeriesData):
 
         # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
-        self.print_key_parameters()
-
         # Get all possible datasets.
         self._get_all_outputs(find_outputs=find_outputs)
+        
+        self.print_key_parameters()
 
     def __repr__(self):
         return self.parameter_filename
@@ -377,3 +377,5 @@ class SimulationTimeSeries(TimeSeriesData):
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
+        mylog.info("Total datasets: %d." % len(self.all_outputs))
+

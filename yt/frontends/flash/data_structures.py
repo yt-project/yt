@@ -390,13 +390,8 @@ class FLASHStaticOutput(StaticOutput):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
-        self.domain_left_edge = np.array(
-            [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
-        self.domain_right_edge = np.array(
-            [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
-        self.min_level = self.parameters.get("lrefine_min", 1) - 1
-
-        # Determine domain dimensions
+        
+        # Determine block size
         try:
             nxb = self.parameters["nxb"]
             nyb = self.parameters["nyb"]
@@ -404,6 +399,8 @@ class FLASHStaticOutput(StaticOutput):
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz'] # FLASH2 only!
+        
+        # Determine dimensionality
         try:
             dimensionality = self.parameters["dimensionality"]
         except KeyError:
@@ -412,7 +409,10 @@ class FLASHStaticOutput(StaticOutput):
             if nyb == 1: dimensionality = 1
             if dimensionality < 3:
                 mylog.warning("Guessing dimensionality as %s", dimensionality)
+        
+        self.dimensionality = dimensionality
 
+        # Determine base grid parameters
         if 'lrefine_min' in self.parameters.keys() : # PARAMESH
             nblockx = self.parameters["nblockx"]
             nblocky = self.parameters["nblocky"]
@@ -423,20 +423,34 @@ class FLASHStaticOutput(StaticOutput):
             nblockz = self.parameters["kprocs"]
 
         # In case the user wasn't careful
-        if dimensionality <= 2 : nblockz = 1
-        if dimensionality == 1 : nblocky = 1
+        if self.dimensionality <= 2 : nblockz = 1
+        if self.dimensionality == 1 : nblocky = 1
 
-        self.dimensionality = dimensionality
+        # Determine domain boundaries
+        self.domain_left_edge = np.array(
+            [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
+        self.domain_right_edge = np.array(
+            [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
+        if self.dimensionality < 3:
+            for d in (dimensionality)+range(3-dimensionality):
+                if self.domain_left_edge[d] == self.domain_right_edge[d]:
+                    mylog.warning('Identical domain left edge and right edges '
+                                  'along dummy dimension (%i), attempting to read anyway' % d)
+                    self.domain_right_edge[d] = self.domain_left_edge[d]+1.0
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
+
+        # Try to determine Gamma
         try:
             self.parameters["Gamma"] = self.parameters["gamma"]
         except:
             mylog.warning("Cannot find Gamma")
             pass
 
+        # Get the simulation time
         self.current_time = self.parameters["time"]
 
+        # Determine cosmological parameters.
         try: 
             self.parameters["usecosmology"]
             self.cosmological_simulation = 1
