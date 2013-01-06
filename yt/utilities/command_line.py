@@ -1091,7 +1091,7 @@ class YTInstInfoCmd(YTCommand):
                 print "This installation CAN be automatically updated."
                 if opts.update_source:
                     update_hg(path)
-                print "Updated successfully."
+                    print "Updated successfully."
                 _get_yt_stack_date()
         elif opts.update_source:
             print
