@@ -146,7 +146,7 @@ cdef class OctreeContainer:
         for i in range(3):
             pp[i] = ppos[i] - self.DLE[i]
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> (floor(pp[i]/dds[i]))
+            ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
         while cur.children[0][0][0] != NULL:
@@ -695,14 +695,16 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             i += 1
         qsort(self.oct_list, self.nocts, sizeof(Oct*), &compare_octs)
         cdef int cur_dom = -1
+        # We always need at least 2, and if max_domain is 0, we need 3.
         self.dom_offsets = <np.int64_t *>malloc(sizeof(np.int64_t) *
-                                                self.max_domain + 2)
+                                                (self.max_domain + 3))
+        self.dom_offsets[0] = 0
         for i in range(self.nocts):
             self.oct_list[i].local_ind = i
             if self.oct_list[i].domain > cur_dom:
                 cur_dom = self.oct_list[i].domain
-                self.dom_offsets[cur_dom] = i
-        self.dom_offsets[cur_dom + 1] = self.nocts
+                self.dom_offsets[cur_dom + 1] = i
+        self.dom_offsets[cur_dom + 2] = self.nocts
 
     cdef Oct* allocate_oct(self):
         self.nocts += 1
@@ -752,12 +754,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef Oct *o
         cdef int oi, i
         level_count = np.zeros(max_level+1, 'int64')
-        ndo
         cdef np.int64_t ndo, doff
-        ndo = self.dom_offsets[domain_id + 1] \
-            - self.dom_offsets[domain_id]
-        doff = self.dom_offsets[domain_id]
-        print "Domain %s Total %s" % (domain_id, ndo)
+        ndo = self.dom_offsets[domain_id + 2] \
+            - self.dom_offsets[domain_id + 1]
+        doff = self.dom_offsets[domain_id + 1]
         for oi in range(ndo):
             o = self.oct_list[oi + doff]
             for i in range(8):
@@ -778,7 +778,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
