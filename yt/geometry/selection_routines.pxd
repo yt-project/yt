@@ -28,12 +28,16 @@ cimport numpy as np
 cdef struct Oct
 
 cdef class SelectorObject:
+    cdef public np.int32_t min_level
+    cdef public np.int32_t max_level
+
     cdef void recursively_select_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
                         np.ndarray[np.uint8_t, ndim=2] mask,
                         int level = ?)
     cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil
+                               np.float64_t right_edge[3],
+                               np.int32_t level) nogil
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil
     cdef void set_bounds(self,

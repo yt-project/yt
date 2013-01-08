@@ -197,7 +197,8 @@ class GridGeometryHandler(GeometryHandler):
             dobj._chunk_info[0] = dobj
         elif getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
-                                            self.grid_right_edge)
+                                            self.grid_right_edge,
+                                            self.grid_levels)
             grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
