@@ -441,6 +441,15 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         for name, v in zip(fields, output_fields):
             self[name] = v
 
+class LevelState(object):
+    current_dx = None
+    current_dims = None
+    current_level = None
+    global_startindex = None
+    old_global_startindex = None
+    domain_iwidth = None
+    fields = None
+
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     filename = None
@@ -491,65 +500,66 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         self._data_source.max_level = level
 
     def _fill_fields(self, fields):
-        self._current_level = -1
-        output_fields = self._initialize_fields(fields)
+        ls = self._initialize_level_state(fields)
         tot = 0
         for level in range(self.level + 1):
-            self._setup_data_source(level)
             for chunk in self._data_source.chunks(fields, "io"):
                 input_fields = [chunk[field] for field in fields]
-                tot += fill_region(input_fields, output_fields, level,
-                            self.global_startindex, chunk.icoords, chunk.ires)
-            if self.level > level:
-                self._update_level_state(level + 1)
-                output_fields = self._refine(1, output_fields)
-        for name, v in zip(fields, output_fields):
+                tot += fill_region(input_fields, ls.fields, level,
+                            ls.global_startindex, chunk.icoords,
+                            chunk.ires)
+                if tot == 0:
+                    raise RuntimeError
+            self._update_level_state(ls)
+        for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
             self[name] = v
+            print name, tot, v.min(), v.max()
 
-    def _update_level_state(self, level, fields = None):
-        if self._current_level == level: return
-        dx = self._base_dx / self.pf.refine_by**level
-        self.cdx = dx
+    def _initialize_level_state(self, fields):
+        ls = LevelState()
+        ls.current_dx = self._base_dx
+        ls.current_level = 0
         LL = self.left_edge - self.pf.domain_left_edge
-        self._old_global_startindex = self.global_startindex
-        self.global_startindex = np.rint(LL / dx).astype('int64') - 1
-        self.domain_width = np.rint((self.pf.domain_right_edge -
-                    self.pf.domain_left_edge)/dx).astype('int64')
-        self._current_level = level
-
-    def _initialize_fields(self, fields):
-        field_return = []
-        self._update_level_state(0)
-        dx = self._base_dx
-        LL = self.left_edge - self.pf.domain_left_edge
+        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.domain_iwidth = np.rint((self.pf.domain_right_edge -
+                    self.pf.domain_left_edge)/ls.current_dx).astype('int64')
         if self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = np.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            for field in fields:
-                field_return.append(np.zeros(idims,dtype='float64')-999)
-            self._cur_dims = idims.astype("int32")
+            width = self.right_edge-self.left_edge
+            idims = np.rint(width/ls.current_dx).astype('int64') + 2
         elif self.level == 0:
-            DLE = self.pf.domain_left_edge
-            self.global_startindex = np.array(np.floor(LL/dx), dtype='int64')
-            idims = np.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
-            fields = ensure_list(fields)
-            for field in fields:
-                field_return.append(np.zeros(idims,dtype='float64')-999)
-            self._cur_dims = idims.astype("int32")
-        return field_return
+            ls.global_startindex = np.array(np.floor(LL/ls.current_dx), dtype='int64')
+            idims = np.rint((self.ActiveDimensions*self.dds)/ls.current_dx).astype('int64')
+        ls.current_dims = idims.astype("int32")
+        ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
+        self._setup_data_source(0)
+        return ls
 
-    def _refine(self, dlevel, fields):
-        rf = float(self.pf.refine_by**dlevel)
+    def _update_level_state(self, level_state):
+        ls = level_state
+        if ls.current_level >= self.level: return
+        ls.current_level += 1
+        self._setup_data_source(ls.current_level)
+        ls.current_dx = self._base_dx / self.pf.refine_by**ls.current_level
+        LL = self.left_edge - self.pf.domain_left_edge
+        ls.old_global_startindex = ls.global_startindex
+        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.domain_iwidth = np.rint(self.pf.domain_width/ls.current_dx).astype('int64') 
+        self._refine(ls)
 
-        input_left = (self._old_global_startindex + 0.5) * rf 
-        output_dims = np.rint((self.ActiveDimensions*self.dds)/self.cdx+0.5).astype('int32') + 2
-        self._cur_dims = output_dims
-        return_fields = []
-        for input_field in fields:
+    def _refine(self, level_state):
+        rf = float(self.pf.refine_by)
+        input_left = (level_state.old_global_startindex + 0.5) * rf 
+        width = (self.ActiveDimensions*self.dds)
+        output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
+        level_state.current_dims = output_dims
+        new_fields = []
+        for input_field in level_state.fields:
             output_field = np.zeros(output_dims, dtype="float64")
             output_left = self.global_startindex + 0.5
             ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
-            return_fields.append(output_field)
-        return return_fields
+            new_fields.append(output_field)
+        level_state.fields = new_fields
+        
