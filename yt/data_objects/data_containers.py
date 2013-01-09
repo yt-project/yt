@@ -496,11 +496,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         old_size, self.size = self.size, chunk.data_size
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
-        self.shape = (self.size,)
+        #self.shape = (self.size,)
         yield
         self.field_data = old_field_data
         self.size = old_size
-        self.shape = (old_size,)
+        #self.shape = (old_size,)
         self._current_chunk = old_chunk
         self._locked = old_locked
 
