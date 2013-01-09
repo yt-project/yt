@@ -415,7 +415,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._selector is not None: return self._selector
         sclass = getattr(yt.geometry.selection_routines,
                          "%s_selector" % self._type_name, None)
-        if sclass is None: raise NotImplementedError
+        if sclass is None:
+            raise YTDataSelectorNotImplemented(self._type_name)
         self._selector = sclass(self)
         return self._selector
 

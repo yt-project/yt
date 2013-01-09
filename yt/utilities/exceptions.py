@@ -208,3 +208,10 @@ class EnzoTestOutputFileNonExistent(YTException):
     def __str__(self):
         return "Enzo test output file (OutputLog) not generated for: " + \
             "'%s'" % (self.testname) + ".\nTest did not complete."
+
+class YTDataSelectorNotImplemented(YTException):
+    def __init__(self, class_name):
+        self.class_name = class_name
+
+    def __str__(self):
+        return "Data selector '%s' not implemented." % (self.class_name)

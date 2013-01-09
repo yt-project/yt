@@ -443,6 +443,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"
+    filename = None
     @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
