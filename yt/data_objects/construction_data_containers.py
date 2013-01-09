@@ -416,9 +416,20 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         #   * Implement NeedsOriginalGrid catch
         #   * Generate some fields inside the data container
         fields_to_get = self._identify_dependencies(fields)
-        fill, gen = self.pf.h._split_fields(fields_to_get)
+        fill, gen = self._split_fields(fields_to_get)
         if len(fill) > 0: self._fill_fields(fill)
         if len(gen) > 0: self._generate_fields(gen)
+
+    def _split_fields(self, fields_to_get):
+        fill, gen = self.pf.h._split_fields(fields_to_get)
+        for field in gen:
+            finfo = self.pf._get_field_info(*field)
+            try:
+                finfo.check_available(self)
+            except NeedsOriginalGrid:
+                fill.append(field)
+        gen = [f for f in gen if f not in fill]
+        return fill, gen
 
     def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
@@ -470,7 +481,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         # interpolation but are not directly inside our bounds
         buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
                  / self.pf.domain_dimensions).max()
-        self._base_region = self.pf.geometry.region(
+        self._base_region = self.pf.h.region(
             self.center,
             self.left_edge - buffer,
             self.right_edge + buffer)
