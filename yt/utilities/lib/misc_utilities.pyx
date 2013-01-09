@@ -462,6 +462,7 @@ def fill_region(input_fields, output_fields,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
+    cdef np.int64_t tot
     cdef np.int64_t iind[3], oind[3], dim[3], oi, oj, ok, rf
     cdef np.ndarray[np.float64_t, ndim=3] ofield
     cdef np.ndarray[np.float64_t, ndim=1] ifield
@@ -469,6 +470,7 @@ def fill_region(input_fields, output_fields,
     for i in range(3):
         dim[i] = output_fields[0].shape[i]
     for n in range(nf):
+        tot = 0
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
@@ -489,3 +491,5 @@ def fill_region(input_fields, output_fields,
                             continue
                         ofield[oind[0], oind[1], oind[2]] = \
                             ifield[i]
+                        tot += 1
+    return tot

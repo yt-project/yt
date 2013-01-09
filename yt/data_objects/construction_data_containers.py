@@ -487,22 +487,24 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             self.center,
             self.left_edge - buffer,
             self.right_edge + buffer)
-        self._data_source.min_level = 0
+        self._data_source.min_level = level
         self._data_source.max_level = level
 
     def _fill_fields(self, fields):
         self._current_level = -1
         output_fields = self._initialize_fields(fields)
+        tot = 0
         for level in range(self.level + 1):
-            self._update_level_state(level)
             self._setup_data_source(level)
             for chunk in self._data_source.chunks(fields, "io"):
                 input_fields = [chunk[field] for field in fields]
-                fill_region(input_fields, output_fields, level,
+                tot += fill_region(input_fields, output_fields, level,
                             self.global_startindex, chunk.icoords, chunk.ires)
             if self.level > level:
+                self._update_level_state(level + 1)
                 output_fields = self._refine(1, output_fields)
         for name, v in zip(fields, output_fields):
+            if self.level > 0: v = v[1:-1,1:-1,1:-1]
             self[name] = v
 
     def _update_level_state(self, level, fields = None):
