@@ -496,18 +496,24 @@ cdef class RegionSelector(SelectorObject):
                          np.float64_t dds[3], int ind[3][2], int *check):
         cdef int temp, i, all_inside
         # Left pos is left_edge + 0.5 * dds
-        all_inside = 1
+        # This means the grid is fully within the region
+        # Note vice versa!
+        all_inside = 1 
         for i in range(3):
+            # If the region starts after the grid does...
             if self.left_edge[i] > left_edge[i]:
                 temp = <int> ((self.left_edge[i] - left_edge[i])/dds[i]) - 1
-                ind[i][0] = iclip(temp, ind[i][0], ind[i][1] - 1)
+                #ind[i][0] = iclip(temp, ind[i][0], ind[i][1])
                 all_inside = 0
+            # If the region ends before the grid does...
             if self.right_edge[i] < right_edge[i]:
-                temp = <int> ((self.right_edge[i] - right_edge[i])/dds[i]) + 1
-                ind[i][1] = iclip(temp, ind[i][0] + 1, ind[i][1])
+                temp = <int> ((self.right_edge[i] - left_edge[i])/dds[i]) + 1
+                #ind[i][1] = iclip(temp, ind[i][0], ind[i][1])
                 all_inside = 0
-        check[0] = all_inside
-
+        if all_inside == 0:
+            check[0] = 1
+        else:
+            check[0] = 0
 
 region_selector = RegionSelector
 

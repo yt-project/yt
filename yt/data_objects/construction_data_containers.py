@@ -449,6 +449,7 @@ class LevelState(object):
     old_global_startindex = None
     domain_iwidth = None
     fields = None
+    data_source = None
 
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"
@@ -487,34 +488,31 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
-    def _setup_data_source(self, level = 0):
+    def _setup_data_source(self, level_state = None):
+        if level_state is None: return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
-        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
-                 / self.pf.domain_dimensions).max()
-        self._data_source = self.pf.h.region(
+        level_state.data_source = self.pf.h.region(
             self.center,
-            self.left_edge - buffer,
-            self.right_edge + buffer)
-        self._data_source.min_level = level
-        self._data_source.max_level = level
+            self.left_edge - level_state.current_dx,
+            self.right_edge + level_state.current_dx)
+        level_state.data_source.min_level = level_state.current_level
+        level_state.data_source.max_level = level_state.current_level
 
     def _fill_fields(self, fields):
         ls = self._initialize_level_state(fields)
-        tot = 0
         for level in range(self.level + 1):
-            for chunk in self._data_source.chunks(fields, "io"):
+            tot = 0
+            for chunk in ls.data_source.chunks(fields, "io"):
+                chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
-                tot += fill_region(input_fields, ls.fields, level,
+                tot += fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
                             chunk.ires)
-                if tot == 0:
-                    raise RuntimeError
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
             self[name] = v
-            print name, tot, v.min(), v.max()
 
     def _initialize_level_state(self, fields):
         ls = LevelState()
@@ -533,22 +531,19 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             idims = np.rint((self.ActiveDimensions*self.dds)/ls.current_dx).astype('int64')
         ls.current_dims = idims.astype("int32")
         ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
-        self._setup_data_source(0)
+        self._setup_data_source(ls)
         return ls
 
     def _update_level_state(self, level_state):
         ls = level_state
         if ls.current_level >= self.level: return
         ls.current_level += 1
-        self._setup_data_source(ls.current_level)
         ls.current_dx = self._base_dx / self.pf.refine_by**ls.current_level
+        self._setup_data_source(ls)
         LL = self.left_edge - self.pf.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
         ls.domain_iwidth = np.rint(self.pf.domain_width/ls.current_dx).astype('int64') 
-        self._refine(ls)
-
-    def _refine(self, level_state):
         rf = float(self.pf.refine_by)
         input_left = (level_state.old_global_startindex + 0.5) * rf 
         width = (self.ActiveDimensions*self.dds)
@@ -562,4 +557,3 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
                                    output_field, output_left)
             new_fields.append(output_field)
         level_state.fields = new_fields
-        

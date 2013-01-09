@@ -474,20 +474,20 @@ def fill_region(input_fields, output_fields,
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
-            for n in range(3):
-                iind[n] = ipos[i, n] - left_index[n]
             rf = refine_by**(output_level - ires[i]) 
+            for n in range(3):
+                iind[n] = ipos[i, n] * rf - left_index[n]
             for oi in range(rf):
-                oind[0] = oi + iind[0] * rf
-                if oind[0] < left_index[0] or oind[0] >= left_index[0] + dim[0]:
+                oind[0] = oi + iind[0]
+                if oind[0] < 0 or oind[0] >= dim[0]:
                     continue
                 for oj in range(rf):
-                    oind[1] = oj + iind[1] * rf
-                    if oind[1] < left_index[1] or oind[1] >= left_index[1] + dim[1]:
+                    oind[1] = oj + iind[1]
+                    if oind[1] < 0 or oind[1] >= dim[1]:
                         continue
                     for ok in range(rf):
-                        oind[2] = ok + iind[2] * rf
-                        if oind[2] < left_index[2] or oind[2] >= left_index[2] + dim[2]:
+                        oind[2] = ok + iind[2]
+                        if oind[2] < 0 or oind[2] >= dim[2]:
                             continue
                         ofield[oind[0], oind[1], oind[2]] = \
                             ifield[i]
