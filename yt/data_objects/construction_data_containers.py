@@ -403,6 +403,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.global_startindex = np.rint((self.left_edge-self.pf.domain_left_edge)/self.dds).astype('int64')
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
+        self._setup_data_source()
+
+    def _setup_data_source(self):
         self._data_source = self.pf.h.region(
             self.center, self.left_edge, self.right_edge)
         self._data_source.min_level = 0
@@ -473,120 +476,77 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         self.global_endindex = None
         YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
+
+    def _setup_data_source(self, level = 0):
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
         buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
                  / self.pf.domain_dimensions).max()
-        self._base_region = self.pf.h.region(
+        self._data_source = self.pf.h.region(
             self.center,
             self.left_edge - buffer,
             self.right_edge + buffer)
+        self._data_source.min_level = 0
+        self._data_source.max_level = level
 
-    def get_data(self, field):
-        self._get_list_of_grids()
-        # We don't generate coordinates here.
-        if field == None:
-            fields = self.fields[:]
-        else:
-            fields = ensure_list(field)
-        fields_to_get = []
-        for field in fields:
-            if self.field_data.has_key(field): continue
-            if field not in self.hierarchy.field_list:
-                try:
-                    #print "Generating", field
-                    self._generate_field(field)
-                    continue
-                except NeedsOriginalGrid, ngt_exception:
-                    pass
-            fields_to_get.append(field)
-        if len(fields_to_get) == 0: return
-        # Note that, thanks to some trickery, we have different dimensions
-        # on the field than one might think from looking at the dx and the
-        # L/R edges.
-        # We jump-start our task here
-        mylog.debug("Getting fields %s from %s possible grids",
-                   fields_to_get, len(self._grids))
-        self._update_level_state(0, fields_to_get)
-        if self._use_pbar: pbar = \
-                get_pbar('Searching grids for values ', len(self._grids))
-        # The grids are assumed to be pre-sorted
-        last_level = 0
-        for gi, grid in enumerate(self._grids):
-            if self._use_pbar: pbar.update(gi)
-            if grid.Level > last_level and grid.Level <= self.level:
-                mylog.debug("Updating level state to %s", last_level + 1)
-                self._update_level_state(last_level + 1)
-                self._refine(1, fields_to_get)
-                last_level = grid.Level
-            self._get_data_from_grid(grid, fields_to_get)
-        while last_level < self.level:
-            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
-            self._update_level_state(last_level + 1)
-            self._refine(1, fields_to_get)
-            last_level += 1
-        if self.level > 0:
-            for field in fields_to_get:
-                self[field] = self[field][1:-1,1:-1,1:-1]
-                if np.any(self[field] == -999):
-                    # and self.dx < self.hierarchy.grids[0].dx:
-                    n_bad = (self[field]==-999).sum()
-                    mylog.error("Covering problem: %s cells are uncovered", n_bad)
-                    raise KeyError(n_bad)
-        if self._use_pbar: pbar.finish()
+    def _fill_fields(self, fields):
+        self._current_level = -1
+        output_fields = self._initialize_fields(fields)
+        for level in range(self.level + 1):
+            self._update_level_state(level)
+            self._setup_data_source(level)
+            for chunk in self._data_source.chunks(fields, "io"):
+                input_fields = [chunk[field] for field in fields]
+                fill_region(input_fields, output_fields, level,
+                            self.global_startindex, chunk.icoords, chunk.ires)
+            if self.level > level:
+                output_fields = self._refine(1, output_fields)
+        for name, v in zip(fields, output_fields):
+            self[name] = v
 
     def _update_level_state(self, level, fields = None):
+        if self._current_level == level: return
         dx = self._base_dx / self.pf.refine_by**level
-        self.field_data['cdx'] = dx[0]
-        self.field_data['cdy'] = dx[1]
-        self.field_data['cdz'] = dx[2]
+        self.cdx = dx
         LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
         self.global_startindex = np.rint(LL / dx).astype('int64') - 1
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/dx).astype('int64')
-        if level == 0 and self.level > 0:
+        self._current_level = level
+
+    def _initialize_fields(self, fields):
+        field_return = []
+        self._update_level_state(0)
+        dx = self._base_dx
+        LL = self.left_edge - self.pf.domain_left_edge
+        if self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = np.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            fields = ensure_list(fields)
             for field in fields:
-                self.field_data[field] = np.zeros(idims,dtype='float64')-999
+                field_return.append(np.zeros(idims,dtype='float64')-999)
             self._cur_dims = idims.astype("int32")
-        elif level == 0 and self.level == 0:
+        elif self.level == 0:
             DLE = self.pf.domain_left_edge
-            self.global_startindex = np.array(np.floor(LL/ dx), dtype='int64')
+            self.global_startindex = np.array(np.floor(LL/dx), dtype='int64')
             idims = np.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
             fields = ensure_list(fields)
             for field in fields:
-                self.field_data[field] = np.zeros(idims,dtype='float64')-999
+                field_return.append(np.zeros(idims,dtype='float64')-999)
             self._cur_dims = idims.astype("int32")
+        return field_return
 
     def _refine(self, dlevel, fields):
         rf = float(self.pf.refine_by**dlevel)
 
         input_left = (self._old_global_startindex + 0.5) * rf 
-        dx = np.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = np.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
+        output_dims = np.rint((self.ActiveDimensions*self.dds)/self.cdx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
-
-        for field in fields:
+        return_fields = []
+        for input_field in fields:
             output_field = np.zeros(output_dims, dtype="float64")
             output_left = self.global_startindex + 0.5
-            ghost_zone_interpolate(rf, self[field], input_left,
+            ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
-            self.field_data[field] = output_field
-
-    @restore_field_information_state
-    def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        g_fields = [grid[field].astype("float64") for field in fields]
-        c_fields = [self.field_data[field] for field in fields]
-        count = FillRegion(1,
-            grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields, 
-            self._cur_dims, grid.ActiveDimensions,
-            grid.child_mask, self.domain_width, 1, 0)
-        return count
-
-    def flush_data(self, *args, **kwargs):
-        raise KeyError("Can't do this")
+            return_fields.append(output_field)
+        return return_fields

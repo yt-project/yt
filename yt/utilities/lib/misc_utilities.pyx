@@ -461,7 +461,7 @@ def fill_region(input_fields, output_fields,
                 np.ndarray[np.int64_t, ndim=1] ires,
                 np.int64_t refine_by = 2
                 ):
-    cdef int i, n, skip
+    cdef int i, n
     cdef np.int64_t iind[3], oind[3], dim[3], oi, oj, ok, rf
     cdef np.ndarray[np.float64_t, ndim=3] ofield
     cdef np.ndarray[np.float64_t, ndim=1] ifield
