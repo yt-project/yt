@@ -410,12 +410,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     def get_data(self, fields = None):
         fields = self._determine_fields(ensure_list(fields))
-        # We need a new tree for every single set of fields we add
-        if len(fields) == 0: return
-        # TODO:
-        #   * Implement NeedsOriginalGrid catch
-        #   * Generate some fields inside the data container
-        fields_to_get = self._identify_dependencies(fields)
+        fields_to_get = [f for f in fields if f not in self.field_data]
+        fields_to_get = self._identify_dependencies(fields_to_get)
+        if len(fields_to_get) == 0: return
         fill, gen = self._split_fields(fields_to_get)
         if len(fill) > 0: self._fill_fields(fill)
         if len(gen) > 0: self._generate_fields(gen)
@@ -440,7 +437,6 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                         self.global_startindex, chunk.icoords, chunk.ires)
         for name, v in zip(fields, output_fields):
             self[name] = v
-            
 
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"

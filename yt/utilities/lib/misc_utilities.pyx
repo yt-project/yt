@@ -451,6 +451,9 @@ def grow_flagging_field(oofield):
                                 nfield[ni, nj, nk] = 1
     return nfield.astype("bool")
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def fill_region(input_fields, output_fields,
                 np.int32_t output_level,
                 np.ndarray[np.int64_t, ndim=1] left_index,
