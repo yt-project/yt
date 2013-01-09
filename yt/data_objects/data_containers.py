@@ -429,6 +429,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
+    def _identify_dependencies(self, fields_to_get):
+        inspected = 0
+        fields_to_get = fields_to_get[:]
+        for ftype, field in itertools.cycle(fields_to_get):
+            if inspected >= len(fields_to_get): break
+            inspected += 1
+            if field not in self.pf.field_dependencies: continue
+            fd = self.pf.field_dependencies[field]
+            requested = self._determine_fields(list(set(fd.requested)))
+            deps = [d for d in requested if d not in fields_to_get]
+            fields_to_get += deps
+        return fields_to_get
+    
     def get_data(self, fields=None):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -441,15 +454,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         elif self._locked == True:
             raise GenerationInProgress(fields)
         # At this point, we want to figure out *all* our dependencies.
-        inspected = 0
-        for ftype, field in itertools.cycle(fields_to_get):
-            if inspected >= len(fields_to_get): break
-            inspected += 1
-            if field not in self.pf.field_dependencies: continue
-            fd = self.pf.field_dependencies[field]
-            requested = self._determine_fields(list(set(fd.requested)))
-            deps = [d for d in requested if d not in fields_to_get]
-            fields_to_get += deps
+        fields_to_get = self._identify_dependencies(fields_to_get)
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         for ftype, fname in fields_to_get:
@@ -469,6 +474,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                         particles, self, self._current_chunk)
         self.field_data.update(read_particles)
         fields_to_generate = gen_fluids + gen_particles
+        self._generate_fields(fields_to_generate)
+
+    def _generate_fields(self, fields_to_generate):
         index = 0
         with self._field_lock():
             while any(f not in self.field_data for f in fields_to_generate):

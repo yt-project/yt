@@ -415,6 +415,12 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         # TODO:
         #   * Implement NeedsOriginalGrid catch
         #   * Generate some fields inside the data container
+        fields_to_get = self._identify_dependencies(fields)
+        fill, gen = self.pf.h._split_fields(fields_to_get)
+        if len(fill) > 0: self._fill_fields(fill)
+        if len(gen) > 0: self._generate_fields(gen)
+
+    def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
                          for field in fields]
         for chunk in self._data_source.chunks(fields, "io"):
@@ -423,6 +429,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                         self.global_startindex, chunk.icoords, chunk.ires)
         for name, v in zip(fields, output_fields):
             self[name] = v
+            
 
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"
