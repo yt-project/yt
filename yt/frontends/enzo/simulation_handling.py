@@ -40,6 +40,8 @@ from yt.utilities.exceptions import \
     InvalidSimulationTimeSeries, \
     MissingParameter, \
     NoStoppingCondition
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 from yt.convenience import \
     load
@@ -528,7 +530,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
         self.all_outputs.sort(key=lambda obj: obj['time'])
-        mylog.info("Located %d total outputs." % len(self.all_outputs))
+        only_on_root(mylog.info, "Located %d total outputs." % len(self.all_outputs))
 
         # manually set final time and redshift with last output
         if self.all_outputs:
@@ -539,11 +541,12 @@ class EnzoSimulation(SimulationTimeSeries):
     def _check_for_outputs(self, potential_outputs):
         r"""Check a list of files to see if they are valid datasets."""
 
-        mylog.info("Checking %d potential outputs." %
-                   len(potential_outputs))
+        only_on_root(mylog.info, "Checking %d potential outputs." %
+                     len(potential_outputs))
 
-        my_outputs = []
-        for output in potential_outputs:
+        my_outputs = {}
+        for my_storage, output in parallel_objects(potential_outputs, 
+                                                   storage=my_outputs):
             if self.parameters['DataDumpDir'] in output:
                 dir_key = self.parameters['DataDumpDir']
                 output_key = self.parameters['DataDumpName']
@@ -558,12 +561,14 @@ class EnzoSimulation(SimulationTimeSeries):
                 try:
                     pf = load(filename)
                     if pf is not None:
-                        my_outputs.append({'filename': filename,
-                                           'time': pf.current_time})
+                        my_storage.result = {'filename': filename,
+                                             'time': pf.current_time}
                         if pf.cosmological_simulation:
-                            my_outputs[-1]['redshift'] = pf.current_redshift
+                            my_storage.result['redshift'] = pf.current_redshift
                 except YTOutputNotIdentified:
                     mylog.error('Failed to load %s' % filename)
+        my_outputs = [my_output for my_output in my_outputs.values() \
+                      if my_output is not None]
 
         return my_outputs
 
