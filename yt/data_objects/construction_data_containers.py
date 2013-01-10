@@ -392,9 +392,12 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                                   dims=[128, 128, 128])
 
         """
+        if field_parameters is None:
+            center = None
+        else:
+            center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self,
-            field_parameters.get("center", None),
-            pf, field_parameters)
+            center, pf, field_parameters)
         self.left_edge = np.array(left_edge)
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
