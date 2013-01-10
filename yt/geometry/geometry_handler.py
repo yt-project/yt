@@ -59,11 +59,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         mylog.debug("Setting up classes.")
         self._setup_classes()
 
-        mylog.debug("Setting up domain geometry.")
-        self._setup_geometry()
-
         mylog.debug("Initializing data grid data IO")
         self._setup_data_io()
+
+        mylog.debug("Setting up domain geometry.")
+        self._setup_geometry()
 
         mylog.debug("Detecting fields.")
         self._detect_fields()

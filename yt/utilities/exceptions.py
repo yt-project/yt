@@ -208,3 +208,10 @@ class EnzoTestOutputFileNonExistent(YTException):
     def __str__(self):
         return "Enzo test output file (OutputLog) not generated for: " + \
             "'%s'" % (self.testname) + ".\nTest did not complete."
+
+class YTFieldNotParseable(YTException):
+    def __init__(self, field):
+        self.field = field
+
+    def __str__(self):
+        return "Cannot identify field %s" % self.field
