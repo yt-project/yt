@@ -178,9 +178,17 @@ class FixedResolutionBuffer(object):
             info['label'] = r'$\rm{'+info['label']+r'}$'
         if info['units'] is None or info['units'] == '':
             pass
-        else:
-            info['label'] += r'$\/\/('+info['units']+r')$'
-        
+        elif self.data_source._type_name in ("slice", "cutting"):
+            units = info['units']
+        elif self.data_source._type_name == "proj":
+            if (self.data_source.weight_field is not None or
+                self.data_source.proj_style == "mip"):
+                units = info['units']
+            else:
+                units = info['projected_units']
+
+        info['label'] += r'$\/\/('+units+r')$'
+
         return info
 
     def convert_to_pixel(self, coords):
