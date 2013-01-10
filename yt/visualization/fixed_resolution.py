@@ -176,9 +176,8 @@ class FixedResolutionBuffer(object):
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
-        if info['units'] is None or info['units'] == '':
-            pass
-        elif self.data_source._type_name in ("slice", "cutting"):
+        
+        if self.data_source._type_name in ("slice", "cutting"):
             units = info['units']
         elif self.data_source._type_name == "proj":
             if (self.data_source.weight_field is not None or
@@ -186,8 +185,12 @@ class FixedResolutionBuffer(object):
                 units = info['units']
             else:
                 units = info['projected_units']
-
-        info['label'] += r'$\/\/('+units+r')$'
+        
+        if units is None or units == '':
+            pass
+        else:
+            info['label'] += r'$\/\/('+units+r')$'
+        
 
         return info
 
