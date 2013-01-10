@@ -31,19 +31,33 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-cdef extern from "voro++.cc":
+cdef extern from "voro++.hh" namespace "voro":
+    cdef cppclass c_loop_all
+    
+    cdef cppclass voronoicell:
+        double volume()
+
     cdef cppclass container:
         container(double xmin, double xmax, double ymin, double ymax,
                   double zmin, double zmax, int nx, int ny, int nz,
                   libcpp.bool xper, libcpp.bool yper, libcpp.bool zper, int alloc)
         void put(int n, double x, double y, double z)
         void store_cell_volumes(double *vols)
+        int compute_cell(voronoicell c, c_loop_all vl)
+        double sum_cell_volumes()
+		
+    cdef cppclass c_loop_all:
+        c_loop_all(container &con)
+        int inc()
+        int start()
 
 cdef class VoronoiVolume:
     cdef container *my_con
-    cdef int npart
-    def __init__(self, xi, yi, zi):
-        self.my_con = new container(0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
+    cdef public int npart
+    def __init__(self, xi, yi, zi, left_edge, right_edge):
+        self.my_con = new container(left_edge[0], right_edge[0],
+                                    left_edge[1], right_edge[1],
+                                    left_edge[2], right_edge[2],
                                     xi, yi, zi, False, False, False, 8)
         self.npart = 0
 
@@ -65,5 +79,15 @@ cdef class VoronoiVolume:
     def get_volumes(self):
         cdef np.ndarray vol = np.zeros(self.npart, 'double')
         cdef double *vdouble = <double *> vol.data
-        self.my_con.store_cell_volumes(vdouble)
+        #self.my_con.store_cell_volumes(vdouble)
+        cdef c_loop_all *vl = new c_loop_all(deref(self.my_con))
+        cdef voronoicell c
+        if not vl.start(): return
+        cdef int i = 0
+        while 1:
+            if self.my_con.compute_cell(c, deref(vl)):
+                vol[i] = c.volume()
+            if not vl.inc(): break
+            i += 1
+        del vl
         return vol

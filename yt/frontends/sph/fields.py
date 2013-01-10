@@ -1,15 +1,11 @@
 """
-API for yt.frontends.gadget
+OWLS-specific fields
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,17 +21,24 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
-from .data_structures import \
-      GadgetGrid, \
-      GadgetHierarchy, \
-      GadgetStaticOutput
+import numpy as np
 
-from .fields import \
-      GadgetFieldInfo, \
-      add_gadget_field
+from yt.funcs import *
+from yt.data_objects.field_info_container import \
+    FieldInfoContainer, \
+    FieldInfo, \
+    ValidateParameter, \
+    ValidateDataField, \
+    ValidateProperty, \
+    ValidateSpatial, \
+    ValidateGridType
+import yt.data_objects.universal_fields
 
-from .io import \
-      IOHandlerGadget
+OWLSFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_owls_field = OWLSFieldInfo.add_field
+
+KnownOWLSFields = FieldInfoContainer()
+add_OWLS_field = KnownOWLSFields.add_field
+
