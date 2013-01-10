@@ -105,6 +105,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         super(ParticleGeometryHandler, self).__init__(pf, data_style)
         
     def _initialize_oct_handler(self):
+        self._setup_data_io()
         template = self.parameter_file.domain_template
         ndoms = self.parameter_file.domain_count
         self.domains = [ParticleDomainFile(self.parameter_file, self.io, template % i, i)

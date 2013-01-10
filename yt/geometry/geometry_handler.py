@@ -59,11 +59,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         mylog.debug("Setting up classes.")
         self._setup_classes()
 
-        mylog.debug("Initializing data grid data IO")
-        self._setup_data_io()
-
         mylog.debug("Setting up domain geometry.")
         self._setup_geometry()
+
+        mylog.debug("Initializing data grid data IO")
+        self._setup_data_io()
 
         mylog.debug("Detecting fields.")
         self._detect_fields()
@@ -200,6 +200,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         f.close()
 
     def _setup_data_io(self):
+        if getattr(self, "io", None) is not None: return
         self.io = io_registry[self.data_style]()
 
     def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
