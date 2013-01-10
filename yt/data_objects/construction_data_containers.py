@@ -368,8 +368,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'ActiveDimensions')
+    _base_grid = None
     def __init__(self, level, left_edge, dims, fields = None,
-                 pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
+                 pf = None, num_ghost_zones = 0, use_pbar = True, 
+                 field_parameters = None):
         """A 3D region with all data extracted to a single, specified
         resolution.
 
@@ -390,8 +392,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                                   dims=[128, 128, 128])
 
         """
-        YTSelectionContainer3D.__init__(self, center=kwargs.pop("center", None),
-                           pf=pf, **kwargs)
+        YTSelectionContainer3D.__init__(self,
+            field_parameters.get("center", None),
+            pf, field_parameters)
         self.left_edge = np.array(left_edge)
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level

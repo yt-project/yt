@@ -368,13 +368,18 @@ class AMRGridPatch(YTSelectionContainer):
                   'use_pbar':False, 'fields':fields}
         # This should update the arguments to set the field parameters to be
         # those of this grid.
-        kwargs.update(self.field_parameters)
+        field_parameters = {}
+        field_parameters.update(self.field_parameters)
         if smoothed:
             cube = self.hierarchy.smoothed_covering_grid(
-                level, new_left_edge, **kwargs)
+                level, new_left_edge, 
+                field_parameters = field_parameters,
+                **kwargs)
         else:
-            cube = self.hierarchy.covering_grid(level, new_left_edge, **kwargs)
-
+            cube = self.hierarchy.covering_grid(level, new_left_edge,
+                field_parameters = field_parameters,
+                **kwargs)
+        cube._base_grid = self
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True, no_ghost=False):

@@ -234,21 +234,33 @@ class YTDataContainer(object):
         try:
             self.pf.field_info[fname].check_available(gen_obj)
         except NeedsGridType as ngt_exception:
-            rv = np.empty(self.size, dtype="float64")
-            ind = 0
-            ngz = ngt_exception.ghost_zones
+            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
+        else:
+            rv = self.pf.field_info[fname](gen_obj)
+        return rv
+
+    def _generate_spatial_fluid(self, field, ngz):
+        rv = np.empty(self.size, dtype="float64")
+        ind = 0
+        if ngz == 0:
             for io_chunk in self.chunks([], "io"):
-                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
+                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
                     mask = self._current_chunk.objs[0].select(self.selector)
                     if mask is None: continue
-                    data = self[field]
-                    if ngz > 0:
-                        data = data[ngz:-ngz, ngz:-ngz, ngz:-ngz]
-                    data = data[mask]
+                    data = self[field][mask]
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
-            rv = self.pf.field_info[fname](gen_obj)
+            chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
+            for i, chunk in enumerate(chunks):
+                with self._chunked_read(chunk):
+                    gz = self._current_chunk.objs[0]
+                    wogz = gz._base_grid
+                    mask = wogz.select(self.selector)
+                    if mask is None: continue
+                    data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz][mask]
+                    rv[ind:ind+data.size] = data
+                    ind += data.size
         return rv
 
     def _generate_particle_field(self, field):
