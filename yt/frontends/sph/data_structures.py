@@ -64,6 +64,9 @@ class ParticleDomainFile(object):
     def count(self, selector):
         pass
 
+    def _calculate_offsets(self, fields):
+        pass
+
 class ParticleDomainSubset(object):
     def __init__(self, domain, mask, count):
         self.domain = domain
@@ -132,6 +135,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         pfl = []
         for dom in self.domains:
             fl = self.io._identify_fields(dom)
+            dom._calculate_offsets(fl)
             for f in fl:
                 if f not in pfl: pfl.append(f)
         self.field_list = pfl
@@ -232,9 +236,14 @@ class GadgetBinaryDomainFile(ParticleDomainFile):
     def __init__(self, pf, io, domain_filename, domain_number):
         with open(domain_filename, "rb") as f:
             self.header = read_record(f, pf._header_spec)
+            self._position_offset = f.tell()
 
         super(GadgetBinaryDomainFile, self).__init__(pf, io,
                 domain_filename, domain_number)
+
+    def _calculate_offsets(self, field_list):
+        self.field_offsets = self.io._calculate_field_offsets(
+                field_list, self.total_particles)
 
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = ParticleGeometryHandler
