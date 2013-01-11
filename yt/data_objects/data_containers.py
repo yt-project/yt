@@ -2595,10 +2595,14 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader and \
                not isinstance(self, AMRBooleanRegionBase):
-                self.particles.get_data(field)
-                if field not in self.field_data:
-                    if self._generate_field(field): continue
-                continue
+                try:
+                    self.particles.get_data(field)
+                    if field not in self.field_data:
+                        self._generate_field(field)
+                    continue
+                except KeyError:
+                    # This happens for fields like ParticleRadiuskpc
+                    pass
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
                     continue # True means we already assigned it
