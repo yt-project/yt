@@ -809,7 +809,6 @@ class LoadedHalo(Halo):
     _radjust = 1.05
 
     def __init__(self, pf, id, size=None, CoM=None,
-
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
         e1_vec=None, tilt=None, supp=None):
@@ -840,6 +839,10 @@ class LoadedHalo(Halo):
             self.supp = {}
         else:
             self.supp = supp
+        self._saved_fields = {}
+        self._ds_sort = None
+        self._particle_mask = None
+
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,
