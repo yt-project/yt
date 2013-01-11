@@ -29,7 +29,9 @@ License:
 """
 
 from .data_structures import \
-      OWLSStaticOutput
+      OWLSStaticOutput, \
+      GadgetStaticOutput
 
 from .io import \
-      IOHandlerOWLS
+      IOHandlerOWLS, \
+      IOHandlerGadgetBinary

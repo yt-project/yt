@@ -31,6 +31,8 @@ from yt.utilities.exceptions import *
 from yt.utilities.io_handler import \
     BaseIOHandler
 
+from yt.utilities.fortran_utils import read_record
+
 _vector_fields = ("Coordinates", "Velocity")
 
 class IOHandlerOWLS(BaseIOHandler):
@@ -49,13 +51,13 @@ class IOHandlerOWLS(BaseIOHandler):
             ptf[ftype].append(fname)
         for chunk in chunks: # Will be OWLS domains
             for subset in chunk.objs:
+                f = h5py.File(subset.domain.domain_filename, "r")
                 for ptype, field_list in sorted(ptf.items()):
-                    f = h5py.File(subset.domain.domain_filename, "r")
                     coords = f["/%s/Coordinates" % ptype][:].astype("float64")
                     psize[ptype] += selector.count_points(
                         coords[:,0], coords[:,1], coords[:,2])
                     del coords
-                    f.close()
+                f.close()
         # Now we have all the sizes, and we can allocate
         ind = {}
         for field in fields:
@@ -68,8 +70,8 @@ class IOHandlerOWLS(BaseIOHandler):
             ind[field] = 0
         for chunk in chunks: # Will be OWLS domains
             for subset in chunk.objs:
+                f = h5py.File(subset.domain.domain_filename, "r")
                 for ptype, field_list in sorted(ptf.items()):
-                    f = h5py.File(subset.domain.domain_filename, "r")
                     g = f["/%s" % ptype]
                     coords = g["Coordinates"][:].astype("float64")
                     mask = selector.select_points(
@@ -83,7 +85,7 @@ class IOHandlerOWLS(BaseIOHandler):
                             my_ind, my_ind+data.shape[0], field)
                         rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
                         ind[ptype, field] += data.shape[0]
-                    f.close()
+                f.close()
         return rv
 
     def _initialize_octree(self, domain, octree):
@@ -94,14 +96,15 @@ class IOHandlerOWLS(BaseIOHandler):
             octree.add(pos, domain.domain_number)
         f.close()
 
-    def _count_particles(self, domain_filename):
-        f = h5py.File(domain_filename, "r")
-        npart = f["/Header"].attrs["NumPart_ThisFile"].sum()
+    def _count_particles(self, domain):
+        f = h5py.File(domain.domain_filename, "r")
+        np = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
+        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(np)) 
         return npart
 
-    def _identify_fields(self, domain_filename):
-        f = h5py.File(domain_filename, "r")
+    def _identify_fields(self, domain):
+        f = h5py.File(domain.domain_filename, "r")
         fields = []
         for key in f.keys():
             if not key.startswith("PartType"): continue
@@ -114,3 +117,82 @@ class IOHandlerOWLS(BaseIOHandler):
                 fields.append((ptype, str(k)))
         f.close()
         return fields
+
+
+ZeroMass = object()
+
+class IOHandlerGadgetBinary(BaseIOHandler):
+    _data_style = "gadget_binary"
+
+    # Particle types (Table 3 in GADGET-2 user guide)
+    _ptypes = ( "Gas",
+                "Halo",
+                "Disk",
+                "Bulge",
+                "Stars",
+                "Bndry" )
+    #
+    # Blocks in the file:
+    #   HEAD
+    #   POS
+    #   VEL
+    #   ID
+    #   MASS    (variable mass only)
+    #   U       (gas only)
+    #   RHO     (gas only)
+    #   HSML    (gas only)
+    #   POT     (only if enabled in makefile)
+    #   ACCE    (only if enabled in makefile)
+    #   ENDT    (only if enabled in makefile)
+    #   TSTP    (only if enabled in makefile)
+
+    _fields = ( "Coordinates",
+                "Velocities",
+                "ParticleIDs",
+                ("Masses", ZeroMass),
+                ("InternalEnergy", "Gas"),
+                ("Density", "Gas"),
+                ("SmoothingLength", "Gas"),
+    )
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        raise NotImplementedError
+
+    def _read_particle_selection(self, chunks, selector, fields):
+        raise NotImplementedError
+
+    def _initialize_octree(self, domain, octree):
+        count = sum(domain.total_particles.values())
+        dt = [("px", "float32"), ("py", "float32"), ("pz", "float32")]
+        with open(domain.domain_filename, "rb") as f:
+            # The first total_particles * 3 values are positions
+            pp = np.fromfile(f, dtype = dt, count = count)
+        pos = np.empty((count, 3), dtype="float64")
+        pos[:,0] = pp['px']
+        pos[:,1] = pp['py']
+        pos[:,2] = pp['pz']
+        del pp
+        octree.add(pos, domain.domain_number)
+
+    def _count_particles(self, domain):
+        npart = dict((self._ptypes[i], v)
+            for i, v in enumerate(domain.header["Npart"])) 
+        return npart
+
+    def _identify_fields(self, domain):
+        # We can just look at the particle counts.
+        field_list = []
+        tp = domain.total_particles
+        for i, ptype in enumerate(self._ptypes):
+            count = tp[ptype]
+            if count == 0: continue
+            m = domain.header["Massarr"][i]
+            for field in self._fields:
+                if isinstance(field, types.TupleType):
+                    field, req = field
+                    if req is ZeroMass:
+                        if m > 0.0 : continue
+                    elif req != field:
+                        continue
+                field_list.append((ptype, field))
+        return field_list

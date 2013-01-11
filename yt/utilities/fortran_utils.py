@@ -177,5 +177,5 @@ def read_record(f, rspec):
     for a, n, t in rspec:
         vv[a] = vals[pos:pos+n]
         pos += n
-    return vv, vvv
+    return vv
 
