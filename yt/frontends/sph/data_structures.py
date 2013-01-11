@@ -51,11 +51,11 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
 class ParticleDomainFile(object):
-    def __init__(self, pf, io, domain_filename, domain_number):
+    def __init__(self, pf, io, domain_filename, domain_id):
         self.pf = pf
         self.io = weakref.proxy(io)
         self.domain_filename = domain_filename
-        self.domain_number = domain_number
+        self.domain_id = domain_id
         self.total_particles = self.io._count_particles(self)
 
     def select(self, selector):
@@ -73,16 +73,19 @@ class ParticleDomainSubset(object):
         self.mask = mask
         self.cell_count = count
         self.oct_handler = domain.pf.h.oct_handler
+        level_counts = self.oct_handler.count_levels(
+            99, self.domain.domain_id, mask)
+        level_counts[1:] = level_counts[:-1]
+        level_counts[0] = 0
+        self.level_counts = np.add.accumulate(level_counts)
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
+                                        self.cell_count)
 
     def fcoords(self, dobj):
         return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
+                                        self.cell_count)
 
     def fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
@@ -95,8 +98,7 @@ class ParticleDomainSubset(object):
 
     def ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.cell_count,
-                                     self.level_counts.copy())
+                                     self.cell_count)
 
 
 class ParticleGeometryHandler(OctreeGeometryHandler):
@@ -127,8 +129,10 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         for dom in self.domains:
             self.io._initialize_octree(dom, self.oct_handler)
         self.oct_handler.finalize()
+        self.max_level = self.oct_handler.max_level
         tot = self.oct_handler.linearly_count()
         mylog.info("Identified %0.3e octs", tot)
+
 
     def _detect_fields(self):
         # TODO: Add additional fields
@@ -233,13 +237,13 @@ class OWLSStaticOutput(StaticOutput):
         return False
 
 class GadgetBinaryDomainFile(ParticleDomainFile):
-    def __init__(self, pf, io, domain_filename, domain_number):
+    def __init__(self, pf, io, domain_filename, domain_id):
         with open(domain_filename, "rb") as f:
             self.header = read_record(f, pf._header_spec)
             self._position_offset = f.tell()
 
         super(GadgetBinaryDomainFile, self).__init__(pf, io,
-                domain_filename, domain_number)
+                domain_filename, domain_id)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(

@@ -558,6 +558,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef ParticleArrays *last_sd
     cdef Oct** oct_list
     cdef np.int64_t *dom_offsets
+    cdef public int max_level
 
     def allocate_root(self):
         cdef int i, j, k
@@ -599,7 +600,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def icoords(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+    def icoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
@@ -607,6 +609,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         ci = 0
         for oi in range(self.nocts):
             o = self.oct_list[oi]
+            if o.domain != domain_id: continue
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
@@ -621,7 +624,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def ires(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+    def ires(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.empty(cell_count, dtype="int64")
@@ -629,6 +633,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         ci = 0
         for oi in range(self.nocts):
             o = self.oct_list[oi]
+            if o.domain != domain_id: continue
             for i in range(8):
                 if mask[oi, i] == 1:
                     res[ci] = o.level
@@ -638,7 +643,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fcoords(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+    def fcoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="float64")
@@ -659,6 +665,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     break
             if proc == 0: continue
             o = self.oct_list[oi]
+            if o.domain != domain_id: continue
             for i in range(3):
                 # This gives the *grid* width for this level
                 dx[i] = base_dx[i] / (1 << o.level)
@@ -681,11 +688,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         pass
 
     def finalize(self):
+        cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
             self.oct_list[i] = c.oct
+            max_level = imax(max_level, c.oct.level)
             if c.np >= 0:
                 for j in range(3):
                     free(c.pos[j])
@@ -693,6 +702,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 c.pos = NULL
             c = c.next
             i += 1
+        self.max_level = max_level
         qsort(self.oct_list, self.nocts, sizeof(Oct*), &compare_octs)
         cdef int cur_dom = -1
         # We always need at least 2, and if max_domain is 0, we need 3.

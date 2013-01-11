@@ -94,7 +94,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for key in f.keys():
             if not key.startswith("PartType"): continue
             pos = f[key]["Coordinates"][:].astype("float64")
-            octree.add(pos, domain.domain_number)
+            octree.add(pos, domain.domain_id)
         f.close()
 
     def _count_particles(self, domain):
@@ -242,7 +242,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         pos[:,1] = pp['py']
         pos[:,2] = pp['pz']
         del pp
-        octree.add(pos, domain.domain_number)
+        octree.add(pos, domain.domain_id)
 
     def _count_particles(self, domain):
         npart = dict((self._ptypes[i], v)
