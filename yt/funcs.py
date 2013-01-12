@@ -27,6 +27,7 @@ import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
+import numpy as np
 from distutils import version
 from math import floor, ceil
 
@@ -60,6 +61,18 @@ def ensure_list(obj):
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
+
+def ensure_numpy_array(obj):
+    """
+    This function ensures that *obj* is a numpy array. Typically used to
+    convert scalar, list or tuple argument passed to functions using Cython.
+    """
+    if isinstance(obj, np.ndarray):
+        return obj
+    elif isinstance(obj, (types.ListType, types.TupleType)):
+        return np.asarray(obj)
+    else:
+        return np.asarray([obj])
 
 def read_struct(f, fmt):
     """
@@ -168,7 +181,7 @@ def rootonly(func):
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
         if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
-            return 
+            return
         return func(*args, **kwargs)
     return check_parallel_rank
 
@@ -185,7 +198,7 @@ def deprecate(func):
 
     .. code-block:: python
 
-       @rootonly
+       @deprecate
        def some_really_old_function(...):
 
     """
@@ -205,7 +218,7 @@ def pdb_run(func):
 
     .. code-block:: python
 
-       @rootonly
+       @pdb_run
        def some_function_to_debug(...):
 
     """
@@ -569,10 +582,10 @@ def get_num_threads():
     if nt < 0:
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
-        
+
 def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
 
 def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1]
+    suffix = os.path.splitext(name)[1].lstrip('.')
     return suffix if suffix in ['png', 'eps', 'ps', 'pdf'] else ''

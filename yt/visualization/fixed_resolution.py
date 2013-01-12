@@ -159,14 +159,39 @@ class FixedResolutionBuffer(object):
         info['projected_units'] = \
                 self.data_source.pf.field_info[item].get_projected_units()
         info['center'] = self.data_source.center
+        
         try:
             info['coord'] = self.data_source.coord
         except AttributeError:
             pass
+        
         try:
             info['weight_field'] = self.data_source.weight_field
         except AttributeError:
             pass
+        
+        info['label'] = self.data_source.pf.field_info[item].display_name
+        if info['label'] is None:
+            info['label'] = r'$\rm{'+item+r'}$'
+        elif info['label'].find('$') == -1:
+            info['label'] = info['label'].replace(' ','\/')
+            info['label'] = r'$\rm{'+info['label']+r'}$'
+        
+        if self.data_source._type_name in ("slice", "cutting"):
+            units = info['units']
+        elif self.data_source._type_name == "proj":
+            if (self.data_source.weight_field is not None or
+                self.data_source.proj_style == "mip"):
+                units = info['units']
+            else:
+                units = info['projected_units']
+        
+        if units is None or units == '':
+            pass
+        else:
+            info['label'] += r'$\/\/('+units+r')$'
+        
+
         return info
 
     def convert_to_pixel(self, coords):

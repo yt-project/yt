@@ -1781,10 +1781,16 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     def _get_tree(self, nvals):
-        xd = self.pf.domain_dimensions[x_dict[self.axis]]
-        yd = self.pf.domain_dimensions[y_dict[self.axis]]
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        xd = self.pf.domain_dimensions[xax]
+        yd = self.pf.domain_dimensions[yax]
+        bounds = (self.pf.domain_left_edge[xax],
+                  self.pf.domain_right_edge[yax],
+                  self.pf.domain_left_edge[xax],
+                  self.pf.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        style = self.proj_style)
+                        bounds, style = self.proj_style)
 
     def _get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -2589,10 +2595,14 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader and \
                not isinstance(self, AMRBooleanRegionBase):
-                self.particles.get_data(field)
-                if field not in self.field_data:
-                    if self._generate_field(field): continue
-                continue
+                try:
+                    self.particles.get_data(field)
+                    if field not in self.field_data:
+                        self._generate_field(field)
+                    continue
+                except KeyError:
+                    # This happens for fields like ParticleRadiuskpc
+                    pass
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
                     continue # True means we already assigned it

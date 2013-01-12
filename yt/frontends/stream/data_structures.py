@@ -671,6 +671,8 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     last_gc = base_pf.h.num_grids
     cur_gc = -1
     pf = base_pf    
+    bbox = np.array( [ (pf.domain_left_edge[i], pf.domain_right_edge[i])
+                       for i in range(3) ])
     while pf.h.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   pf.h.max_level)
@@ -691,7 +693,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
             fg = FlaggingGrid(g, refinement_criteria)
             nsg = fg.find_subgrids()
             for sg in nsg:
-                LE = sg.left_index * g.dds
+                LE = sg.left_index * g.dds + pf.domain_left_edge
                 dims = sg.dimensions * pf.refine_by
                 grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
@@ -700,7 +702,9 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                     if not pf.field_info[field].particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
-        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0)
+        
+        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0,
+                            bbox = bbox)
         cur_gc = pf.h.num_grids
 
     # Now reassign particle data to grids

@@ -721,7 +721,7 @@ if [ $INST_ROCKSTAR -eq 1 ]
 then
     if [ ! -e Rockstar/done ]
     then
-        [ ! -e Rockstar] && tar xfz rockstar-0.99.6.tar.gz
+        [ ! -e Rockstar ] && tar xfz rockstar-0.99.6.tar.gz
         echo "Building Rockstar"
         cd Rockstar
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit

@@ -59,9 +59,10 @@ ytcfgDefaults = dict(
     hub_url = 'https://hub.yt-project.org/upload',
     hub_api_key = '',
     ipython_notebook = 'False',
+    notebook_password = '',
     answer_testing_tolerance = '3',
     answer_testing_bitwise = 'False',
-    gold_standard_filename = 'gold004',
+    gold_standard_filename = 'gold005',
     local_standard_filename = 'local001',
     sketchfab_api_key = 'None'
     )
