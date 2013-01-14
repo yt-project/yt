@@ -29,6 +29,7 @@ import stat
 import weakref
 from itertools import izip
 
+from yt.utilities.fortran_utils import read_record
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
@@ -42,23 +43,28 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \
     OWLSFieldInfo, \
-    KnownOWLSFields
+    KnownOWLSFields, \
+    GadgetFieldInfo, \
+    KnownGadgetFields
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
 class ParticleDomainFile(object):
-    def __init__(self, pf, io, domain_filename, domain_number):
+    def __init__(self, pf, io, domain_filename, domain_id):
         self.pf = pf
         self.io = weakref.proxy(io)
         self.domain_filename = domain_filename
-        self.domain_number = domain_number
-        self.total_particles = self.io._count_particles(domain_filename)
+        self.domain_id = domain_id
+        self.total_particles = self.io._count_particles(self)
 
     def select(self, selector):
         pass
 
     def count(self, selector):
+        pass
+
+    def _calculate_offsets(self, fields):
         pass
 
 class ParticleDomainSubset(object):
@@ -67,16 +73,19 @@ class ParticleDomainSubset(object):
         self.mask = mask
         self.cell_count = count
         self.oct_handler = domain.pf.h.oct_handler
+        level_counts = self.oct_handler.count_levels(
+            99, self.domain.domain_id, mask)
+        level_counts[1:] = level_counts[:-1]
+        level_counts[0] = 0
+        self.level_counts = np.add.accumulate(level_counts)
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
+                                        self.cell_count)
 
     def fcoords(self, dobj):
         return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
+                                        self.cell_count)
 
     def fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
@@ -89,8 +98,7 @@ class ParticleDomainSubset(object):
 
     def ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.cell_count,
-                                     self.level_counts.copy())
+                                     self.cell_count)
 
 
 class ParticleGeometryHandler(OctreeGeometryHandler):
@@ -108,9 +116,11 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         self._setup_data_io()
         template = self.parameter_file.domain_template
         ndoms = self.parameter_file.domain_count
-        self.domains = [ParticleDomainFile(self.parameter_file, self.io, template % i, i)
+        cls = self.parameter_file._domain_class
+        self.domains = [cls(self.parameter_file, self.io, template % {'num':i}, i)
                         for i in range(ndoms)]
-        total_particles = sum(d.total_particles for d in self.domains)
+        total_particles = sum(sum(d.total_particles.values())
+                              for d in self.domains)
         self.oct_handler = ParticleOctreeContainer(
             self.parameter_file.domain_dimensions,
             self.parameter_file.domain_left_edge,
@@ -119,14 +129,17 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         for dom in self.domains:
             self.io._initialize_octree(dom, self.oct_handler)
         self.oct_handler.finalize()
+        self.max_level = self.oct_handler.max_level
         tot = self.oct_handler.linearly_count()
         mylog.info("Identified %0.3e octs", tot)
+
 
     def _detect_fields(self):
         # TODO: Add additional fields
         pfl = []
         for dom in self.domains:
-            fl = self.io._identify_fields(dom.domain_filename)
+            fl = self.io._identify_fields(dom)
+            dom._calculate_offsets(fl)
             for f in fl:
                 if f not in pfl: pfl.append(f)
         self.field_list = pfl
@@ -163,6 +176,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
 
 class OWLSStaticOutput(StaticOutput):
     _hierarchy_class = ParticleGeometryHandler
+    _domain_class = ParticleDomainFile
     _fieldinfo_fallback = OWLSFieldInfo
     _fieldinfo_known = KnownOWLSFields
 
@@ -204,7 +218,7 @@ class OWLSStaticOutput(StaticOutput):
 
         prefix = self.parameter_filename.split(".", 1)[0]
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.domain_template = "%s.%%i.%s" % (prefix, suffix)
+        self.domain_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.domain_count = hvals["NumFilesPerSnapshot"]
 
         handle.close()
@@ -220,4 +234,105 @@ class OWLSStaticOutput(StaticOutput):
             fileh.close()
         except:
             pass
+        return False
+
+class GadgetBinaryDomainFile(ParticleDomainFile):
+    def __init__(self, pf, io, domain_filename, domain_id):
+        with open(domain_filename, "rb") as f:
+            self.header = read_record(f, pf._header_spec)
+            self._position_offset = f.tell()
+
+        super(GadgetBinaryDomainFile, self).__init__(pf, io,
+                domain_filename, domain_id)
+
+    def _calculate_offsets(self, field_list):
+        self.field_offsets = self.io._calculate_field_offsets(
+                field_list, self.total_particles)
+
+class GadgetStaticOutput(StaticOutput):
+    _hierarchy_class = ParticleGeometryHandler
+    _domain_class = GadgetBinaryDomainFile
+    _fieldinfo_fallback = GadgetFieldInfo
+    _fieldinfo_known = KnownGadgetFields
+    _header_spec = (('Npart', 6, 'i'),
+                    ('Massarr', 6, 'd'),
+                    ('Time', 1, 'd'),
+                    ('Redshift', 1, 'd'),
+                    ('FlagSfr', 1, 'i'),
+                    ('FlagFeedback', 1, 'i'),
+                    ('Nall', 6, 'i'),
+                    ('FlagCooling', 1, 'i'),
+                    ('NumFiles', 1, 'i'),
+                    ('BoxSize', 1, 'd'),
+                    ('Omega0', 1, 'd'),
+                    ('OmegaLambda', 1, 'd'),
+                    ('HubbleParam', 1, 'd'),
+                    ('FlagAge', 1, 'i'),
+                    ('FlagMEtals', 1, 'i'),
+                    ('NallHW', 6, 'i'),
+                    ('unused', 16, 'i') )
+
+    def __init__(self, filename, data_style="gadget_binary",
+                 additional_fields = (), root_dimensions = 64):
+        self._root_dimensions = root_dimensions
+        # Set up the template for domain files
+        self.storage_filename = None
+        super(GadgetStaticOutput, self).__init__(filename, data_style)
+
+    def __repr__(self):
+        return os.path.basename(self.parameter_filename).split(".")[0]
+
+    def _set_units(self):
+        self.units = {}
+        self.time_units = {}
+        self.conversion_factors = {}
+
+    def _parse_parameter_file(self):
+
+        # The entries in this header are capitalized and named to match Table 4
+        # in the GADGET-2 user guide.
+
+        f = open(self.parameter_filename)
+        hvals = read_record(f, self._header_spec)
+        for i in hvals:
+            if len(hvals[i]) == 1:
+                hvals[i] = hvals[i][0]
+        
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        # Set standard values
+
+        # This may not be correct.
+        self.current_time = hvals["Time"] * sec_conversion["Gyr"]
+
+        self.domain_left_edge = np.zeros(3, "float64")
+        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+
+        self.cosmological_simulation = 1
+
+        self.current_redshift = hvals["Redshift"]
+        self.omega_lambda = hvals["OmegaLambda"]
+        self.omega_matter = hvals["Omega0"]
+        self.hubble_constant = hvals["HubbleParam"]
+        self.parameters = hvals
+
+        prefix = self.parameter_filename.split(".", 1)[0]
+        suffix = self.parameter_filename.rsplit(".", 1)[-1]
+
+        if hvals["NumFiles"] > 1:
+            self.domain_template = "%s.%%(num)s" % (prefix)
+        else:
+            self.domain_template = self.parameter_filename
+
+        self.domain_count = hvals["NumFiles"]
+
+        f.close()
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        # We do not allow load() of these files.
         return False

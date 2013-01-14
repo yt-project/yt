@@ -42,3 +42,9 @@ add_owls_field = OWLSFieldInfo.add_field
 KnownOWLSFields = FieldInfoContainer()
 add_OWLS_field = KnownOWLSFields.add_field
 
+GadgetFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_Gadget_field = GadgetFieldInfo.add_field
+
+KnownGadgetFields = FieldInfoContainer()
+add_Gadget_field = KnownGadgetFields.add_field
+
