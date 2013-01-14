@@ -281,10 +281,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Create output directories.
         self.output_dir = output_dir
         if output_dir is None:
-            output_dir = '.'
+            self.output_dir = self.pf.fullpath
         else:
             self.__check_directory(output_dir)
-        self.output_dir = os.path.join(output_dir, os.path.basename(self.pf.fullpath))
+            self.output_dir = os.path.join(output_dir, pf.directory)
         self.__check_directory(self.output_dir)
         self.profile_output_dir = os.path.join(self.output_dir, profile_output_dir)
         self.projection_output_dir = os.path.join(self.output_dir, projection_output_dir)
