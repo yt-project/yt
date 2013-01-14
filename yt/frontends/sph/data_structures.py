@@ -193,6 +193,8 @@ class OWLSStaticOutput(StaticOutput):
         self.units = {}
         self.time_units = {}
         self.conversion_factors = {}
+        DW = self.domain_right_edge - self.domain_left_edge
+        self.units["unitary"] = 1.0 / DW.max()
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename)

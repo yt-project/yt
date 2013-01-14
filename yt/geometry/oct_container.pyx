@@ -925,7 +925,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int eterm[3]
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain + 1, 'int64')
-        print count.shape[0], mask.shape[0], mask.shape[1], self.nocts
         for oi in range(n):
             o = self.oct_list[oi]
             if o.domain == -1: continue
