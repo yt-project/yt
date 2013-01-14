@@ -5,10 +5,10 @@ from yt.funcs import *
 
 class ParticleGenerator(object) :
 
-    default_fields = ["particle_position_x",
+    default_fields = ("particle_position_x",
                       "particle_position_y",
                       "particle_position_z",
-                      "particle_index"]
+                      "particle_index")
 
     def __init__(self, pf, num_particles, field_list) :
         """
@@ -136,6 +136,7 @@ class ParticleGenerator(object) :
                 cube = grid.retrieve_ghost_zones(1, mapping_dict.keys())
                 le = np.array(grid.LeftEdge).astype(np.float64)
                 dims = np.array(grid.ActiveDimensions).astype(np.int32)
+                dx = just_one(grid['dx'])
                 for gfield, pfield in mapping_dict.items() :
                     field_index = self.field_list.index(pfield)
                     CICSample_3(self.particles[start:end,self.posx_index],
@@ -143,8 +144,7 @@ class ParticleGenerator(object) :
                                 self.particles[start:end,self.posz_index],
                                 self.particles[start:end,field_index],
                                 np.int64(self.NumberOfParticles[i]),
-                                cube[gfield], le, dims,
-                                np.float64(grid['dx']))
+                                cube[gfield], le, dims, dx)
         pbar.finish()
 
     def apply_to_stream(self, clobber=False) :

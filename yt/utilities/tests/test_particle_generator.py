@@ -1,4 +1,5 @@
 import numpy as np
+from yt.mods import *
 from yt.testing import *
 from yt.utilities.particle_generator import *
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
@@ -10,7 +11,6 @@ def setup() :
     pass
 
 def test_particle_generator() :
-    
     # First generate our pf
     domain_dims = (128, 128, 128)
     dens = np.zeros(domain_dims) + 0.1
@@ -37,9 +37,9 @@ def test_particle_generator() :
     # Test to make sure we ended up with the right number of particles per grid
     particles1.apply_to_stream()
     particles_per_grid1 = [grid.NumberOfParticles for grid in pf.h.grids]
-    assert_equal(particles_per_grid1, particles1.NumberOfParticles)
+    yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
     particles_per_grid1 = [len(grid["particle_position_x"]) for grid in pf.h.grids]
-    assert_equal(particles_per_grid1, particles1.NumberOfParticles)
+    yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
 
     # Set up a lattice of particles
     pdims = np.array([64,64,64])
@@ -65,28 +65,28 @@ def test_particle_generator() :
     ypred = np.linspace(le[1],re[1],num=pdims[1],endpoint=True)
     zpred = np.linspace(le[2],re[2],num=pdims[2],endpoint=True)
 
-    assert_almost_equal(xpos, xpred)
-    assert_almost_equal(ypos, ypred)
-    assert_almost_equal(zpos, zpred)
+    yield assert_almost_equal, xpos, xpred
+    yield assert_almost_equal, ypos, ypred
+    yield assert_almost_equal, zpos, zpred
 
     #Test the number of particles again
     particles2.apply_to_stream()
     particles_per_grid2 = [grid.NumberOfParticles for grid in pf.h.grids]
-    assert_equal(particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles)
+    yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
     particles_per_grid2 = [len(grid["particle_position_x"]) for grid in pf.h.grids]
-    assert_equal(particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles)
+    yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
 
     #Test the uniqueness of tags
     tags = np.concatenate([grid["particle_index"] for grid in pf.h.grids])
     tags.sort()
-    assert_equal(tags, np.arange((np.product(pdims)+num_particles)))
+    yield assert_equal, tags, np.arange((np.product(pdims)+num_particles))
 
     # Test that the old particles have zero for the new field
     old_particle_temps = [grid["particle_gas_temperature"][:particles_per_grid1[i]]
                           for i, grid in enumerate(pf.h.grids)]
     test_zeros = [np.zeros((particles_per_grid1[i])) 
                   for i, grid in enumerate(pf.h.grids)]
-    assert_equal(old_particle_temps, test_zeros)
+    yield assert_equal, old_particle_temps, test_zeros
 
     #Now dump all of these particle fields out into a dict
     pdata = {}
@@ -100,6 +100,10 @@ def test_particle_generator() :
     
     #Test the number of particles again
     particles_per_grid3 = [grid.NumberOfParticles for grid in pf.h.grids]
-    assert_equal(particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles)
+    yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
     particles_per_grid2 = [len(grid["particle_position_z"]) for grid in pf.h.grids]
-    assert_equal(particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles)
+    yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
+
+if __name__=="__main__":
+    for i in test_particle_generator():
+        i[0](*i[1:])
