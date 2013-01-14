@@ -1161,7 +1161,8 @@ class OffAxisSlicePlot(PWViewerMPL):
     _frb_generator = ObliqueFixedResolutionBuffer
 
     def __init__(self, pf, normal, fields, center='c', width=None, 
-                 axes_unit=None, north_vector=None, fontsize=15):
+                 axes_unit=None, north_vector=None, fontsize=15,
+                 field_parameters=None):
         r"""Creates an off axis slice plot from a parameter file
 
         Given a pf object, a normal vector defining a slicing plane, and
@@ -1200,11 +1201,14 @@ class OffAxisSlicePlot(PWViewerMPL):
             set, an arbitrary grid-aligned north-vector is chosen.
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
+        field_parameters : dictionary
+             A dictionary of field parameters than can be accessed by derived fields.
         """
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector)
+        if field_parameters is None: field_parameters = {}
+        cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector, **field_parameters)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
