@@ -976,7 +976,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=15, field_parameters={}):
+                 origin='center-window', fontsize=15, field_parameters=None):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -1056,6 +1056,7 @@ class SlicePlot(PWViewerMPL):
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
+        if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis], center=center, fields=fields, **field_parameters)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
         self.set_axes_unit(axes_unit)
@@ -1066,7 +1067,7 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window', fontsize=15, 
-                 field_parameters={}):
+                 field_parameters=None):
         r"""Creates a projection plot from a parameter file
         
         Given a pf object, an axis to project along, and a field name
@@ -1149,6 +1150,7 @@ class ProjectionPlot(PWViewerMPL):
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
         if axes_unit is None  and units != ('1', '1'):
             axes_unit = units
+        if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,
                          center=center, **field_parameters)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
