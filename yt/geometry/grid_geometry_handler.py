@@ -41,6 +41,7 @@ from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
+from yt.utilities.lib import GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
 
@@ -187,6 +188,43 @@ class GridGeometryHandler(GeometryHandler):
         self.parameters["Max%sValue" % (field)] = max_val
         self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
         return max_val, np.array((mx,my,mz), dtype='float64')
+
+    def find_points(self, x, y, z) :
+        """
+        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        """
+        x = ensure_numpy_array(x)
+        y = ensure_numpy_array(y)
+        z = ensure_numpy_array(z)
+        if not len(x) == len(y) == len(z):
+            raise AssertionError("Arrays of indices must be of the same size")
+
+        grid_tree = self.get_grid_tree()
+        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+        ind = pts.find_points_in_tree()
+        return self.grids[ind], ind
+
+    def get_grid_tree(self) :
+
+        left_edge = np.zeros((self.num_grids, 3))
+        right_edge = np.zeros((self.num_grids, 3))
+        level = np.zeros((self.num_grids), dtype='int64')
+        parent_ind = np.zeros((self.num_grids), dtype='int64')
+        num_children = np.zeros((self.num_grids), dtype='int64')
+
+        for i, grid in enumerate(self.grids) :
+
+            left_edge[i,:] = grid.LeftEdge
+            right_edge[i,:] = grid.RightEdge
+            level[i] = grid.Level
+            if grid.Parent is None :
+                parent_ind[i] = -1
+            else :
+                parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
+            num_children[i] = np.int64(len(grid.Children))
+
+        return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
+                        level, num_children)
 
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]

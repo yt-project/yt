@@ -573,11 +573,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
     def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
         axis = self.axis
-        if fields == None:
-            if self.fields == None:
-                raise SyntaxError("The fields keyword argument must be set")
-        else:
-            self.fields = ensure_list(fields)
+        self.fields = [k for k in self.field_data.keys()
+                       if k not in self._container_fields]
         from yt.visualization.plot_window import \
             GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer

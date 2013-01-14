@@ -108,6 +108,7 @@ class GeometryHandler(ParallelAnalysisInterface):
 
     def _setup_unknown_fields(self):
         known_fields = self.parameter_file._fieldinfo_known
+        mylog.debug("Checking %s", self.field_list)
         for field in self.field_list:
             # By allowing a backup, we don't mandate that it's found in our
             # current field info.  This means we'll instead simply override

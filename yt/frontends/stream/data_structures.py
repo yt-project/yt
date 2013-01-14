@@ -235,8 +235,6 @@ class StreamHierarchy(GridGeometryHandler):
             if key not in self.field_list:
                 self.field_list.append(key)
                 
-        self._setup_unknown_fields()
-
         for i, grid in enumerate(self.grids) :
             if data[i].has_key("number_of_particles") :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
@@ -245,6 +243,7 @@ class StreamHierarchy(GridGeometryHandler):
                 self.stream_handler.fields[grid.id][key] = data[i][key]
             
         self._detect_fields()
+        self._setup_unknown_fields()
                 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
@@ -321,11 +320,9 @@ def assign_particle_data(pf, pdata) :
     
     if pf.h.num_grids > 1 :
 
-        try :
-            x = pdata["particle_position_x"]
-            y = pdata["particle_position_y"]
-            z = pdata["particle_position_z"]
-        except:
+        try:
+            x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
+        except KeyError:
             raise KeyError("Cannot decompose particle data without position fields!")
         
         particle_grids, particle_grid_inds = pf.h.find_points(x,y,z)
@@ -475,6 +472,14 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     # Now figure out where the particles go
 
     if number_of_particles > 0 :
+        if ("all", "particle_position_x") not in pdata:
+            pdata_ftype = {}
+            for f in [k for k in sorted(pdata)]:
+                if not hasattr(pdata[f], "shape"): continue
+                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
+                pdata_ftype["all",f] = pdata.pop(f)
+            pdata_ftype.update(pdata)
+            pdata = pdata_ftype
         assign_particle_data(spf, pdata)
     
     return spf
@@ -670,6 +675,15 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
 
     # Now reassign particle data to grids
 
-    if number_of_particles > 0 : assign_particle_data(pf, pdata)
+    if number_of_particles > 0:
+        if ("all", "particle_position_x") not in pdata:
+            pdata_ftype = {}
+            for f in [k for k in sorted(pdata)]:
+                if not hasattr(pdata[f], "shape"): continue
+                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
+                pdata_ftype["all",f] = pdata.pop(f)
+            pdata_ftype.update(pdata)
+            pdata = pdata_ftype
+        assign_particle_data(pf, pdata)
     
     return pf

@@ -1,4 +1,5 @@
 import numpy as np
+from yt.mods import *
 from yt.testing import *
 from yt.frontends.stream.api import load_uniform_grid, refine_amr, load_amr_grids
 import yt.utilities.initial_conditions as ic
@@ -10,7 +11,6 @@ def setup() :
 # Field information
 
 def test_stream_particles() :
-    
     num_particles = 100000
     domain_dims = (64, 64, 64)
     dens = np.random.random(domain_dims) 
@@ -69,22 +69,22 @@ def test_stream_particles() :
     number_of_particles1 = np.sum([grid.NumberOfParticles for grid in ug1.h.grids])
     number_of_particles2 = np.sum([grid.NumberOfParticles for grid in ug2.h.grids])
     
-    assert number_of_particles1 == num_particles
-    assert number_of_particles1 == number_of_particles2
+    yield assert_equal, number_of_particles1, num_particles
+    yield assert_equal, number_of_particles1, number_of_particles2
 
     # Check to make sure the fields have been defined correctly
     
-    assert ug1.field_info["particle_position_x"].particle_type
-    assert ug1.field_info["particle_position_y"].particle_type
-    assert ug1.field_info["particle_position_z"].particle_type
-    assert ug1.field_info["particle_mass"].particle_type
-    assert not ug1.field_info["Density"].particle_type
+    assert ug1._get_field_info("all", "particle_position_x").particle_type
+    assert ug1._get_field_info("all", "particle_position_y").particle_type
+    assert ug1._get_field_info("all", "particle_position_z").particle_type
+    assert ug1._get_field_info("all", "particle_mass").particle_type
+    assert not ug1._get_field_info("gas", "Density").particle_type
 
-    assert ug2.field_info["particle_position_x"].particle_type
-    assert ug2.field_info["particle_position_y"].particle_type
-    assert ug2.field_info["particle_position_z"].particle_type
-    assert ug2.field_info["particle_mass"].particle_type
-    assert not ug2.field_info["Density"].particle_type
+    assert ug2._get_field_info("all", "particle_position_x").particle_type
+    assert ug2._get_field_info("all", "particle_position_y").particle_type
+    assert ug2._get_field_info("all", "particle_position_z").particle_type
+    assert ug2._get_field_info("all", "particle_mass").particle_type
+    assert not ug2._get_field_info("gas", "Density").particle_type
     
     # Now refine this
 
@@ -113,18 +113,17 @@ def test_stream_particles() :
     number_of_particles1 = [grid.NumberOfParticles for grid in amr1.h.grids]
     number_of_particles2 = [grid.NumberOfParticles for grid in amr2.h.grids]
     
-    assert np.sum(number_of_particles1) == num_particles
-    assert_equal(number_of_particles1, number_of_particles2)
+    yield assert_equal, np.sum(number_of_particles1), num_particles
+    yield assert_equal, number_of_particles1, number_of_particles2
     
-    assert amr1.field_info["particle_position_x"].particle_type
-    assert amr1.field_info["particle_position_y"].particle_type
-    assert amr1.field_info["particle_position_z"].particle_type
-    assert amr1.field_info["particle_mass"].particle_type
-    assert not amr1.field_info["Density"].particle_type
+    assert amr1._get_field_info("all", "particle_position_x").particle_type
+    assert amr1._get_field_info("all", "particle_position_y").particle_type
+    assert amr1._get_field_info("all", "particle_position_z").particle_type
+    assert amr1._get_field_info("all", "particle_mass").particle_type
+    assert not amr1._get_field_info("gas", "Density").particle_type
     
-    assert amr2.field_info["particle_position_x"].particle_type
-    assert amr2.field_info["particle_position_y"].particle_type
-    assert amr2.field_info["particle_position_z"].particle_type
-    assert amr2.field_info["particle_mass"].particle_type
-    assert not amr2.field_info["Density"].particle_type
-
+    assert amr2._get_field_info("all", "particle_position_x").particle_type
+    assert amr2._get_field_info("all", "particle_position_y").particle_type
+    assert amr2._get_field_info("all", "particle_position_z").particle_type
+    assert amr2._get_field_info("all", "particle_mass").particle_type
+    assert not amr2._get_field_info("gas", "Density").particle_type

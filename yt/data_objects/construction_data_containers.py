@@ -38,7 +38,7 @@ from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
-    restore_field_information_state
+    restore_field_information_state, YTFieldData
 from .field_info_container import \
     NeedsOriginalGrid
 from yt.utilities.lib import \
@@ -623,8 +623,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         self.field_value = field_value
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        AMRData.__init__(self, center = center, fields = None, pf =
-                         data_source.pf)
+        super(YTSurfaceBase, self).__init__(center = center, pf =
+                    data_source.pf )
         self._grids = self.data_source._grids.copy()
 
     def get_data(self, fields = None, sample_type = "face"):
