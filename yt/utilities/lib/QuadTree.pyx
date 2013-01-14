@@ -116,9 +116,11 @@ cdef class QuadTree:
     cdef int merged
     cdef int num_cells
     cdef QTN_combine *combine
+    cdef np.float64_t bounds[4]
+    cdef np.float64_t dds[2]
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
-                  int nvals, style = "integrate"):
+                  int nvals, bounds, style = "integrate"):
         if style == "integrate":
             self.combine = QTN_add_value
         elif style == "mip":
@@ -134,9 +136,13 @@ cdef class QuadTree:
         cdef np.float64_t weight_val = 0.0
         self.nvals = nvals
         for i in range(nvals): vals[i] = 0.0
+        for i in range(4):
+            self.bounds[i] = bounds[i]
 
         self.top_grid_dims[0] = top_grid_dims[0]
         self.top_grid_dims[1] = top_grid_dims[1]
+        self.dds[0] = (self.bounds[1] - self.bounds[0])/self.top_grid_dims[0]
+        self.dds[1] = (self.bounds[3] - self.bounds[2])/self.top_grid_dims[1]
 
         # This wouldn't be necessary if we did bitshifting...
         for i in range(80):
@@ -433,6 +439,58 @@ cdef class QuadTree:
                 vtoadd[i] -= node.val[i]
             wtoadd -= node.weight_val
         return added
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_image(self, np.ndarray[np.float64_t, ndim=2] buffer, _bounds,
+                   int val_index = 0):
+        cdef np.float64_t dds[2], pos[2]
+        cdef int nn[2], i, j
+        cdef np.float64_t bounds[4]
+        for i in range(4):
+            bounds[i] = _bounds[i]
+        for i in range(2):
+            nn[i] = buffer.shape[i]
+            dds[i] = (bounds[i*2 + 1] - bounds[i*2])/nn[i]
+        cdef QuadTreeNode *node
+        pos[0] = bounds[0]
+        for i in range(nn[0]):
+            pos[1] = bounds[2]
+            for j in range(nn[1]):
+                # We start at level zero.  In the future we could optimize by
+                # retaining oct information from previous cells.
+                node = self.find_node_at_pos(pos)
+                buffer[i,j] = node.val[val_index]
+                pos[1] += dds[1]
+            pos[0] += dds[0]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef QuadTreeNode *find_node_at_pos(self, np.float64_t pos[2]):
+        cdef np.int64_t ind[2]
+        cdef np.float64_t cp[2]
+        cdef np.float64_t dds[2]
+        cdef QuadTreeNode *cur
+        for i in range(2):
+            ind[i] = <np.int64_t> (pos[i]/self.dds[i])
+            cp[i] = (ind[i] + 0.5) * self.dds[i]
+            dds[i] = self.dds[i]
+        cur = self.root_nodes[ind[0]][ind[1]]
+        while cur.children[0][0] != NULL:
+            for i in range(2):
+                # Note that below offset by half a dx for center, after
+                # updating to the next level
+                dds[i] = dds[i] / 2.0
+                if cp[i] < pos[i]:
+                    ind[i] = 0
+                    cp[i] -= dds[i] / 2.0 
+                else:
+                    ind[i] = 1
+                    cp[i] += dds[i] / 2.0
+            cur = cur.children[ind[0]][ind[1]]
+        return cur
 
     def __dealloc__(self):
         cdef int i, j

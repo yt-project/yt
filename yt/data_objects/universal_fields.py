@@ -86,6 +86,13 @@ def _OnesOverDx(field, data):
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
+def _Zeros(field, data):
+    return np.zeros(data.ActiveDimensions, dtype='float64')
+add_field("Zeros", function=_Zeros,
+          validators=[ValidateSpatial(0)],
+          projection_conversion="unitary",
+          display_field = False)
+
 def _Ones(field, data):
     return np.ones(data.shape, dtype='float64')
 add_field("Ones", function=_Ones,
@@ -452,11 +459,11 @@ add_field("WeakLensingConvergence", function=_DensityPerturbation,
 def _CellVolume(field, data):
     if data['dx'].size == 1:
         try:
-            return data['dx']*data['dy']*data['dx']*\
+            return data['dx'] * data['dy'] * data['dz'] * \
                 np.ones(data.ActiveDimensions, dtype='float64')
         except AttributeError:
-            return data['dx']*data['dy']*data['dx']
-    return data["dx"]*data["dy"]*data["dz"]
+            return data['dx'] * data['dy'] * data['dz']
+    return data["dx"] * data["dy"] * data["dz"]
 def _ConvertCellVolumeMpc(data):
     return data.convert("mpc")**3.0
 def _ConvertCellVolumeCGS(data):

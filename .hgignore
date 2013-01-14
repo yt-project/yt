@@ -4,6 +4,7 @@ __config__.py
 freetype.cfg
 hdf5.cfg
 png.cfg
+yt_updater.log
 yt/frontends/ramses/_ramses_reader.cpp
 yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
@@ -26,6 +27,7 @@ yt/utilities/lib/QuadTree.c
 yt/utilities/lib/RayIntegrators.c
 yt/utilities/lib/VolumeIntegrator.c
 yt/utilities/lib/grid_traversal.c
+yt/utilities/lib/GridTree.c
 yt/utilities/lib/marching_cubes.c
 yt/utilities/lib/png_writer.h
 syntax: glob

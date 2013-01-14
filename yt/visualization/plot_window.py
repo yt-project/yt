@@ -25,29 +25,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import base64
-import matplotlib.figure
-from matplotlib.mathtext import MathTextParser
-from distutils import version
+import numpy as np
 import matplotlib
-
-# Some magic for dealing with pyparsing being included or not
-# included in matplotlib (not in gentoo, yes in everything else)
-# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
-try:
-    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
-        from matplotlib.pyparsing import ParseFatalException
-    else:
-        from matplotlib.pyparsing_py2 import ParseFatalException
-except ImportError:
-    from pyparsing import ParseFatalException
-
 import cStringIO
 import types
 import __builtin__
+
+from matplotlib.mathtext import MathTextParser
+from distutils import version
 from functools import wraps
 
-import numpy as np
-from ._mpl_imports import *
+from ._mpl_imports import \
+    FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from .color_maps import yt_colormaps, is_colormap
 from .image_writer import \
     write_image, apply_colormap
@@ -58,10 +47,13 @@ from .fixed_resolution import \
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .tick_locators import LogLocator, LinearLocator
+from .base_plot_types import ImagePlotMPL
+
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
-
-from yt.funcs import *
+from yt.funcs import \
+    mylog, defaultdict, iterable, ensure_list, \
+    fix_axis, get_image_suffix
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
@@ -74,6 +66,17 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     GroupOwnership
 from yt.data_objects.time_series import \
     TimeSeriesData
+
+# Some magic for dealing with pyparsing being included or not
+# included in matplotlib (not in gentoo, yes in everything else)
+# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
+try:
+    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
+        from matplotlib.pyparsing import ParseFatalException
+    else:
+        from matplotlib.pyparsing_py2 import ParseFatalException
+except ImportError:
+    from pyparsing import ParseFatalException
 
 def invalidate_data(f):
     @wraps(f)
@@ -822,12 +825,15 @@ class PWViewerMPL(PWViewer):
             fields = self._frb.keys()
         self._colorbar_valid = True
         for f in self.fields:
-            md = self.get_metadata(f, strip_mathml = False, return_string = False)
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
 
-            (unit_x, unit_y) = md['axes_unit_names']
+            if self._axes_unit_names is None:
+                unit = get_smallest_appropriate_unit(self.xlim[1] - self.xlim[0], self.pf)
+                (unit_x, unit_y) = (unit, unit)
+            else:
+                (unit_x, unit_y) = self._axes_unit_names
 
             extentx = [(self.xlim[i] - xc) * self.pf[unit_x] for i in (0,1)]
             extenty = [(self.ylim[i] - yc) * self.pf[unit_y] for i in (0,1)]
@@ -853,8 +859,11 @@ class PWViewerMPL(PWViewer):
             # Correct the aspect ratio in case unit_x and unit_y are different
             aspect = self.pf[unit_x]/self.pf[unit_y]
             
-            self.plots[f] = WindowPlotMPL(self._frb[f], extent, aspect, self._field_transform[f], 
-                                          self._colormaps[f], size, zlim)
+            image = self._frb[f]
+
+            self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
+                                          self._colormaps[f], extent, aspect, 
+                                          zlim, size)
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
@@ -875,30 +884,16 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1],fontsize=self.fontsize)
 
             self.plots[f].axes.tick_params(labelsize=self.fontsize)
-            ftype, fname = f
-            field_name = self.data_source.pf._get_field_info(ftype, fname).display_name
 
-            if field_name is None:
-                field_name = r'$\rm{'+fname+r'}$'
-            elif field_name.find('$') == -1:
-                field_name = r'$\rm{'+field_name+r'}$'
-            
+            colorbar_label = image.info['label']
+
             parser = MathTextParser('Agg')
             try:
-                parser.parse(field_name)
+                parser.parse(colorbar_label)
             except ParseFatalException, err:
-                raise YTCannotParseFieldDisplayName(fname,field_name,str(err))
-
-            if md['colorbar_unit'] is None or md['colorbar_unit'] == '':
-                label = field_name
-            else:
-                try:
-                    parser.parse(r'$'+md['colorbar_unit']+r'$')
-                except ParseFatalException, err:
-                    raise YTCannotParseUnitDisplayName(f, md['colorbar_unit'],str(err))
-                label = field_name+r'$\/\/('+md['colorbar_unit']+r')$'
-
-            self.plots[f].cb.set_label(label,fontsize=self.fontsize)
+                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
+                
+            self.plots[f].cb.set_label(colorbar_label, fontsize=self.fontsize)
 
             self.plots[f].cb.ax.tick_params(labelsize=self.fontsize)
 
@@ -1037,7 +1032,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=15):
+                 origin='center-window', fontsize=15, field_parameters=None):
         r"""Creates a slice plot from a parameter file
         
         Given a pf object, an axis to slice along, and a field name
@@ -1116,6 +1111,8 @@ class SlicePlot(PWViewerMPL):
              ==================================     ============================
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
+        field_parameters : dictionary
+             A dictionary of field parameters than can be accessed by derived fields.
              
         Examples
         --------
@@ -1135,7 +1132,9 @@ class SlicePlot(PWViewerMPL):
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        slc = pf.h.slice(axis, center[axis])
+        if field_parameters is None: field_parameters = {}
+        slc = pf.h.slice(axis, center[axis],
+            field_parameters = field_parameters)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin)
         self.set_axes_unit(axes_unit)
@@ -1145,7 +1144,8 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, origin='center-window', fontsize=15):
+                 weight_field=None, max_level=None, origin='center-window', fontsize=15, 
+                 field_parameters=None):
         r"""Creates a projection plot from a parameter file
         
         Given a pf object, an axis to project along, and a field name
@@ -1227,7 +1227,9 @@ class ProjectionPlot(PWViewerMPL):
              The name of the weighting field.  Set to None for no weight.
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
-        
+        field_parameters : dictionary
+             A dictionary of field parameters than can be accessed by derived fields.
+
         Examples
         --------
         
@@ -1245,7 +1247,9 @@ class ProjectionPlot(PWViewerMPL):
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
         if axes_unit is None  and units != ('1', '1'):
             axes_unit = units
-        proj = pf.h.proj(fields, axis, weight_field=weight_field, center=center)
+        if field_parameters is None: field_parameters = {}
+        proj = pf.h.proj(fields, axis, weight_field=weight_field,
+                         center=center, field_parameters = field_parameters)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
         self.set_axes_unit(axes_unit)
 
@@ -1567,51 +1571,19 @@ class PWViewerExtJS(PWViewer):
         else:
             self._field_transform[field] = linear_transform
 
-class PlotMPL(object):
-    """A base class for all yt plots made using matplotlib.
-
-    """
-    datalabel = None
-    figure = None
-    def __init__(self, field, size):
-        self._plot_valid = True
+class WindowPlotMPL(ImagePlotMPL):
+    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size):
         fsize, axrect, caxrect = self._get_best_layout(size)
-        
         if np.any(np.array(axrect) < 0):
-            self.figure = matplotlib.figure.Figure(figsize = size, 
-                                                   frameon = True)
-            self.axes = self.figure.add_axes((.07,.10,.8,.8))
-            self.cax = self.figure.add_axes((.87,.10,.04,.8))
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
                           'consider making the plot manually using FixedResolutionBuffer '
                           'and matplotlib.')
-        else:
-            self.figure = matplotlib.figure.Figure(figsize = fsize, 
-                                                   frameon = True)
-            self.axes = self.figure.add_axes(axrect)
-            self.cax = self.figure.add_axes(caxrect)
-            
-    def save(self, name, mpl_kwargs, canvas = None):
-        suffix = get_image_suffix(name)
-        
-        if suffix == '':
-            suffix = '.png'
-            name = "%s%s" % (name, suffix)
-        mylog.info("Saving plot %s", name)
-        if suffix == ".png":
-            canvas = FigureCanvasAgg(self.figure)
-        elif suffix == ".pdf":
-            canvas = FigureCanvasPdf(self.figure)
-        elif suffix in (".eps", ".ps"):
-            canvas = FigureCanvasPS(self.figure)
-        else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-            canvas = FigureCanvasAgg(self.figure)
-
-
-        canvas.print_figure(name,**mpl_kwargs)
-        return name
+            axrect  = (0.07, 0.10, 0.80, 0.80)
+            caxrect = (0.87, 0.10, 0.04, 0.80)
+        ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
+        self._init_image(data, cbname, cmap, extent, aspect)
+        self.image.axes.ticklabel_format(scilimits=(-2,3))
 
     def _get_best_layout(self, size):
         aspect = 1.0*size[0]/size[1]
@@ -1650,26 +1622,3 @@ class PlotMPL(object):
         axrect = (text_buffx, text_bottomy, xfrac, yfrac )
         caxrect = (text_buffx+xfrac, text_bottomy, cbar_frac/4., yfrac )
         return newsize, axrect, caxrect
-
-    def _repr_png_(self):
-        canvas = FigureCanvasAgg(self.figure)
-        f = cStringIO.StringIO()
-        canvas.print_figure(f)
-        f.seek(0)
-        return f.read()
-
-class WindowPlotMPL(PlotMPL):
-    def __init__(self, data, extent, aspect, field_transform, cmap, size, zlim):
-        self.zmin, self.zmax = zlim
-        PlotMPL.__init__(self, data, size)
-        self.__init_image(data, extent, aspect, field_transform, cmap)
-
-    def __init_image(self, data, extent, aspect, field_transform, cmap):
-        if (field_transform.name == 'log10'):
-            norm = matplotlib.colors.LogNorm()
-        elif (field_transform.name == 'linear'):
-            norm = matplotlib.colors.Normalize()
-        self.image = self.axes.imshow(data, origin='lower', extent=extent,
-                                      norm=norm, vmin=self.zmin, aspect=aspect, 
-                                      vmax=self.zmax, cmap=cmap)
-        self.image.axes.ticklabel_format(scilimits=(-2,3))

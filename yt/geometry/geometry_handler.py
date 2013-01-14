@@ -99,6 +99,11 @@ class GeometryHandler(ParallelAnalysisInterface):
             mylog.warning("Refine by something other than two: reverting to"
                         + " overlap_proj")
             self.proj = self.overlap_proj
+        if self.pf.dimensionality < 3 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Dimensionality less than 3: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
         self.object_types.sort()
 
     def _setup_unknown_fields(self):

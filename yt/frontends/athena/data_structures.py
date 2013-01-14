@@ -30,6 +30,7 @@ License:
 import h5py
 import numpy as np
 import weakref
+import glob #ST 9/12
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
@@ -111,6 +112,8 @@ def parse_line(line, grid):
         field = splitup[1]
         grid['read_field'] = field
         grid['read_type'] = 'vector'
+
+
 
 class AthenaHierarchy(GridGeometryHandler):
 
@@ -215,34 +218,94 @@ class AthenaHierarchy(GridGeometryHandler):
                   (np.prod(grid['dimensions']), grid['ncells']))
             raise TypeError
 
+        # Need to determine how many grids: self.num_grids
+        dname = self.hierarchy_filename
+        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        gridlistread.insert(0,self.hierarchy_filename)
+        self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = np.zeros(self.num_grids, dtype='int32')
-        single_grid_width = grid['dds']*grid['dimensions']
-        grids_per_dim = (self.parameter_file.domain_width/single_grid_width).astype('int32')
-        glis = np.empty((self.num_grids,3), dtype='int64')
-        for i in range(self.num_grids):
-            procz = i/(grids_per_dim[0]*grids_per_dim[1])
-            procy = (i - procz*(grids_per_dim[0]*grids_per_dim[1]))/grids_per_dim[0]
-            procx = i - procz*(grids_per_dim[0]*grids_per_dim[1]) - procy*grids_per_dim[0]
-            glis[i, 0] = procx*grid['dimensions'][0]
-            glis[i, 1] = procy*grid['dimensions'][1]
-            glis[i, 2] = procz*grid['dimensions'][2]
+        glis = np.empty((self.num_grids,3), dtype='float64')
+        gdds = np.empty((self.num_grids,3), dtype='float64')
         gdims = np.ones_like(glis)
-        gdims[:] = grid['dimensions']
+        j = 0
+        while j < (self.num_grids):
+            f = open(gridlistread[j],'rb')
+            f.close()
+            if j == 0:
+                f = open(dname,'rb')
+            if j != 0:
+                f = open('id%i/%s-id%i%s' % (j, dname[4:-9],j, dname[-9:]),'rb')
+            gridread = {}
+            gridread['read_field'] = None
+            gridread['read_type'] = None
+            table_read=False
+            line = f.readline()
+            while gridread['read_field'] is None:
+                parse_line(line, gridread)
+                if "SCALAR" in line.strip().split():
+                    break
+                if "VECTOR" in line.strip().split():
+                    break 
+                if 'TABLE' in line.strip().split():
+                    break
+                if len(line) == 0: break
+                line = f.readline()
+            f.close()
+            glis[j,0] = gridread['left_edge'][0]
+            glis[j,1] = gridread['left_edge'][1]
+            glis[j,2] = gridread['left_edge'][2]
+            # It seems some datasets have a mismatch between ncells and 
+            # the actual grid dimensions.
+            if np.prod(gridread['dimensions']) != gridread['ncells']:
+                gridread['dimensions'] -= 1
+                gridread['dimensions'][gridread['dimensions']==0]=1
+            if np.prod(gridread['dimensions']) != gridread['ncells']:
+                mylog.error('product of dimensions %i not equal to number of cells %i' % 
+                      (np.prod(gridread['dimensions']), gridread['ncells']))
+                raise TypeError
+            gdims[j,0] = gridread['dimensions'][0]
+            gdims[j,1] = gridread['dimensions'][1]
+            gdims[j,2] = gridread['dimensions'][2]
+            # Setting dds=1 for non-active dimensions in 1D/2D datasets
+            gridread['dds'][gridread['dimensions']==1] = 1.
+            gdds[j,:] = gridread['dds']
+            
+            j=j+1
+
+        gres = glis + gdims*gdds
+        # Now we convert the glis, which were left edges (floats), to indices 
+        # from the domain left edge.  Then we do a bunch of fixing now that we
+        # know the extent of all the grids. 
+        glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
+        new_dre = np.max(gres,axis=0)
+        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_width = \
+                (self.parameter_file.domain_right_edge - 
+                 self.parameter_file.domain_left_edge)
+        self.parameter_file.domain_center = \
+                0.5*(self.parameter_file.domain_left_edge + 
+                     self.parameter_file.domain_right_edge)
+        self.parameter_file.domain_dimensions = \
+                np.round(self.parameter_file.domain_width/gdds[0]).astype('int')
+        if self.parameter_file.dimensionality <= 2 :
+            self.parameter_file.domain_dimensions[2] = np.int(1)
+        if self.parameter_file.dimensionality == 1 :
+            self.parameter_file.domain_dimensions[1] = np.int(1)
         for i in range(levels.shape[0]):
-            self.grids[i] = self.grid(i, self, levels[i],
+            self.grids[i] = self.grid(i,self,levels[i],
                                       glis[i],
                                       gdims[i])
-
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx = dx/self.parameter_file.refine_by**(levels[i])
-            dxs.append(grid['dds'])
+            dxs.append(dx)
+        
         dx = np.array(dxs)
-        self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
+        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
+        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
     def _populate_grid_objects(self):
@@ -255,9 +318,6 @@ class AthenaHierarchy(GridGeometryHandler):
             for g1 in g.Children:
                 g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
-
-#     def _setup_derived_fields(self):
-#         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
@@ -277,6 +337,11 @@ class AthenaStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
         self.storage_filename = filename[4:-4]
+        
+        # Unfortunately we now have to mandate that the hierarchy gets 
+        # instantiated so that we can make sure we have the correct left 
+        # and right domain edges.
+        self.h
 
     def _set_units(self):
         """
@@ -315,14 +380,11 @@ class AthenaStaticOutput(StaticOutput):
             line = self._handle.readline()
 
         self.domain_left_edge = grid['left_edge']
-        if 'domain_right_edge' in self.specified_parameters:
-            self.domain_right_edge = np.array(self.specified_parameters['domain_right_edge'])
-        else:
-            mylog.info("Please set 'domain_right_edge' in parameters dictionary argument " +
-                    "if it is not equal to -domain_left_edge.")
-            self.domain_right_edge = -self.domain_left_edge
+        mylog.info("Temporarily setting domain_right_edge = -domain_left_edge."+
+                  " This will be corrected automatically if it is not the case.")
+        self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge-self.domain_left_edge
-        self.domain_dimensions = self.domain_width/grid['dds']
+        self.domain_dimensions = np.round(self.domain_width/grid['dds']).astype('int32')
         refine_by = None
         if refine_by is None: refine_by = 2
         self.refine_by = refine_by
@@ -331,8 +393,8 @@ class AthenaStaticOutput(StaticOutput):
             dimensionality = 2
         if grid['dimensions'][1] == 1 :
             dimensionality = 1
-        if dimensionality <= 2 : self.domain_dimensions[2] = 1.
-        if dimensionality == 1 : self.domain_dimensions[1] = 1.
+        if dimensionality <= 2 : self.domain_dimensions[2] = np.int32(1)
+        if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self._handle.__hash__()
@@ -341,14 +403,16 @@ class AthenaStaticOutput(StaticOutput):
         self.field_ordering = 'fortran'
         self.boundary_conditions = [1]*6
 
-        ND = self.dimensionality
-        self.nvtk = int(np.product(self.domain_dimensions[:ND]/(grid['dimensions'][:ND]-1)))
+        dname = self.parameter_filename
+        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

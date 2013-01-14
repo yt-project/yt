@@ -579,9 +579,11 @@ class YTSelectionContainer2D(YTSelectionContainer):
         else:
             self.fields = ensure_list(fields)
         from yt.visualization.plot_window import \
-            GetBoundsAndCenter, PWViewerMPL
+            GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
+        if axes_unit is None and units != ('1', '1'):
+            axes_unit = units
         pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
@@ -781,12 +783,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
             ma = np.max(verts, axis=0)
             verts = (verts - mi) / (ma - mi).max()
         if filename is not None and self.comm.rank == 0:
-            f = open(filename, "w")
+            if hasattr(filename, "write"): f = filename
+            else: f = open(filename, "w")
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts)/3):
                 f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
-            f.close()
+            if not hasattr(filename, "write"): f.close()
         if sample_values is not None:
             return verts, samples
         return verts
