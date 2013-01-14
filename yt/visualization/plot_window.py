@@ -1035,6 +1035,8 @@ class SlicePlot(PWViewerMPL):
              the center of the plot window.
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
+        field_parameters : dictionary
+             A dictionary of field parameters than can be accessed by derived fields.
              
         Examples
         --------
@@ -1127,7 +1129,9 @@ class ProjectionPlot(PWViewerMPL):
              The maximum level to project to.
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
-        
+        field_parameters : dictionary
+             A dictionary of field parameters than can be accessed by derived fields.
+
         Examples
         --------
         
