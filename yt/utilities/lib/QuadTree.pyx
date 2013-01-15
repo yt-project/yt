@@ -330,11 +330,11 @@ cdef class QuadTree:
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] level):
-        cdef int np = pxs.shape[0]
+        cdef int num = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
         cdef cnp.int64_t pos[2]
-        for p in range(np):
+        for p in range(num):
             pos[0] = pxs[p]
             pos[1] = pys[p]
             self.add_to_position(level[p], pos, NULL, 0.0, 1)

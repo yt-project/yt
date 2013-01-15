@@ -295,7 +295,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         next.parent = parent
         next.level = parent.level + 1
         for i in range(3):
-            next.pos[i] = ind[i] + (next.pos[i] << 1)
+            next.pos[i] = ind[i] + (parent.pos[i] << 1)
         self.nocts += 1
         return next
 
@@ -425,7 +425,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
-        for oi in range(cur.n):
+        for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
             for i in range(2):
                 for j in range(2):
@@ -473,7 +473,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef Oct *o
         cdef int oi, i
         level_count = np.zeros(max_level+1, 'int64')
-        for oi in range(cur.n):
+        for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
             for i in range(8):
                 if mask[o.local_ind, i] == 0: continue

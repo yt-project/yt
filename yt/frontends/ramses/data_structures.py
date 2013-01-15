@@ -248,6 +248,7 @@ class RAMSESDomainSubset(object):
         self.cell_count = cell_count
         level_counts = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
+        assert(level_counts.sum() == cell_count)
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
