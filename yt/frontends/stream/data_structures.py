@@ -105,7 +105,8 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields, io = None, particle_types = {}):
+                 fields, io = None, particle_types = None):
+        if particle_types is None: particle_types = {}
         self.left_edges = left_edges
         self.right_edges = right_edges
         self.dimensions = dimensions
