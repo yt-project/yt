@@ -779,6 +779,8 @@ class PWViewerMPL(PWViewer):
             elif self.origin == 'left-domain':
                 xc = self.pf.domain_left_edge[x_dict[axis_index]]
                 yc = self.pf.domain_left_edge[y_dict[axis_index]]
+            elif self.origin == 'native':
+                xc, yc = 0.0, 0.0
             else:
                 raise RuntimeError(
                     'origin keyword: \"%(k)s\" not recognized' % {'k': self.origin})
@@ -1029,10 +1031,11 @@ class SlicePlot(PWViewerMPL):
              units, and only show the axes name.
         origin : string
              The location of the origin of the plot coordinate system.
-             Currently, can be set to three options: 'left-domain', corresponding
+             Currently, can be set to following options: 'left-domain', corresponding
              to the bottom-left hand corner of the simulation domain, 'center-domain',
-             corresponding the center of the simulation domain, or 'center-window' for 
-             the center of the plot window.
+             corresponding the center of the simulation domain, 'center-window' for
+             the center of the plot window or 'native' corresponding to the center of
+             simulation coordinate system.
         fontsize : integer
              The size of the fonts for the axis, colorbar, and tick labels.
         field_parameters : dictionary
@@ -1118,12 +1121,13 @@ class ProjectionPlot(PWViewerMPL):
              Defaults to None, which automatically picks an appropriate unit.
              If axes_unit is '1', 'u', or 'unitary', it will not display the 
              units, and only show the axes name.
-        origin : A string
+        origin : string
              The location of the origin of the plot coordinate system.
-             Currently, can be set to three options: 'left-domain', corresponding
+             Currently, can be set to following options: 'left-domain', corresponding
              to the bottom-left hand corner of the simulation domain, 'center-domain',
-             corresponding the center of the simulation domain, or 'center-window' for 
-             the center of the plot window.
+             corresponding the center of the simulation domain, 'center-window' for
+             the center of the plot window or 'native' corresponding to the center of
+             simulation coordinate system.
         weight_field : string
              The name of the weighting field.  Set to None for no weight.
         max_level: int
