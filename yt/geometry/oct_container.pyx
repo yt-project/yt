@@ -551,7 +551,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             local_filled += 1
         return local_filled
 
-cdef public int compare_octs(void *vo1, void *vo2) nogil:
+cdef int compare_octs(void *vo1, void *vo2) nogil:
     cdef Oct *o1 = (<Oct**> vo1)[0]
     cdef Oct *o2 = (<Oct**> vo2)[0]
     if o1.domain < o2.domain: return -1
