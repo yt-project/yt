@@ -60,6 +60,8 @@ cdef class OctreeContainer:
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
+    cdef Oct *next_root(self, int domain_id, int ind[3])
+    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
 cdef struct ParticleArrays:
     Oct *oct

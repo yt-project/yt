@@ -123,7 +123,7 @@ cdef class OctreeContainer:
         cdef Oct *this
         cdef int i
         while cur != NULL:
-            for i in range(cur.n):
+            for i in range(cur.n_assigned):
                 this = &cur.my_octs[i]
                 yield (this.ind, this.local_ind, this.domain)
             cur = cur.next
@@ -175,11 +175,11 @@ cdef class OctreeContainer:
         count = np.zeros(self.max_domain, 'int64')
         cur = self.cont
         for oi in range(n):
-            if oi - cur.offset >= cur.n:
+            if oi - cur.offset >= cur.n_assigned:
                 cur = cur.next
             o = &cur.my_octs[oi - cur.offset]
             for i in range(8):
-                count[o.domain - 1] += mask[oi,i]
+                count[o.domain - 1] += mask[o.local_ind,i]
         return count
 
     @cython.boundscheck(False)
@@ -197,7 +197,6 @@ cdef class OctreeContainer:
         for ni in range(3):
             for nj in range(3):
                 for nk in range(3):
-                    #print "Handling neighbor", nn
                     if ni == nj == nk == 1:
                         neighbors[nn] = o
                         nn += 1
@@ -237,7 +236,6 @@ cdef class OctreeContainer:
                         # Worst case scenario
                         for i in range(3):
                             ind[i] = (npos[i] >> (o.level))
-                        #print "NULL", npos[0], npos[1], npos[2], ind[0], ind[1], ind[2], o.level
                         candidate = self.root_mesh[ind[0]][ind[1]][ind[2]]
                     # Now we have the common root, which may be NULL
                     while candidate.level < o.level:
@@ -271,6 +269,36 @@ cdef class OctreeContainer:
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
 
+    cdef Oct* next_root(self, int domain_id, int ind[3]):
+        cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        self.root_mesh[ind[0]][ind[1]][ind[2]] = next
+        next.parent = NULL
+        next.level = 0
+        for i in range(3):
+            next.pos[i] = ind[i]
+        self.nocts += 1
+        return next
+
+    cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
+        cdef Oct *next = parent.children[ind[0]][ind[1]][ind[2]]
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        parent.children[ind[0]][ind[1]][ind[2]] = next
+        next.parent = parent
+        next.level = parent.level + 1
+        for i in range(3):
+            next.pos[i] = ind[i] + (next.pos[i] << 1)
+        self.nocts += 1
+        return next
+
     def allocate_domains(self, domain_counts):
         cdef int count, i
         cdef OctAllocationContainer *cur = self.cont
@@ -301,7 +329,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # This is the idiom for iterating over many containers.
         cur = self.cont
         for i in range(n):
-            if i - cur.offset >= cur.n: cur = cur.next
+            if i - cur.offset >= cur.n_assigned: cur = cur.next
             if mask[i] == 1:
                 count[cur.my_octs[i - cur.offset].domain - 1] += 1
         return count
@@ -311,6 +339,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef Oct oct
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int nbad = 0
+        cdef int nmissed = 0
+        cdef int unassigned = 0
         for pi in range(cont.n_assigned):
             oct = cont.my_octs[pi]
             for i in range(2):
@@ -318,12 +348,16 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     for k in range(2):
                         if oct.children[i][j][k] != NULL and \
                            oct.children[i][j][k].level != oct.level + 1:
-                            if curdom == 61:
-                                print pi, oct.children[i][j][k].level,
-                                print oct.level
                             nbad += 1
+                        if oct.domain != curdom:
+                            print curdom, oct.domain
+                            nmissed += 1
+                        if oct.domain == -1:
+                            unassigned += 1
         print "DOMAIN % 3i HAS % 9i BAD OCTS (%s / %s / %s)" % (curdom, nbad, 
             cont.n - cont.n_assigned, cont.n_assigned, cont.n)
+        print "DOMAIN % 3i HAS % 9i MISSED OCTS" % (curdom, nmissed)
+        print "DOMAIN % 3i HAS % 9i UNASSIGNED OCTS" % (curdom, unassigned)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -336,7 +370,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef Oct *cur, *next = NULL
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0] #number of octs
-        if curdom > self.max_domain: curdom = local_domain
+        if curdom > self.max_domain: return 0
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
@@ -348,23 +382,12 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> (pp[i]/dds[i])
+                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
             if skip_boundary == in_boundary == 1: continue
-            cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
-            if cur == NULL:
-                if curlevel != 0:
-                    raise RuntimeError
-                cur = &cont.my_octs[cont.n_assigned]
-                cur.parent = NULL
-                cur.level = 0
-                for i in range(3):
-                    cur.pos[i] = ind[i]
-                cont.n_assigned += 1
-                self.nocts += 1
-                self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
+            cur = self.next_root(curdom, ind)
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
             for level in range(curlevel):
@@ -380,17 +403,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         ind[i] = 1
                         cp[i] += dds[i]/2.0
                 # Check if it has not been allocated
-                next = cur.children[ind[0]][ind[1]][ind[2]]
-                if next == NULL:
-                    next = &cont.my_octs[cont.n_assigned]
-                    cur.children[ind[0]][ind[1]][ind[2]] = next
-                    cont.n_assigned += 1
-                    next.parent = cur
-                    for i in range(3):
-                        next.pos[i] = ind[i] + (cur.pos[i] << 1)
-                    next.level = level + 1
-                    self.nocts += 1
-                cur = next
+                cur = self.next_child(curdom, ind, cur)
+            # Now we should be at the right level
             cur.domain = curdom
             if local == 1:
                 cur.ind = p
