@@ -97,9 +97,7 @@ class GDFHierarchy(GridGeometryHandler):
         self.directory = os.path.dirname(self.hierarchy_filename)
 #        self._handle = h5py.File(self.hierarchy_filename, 'r')
         self._handle = pf._handle
-#        import pudb; pudb.set_trace()
         GridGeometryHandler.__init__(self, pf, data_style)
-        print "!!!!"
 
 #        self._handle.close()
 
