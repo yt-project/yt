@@ -567,6 +567,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
     cdef np.int64_t *dom_offsets
     cdef public int max_level
+    cdef public int n_ref
 
     def allocate_root(self):
         cdef int i, j, k
@@ -749,8 +750,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         sd.next = NULL
         sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
         for i in range(3):
-            sd.pos[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
-        for i in range(32):
+            sd.pos[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * self.n_ref)
+        for i in range(self.n_ref):
             sd.pos[0][i] = sd.pos[1][i] = sd.pos[2][i] = 0.0
         sd.np = 0
         return my_oct
@@ -797,13 +798,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
-                cp[i] = (ind[i] + 0.5) * dds[i]
+                cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
             if self._check_refine(cur, cp, domain_id) == 1:
                 self.refine_oct(cur, cp)
             while cur.sd.np < 0:
+                if level > 100:
+                    raise RuntimeError
                 for i in range(3):
                     dds[i] = dds[i] / 2.0
                     if cp[i] > pp[i]:
@@ -817,17 +820,16 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 if self._check_refine(cur, cp, domain_id) == 1:
                     self.refine_oct(cur, cp)
             # Now we copy in our particle 
-            pi = cur.sd.np
             cur.level = level
             for i in range(3):
-                cur.sd.pos[i][pi] = pp[i]
+                cur.sd.pos[i][cur.sd.np] = pp[i]
             cur.domain = domain_id
             cur.sd.np += 1
 
     cdef int _check_refine(self, Oct *cur, np.float64_t cp[3], int domain_id):
         if cur.children[0][0][0] != NULL:
             return 0
-        elif cur.sd.np == 32:
+        elif cur.sd.np >= self.n_ref:
             return 1
         elif cur.domain >= 0 and cur.domain != domain_id:
             return 1

@@ -40,11 +40,17 @@ OWLSFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_owls_field = OWLSFieldInfo.add_field
 
 KnownOWLSFields = FieldInfoContainer()
-add_OWLS_field = KnownOWLSFields.add_field
+add_owls_field = KnownOWLSFields.add_field
 
 GadgetFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_Gadget_field = GadgetFieldInfo.add_field
+add_gadget_field = GadgetFieldInfo.add_field
 
 KnownGadgetFields = FieldInfoContainer()
-add_Gadget_field = KnownGadgetFields.add_field
+add_gadget_field = KnownGadgetFields.add_field
+
+TipsyFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+add_Tipsy_field = TipsyFieldInfo.add_field
+
+KnownTipsyFields = FieldInfoContainer()
+add_tipsy_field = KnownTipsyFields.add_field
 

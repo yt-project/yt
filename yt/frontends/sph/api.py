@@ -30,8 +30,17 @@ License:
 
 from .data_structures import \
       OWLSStaticOutput, \
-      GadgetStaticOutput
+      GadgetStaticOutput, \
+      TipsyStaticOutput
 
 from .io import \
       IOHandlerOWLS, \
       IOHandlerGadgetBinary
+
+from .fields import \
+      add_owls_field, \
+      OWLSFieldInfo, \
+      add_gadget_field, \
+      GadgetFieldInfo, \
+      add_tipsy_field, \
+      TipsyFieldInfo

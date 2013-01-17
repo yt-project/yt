@@ -27,6 +27,7 @@ import h5py
 import numpy as np
 import stat
 import weakref
+import struct
 from itertools import izip
 
 from yt.utilities.fortran_utils import read_record
@@ -45,7 +46,9 @@ from .fields import \
     OWLSFieldInfo, \
     KnownOWLSFields, \
     GadgetFieldInfo, \
-    KnownGadgetFields
+    KnownGadgetFields, \
+    TipsyFieldInfo, \
+    KnownTipsyFields
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -125,6 +128,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_dimensions,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
+        self.oct_handler.n_ref = 64
         mylog.info("Allocating for %0.3e particles", total_particles)
         for dom in self.domains:
             self.io._initialize_octree(dom, self.oct_handler)
@@ -132,7 +136,6 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         self.max_level = self.oct_handler.max_level
         tot = self.oct_handler.linearly_count()
         mylog.info("Identified %0.3e octs", tot)
-
 
     def _detect_fields(self):
         # TODO: Add additional fields
@@ -331,6 +334,93 @@ class GadgetStaticOutput(StaticOutput):
             self.domain_template = self.parameter_filename
 
         self.domain_count = hvals["NumFiles"]
+
+        f.close()
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        # We do not allow load() of these files.
+        return False
+
+class TipsyDomainFile(ParticleDomainFile):
+
+    def _calculate_offsets(self, field_list):
+        self.field_offsets = self.io._calculate_particle_offsets(self)
+
+    def __init__(self, pf, io, domain_filename, domain_id):
+        # To go above 1 domain, we need to include an indexing step in the
+        # IOHandler, rather than simply reading from a single file.
+        assert domain_id == 0 
+        super(TipsyDomainFile, self).__init__(pf, io,
+                domain_filename, domain_id)
+        io._create_dtypes(self)
+
+
+class TipsyStaticOutput(StaticOutput):
+    _hierarchy_class = ParticleGeometryHandler
+    _domain_class = TipsyDomainFile
+    _fieldinfo_fallback = TipsyFieldInfo
+    _fieldinfo_known = KnownTipsyFields
+    _header_spec = (('time',    'd'),
+                    ('nbodies', 'i'),
+                    ('ndim',    'i'),
+                    ('nsph',    'i'),
+                    ('ndark',   'i'),
+                    ('nstar',   'i'),
+                    ('dummy',   'i'))
+
+    def __init__(self, filename, data_style="tipsy",
+                 root_dimensions = 64):
+        self._root_dimensions = root_dimensions
+        # Set up the template for domain files
+        self.storage_filename = None
+        super(TipsyStaticOutput, self).__init__(filename, data_style)
+
+    def __repr__(self):
+        return os.path.basename(self.parameter_filename).split(".")[0]
+
+    def _set_units(self):
+        self.units = {}
+        self.time_units = {}
+        self.conversion_factors = {}
+        DW = self.domain_right_edge - self.domain_left_edge
+        self.units["unitary"] = 1.0 / DW.max()
+
+    def _parse_parameter_file(self):
+
+        # The entries in this header are capitalized and named to match Table 4
+        # in the GADGET-2 user guide.
+
+        f = open(self.parameter_filename, "rb")
+        hh = ">" + "".join(["%s" % (b) for a,b in self._header_spec])
+        hvals = dict([(a, c) for (a, b), c in zip(self._header_spec,
+                     struct.unpack(hh, f.read(struct.calcsize(hh))))])
+        self._header_offset = f.tell()
+
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        # Set standard values
+
+        # This may not be correct.
+        self.current_time = hvals["time"]
+
+        self.domain_left_edge = np.zeros(3, "float64") - 0.5
+        self.domain_right_edge = np.ones(3, "float64") + 0.5
+        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+
+        self.cosmological_simulation = 1
+
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.parameters = hvals
+
+        self.domain_template = self.parameter_filename
+        self.domain_count = 1
 
         f.close()
 

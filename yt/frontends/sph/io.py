@@ -235,6 +235,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         count = sum(domain.total_particles.values())
         dt = [("px", "float32"), ("py", "float32"), ("pz", "float32")]
         with open(domain.domain_filename, "rb") as f:
+            f.seek(self._header_offset)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = dt, count = count)
         pos = np.empty((count, 3), dtype="float64")
@@ -286,3 +287,151 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                         continue
                 field_list.append((ptype, field))
         return field_list
+
+class IOHandlerTipsyBinary(BaseIOHandler):
+    _data_style = "tipsy"
+
+    _pdtypes = None # dtypes, to be filled in later
+
+    _ptypes = ( "Gas",
+                "DarkMatter",
+                "Stars" )
+
+    _fields = ( ("Gas", "Mass"),
+                ("Gas", "Coordinates"),
+                ("Gas", "Velocities"),
+                ("Gas", "Density"),
+                ("Gas", "Temperature"),
+                ("Gas", "Epsilon"),
+                ("Gas", "Metals"),
+                ("Gas", "Phi"),
+                ("DarkMatter", "Mass"),
+                ("DarkMatter", "Coordinates"),
+                ("DarkMatter", "Velocities"),
+                ("DarkMatter", "Epsilon"),
+                ("DarkMatter", "Phi"),
+                ("Stars", "Mass"),
+                ("Stars", "Coordinates"),
+                ("Stars", "Velocities"),
+                ("Stars", "Metals"),
+                ("Stars", "FormationTime"),
+                ("Stars", "Epsilon"),
+                ("Stars", "Phi")
+              )
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        raise NotImplementedError
+
+    def _fill_fields(self, fields, vals, mask):
+        if mask is None:
+            size = 0
+        else:
+            size = mask.sum()
+        rv = {}
+        for field in fields:
+            mylog.debug("Allocating %s values for %s", size, field)
+            if field in _vector_fields:
+                rv[field] = np.empty((size, 3), dtype="float64")
+                if size == 0: continue
+                rv[field][:,0] = vals[field]['x'][mask]
+                rv[field][:,1] = vals[field]['y'][mask]
+                rv[field][:,2] = vals[field]['z'][mask]
+            else:
+                rv[field] = np.empty(size, dtype="float64")
+                if size == 0: continue
+                rv[field][:] = vals[field]
+        return rv
+
+    def _read_particle_selection(self, chunks, selector, fields):
+        rv = {}
+        # We first need a set of masks for each particle type
+        ptf = defaultdict(list)
+        ptypes = set()
+        for ftype, fname in fields:
+            ptf[ftype].append(fname)
+            ptypes.add(ftype)
+        ptypes = list(ptypes)
+        ptypes.sort(key = lambda a: self._ptypes.index(a))
+        for chunk in chunks:
+            for subset in chunk.objs:
+                poff = subset.domain.field_offsets
+                tp = subset.domain.total_particles
+                f = open(subset.domain.domain_filename, "rb")
+                for ptype in ptypes:
+                    f.seek(poff[ptype], os.SEEK_SET)
+                    p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
+                    mask = selector.select_points(
+                        p['Coordinates']['x'].astype("float64"),
+                        p['Coordinates']['y'].astype("float64"),
+                        p['Coordinates']['z'].astype("float64"))
+                    tf = self._fill_fields(ptf[ptype], p, mask)
+                    for field in tf:
+                        rv[ptype, field] = tf[field]
+                    del p, tf
+                f.close()
+        return rv
+
+    def _initialize_octree(self, domain, octree):
+        with open(domain.domain_filename, "rb") as f:
+            f.seek(domain.pf._header_offset)
+            for ptype in self._ptypes:
+                # We'll just add the individual types separately
+                count = domain.total_particles[ptype]
+                if count == 0: continue
+                pp = np.fromfile(f, dtype = self._pdtypes[ptype],
+                                 count = count)
+                pos = np.empty((count, 3), dtype="float64")
+                mylog.info("Adding %0.3e %s particles", count, ptype)
+                pos[:,0] = pp['Coordinates']['x']
+                pos[:,1] = pp['Coordinates']['y']
+                pos[:,2] = pp['Coordinates']['z']
+                mylog.debug("Spanning: %0.3e .. %0.3e in x",
+                            pos[:,0].min(), pos[:,0].max())
+                mylog.debug("Spanning: %0.3e .. %0.3e in y",
+                            pos[:,1].min(), pos[:,1].max())
+                mylog.debug("Spanning: %0.3e .. %0.3e in z",
+                            pos[:,2].min(), pos[:,2].max())
+                del pp
+                octree.add(pos, domain.domain_id)
+
+    def _count_particles(self, domain):
+        npart = {
+            "Gas": domain.pf.parameters['nsph'],
+            "Stars": domain.pf.parameters['nstar'],
+            "DarkMatter": domain.pf.parameters['ndark']
+        }
+        return npart
+
+    def _create_dtypes(self, domain):
+        # We can just look at the particle counts.
+        self._header_offset = domain.pf._header_offset
+        self._pdtypes = {}
+        pds = {}
+        field_list = []
+        tp = domain.total_particles
+        for ptype, field in self._fields:
+            pfields = []
+            if tp[ptype] == 0: continue
+            if field in _vector_fields:
+                dt = (field, [('x', '>f'), ('y', '>f'), ('z', '>f')])
+            else:
+                dt = (field, '>f')
+            pds.setdefault(ptype, []).append(dt)
+            field_list.append((ptype, field))
+        for ptype in pds:
+            self._pdtypes[ptype] = np.dtype(pds[ptype])
+        self._field_list = field_list
+        return self._field_list
+
+    def _identify_fields(self, domain):
+        return self._field_list
+
+    def _calculate_particle_offsets(self, domain):
+        field_offsets = {}
+        pos = domain.pf._header_offset
+        for ptype in self._ptypes:
+            field_offsets[ptype] = pos
+            if domain.total_particles[ptype] == 0: continue
+            size = self._pdtypes[ptype].itemsize
+            pos += domain.total_particles[ptype] * size
+        return field_offsets
