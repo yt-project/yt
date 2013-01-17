@@ -397,10 +397,12 @@ cdef class ImageSampler:
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    for i in range(Nch): idata.rgba[i] = im.image[i + offset]
+                    # Note that for Nch != 3 we need a different offset into
+                    # the image object than for the vectors!
+                    for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
                                 (<void *> idata))
-                    for i in range(Nch): im.image[i + offset] = idata.rgba[i]
+                    for i in range(Nch): im.image[i + Nch*j] = idata.rgba[i]
                 free(v_dir)
                 free(idata)
                 free(v_pos)

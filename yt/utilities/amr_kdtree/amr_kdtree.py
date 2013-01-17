@@ -490,7 +490,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                                       None, None, rids[i])
             if gids[i] != -1:
                 n.grid = gids[i]
-        print kd_sum_volume(self.tree.trunk)
+        mylog.info('AMRKDTree rebuilt, Final Volume: %e' % kd_sum_volume(self.tree.trunk))
         return self.tree.trunk
 
 if __name__ == "__main__":

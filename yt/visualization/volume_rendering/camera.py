@@ -325,7 +325,6 @@ class Camera(ParallelAnalysisInterface):
                     light_rgba=self.light_rgba, **kwargs)
         else:
             sampler = self._sampler_object(*args, **kwargs)
-        print sampler, kwargs
         return sampler
 
     def finalize_image(self, image):
@@ -798,7 +797,6 @@ class PerspectiveCamera(Camera):
         self.finalize_image(image)
         return image
 
-
     def finalize_image(self, image):
         image.shape = self.resolution[0], self.resolution[0], 4
 
@@ -846,7 +844,6 @@ class HEALpixCamera(Camera):
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
-        print self.log_fields
         if volume is None:
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields)
@@ -854,7 +851,7 @@ class HEALpixCamera(Camera):
         self.volume = volume
 
     def new_image(self):
-        image = np.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
+        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
@@ -870,7 +867,6 @@ class HEALpixCamera(Camera):
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
         return args
- 
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
