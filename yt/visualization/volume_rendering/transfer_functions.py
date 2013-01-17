@@ -522,7 +522,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             s = '%0.2f' % ( y )
             return s
         ax.yaxis.set_major_formatter(FuncFormatter(y_format))
-        ax.set_ylim(0., max_alpha)
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 

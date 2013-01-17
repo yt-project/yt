@@ -219,7 +219,7 @@ class Camera(ParallelAnalysisInterface):
         self.tree_type = tree_type
         if volume is None:
             if self.use_kd:
-                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost, tree_type=tree_type,
+                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost,
                                    log_fields = log_fields, le=le, re=re)
             else:
                 volume = HomogenizedVolume(fields, pf = self.pf,
@@ -400,9 +400,12 @@ class Camera(ParallelAnalysisInterface):
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
-    def save_image(self, fn, clip_ratio, image):
+    def save_image(self, fn, clip_ratio, image, transparent=False):
         if self.comm.rank is 0 and fn is not None:
-            image.write_png(fn, clip_ratio=clip_ratio)
+            if transparent:
+                image.write_png(fn, clip_ratio=clip_ratio)
+            else:
+                image[:,:,:3].write_png(fn, clip_ratio=clip_ratio)
 
     def initialize_source(self):
         return self.volume.initialize_source()
@@ -765,7 +768,7 @@ class PerspectiveCamera(Camera):
         vectors = (self.front_center - positions)
 
         uv = np.ones(3, dtype='float64')
-        image.shape = (self.resolution[0]**2,1,3)
+        image.shape = (self.resolution[0]**2,1,4)
         vectors.shape = (self.resolution[0]**2,1,3)
         positions.shape = (self.resolution[0]**2,1,3)
         args = (positions, vectors, self.back_center, 
@@ -785,7 +788,7 @@ class PerspectiveCamera(Camera):
                         raise RuntimeError
 
         view_pos = self.front_center
-        for brick in self.volume.traverse(view_pos, self.front_center, image):
+        for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
@@ -797,7 +800,7 @@ class PerspectiveCamera(Camera):
 
 
     def finalize_image(self, image):
-        image.shape = self.resolution[0], self.resolution[0], 3
+        image.shape = self.resolution[0], self.resolution[0], 4
 
 def corners(left_edge, right_edge):
     return np.array([
@@ -838,9 +841,12 @@ class HEALpixCamera(Camera):
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
+        if self.log_fields is None:
+            self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
+        print self.log_fields
         if volume is None:
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields)
@@ -848,7 +854,7 @@ class HEALpixCamera(Camera):
         self.volume = volume
 
     def new_image(self):
-        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype='float64', order='C')
+        image = np.zeros((12 * self.nside ** 2, 1, 3), dtype='float64', order='C')
         return image
 
     def get_sampler_args(self, image):
@@ -876,7 +882,7 @@ class HEALpixCamera(Camera):
                         raise RuntimeError
         
         view_pos = self.center
-        for brick in self.volume.traverse(view_pos, None, image):
+        for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
@@ -886,6 +892,11 @@ class HEALpixCamera(Camera):
 
         self.finalize_image(image)
 
+        return image
+
+    def finalize_image(self, image):
+        view_pos = self.center
+        image = self.volume.reduce_tree_images(image, view_pos)
         return image
 
     def get_information(self):

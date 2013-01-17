@@ -421,7 +421,7 @@ cdef void projection_sampler(
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
     cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
-    for i in range(imin(3, vc.n_fields)):
+    for i in range(imin(4, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
 cdef struct VolumeRenderAccumulator:

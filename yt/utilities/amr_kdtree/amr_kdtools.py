@@ -41,6 +41,7 @@ class Node(object):
         self.grid = grid_id
         self.parent = parent
         self.id = node_id
+        self.data = None
 
 class Split(object):
     def __init__(self, dim, pos):
@@ -350,6 +351,11 @@ def receive_and_reduce(comm, incoming_rank, image, add_to_front):
     else:
         front = image
         back = arr2
+
+    if image.shape[2] == 3:
+        # Assume Projection Camera, Add
+        np.add(image, front, image)
+        return image
 
     ta = 1.0 - front[:,:,3]
     np.maximum(ta, 0.0, ta)
