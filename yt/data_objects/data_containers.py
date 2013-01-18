@@ -1781,10 +1781,16 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     def _get_tree(self, nvals):
-        xd = self.pf.domain_dimensions[x_dict[self.axis]]
-        yd = self.pf.domain_dimensions[y_dict[self.axis]]
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        xd = self.pf.domain_dimensions[xax]
+        yd = self.pf.domain_dimensions[yax]
+        bounds = (self.pf.domain_left_edge[xax],
+                  self.pf.domain_right_edge[yax],
+                  self.pf.domain_left_edge[xax],
+                  self.pf.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        style = self.proj_style)
+                        bounds, style = self.proj_style)
 
     def _get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -2589,10 +2595,14 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                self.pf.field_info[field].particle_type and \
                self.pf.h.io._particle_reader and \
                not isinstance(self, AMRBooleanRegionBase):
-                self.particles.get_data(field)
-                if field not in self.field_data:
-                    if self._generate_field(field): continue
-                continue
+                try:
+                    self.particles.get_data(field)
+                    if field not in self.field_data:
+                        self._generate_field(field)
+                    continue
+                except KeyError:
+                    # This happens for fields like ParticleRadiuskpc
+                    pass
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
                     continue # True means we already assigned it
@@ -3664,7 +3674,13 @@ class AMREllipsoidBase(AMR3DData):
         Inside = np.zeros(grid["x"].shape, dtype = 'float64')
         dim = grid["x"].shape
         # need this to take into account non-cube root grid tiles
-        dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
+        if (len(dim) == 1):
+            dot_evec = np.zeros([3, dim[0]])
+        elif (len(dim) == 2):
+            dot_evec = np.zeros([3, dim[0], dim[1]])
+        elif (len(dim) == 3):
+            dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
+
         for i, ax in enumerate('xyz'):
             # distance to center
             ar  = grid[ax]-self.center[i]
@@ -3812,7 +3828,9 @@ class AMRCoveringGridBase(AMR3DData):
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [grid[field].astype("float64") for field in fields]
+        g_fields = [gf.astype("float64") 
+                    if gf.dtype != "float64"
+                    else gf for gf in (grid[field] for field in fields)]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
@@ -3983,8 +4001,9 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        g_fields = [grid[field].astype("float64") for field in fields]
+        g_fields = [gf.astype("float64") 
+                    if gf.dtype != "float64"
+                    else gf for gf in (grid[field] for field in fields)]
         c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,

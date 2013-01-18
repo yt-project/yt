@@ -117,27 +117,32 @@ class ObjectFindingMixin(object) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
         """
-        num_points = len(x)
+        x = ensure_numpy_array(x)
+        y = ensure_numpy_array(y)
+        z = ensure_numpy_array(z)
+        if not len(x) == len(y) == len(z):
+            raise AssertionError("Arrays of indices must be of the same size")
+
         grid_tree = self.get_grid_tree()
-        pts = MatchPointsToGrids(grid_tree,num_points,x,y,z)
-        ind = pts.find_points_in_tree() 
+        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+        ind = pts.find_points_in_tree()
         return self.grids[ind], ind
-    
+
     def find_field_value_at_point(self, fields, coord):
         r"""Find the value of fields at a point.
-        
+
         Returns the values [field1, field2,...] of the fields at the given
         (x,y,z) point. Returns a list of field values in the same order
         as the input *fields*.
-        
+
         Parameters
         ----------
         fields : string or list of strings
             The field(s) that will be returned.
-        
+
         coord : list or array of floats
             The location for which field values will be returned.
-        
+
         Examples
         --------
         >>> pf.h.find_field_value_at_point(['Density', 'Temperature'],

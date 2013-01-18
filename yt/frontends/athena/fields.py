@@ -72,13 +72,13 @@ add_athena_field("velocity_z", function=NullFunc, take_log=False,
           units=r"")
 
 add_athena_field("cell_centered_B_x", function=NullFunc, take_log=False,
-          units=r"", display_name=r"$\rm{cell\ centered\ B_x}$")
+          units=r"", display_name=r"$\rm{cell\/centered\/B_x}$")
 
 add_athena_field("cell_centered_B_y", function=NullFunc, take_log=False,
-          units=r"", display_name=r"$\rm{cell\ centered\ B_y}$")
+          units=r"", display_name=r"$\rm{cell\/centered\/B_y}$")
 
 add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
-          units=r"", display_name=r"$\rm{cell\ centered\ B_z}$")
+          units=r"", display_name=r"$\rm{cell\/centered\/B_z}$")
 
 for f,v in log_translation_dict.items():
     add_field(f, TranslationFunc(v), take_log=True)

@@ -294,7 +294,7 @@ def _convertRadiationAccel(data):
 for dim in range(1,4):
     f = KnownEnzoFields["RadAccel%d" % dim]
     f._convert_function = _convertRadiationAccel
-    f._units=r"\rm{cm}\ \rm{s}^{-2}"
+    f._units=r"\rm{cm}\/\rm{s}^{-2}"
     f.take_log=False
 def _RadiationAccelerationMagnitude(field, data):
     return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
@@ -302,7 +302,7 @@ def _RadiationAccelerationMagnitude(field, data):
 add_field("RadiationAcceleration", 
           function=_RadiationAccelerationMagnitude,
           validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
-          display_name="Radiation\ Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
+          display_name="Radiation\/Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
 
 # Now we override
 
@@ -318,18 +318,18 @@ add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
           validators=[ValidateDataField("Dark_Matter_Density"),
                       ValidateSpatial(0)],
-          display_name = "Dark\ Matter\ Density",
+          display_name = "Dark\/Matter\/Density",
           not_in_all = True)
 
 def _Dark_Matter_Mass(field, data):
     return data['Dark_Matter_Density'] * data["CellVolume"]
 add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
           validators=ValidateDataField("Dark_Matter_Density"),
-          display_name="Dark\ Matter\ Mass", units=r"\rm{g}")
+          display_name="Dark\/Matter\/Mass", units=r"\rm{g}")
 add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           convert_function=_convertCellMassMsun,
           validators=ValidateDataField("Dark_Matter_Density"),
-          display_name="Dark\ Matter\ Mass", units=r"M_{\odot}")
+          display_name="Dark\/Matter\/Mass", units=r"M_{\odot}")
 
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
 KnownEnzoFields["Temperature"].units = r"K"
