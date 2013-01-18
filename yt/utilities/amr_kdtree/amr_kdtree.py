@@ -33,6 +33,8 @@ from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
+from yt.utilities.math_utils import periodic_position
+
 import pdb
 
 def my_break():
@@ -129,7 +131,21 @@ class Tree(object):
         mylog.debug('AMRKDTree volume = %e' % vol)
         kd_node_check(self.trunk)
 
+    def sum_cells(self):
+        cells = 0
+        for node in depth_traverse(self):
+            if node.grid is None:
+                continue
+            grid = self.pf.h.grids[node.grid - self._id_offset]
+            dds = grid.dds
+            gle = grid.LeftEdge
+            gre = grid.RightEdge
+            li = np.rint((node.left_edge-gle)/dds).astype('int32')
+            ri = np.rint((node.right_edge-gle)/dds).astype('int32')
+            dims = (ri - li).astype('int32')
+            cells += np.prod(dims)
 
+        return cells
 
 class AMRKDTree(ParallelAnalysisInterface):
     def __init__(self, pf,  l_max=None, le=None, re=None,
@@ -141,18 +157,21 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         self.pf = pf
         self.l_max = l_max
+        if max_level is None: max_level = l_max
         if fields is None: fields = ["Density"]
         self.fields = ensure_list(fields)
         self.current_vcds = []
         self.current_saved_grids = []
         self.bricks = []
         self.brick_dimensions = []
+        self.sdx = pf.h.get_smallest_dx()
 
         self._initialized = False
         self.no_ghost = no_ghost
         if log_fields is not None:
             log_fields = ensure_list(log_fields)
         else:
+            pf.h
             log_fields = [self.pf.field_info[field].take_log
                          for field in self.fields]
 
@@ -324,6 +343,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         in_grid = np.all((new_cis >=0)*
                          (new_cis < grid.ActiveDimensions),axis=1)
         new_positions = position + steps*offs
+        new_positions = [periodic_position(p, self.pf) for p in new_positions]
         grids[in_grid] = grid
                 
         get_them = np.argwhere(in_grid != True).ravel()
@@ -331,7 +351,8 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         if (in_grid != True).sum()>0:
             grids[in_grid != True] = \
-                [self.locate_brick(new_positions[i]).grid for i in get_them]
+                [self.pf.h.grids[self.locate_brick(new_positions[i]).grid] 
+                 for i in get_them]
             cis[in_grid != True] = \
                 [(new_positions[i]-grids[i].LeftEdge)/
                  grids[i].dds for i in get_them]
@@ -367,7 +388,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         
         """
         position = np.array(position)
-        grid = self.locate_brick(position).grid
+        grid = self.pf.h.grids[self.locate_brick(position).grid]
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)
 
@@ -490,8 +511,14 @@ class AMRKDTree(ParallelAnalysisInterface):
                                       None, None, rids[i])
             if gids[i] != -1:
                 n.grid = gids[i]
-        print kd_sum_volume(self.tree.trunk)
+        mylog.info('AMRKDTree rebuilt, Final Volume: %e' % kd_sum_volume(self.tree.trunk))
         return self.tree.trunk
+
+    def count_volume(self):
+        return kd_sum_volume(self.tree.trunk)
+    
+    def count_cells(self):
+        return self.tree.sum_cells() 
 
 if __name__ == "__main__":
     from yt.mods import *

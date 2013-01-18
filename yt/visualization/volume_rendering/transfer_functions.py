@@ -367,11 +367,11 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
-        for i,tf in enumerate(self.funcs[:4]):
-            self.add_field_table(tf, 0 )
+        for i,tf in enumerate(self.funcs[:3]):
+            self.add_field_table(tf, 0, weight_table_id = 3)
             self.link_channels(i, i)
-        #self.add_field_table(self.funcs[3], 0, )
-        #self.link_channels(3,3)
+        self.add_field_table(self.funcs[3], 0)
+        self.link_channels(3,3)
         # We don't have a fifth table, so the value will *always* be zero.
         #self.link_channels(4, [3,4,5])
 
