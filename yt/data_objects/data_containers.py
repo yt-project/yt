@@ -3674,7 +3674,13 @@ class AMREllipsoidBase(AMR3DData):
         Inside = np.zeros(grid["x"].shape, dtype = 'float64')
         dim = grid["x"].shape
         # need this to take into account non-cube root grid tiles
-        dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
+        if (len(dim) == 1):
+            dot_evec = np.zeros([3, dim[0]])
+        elif (len(dim) == 2):
+            dot_evec = np.zeros([3, dim[0], dim[1]])
+        elif (len(dim) == 3):
+            dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
+
         for i, ax in enumerate('xyz'):
             # distance to center
             ar  = grid[ax]-self.center[i]
