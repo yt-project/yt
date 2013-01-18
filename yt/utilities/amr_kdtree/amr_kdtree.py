@@ -33,6 +33,8 @@ from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
+from yt.utilities.math_utils import periodic_position
+
 import pdb
 
 def my_break():
@@ -162,6 +164,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.current_saved_grids = []
         self.bricks = []
         self.brick_dimensions = []
+        self.sdx = pf.h.get_smallest_dx()
 
         self._initialized = False
         self.no_ghost = no_ghost
@@ -340,6 +343,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         in_grid = np.all((new_cis >=0)*
                          (new_cis < grid.ActiveDimensions),axis=1)
         new_positions = position + steps*offs
+        new_positions = [periodic_position(p, self.pf) for p in new_positions]
         grids[in_grid] = grid
                 
         get_them = np.argwhere(in_grid != True).ravel()
@@ -347,7 +351,8 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         if (in_grid != True).sum()>0:
             grids[in_grid != True] = \
-                [self.locate_brick(new_positions[i]).grid for i in get_them]
+                [self.pf.h.grids[self.locate_brick(new_positions[i]).grid] 
+                 for i in get_them]
             cis[in_grid != True] = \
                 [(new_positions[i]-grids[i].LeftEdge)/
                  grids[i].dds for i in get_them]
@@ -383,7 +388,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         
         """
         position = np.array(position)
-        grid = self.locate_brick(position).grid
+        grid = self.pf.h.grids[self.locate_brick(position).grid]
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)
 
