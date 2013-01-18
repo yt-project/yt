@@ -129,7 +129,21 @@ class Tree(object):
         mylog.debug('AMRKDTree volume = %e' % vol)
         kd_node_check(self.trunk)
 
+    def sum_cells(self):
+        cells = 0
+        for node in depth_traverse(self):
+            if node.grid is None:
+                continue
+            grid = self.pf.h.grids[node.grid - self._id_offset]
+            dds = grid.dds
+            gle = grid.LeftEdge
+            gre = grid.RightEdge
+            li = np.rint((node.left_edge-gle)/dds).astype('int32')
+            ri = np.rint((node.right_edge-gle)/dds).astype('int32')
+            dims = (ri - li).astype('int32')
+            cells += np.prod(dims)
 
+        return cells
 
 class AMRKDTree(ParallelAnalysisInterface):
     def __init__(self, pf,  l_max=None, le=None, re=None,
@@ -141,6 +155,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         self.pf = pf
         self.l_max = l_max
+        if max_level is None: max_level = l_max
         if fields is None: fields = ["Density"]
         self.fields = ensure_list(fields)
         self.current_vcds = []
@@ -153,6 +168,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if log_fields is not None:
             log_fields = ensure_list(log_fields)
         else:
+            pf.h
             log_fields = [self.pf.field_info[field].take_log
                          for field in self.fields]
 
@@ -492,6 +508,12 @@ class AMRKDTree(ParallelAnalysisInterface):
                 n.grid = gids[i]
         mylog.info('AMRKDTree rebuilt, Final Volume: %e' % kd_sum_volume(self.tree.trunk))
         return self.tree.trunk
+
+    def count_volume(self):
+        return kd_sum_volume(self.tree.trunk)
+    
+    def count_cells(self):
+        return self.tree.sum_cells() 
 
 if __name__ == "__main__":
     from yt.mods import *

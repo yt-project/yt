@@ -187,6 +187,15 @@ def kd_sum_volume(node):
     else:
         return kd_sum_volume(node.left) + kd_sum_volume(node.right)
 
+def kd_sum_cells(node):
+    if (node.left is None) and (node.right is None):
+        if node.grid is None:
+            return 0.0
+        return np.prod(node.right_edge - node.left_edge)
+    else:
+        return kd_sum_volume(node.left) + kd_sum_volume(node.right)
+
+
 def kd_node_check(node):
     assert (node.left is None) == (node.right is None)
     if (node.left is None) and (node.right is None):
