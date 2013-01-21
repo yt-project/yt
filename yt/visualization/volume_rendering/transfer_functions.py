@@ -551,35 +551,41 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         max_alpha = alpha.max()
         norm = max_alpha
         i_data = np.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
-        i_data[:,:,0] = np.outer(self.funcs[0].y/norm, np.ones(self.alpha.x.size))
-        i_data[:,:,1] = np.outer(self.funcs[1].y/norm, np.ones(self.alpha.x.size))
-        i_data[:,:,2] = np.outer(self.funcs[2].y/norm, np.ones(self.alpha.x.size))
+        i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
+        i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
+        i_data[:,:,2] = np.outer(self.funcs[2].y, np.ones(self.alpha.x.size))
         ax.imshow(i_data, origin='lower', aspect='auto')
+        ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
 
-        #ax.fill_between(np.arange(self.alpha.y.size), alpha, y2=max_alpha, color='white')
-        #ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
-        ax.set_ylim(0, self.alpha.x.size)
+        # Set TF limits based on what is visible
+        visible = np.argwhere(self.alpha.y > 1.0e-3*self.alpha.y.max())
+
+        # Display colobar values
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
             xticks = xticks[::len(xticks)/5]
+
+        # Add colorbar limits to the ticks (May not give ideal results)
+        xticks = np.append(visible[0], xticks)
+        xticks = np.append(visible[-1], xticks)
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
         ax.yaxis.set_major_formatter(FuncFormatter(x_format))
+
         yticks = np.linspace(0,1,2,endpoint=True) * max_alpha
         ax.xaxis.set_ticks(yticks)
-        #balls
         def y_format(y, pos):
             s = '%0.2f' % ( y )
             return s
         ax.xaxis.set_major_formatter(FuncFormatter(y_format))
         ax.set_xlim(0., max_alpha)
-        #ax.set_xlabel("Opacity")
-        ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
-        ax.tick_params(axis='y', colors='white')
+        ax.set_ylim(visible[0], visible[-1])
+        ax.tick_params(axis='y', colors='white', size=10)
         ax.set_ylabel(label, color='white')
+        
 
         
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
@@ -642,9 +648,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             scale_mult = 1.0
         else:
             scale_mult = scale_func(tomap,0.0,1.0)
-        self.red.y[rel0:rel1]  = scale*cc[:,0]*scale_mult
-        self.green.y[rel0:rel1]= scale*cc[:,1]*scale_mult
-        self.blue.y[rel0:rel1] = scale*cc[:,2]*scale_mult
+        self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
+        self.green.y[rel0:rel1]= cc[:,1]*scale_mult
+        self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
         self.alpha.y[rel0:rel1]= scale*cc[:,3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
