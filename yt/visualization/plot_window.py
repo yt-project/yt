@@ -1163,7 +1163,8 @@ class ProjectionPlot(PWViewerMPL):
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
         if axes_unit is None  and units != ('1', '1'):
             axes_unit = units
-        proj = pf.h.proj(fields, axis, weight_field=weight_field,max_level=max_level,center=center)
+        #proj = pf.h.proj(fields, axis, weight_field=weight_field,max_level=max_level,center=center)
+        proj = pf.h.proj(fields, axis, weight_field=weight_field,center=center)
         PWViewerMPL.__init__(self,proj,bounds,origin=origin)
         self.set_axes_unit(axes_unit)
 

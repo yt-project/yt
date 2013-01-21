@@ -58,17 +58,17 @@ for f in known_artio_fields:
         add_artio_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)])
 ######################################
-def dx(field, data):
-    return data.fwidth[:,0]
-add_field("dx", function=dx)
-
-def dy(field, data):
-    return data.fwidth[:,1]
-add_field("dy", function=dy)
-
-def dz(field, data):
-    return data.fwidth[:,2]
-add_field("dz", function=dz)
+#def dx(field, data):
+#    return data.fwidth[:,0]
+#add_field("dx", function=dx)
+#
+#def dy(field, data):
+#    return data.fwidth[:,1]
+#add_field("dy", function=dy)
+#
+#def dz(field, data):
+#    return data.fwidth[:,2]
+#add_field("dz", function=dz)
 
 def _convertDensity(data):
     return data.convert("Density")

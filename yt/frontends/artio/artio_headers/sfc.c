@@ -240,11 +240,29 @@ void slab_coords( int index, int coords[nDim] ) {
 	if( slab_index( coords ) != index ){ fprintf(stderr, "bad slab index\n"); exit(-1);}
 }
 
+int sfc_index0( int ix,int iy, int iz, int num_root_grid_refinements ) {
+    int coords[nDim] = {ix,iy,iz};
+        num_grid = pow(2, num_root_grid_refinements );
+        nBitsPerDim =    num_root_grid_refinements;
+        nBits    =       (nDim * nBitsPerDim);
+        max_sfc_index  =  (1<<nBits);
+        
+	#if SFC == SLAB
+		return slab_index( coords );
+	#elif SFC == MORTON
+		#error "Morton order not supported yet!"
+	#else
+		return hilbert_index( coords );
+	#endif
+}
+
+//int sfc_index( int coords[nDim], int num_root_grid_refinements ) {
 int sfc_index( int coords[nDim], int num_root_grid_refinements ) {
         num_grid = pow(2, num_root_grid_refinements );
         nBitsPerDim =    num_root_grid_refinements;
         nBits    =       (nDim * nBitsPerDim);
         max_sfc_index  =  (1<<nBits);
+        
 	#if SFC == SLAB
 		return slab_index( coords );
 	#elif SFC == MORTON

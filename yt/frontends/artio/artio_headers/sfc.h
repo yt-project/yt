@@ -21,6 +21,8 @@
 #define rollLeft(x,y,mask) ((x<<y) | (x>>(nDim-y))) & mask
 #define rollRight(x,y,mask) ((x>>y) | (x<<(nDim-y))) & mask
 
+//int sfc_index( int coords[nDim], int root_level );
+int sfc_index0( int ix, int iy, int iz, int root_level );
 int sfc_index( int coords[nDim], int root_level );
 void sfc_coords( int index, int coords[nDim], int root_level );
 

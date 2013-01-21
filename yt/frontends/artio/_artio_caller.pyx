@@ -9,14 +9,16 @@ from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 import  data_structures  
 
+ROOT_LEVEL = 1 #snlroot this has to be 1 currently 
+
 cdef struct artio_context_struct: 
     int comm
 ctypedef artio_context_struct * artio_context
 cdef artio_context artio_context_global
 
-
 cdef extern from "sfc.h":
-    ctypedef void sfc_coords( int index, int coords[3], int )
+    int sfc_index( int coords[3], int num_root_grid_refinements ) 
+    int sfc_index0( int ix, int iy, int iz, int num_root_grid_refinements ) 
 
 cdef extern from "artio.h":
     ctypedef struct artio_file_struct "artio_file_struct" :
@@ -54,6 +56,7 @@ cdef extern from "artio.h":
     cdef int ARTIO_READ_LEAFS "ARTIO_READ_LEAFS"
     cdef int ARTIO_READ_REFINED "ARTIO_READ_REFINED"
     cdef int ARTIO_READ_ALL "ARTIO_READ_ALL"
+    cdef int ARTIO_READ_REFINED_AND_ROOT "ARTIO_READ_REFINED_AND_ROOT"
     
 
     # errors
@@ -78,27 +81,35 @@ cdef extern from "artio.h":
                                   float *variables, int32_t *num_oct_levels, int32_t *num_octs_per_level)
     int artio_grid_cache_sfc_range(artio_file handle, int64_t start, int64_t end)
 
-    ctypedef void (* GridCallBackPos)(float * variables, int level, int refined, int64_t sfc_index, double pos[3], void *)
-    int artio_grid_read_sfc_range_pos(artio_file handle,\
-                int64_t sfc1, int64_t sfc2,\
+    ctypedef void (* GridCallBackYTPos)(float * variables, int level, int refined, int64_t isfc, double pos[3], void *)
+    int artio_grid_read_sfc_range_ytpos(artio_file handle,\
+                int64_t sfc_min, int64_t sfc_max,\
                 int min_level_to_read, int max_level_to_read,\
                 int options,\
-                GridCallBackPos callback, void *user_data)
+                GridCallBackYTPos callback, void *pyobject)
 
-    ctypedef void (* GridCallBackBuffer)(float * variables, int level, int refined, int64_t sfc_index, void *)
-    int artio_grid_read_sfc_range_buffer(artio_file handle,\
-                int64_t sfc1, int64_t sfc2,\
+    ctypedef void (* GridCallBackYT)(float * variables, int level, int refined, int64_t isfc, void *)
+    int artio_grid_read_sfc_range_yt(artio_file handle,\
+                int64_t sfc_min, int64_t sfc_max,\
                 int min_level_to_read, int max_level_to_read,\
                 int options,\
-                GridCallBackBuffer callback, void *user_data)
+                GridCallBackYT callback, void *pyobject)
 
-    ctypedef void (* GridCallBack)(float * variables, int level, int refined,int64_t sfc_index)
+    ctypedef void (* GridCallBack)(float * variables, int level, int refined,int64_t isfc)
     int artio_grid_read_sfc_range(artio_file handle,\
-                int64_t sfc1, int64_t sfc2,\
+                int64_t sfc_min, int64_t sfc_max,\
                 int min_level_to_read, int max_level_to_read,\
                 int options,\
                 GridCallBack callback)
     
+                                 
+    ctypedef void (* ParticleCallBack)(int pid, double *primary_variables,\
+                                           double *secondary_variables, int species,\
+                                           int subspecies, int isfc, void *pyobject )
+    int artio_particle_read_sfc_range_yt(artio_file handle,\
+                                          int64_t sfc_min, int64_t sfc_max,\
+                                          int64_t species_min, int64_t species_max,\
+                                          ParticleCallBack callback, void *pyobject)
 ########## wrappers calling c
 cdef extern from "artio.c":
     artio_file artio_fileset_open(char * file_prefix, int type, artio_context context) 
@@ -111,7 +122,7 @@ cdef class read_parameters_artio :
     def __init__(self, char *file_prefix, int artio_type) :
         self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global ) 
         self.read_parameters()
-        artio_fileset_close(self.handle)  #snl why didn't Doug close?
+        artio_fileset_close(self.handle)  
 
     def read_parameters(self) :
         cdef char key[64]
@@ -175,7 +186,7 @@ cdef class artio_fileset :
         d = read_parameters_artio(file_prefix, artio_type)
         self.parameters = {}
         self.parameters = d.parameters
-        print self.parameters
+        print 'print parameters in caller.pyx',self.parameters
         print 'done reading header parameters'
 
 cdef class artio_fileset_grid :
@@ -198,13 +209,18 @@ class artio_grid_routines(object) :
     def __init__(self, param_handle) :
         self.oct_handler=None
         self.source = None
-        self.level_count = None
+        self.art_level_count = None
 
         self.min_level_to_read = 0
         self.max_level_to_read = param_handle.parameters['grid_max_level'][0]
-        self.sfc1 = 0
-        self.sfc2 = param_handle.parameters['grid_file_sfc_index'][1]-1
+        #snl FIX: the sfc values used should come from "subset" and describe the domain for chunking
+        # note the root level method may force chunking to be done on 0-level ytocts 
+        self.sfc_min = 0   
+        self.sfc_max = param_handle.parameters['grid_file_sfc_index'][1]-1
         self.num_grid_variables = param_handle.parameters['num_grid_variables'][0]
+        self.num_root_grid_refinements = int( np.log10( 
+                param_handle.parameters["num_root_cells"][0]+0.5) / 
+                                              (3*np.log10(2)))
         self.param_handle=param_handle
         self.ng=1 
         self.cpu=0
@@ -212,28 +228,27 @@ class artio_grid_routines(object) :
 
         self.grid_variable_labels=param_handle.parameters['grid_variable_labels']
  
-        # dictionary from artio to yt ... should go elsewhere
-        self.label_artio_yt = {}
+        # the dictionary from artio variable names to yt 
+        #snl FIX: this should in fields.py ?
+        self.arttoyt_label_var = {}
         for label in self.grid_variable_labels :
             if label == 'HVAR_GAS_DENSITY' :
-                self.label_artio_yt[label] = 'Density'
+                self.arttoyt_label_var[label] = 'Density'
             else :
-                self.label_artio_yt[label] = label
-        print self.label_artio_yt
+                self.arttoyt_label_var[label] = label
+        print 'arttoyt_label_var (in caller.pyx):', self.arttoyt_label_var
 
-
-        self.grid_variable_labels        
         self.label_index = {}
-        self.matched_fields = []
-        # not sure about file handling
+        self.matched_fieldnames = []
+        #snl FIX not sure about file handling:
         # self.handle = <object> handle #<------seg faults
-        # and you never bother to close all of these handles
+        # and you dont bother to close all of these handles
         
-    def count_octs(self) :
+    def count_refined_octs(self) :
         cdef int min_level_to_read = self.min_level_to_read
         cdef int max_level_to_read = self.max_level_to_read
-        cdef int64_t sfc1 = self.sfc1
-        cdef int64_t sfc2 = self.sfc2
+        cdef int64_t sfc_min = self.sfc_min
+        cdef int64_t sfc_max = self.sfc_max
         cdef num_grid_variables = self.num_grid_variables
         
         cdef float * variables  
@@ -253,11 +268,11 @@ class artio_grid_routines(object) :
         
         cdef int64_t num_total_octs =0
         n_levels = max_level_to_read - min_level_to_read + 1
-        level_count = np.zeros(n_levels, dtype='int64')
+        art_level_count = np.zeros(n_levels, dtype='int64')
 
-        status = artio_grid_cache_sfc_range(handle, sfc1, sfc2)
+        status = artio_grid_cache_sfc_range(handle, sfc_min, sfc_max)
         check_artio_status(status, artio_grid_routines.__name__)
-        for sfc in xrange(sfc1,sfc2):
+        for sfc in xrange(sfc_min,sfc_max):
             status = artio_grid_read_root_nocts(handle, sfc,
                                                 variables, num_oct_levels,
                                                 num_octs_per_level)
@@ -266,95 +281,362 @@ class artio_grid_routines(object) :
             count_level_octs = {}          
             count_level_octs = [ num_octs_per_level[i] for i in xrange(noct_levels) ]
             for level in xrange(noct_levels) : 
-                level_count[level] += count_level_octs[level] 
+                art_level_count[level+1] += count_level_octs[level]*8 
             num_sfc_octs = sum(count_level_octs)
             num_total_octs += num_sfc_octs
             status = artio_grid_read_root_cell_end(handle)
             check_artio_status(status, artio_grid_routines.__name__)
-            
-            #    check_artio_status(-1, count_octs.__name__)
-            # dont close file until the end of the object... add __del__: artio_fileset_close_grid(handle)
-        self.level_count = level_count
+        #add root-level octs to the count
+        if ROOT_LEVEL == 1 :    
+            art_level_count[0] = (self.sfc_max+1)
+            num_total_octs += (self.sfc_max+1)/8 
+        self.art_level_count = art_level_count 
         return num_total_octs
 
-    def grid_pos_fill(self, oct_handler) :
+    def grid_pos_fill(self, oct_handler, domain_dimensions1D) :
+        ''' adds all refined octs and a new array of ghost octs for  
+        the "fully refined octs" at level=-1 in ART or 0 in yt convention 
+        so that root level can consist of children
+        '''
+        print 'start filling oct positions'
         self.oct_handler = oct_handler
+        # fill the root grid yt-only octs 
+        if ROOT_LEVEL == 1 :    
+            pos = np.empty((1,3), dtype='float64')
+            self.domain_dimensions = domain_dimensions1D
+            for iz in  range(self.domain_dimensions/2) :
+                for iy in  range(self.domain_dimensions/2) :
+                    for ix in range(self.domain_dimensions/2) :
+                        pos[0,0]=ix*2+1
+                        pos[0,1]=iy*2+1
+                        pos[0,2]=iz*2+1
+                        level=0
+                        self.oct_handler.add(self.cpu+1, level, 
+                                             self.ng, pos, self.domain_id)
+            ###################################
+        # Now do real ART octs
         cdef artio_file handle
-        if self.oct_handler == None :
-            print 'oct_handler is not assigned!'
-            sys.exit(1)
         handle = artio_fileset_open( self.param_handle.file_prefix, 
                                      ARTIO_OPEN_GRID, artio_context_global ) 
-        status = artio_grid_read_sfc_range_pos(handle,\
-                    self.sfc1, self.sfc2,\
+        status = artio_grid_read_sfc_range_ytpos(handle,\
+                    self.sfc_min, self.sfc_max,\
                     self.min_level_to_read, self.max_level_to_read,\
                     ARTIO_READ_REFINED,\
                     wrap_cell_pos_callback, <void*>self) 
         check_artio_status(status, artio_grid_routines.__name__)
+        artio_fileset_close(handle) 
         print 'done filling oct positions'
-    def cell_pos_callback(self, level, refined, sfc_index, pos):
-        self.oct_handler.add(self.cpu + 1, level - self.min_level_to_read, self.ng, pos, self.domain_id)
-
     def grid_var_fill(self, source, fields):
+        print 'start filling grid vars the root grid fill takes too long...'
         self.source = source
         i=-1
         for artlabel in self.grid_variable_labels :
-            label = self.label_artio_yt[artlabel]
+            label = self.arttoyt_label_var[artlabel]
             i=i+1
             for field in fields : 
                 if field == label :
-                    print 'match, in fields?', field,label, fields
-                    print '!!!!!!!!!!!!!!!'
+                    print 'match in fields?',artlabel, field,label, fields
                     self.label_index[field]=i
-                    self.matched_fields.append(field)
-        print 'matched fields:',self.matched_fields
+                    self.matched_fieldnames.append(field)
+        print 'matched fields:',self.matched_fieldnames
         print 'art index of matched fields',self.label_index
+        print 'quitting in caller'
+#        sys.exit(1)
         self.count=0
+        #fill grid positions with values
         cdef artio_file handle
-        if len(self.label_index) > 0 :
+        
+        if ROOT_LEVEL == 1 :    
+            coords = np.empty(3, dtype='int64')
+            child = np.empty(3, dtype='int64')
+            if len(self.label_index) > 0 :
+                # start with root run over root-level yt-only octs 
+                # where yt-octs live on level 0 
+                for iz in  range(self.domain_dimensions/2) :
+                    for iy in  range(self.domain_dimensions/2) :
+                        for ix in range(self.domain_dimensions/2) :
+                            coords[0]=ix*2
+                            coords[1]=iy*2
+                            coords[2]=iz*2
+                            for k in range(2):
+                                for j in range(2):
+                                    for i in range(2):
+                                        child[0] = coords[0]+i
+                                        child[1] = coords[1]+j
+                                        child[2] = coords[2]+k
+                                        isfc = sfc_index0(child[0], child[1], child[2], self.num_root_grid_refinements)
+                                    #                                    isfc = sfc_index( <int*>child, self.num_root_grid_refinements)
+                                        handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                                                     ARTIO_OPEN_GRID, artio_context_global ) 
+                                        status = artio_grid_read_sfc_range_yt(
+                                            handle, isfc, isfc,\
+                                                0, 0,\
+                                                ARTIO_READ_ALL,\
+                                                wrap_cell_var_callback,\
+                                                <void*>self
+                                            ) #only reads root
+                                        check_artio_status(status, artio_grid_routines.__name__)
+                                        artio_fileset_close(handle) 
+                            
+                print 'snlroot done with root var fill'
+            #now run through oct children
             handle = artio_fileset_open( self.param_handle.file_prefix, 
                                          ARTIO_OPEN_GRID, artio_context_global ) 
-            status = artio_grid_read_sfc_range_buffer(
-                handle, self.sfc1, self.sfc2,\
+            status = artio_grid_read_sfc_range_yt(
+                handle, self.sfc_min, self.sfc_max,\
                     self.min_level_to_read, self.max_level_to_read,\
                     ARTIO_READ_REFINED,\
                     wrap_cell_var_callback,\
                     <void*>self
                 ) #only octs!
             check_artio_status(status, artio_grid_routines.__name__)
+            artio_fileset_close(handle) 
         print 'done buffering variables'
+    def cell_pos_callback(self, level, refined, isfc, pos):
+        self.oct_handler.add(self.cpu+1, level-self.min_level_to_read, 
+                             self.ng, pos, self.domain_id)
     def cell_var_callback(self, level, refined, ichild, cell_var):
-        for field in self.matched_fields : 
+        for field in self.matched_fieldnames : 
             self.source[field][self.count] = cell_var[self.label_index[field]] 
-        self.count=self.count+1
+            if level > 0 :
+                print '_artio_caller.pyx:sourcefill', level, self.count, self.source[field][self.count]
+        self.count += 1
  
 
-###### callbacks #############
+###### callbacks (e.g. https://github.com/cython/cython/tree/master/Demos/callback) ######
 cdef void wrap_cell_pos_callback(float *variables, int level, int refined, 
-                                 int64_t sfc_index, double *pos, void *user_data):
+                                 int64_t isfc, double *pos, void *pyobject):
     position = np.empty((1, 3), dtype='float64')
-    position[0,0] = pos[0] 
-    position[0,1] = pos[1] 
-    position[0,2] = pos[2] 
-    artioroutines = <object>user_data
-    artioroutines.cell_pos_callback(level, refined, sfc_index, position)
+    position[0,0] = pos[0]
+    position[0,1] = pos[1]
+    position[0,2] = pos[2]
+    artioroutines = <object>pyobject
+    # add one to level because in yt, octs live on the same level as their children
+    # 0-level ART octs do not exist in memory (the ART root cells are not children)
+    level += 1 
+#    print '_artio_caller.pyx:octpositionsandvalues', pos[0],pos[1],pos[2],level,variables[0]
+    artioroutines.cell_pos_callback(level, refined, isfc, position)
 
 cdef void wrap_cell_var_callback(float *variables, int level, int refined, 
-                                 int64_t ichild, void *user_data):
-    artioroutines = <object>user_data
+                                 int64_t ichild, void *pyobject):
+    artioroutines = <object>pyobject
     cell_var={}
     cell_var = [ variables[i] for i in range(artioroutines.num_grid_variables) ]
+#    if level > 0:
+#        print '_artio_caller.pyx:sourcecallvalue', level, cell_var
     artioroutines.cell_var_callback(level, refined, ichild, cell_var)
 
+class artio_particle_routines(object) : 
+    def __init__(self, param_handle) :
 
+        self.min_level_to_read = 0
+        self.max_level_to_read = param_handle.parameters['grid_max_level'][0]
+        # sfc values should come from a subset object and describe the chunked domains
+        self.sfc_min = 0   
+        self.sfc_max = param_handle.parameters['grid_file_sfc_index'][1]-1
+        self.param_handle=param_handle
+        self.ng=1 #RISM
+        self.cpu=0 #RISM
+        self.domain_id=0 #RISM
+
+        # FIX: too much is hardcoded here, much of this should probably live in fields.py
+        # choose particle types (species labels), species (self.num_particle_species) 
+        # and fields (variable_labels) to be read.
+        #     particle_species_labels: N-BODY STAR
+        #     variable_labels: POSITION_X, VELOCITY_X, TIMESTEP
+        self.num_particle_species = param_handle.parameters['num_particle_species'][0]
+        self.num_primary_variables = param_handle.parameters['num_primary_variables']
+        self.num_secondary_variables = param_handle.parameters['num_secondary_variables']
+        # sfc values should come from subset and describe the domain for chunking
+        self.species_min = 0   
+        self.species_max = self.num_particle_species
+ 
+        self.particle_variable_labels = {}
+        # combine primary and secondary varibles into one particle_variable labels 
+        # organized by species count
+        self.num_particle_variable_labels=[]
+        for ispec in xrange(self.num_particle_species) :
+            speclabelprimary = "species_%02d_primary_variable_labels" % ispec           
+            self.particle_variable_labels[ispec] = param_handle.parameters[speclabelprimary]
+            if self.num_secondary_variables[ispec] > 0 :
+                speclabelsecondary = "species_%02d_secondary_variable_labels" % ispec           
+                self.particle_variable_labels[ispec] = param_handle.parameters[speclabelprimary]+\
+                    param_handle.parameters[speclabelsecondary]
+                #self.num_particle_variable_labels[ispec]=self.num_primary_variables[ispec]+self.num_secondary_variables[ispec]
+                
+        # ####### variable dictionary from artio to yt ############
+        self.arttoyt_label_spec = {}
+        self.particle_species_labels = param_handle.parameters['particle_species_labels']
+        for label in self.particle_species_labels : 
+            print 'particle labels in caller.pyx',label
+            if label == 'N-BODY' : 
+                self.arttoyt_label_spec[label] = 'nbody' 
+            elif label == 'STARS' : 
+                self.arttoyt_label_spec[label] = 'stars' 
+            else :
+                self.arttoyt_label_spec[label] = label
+        self.arttoyt_label_var = {}
+        # 
+        for ispec in xrange(self.num_particle_species):
+            for label in self.particle_variable_labels[ispec] :
+                if label == 'BIRTH_TIME' :
+                    self.arttoyt_label_var[(ispec,label)] = 'creation_time'
+                else :
+                    self.arttoyt_label_var[(ispec,label)] = label
+                    print (ispec,label),label
+        print '----------------- arttoyt_label_spec (caller.pyx)'
+        print self.arttoyt_label_spec
+        print '----------------- arttoyt_label_var (caller.pyx)'
+        print self.arttoyt_label_var
+        print '-----------------'
+        print 'particle arttoyt translation'
+
+    def particle_pos_fill(self,accessed_species, fieldnames) :
+        #snl FIX the following should go in fields or be a subclass
+        #what are the matched art species? 
+        art_isubspec={}
+        art_labelispec={}
+        self.art_ispec={}
+        ispec=-1 
+        for artlabelspec in self.particle_species_labels : #N-BODY, N-BODY, STAR
+            ispec+=1
+            for ytlabelspec in accessed_species : 
+                if self.arttoyt_label_spec[artlabelspec] == ytlabelspec : 
+                    print 'match, in species labels?', ytlabelspec, accessed_species
+                    if art_isubspec[ytlabelspec] == None :
+                        isubspec = 0
+                    else : 
+                        isubspec += 1
+                    self.art_ispec.append(ispec)
+                    art_isubspec[ytlabelspec].append(isubspec)
+                    art_labelispec[ytlabelspec].append(ispec)
+#                    self.matched_labelspec.append(ytlabelspec)
+                    
+        # FIX Hardcoded subspecies selection
+        # e.g., only read least massive N-BODY particles -- pop off the species corresponding 
+        # to the subspecies you don't want
+        min_mass = 1e30
+        imin_mass = 0
+        for isubspec in art_isubspec['nbody'] : 
+            ispec = art_labelispec['nbody'][isubspec]
+            subspecmass = self.param_handle.parameters['particle_species_mass'][ispec] 
+            if subspecmass < min_mass :
+                min_mass = subspecmass
+                imin_mass = isubspec
+        # pop elements in nbody that are not min_mass
+        for isubspec in art_isubspec['nbody'] : 
+            ispec = art_labelispec['nbody'][isubspec]
+            if isubspec != imin_mass :
+                art_isubspec['nbody'].pop(ispec)
+                self.art_ispec.pop(ispec)
+                art_labelispec['nbody'].pop(ispec)
+        print 'art_isubspec[nbody] after pop...', art_isubspec['nbody']
+        print self.art_ispec
+        print art_labelispec['nbody'].pop(ispec)
+
+        print 'exiting in particle_pos_fill' 
+        sys.exit(1)
+         
+        #what are the matched art variable indices and (yt) labels for the matched species?
+        self.art_ivar=[]
+        self.matched_labelvar=[]
+        for ispec in self.art_ispec :
+            self.matched_labelvar[ispec]={}
+            i=-1
+            artivar=-1
+            for artlabelvar in self.particle_variable_labels[ispec] :  
+            #POSITION_X,... BIRTH_TIME, INITIAL_MASS, MASS, METALLICITY_SNII, METALLICITY_SNIa
+                artivar+=1
+                i+=1
+                for ytlabelvar in fieldnames : #fieldnames could be a function of species
+                    if self.arttoyt_label_var[artlabelvar] == ytlabelvar :
+                        print 'match, in fieldnames?',ispec, ytlabelvar, fieldnames
+                        self.art_ivar[(ispec,ytlabelvar)]=i
+#                        self.art_ivar[(ispec,artivar)]=i
+                        self.matched_labelvar[ispec].append(ytlabelvar)
+            print 'ispec=',ispec,'matched variable labels', self.matched_labelvar[ispec]
+            print 'art index of matched fieldnames',self.art_ivar
+        print 'exiting in particle_pos_fill' 
+        sys.exit(1)
+################ The above should be part of a subclass that uses accessed_species #######       
+
+        cdef artio_file handle
+        self.accessed_species = accessed_species
+        
+        self.selection={}
+        #ouch we are reading the particle file nspecies times?!
+        for ispec in self.art_ispec : 
+#              ispec->      self.species_min, self.species_max,\ 
+            handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                         ARTIO_OPEN_PARTICLES, artio_context_global ) 
+            status = artio_particle_read_sfc_range_yt(handle,\
+                    self.sfc_min, self.sfc_max,\
+                    ispec, ispec,\
+                    wrap_particle_pos_callback, <void*>self) 
+            check_artio_status(status, artio_grid_routines.__name__)
+            artio_fileset_close(handle) 
+            
+        print 'done reading particle positions'
+        return self.selection
+    def particle_var_fill(self, source, fieldnames, accessed_species, particle_mask):
+        cdef artio_file handle
+        self.source = source
+        if len(self.art_ivar) > 0 :
+            self.count=0
+            for ispec in self.art_ispec : 
+                handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                             ARTIO_OPEN_PARTICLES, artio_context_global ) 
+                #snl check this:
+                status = artio_particle_read_sfc_range_yt(handle,\
+                        self.sfc_min, self.sfc_max,\
+                        self.species_min, self.species_max,\
+                        wrap_particle_var_callback, <void*>self)
+                check_artio_status(status, artio_grid_routines.__name__)
+                artio_fileset_close(handle) 
+        print 'done buffering variables'
+    def particle_pos_callback(self, pos):
+        self.selection['x'].append(pos[0])
+        self.selection['y'].append(pos[1])
+        self.selection['z'].append(pos[2])
+    def particle_var_callback(self, particle_var, ispec):
+        for labelvar in self.matched_labelvar[ispec] : 
+            artivar = self.art_ivar[(ispec,labelvar)]
+            self.source[labelvar][self.count] = particle_var[artivar] 
+        self.count=self.count+1
+ 
+#        callback(pid,
+#                 primary_variables,
+#                 secondary_variables,
+#                 species, subspecies, sfc)
+###### callbacks (e.g. https://github.com/cython/cython/tree/master/Demos/callback) ######
+cdef void wrap_particle_pos_callback(int pid, double *primary_variables, 
+                                     double *secondary_variables, int species, 
+                                     int subspecies, int isfc, void *pyobject ) :
+    artioroutines = <object>pyobject
+    #FIX hardcoded assumption that position always comes first in primary variables
+    #assert this elsewhere
+    pos=[]
+    pos[0:2]=[primary_variables[0],primary_variables[1],primary_variables[2]]
+    artioroutines.particle_pos_callback(pos)
+
+cdef void wrap_particle_var_callback(int pid, double *primary_variables, double *secondary_variables, int species, 
+                                 int subspecies, int isfc, void *pyobject ) :
+    artioroutines = <object>pyobject
+    cell_var={}
+    # subspecies is only relevant when there are multiple "types" of "star-particles"  (e.g. AGN) 
+    ispec = species
+    particle_var = [ primary_variables[i] for i in range(artioroutines.num_primary_variables[ispec]) ]\
+        +        [ secondary_variables[i] for i in range(artioroutines.num_secondary_variables[ispec]) ]
+    print 'snl count particle var',(artioroutines.num_primary_variables[ispec]+artioroutines.num_secondary_variables[ispec]), particle_var 
+    artioroutines.cell_var_callback(particle_var)
+        
+###################################################
 def artio_is_valid( char *file_prefix ) :
     cdef artio_file handle = artio_fileset_open( file_prefix, 
             ARTIO_OPEN_HEADER, artio_context_global )
     if handle == NULL :
-        return False;
+        return False
     else :
         artio_fileset_close(handle) 
     return True
-
-
 

@@ -27,6 +27,7 @@ typedef __int64 int64_t;
 #define ARTIO_READ_LEAFS                    1
 #define ARTIO_READ_REFINED                  2
 #define	ARTIO_READ_ALL                      3
+#define	ARTIO_READ_REFINED_AND_ROOT         4
 
 /* allocation strategy */
 #define ARTIO_ALLOC_EQUAL_SFC               0
@@ -170,10 +171,10 @@ int artio_parameter_get_long_array(artio_file handle, char * key,
 /* public grid interface */
 typedef void (* GridCallBack)(float * variables, int level, int refined,
 		int64_t sfc_index);
-typedef void (* GridCallBackPos)(double * variables, int level, int refined,
-                                 int64_t sfc_index, double pos[3], void * user_data);
-typedef void (* GridCallBackBuffer)(double * variables, int level, int refined,
-                                 int64_t sfc_index, void * user_data);
+typedef void (* GridCallBackYTPos)(double * variables, int level, int refined,
+                                 int64_t sfc_index, double pos[3], void * pyobject);
+typedef void (* GridCallBackYT)(double * variables, int level, int refined,
+                                 int64_t sfc_index, void * pyobject);
 
 /*
  * Description:	Add a grid component to a fileset open for writing
@@ -281,13 +282,16 @@ int artio_grid_cache_sfc_range(artio_file handle, int64_t sfc_start, int64_t sfc
  *  callback			callback function
  */
 int artio_grid_read_sfc_range(       artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBack callback);
-int artio_grid_read_sfc_range_pos(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read,int max_level_to_read, int options, GridCallBackPos callback, void *user_data);
-int artio_grid_read_sfc_range_buffer(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBackBuffer callback, void *user_data);
+int artio_grid_read_sfc_range_ytpos(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read,int max_level_to_read, int options, GridCallBackYTPos callback, void *pyobject);
+int artio_grid_read_sfc_range_yt(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBackYT callback, void *pyobject);
 		
 
 typedef void (* ParticleCallBack)(int64_t pid, 
 		double *primary_variables, float *secondary_variables, 
 		int species, int subspecies, int64_t sfc_index);
+typedef void (* ParticleCallBackYT)(int64_t pid, 
+		double *primary_variables, float *secondary_variables, 
+                int species, int subspecies, int64_t sfc_index, void *pyobject);
 
 /**
  *  header			head file name
@@ -397,5 +401,10 @@ int artio_particle_read_sfc_range(artio_file handle,
 		int64_t sfc1, int64_t sfc2, 
 		int start_species, int end_species,
 		ParticleCallBack callback);
+
+int artio_particle_read_sfc_range_yt(artio_file handle, 
+		int64_t sfc1, int64_t sfc2, 
+		int start_species, int end_species,
+                ParticleCallBackYT callback, void *pyobject);
 
 #endif /* __ARTIO_H__ */

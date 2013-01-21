@@ -29,7 +29,7 @@ import cStringIO
 
 from _artio_caller import \
     artio_is_valid, artio_fileset , artio_fileset_grid, \
-    artio_grid_routines#, read_header 
+    artio_grid_routines, artio_particle_routines
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
@@ -66,10 +66,6 @@ from yt.geometry.oct_container import \
 
 
 class ARTIODomainFile(object):
-#    _last_mask = None
-#    _last_selector_id = None
-#    nvar = 6
-#    _handle = None
 
     def __init__(self, pf, domain_id):
         self.pf = pf
@@ -80,9 +76,9 @@ class ARTIODomainFile(object):
         self._handle = artio_fileset_grid(self._fileset_prefix) 
         
         self.artiogrid = artio_grid_routines(self._handle)
+        self.artioparticle = artio_particle_routines(self._handle)
         self._read_grid_header()
         self._read_particle_header()
-        self.level_count
 
     ###########################################
     def _read_particle_header(self):
@@ -93,9 +89,9 @@ class ARTIODomainFile(object):
 
     def _read_grid_header(self):
         sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
-        self.local_oct_count = self.artiogrid.count_octs() #count_octs(self._handle)
-        self.level_count = self.artiogrid.level_count
-        print 'snl data_structures local_octs count',self.local_oct_count
+        self.local_oct_count = self.artiogrid.count_refined_octs() #count_octs(self._handle)
+        self.art_level_count = self.artiogrid.art_level_count
+        print 'snl data_structures local_octs count',self.local_oct_count, self.art_level_count
     ###########################################
         
     def _read_grid(self, oct_handler):
@@ -107,7 +103,8 @@ class ARTIODomainFile(object):
         """
         #oct_handler may not be attributed yet
         self.artiogrid=artio_grid_routines(self._handle) 
-        self.artiogrid.grid_pos_fill(oct_handler)
+        self.artiogrid.grid_pos_fill(oct_handler, self.pf.domain_dimensions[0])
+        #pdb.set_trace()
         
     def select(self, selector):
         if id(selector) == self._last_selector_id:
@@ -125,35 +122,34 @@ class ARTIODomainFile(object):
 
 class ARTIODomainSubset(object):
 
-    def __init__(self, domain, mask, cell_count):
+    def __init__(self, domain, mask, masked_cell_count):
         self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
-        self.cell_count = cell_count
-        level_counts = self.oct_handler.count_levels(
+        self.masked_cell_count = masked_cell_count
+        ncum_masked_level = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
-        level_counts[1:] = level_counts[:-1]
-        level_counts[0] = 0
-        self.level_counts = np.add.accumulate(level_counts)
-        print 'cumulative masked level counts',self.level_counts
-        
+        ncum_masked_level[1:] = ncum_masked_level[:-1]
+        ncum_masked_level[0] = 0
+        self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
+        print 'cumulative masked level counts',self.ncum_masked_level
         self.artiogrid = self.domain.artiogrid
-        #self.artiogrid=artio_grid_routines(self._handle) 
+        self.artioparticle = self.domain.artioparticle
         
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
+                                        self.masked_cell_count,
+                                        self.ncum_masked_level.copy())
 
     def fcoords(self, dobj):
         return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
+                                        self.masked_cell_count,
+                                        self.ncum_masked_level.copy())
 
     def fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
         base_dx = 1.0/self.domain.pf.domain_dimensions
-        widths = np.empty((self.cell_count, 3), dtype="float64")
+        widths = np.empty((self.masked_cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))
         for i in range(3):
             widths[:,i] = base_dx[i] / dds
@@ -161,8 +157,8 @@ class ARTIODomainSubset(object):
 
     def ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.cell_count,
-                                     self.level_counts.copy())
+                                     self.masked_cell_count,
+                                     self.ncum_masked_level.copy())
 
     def fill(self, fields):
         oct_handler = self.oct_handler
@@ -171,70 +167,57 @@ class ARTIODomainSubset(object):
         fields = [f for ft, f in fields]
         print 'all_fields:', all_fields 
         print 'fields:', fields
-        
-
-
         tr = {}
         for field in fields: 
-            tr[field] = np.zeros(self.cell_count, 'float64')
+            tr[field] = np.zeros(self.masked_cell_count, 'float64')
         temp = {}
-        nc = self.domain.level_count.sum()
-        print 'ncells total',self.cell_count, 'ncells masked', nc
+        nc = self.domain.art_level_count.sum() #this is straight from ART no masking 
+        print 'ncells masked (tr)',self.masked_cell_count, 'ncells total', nc
         for field in fields:
             #temp[field] = np.empty((no,8), dtype="float64") 
-            temp[field] = np.empty(nc, dtype="float32") 
+            temp[field] = np.empty(nc, dtype="float32")  
 
         #buffer variables 
         self.artiogrid.grid_var_fill(temp, fields)
         
         #mask unused cells 
         oct_handler = self.oct_handler
-        level_offset = 0
+        level_offset = 0                       # RISM=ramsesism level_offset
         level_offset += oct_handler.fill_mask(
              self.domain.domain_id,
-            tr, temp, self.mask, level_offset) #[oct_container.pyx]
-
-        return tr
-    
-    
-
-    def fill_old(self, content, fields):
-        # Here we get a copy of the file, which we skip through and read the
-        # bits we want.
-        oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.fluid_field_list
-        fields = [f for ft, f in fields]
-        tr = {}
-        filled = pos = level_offset = 0
-        min_level = self.domain.pf.min_level
-        print 'hydro offset', self.domain.hydro_offset
+            tr, temp, self.mask, level_offset) #[oct_container.pyx] RISM level_offset
         
-        for field in fields:
-            tr[field] = np.zeros(self.cell_count, 'float64')
-        for level, offset in enumerate(self.domain.hydro_offset):
-            print 'level', level, 'offset', offset
-            if offset == -1: continue
-            content.seek(offset)
-            nc = self.domain.level_count[level]
-            temp = {}
-            for field in all_fields:
-                temp[field] = np.empty((nc, 8), dtype="float64")
-            for i in range(8):
-                for field in all_fields:
-                    if field not in fields:
-                        #print "Skipping %s in %s : %s" % (field, level,
-                        #        self.domain.domain_id)
-                        fpu.skip(content)
-                    else:
-                        #print "Reading %s in %s : %s" % (field, level,
-                        #        self.domain.domain_id)
-                        temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-                        #print field, temp[field][:,i] 
-            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
-                                   tr, temp, self.mask, level_offset)
-            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, level_offset)
-        #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
-        raise NotImplementedError #snl
+        print 'tr min/max in data_structures.py',tr['Density'].max(), tr['Density'].min() 
+        return tr
+
+    def get_particle_pos(self,accessed_species, fieldnames):
+        ppositions = self.artioparticle.particle_pos_fill(accessed_species, fieldnames)
+        return ppositions
+
+    def fill_particles(self, fields, accessed_species, masked_particle_count, particle_mask):
+        fieldnames = [f for ft, f in fields]
+        print 'all_fields:', all_fields 
+        print 'fieldnames:', fieldnames
+        tr = {}
+        for onefieldname in fieldnames: 
+            tr[onefieldname] = np.zeros(masked_particle_count, 'float64')
+        # temp = {}
+        # nc = self.domain.art_level_count.sum()
+        # print 'ncells total',self.masked_cell_count, 'ncells masked', nc
+        # for onefieldname in fieldnames:
+        #    #temp[onefieldname] = np.empty((no,8), dtype="float64") 
+        #    temp[onefieldname] = np.empty(nc, dtype="float32") 
+        #     
+        # #buffer variables 
+
+        self.artiogrid.particle_var_fill(tr, fieldnames, accessed_species, particle_mask)
+
+        #     
+        #mask unused cells 
+        # level_offset += oct_handler.fill_mask(
+        #      self.domain.domain_id,
+        #     tr, temp, self.mask, level_offset) #[oct_container.pyx] RISM level_offset
+
         return tr
 
 class ARTIOGeometryHandler(OctreeGeometryHandler):
@@ -255,9 +238,12 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         #only one file/"domain" for ART
         self.domains = [ARTIODomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
-        #this allocates space for the oct tree
+        # this allocates space for the oct tree note that 
+        # nn is number of root-level OCTS. These don't exist in memory. 
+        print 'domain_left_edge, domain_right_edge', self.parameter_file.domain_left_edge, self.parameter_file.domain_right_edge
+            
         self.oct_handler = ARTIOOctreeContainer(
-            self.parameter_file.domain_dimensions, 
+            self.parameter_file.domain_dimensions/2, 
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge) 
         mylog.debug("Allocating octs")
@@ -284,11 +270,13 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
-            counts = self.oct_handler.count_cells(dobj.selector, mask)
+            print 'cell count masked in called from data_structures.py'
+            masked_cell_count = self.oct_handler.count_cells(dobj.selector, mask)
+            print 'done cell count masked in called from data_structures.py'
             subsets = [ARTIODomainSubset(d, mask, c)
-                       for d, c in zip(self.domains, counts) if c > 0]
+                       for d, c in zip(self.domains, masked_cell_count) if c > 0]
             dobj._chunk_info = subsets
-            dobj.size = sum(counts)
+            dobj.size = sum(masked_cell_count)
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -304,7 +292,7 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         #object = dobj._current_chunk.objs or dobj._current_chunk.${dobj._chunk_info}
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+            yield YTDataChunk(dobj, "io", [subset], subset.masked_cell_count)
 
 
 class ARTIOStaticOutput(StaticOutput):

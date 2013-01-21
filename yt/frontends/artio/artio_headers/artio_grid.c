@@ -648,9 +648,6 @@ int artio_grid_write_oct(artio_file handle, float *variables,
 	return ARTIO_SUCCESS;
 }
 
-/*
- *
- */
 int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,
 		float *variables, int *num_oct_levels, int *num_octs_per_level) {
 	int i;
@@ -976,12 +973,17 @@ int artio_grid_read_sfc_range(artio_file handle,
 
 	return ARTIO_SUCCESS;
 }
-int artio_grid_read_sfc_range_buffer(artio_file handle, 
+
+
+
+
+
+int artio_grid_read_sfc_range_yt(artio_file handle, 
 		int64_t sfc1, int64_t sfc2,
 		int min_level_to_read, int max_level_to_read, 
 		int options,
-                GridCallBackBuffer callback, 
-                void *userdata) {
+                GridCallBackYT callback, 
+                void *pyobject) {
 	int64_t sfc;
 	int oct, level, j;
 	int ret;
@@ -1035,10 +1037,11 @@ int artio_grid_read_sfc_range_buffer(artio_file handle,
 
 		if (min_level_to_read == 0 && (options == ARTIO_READ_ALL || 
 				(options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
+				(options == ARTIO_READ_REFINED_AND_ROOT) ||
 				(options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
 			refined = (root_tree_levels > 0) ? 1 : 0;
                         j=-1;
-			callback(variables, 0, refined, j, userdata);
+			callback(variables, 0, refined, j, pyobject);
 		}
 
 		for (level = MAX(min_level_to_read,1); 
@@ -1061,9 +1064,10 @@ int artio_grid_read_sfc_range_buffer(artio_file handle,
 				for (j = 0; j < 8; j++) {
 					if (options == ARTIO_READ_ALL || 
 							(options == ARTIO_READ_REFINED && oct_refined[j]) ||
+							(options == ARTIO_READ_REFINED_AND_ROOT && oct_refined[j]) ||
 							(options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
 						callback(&variables[j * ghandle->num_grid_variables],
-                                                         level, oct_refined[j], j, userdata);
+                                                         level, oct_refined[j], j, pyobject);
 					}
 				}
 			}
@@ -1096,12 +1100,12 @@ const double cell_delta_corner[num_children][nDim] = {
 #error "No valid cell_delta for that number of dimensions!"
 #endif
 };
-int artio_grid_read_sfc_range_pos(artio_file handle, 
+int artio_grid_read_sfc_range_ytpos(artio_file handle, 
                                   int64_t sfc1, int64_t sfc2,
                                   int min_level_to_read, int max_level_to_read, 
                                   int options,
-                                  GridCallBackPos callback, 
-                                  void *user_data
+                                  GridCallBackYTPos callback, 
+                                  void *pyobject
     ) {
 	int64_t sfc;
 	int oct, level, j, i;
@@ -1112,6 +1116,7 @@ int artio_grid_read_sfc_range_pos(artio_file handle,
 
         int coords[nDim];
         double pos[nDim];
+        double cpos[nDim];
         double cell_size;
         double *level_octs_pos_x, *next_level_octs_pos_x;
         double *level_octs_pos_y, *next_level_octs_pos_y;
@@ -1164,7 +1169,6 @@ int artio_grid_read_sfc_range_pos(artio_file handle,
 			free(variables);
 			return ret;
 		}
-                //////////////////////////////////////
                 sfc_coords(sfc, coords, num_root_levels); 
                 for(i=0; i<nDim; i++){ pos[i] = (double)coords[i]; }
                 refined = (root_tree_levels > 0) ? 1 : 0;
@@ -1179,21 +1183,24 @@ int artio_grid_read_sfc_range_pos(artio_file handle,
                          next_level_octs_pos_z == NULL ){
                         return ARTIO_ERR_MEMORY_ALLOCATION;
                     }
-                    next_level_octs_pos_x[0] = pos[0] ;  //need a stupid 2D array
-                    next_level_octs_pos_y[0] = pos[1] ;  //need a stupid 2D array
-                    next_level_octs_pos_z[0] = pos[2] ;  //need a stupid 2D array
+                    next_level_octs_pos_x[0] = pos[0] ;
+                    next_level_octs_pos_y[0] = pos[1] ;
+                    next_level_octs_pos_z[0] = pos[2] ;
                 }else{
                     num_next_level_octs = 0;
                 }
-                //////////////////////////////////////
                         
 
 		if (min_level_to_read == 0 && 
                     (options == ARTIO_READ_ALL || 
                      (options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
+                     (options == ARTIO_READ_REFINED_AND_ROOT) || 
                      (options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
+                    cpos[0] = pos[0]+0.5;
+                    cpos[1] = pos[1]+0.5;
+                    cpos[2] = pos[2]+0.5;
 			refined = (root_tree_levels > 0) ? 1 : 0;
-			callback(variables, min_level, refined, sfc, pos, user_data);
+			callback(variables, min_level, refined, sfc, pos, pyobject);
 		}
                 // level is the cell_level; current octs live at level-1.
 		for (level = min_level+1; level <= MIN(root_tree_levels,max_level_to_read); level++) { 
@@ -1252,8 +1259,12 @@ int artio_grid_read_sfc_range_pos(artio_file handle,
                                         }
 					if (options == ARTIO_READ_ALL || 
                                             (options == ARTIO_READ_REFINED && oct_refined[j]) ||
+                                            (options == ARTIO_READ_REFINED_AND_ROOT && oct_refined[j]) || 
                                             (options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
-                                            callback(variables, level, oct_refined[j], sfc, pos, user_data);
+                                            cpos[0] = pos[0]+0.5*cell_size;
+                                            cpos[1] = pos[1]+0.5*cell_size;
+                                            cpos[2] = pos[2]+0.5*cell_size;
+                                            callback(variables, level, oct_refined[j], sfc, cpos, pyobject);
 								
 					}
 				}

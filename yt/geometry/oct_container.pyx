@@ -78,10 +78,10 @@ cdef void free_octs(
 
 cdef class OctreeContainer:
 
-    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
+    def __init__(self, oct_domain_dimensions, domain_left_edge, domain_right_edge):
         cdef int i, j, k, p
         for i in range(3):
-            self.nn[i] = domain_dimensions[i]
+            self.nn[i] = oct_domain_dimensions[i]
         self.max_domain = -1
         p = 0
         self.nocts = 0 # Increment when initialized
@@ -164,6 +164,7 @@ cdef class OctreeContainer:
         cdef int eterm[3]
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain, 'int64')
+        print 'snl oct_container crash', self.nn[0], n
         for i in range(3):
             # This is the base_dx, but not the base distance from the center
             # position.  Note that the positions will also all be offset by
@@ -352,7 +353,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
             if cur == NULL:
                 if curlevel != 0:
                     raise RuntimeError
-                cur = &cont.my_octs[cont.n_assigned] #my octs?
+                cur = &cont.my_octs[cont.n_assigned] 
                 cur.parent = NULL
                 cur.level = 0
                 for i in range(3):
@@ -361,10 +362,8 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                 self.nocts += 1
                 self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
             # Now we find the location we want
-            # Note that ARTIO I think 1-findiceses levels, but we don't.
             for level in range(curlevel):
-                # At every level, find the cell this oct
-                # lives inside
+                # At every level, find the cell this oct lives inside
                 for i in range(3):
                     #as we get deeper, oct size halves
                     dds[i] = dds[i] / 2.0
@@ -383,7 +382,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     next.parent = cur
                     for i in range(3):
                         next.pos[i] = ind[i] + (cur.pos[i] << 1)
-                    next.level = level + 1
+                    next.level = level + 1  
                     self.nocts += 1
                 cur = next
             cur.domain = curdom 
@@ -500,7 +499,6 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                 # first cell in the grid
                 pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
                 dx[i] = dx[i] / 2.0 # This is now the *offset* 
-#            raise NotImplementedError #check oct position ordering = ART's output oct ordering"
             for k in range(2):
                 for j in range(2):
                     for i in range(2):
@@ -526,11 +524,14 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef int i, j, k, ii
         cdef int local_pos, local_filled
         cdef np.float64_t val
-        print dom.n
+        print 'domain number of octs', dom.n
         for key in dest_fields:
             local_filled = 0
             dest = dest_fields[key]
             source = source_fields[key]
+            # snl: an alternative to filling level 0 yt-octs is to produce a 
+            # mapping between the mask and the source read order, but 
+            # I'm not sure how to fill in the octs in this case.  
             for n in range(dom.n):
                 o = &dom.my_octs[n]
                 for k in range(2):
@@ -538,7 +539,10 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                         for i in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
-                            dest[local_filled + offset] = source[o.ind*8+ ii]
+                            #snl FIX: indexing is wrong here !!!
+#                            dest[local_filled + offset] = source[o.ind*8+ii]
+                            dest[local_filled + offset] = source[o.local_ind*8+ii]
+                            print 'oct_container.pyx:sourcemasked',o.level, o.local_ind*8+ii, source[o.local_ind*8+ii]
                             local_filled += 1
         return local_filled
 

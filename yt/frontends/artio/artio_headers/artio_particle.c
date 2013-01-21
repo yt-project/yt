@@ -1002,3 +1002,114 @@ int artio_particle_read_sfc_range(artio_file handle,
 
 	return ARTIO_SUCCESS;
 }
+
+int artio_particle_read_sfc_range_yt(artio_file handle, 
+		int64_t sfc1, int64_t sfc2, 
+		int start_species, int end_species, 
+                ParticleCallBackYT callback, void *pyobject) {
+
+	int64_t sfc;
+	int particle, species;
+	int *num_particles_per_species;
+	artio_particle_file phandle;
+	int64_t pid = 0l;
+	int subspecies;
+	double * primary_variables = NULL;
+	float * secondary_variables = NULL;
+	int num_primary, num_secondary;
+	int ret;
+
+	if ( handle == NULL ) {
+		return ARTIO_ERR_INVALID_HANDLE;
+	}
+
+	if (handle->open_mode != ARTIO_FILESET_READ || 
+			!(handle->open_type & ARTIO_OPEN_PARTICLES) ) {
+		return ARTIO_ERR_INVALID_FILESET_MODE;
+	}
+
+	phandle = handle->particle;
+
+	if ( start_species < 0 || start_species > end_species || 
+			end_species > phandle->num_species-1 ) {
+		return ARTIO_ERR_INVALID_SPECIES;
+	}
+
+	num_particles_per_species = (int *)malloc(phandle->num_species * sizeof(int));
+	if ( num_particles_per_species == NULL ) {
+		return ARTIO_ERR_MEMORY_ALLOCATION;
+	}
+
+	ret = artio_particle_cache_sfc_range(handle, sfc1, sfc2);
+	if ( ret != ARTIO_SUCCESS ) {
+		free( num_particles_per_species );
+		return ret;
+	}
+
+	num_primary = num_secondary = 0;
+	for ( species = start_species; species <= end_species; species++ ) {
+		num_primary = MAX( phandle->num_primary_variables[species], num_primary );
+		num_secondary = MAX( phandle->num_secondary_variables[species], num_secondary );
+	}
+
+	primary_variables = (double *)malloc(num_primary * sizeof(double));
+	if ( primary_variables == NULL ) {
+		free( num_particles_per_species );
+		return ARTIO_ERR_MEMORY_ALLOCATION;
+    }
+
+	secondary_variables = (float *)malloc(num_secondary * sizeof(float));
+	if ( secondary_variables == NULL ) {
+		free( num_particles_per_species );
+		free( primary_variables );
+		return ARTIO_ERR_MEMORY_ALLOCATION;
+	}
+
+	for ( sfc = sfc1; sfc <= sfc2; sfc++ ) {
+		ret = artio_particle_read_root_cell_begin(handle, sfc,
+				num_particles_per_species);
+		if ( ret != ARTIO_SUCCESS ) {
+			free( num_particles_per_species );
+			free( primary_variables );
+			free( secondary_variables );
+			return ret;
+		}
+
+		for ( species = start_species; species <= end_species; species++) {
+			ret = artio_particle_read_species_begin(handle, species);
+			if ( ret != ARTIO_SUCCESS ) {
+				free( num_particles_per_species );
+				free( primary_variables );
+				free( secondary_variables );
+				return ret;
+			}
+
+			for (particle = 0; particle < num_particles_per_species[species]; particle++) {
+				ret = artio_particle_read_particle(handle, 
+						&pid, 
+						&subspecies,
+						primary_variables,
+						secondary_variables);
+				if ( ret != ARTIO_SUCCESS ) {
+					free( num_particles_per_species );
+					free( primary_variables );
+					free( secondary_variables );
+					return ret;
+				}
+
+				callback(pid, 
+						primary_variables,
+						secondary_variables, 
+                                         species, subspecies, sfc, pyobject);
+			}
+			artio_particle_read_species_end(handle);
+		}
+		artio_particle_read_root_cell_end(handle);
+	}
+
+	free(primary_variables);
+	free(secondary_variables);
+	free(num_particles_per_species);
+
+	return ARTIO_SUCCESS;
+}

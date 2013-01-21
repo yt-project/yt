@@ -426,6 +426,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for chunk in self.hierarchy._chunk(self, chunking_style, **kwargs):
             with self._chunked_read(chunk):
                 self.get_data(fields)
+                print 'in data_containers chunks surviving'
                 # NOTE: we yield before releasing the context
                 yield self
 
@@ -434,12 +435,17 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self.hierarchy._identify_base_chunk(self)
         if fields is None: return
         fields = self._determine_fields(fields)
+        print 'snl we are in data_containers.py'
         # Now we collect all our fields
         fields_to_get = [f for f in fields if f not in self.field_data]
+        print 'snl we are in data_containers.py 1a'
         if len(fields_to_get) == 0:
+            print 'snl we are in data_containers.py return'
             return
         elif self._locked == True:
+            print 'snl we are in data_containers.py raise'
             raise GenerationInProgress(fields)
+        print 'snl we are in data_containers.py 2'
         # At this point, we want to figure out *all* our dependencies.
         inspected = 0
         for ftype, field in itertools.cycle(fields_to_get):
@@ -451,6 +457,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
         # We now split up into readers for the types of fields
+        print 'snl we are in data_containers.py splitting fields'
         fluids, particles = [], []
         for ftype, fname in fields_to_get:
             finfo = self.pf._get_field_info(ftype, fname)
@@ -458,6 +465,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
+        print 'snl we are in data_containers.py before reading fluids'
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
@@ -468,6 +476,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         read_particles, gen_particles = self.hierarchy._read_particle_fields(
                                         particles, self, self._current_chunk)
         self.field_data.update(read_particles)
+        print 'snl we are in data_containers.py after reading particles'
         fields_to_generate = gen_fluids + gen_particles
         index = 0
         with self._field_lock():
