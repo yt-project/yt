@@ -56,7 +56,7 @@ cdef extern from "artio.h":
     cdef int ARTIO_READ_LEAFS "ARTIO_READ_LEAFS"
     cdef int ARTIO_READ_REFINED "ARTIO_READ_REFINED"
     cdef int ARTIO_READ_ALL "ARTIO_READ_ALL"
-    cdef int ARTIO_READ_REFINED_AND_ROOT "ARTIO_READ_REFINED_AND_ROOT"
+    cdef int ARTIO_READ_REFINED_NOT_ROOT "ARTIO_READ_REFINED_NOT_ROOT"
     
 
     # errors
@@ -286,11 +286,13 @@ class artio_grid_routines(object) :
             num_total_octs += num_sfc_octs
             status = artio_grid_read_root_cell_end(handle)
             check_artio_status(status, artio_grid_routines.__name__)
-        #add root-level octs to the count
+
         if ROOT_LEVEL == 1 :    
+            #add root-level octs to the count
             art_level_count[0] = (self.sfc_max+1)
             num_total_octs += (self.sfc_max+1)/8 
         self.art_level_count = art_level_count 
+        print '_artio_caller.pyx num_total_octs (too big compared to what pos counts?)', num_total_octs
         return num_total_octs
 
     def grid_pos_fill(self, oct_handler, domain_dimensions1D) :
@@ -315,6 +317,7 @@ class artio_grid_routines(object) :
                                              self.ng, pos, self.domain_id)
             ###################################
         # Now do real ART octs
+        print 'start filling oct positions children'
         cdef artio_file handle
         handle = artio_fileset_open( self.param_handle.file_prefix, 
                                      ARTIO_OPEN_GRID, artio_context_global ) 
@@ -340,7 +343,7 @@ class artio_grid_routines(object) :
                     self.matched_fieldnames.append(field)
         print 'matched fields:',self.matched_fieldnames
         print 'art index of matched fields',self.label_index
-        print 'quitting in caller'
+#        print 'quitting in caller'
 #        sys.exit(1)
         self.count=0
         #fill grid positions with values
@@ -365,7 +368,6 @@ class artio_grid_routines(object) :
                                         child[1] = coords[1]+j
                                         child[2] = coords[2]+k
                                         isfc = sfc_index0(child[0], child[1], child[2], self.num_root_grid_refinements)
-                                    #                                    isfc = sfc_index( <int*>child, self.num_root_grid_refinements)
                                         handle = artio_fileset_open( self.param_handle.file_prefix, 
                                                                      ARTIO_OPEN_GRID, artio_context_global ) 
                                         status = artio_grid_read_sfc_range_yt(
@@ -384,8 +386,8 @@ class artio_grid_routines(object) :
                                          ARTIO_OPEN_GRID, artio_context_global ) 
             status = artio_grid_read_sfc_range_yt(
                 handle, self.sfc_min, self.sfc_max,\
-                    self.min_level_to_read, self.max_level_to_read,\
-                    ARTIO_READ_REFINED,\
+                    self.min_level_to_read+1, self.max_level_to_read,\
+                    ARTIO_READ_ALL,\
                     wrap_cell_var_callback,\
                     <void*>self
                 ) #only octs!
@@ -398,7 +400,7 @@ class artio_grid_routines(object) :
     def cell_var_callback(self, level, refined, ichild, cell_var):
         for field in self.matched_fieldnames : 
             self.source[field][self.count] = cell_var[self.label_index[field]] 
-            if level > 0 :
+            if level > 0:
                 print '_artio_caller.pyx:sourcefill', level, self.count, self.source[field][self.count]
         self.count += 1
  
@@ -410,15 +412,19 @@ cdef void wrap_cell_pos_callback(float *variables, int level, int refined,
     position[0,0] = pos[0]
     position[0,1] = pos[1]
     position[0,2] = pos[2]
-    artioroutines = <object>pyobject
     # add one to level because in yt, octs live on the same level as their children
     # 0-level ART octs do not exist in memory (the ART root cells are not children)
-    level += 1 
-#    print '_artio_caller.pyx:octpositionsandvalues', pos[0],pos[1],pos[2],level,variables[0]
-    artioroutines.cell_pos_callback(level, refined, isfc, position)
+    ytlevel = level+1 
+    artioroutines = <object>pyobject
+    print '_artio_caller.pyx:octpositionsandvalues',ytlevel, pos[0],pos[1],pos[2],level,variables[0]
+    artioroutines.cell_pos_callback(ytlevel, refined, isfc, position)
 
 cdef void wrap_cell_var_callback(float *variables, int level, int refined, 
                                  int64_t ichild, void *pyobject):
+    # add one to level because in yt, octs live on the same level as their children
+    # 0-level ART octs do not exist in memory (the ART root cells are not children)
+    if ichild != -1:
+        level += 1 
     artioroutines = <object>pyobject
     cell_var={}
     cell_var = [ variables[i] for i in range(artioroutines.num_grid_variables) ]

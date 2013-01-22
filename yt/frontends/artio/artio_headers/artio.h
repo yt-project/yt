@@ -27,7 +27,7 @@ typedef __int64 int64_t;
 #define ARTIO_READ_LEAFS                    1
 #define ARTIO_READ_REFINED                  2
 #define	ARTIO_READ_ALL                      3
-#define	ARTIO_READ_REFINED_AND_ROOT         4
+#define	ARTIO_READ_REFINED_NOT_ROOT         4
 
 /* allocation strategy */
 #define ARTIO_ALLOC_EQUAL_SFC               0

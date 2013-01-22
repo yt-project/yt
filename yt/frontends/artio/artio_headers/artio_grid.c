@@ -1035,10 +1035,10 @@ int artio_grid_read_sfc_range_yt(artio_file handle,
 			return ret;
 		}
 
-		if (min_level_to_read == 0 && (options == ARTIO_READ_ALL || 
-				(options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
-				(options == ARTIO_READ_REFINED_AND_ROOT) ||
-				(options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
+		if (min_level_to_read == 0 && (options != ARTIO_READ_REFINED_NOT_ROOT) &&
+                    (options == ARTIO_READ_ALL || 
+                     (options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
+                     (options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
 			refined = (root_tree_levels > 0) ? 1 : 0;
                         j=-1;
 			callback(variables, 0, refined, j, pyobject);
@@ -1064,7 +1064,7 @@ int artio_grid_read_sfc_range_yt(artio_file handle,
 				for (j = 0; j < 8; j++) {
 					if (options == ARTIO_READ_ALL || 
 							(options == ARTIO_READ_REFINED && oct_refined[j]) ||
-							(options == ARTIO_READ_REFINED_AND_ROOT && oct_refined[j]) ||
+							(options == ARTIO_READ_REFINED_NOT_ROOT && oct_refined[j]) ||
 							(options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
 						callback(&variables[j * ghandle->num_grid_variables],
                                                          level, oct_refined[j], j, pyobject);
@@ -1191,16 +1191,15 @@ int artio_grid_read_sfc_range_ytpos(artio_file handle,
                 }
                         
 
-		if (min_level_to_read == 0 && 
+		if (min_level_to_read == 0 && (options != ARTIO_READ_REFINED_NOT_ROOT) &&
                     (options == ARTIO_READ_ALL || 
                      (options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
-                     (options == ARTIO_READ_REFINED_AND_ROOT) || 
                      (options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
                     cpos[0] = pos[0]+0.5;
                     cpos[1] = pos[1]+0.5;
                     cpos[2] = pos[2]+0.5;
 			refined = (root_tree_levels > 0) ? 1 : 0;
-			callback(variables, min_level, refined, sfc, pos, pyobject);
+			callback(variables, min_level, refined, sfc, cpos, pyobject);
 		}
                 // level is the cell_level; current octs live at level-1.
 		for (level = min_level+1; level <= MIN(root_tree_levels,max_level_to_read); level++) { 
@@ -1222,7 +1221,6 @@ int artio_grid_read_sfc_range_ytpos(artio_file handle,
                             if(num_level_octs != num_octs_per_level[level-1]){
                                 printf("bad oct counting next expected:%d octs per level array %d\n",
                                        num_level_octs, num_octs_per_level[level-1]);
-                                       printf("sfc %d \n",sfc);
                             }
                             if ( level < MIN(root_tree_levels,max_level_to_read) && num_octs_per_level[level] > 0 ) {
                                 next_level_octs_pos_x = malloc( sizeof(double)*num_children*num_level_octs );
@@ -1259,7 +1257,7 @@ int artio_grid_read_sfc_range_ytpos(artio_file handle,
                                         }
 					if (options == ARTIO_READ_ALL || 
                                             (options == ARTIO_READ_REFINED && oct_refined[j]) ||
-                                            (options == ARTIO_READ_REFINED_AND_ROOT && oct_refined[j]) || 
+                                            (options == ARTIO_READ_REFINED_NOT_ROOT && oct_refined[j]) || 
                                             (options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
                                             cpos[0] = pos[0]+0.5*cell_size;
                                             cpos[1] = pos[1]+0.5*cell_size;

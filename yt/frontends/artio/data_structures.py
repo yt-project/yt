@@ -123,12 +123,15 @@ class ARTIODomainFile(object):
 class ARTIODomainSubset(object):
 
     def __init__(self, domain, mask, masked_cell_count):
+        print 'initing domain subset in data_structures.py'
         self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
         self.masked_cell_count = masked_cell_count
+        print 'counting levels in data_structures.py'
         ncum_masked_level = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
+        print 'compiling level mask in data_structures.py'
         ncum_masked_level[1:] = ncum_masked_level[:-1]
         ncum_masked_level[0] = 0
         self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
@@ -273,12 +276,15 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
             print 'cell count masked in called from data_structures.py'
             masked_cell_count = self.oct_handler.count_cells(dobj.selector, mask)
             print 'done cell count masked in called from data_structures.py'
+            print 'calling ARTIODomainSubset from data_structures.py'
             subsets = [ARTIODomainSubset(d, mask, c)
                        for d, c in zip(self.domains, masked_cell_count) if c > 0]
+            print 'done with domain subset'
             dobj._chunk_info = subsets
             dobj.size = sum(masked_cell_count)
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
+        print 'done with base chunk'
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
