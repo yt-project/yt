@@ -108,6 +108,9 @@ class GetParameterFiles(argparse.Action):
         namespace.pf = [_fix_pf(pf) for pf in pfs]
 
 _common_options = dict(
+    all     = dict(long="--all", dest="reinstall",
+                   default=False, action="store_true",
+                   help="Reinstall the full yt stack in the current location."),
     pf      = dict(short="pf", action=GetParameterFiles,
                    nargs="+", help="Parameter files to run on"),
     opf     = dict(action=GetParameterFiles, dest="pf",
@@ -295,6 +298,47 @@ _common_options = dict(
                             help="Make projections with halo profiler.")
 
     )
+
+def _get_yt_stack_date():
+    if "YT_DEST" not in os.environ:
+        print "Could not determine when yt stack was last updated."
+        return
+    date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
+    if not os.path.exists(date_file):
+        print "Could not determine when yt stack was last updated."
+        return
+    print "".join(file(date_file, 'r').readlines())
+    print "To update all dependencies, run \"yt update --all\"."
+    
+def _update_yt_stack(path):
+    "Rerun the install script to updated all dependencies."
+    
+    install_script = os.path.join(path, "doc/install_script.sh")
+    if not os.path.exists(install_script):
+        print
+        print "Install script not found!"
+        print "The install script should be here: %s," % install_script
+        print "but it was not."
+        return
+
+    print
+    print "We will now attempt to update the yt stack located at:"
+    print "    %s." % os.environ["YT_DEST"]
+    print
+    print "[hit enter to continue or Ctrl-C to stop]"
+    try:
+        raw_input()
+    except:
+        sys.exit(0)
+    os.environ["REINST_YT"] = "1"
+    ret = subprocess.call(["bash", install_script])
+    print
+    if ret:
+        print "The install script seems to have failed."
+        print "Check the output above."
+    else:
+        print "The yt stack has been updated successfully."
+        print "Now get back to work!"
 
 def _update_hg(path, skip_rebuild = False):
     from mercurial import hg, ui, commands
@@ -1047,7 +1091,8 @@ class YTInstInfoCmd(YTCommand):
                 print "This installation CAN be automatically updated."
                 if opts.update_source:
                     update_hg(path)
-                print "Updated successfully."
+                    print "Updated successfully."
+                _get_yt_stack_date()
         elif opts.update_source:
             print
             print "YT site-packages not in path, so you must"
@@ -1549,6 +1594,7 @@ class YTStatsCmd(YTCommand):
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
 class YTUpdateCmd(YTCommand):
+    args = ("all", )
     name = "update"
     description = \
         """
@@ -1582,8 +1628,11 @@ class YTUpdateCmd(YTCommand):
             print "---"
             print
             print "This installation CAN be automatically updated."
-            update_hg(path)
+            update_hg(path, skip_rebuild=opts.reinstall)
             print "Updated successfully."
+            _get_yt_stack_date()
+            if opts.reinstall:
+                _update_yt_stack(path)
         else:
             print
             print "YT site-packages not in path, so you must"
