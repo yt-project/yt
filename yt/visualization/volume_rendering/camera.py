@@ -43,7 +43,7 @@ from yt.utilities.lib import \
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
 from yt.data_objects.api import ImageArray
-from yt.visualization.image_writer import write_bitmap, write_image
+from yt.visualization.image_writer import write_bitmap, write_image, apply_colormap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
