@@ -60,8 +60,8 @@ class IOHandlerStream(BaseIOHandler):
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
-        sl = tuple(reversed(sl))
-        tr = self.fields[grid.id][field][sl].swapaxes(0,2)
+        sl = tuple(sl)
+        tr = self.fields[grid.id][field][sl]
         # In-place unit conversion requires we return a copy
         return tr.copy()
 

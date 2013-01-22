@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
@@ -61,7 +61,7 @@ class Streamlines(ParallelAnalysisInterface):
         Default: minimum dx
     length : float, optional
         Optionally specify the length of integration.  
-        Default: na.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
+        Default: np.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
     direction : real, optional
         Specifies the direction of integration.  The magnitude of this
         value has no effect, only the sign.
@@ -77,10 +77,10 @@ class Streamlines(ParallelAnalysisInterface):
     >>> from yt.visualization.api import Streamlines
     >>> pf = load('DD1701') # Load pf
 
-    >>> c = na.array([0.5]*3)
+    >>> c = np.array([0.5]*3)
     >>> N = 100
     >>> scale = 1.0
-    >>> pos_dx = na.random.random((N,3))*scale-scale/2.
+    >>> pos_dx = np.random.random((N,3))*scale-scale/2.
     >>> pos = c+pos_dx
     
     >>> streamlines = Streamlines(pf,pos,'x-velocity', 'y-velocity', 'z-velocity', length=1.0) 
@@ -91,7 +91,7 @@ class Streamlines(ParallelAnalysisInterface):
     >>> fig=pl.figure() 
     >>> ax = Axes3D(fig)
     >>> for stream in streamlines.streamlines:
-    >>>     stream = stream[na.all(stream != 0.0, axis=1)]
+    >>>     stream = stream[np.all(stream != 0.0, axis=1)]
     >>>     ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
     >>> pl.savefig('streamlines.png')
     """
@@ -101,13 +101,13 @@ class Streamlines(ParallelAnalysisInterface):
                  get_magnitude=False):
         ParallelAnalysisInterface.__init__(self)
         self.pf = pf
-        self.start_positions = na.array(positions)
+        self.start_positions = np.array(positions)
         self.N = self.start_positions.shape[0]
         self.xfield = xfield
         self.yfield = yfield
         self.zfield = zfield
         self.get_magnitude=get_magnitude
-        self.direction = na.sign(direction)
+        self.direction = np.sign(direction)
         if volume is None:
             volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
                             log_fields=[False,False,False], merge_trees=True)
@@ -116,13 +116,15 @@ class Streamlines(ParallelAnalysisInterface):
             dx = self.pf.h.get_smallest_dx()
         self.dx = dx
         if length is None:
-            length = na.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
+            length = np.max(self.pf.domain_right_edge-self.pf.domain_left_edge)
         self.length = length
-        self.steps = int(length/dx)
-        self.streamlines = na.zeros((self.N,self.steps,3), dtype='float64')
+        self.steps = int(length/dx)+1
+        # Fix up the dx.
+        self.dx = 1.0*self.length/self.steps
+        self.streamlines = np.zeros((self.N,self.steps,3), dtype='float64')
         self.magnitudes = None
         if self.get_magnitude:
-            self.magnitudes = na.zeros((self.N,self.steps), dtype='float64')
+            self.magnitudes = np.zeros((self.N,self.steps), dtype='float64')
         
     def integrate_through_volume(self):
         nprocs = self.comm.size
@@ -146,7 +148,8 @@ class Streamlines(ParallelAnalysisInterface):
     @parallel_passthrough
     def _finalize_parallel(self,data):
         self.streamlines = self.comm.mpi_allreduce(self.streamlines, op='sum')
-        self.magnitudes = self.comm.mpi_allreduce(self.magnitudes, op='sum')
+        if self.get_magnitude:
+            self.magnitudes = self.comm.mpi_allreduce(self.magnitudes, op='sum')
         
     def _integrate_through_brick(self, node, stream, step,
                                  periodic=False, mag=None):
@@ -161,21 +164,21 @@ class Streamlines(ParallelAnalysisInterface):
                 brick.integrate_streamline(stream[-step+1], self.direction*self.dx, marr)
                 mag[-step+1] = marr[0]
                 
-            if na.any(stream[-step+1,:] <= self.pf.domain_left_edge) | \
-                   na.any(stream[-step+1,:] >= self.pf.domain_right_edge):
+            if np.any(stream[-step+1,:] <= self.pf.domain_left_edge) | \
+                   np.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
 
-            if na.any(stream[-step+1,:] < node.l_corner) | \
-                   na.any(stream[-step+1,:] >= node.r_corner):
+            if np.any(stream[-step+1,:] < node.l_corner) | \
+                   np.any(stream[-step+1,:] >= node.r_corner):
                 return step-1
             step -= 1
         return step
 
     def clean_streamlines(self):
-        temp = na.empty(self.N, dtype='object')
-        temp2 = na.empty(self.N, dtype='object')
+        temp = np.empty(self.N, dtype='object')
+        temp2 = np.empty(self.N, dtype='object')
         for i,stream in enumerate(self.streamlines):
-            mask = na.all(stream != 0.0, axis=1)
+            mask = np.all(stream != 0.0, axis=1)
             temp[i] = stream[mask]
             temp2[i] = self.magnitudes[i,mask]
         self.streamlines = temp
@@ -205,5 +208,6 @@ class Streamlines(ParallelAnalysisInterface):
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
         
         """
-        return AMRStreamlineBase(self.streamlines[streamline_id], pf=self.pf)
+        return self.pf.h.streamline(self.streamlines[streamline_id],
+                                    length = self.length)
         

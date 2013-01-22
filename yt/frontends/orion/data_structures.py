@@ -31,14 +31,15 @@ from collections import defaultdict
 from string import strip, rstrip
 from stat import ST_CTIME
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.hierarchy import AMRHierarchy
 from yt.data_objects.static_output import StaticOutput
-from yt.utilities.definitions import mpc_conversion
+from yt.utilities.definitions import \
+    mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
@@ -98,17 +99,11 @@ class OrionGrid(AMRGridPatch):
             self.Parent = None
 
     def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id - self._id_offset
-        if self.Parent is not None:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        # has already been read in and stored in hierarchy
+        dx = self.hierarchy.grid_dxs[self.index][0]
+        dy = self.hierarchy.grid_dys[self.index][0]
+        dz = self.hierarchy.grid_dzs[self.index][0]
+        self.dds = np.array([dx, dy, dz])
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -138,7 +133,7 @@ class OrionHierarchy(AMRHierarchy):
         simply add it to the if/elif/else block.
 
         """
-        self.grid_particle_count = na.zeros(len(self.grids))
+        self.grid_particle_count = np.zeros(len(self.grids))
 
         for particle_filename in ["StarParticles", "SinkParticles"]:
             fn = os.path.join(self.pf.fullplotdir, particle_filename)
@@ -151,7 +146,7 @@ class OrionHierarchy(AMRHierarchy):
         if not os.path.exists(fn): return
         with open(fn, 'r') as f:
             lines = f.readlines()
-            self.num_stars = int(lines[0].strip())
+            self.num_stars = int(lines[0].strip()[0])
             for line in lines[1:]:
                 particle_position_x = float(line.split(' ')[1])
                 particle_position_y = float(line.split(' ')[2])
@@ -159,20 +154,20 @@ class OrionHierarchy(AMRHierarchy):
                 coord = [particle_position_x, particle_position_y, particle_position_z]
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
-                mask=na.ones(self.num_grids)
+                mask=np.ones(self.num_grids)
                 for i in xrange(len(coord)):
-                    na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                    ind = na.where(mask == 1)
-                    selected_grids = self.grids[ind]
-                    # in orion, particles always live on the finest level.
-                    # so, we want to assign the particle to the finest of
-                    # the grids we just found
-                    if len(selected_grids) != 0:
-                        grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                        ind = na.where(self.grids == grid)[0][0]
-                        self.grid_particle_count[ind] += 1
-                        self.grids[ind].NumberOfParticles += 1
+                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                ind = np.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = np.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
         return True
                 
     def readGlobalHeader(self,filename,paranoid_read):
@@ -210,20 +205,20 @@ class OrionHierarchy(AMRHierarchy):
         # case in the future we want to enable a "backwards" way of
         # taking the data out of the Header file and using it to fill
         # in in the case of a missing inputs file
-        self.domainLeftEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        self.domainLeftEdge_unnecessary = np.array(map(float,self.__global_header_lines[counter].split()))
         counter += 1
-        self.domainRightEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        self.domainRightEdge_unnecessary = np.array(map(float,self.__global_header_lines[counter].split()))
         counter += 1
-        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split() #na.array(map(int,self.__global_header_lines[counter].split()))
+        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split() #np.array(map(int,self.__global_header_lines[counter].split()))
         counter += 1
         self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
         #domain_re.search(self.__global_header_lines[counter]).groups()
         counter += 1
         self.timestepsPerLevel_unnecessary = self.__global_header_lines[counter]
         counter += 1
-        self.dx = na.zeros((self.n_levels,3))
+        self.dx = np.zeros((self.n_levels,3))
         for i,line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
-            self.dx[i] = na.array(map(float,line.split()))
+            self.dx[i] = np.array(map(float,line.split()))
         counter += self.n_levels
         self.geometry = int(self.__global_header_lines[counter])
         if self.geometry != 0:
@@ -301,8 +296,8 @@ class OrionHierarchy(AMRHierarchy):
                 counter+=1
                 zlo,zhi = map(float,self.__global_header_lines[counter].split())
                 counter+=1
-                lo = na.array([xlo,ylo,zlo])
-                hi = na.array([xhi,yhi,zhi])
+                lo = np.array([xlo,ylo,zlo])
+                hi = np.array([xhi,yhi,zhi])
                 dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
                 self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read,hierarchy=self))
                 grid_counter += 1 # this is global, and shouldn't be reset
@@ -346,17 +341,17 @@ class OrionHierarchy(AMRHierarchy):
         self._dtype = dtype
 
     def __calculate_grid_dimensions(self,start_stop):
-        start = na.array(map(int,start_stop[0].split(',')))
-        stop = na.array(map(int,start_stop[1].split(',')))
+        start = np.array(map(int,start_stop[0].split(',')))
+        stop = np.array(map(int,start_stop[1].split(',')))
         dimension = stop - start + 1
         return dimension,start,stop
         
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
-        self.grids = na.concatenate([level.grids for level in self.levels])
-        self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
-        self.grid_levels = na.array(self.grid_levels.reshape((self.num_grids,1)),dtype='int32')
-        grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
+        self.grids = np.concatenate([level.grids for level in self.levels])
+        self.grid_levels = np.concatenate([level.ngrids*[level.level] for level in self.levels])
+        self.grid_levels = np.array(self.grid_levels.reshape((self.num_grids,1)),dtype='int32')
+        grid_dcs = np.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
         self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
         self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
         self.grid_dzs = grid_dcs[:,2].reshape((self.num_grids,1))
@@ -367,9 +362,9 @@ class OrionHierarchy(AMRHierarchy):
             left_edges += [g.LeftEdge for g in level.grids]
             right_edges += [g.RightEdge for g in level.grids]
             dims += [g.ActiveDimensions for g in level.grids]
-        self.grid_left_edge = na.array(left_edges)
-        self.grid_right_edge = na.array(right_edges)
-        self.grid_dimensions = na.array(dims)
+        self.grid_left_edge = np.array(left_edges)
+        self.grid_right_edge = np.array(right_edges)
+        self.grid_dimensions = np.array(dims)
         self.gridReverseTree = [] * self.num_grids
         self.gridReverseTree = [ [] for i in range(self.num_grids)]
         self.gridTree = [ [] for i in range(self.num_grids)]
@@ -398,10 +393,10 @@ class OrionHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
+        mask = np.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
         return self.grids[mask]
 
     def _count_grids(self):
@@ -412,11 +407,11 @@ class OrionHierarchy(AMRHierarchy):
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+        self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
     def _parse_hierarchy(self):
         pass
@@ -550,14 +545,14 @@ class OrionStaticOutput(StaticOutput):
                 
             elif param.startswith("geometry.prob_hi"):
                 self.domain_right_edge = \
-                    na.array([float(i) for i in vals.split()])
+                    np.array([float(i) for i in vals.split()])
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = \
-                    na.array([float(i) for i in vals.split()])
+                    np.array([float(i) for i in vals.split()])
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
-        self.domain_dimensions = na.array(self.parameters["TopGridDimensions"],dtype='int32')
+        self.domain_dimensions = np.array(self.parameters["TopGridDimensions"],dtype='int32')
         self.refine_by = self.parameters["RefineBy"]
 
         if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):
@@ -622,11 +617,8 @@ class OrionStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
         for key in yt2orionFieldsDict:
             self.conversion_factors[key] = 1.0
 

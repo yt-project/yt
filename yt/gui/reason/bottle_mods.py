@@ -24,15 +24,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.bottle import \
-    server_names, debug, route, run, request, ServerAdapter
 import uuid
-from extdirect_router import DirectRouter, DirectProviderDefinition
 import json
 import logging, threading
+import sys
+import urllib, urllib2
+import numpy as np
+
+from yt.utilities.bottle import \
+    server_names, debug, route, run, request, ServerAdapter, response
+from extdirect_router import DirectRouter, DirectProviderDefinition
 from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import *
-import sys
 
 route_functions = {}
 route_watchers = []
@@ -47,17 +50,39 @@ def preroute(future_route, *args, **kwargs):
 def notify_route(watcher):
     route_watchers.append(watcher)
 
+class BinaryDelivery(object):
+    delivered = False
+    payload = ""
+    def __init__(self, payload, name = ""):
+        self.name = name
+        self.payload = payload
+        #sys.__stderr__.write("CREATING A BINARY PAYLOAD %s (%s)\n" % (
+        #    self.name, len(self.payload)))
+
+    def get(self):
+        # We set our 
+        #sys.__stderr__.write("REQUESTED A BINARY PAYLOAD %s (%s)\n" % (
+        #    self.name, len(self.payload)))
+        p = self.payload
+        if p == "":
+            response.status = 404
+            return
+        self.payload = ""
+        return p
+
 class PayloadHandler(object):
     _shared_state = {}
-    _hold = False
     payloads = None
+    binary_payloads = None
     recorded_payloads = None
+    multicast_ids = None
+    multicast_payloads = None
     lock = None
     record = False
     event = None
     count = 0
     debug = False
-
+    _prefix = ""
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -69,10 +94,12 @@ class PayloadHandler(object):
         if self.lock is None: self.lock = threading.Lock()
         if self.recorded_payloads is None: self.recorded_payloads = []
         if self.event is None: self.event = threading.Event()
+        if self.multicast_payloads is None: self.multicast_payloads = {}
+        if self.multicast_ids is None: self.multicast_ids = {}
+        if self.binary_payloads is None: self.binary_payloads = []
 
     def deliver_payloads(self):
         with self.lock:
-            if self._hold: return []
             payloads = self.payloads
             if self.record:
                 self.recorded_payloads += self.payloads
@@ -82,19 +109,62 @@ class PayloadHandler(object):
                     sys.__stderr__.write("****    %s\n" % p['type'])
             self.payloads = []
             self.event.clear()
+            try:
+                self.deliver_multicast()
+            except Exception as exc:
+                sys.__stderr__.write("%s" % exc)
         return payloads
 
     def add_payload(self, to_add):
         with self.lock:
+            if "binary" in to_add:
+                self._add_binary_payload(to_add)
             self.payloads.append(to_add)
+            # Does this next part need to be in the lock?
+            if to_add.get("widget_id", None) in self.multicast_ids:
+                self.multicast_payloads[to_add["widget_id"]] = to_add
             self.count += 1
             self.event.set()
             if self.debug:
                 sys.__stderr__.write("**** Adding payload of type %s\n" % (to_add['type']))
 
+    def _add_binary_payload(self, bp):  
+        # This shouldn't be called by anybody other than add_payload.
+        bkeys = ensure_list(bp['binary'])
+        bp['binary'] = []
+        for bkey in bkeys:
+            bdata = bp.pop(bkey) # Get the binary data
+            if isinstance(bdata, np.ndarray):
+                bdata = bdata.tostring()
+            bpserver = BinaryDelivery(bdata, bkey)
+            self.binary_payloads.append(bpserver)
+            uu = uuid.uuid4().hex
+            bp['binary'].append((bkey, uu))
+            route("%s/%s" % (self._prefix, uu))(bpserver.get)
+            if self.debug:
+                sys.__stderr__.write(
+                    "**** Adding binary payload (%s) to %s\n" % (bkey, uu))
+
     def replay_payloads(self):
         return self.recorded_payloads
 
+    def widget_payload(self, widget, data):
+        data['type'] = 'widget_payload'
+        data['widget_id'] = widget._ext_widget_id
+        self.add_payload(data)
+
+    def deliver_multicast(self):
+        for widget_id in self.multicast_payloads:
+            if widget_id not in self.multicast_payloads: continue
+            server_id, session_token = self.multicast_ids[widget_id]
+            # Now we execute a post to the correct location
+            data = urllib.urlencode({
+                'payload_session_id': server_id,
+                'payload_session_token': session_token,
+                'payload_data': self.multicast_payloads[widget_id],
+                'payload_metadata': {}
+            })
+            urllib2.urlopen("http://localhost:8080/UpdatePayload", data = data)
 
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
@@ -114,13 +184,14 @@ class BottleDirectRouter(DirectRouter):
         future_route = self.api_url
         super(BottleDirectRouter, self).__init__(*args, **kwargs)
         self.__name__ = str(self.my_name)
-        route_functions[future_route] = ((), {'method':"POST"}, self)
+        route_functions[future_route] = ((), {'method':("POST", "GET")}, self)
         preroute("/resources/ext-%s-api.js" % self.api_url, method="GET")(self._myapi)
         notify_route(self)
 
     def _myapi(self):
         dpd = DirectProviderDefinition(self, self.api_url, ns="yt_rpc")
         source = "Ext.Direct.addProvider(%s);" % json.dumps(dpd._config())
+        response.headers['Content-Type'] = "text/javascript"
         return source
 
     def __call__(self):
@@ -205,3 +276,30 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
     server = server_type(host='localhost', port=port, **kwargs)
     mylog.info("Starting up the server.")
     run(server=server)
+
+class MethodLock(object):
+    _shared_state = {}
+    locks = None
+
+    def __new__(cls, *p, **k):
+        self = object.__new__(cls, *p, **k)
+        self.__dict__ = cls._shared_state
+        return self
+
+    def __init__(self):
+        if self.locks is None: self.locks = {}
+
+    def __call__(self, func):
+        if str(func) not in self.locks:
+            self.locks[str(func)] = threading.Lock()
+        @wraps(func)
+        def locker(*args, **kwargs):
+            print "Acquiring lock on %s" % (str(func))
+            with self.locks[str(func)]:
+                rv = func(*args, **kwargs)
+            print "Regained lock on %s" % (str(func))
+            return rv
+        return locker
+
+lockit = MethodLock()
+

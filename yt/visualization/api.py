@@ -61,4 +61,12 @@ from easy_plots import \
     plot_type_registry
 
 from streamlines import \
-     Streamlines
+    Streamlines
+
+from plot_window import \
+    SlicePlot, \
+    OffAxisSlicePlot, \
+    ProjectionPlot, \
+    OffAxisProjectionPlot
+    
+

@@ -23,13 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
+import numpy as np
+from distutils import version
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.utilities.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from collections import defaultdict
@@ -57,6 +61,18 @@ def ensure_list(obj):
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
+
+def ensure_numpy_array(obj):
+    """
+    This function ensures that *obj* is a numpy array. Typically used to
+    convert scalar, list or tuple argument passed to functions using Cython.
+    """
+    if isinstance(obj, np.ndarray):
+        return obj
+    elif isinstance(obj, (types.ListType, types.TupleType)):
+        return np.asarray(obj)
+    else:
+        return np.asarray([obj])
 
 def read_struct(f, fmt):
     """
@@ -94,22 +110,6 @@ try:
 except ImportError:
     pass
 
-def __memory_fallback(pid):
-    """
-    Get process memory from a system call.
-    """
-    value = os.popen('ps -o rss= -p %d' % pid).read().strip().split('\n')
-    if len(value) == 1: return float(value[0])
-    value.pop(0)
-    for line in value:
-        online = line.split()
-        if online[0] != pid: continue
-        try:
-            return float(online[2])
-        except:
-            return 0.0
-    return 0.0
-
 def get_memory_usage():
     """
     Returning resident size in megabytes
@@ -118,10 +118,10 @@ def get_memory_usage():
     try:
         pagesize = resource.getpagesize()
     except NameError:
-        return __memory_fallback(pid) / 1024
+        return -1024
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return __memory_fallback(pid) / 1024
+        return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
@@ -181,7 +181,7 @@ def rootonly(func):
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
         if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
-            return 
+            return
         return func(*args, **kwargs)
     return check_parallel_rank
 
@@ -198,7 +198,7 @@ def deprecate(func):
 
     .. code-block:: python
 
-       @rootonly
+       @deprecate
        def some_really_old_function(...):
 
     """
@@ -218,7 +218,7 @@ def pdb_run(func):
 
     .. code-block:: python
 
-       @rootonly
+       @pdb_run
        def some_function_to_debug(...):
 
     """
@@ -247,10 +247,10 @@ def insert_ipython(num_up=1):
     """
 
     import IPython
-    if IPython.__version__.startswith("0.10"):
-       api_version = '0.10'
-    elif IPython.__version__.startswith("0.11"):
-       api_version = '0.11'
+    if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
+        api_version = '0.10'
+    else:
+        api_version = '0.11'
 
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
@@ -323,21 +323,15 @@ def get_pbar(title, maxval):
     """
     maxval = max(maxval, 1)
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","suppressStreamLogging"):
-        return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
-    elif "SAGE_ROOT" in os.environ:
-        try:
-            from sage.server.support import EMBEDDED_MODE
-            if EMBEDDED_MODE: return DummyProgressBar()
-        except:
-            pass
-    elif "CODENODE" in os.environ:
+    if ytcfg.getboolean("yt", "suppressStreamLogging") or \
+       "__IPYTHON__" in dir(__builtin__) or \
+       ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar
         return ExtProgressBar(title, maxval)
+    elif ytcfg.getboolean("yt", "__parallel"):
+        return ParallelProgressBar(title, maxval)
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),
@@ -485,6 +479,11 @@ def get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
@@ -568,10 +567,25 @@ def fix_length(length, pf):
 def parallel_profile(prefix):
     import cProfile
     from yt.config import ytcfg
-    fn = "%s_%04i.cprof" % (prefix,
+    fn = "%s_%04i_%04i.cprof" % (prefix,
+                ytcfg.getint("yt", "__topcomm_parallel_size"),
                 ytcfg.getint("yt", "__topcomm_parallel_rank"))
     p = cProfile.Profile()
     p.enable()
-    yield
+    yield fn
     p.disable()
     p.dump_stats(fn)
+
+def get_num_threads():
+    from .config import ytcfg
+    nt = ytcfg.getint("yt","numthreads")
+    if nt < 0:
+        return os.environ.get("OMP_NUM_THREADS", 0)
+    return nt
+
+def fix_axis(axis):
+    return inv_axis_names.get(axis, axis)
+
+def get_image_suffix(name):
+    suffix = os.path.splitext(name)[1]
+    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''

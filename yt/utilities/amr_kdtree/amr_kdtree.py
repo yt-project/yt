@@ -25,10 +25,12 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import numpy as na
+import numpy as np
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
-from yt.utilities.amr_utils import PartitionedGrid, kdtree_get_choices
+from yt.visualization.image_writer import write_image, write_bitmap
+from yt.utilities.lib import kdtree_get_choices
+from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
@@ -59,7 +61,7 @@ def _lchild_id(id): return (id<<1) + 1
 def _rchild_id(id): return (id<<1) + 2
 def _parent_id(id): return (id-1)>>1
 
-steps = na.array([[-1, -1, -1],
+steps = np.array([[-1, -1, -1],
                   [-1, -1,  0],
                   [-1, -1,  1],
                   [-1,  0, -1],
@@ -317,31 +319,31 @@ class AMRKDTree(HomogenizedVolume):
         if l_max is None:
             self.l_max = self.pf.hierarchy.max_level+1
         else:
-            self.l_max = na.min([l_max,self.pf.hierarchy.max_level+1])
+            self.l_max = np.min([l_max,self.pf.hierarchy.max_level+1])
 
         if le is None:
             self.domain_left_edge = pf.domain_left_edge
         else:
-            self.domain_left_edge = na.array(le)
+            self.domain_left_edge = np.array(le)
 
         if re is None:
             self.domain_right_edge = pf.domain_right_edge
         else:
-            self.domain_right_edge = na.array(re)
+            self.domain_right_edge = np.array(re)
 
-        self.domain_left_edge = na.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
-        self.domain_right_edge = na.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
+        self.domain_left_edge = np.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
+        self.domain_right_edge = np.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
 
         levels = pf.hierarchy.get_levels()
         root_grids = levels.next()
         covering_grids = root_grids
-        vol_needed = na.prod(self.domain_right_edge-self.domain_left_edge)
+        vol_needed = np.prod(self.domain_right_edge-self.domain_left_edge)
 
         for i in range(self.pf.hierarchy.max_level):
-            root_l_data = na.clip(na.array([grid.LeftEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
-            root_r_data = na.clip(na.array([grid.RightEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
+            root_l_data = np.clip(np.array([grid.LeftEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
+            root_r_data = np.clip(np.array([grid.RightEdge for grid in root_grids]),self.domain_left_edge, self.domain_right_edge)
             
-            vol = na.prod(root_r_data-root_l_data,axis=1).sum()
+            vol = np.prod(root_r_data-root_l_data,axis=1).sum()
             if vol >= vol_needed:
                 covering_grids = root_grids
                 root_grids = levels.next()
@@ -354,18 +356,18 @@ class AMRKDTree(HomogenizedVolume):
         self.domain_left_edge = ((self.domain_left_edge)/rgdds).astype('int64')*rgdds
         self.domain_right_edge = (((self.domain_right_edge)/rgdds).astype('int64')+1)*rgdds
 
-        self.domain_left_edge = na.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
-        self.domain_right_edge = na.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
+        self.domain_left_edge = np.clip(self.domain_left_edge,pf.domain_left_edge, pf.domain_right_edge)
+        self.domain_right_edge = np.clip(self.domain_right_edge,pf.domain_left_edge, pf.domain_right_edge)
         
         self.my_l_corner = self.domain_left_edge
         self.my_r_corner = self.domain_right_edge
 
         #mylog.info('Making kd tree from le %s to %s'% (self.domain_left_edge, self.domain_right_edge))
         
-        root_l_data = na.array([grid.LeftEdge for grid in root_grids])
-        root_r_data = na.array([grid.RightEdge for grid in root_grids])
-        root_we_want = na.all(root_l_data < self.my_r_corner,axis=1)*\
-                       na.all(root_r_data > self.my_l_corner,axis=1)
+        root_l_data = np.array([grid.LeftEdge for grid in root_grids])
+        root_r_data = np.array([grid.RightEdge for grid in root_grids])
+        root_we_want = np.all(root_l_data < self.my_r_corner,axis=1)*\
+                       np.all(root_r_data > self.my_l_corner,axis=1)
         
         root_grids = root_grids[root_we_want]
 
@@ -548,7 +550,7 @@ class AMRKDTree(HomogenizedVolume):
         center cell (i,j,k) is ommitted.
         
         """
-        position = na.array(position)
+        position = np.array(position)
         grid = self.locate_brick(position).grid
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)
@@ -581,20 +583,20 @@ class AMRKDTree(HomogenizedVolume):
         center cell (i,j,k) is ommitted.
         
         """
-        ci = na.array(ci)
+        ci = np.array(ci)
         center_dds = grid.dds
-        position = grid.LeftEdge + (na.array(ci)+0.5)*grid.dds
-        grids = na.empty(26, dtype='object')
-        cis = na.empty([26,3], dtype='int64')
+        position = grid.LeftEdge + (np.array(ci)+0.5)*grid.dds
+        grids = np.empty(26, dtype='object')
+        cis = np.empty([26,3], dtype='int64')
         offs = 0.5*(center_dds + self.sdx)
 
         new_cis = ci + steps
-        in_grid = na.all((new_cis >=0)*
+        in_grid = np.all((new_cis >=0)*
                          (new_cis < grid.ActiveDimensions),axis=1)
         new_positions = position + steps*offs
         grids[in_grid] = grid
                 
-        get_them = na.argwhere(in_grid != True).ravel()
+        get_them = np.argwhere(in_grid != True).ravel()
         cis[in_grid] = new_cis[in_grid]
 
         if (in_grid != True).sum()>0:
@@ -666,7 +668,7 @@ class AMRKDTree(HomogenizedVolume):
                     dds = []
                     for i,field in enumerate(self.fields):
                         vcd = current_node.grid.get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
-                        if self.log_fields[i]: vcd = na.log10(vcd)
+                        if self.log_fields[i]: vcd = np.log10(vcd)
                         dds.append(vcd)
                     current_saved_grids.append(current_node.grid)
                     current_vcds.append(dds)
@@ -675,17 +677,17 @@ class AMRKDTree(HomogenizedVolume):
                           current_node.li[1]:current_node.ri[1]+1,
                           current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
                 
-                if na.any(current_node.r_corner-current_node.l_corner == 0):
+                if np.any(current_node.r_corner-current_node.l_corner == 0):
                     current_node.brick = None
                 else:
-                    current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+                    current_node.brick = PartitionedGrid(current_node.grid.id, data,
                                                          current_node.l_corner.copy(), 
                                                          current_node.r_corner.copy(), 
                                                          current_node.dims.astype('int64'))
                 self.bricks.append(current_node.brick)
                 self.brick_dimensions.append(current_node.dims)
-        self.bricks = na.array(self.bricks)
-        self.brick_dimensions = na.array(self.brick_dimensions)
+        self.bricks = np.array(self.bricks)
+        self.brick_dimensions = np.array(self.brick_dimensions)
         del current_saved_grids, current_vcds
         self.bricks_loaded = True
 
@@ -699,7 +701,7 @@ class AMRKDTree(HomogenizedVolume):
             dds = []
             for i,field in enumerate(self.fields):
                 vcd = current_node.grid.get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
-                if self.log_fields[i]: vcd = na.log10(vcd)
+                if self.log_fields[i]: vcd = np.log10(vcd)
                 dds.append(vcd)
                 self.current_saved_grids.append(current_node.grid)
                 self.current_vcds.append(dds)
@@ -708,7 +710,7 @@ class AMRKDTree(HomogenizedVolume):
                   current_node.li[1]:current_node.ri[1]+1,
                   current_node.li[2]:current_node.ri[2]+1].copy() for d in dds]
 
-        current_node.brick = PartitionedGrid(current_node.grid.id, len(self.fields), data,
+        current_node.brick = PartitionedGrid(current_node.grid.id, data,
                                              current_node.l_corner.copy(), 
                                              current_node.r_corner.copy(), 
                                              current_node.dims.astype('int64'))
@@ -732,14 +734,14 @@ class AMRKDTree(HomogenizedVolume):
         dds = thisnode.grid.dds
         gle = thisnode.grid.LeftEdge
         gre = thisnode.grid.RightEdge
-        thisnode.li = na.rint((thisnode.l_corner-gle)/dds).astype('int32')
-        thisnode.ri = na.rint((thisnode.r_corner-gle)/dds).astype('int32')
+        thisnode.li = np.rint((thisnode.l_corner-gle)/dds).astype('int32')
+        thisnode.ri = np.rint((thisnode.r_corner-gle)/dds).astype('int32')
         thisnode.dims = (thisnode.ri - thisnode.li).astype('int32')
         # Here the cost is actually inversely proportional to 4**Level (empirical)
-        #thisnode.cost = (na.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
+        #thisnode.cost = (np.prod(thisnode.dims)/4.**thisnode.grid.Level).astype('int64')
         thisnode.cost = 1.0
         # Here is the old way
-        # thisnode.cost = na.prod(thisnode.dims).astype('int64')
+        # thisnode.cost = np.prod(thisnode.dims).astype('int64')
 
     def initialize_leafs(self):
         for node in self.depth_traverse():
@@ -752,7 +754,7 @@ class AMRKDTree(HomogenizedVolume):
         self.rebuild_references()
                 
     def trim_references(self):
-        par_tree_depth = long(na.log2(self.comm.size))
+        par_tree_depth = long(np.log2(self.comm.size))
         for i in range(2**self.comm.size):
             if ((i + 1)>>par_tree_depth) == 1:
                 # There are self.comm.size nodes that meet this criteria
@@ -765,7 +767,7 @@ class AMRKDTree(HomogenizedVolume):
                 del node.grids
             except:
                 pass
-            if not na.isreal(node.grid):
+            if not np.isreal(node.grid):
                 node.grid = node.grid.id
         if self.tree_dict[0].split_pos is None:
             self.tree_dict.pop(0)
@@ -922,6 +924,7 @@ class AMRKDTree(HomogenizedVolume):
                     current = current.parent
             else:
                 current = current.parent
+        
         return current, previous
                 
     def count_volume(self):
@@ -939,7 +942,7 @@ class AMRKDTree(HomogenizedVolume):
         v = 0.0
         for node in self.depth_traverse():
             if node.grid is not None:
-                v += na.prod(node.r_corner - node.l_corner)
+                v += np.prod(node.r_corner - node.l_corner)
         return v
 
     def count_cells(self):
@@ -954,10 +957,10 @@ class AMRKDTree(HomogenizedVolume):
         Total volume of the tree.
         
         """
-        c = na.int64(0)
+        c = np.int64(0)
         for node in self.depth_traverse():
             if node.grid is not None:
-                c += na.prod(node.ri - node.li).astype('int64')
+                c += np.prod(node.ri - node.li).astype('int64')
         return c
 
     def _build(self, grids, parent, l_corner, r_corner):
@@ -991,9 +994,16 @@ class AMRKDTree(HomogenizedVolume):
         current_node.r_corner = r_corner
         # current_node.owner = self.comm.rank
         current_node.id = 0
-        par_tree_depth = int(na.log2(self.comm.size))
+        par_tree_depth = int(np.log2(self.comm.size))
         anprocs = 2**par_tree_depth
+
+        volume_partitioned = 0.0
+        total_vol = np.prod(self.domain_right_edge-self.domain_left_edge)
+        pbar = get_pbar("Building kd-Tree", total_vol)
+
         while current_node is not None:
+            pbar.update(min(volume_partitioned, total_vol))
+
             # If we don't have any grids, that means we are revisiting
             # a dividing node, and there is nothing to be done.
             try: ngrids = current_node.grids
@@ -1012,7 +1022,7 @@ class AMRKDTree(HomogenizedVolume):
                     # This node belongs to someone else, move along
                     current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
-                
+
             # If we are down to one grid, we are either in it or the parent grid
             if len(current_node.grids) == 1:
                 thisgrid = current_node.grids[0]
@@ -1024,44 +1034,51 @@ class AMRKDTree(HomogenizedVolume):
                     if len(thisgrid.Children) > 0 and thisgrid.Level < self.l_max:
                         # Get the children that are actually in the current volume
                         children = [child.id - self._id_offset for child in thisgrid.Children  
-                                    if na.all(child.LeftEdge < current_node.r_corner) & 
-                                    na.all(child.RightEdge > current_node.l_corner)]
+                                    if np.all(child.LeftEdge < current_node.r_corner) & 
+                                    np.all(child.RightEdge > current_node.l_corner)]
 
                         # If we have children, get all the new grids, and keep building the tree
                         if len(children) > 0:
-                            current_node.grids = self.pf.hierarchy.grids[na.array(children,copy=False)]
+                            current_node.grids = self.pf.hierarchy.grids[np.array(children,copy=False)]
                             current_node.parent_grid = thisgrid
-                            # print 'My single grid covers the rest of the volume, and I have children, about to iterate on them'
+                            #print 'My single grid covers the rest of the volume, and I have children, about to iterate on them'
                             del children
                             continue
 
                     # Else make a leaf node (brick container)
+                    #print 'My single grid covers the rest of the volume, and I have no children', thisgrid
                     set_leaf(current_node, thisgrid, current_node.l_corner, current_node.r_corner)
+                    volume_partitioned += np.prod(current_node.r_corner-current_node.l_corner)
                     # print 'My single grid covers the rest of the volume, and I have no children'
                     current_node, previous_node = self.step_depth(current_node, previous_node)
                     continue
 
             # If we don't have any grids, this volume belongs to the parent        
             if len(current_node.grids) == 0:
+                #print 'This volume does not have a child grid, so it belongs to my parent!'
                 set_leaf(current_node, current_node.parent_grid, current_node.l_corner, current_node.r_corner)
-                # print 'This volume does not have a child grid, so it belongs to my parent!'
                 current_node, previous_node = self.step_depth(current_node, previous_node)
                 continue
 
             # If we've made it this far, time to build a dividing node
-            self._build_dividing_node(current_node)
+            # print 'Building dividing node'
+            # Continue if building failed
+            if self._build_dividing_node(current_node): continue
 
             # Step to the nest node in a depth-first traversal.
             current_node, previous_node = self.step_depth(current_node, previous_node)
+        
+        pbar.finish()
+
 
     def _get_choices(self, current_node):
         '''
         Given a node, finds all the choices for the next dividing plane.  
         '''
-        data = na.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
         # For some reason doing dim 0 separately is slightly faster.
         # This could be rewritten to all be in the loop below.
 
+        data = np.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
         best_dim, split, less_ids, greater_ids = \
             kdtree_get_choices(data, current_node.l_corner, current_node.r_corner)
         return data[:,:,best_dim], best_dim, split, less_ids, greater_ids
@@ -1071,16 +1088,27 @@ class AMRKDTree(HomogenizedVolume):
         Makes the current node a dividing node, and initializes the
         left and right children.
         '''
-        
-        data,best_dim,split,less_ids,greater_ids = self._get_choices(current_node)
+
+        data = np.array([(child.LeftEdge, child.RightEdge) for child in current_node.grids],copy=False)
+        best_dim, split, less_ids, greater_ids = \
+            kdtree_get_choices(data, current_node.l_corner, current_node.r_corner)
+
+        del data
+
+        # Here we break out if no unique grids were found. In this case, there
+        # are likely overlapping grids, and we assume that the first grid takes
+        # precedence.  This is fragile.
+        if best_dim == -1:
+            current_node.grids = [current_node.grids[0]]
+            return 1
 
         current_node.split_ax = best_dim
         current_node.split_pos = split
         #less_ids0 = (data[:,0] < split)
         #greater_ids0 = (split < data[:,1])
-        #assert(na.all(less_ids0 == less_ids))
-        #assert(na.all(greater_ids0 == greater_ids))
-        
+        #assert(np.all(less_ids0 == less_ids))
+        #assert(np.all(greater_ids0 == greater_ids))
+
         current_node.left_child = MasterNode(my_id=_lchild_id(current_node.id),
                                              parent=current_node,
                                              parent_grid=current_node.parent_grid,
@@ -1099,7 +1127,9 @@ class AMRKDTree(HomogenizedVolume):
         # build to work.  The other deletions are just to save memory.
         del current_node.grids, current_node.parent_grid, current_node.brick,\
             current_node.li, current_node.ri, current_node.dims
-        
+
+        return 0
+
     def traverse(self, back_center, front_center, image):
         r"""Traverses the kd-Tree, casting the partitioned grids from back to
             front.
@@ -1113,47 +1143,50 @@ class AMRKDTree(HomogenizedVolume):
             Position of the back center from which to start moving forward.
         front_center: array_like
             Position of the front center to which the traversal progresses.
-        image: na.array
+        image: np.array
             Image plane to contain resulting ray cast.
-            
+
         Returns
         ----------
         None, but modifies the image array.
-        
+
         See Also
         ----------
         yt.visualization.volume_rendering.camera
-        
+
         """
         if self.tree is None: 
-            print 'No KD Tree Exists'
+            mylog.error('No KD Tree Exists')
             return
         self.image = image
 
-        viewpoint = front_center
+        viewpoint = back_center 
+        # print 'Moving from front_center to back_center:',front_center, back_center
 
         for node in self.viewpoint_traverse(viewpoint):
             if node.grid is not None:
                 if node.brick is not None:
                     yield node.brick
-         
-        self.reduce_tree_images(self.tree, front_center)
+
+        mylog.debug('About to enter reduce, my image has a max of %e' %
+                self.image.max())
+        self.reduce_tree_images(self.tree, viewpoint)
         self.comm.barrier()
-        
+
     def reduce_tree_images(self, tree, viewpoint, image=None):
         if image is not None:
             self.image = image
-        rounds = int(na.log2(self.comm.size))
+        rounds = int(np.log2(self.comm.size))
         anprocs = 2**rounds
         my_node = tree
         my_node_id = 0
         my_node.owner = 0
-        path = na.binary_repr(anprocs+self.comm.rank)
+        path = np.binary_repr(anprocs+self.comm.rank)
         for i in range(rounds):
             try:
                 my_node.left_child.owner = my_node.owner
                 my_node.right_child.owner = my_node.owner + 2**(rounds-(i+1))
-                if path[i+1] is '0': 
+                if path[i+1] == '0':
                     my_node = my_node.left_child
                     my_node_id = my_node.id
                 else:
@@ -1165,54 +1198,54 @@ class AMRKDTree(HomogenizedVolume):
             #print self.comm.rank, 'my node', my_node_id
             parent = my_node.parent
             #print parent['split_ax'], parent['split_pos']
-            if viewpoint[parent.split_ax] <= parent.split_pos:
+            if viewpoint[parent.split_ax] > parent.split_pos:
                 front = parent.right_child
                 back = parent.left_child
             else:
                 front = parent.left_child
-                back = parent.right_child 
+                back = parent.right_child
+            # print 'Combining', viewpoint, parent.split_ax, parent.split_pos
+            # print front.l_corner, front.r_corner
+            # print back.l_corner, back.r_corner
 
             # mylog.debug('front owner %i back owner %i parent owner %i'%( front.owner, back.owner, parent.owner))
-                
             # Send the images around
             if front.owner == self.comm.rank:
                 if front.owner == parent.owner:
                     mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
                     arr2 = self.comm.recv_array(back.owner, tag=back.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
+                    ta = 1.0 - np.sum(self.image,axis=2)
+                    ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        #print arr2.shape
-                        #                ta = (1.0 - arr2[:,:,i+3])
-                        ta = (1.0 - na.sum(self.image,axis=2))
-                        ta[ta<0.0] = 0.0 
-                        self.image[:,:,i  ] = self.image[:,:,i  ] + ta * arr2[:,:,i  ]
+                        self.image[:,:,i  ] = self.image[:,:,i] + ta*arr2[:,:,i]
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
-                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank,back.owner))
+                    mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank,back.owner, self.image.max()))
                     self.comm.send_array(self.image.ravel(), back.owner, tag=self.comm.rank)
-                
+
             if back.owner == self.comm.rank:
                 if front.owner == parent.owner:
-                    mylog.debug('%04i sending my image to %04i'%(self.comm.rank, front.owner))
+                    mylog.debug('%04i sending my image to %04i with max %e'%(self.comm.rank, front.owner,
+                                self.image.max()))
                     self.comm.send_array(self.image.ravel(), front.owner, tag=self.comm.rank)
                 else:
                     mylog.debug('Reducing image.  You have %i rounds to go in this binary tree' % thisround)
                     mylog.debug('%04i receiving image from %04i'%(self.comm.rank,front.owner))
                     arr2 = self.comm.recv_array(front.owner, tag=front.owner).reshape(
                         (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
+                    #ta = np.exp(-np.sum(arr2,axis=2))
+                    ta = 1.0 - np.sum(arr2, axis=2)
+                    ta[ta<0.0] = 0.0
                     for i in range(3):
                         # This is the new way: alpha corresponds to opacity of a given
                         # slice.  Previously it was ill-defined, but represented some
                         # measure of emissivity.
-                        # print arr2.shape
-                        # ta = (1.0 - arr2[:,:,i+3])
-                        ta = (1.0 - na.sum(arr2,axis=2))
-                        ta[ta<0.0] = 0.0 
-                        self.image[:,:,i  ] = arr2[:,:,i  ] + ta * self.image[:,:,i  ]
-                        # image[:,:,i+3] = arr2[:,:,i+3] + ta * image[:,:,i+3]
+                        self.image[:,:,i  ] = ta*self.image[:,:,i  ] + arr2[:,:,i]
+
             # Set parent owner to back owner
             # my_node = (my_node-1)>>1
             if self.comm.rank == my_node.parent.owner: 
@@ -1251,7 +1284,7 @@ class AMRKDTree(HomogenizedVolume):
                 if node.grid is not None:
                     data = [f["brick_%s_%s" %
                               (hex(i), field)][:].astype('float64') for field in self.fields]
-                    node.brick = PartitionedGrid(node.grid.id, len(self.fields), data,
+                    node.brick = PartitionedGrid(node.grid.id, data,
                                                  node.l_corner.copy(), 
                                                  node.r_corner.copy(), 
                                                  node.dims.astype('int64'))
@@ -1259,8 +1292,8 @@ class AMRKDTree(HomogenizedVolume):
                     self.bricks.append(node.brick)
                     self.brick_dimensions.append(node.dims)
 
-            self.bricks = na.array(self.bricks)
-            self.brick_dimensions = na.array(self.brick_dimensions)
+            self.bricks = np.array(self.bricks)
+            self.brick_dimensions = np.array(self.brick_dimensions)
 
             self.bricks_loaded=True
             f.close()
@@ -1300,12 +1333,12 @@ class AMRKDTree(HomogenizedVolume):
         raise NotImplementedError()
         f = h5py.File(fn,"w")
         Nkd = len(self.tree)
-        kd_l_corners = na.zeros( (Nkd, 3), dtype='float64')
-        kd_r_corners = na.zeros( (Nkd, 3), dtype='float64')
-        kd_grids = na.zeros( (Nkd) )
-        kd_split_axs = na.zeros( (Nkd), dtype='int32')
-        kd_split_pos = na.zeros( (Nkd), dtype='float64')
-        kd_owners = na.zeros( (Nkd), dtype='int32')
+        kd_l_corners = np.zeros( (Nkd, 3), dtype='float64')
+        kd_r_corners = np.zeros( (Nkd, 3), dtype='float64')
+        kd_grids = np.zeros( (Nkd) )
+        kd_split_axs = np.zeros( (Nkd), dtype='int32')
+        kd_split_pos = np.zeros( (Nkd), dtype='float64')
+        kd_owners = np.zeros( (Nkd), dtype='int32')
         f.create_group("/bricks")
         for i, tree_item in enumerate(self.tree.iteritems()):
             kdid = tree_item[0]
@@ -1336,17 +1369,17 @@ class AMRKDTree(HomogenizedVolume):
         f.close()
         
     def corners_to_line(self,lc, rc):
-        x = na.array([ lc[0], lc[0], lc[0], lc[0], lc[0],
+        x = np.array([ lc[0], lc[0], lc[0], lc[0], lc[0],
                        rc[0], rc[0], rc[0], rc[0], rc[0],
                        rc[0], lc[0], lc[0], rc[0],
                        rc[0], lc[0], lc[0] ])
         
-        y = na.array([ lc[1], lc[1], rc[1], rc[1], lc[1],
+        y = np.array([ lc[1], lc[1], rc[1], rc[1], lc[1],
                        lc[1], lc[1], rc[1], rc[1], lc[1],
                        lc[1], lc[1], rc[1], rc[1],
                        rc[1], rc[1], lc[1] ])
         
-        z = na.array([ lc[2], rc[2], rc[2], lc[2], lc[2],
+        z = np.array([ lc[2], rc[2], rc[2], lc[2], lc[2],
                        lc[2], rc[2], rc[2], lc[2], lc[2],
                        rc[2], rc[2], rc[2], rc[2],
                        lc[2], lc[2], lc[2] ])

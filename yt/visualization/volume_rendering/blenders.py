@@ -1,4 +1,4 @@
-import numpy as na
+import numpy as np
 from yt.mods import *
 
 def enhance(im, stdval=6.0, just_alpha=True):

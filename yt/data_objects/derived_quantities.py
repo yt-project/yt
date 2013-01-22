@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -35,7 +35,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.amr_utils import Octree
+from yt.utilities.lib import Octree
 
 __CUDA_BLOCK_SIZE = 256
 
@@ -97,9 +97,10 @@ class DerivedQuantity(ParallelAnalysisInterface):
         self.retvals = [ [] for i in range(self.n_ret)]
         for gi,g in enumerate(self._get_grids()):
             rv = self.func(GridChildMaskWrapper(g, self._data_source), *args, **kwargs)
+            if not iterable(rv): rv = (rv,)
             for i in range(self.n_ret): self.retvals[i].append(rv[i])
             g.clear_data()
-        self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]
+        self.retvals = [np.array(self.retvals[i]) for i in range(self.n_ret)]
         return self.c_func(self._data_source, *self.retvals)
 
     def _finalize_parallel(self):
@@ -109,7 +110,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         # our long axis is the first one!
         rv = []
         for my_list in self.retvals:
-            data = na.array(my_list).transpose()
+            data = np.array(my_list).transpose()
             rv.append(self.comm.par_combine_object(data,
                         datatype="array", op="cat").transpose())
         self.retvals = rv
@@ -184,7 +185,7 @@ def _CenterOfMass(data, use_cells=True, use_particles=False):
 
     return x,y,z, den
 def _combCenterOfMass(data, x,y,z, den):
-    return na.array([x.sum(), y.sum(), z.sum()])/den.sum()
+    return np.array([x.sum(), y.sum(), z.sum()])/den.sum()
 add_quantity("CenterOfMass", function=_CenterOfMass,
              combine_function=_combCenterOfMass, n_ret = 4)
 
@@ -203,6 +204,29 @@ def _combWeightedAverageQuantity(data, field, weight):
 add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
 
+def _WeightedVariance(data, field, weight):
+    """
+    This function returns the variance of a field.
+
+    :param field: The target field
+    :param weight: The field to weight by
+
+    Returns the weighted variance and the weighted mean.
+    """
+    my_weight = data[weight].sum()
+    if my_weight == 0:
+        return 0.0, 0.0, 0.0
+    my_mean = (data[field] * data[weight]).sum() / my_weight
+    my_var2 = (data[weight] * (data[field] - my_mean)**2).sum() / my_weight
+    return my_weight, my_mean, my_var2
+def _combWeightedVariance(data, my_weight, my_mean, my_var2):
+    all_weight = my_weight.sum()
+    all_mean = (my_weight * my_mean).sum() / all_weight
+    return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
+                    all_weight), all_mean]
+add_quantity("WeightedVariance", function=_WeightedVariance,
+             combine_function=_combWeightedVariance, n_ret=3)
+
 def _BulkVelocity(data):
     """
     This function returns the mass-weighted average velocity in the object.
@@ -217,7 +241,7 @@ def _combBulkVelocity(data, xv, yv, zv, w):
     xv = xv.sum()/w
     yv = yv.sum()/w
     zv = zv.sum()/w
-    return na.array([xv, yv, zv])
+    return np.array([xv, yv, zv])
 add_quantity("BulkVelocity", function=_BulkVelocity,
              combine_function=_combBulkVelocity, n_ret=4)
 
@@ -248,9 +272,9 @@ def _StarAngularMomentumVector(data):
     return [j_mag]
 
 def _combAngularMomentumVector(data, j_mag):
-    if len(j_mag.shape) < 2: j_mag = na.expand_dims(j_mag, 0)
+    if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
     L_vec = j_mag.sum(axis=0)
-    L_vec_norm = L_vec / na.sqrt((L_vec**2.0).sum())
+    L_vec_norm = L_vec / np.sqrt((L_vec**2.0).sum())
     return L_vec_norm
 add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
@@ -267,17 +291,17 @@ def _BaryonSpinParameter(data):
     amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
     amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
     amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
-    j_mag = na.array([amx.sum(), amy.sum(), amz.sum()])
-    e_term_pre = na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
+    j_mag = np.array([amx.sum(), amy.sum(), amz.sum()])
+    e_term_pre = np.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
     weight=data["CellMassMsun"].sum()
     return j_mag, m_enc, e_term_pre, weight
 def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
     # Because it's a vector field, we have to ensure we have enough dimensions
-    if len(j_mag.shape) < 2: j_mag = na.expand_dims(j_mag, 0)
+    if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
     W = weight.sum()
     M = m_enc.sum()
-    J = na.sqrt(((j_mag.sum(axis=0))**2.0).sum())/W
-    E = na.sqrt(e_term_pre.sum()/W)
+    J = np.sqrt(((j_mag.sum(axis=0))**2.0).sum())/W
+    E = np.sqrt(e_term_pre.sum()/W)
     G = 6.67e-8 # cm^3 g^-1 s^-2
     spin = J * E / (M*1.989e33*G)
     return spin
@@ -291,11 +315,11 @@ def _ParticleSpinParameter(data):
     """
     m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
     amx = data["ParticleSpecificAngularMomentumX"]*data["ParticleMassMsun"]
-    if amx.size == 0: return (na.zeros((3,), dtype='float64'), m_enc, 0, 0)
+    if amx.size == 0: return (np.zeros((3,), dtype='float64'), m_enc, 0, 0)
     amy = data["ParticleSpecificAngularMomentumY"]*data["ParticleMassMsun"]
     amz = data["ParticleSpecificAngularMomentumZ"]*data["ParticleMassMsun"]
-    j_mag = na.array([amx.sum(), amy.sum(), amz.sum()])
-    e_term_pre = na.sum(data["ParticleMassMsun"]
+    j_mag = np.array([amx.sum(), amy.sum(), amz.sum()])
+    e_term_pre = np.sum(data["ParticleMassMsun"]
                        *data["ParticleVelocityMagnitude"]**2.0)
     weight=data["ParticleMassMsun"].sum()
     return j_mag, m_enc, e_term_pre, weight
@@ -359,15 +383,15 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         thermal = (data["ThermalEnergy"] * mass_to_use).sum()
         kinetic += thermal
     if periodic_test:
-        kinetic = na.ones_like(kinetic)
+        kinetic = np.ones_like(kinetic)
     # Gravitational potential energy
     # We only divide once here because we have velocity in cgs, but radius is
     # in code.
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
     # Check for periodicity of the clump.
-    two_root = 2. / na.array(data.pf.domain_dimensions)
+    two_root = 2. * np.array(data.pf.domain_width) / np.array(data.pf.domain_dimensions)
     domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
-    periodic = na.array([0., 0., 0.])
+    periodic = np.array([0., 0., 0.])
     for i,dim in enumerate(["x", "y", "z"]):
         sorted = data[dim][data[dim].argsort()]
         # If two adjacent values are different by (more than) two root grid
@@ -379,7 +403,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             # define the gap from the right boundary, which we'll use for the
             # periodic adjustment later.
             sel = (diff >= two_root[i])
-            index = na.min(na.nonzero(sel))
+            index = np.min(np.nonzero(sel))
             # The last addition term below ensures that the data makes a full
             # wrap-around.
             periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1] + \
@@ -401,26 +425,26 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             local_data[dim] += periodic[i]
             local_data[dim] %= domain_period[i]
     if periodic_test:
-        local_data["CellMass"] = na.ones_like(local_data["CellMass"])
+        local_data["CellMass"] = np.ones_like(local_data["CellMass"])
     import time
     t1 = time.time()
     if treecode:
         # Calculate the binding energy using the treecode method.
         # Faster but less accurate.
         # The octree doesn't like uneven root grids, so we will make it cubical.
-        root_dx = 1./na.array(data.pf.domain_dimensions).astype('float64')
-        left = min([na.amin(local_data['x']), na.amin(local_data['y']),
-            na.amin(local_data['z'])])
-        right = max([na.amax(local_data['x']), na.amax(local_data['y']),
-            na.amax(local_data['z'])])
-        cover_min = na.array([left, left, left])
-        cover_max = na.array([right, right, right])
+        root_dx = (data.pf.domain_width/np.array(data.pf.domain_dimensions)).astype('float64')
+        left = min([np.amin(local_data['x']), np.amin(local_data['y']),
+            np.amin(local_data['z'])])
+        right = max([np.amax(local_data['x']), np.amax(local_data['y']),
+            np.amax(local_data['z'])])
+        cover_min = np.array([left, left, left])
+        cover_max = np.array([right, right, right])
         # Fix the coverage to match to root grid cell left 
         # edges for making indexes.
         cover_min = cover_min - cover_min % root_dx
         cover_max = cover_max - cover_max % root_dx
-        cover_imin = (cover_min * na.array(data.pf.domain_dimensions)).astype('int64')
-        cover_imax = (cover_max * na.array(data.pf.domain_dimensions) + 1).astype('int64')
+        cover_imin = (cover_min / root_dx).astype('int64')
+        cover_imax = (cover_max / root_dx + 1).astype('int64')
         cover_ActiveDimensions = cover_imax - cover_imin
         # Create the octree with these dimensions.
         # One value (mass) with incremental=True.
@@ -428,12 +452,12 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         #print 'here', cover_ActiveDimensions
         # Now discover what levels this data comes from, not assuming
         # symmetry.
-        dxes = na.unique(data['dx']) # unique returns a sorted array,
-        dyes = na.unique(data['dy']) # so these will all have the same
-        dzes = na.unique(data['dz']) # order.
+        dxes = np.unique(data['dx']) # unique returns a sorted array,
+        dyes = np.unique(data['dy']) # so these will all have the same
+        dzes = np.unique(data['dz']) # order.
         # We only need one dim to figure out levels, we'll use x.
-        dx = 1./data.pf.domain_dimensions[0]
-        levels = (na.log(dx / dxes) / na.log(data.pf.refine_by)).astype('int')
+        dx = data.pf.domain_width[0]/data.pf.domain_dimensions[0]
+        levels = (np.log(dx / dxes) / np.log(data.pf.refine_by)).astype('int')
         lsort = levels.argsort()
         levels = levels[lsort]
         dxes = dxes[lsort]
@@ -446,9 +470,9 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
             thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
             thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
-	    vals = na.array([local_data["CellMass"][sel]], order='F')
+	    vals = np.array([local_data["CellMass"][sel]], order='F')
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
-               na.ones_like(thisx).astype('float64'), treecode = 1)
+               np.ones_like(thisx).astype('float64'), treecode = 1)
         # Now we calculate the binding energy using a treecode.
         octree.finalize(treecode = 1)
         mylog.info("Using a treecode to find gravitational energy for %d cells." % local_data['x'].size)
@@ -483,7 +507,7 @@ def _cudaIsBound(data, truncate, ratio):
     m = (data['CellMass'] * mass_scale_factor).astype('float32')
     assert(m.size > bsize)
 
-    gsize=int(na.ceil(float(m.size)/bsize))
+    gsize=int(np.ceil(float(m.size)/bsize))
     assert(gsize > 16)
 
     # Now the tedious process of rescaling our values...
@@ -491,7 +515,7 @@ def _cudaIsBound(data, truncate, ratio):
     x = ((data['x'] - data['x'].min()) * length_scale_factor).astype('float32')
     y = ((data['y'] - data['y'].min()) * length_scale_factor).astype('float32')
     z = ((data['z'] - data['z'].min()) * length_scale_factor).astype('float32')
-    p = na.zeros(z.shape, dtype='float32')
+    p = np.zeros(z.shape, dtype='float32')
     
     x_gpu = cuda.mem_alloc(x.size * x.dtype.itemsize)
     y_gpu = cuda.mem_alloc(y.size * y.dtype.itemsize)
@@ -568,7 +592,7 @@ def _cudaIsBound(data, truncate, ratio):
          block=(bsize,1,1), grid=(gsize, gsize), time_kernel=True)
     cuda.memcpy_dtoh(p, p_gpu)
     p1 = p.sum()
-    if na.any(na.isnan(p)): raise ValueError
+    if np.any(np.isnan(p)): raise ValueError
     return p1 * (length_scale_factor / (mass_scale_factor**2.0))
 
 def _Extrema(data, fields, non_zero = False, filter=None):
@@ -597,24 +621,24 @@ def _Extrema(data, fields, non_zero = False, filter=None):
                     continue
             else:
                 nz_filter = None
-            mins.append(data[field][nz_filter].min())
-            maxs.append(data[field][nz_filter].max())
+            mins.append(np.nanmin(data[field][nz_filter]))
+            maxs.append(np.nanmax(data[field][nz_filter]))
         else:
             if this_filter.any():
                 if non_zero:
                     nz_filter = ((this_filter) &
                                  (data[field][this_filter] > 0.0))
                 else: nz_filter = this_filter
-                mins.append(data[field][nz_filter].min())
-                maxs.append(data[field][nz_filter].max())
+                mins.append(np.nanmin(data[field][nz_filter]))
+                maxs.append(np.nanmax(data[field][nz_filter]))
             else:
                 mins.append(1e90)
                 maxs.append(-1e90)
     return len(fields), mins, maxs
 def _combExtrema(data, n_fields, mins, maxs):
-    mins, maxs = na.atleast_2d(mins, maxs)
+    mins, maxs = np.atleast_2d(mins, maxs)
     n_fields = mins.shape[1]
-    return [(na.min(mins[:,i]), na.max(maxs[:,i])) for i in range(n_fields)]
+    return [(np.min(mins[:,i]), np.max(maxs[:,i])) for i in range(n_fields)]
 add_quantity("Extrema", function=_Extrema, combine_function=_combExtrema,
              n_ret=3)
 
@@ -643,14 +667,14 @@ def _MaxLocation(data, field):
     """
     ma, maxi, mx, my, mz, mg = -1e90, -1, -1, -1, -1, -1
     if data[field].size > 0:
-        maxi = na.argmax(data[field])
+        maxi = np.argmax(data[field])
         ma = data[field][maxi]
         mx, my, mz = [data[ax][maxi] for ax in 'xyz']
         mg = data["GridIndices"][maxi]
     return (ma, maxi, mx, my, mz, mg)
 def _combMaxLocation(data, *args):
-    args = [na.atleast_1d(arg) for arg in args]
-    i = na.argmax(args[0]) # ma is arg[0]
+    args = [np.atleast_1d(arg) for arg in args]
+    i = np.argmax(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
 add_quantity("MaxLocation", function=_MaxLocation,
              combine_function=_combMaxLocation, n_ret = 6)
@@ -662,14 +686,14 @@ def _MinLocation(data, field):
     """
     ma, mini, mx, my, mz, mg = 1e90, -1, -1, -1, -1, -1
     if data[field].size > 0:
-        mini = na.argmin(data[field])
+        mini = np.argmin(data[field])
         ma = data[field][mini]
         mx, my, mz = [data[ax][mini] for ax in 'xyz']
         mg = data["GridIndices"][mini]
     return (ma, mini, mx, my, mz, mg)
 def _combMinLocation(data, *args):
-    args = [na.atleast_1d(arg) for arg in args]
-    i = na.argmin(args[0]) # ma is arg[0]
+    args = [np.atleast_1d(arg) for arg in args]
+    i = np.argmin(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
 add_quantity("MinLocation", function=_MinLocation,
              combine_function=_combMinLocation, n_ret = 6)
@@ -690,8 +714,8 @@ def _TotalQuantity(data, fields):
         totals.append(data[field].sum())
     return len(fields), totals
 def _combTotalQuantity(data, n_fields, totals):
-    totals = na.atleast_2d(totals)
+    totals = np.atleast_2d(totals)
     n_fields = totals.shape[1]
-    return [na.sum(totals[:,i]) for i in range(n_fields)]
+    return [np.sum(totals[:,i]) for i in range(n_fields)]
 add_quantity("TotalQuantity", function=_TotalQuantity,
                 combine_function=_combTotalQuantity, n_ret=2)

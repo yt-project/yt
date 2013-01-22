@@ -24,10 +24,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
-import amr_utils
+import yt.utilities.lib as lib
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):
@@ -35,24 +35,24 @@ class UnilinearFieldInterpolator:
         self.truncate = truncate
         x0, x1 = boundaries
         self.x_name = field_names
-        self.x_bins = na.linspace(x0, x1, table.shape[0]).astype('float64')
+        self.x_bins = np.linspace(x0, x1, table.shape[0]).astype('float64')
 
     def __call__(self, data_object):
         orig_shape = data_object[self.x_name].shape
         x_vals = data_object[self.x_name].ravel().astype('float64')
 
-        x_i = (na.digitize(x_vals, self.x_bins) - 1).astype('int32')
-        if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)):
+        x_i = (np.digitize(x_vals, self.x_bins) - 1).astype('int32')
+        if np.any((x_i == -1) | (x_i == len(self.x_bins)-1)):
             if not self.truncate:
                 mylog.error("Sorry, but your values are outside" + \
                             " the table!  Dunno what to do, so dying.")
                 mylog.error("Error was in: %s", data_object)
                 raise ValueError
             else:
-                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
+                x_i = np.minimum(np.maximum(x_i,0), len(self.x_bins)-2)
 
-        my_vals = na.zeros(x_vals.shape, dtype='float64')
-        amr_utils.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
+        my_vals = np.zeros(x_vals.shape, dtype='float64')
+        lib.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
         return my_vals.reshape(orig_shape)
 
 class BilinearFieldInterpolator:
@@ -61,29 +61,29 @@ class BilinearFieldInterpolator:
         self.truncate = truncate
         x0, x1, y0, y1 = boundaries
         self.x_name, self.y_name = field_names
-        self.x_bins = na.linspace(x0, x1, table.shape[0]).astype('float64')
-        self.y_bins = na.linspace(y0, y1, table.shape[1]).astype('float64')
+        self.x_bins = np.linspace(x0, x1, table.shape[0]).astype('float64')
+        self.y_bins = np.linspace(y0, y1, table.shape[1]).astype('float64')
 
     def __call__(self, data_object):
         orig_shape = data_object[self.x_name].shape
         x_vals = data_object[self.x_name].ravel().astype('float64')
         y_vals = data_object[self.y_name].ravel().astype('float64')
 
-        x_i = (na.digitize(x_vals, self.x_bins) - 1).astype('int32')
-        y_i = (na.digitize(y_vals, self.y_bins) - 1).astype('int32')
-        if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
-            or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)):
+        x_i = (np.digitize(x_vals, self.x_bins) - 1).astype('int32')
+        y_i = (np.digitize(y_vals, self.y_bins) - 1).astype('int32')
+        if np.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
+            or np.any((y_i == -1) | (y_i == len(self.y_bins)-1)):
             if not self.truncate:
                 mylog.error("Sorry, but your values are outside" + \
                             " the table!  Dunno what to do, so dying.")
                 mylog.error("Error was in: %s", data_object)
                 raise ValueError
             else:
-                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
-                y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
+                x_i = np.minimum(np.maximum(x_i,0), len(self.x_bins)-2)
+                y_i = np.minimum(np.maximum(y_i,0), len(self.y_bins)-2)
 
-        my_vals = na.zeros(x_vals.shape, dtype='float64')
-        amr_utils.BilinearlyInterpolate(self.table,
+        my_vals = np.zeros(x_vals.shape, dtype='float64')
+        lib.BilinearlyInterpolate(self.table,
                                  x_vals, y_vals, self.x_bins, self.y_bins,
                                  x_i, y_i, my_vals)
         return my_vals.reshape(orig_shape)
@@ -94,9 +94,9 @@ class TrilinearFieldInterpolator:
         self.truncate = truncate
         x0, x1, y0, y1, z0, z1 = boundaries
         self.x_name, self.y_name, self.z_name = field_names
-        self.x_bins = na.linspace(x0, x1, table.shape[0]).astype('float64')
-        self.y_bins = na.linspace(y0, y1, table.shape[1]).astype('float64')
-        self.z_bins = na.linspace(z0, z1, table.shape[2]).astype('float64')
+        self.x_bins = np.linspace(x0, x1, table.shape[0]).astype('float64')
+        self.y_bins = np.linspace(y0, y1, table.shape[1]).astype('float64')
+        self.z_bins = np.linspace(z0, z1, table.shape[2]).astype('float64')
 
     def __call__(self, data_object):
         orig_shape = data_object[self.x_name].shape
@@ -104,24 +104,24 @@ class TrilinearFieldInterpolator:
         y_vals = data_object[self.y_name].ravel().astype('float64')
         z_vals = data_object[self.z_name].ravel().astype('float64')
 
-        x_i = na.digitize(x_vals, self.x_bins) - 1
-        y_i = na.digitize(y_vals, self.y_bins) - 1
-        z_i = na.digitize(z_vals, self.z_bins) - 1
-        if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
-            or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)) \
-            or na.any((z_i == -1) | (z_i == len(self.z_bins)-1)):
+        x_i = np.digitize(x_vals, self.x_bins) - 1
+        y_i = np.digitize(y_vals, self.y_bins) - 1
+        z_i = np.digitize(z_vals, self.z_bins) - 1
+        if np.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
+            or np.any((y_i == -1) | (y_i == len(self.y_bins)-1)) \
+            or np.any((z_i == -1) | (z_i == len(self.z_bins)-1)):
             if not self.truncate:
                 mylog.error("Sorry, but your values are outside" + \
                             " the table!  Dunno what to do, so dying.")
                 mylog.error("Error was in: %s", data_object)
                 raise ValueError
             else:
-                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
-                y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
-                z_i = na.minimum(na.maximum(z_i,0), len(self.z_bins)-2)
+                x_i = np.minimum(np.maximum(x_i,0), len(self.x_bins)-2)
+                y_i = np.minimum(np.maximum(y_i,0), len(self.y_bins)-2)
+                z_i = np.minimum(np.maximum(z_i,0), len(self.z_bins)-2)
 
-        my_vals = na.zeros(x_vals.shape, dtype='float64')
-        amr_utils.TrilinearlyInterpolate(self.table,
+        my_vals = np.zeros(x_vals.shape, dtype='float64')
+        lib.TrilinearlyInterpolate(self.table,
                                  x_vals, y_vals, z_vals,
                                  self.x_bins, self.y_bins, self.z_bins,
                                  x_i, y_i, z_i, my_vals)
@@ -135,11 +135,11 @@ class TrilinearFieldInterpolator:
         xm = (self.x_bins[x_i+1] - x_vals) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         ym = (self.y_bins[y_i+1] - y_vals) / (self.y_bins[y_i+1] - self.y_bins[y_i])
         zm = (self.z_bins[z_i+1] - z_vals) / (self.z_bins[z_i+1] - self.z_bins[z_i])
-        if na.any(na.isnan(self.table)):
+        if np.any(np.isnan(self.table)):
             raise ValueError
-        if na.any(na.isnan(x) | na.isnan(y) | na.isnan(z)):
+        if np.any(np.isnan(x) | np.isnan(y) | np.isnan(z)):
             raise ValueError
-        if na.any(na.isnan(xm) | na.isnan(ym) | na.isnan(zm)):
+        if np.any(np.isnan(xm) | np.isnan(ym) | np.isnan(zm)):
             raise ValueError
         my_vals  = self.table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm)
         my_vals += self.table[x_i+1,y_i  ,z_i  ] * (x *ym*zm)

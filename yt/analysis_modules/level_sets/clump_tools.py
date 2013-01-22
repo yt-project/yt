@@ -23,8 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
-nar = na.array
+import numpy as np
+nar = np.array
 
 counter = 0
 def recursive_all_clumps(clump,list,level,parentnumber):
@@ -89,7 +89,7 @@ def clump_list_sort(clump_list):
     yt.visualization.plot_modification.ClumpContourCallback"""
     minDensity = [c['Density'].min() for c in clump_list]
     
-    args = na.argsort(minDensity)
+    args = np.argsort(minDensity)
     list = nar(clump_list)[args]
     reverse = range(list.size-1,-1,-1)
     return list[reverse]

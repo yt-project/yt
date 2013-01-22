@@ -27,7 +27,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import numpy.core.records as rec
 
 # Now define convenience functions
@@ -41,16 +41,5 @@ def blankRecordArray(desc, elements):
     """
     blanks = []
     for atype in desc['formats']:
-        blanks.append(na.zeros(elements, dtype=atype))
+        blanks.append(np.zeros(elements, dtype=atype))
     return rec.fromarrays(blanks, **desc)
-
-class YTArrayHandler(object):
-    def __getattr__(self, name):
-        try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            return getattr(na, name)
-        raise
-
-#na = YTArrayHandler()
-#print na.zeros

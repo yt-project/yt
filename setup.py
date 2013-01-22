@@ -7,24 +7,53 @@ import subprocess
 import distribute_setup
 distribute_setup.use_setuptools()
 
+from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils import log
+from distutils import version
 
-DATA_FILES_HTML = glob.glob('yt/gui/reason/html/*.html')
-DATA_FILES_JS = glob.glob('yt/gui/reason/html/js/*.js')
-DATA_FILES_PNG = glob.glob('yt/gui/reason/html/images/*.png') \
-                + glob.glob('yt/gui/reason/html/images/*.ico')
-DATA_FILES_LL = glob.glob('yt/gui/reason/html/leaflet/*.js') \
-                + glob.glob('yt/gui/reason/html/leaflet/*.css')
-DATA_FILES_LLI = glob.glob('yt/gui/reason/html/leaflet/images/*.png')
+REASON_FILES = []
+REASON_DIRS = [
+    "",
+    "resources",
+    "resources/ux",
+    "resources/images",
+    "resources/css",
+    "resources/css/images",
+    "app",
+    "app/store",
+    "app/store/widgets",
+    "app/view",
+    "app/view/widgets",
+    "app/model",
+    "app/controller",
+    "app/controller/widgets",
+    "app/templates",
+]
+
+for subdir in REASON_DIRS:
+    dir_name = "yt/gui/reason/html/%s/" % (subdir)
+    files = []
+    for ext in ["js", "html", "css", "png", "ico", "gif"]:
+        files += glob.glob("%s/*.%s" % (dir_name, ext))
+    REASON_FILES.append( (dir_name, files) )
 
 # Verify that we have Cython installed
 try:
     import Cython
+    if version.LooseVersion(Cython.__version__) < version.LooseVersion('0.16'):
+        needs_cython = True
+    else:
+        needs_cython = False
 except ImportError as e:
+    needs_cython = True
+
+if needs_cython:
     print "Cython is a build-time requirement for the source tree of yt."
     print "Please either install yt from a provided, release tarball,"
-    print "or install Cython (version 0.15 or higher)."
+    print "or install Cython (version 0.16 or higher)."
+    print "You may be able to accomplish this by typing:"
+    print "     pip install -U Cython"
     sys.exit(1)
 
 ######
@@ -78,10 +107,46 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 
 import setuptools
 
-VERSION = "2.4dev"
+VERSION = "2.5dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
+def get_mercurial_changeset_id(target_dir):
+    """adapted from a script by Jason F. Harris, published at
+
+    http://jasonfharris.com/blog/2010/05/versioning-your-application-with-the-mercurial-changeset-hash/
+
+    """
+    import subprocess
+    import re
+    get_changeset = subprocess.Popen('hg identify -b -i',
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     shell=True)
+        
+    if (get_changeset.stderr.read() != ""):
+        print "Error in obtaining current changeset of the Mercurial repository"
+        changeset = None
+        
+    changeset = get_changeset.stdout.read().strip()
+    if (not re.search("^[0-9a-f]{12}", changeset)):
+        print "Current changeset of the Mercurial repository is malformed"
+        changeset = None
+
+    return changeset
+
+class my_build_py(build_py):
+    def run(self):
+        # honor the --dry-run flag
+        if not self.dry_run:
+            target_dir = os.path.join(self.build_lib,'yt')
+            src_dir =  os.getcwd() 
+            changeset = get_mercurial_changeset_id(src_dir)
+            self.mkpath(target_dir)
+            with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
+                fobj.write("hg_version = '%s'\n" % changeset)
+
+            build_py.run(self)
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -126,18 +191,19 @@ def setup_package():
             'amr adaptivemeshrefinement',
         entry_points={'console_scripts': [
                             'yt = yt.utilities.command_line:run_main',
-                       ]},
+                      ],
+                      'nose.plugins.0.10': [
+                            'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
+                      ]
+        },
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url="http://yt-project.org/",
         license="GPL-3",
         configuration=configuration,
         zip_safe=False,
-        data_files=[('yt/gui/reason/html/', DATA_FILES_HTML),
-                      ('yt/gui/reason/html/js/', DATA_FILES_JS),
-                      ('yt/gui/reason/html/images/', DATA_FILES_PNG),
-                      ('yt/gui/reason/html/leaflet/', DATA_FILES_LL),
-                      ('yt/gui/reason/html/leaflet/images', DATA_FILES_LLI)],
+        data_files=REASON_FILES,
+        cmdclass = {'build_py': my_build_py},
         )
     return
 

@@ -261,7 +261,7 @@ class MultipleTexture(vv.Wobject):
         tex_coord.Append((t1,t0,t1)); ver_coord.Append((x1, y0, z1)) # 7
         
         # Store quads
-        self._quads[tex_id] = (tex_coord, ver_coord, na.array(indices,dtype=na.uint8))
+        self._quads[tex_id] = (tex_coord, ver_coord, np.array(indices,dtype=np.uint8))
 
 def visvis_plot(vp):
     """
@@ -280,10 +280,10 @@ def visvis_plot(vp):
     ax = vv.gca()
 
     for i,g in enumerate(gs):
-        ss = ((g.RightEdge - g.LeftEdge) / (na.array(g.my_data[0].shape)-1)).tolist()
+        ss = ((g.RightEdge - g.LeftEdge) / (np.array(g.my_data[0].shape)-1)).tolist()
         origin = g.LeftEdge.astype("float32").tolist()
         dd = (g.my_data[0].astype("float32") - mi)/(ma - mi)
-        dd = na.clip(dd, 0.0, 1.0)
+        dd = np.clip(dd, 0.0, 1.0)
         print ss
         texes.append(vv.Aarray(dd, origin = origin, sampling = ss))
 

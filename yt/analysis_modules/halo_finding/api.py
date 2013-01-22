@@ -44,4 +44,9 @@ from halo_objects import \
     HOPHaloFinder, \
     FOFHaloFinder, \
     HaloFinder, \
-    LoadHaloes
+    LoadHaloes, \
+    LoadTextHalos, \
+    LoadTextHaloes, \
+    RockstarHalo, \
+    RockstarHaloList, \
+    LoadRockstarHalos

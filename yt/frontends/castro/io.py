@@ -25,10 +25,10 @@ License:
 """
 
 import os
-import numpy as na
+import numpy as np
 from yt.utilities.io_handler import \
            BaseIOHandler
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
             read_castro_particles
 
 from definitions import \
@@ -46,7 +46,7 @@ class IOHandlerNative(BaseIOHandler):
         offset = grid._particle_offset
         filen = os.path.expanduser(grid.particle_filename)
         off = grid._particle_offset
-        tr = na.zeros(grid.NumberOfParticles, dtype='float64')
+        tr = np.zeros(grid.NumberOfParticles, dtype='float64')
         read_castro_particles(filen, off,
             castro_particle_field_names.index(field),
             len(castro_particle_field_names),
@@ -85,8 +85,8 @@ class IOHandlerNative(BaseIOHandler):
             dtype += ('f%i'% bytesPerReal) #always a floating point
 
             # determine size of FAB
-            start = na.array(map(int, start.split(',')))
-            stop = na.array(map(int, stop.split(',')))
+            start = np.array(map(int, start.split(',')))
+            stop = np.array(map(int, stop.split(',')))
 
             gridSize = stop - start + 1
 
@@ -126,7 +126,7 @@ class IOHandlerNative(BaseIOHandler):
             fieldname = field
         field_index = grid.field_indexes[fieldname]
         inFile.seek(int(nElements*bytesPerReal*field_index),1)
-        field = na.fromfile(inFile, count=nElements, dtype=dtype)
+        field = np.fromfile(inFile, count=nElements, dtype=dtype)
         field = field.reshape(grid.ActiveDimensions[::-1]).swapaxes(0,2)
 
         # we can/should also check against the max and min in the header file

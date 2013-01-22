@@ -74,14 +74,13 @@ class SlicePlotDataset(AnalysisTask):
     _params = ['field', 'axis', 'center']
 
     def __init__(self, *args, **kwargs):
-        from yt.visualization.api import PlotCollection
-        self.PlotCollection = PlotCollection
+        from yt.visualization.api import SlicePlot
+        self.SlicePlot = SlicePlot
         AnalysisTask.__init__(self, *args, **kwargs)
 
     def eval(self, pf):
-        pc = self.PlotCollection(pf, center = self.center)
-        pc.add_slice(self.field, self.axis)
-        return pc.save()[0]
+        slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
+        return pc.save()
 
 class QuantityProxy(AnalysisTask):
     _params = None

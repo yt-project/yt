@@ -28,8 +28,9 @@ ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
+from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import urllib, urllib2, base64
+import urllib, urllib2, base64, os
 
 def _fix_pf(arg):
     if os.path.isdir("%s" % arg) and \
@@ -82,11 +83,15 @@ class YTCommand(object):
         if cls.npfs > 1:
             self(args)
         else:
-            if len(getattr(args, "pf", [])) > 1:
+            pf_args = getattr(args, "pf", [])
+            if len(pf_args) > 1:
                 pfs = args.pf
                 for pf in pfs:
                     args.pf = pf
                     self(args)
+            elif len(pf_args) == 0:
+                pfs = []
+                self(args)
             else:
                 args.pf = getattr(args, 'pf', [None])[0]
                 self(args)
@@ -105,6 +110,8 @@ class GetParameterFiles(argparse.Action):
 _common_options = dict(
     pf      = dict(short="pf", action=GetParameterFiles,
                    nargs="+", help="Parameter files to run on"),
+    opf     = dict(action=GetParameterFiles, dest="pf",
+                   nargs="*", help="(Optional) Parameter files to run on"),
     axis    = dict(short="-a", long="--axis",
                    action="store", type=int,
                    dest="axis", default=4,
@@ -112,7 +119,11 @@ _common_options = dict(
     log     = dict(short="-l", long="--log",
                    action="store_true",
                    dest="takelog", default=True,
-                   help="Take the log of the field?"),
+                   help="Use logarithmic scale for image"),
+    linear  = dict(long="--linear",
+                   action="store_false",
+                   dest="takelog",
+                   help="Use linear scale for image"),
     text    = dict(short="-t", long="--text",
                    action="store", type=str,
                    dest="text", default=None,
@@ -127,7 +138,7 @@ _common_options = dict(
                    help="Field to weight projections with"),
     cmap    = dict(long="--colormap",
                    action="store", type=str,
-                   dest="cmap", default="jet",
+                   dest="cmap", default="algae",
                    help="Colormap name"),
     zlim    = dict(short="-z", long="--zlim",
                    action="store", type=float,
@@ -141,11 +152,11 @@ _common_options = dict(
                    help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
                    action="store", type=float,
-                   dest="width", default=1.0,
+                   dest="width", default=None,
                    help="Width in specified units"),
     unit    = dict(short="-u", long="--unit",
                    action="store", type=str,
-                   dest="unit", default='unitary',
+                   dest="unit", default='1',
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type=float,
@@ -173,7 +184,7 @@ _common_options = dict(
                    dest="skip", default=1,
                    help="Skip factor for outputs"),
     proj    = dict(short="-p", long="--projection",
-                   action="store_true", 
+                   action="store_true",
                    dest="projection", default=False,
                    help="Use a projection rather than a slice"),
     maxw    = dict(long="--max-width",
@@ -214,7 +225,7 @@ _common_options = dict(
                    dest="threshold", default=None,
                    help="Density threshold"),
     dm_only = dict(long="--all-particles",
-                   action="store_false", 
+                   action="store_false",
                    dest="dm_only", default=True,
                    help="Use all particles"),
     grids   = dict(long="--show-grids",
@@ -332,9 +343,15 @@ def _get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
+    if not os.path.isdir(os.path.join(path, ".hg")): return None
     version = _get_hg_version(path)[:12]
     return version
 
@@ -578,19 +595,6 @@ class YTBootstrapDevCmd(YTCommand):
             print
             loki = raw_input("Press enter to go on, Ctrl-C to exit.")
             cedit.config.setoption(uu, hgrc_path, "bb.username=%s" % bbusername)
-        bb_fp = "81:2b:08:90:dc:d3:71:ee:e0:7c:b4:75:ce:9b:6c:48:94:56:a1:fe"
-        if uu.config("hostfingerprints", "bitbucket.org", None) is None:
-            print "Let's also add bitbucket.org to the known hosts, so hg"
-            print "doesn't warn us about bitbucket."
-            print "We will add this:"
-            print
-            print "   [hostfingerprints]"
-            print "   bitbucket.org = %s" % (bb_fp)
-            print
-            loki = raw_input("Press enter to go on, Ctrl-C to exit.")
-            cedit.config.setoption(uu, hgrc_path,
-                                   "hostfingerprints.bitbucket.org=%s" % bb_fp)
-
         # We now reload the UI's config file so that it catches the [bb]
         # section changes.
         uu.readconfig(hgrc_path[0])
@@ -630,7 +634,7 @@ class YTBugreportCmd(YTCommand):
         print "At any time in advance of the upload of the bug, you should feel free"
         print "to ctrl-C out and submit the bug report manually by going here:"
         print "   http://hg.yt-project.org/yt/issues/new"
-        print 
+        print
         print "Also, in order to submit a bug through this interface, you"
         print "need a Bitbucket account. If you don't have one, exit this "
         print "bugreport now and run the 'yt bootstrap_dev' command to create one."
@@ -698,7 +702,7 @@ class YTBugreportCmd(YTCommand):
         data['content'] = content
         print
         print "==============================================================="
-        print 
+        print
         print "Okay, we're going to submit with this:"
         print
         print "Summary: %s" % (data['title'])
@@ -718,7 +722,7 @@ class YTBugreportCmd(YTCommand):
         import json
         retval = json.loads(retval)
         url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
-        print 
+        print
         print "==============================================================="
         print
         print "Thanks for your bug report!  Together we'll make yt totally bug free!"
@@ -746,6 +750,86 @@ class YTHopCmd(YTCommand):
         else: fn = args.output
         hop_list.write_out(fn)
 
+class YTHubRegisterCmd(YTCommand):
+    name = "hub_register"
+    description = \
+        """
+        Register a user on the Hub: http://hub.yt-project.org/
+        """
+    def __call__(self, args):
+        # We need these pieces of information:
+        #   1. Name
+        #   2. Email
+        #   3. Username
+        #   4. Password (and password2)
+        #   5. (optional) URL
+        #   6. "Secret" key to make it epsilon harder for spammers
+        if ytcfg.get("yt","hub_api_key") != "":
+            print "You seem to already have an API key for the hub in"
+            print "~/.yt/config .  Delete this if you want to force a"
+            print "new user registration."
+        print "Awesome!  Let's start by registering a new user for you."
+        print "Here's the URL, for reference: http://hub.yt-project.org/ "
+        print
+        print "As always, bail out with Ctrl-C at any time."
+        print
+        print "What username would you like to go by?"
+        print
+        username = raw_input("Username? ")
+        if len(username) == 0: sys.exit(1)
+        print
+        print "To start out, what's your name?"
+        print
+        name = raw_input("Name? ")
+        if len(name) == 0: sys.exit(1)
+        print
+        print "And your email address?"
+        print
+        email = raw_input("Email? ")
+        if len(email) == 0: sys.exit(1)
+        print
+        print "Please choose a password:"
+        print
+        while 1:
+            password1 = getpass.getpass("Password? ")
+            password2 = getpass.getpass("Confirm? ")
+            if len(password1) == 0: continue
+            if password1 == password2: break
+            print "Sorry, they didn't match!  Let's try again."
+            print
+        print
+        print "Would you like a URL displayed for your user?"
+        print "Leave blank if no."
+        print
+        url = raw_input("URL? ")
+        print
+        print "Okay, press enter to register.  You should receive a welcome"
+        print "message at %s when this is complete." % email
+        print
+        loki = raw_input()
+        data = dict(name = name, email = email, username = username,
+                    password = password1, password2 = password2,
+                    url = url, zap = "rowsdower")
+        data = urllib.urlencode(data)
+        hub_url = "https://hub.yt-project.org/create_user"
+        req = urllib2.Request(hub_url, data)
+        try:
+            status = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as exc:
+            if exc.code == 400:
+                print "Sorry, the Hub couldn't create your user."
+                print "You can't register duplicate users, which is the most"
+                print "common cause of this error.  All values for username,"
+                print "name, and email must be unique in our system."
+                sys.exit(1)
+        except urllib2.URLError as exc:
+            print "Something has gone wrong.  Here's the error message."
+            raise exc
+        print
+        print "SUCCESS!"
+        print
+
+
 class YTHubSubmitCmd(YTCommand):
     name = "hub_submit"
     args = (
@@ -761,6 +845,14 @@ class YTHubSubmitCmd(YTCommand):
 
     def __call__(self, args):
         import imp
+        api_key = ytcfg.get("yt","hub_api_key")
+        url = ytcfg.get("yt","hub_url")
+        if api_key == '':
+            print
+            print "You must create an API key before uploading."
+            print "https://data.yt-project.org/getting_started.html"
+            print
+            sys.exit(1)
         from mercurial import hg, ui, commands, error, config
         uri = "http://hub.yt-project.org/3rdparty/API/api.php"
         uu = ui.ui()
@@ -854,12 +946,14 @@ class YTHubSubmitCmd(YTCommand):
                         bb_username, bb_username, bb_repo_name)
             cedit.config.addsource(uu, repo, "default", bb_url)
             commands.push(uu, repo, bb_url)
+            # Now we reset
+            bb_url = "https://bitbucket.org/%s/%s" % (
+                        bb_username, bb_repo_name)
         if bb_url.startswith("bb://"):
             bb_username, bb_repo_name = bb_url.split("/")[-2:]
-            bb_url = "https://%s@bitbucket.org/%s/%s" % (
-                bb_username, bb_username, bb_repo_name)
+            bb_url = "https://bitbucket.org/%s/%s" % (
+                bb_username, bb_repo_name)
         # Now we can submit
-        import xml.etree.ElementTree as etree
         print
         print "Okay.  Now we're ready to submit to the Hub."
         print "Remember, you can go to the Hub at any time at"
@@ -867,40 +961,27 @@ class YTHubSubmitCmd(YTCommand):
         print
         print "(Especially if you don't have a user yet!  We can wait.)"
         print
-        hub_username = raw_input("What is your Hub username? ")
-        hub_password = getpass.getpass("What is your Hub password? ")
-        data = urllib.urlencode(dict(fn = "list",
-                                     username=hub_username,
-                                     password=hub_password))
-        req = urllib2.Request(uri, data)
-        rv = urllib2.urlopen(req).read()
-        try:
-            cats = etree.fromstring(rv)
-        except:
-            print "I think you entered your password wrong.  Please check!"
-            return
 
-        categories = {}
-
-        for cat in cats.findall("./cate"):
-            cat_id = int(cat.findall("id")[0].text)
-            cat_name = cat.findall("name")[0].text
-            categories[cat_id] = cat_name
-
-        print
-        for i, n in sorted(categories.items()):
-            print "%i. %s" % (i, n)
-        print
-        cat_id = int(raw_input("Which category number does your script fit into? "))
+        categories = {
+            1: "News",
+            2: "Documents",
+            3: "Simulation Management",
+            4: "Data Management",
+            5: "Analysis and Visualization",
+            6: "Paper Repositories",
+            7: "Astrophysical Utilities",
+            8: "yt Scripts"
+        }
+        cat_id = -1
+        while cat_id not in categories:
+            print
+            for i, n in sorted(categories.items()):
+                print "%i. %s" % (i, n)
+            print
+            cat_id = int(raw_input("Which category number does your script fit into? "))
         print
         print "What is the title of your submission? (Usually a repository name) "
         title = raw_input("Title? ")
-        print
-        print "What tags should be applied to this submission?  Separate with commas."
-        print "(e.g., enzo, flash, gadget, ramses, nyx, yt, visualization, analysis,"
-        print " utility, cosmology)"
-        print
-        tags = raw_input("Tags? ")
         print
         print "Give us a very brief summary of the project -- enough to get someone"
         print "interested enough to click the link and see what it's about.  This"
@@ -908,17 +989,18 @@ class YTHubSubmitCmd(YTCommand):
         print
         summary = raw_input("Summary? ")
         print
+        print "Is there a URL that you'd like to point the image to?  Just hit"
+        print "enter if no."
+        print
+        image_url = raw_input("Image URL? ").strip()
+        print
         print "Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out."
         print
         loki = raw_input()
 
-        data = urllib.urlencode(dict(fn = "post",
-                                     username=hub_username, password=hub_password,
-                                     url = bb_url, category = cat_id, title = title,
-                                     content = summary, tags = tags))
-        req = urllib2.Request(uri, data)
-        rv = urllib2.urlopen(req).read()
-        print rv
+        mpd = MinimalProjectDescription(title, bb_url, summary,
+                categories[cat_id], image_url)
+        mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
     name = "instinfo"
@@ -952,9 +1034,8 @@ class YTInstInfoCmd(YTCommand):
                 print "The supplemental repositories are located at:"
                 print "    %s" % (spath)
                 update_supp = True
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
+        vstring = get_yt_version()
+        if vstring is not None:
             print
             print "The current version of the code is:"
             print
@@ -962,10 +1043,11 @@ class YTInstInfoCmd(YTCommand):
             print vstring.strip()
             print "---"
             print
-            print "This installation CAN be automatically updated."
-            if opts.update_source:  
-                update_hg(path)
-            print "Updated successfully."
+            if "site-packages" not in path:
+                print "This installation CAN be automatically updated."
+                if opts.update_source:
+                    update_hg(path)
+                print "Updated successfully."
         elif opts.update_source:
             print
             print "YT site-packages not in path, so you must"
@@ -993,10 +1075,10 @@ class YTLoadCmd(YTCommand):
         import yt.mods
 
         import IPython
-        if IPython.__version__.startswith("0.10"):
+        from distutils import version
+        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
             api_version = '0.10'
-        elif IPython.__version__.startswith("0.11") or \
-             IPython.__version__.startswith("0.12"):
+        else:
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
@@ -1010,8 +1092,12 @@ class YTLoadCmd(YTCommand):
                   )
         else:
             from IPython.config.loader import Config
+            import sys
             cfg = Config()
+            # prepend sys.path with current working directory
+            sys.path.insert(0,'')
             IPython.embed(config=cfg,user_ns=local_ns)
+
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -1021,7 +1107,7 @@ class YTMapserverCmd(YTCommand):
                    dest="host", default=None, help="IP Address to bind on"),
             "pf",
             )
-    
+
     name = "mapserver"
     description = \
         """
@@ -1096,24 +1182,57 @@ class YTPastebinGrabCmd(YTCommand):
     name = "pastebin_grab"
     description = \
         """
-        Print an online pastebin to STDOUT for local use. 
+        Print an online pastebin to STDOUT for local use.
         """
 
     def __call__(self, args):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
-class YTPlotCmd(YTCommand):
-    args = ("width", "unit", "bn", "proj", "center",
-            "zlim", "axis", "field", "weight", "skip",
-            "cmap", "output", "grids", "time", "pf",
-            "max")
-    
-    name = "plot"
-    
+class YTNotebookUploadCmd(YTCommand):
+    args = (dict(short="file", type=str),)
     description = \
         """
-        Create a set of images 
+        Upload an IPython notebook to hub.yt-project.org.
+        """
+
+    name = "upload_notebook"
+    def __call__(self, args):
+        filename = args.file
+        if not os.path.isfile(filename):
+            raise IOError(filename)
+        if not filename.endswith(".ipynb"):
+            print "File must be an IPython notebook!"
+            return 1
+        import json
+        try:
+            t = json.loads(open(filename).read())['metadata']['name']
+        except (ValueError, KeyError):
+            print "File does not appear to be an IPython notebook."
+        from yt.utilities.minimal_representation import MinimalNotebook
+        mn = MinimalNotebook(filename, t)
+        rv = mn.upload()
+        print "Upload successful!"
+        print
+        print "To access your raw notebook go here:"
+        print
+        print "  %s" % (rv['url'])
+        print
+        print "To view your notebook go here:"
+        print
+        print "  %s" % (rv['url'].replace("/go/", "/nb/"))
+        print
+
+class YTPlotCmd(YTCommand):
+    args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
+            "weight", "skip", "cmap", "output", "grids", "time", "pf", "max",
+            "log", "linear")
+
+    name = "plot"
+
+    description = \
+        """
+        Create a set of images
 
         """
 
@@ -1127,32 +1246,47 @@ class YTPlotCmd(YTCommand):
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
-        pc=PlotCollection(pf, center=center)
+        center = np.array(center)
         if args.axis == 4:
             axes = range(3)
         else:
             axes = [args.axis]
+
+        unit = args.unit
+        if unit is None:
+            unit = 'unitary'
+        if args.width is None:
+            width = None
+        else:
+            width = (args.width, args.unit)
+
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)
-            if args.projection: pc.add_projection(args.field, ax,
-                                    weight_field=args.weight, center=center)
-            else: pc.add_slice(args.field, ax, center=center)
-            if args.grids: pc.plots[-1].modify["grids"]()
-            if args.time: 
+            if args.projection:
+                plt = ProjectionPlot(pf, ax, args.field, center=center,
+                                     width=width,
+                                     weight_field=args.weight)
+            else:
+                plt = SlicePlot(pf, ax, args.field, center=center,
+                                width=width)
+            if args.grids:
+                plt.annotate_grids()
+            if args.time:
                 time = pf.current_time*pf['Time']*pf['years']
-                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
-        pc.set_width(args.width, args.unit)
-        pc.set_cmap(args.cmap)
-        if args.zlim: pc.set_zlim(*args.zlim)
-        if not os.path.isdir(args.output): os.makedirs(args.output)
-        pc.save(os.path.join(args.output,"%s" % (pf)))
+                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+
+            plt.set_cmap(args.field, args.cmap)
+            plt.set_log(args.field, args.takelog)
+            if args.zlim:
+                plt.set_zlim(args.field,*args.zlim)
+            if not os.path.isdir(args.output): os.makedirs(args.output)
+            plt.save(os.path.join(args.output,"%s" % (pf)))
 
 class YTRenderCmd(YTCommand):
-        
+
     args = ("width", "unit", "center","enhance",'outputfn',
-            "field", "cmap", "contours", "viewpoint",
-            "pixels","up","valrange","log","contour_width", "pf")
+            "field", "cmap", "contours", "viewpoint", "linear",
+            "pixels", "up", "valrange", "log","contour_width", "pf")
     name = "render"
     description = \
         """
@@ -1167,12 +1301,12 @@ class YTRenderCmd(YTCommand):
             v, center = pf.h.find_max("Density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
-        center = na.array(center)
+        center = np.array(center)
 
         L = args.viewpoint
         if L is None:
             L = [1.]*3
-        L = na.array(args.viewpoint)
+        L = np.array(args.viewpoint)
 
         unit = args.unit
         if unit is None:
@@ -1184,16 +1318,16 @@ class YTRenderCmd(YTCommand):
 
         N = args.pixels
         if N is None:
-            N = 512 
-        
+            N = 512
+
         up = args.up
         if up is None:
             up = [0.,0.,1.]
-            
+
         field = args.field
         if field is None:
             field = 'Density'
-        
+
         log = args.takelog
         if log is None:
             log = True
@@ -1203,7 +1337,7 @@ class YTRenderCmd(YTCommand):
             roi = pf.h.region(center, center-width, center+width)
             mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
-                mi, ma = na.log10(mi), na.log10(ma)
+                mi, ma = np.log10(mi), np.log10(ma)
         else:
             mi, ma = myrange[0], myrange[1]
 
@@ -1226,7 +1360,7 @@ class YTRenderCmd(YTCommand):
             for i in range(3):
                 image[:,:,i] = image[:,:,i]/(image[:,:,i].mean() + 5.*image[:,:,i].std())
             image[image>1.0]=1.0
-            
+
         save_name = args.output
         if save_name is None:
             save_name = "%s"%pf+"_"+field+"_rendering.png"
@@ -1255,6 +1389,70 @@ class YTRPDBCmd(YTCommand):
         import rpdb
         rpdb.run_rpdb(int(args.task))
 
+class YTNotebookCmd(YTCommand):
+    name = ["notebook"]
+    args = (
+            dict(short="-o", long="--open-browser", action="store_true",
+                 default = False, dest='open_browser',
+                 help="Open a web browser."),
+            dict(short="-p", long="--port", action="store",
+                 default = 0, dest='port',
+                 help="Port to listen on; defaults to auto-detection."),
+            dict(short="-n", long="--no-password", action="store_true",
+                 default = False, dest='no_password',
+                 help="If set, do not prompt or use a password."),
+            )
+    description = \
+        """
+        Run the IPython Notebook
+        """
+    def __call__(self, args):
+        kwargs = {}
+        from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        pw = ytcfg.get("yt", "notebook_password")
+        if len(pw) == 0 and not args.no_password:
+            import IPython.lib
+            pw = IPython.lib.passwd()
+            print "If you would like to use this password in the future,"
+            print "place a line like this inside the [yt] section in your"
+            print "yt configuration file at ~/.yt/config"
+            print
+            print "notebook_password = %s" % pw
+            print
+        elif args.no_password:
+            pw = None
+        if args.port != 0:
+            kwargs['port'] = int(args.port)
+        if pw is not None:
+            kwargs['password'] = pw
+        app = NotebookApp(open_browser=args.open_browser,
+                          **kwargs)
+        app.initialize(argv=[])
+        print
+        print "***************************************************************"
+        print
+        print "The notebook is now live at:"
+        print
+        print "     http://127.0.0.1:%s/" % app.port
+        print
+        print "Recall you can create a new SSH tunnel dynamically by pressing"
+        print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
+        print "where the first number is the port on your local machine. "
+        print
+        print "If you are using %s on your machine already, try -L8889:localhost:%s" % (app.port, app.port)
+        print
+        print "Additionally, while in the notebook, we recommend you start by"
+        print "replacing 'yt.mods' with 'yt.imods' like so:"
+        print
+        print "    from yt.imods import *"
+        print
+        print "This will enable some IPython-specific extensions to yt."
+        print
+        print "***************************************************************"
+        print
+        app.start()
+
+
 class YTGUICmd(YTCommand):
     name = ["serve", "reason"]
     args = (
@@ -1269,7 +1467,11 @@ class YTGUICmd(YTCommand):
                  help="At startup, find all *.hierarchy files in the CWD"),
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
-                 help="Add a debugging mode for cell execution")
+                 help="Add a debugging mode for cell execution"),
+            dict(short = "-r", long = "--remote", action = "store_true",
+                 default = False, dest="use_pyro",
+                 help = "Use with a remote Pyro4 server."),
+            "opf"
             )
     description = \
         """
@@ -1279,12 +1481,6 @@ class YTGUICmd(YTCommand):
     def __call__(self, args):
         # We have to do a couple things.
         # First, we check that YT_DEST is set.
-        if "YT_DEST" not in os.environ:
-            print
-            print "*** You must set the environment variable YT_DEST ***"
-            print "*** to point to the installation location!        ***"
-            print
-            sys.exit(1)
         if args.port == 0:
             # This means, choose one at random.  We do this by binding to a
             # socket and allowing the OS to choose the port for that socket.
@@ -1300,51 +1496,47 @@ class YTGUICmd(YTCommand):
             except ValueError:
                 print "Please try a number next time."
                 return 1
-        base_extjs_path = os.path.join(os.environ["YT_DEST"], "src")
-        if not os.path.isfile(os.path.join(base_extjs_path, "ext-resources", "ext-all.js")):
-            print
-            print "*** You are missing the ExtJS support files. You  ***"
-            print "*** You can get these by either rerunning the     ***"
-            print "*** install script installing, or downloading     ***"
-            print "*** them manually.                                ***"
-            print
+        from yt.gui.reason.utils import get_reasonjs_path
+        try:
+            reasonjs_path = get_reasonjs_path()
+        except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
         import yt.utilities.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
-        hr = ExtDirectREPL(base_extjs_path)
+        hr = ExtDirectREPL(reasonjs_path, use_pyro=args.use_pyro)
         hr.debug = PayloadHandler.debug = args.debug
+        command_line = ["pfs = []"]
         if args.find:
             # We just have to find them and store references to them.
-            command_line = ["pfs = []"]
             for fn in sorted(glob.glob("*/*.hierarchy")):
                 command_line.append("pfs.append(load('%s'))" % fn[:-10])
-            hr.execute("\n".join(command_line))
+        hr.execute("\n".join(command_line))
         bottle.debug()
         uuid_serve_functions(open_browser=args.open_browser,
                     port=int(args.port), repl=hr)
 
 class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf', 'field',
-            dict(long="--max", action="store_true", default=False,
-                 dest='max', help="Display maximum of requested field."),
-            dict(long="--min", action="store_true", default=False,
-                 dest='min', help="Display minimum of requested field."))
+    args = ('outputfn','bn','skip','pf','field',
+            dict(long="--max", action='store_true', default=False,
+                 dest='max', help="Display maximum of field requested through -f option."),
+            dict(long="--min", action='store_true', default=False,
+                 dest='min', help="Display minimum of field requested through -f option."))
     name = "stats"
     description = \
         """
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
 
-        (default field is density)
+        (default field is Density)
 
         """
 
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
-        if args.field in pf.h.field_list:
+        if args.field in pf.h.derived_field_list:
             if args.max == True:
                 v, c = pf.h.find_max(args.field)
                 print "Maximum %s: %0.5e at %s" % (args.field, v, c)
@@ -1430,7 +1622,7 @@ class YTUploadImageCmd(YTCommand):
         if 'upload' in rv and 'links' in rv['upload']:
             print
             print "Image successfully uploaded!  You can find it at:"
-            print "    %s" % (rv['upload']['links']['imgur_page'])
+            print "    %s" % (rv['upload']['links']['original'])
             print
             print "If you'd like to delete it, visit this page:"
             print "    %s" % (rv['upload']['links']['delete_page'])

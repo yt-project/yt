@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.utilities.physical_constants import \
     mh, kboltz
@@ -126,7 +126,7 @@ def _ThermalEnergy(field, data):
         data["x-velocity"]**2.0
         + data["y-velocity"]**2.0
         + data["z-velocity"]**2.0 )
-add_orion_field("ThermalEnergy", function=_ThermalEnergy,
+add_field("ThermalEnergy", function=_ThermalEnergy,
                 units=r"\rm{ergs}/\rm{cm^3}")
 
 def _Pressure(field,data):
@@ -134,11 +134,11 @@ def _Pressure(field,data):
        NB: this will need to be modified for radiation
     """
     return (data.pf["Gamma"] - 1.0)*data["ThermalEnergy"]
-add_orion_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
+add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Temperature(field,data):
     return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
-add_orion_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
+add_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
 
 # particle fields
 
@@ -146,7 +146,7 @@ def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
         io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
-            return na.array([], dtype=dtype)
+            return np.array([], dtype=dtype)
         else:
             return io._read_particles(data, p_field).astype(dtype)
 
@@ -171,6 +171,6 @@ _particle_field_list = ["mass",
 
 for pf in _particle_field_list:
     pfunc = particle_func("particle_%s" % (pf))
-    add_orion_field("particle_%s" % pf, function=pfunc,
-                    validators = [ValidateSpatial(0)],
-                    particle_type=True)
+    add_field("particle_%s" % pf, function=pfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)

@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import string, re, gc, time, cPickle, pdb
 import weakref
 
@@ -37,6 +37,7 @@ from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
 from yt.utilities.definitions import MAXLEVEL
+from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
@@ -115,11 +116,11 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+        self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
     def _setup_classes(self, dd):
         # Called by subclass
@@ -135,6 +136,12 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             mylog.warning("Refine by something other than two: reverting to"
                         + " overlap_proj")
             self.proj = self.overlap_proj
+        if self.pf.dimensionality < 3 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Dimensionality less than 3: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
+
         self.object_types.sort()
 
     def _setup_unknown_fields(self):
@@ -171,7 +178,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                             pf = self.parameter_file)
             except:
                 continue
-            available = na.all([f in self.field_list for f in fd.requested])
+            available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -326,9 +333,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
 
         full_name = "%s/%s" % (node, name)
-        try:
+        if len(self._data_file[full_name].shape) > 0:
             return self._data_file[full_name][:]
-        except TypeError:
+        else:
             return self._data_file[full_name]
 
     def _close_data_file(self):
@@ -336,18 +343,6 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self._data_file.close()
             del self._data_file
             self._data_file = None
-
-    def _deserialize_hierarchy(self, harray):
-        # THIS IS BROKEN AND NEEDS TO BE FIXED
-        mylog.debug("Cached entry found.")
-        self.gridDimensions[:] = harray[:,0:3]
-        self.gridStartIndices[:] = harray[:,3:6]
-        self.gridEndIndices[:] = harray[:,6:9]
-        self.gridLeftEdge[:] = harray[:,9:12]
-        self.gridRightEdge[:] = harray[:,12:15]
-        self.gridLevels[:] = harray[:,15:16]
-        self.gridTimes[:] = harray[:,16:17]
-        self.gridNumberOfParticles[:] = harray[:,17:18]
 
     def get_smallest_dx(self):
         """
@@ -366,19 +361,19 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         #   1 = number of cells
         #   2 = blank
         desc = {'names': ['numgrids','numcells','level'],
-                'formats':['Int32']*3}
+                'formats':['Int64']*3}
         self.level_stats = blankRecordArray(desc, MAXLEVEL)
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
         for level in xrange(self.max_level+1):
-            self.level_stats[level]['numgrids'] = na.sum(self.grid_levels == level)
+            self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
 
     @property
     def grid_corners(self):
-        return na.array([
+        return np.array([
           [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
           [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
@@ -393,18 +388,20 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%11s" % ("level","# grids", "# cells")
+        header = "%3s\t%6s\t%14s\t%14s" % ("level","# grids", "# cells",
+                                           "# cells^3")
         print header
         print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 11i" % \
+            print "% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
-                   self.level_stats['numcells'][level])
+                   self.level_stats['numcells'][level],
+                   self.level_stats['numcells'][level]**(1./3))
             dx = self.select_grids(level)[0].dds[0]
-        print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
+        print "-" * 46
+        print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
         print "\n"
         try:
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
@@ -413,7 +410,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         t_s = self.pf.current_time * self.pf["Time"]
         print "t = %0.8e = %0.8e s = %0.8e years" % \
             (self.pf.current_time, \
-             t_s, t_s / (365*24*3600.0) )
+             t_s, t_s / sec_per_year )
         print "\nSmallest Cell:"
         u=[]
         for item in self.parameter_file.units.items():

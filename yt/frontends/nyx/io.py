@@ -27,8 +27,8 @@ License:
 """
 
 import os
-import numpy as na
-from yt.utilities.amr_utils import read_castro_particles, read_and_seek
+import numpy as np
+from yt.utilities.lib import read_castro_particles, read_and_seek
 from yt.utilities.io_handler import BaseIOHandler
 
 from definitions import fab_header_pattern, nyx_particle_field_names, \
@@ -46,7 +46,7 @@ class IOHandlerNative(BaseIOHandler):
         offset = grid._particle_offset
         filen = os.path.expanduser(grid.particle_filename)
         off = grid._particle_offset
-        tr = na.zeros(grid.NumberOfParticles, dtype='float64')
+        tr = np.zeros(grid.NumberOfParticles, dtype='float64')
         read_castro_particles(filen, off,
                               nyx_particle_field_names.index(field),
                               len(nyx_particle_field_names), tr)
@@ -68,7 +68,7 @@ class IOHandlerNative(BaseIOHandler):
         offset2 = int(nElements*bytesPerReal*field_index)
 
         dtype = grid.hierarchy._dtype
-        field = na.empty(nElements, dtype=grid.hierarchy._dtype)
+        field = np.empty(nElements, dtype=grid.hierarchy._dtype)
         read_and_seek(filen, offset1, offset2, field, nElements * bytesPerReal)
         field = field.reshape(grid.ActiveDimensions, order='F')
 

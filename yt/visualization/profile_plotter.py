@@ -27,16 +27,15 @@ import base64
 import types
 
 from functools import wraps
-import numpy as na
+import numpy as np
 
 from .image_writer import \
     write_image, apply_colormap
-from yt.utilities.amr_utils import \
+from yt.utilities.lib import \
     write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
-from .plot_types import ProfilePlot, PhasePlot
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.logger import ytLogger as mylog
 
@@ -129,19 +128,19 @@ class ImagePlotContainer(object):
         use_mesh = False
         xmi, xma = self.x_spec.bounds
         if self.x_spec.scale == 'log':
-            x_bins = na.logspace(na.log10(xmi), na.log10(xma),
+            x_bins = np.logspace(np.log10(xmi), np.log10(xma),
                                  self.image.shape[0]+1)
             use_mesh = True
         else:
-            x_bins = na.logspace(xmi, xma, self.image.shape[0]+1)
+            x_bins = np.logspace(xmi, xma, self.image.shape[0]+1)
 
         ymi, yma = self.y_spec.bounds
         if self.y_spec.scale == 'log':
-            y_bins = na.logspace(na.log10(ymi), na.log10(yma),
+            y_bins = np.logspace(np.log10(ymi), np.log10(yma),
                                  self.image.shape[0]+1)
             use_mesh = True
         else:
-            y_bins = na.logspace(ymi, yma, self.image.shape[0]+1)
+            y_bins = np.logspace(ymi, yma, self.image.shape[0]+1)
 
         im = self.image
         if self.cbar.scale == 'log':
@@ -277,6 +276,7 @@ class PhasePlotter(object):
            field_z.startswith("CellVolume"):
             mylog.warning("Setting weight to None")
             weight = None
+        self._initial_weight = weight
         profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
         self._current_field = field_z
         self.profile = profile
@@ -305,7 +305,7 @@ class PhasePlotter(object):
             nz = (self.profile[self._current_field] > 0)
             mi = self.profile[self._current_field][nz].min()
         else:
-            mi = self.profile[self._current_field][nz].min()
+            mi = self.profile[self._current_field].min()
         ma = self.profile[self._current_field].max()
         cbar.bounds = (mi, ma)
         cbar.cmap = 'algae'
@@ -337,11 +337,11 @@ class PhasePlotterExtWidget(PhasePlotter):
         raw_data = self.plot.image[::-1,:]
 
         if self.plot.cbar.scale == 'log':
-            func = na.log10
+            func = np.log10
         else:
             func = lambda a: a
-        raw_data = na.repeat(raw_data, 3, axis=0)
-        raw_data = na.repeat(raw_data, 3, axis=1)
+        raw_data = np.repeat(raw_data, 3, axis=0)
+        raw_data = np.repeat(raw_data, 3, axis=1)
         to_plot = apply_colormap(raw_data, self.plot.cbar.bounds,
                                  self.plot.cbar.cmap, func)
         if self.plot.cbar.scale == 'log':
@@ -368,7 +368,7 @@ class PhasePlotterExtWidget(PhasePlotter):
 
     def _convert_axis(self, spec):
         func = lambda a: a
-        if spec.scale == 'log': func = na.log10
+        if spec.scale == 'log': func = np.log10
         tick_info = self._convert_ticks(spec.ticks, spec.bounds, func)
         ax = {'ticks':tick_info,
               'title': spec.title}
@@ -377,7 +377,7 @@ class PhasePlotterExtWidget(PhasePlotter):
     def _get_cbar_image(self, height = 400, width = 40):
         # Right now there's just the single 'cmap', but that will eventually
         # change.  I think?
-        vals = na.mgrid[1:0:height * 1j] * na.ones(width)[:,None]
+        vals = np.mgrid[1:0:height * 1j] * np.ones(width)[:,None]
         vals = vals.transpose()
         to_plot = apply_colormap(vals)
         pngs = write_png_to_string(to_plot)

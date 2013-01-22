@@ -33,6 +33,7 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+import numpy as np
 
 KnownChomboFields = FieldInfoContainer()
 add_chombo_field = KnownChomboFields.add_field
@@ -76,12 +77,12 @@ add_chombo_field("Z-magnfield", function=NullFunc, take_log=False,
                   units=r"",display_name=r"B_z")
 KnownChomboFields["Z-magnfield"]._projected_units=r""
 
-add_chombo_field("energy-density", function=lambda a,b: None, take_log=True,
+add_chombo_field("energy-density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("energy-density")],
                  units=r"\rm{erg}/\rm{cm}^3")
 KnownChomboFields["energy-density"]._projected_units =r""
 
-add_chombo_field("radiation-energy-density", function=lambda a,b: None, take_log=True,
+add_chombo_field("radiation-energy-density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("radiation-energy-density")],
                  units=r"\rm{erg}/\rm{cm}^3")
 KnownChomboFields["radiation-energy-density"]._projected_units =r""
@@ -96,6 +97,21 @@ def _Density(field,data):
     return data["density"]
 add_field("Density",function=_Density, take_log=True,
           units=r'\rm{g}/\rm{cm^3}')
+
+def _Bx(field,data):
+    return data["X-magnfield"]
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_x")
+
+def _By(field,data):
+    return data["Y-magnfield"]
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_y")
+
+def _Bz(field,data):
+    return data["Z-magnfield"]
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_z")
 
 def _MagneticEnergy(field,data):
     return (data["X-magnfield"]**2 +
@@ -125,3 +141,36 @@ def _zVelocity(field,data):
     return data["Z-momentum"]/data["density"]
 add_field("z-velocity",function=_zVelocity, take_log=False,
           units=r'\rm{cm}/\rm{s}')
+
+def particle_func(p_field, dtype='float64'):
+    def _Particles(field, data):
+        io = data.hierarchy.io
+        if not data.NumberOfParticles > 0:
+            return np.array([], dtype=dtype)
+        else:
+            return io._read_particles(data, p_field).astype(dtype)
+        
+    return _Particles
+
+_particle_field_list = ["mass",
+                        "position_x",
+                        "position_y",
+                        "position_z",
+                        "momentum_x",
+                        "momentum_y",
+                        "momentum_z",
+                        "angmomen_x",
+                        "angmomen_y",
+                        "angmomen_z",
+                        "mlast",
+                        "mdeut",
+                        "n",
+                        "mdot",
+                        "burnstate",
+                        "id"]
+
+for pf in _particle_field_list:
+    pfunc = particle_func("particle_%s" % (pf))
+    add_field("particle_%s" % pf, function=pfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)
