@@ -973,12 +973,12 @@ def _convertDensity(data):
     return data.convert("Density")
 def _pdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return blank
+    if data["particle_position_x"].size == 0: return blank
     CICDeposit_3(data["particle_position_x"].astype(np.float64),
                  data["particle_position_y"].astype(np.float64),
                  data["particle_position_z"].astype(np.float64),
                  data["particle_mass"].astype(np.float32),
-                 np.int64(data.NumberOfParticles),
+                 data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),
                  np.float64(data['dx']))
