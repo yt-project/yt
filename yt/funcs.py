@@ -587,5 +587,5 @@ def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
 
 def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1].lstrip('.')
-    return suffix if suffix in ['png', 'eps', 'ps', 'pdf'] else ''
+    suffix = os.path.splitext(name)[1]
+    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''

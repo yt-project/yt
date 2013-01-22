@@ -1437,6 +1437,9 @@ class YTNotebookCmd(YTCommand):
         print
         print "Recall you can create a new SSH tunnel dynamically by pressing"
         print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
+        print "where the first number is the port on your local machine. "
+        print
+        print "If you are using %s on your machine already, try -L8889:localhost:%s" % (app.port, app.port)
         print
         print "Additionally, while in the notebook, we recommend you start by"
         print "replacing 'yt.mods' with 'yt.imods' like so:"
