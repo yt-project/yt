@@ -4381,6 +4381,16 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
 
+    @property
+    def triangles(self):
+        if self.vertices is None:
+            self.get_data()
+        vv = np.empty((self.vertices.shape[1]/3, 3, 3), dtype="float64")
+        for i in range(3):
+            for j in range(3):
+                vv[:,i,j] = self.vertices[j,i::3]
+        return vv
+
     def export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
         r"""This exports the surface to the PLY format, suitable for visualization
