@@ -35,7 +35,8 @@ from yt.utilities.answer_testing.framework import \
      GridValuesTest, \
      ProjectionValuesTest, \
      ParentageRelationshipsTest, \
-     temp_cwd
+     temp_cwd, \
+     AssertWrapper
 
 def requires_outputlog(path = ".", prefix = ""):
     def ffalse(func):
@@ -59,17 +60,20 @@ def requires_outputlog(path = ".", prefix = ""):
 def standard_small_simulation(pf_fn, fields):
     if not can_run_pf(pf_fn): return
     dso = [None]
+    tolerance = ytcfg.getint("yt", "answer_testing_tolerance")
+    bitwise = ytcfg.getboolean("yt", "answer_testing_bitwise")
     for field in fields:
-        yield GridValuesTest(pf_fn, field)
+        if bitwise:
+            yield GridValuesTest(pf_fn, field)
         if 'particle' in field: continue
         for ds in dso:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
-                        ds, decimals=3)
+                        ds, decimals=tolerance)
             yield FieldValuesTest(
-                    pf_fn, field, ds, decimals=3)
+                    pf_fn, field, ds, decimals=tolerance)
                     
 class ShockTubeTest(object):
     def __init__(self, data_file, solution_file, fields, 
@@ -94,9 +98,10 @@ class ShockTubeTest(object):
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin)*(position <= xmax)
                 exact_field = np.interp(position[mask], exact['pos'], exact[k]) 
+                myname = "ShockTubeTest_%s" % k
                 # yield test vs analytical solution 
-                yield assert_allclose, field[mask], exact_field, \
-                    self.rtol, self.atol
+                yield AssertWrapper(myname, assert_allclose, field[mask], 
+                                    exact_field, self.rtol, self.atol)
 
     def get_analytical_solution(self):
         # Reads in from file 

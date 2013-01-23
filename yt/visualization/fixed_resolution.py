@@ -145,14 +145,16 @@ class FixedResolutionBuffer(object):
 
     def _get_data_source_fields(self):
         exclude = self.data_source._key_fields + list(self._exclude_fields)
-        fields = self.data_source.field_data.keys()
+        fields = getattr(self.data_source, "fields", [])
+        fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude:
                 self[f]
 
     def _get_info(self, item):
         info = {}
-        finfo = self.data_source.pf._get_field_info(*item)
+        ftype, fname = field = self.data_source._determine_fields(item)[0]
+        finfo = self.data_source.pf._get_field_info(*field)
         info['data_source'] = self.data_source.__str__()  
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
@@ -162,14 +164,39 @@ class FixedResolutionBuffer(object):
         info['length_to_cm'] = self.data_source.pf['cm']
         info['projected_units'] = finfo.get_projected_units()
         info['center'] = self.data_source.center
+        
         try:
             info['coord'] = self.data_source.coord
         except AttributeError:
             pass
+        
         try:
             info['weight_field'] = self.data_source.weight_field
         except AttributeError:
             pass
+        
+        info['label'] = finfo.display_name
+        if info['label'] is None:
+            info['label'] = r'$\rm{'+fname+r'}$'
+        elif info['label'].find('$') == -1:
+            info['label'] = info['label'].replace(' ','\/')
+            info['label'] = r'$\rm{'+info['label']+r'}$'
+        
+        if self.data_source._type_name in ("slice", "cutting"):
+            units = info['units']
+        elif self.data_source._type_name == "proj":
+            if (self.data_source.weight_field is not None or
+                self.data_source.proj_style == "mip"):
+                units = info['units']
+            else:
+                units = info['projected_units']
+        
+        if units is None or units == '':
+            pass
+        else:
+            info['label'] += r'$\/\/('+units+r')$'
+        
+
         return info
 
     def convert_to_pixel(self, coords):

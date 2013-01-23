@@ -24,6 +24,7 @@ License:
 """
 
 cimport numpy as np
+from fp_utils cimport *
 
 cdef struct ParticleArrays
 
@@ -62,10 +63,11 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
+    cdef Oct *next_root(self, int domain_id, int ind[3])
+    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
 cdef struct ParticleArrays:
     Oct *oct
     ParticleArrays *next
     np.float64_t **pos
-    np.int64_t *domain_id
     np.int64_t np

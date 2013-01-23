@@ -29,8 +29,6 @@ import weakref
 import cStringIO
 
 from yt.funcs import *
-from yt.data_objects.grid_patch import \
-      AMRGridPatch
 from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
 from yt.geometry.geometry_handler import \
@@ -55,9 +53,9 @@ from .fields import RAMSESFieldInfo, KnownRAMSESFields
 class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
-    nvar = 6
 
-    def __init__(self, pf, domain_id):
+    def __init__(self, pf, domain_id, nvar):
+        self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
         num = os.path.basename(pf.parameter_filename).split("."
@@ -172,7 +170,7 @@ class RAMSESDomainFile(object):
     def _read_amr(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain 
-           are needed - it's position in the octree is found automatically.
+           are needed - its position in the octree is found automatically.
            The most important is finding all the information to feed
            oct_handler.add
         """
@@ -250,6 +248,7 @@ class RAMSESDomainSubset(object):
         self.cell_count = cell_count
         level_counts = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
+        assert(level_counts.sum() == cell_count)
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
@@ -315,6 +314,7 @@ class RAMSESDomainSubset(object):
 class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def __init__(self, pf, data_style='ramses'):
+        self.fluid_field_list = pf._fields_in_file
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -326,7 +326,8 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         super(RAMSESGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
-        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
+        nv = len(self.fluid_field_list)
+        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1, nv)
                         for i in range(self.parameter_file['ncpu'])]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
@@ -349,8 +350,6 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         # TODO: Add additional fields
-        self.fluid_field_list = [ "Density", "x-velocity", "y-velocity",
-	                        "z-velocity", "Pressure", "Metallicity" ]
         pfl = set([])
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
@@ -391,8 +390,13 @@ class RAMSESStaticOutput(StaticOutput):
     _fieldinfo_known = KnownRAMSESFields
     
     def __init__(self, filename, data_style='ramses',
+                 fields = None,
                  storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
+        if fields is None:
+            fields = ["Density", "x-velocity", "y-velocity",
+	                  "z-velocity", "Pressure", "Metallicity"]
+        self._fields_in_file = fields
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 

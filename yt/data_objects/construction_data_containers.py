@@ -38,18 +38,18 @@ from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
-    restore_field_information_state
+    restore_field_information_state, YTFieldData
 from .field_info_container import \
     NeedsOriginalGrid
 from yt.utilities.lib import \
-    QuadTree, ghost_zone_interpolate
+    QuadTree, ghost_zone_interpolate, fill_region
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
+    parallel_objects, parallel_root_only, ParallelAnalysisInterface
 
 from .field_info_container import\
     NeedsGridType,\
@@ -249,10 +249,16 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self._mrep.upload()
 
     def _get_tree(self, nvals):
-        xd = self.pf.domain_dimensions[x_dict[self.axis]]
-        yd = self.pf.domain_dimensions[y_dict[self.axis]]
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        xd = self.pf.domain_dimensions[xax]
+        yd = self.pf.domain_dimensions[yax]
+        bounds = (self.pf.domain_left_edge[xax],
+                  self.pf.domain_right_edge[yax],
+                  self.pf.domain_left_edge[xax],
+                  self.pf.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        style = self.proj_style)
+                        bounds, style = self.proj_style)
 
     def _get_conv(self, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -347,8 +353,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             w = np.ones(chunk.size, dtype="float64")
         icoords = chunk.icoords
-        i1 = icoords[:,0]
-        i2 = icoords[:,1]
+        i1 = icoords[:,x_dict[self.axis]]
+        i2 = icoords[:,y_dict[self.axis]]
         ilevel = chunk.ires
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
@@ -364,388 +370,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
         return pw
 
-class YTOverlapProjBase(YTSelectionContainer2D):
-    _top_node = "/Projections"
-    _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
-    _type_name = "overlap_proj"
-    _con_args = ('axis', 'weight_field')
-    def __init__(self, field, axis, weight_field = None,
-                 max_level = None, center = None, pf = None,
-                 source=None, node_name = None, field_cuts = None,
-                 preload_style=None, serialize=True, **kwargs):
-        """
-        This is a data object corresponding to a line integral through the
-        simulation domain.
-
-        This object is typically accessed through the `proj` object that
-        hangs off of hierarchy objects.  AMRProj is a projection of a `field`
-        along an `axis`.  The field can have an associated `weight_field`, in
-        which case the values are multiplied by a weight before being summed,
-        and then divided by the sum of that weight; the two fundamental modes
-        of operating are direct line integral (no weighting) and average along
-        a line of sight (weighting.)  Note also that lines of sight are
-        integrated at every projected finest-level cell
-
-        Parameters
-        ----------
-        field : string
-            This is the field which will be "projected" along the axis.  If
-            multiple are specified (in a list) they will all be projected in
-            the first pass.
-        axis : int or axis
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        weight_field : string
-            If supplied, the field being projected will be multiplied by this
-            weight value before being integrated, and at the conclusion of the
-            projection the resultant values will be divided by the projected
-            `weight_field`.
-        max_level : int
-            If supplied, only cells at or below this level will be projected.
-        center : array_like, optional
-            The 'center' supplied to fields that use it.  Note that this does
-            not have to have `coord` as one value.  Strictly optional.
-        source : `yt.data_objects.api.YTDataContainer`, optional
-            If specified, this will be the data source used for selecting
-            regions to project.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        field_cuts : list of strings, optional
-            If supplied, each of these strings will be evaluated to cut a
-            region of a grid out.  They can be of the form "grid['Temperature']
-            > 100" for instance.
-        preload_style : string
-            Either 'level', 'all', or None (default).  Defines how grids are
-            loaded -- either level by level, or all at once.  Only applicable
-            during parallel runs.
-        serialize : bool, optional
-            Whether we should store this projection in the .yt file or not.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> proj = pf.h.proj("Density", "x")
-        >>> print proj["Density"]
-        """
-        YTSelectionContainer2D.__init__(self, axis, field, pf, node_name = None, **kwargs)
-        self.weight_field = weight_field
-        self._field_cuts = field_cuts
-        self.serialize = serialize
-        self._set_center(center)
-        if center is not None: self.set_field_parameter('center',center)
-        self._node_name = node_name
-        self._initialize_source(source)
-        self._grids = self.source._grids
-        if max_level == None:
-            max_level = self.hierarchy.max_level
-        if self.source is not None:
-            max_level = min(max_level, self.source.grid_levels.max())
-        self._max_level = max_level
-        self._weight = weight_field
-        self.preload_style = preload_style
-        self.func = np.sum # for the future
-        self.__retval_coords = {}
-        self.__retval_fields = {}
-        self.__retval_coarse = {}
-        self.__overlap_masks = {}
-        self._deserialize(node_name)
-        self._refresh_data()
-        if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
-
-    def _convert_field_name(self, field):
-        if field == "weight_field": return "weight_field_%s" % self._weight
-        if field in self._key_fields: return field
-        return "%s_%s" % (field, self._weight)
-
-    def _initialize_source(self, source = None):
-        if source is None:
-            check, source = self.partition_hierarchy_2d(self.axis)
-            self._check_region = check
-            #self._okay_to_serialize = (not check)
-        else:
-            self._distributed = False
-            self._okay_to_serialize = False
-            self._check_region = True
-        self.source = source
-        if self._field_cuts is not None:
-            # Override if field cuts are around; we don't want to serialize!
-            self._check_region = True
-            self._okay_to_serialize = False
-        if self._node_name is not None:
-            self._node_name = "%s/%s" % (self._top_node,self._node_name)
-            self._okay_to_serialize = True
-
-    def __calculate_overlap(self, level):
-        s = self.source
-        mylog.info("Generating overlap masks for level %s", level)
-        i = 0
-        pbar = get_pbar("Reading and masking grids ", len(s._grids))
-        mylog.debug("Examining level %s", level)
-        grids = s.select_grid_indices(level)
-        RE = s.grid_right_edge[grids]
-        LE = s.grid_left_edge[grids]
-        for grid in s._grids[grids]:
-            pbar.update(i)
-            self.__overlap_masks[grid.id] = \
-                grid._generate_overlap_masks(self.axis, LE, RE)
-            i += 1
-        pbar.finish()
-        mylog.info("Finished calculating overlap.")
-
-    def _get_dls(self, grid, fields):
-        # Place holder for a time when maybe we will not be doing just
-        # a single dx for every field.
-        dls = []
-        convs = []
-        for field in fields + [self._weight]:
-            if field is None: continue
-            dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
-            convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
-        return np.array(dls), np.array(convs)
-
-    def __project_level(self, level, fields):
-        grids_to_project = self.source.select_grids(level)
-        dls, convs = self._get_dls(grids_to_project[0], fields)
-        zero_out = (level != self._max_level)
-        pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids_to_project))
-        for pi, grid in enumerate(grids_to_project):
-            g_coords, g_fields = self._project_grid(grid, fields, zero_out)
-            self.__retval_coords[grid.id] = g_coords
-            self.__retval_fields[grid.id] = g_fields
-            for fi in range(len(fields)): g_fields[fi] *= dls[fi]
-            if self._weight is not None: g_coords[3] *= dls[-1]
-            pbar.update(pi)
-            grid.clear_data()
-        pbar.finish()
-        self.__combine_grids_on_level(level) # In-place
-        if level > 0 and level <= self._max_level:
-            self.__refine_to_level(level) # In-place
-        coord_data = []
-        field_data = []
-        for grid in grids_to_project:
-            coarse = self.__retval_coords[grid.id][2]==0 # Where childmask = 0
-            fine = ~coarse
-            coord_data.append([pi[fine] for pi in self.__retval_coords[grid.id]])
-            field_data.append([pi[fine] for pi in self.__retval_fields[grid.id]])
-            self.__retval_coords[grid.id] = [pi[coarse] for pi in self.__retval_coords[grid.id]]
-            self.__retval_fields[grid.id] = [pi[coarse] for pi in self.__retval_fields[grid.id]]
-        coord_data = np.concatenate(coord_data, axis=1)
-        field_data = np.concatenate(field_data, axis=1)
-        if self._weight is not None:
-            field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
-        else:
-            field_data *= convs[...,np.newaxis]
-        mylog.info("Level %s done: %s final", \
-                   level, coord_data.shape[1])
-        pdx = grids_to_project[0].dds[x_dict[self.axis]] # this is our dl
-        pdy = grids_to_project[0].dds[y_dict[self.axis]] # this is our dl
-        return coord_data, pdx, pdy, field_data
-
-    def __combine_grids_on_level(self, level):
-        grids = self.source.select_grids(level)
-        grids_i = self.source.select_grid_indices(level)
-        pbar = get_pbar('Combining   level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids))
-        # We have an N^2 check, so we try to be as quick as possible
-        # and to skip as many as possible
-        for pi, grid1 in enumerate(grids):
-            pbar.update(pi)
-            if self.__retval_coords[grid1.id][0].shape[0] == 0: continue
-            for grid2 in self.source._grids[grids_i][self.__overlap_masks[grid1.id]]:
-                if self.__retval_coords[grid2.id][0].shape[0] == 0 \
-                  or grid1.id == grid2.id:
-                    continue
-                args = [] # First is source, then destination
-                args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
-                args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                args.append(1) # Refinement factor
-                args.append(np.ones(args[0].shape, dtype='int64'))
-                kk = CombineGrids(*args)
-                goodI = args[-1].astype('bool')
-                self.__retval_coords[grid2.id] = \
-                    [coords[goodI] for coords in self.__retval_coords[grid2.id]]
-                self.__retval_fields[grid2.id] = \
-                    [fields[goodI] for fields in self.__retval_fields[grid2.id]]
-        pbar.finish()
-
-    def __refine_to_level(self, level):
-        grids = self.source.select_grids(level)
-        grids_up = self.source.select_grid_indices(level - 1)
-        pbar = get_pbar('Refining to level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids))
-        for pi, grid1 in enumerate(grids):
-            pbar.update(pi)
-            for parent in ensure_list(grid1.Parent):
-                if parent.id not in self.__overlap_masks: continue
-                for grid2 in self.source._grids[grids_up][self.__overlap_masks[parent.id]]:
-                    if self.__retval_coords[grid2.id][0].shape[0] == 0: continue
-                    args = []
-                    args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
-                    args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    # Refinement factor, which is same in all directions.  Note
-                    # that this complicated rounding is because sometimes
-                    # epsilon differences in dds between the grids causes this
-                    # to round to up or down from the expected value.
-                    args.append(int(np.rint(grid2.dds / grid1.dds)[0]))
-                    args.append(np.ones(args[0].shape, dtype='int64'))
-                    kk = CombineGrids(*args)
-                    goodI = args[-1].astype('bool')
-                    self.__retval_coords[grid2.id] = \
-                        [coords[goodI] for coords in self.__retval_coords[grid2.id]]
-                    self.__retval_fields[grid2.id] = \
-                        [fields[goodI] for fields in self.__retval_fields[grid2.id]]
-        for grid1 in self.source.select_grids(level-1):
-            if not self._check_region and self.__retval_coords[grid1.id][0].size != 0:
-                mylog.error("Something messed up, and %s still has %s points of data",
-                            grid1, self.__retval_coords[grid1.id][0].size)
-                mylog.error("Please contact the yt-users mailing list.")
-                raise ValueError(grid1, self.__retval_coords[grid1.id])
-        pbar.finish()
-
-    def get_data(self, fields):
-        fields = ensure_list(fields)
-        self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.field_data]
-        if len(fields) == 0: return
-        coord_data = []
-        field_data = []
-        pdxs = []
-        pdys = []
-        # We do this here, but I am not convinced it should be done here
-        # It is probably faster, as it consolidates IO, but if we did it in
-        # _project_level, then it would be more memory conservative
-        if self.preload_style == 'all':
-            print "Preloading %s grids and getting %s" % (
-                    len(self.source._grids), self.get_dependencies(fields))
-            self.comm.preload(self.source._grids,
-                          self.get_dependencies(fields), self.hierarchy.io)
-        for level in range(0, self._max_level+1):
-            if self.preload_style == 'level':
-                self.comm.preload(self.source.select_grids(level),
-                              self.get_dependencies(fields), self.hierarchy.io)
-            self.__calculate_overlap(level)
-            my_coords, my_pdx, my_pdy, my_fields = \
-                self.__project_level(level, fields)
-            coord_data.append(my_coords)
-            field_data.append(my_fields)
-            pdxs.append(my_pdx * np.ones(my_coords.shape[1], dtype='float64'))
-            pdys.append(my_pdx * np.ones(my_coords.shape[1], dtype='float64'))
-            if self._check_region and False:
-                check=self.__cleanup_level(level - 1)
-                if len(check) > 0: all_data.append(check)
-            # Now, we should clean up after ourselves...
-            for grid in self.source.select_grids(level - 1):
-                del self.__retval_coords[grid.id]
-                del self.__retval_fields[grid.id]
-                del self.__overlap_masks[grid.id]
-            mylog.debug("End of projecting level level %s, memory usage %0.3e",
-                        level, get_memory_usage()/1024.)
-        coord_data = np.concatenate(coord_data, axis=1)
-        field_data = np.concatenate(field_data, axis=1)
-        pdxs = np.concatenate(pdxs, axis=1)
-        pdys = np.concatenate(pdys, axis=1)
-        # We now convert to half-widths and center-points
-        data = {}
-        data['pdx'] = pdxs; del pdxs
-        data['pdy'] = pdys; del pdys
-        ox = self.pf.domain_left_edge[x_dict[self.axis]]
-        oy = self.pf.domain_left_edge[y_dict[self.axis]]
-        data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
-        data['weight_field'] = coord_data[3,:].copy()
-        del coord_data
-        data['pdx'] *= 0.5
-        data['pdy'] *= 0.5
-        data['fields'] = field_data
-        # Now we run the finalizer, which is ignored if we don't need it
-        data = self.comm.par_combine_object(data, datatype='dict', op='cat')
-        field_data = np.vsplit(data.pop('fields'), len(fields))
-        for fi, field in enumerate(fields):
-            self[field] = field_data[fi].ravel()
-            if self.serialize: self._store_fields(field, self._node_name)
-        for i in data.keys(): self[i] = data.pop(i)
-        mylog.info("Projection completed")
-
-    def add_fields(self, fields, weight = "CellMassMsun"):
-        pass
-
-    def _project_grid(self, grid, fields, zero_out):
-        # We split this next bit into two sections to try to limit the IO load
-        # on the system.  This way, we perserve grid state (@restore_grid_state
-        # in _get_data_from_grid *and* we attempt not to load weight data
-        # independently of the standard field data.
-        if self._weight is None:
-            weight_data = np.ones(grid.ActiveDimensions, dtype='float64')
-            if zero_out: weight_data[grid.child_indices] = 0
-            masked_data = [fd.astype('float64') * weight_data
-                           for fd in self._get_data_from_grid(grid, fields)]
-        else:
-            fields_to_get = list(set(fields + [self._weight]))
-            field_data = dict(zip(
-                fields_to_get, self._get_data_from_grid(grid, fields_to_get)))
-            weight_data = field_data[self._weight].copy().astype('float64')
-            if zero_out: weight_data[grid.child_indices] = 0
-            masked_data  = [field_data[field].copy().astype('float64') * weight_data
-                                for field in fields]
-            del field_data
-        # if we zero it out here, then we only have to zero out the weight!
-        full_proj = [self.func(field, axis=self.axis) for field in masked_data]
-        weight_proj = self.func(weight_data, axis=self.axis)
-        if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
-            used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = np.where(np.logical_or.reduce(used_data, self.axis))
-        else:
-            used_data = np.array([1.0], dtype='bool')
-            used_points = slice(None)
-        if zero_out:
-            subgrid_mask = np.logical_and.reduce(
-                                np.logical_or(grid.child_mask,
-                                             ~used_data),
-                                self.axis).astype('int64')
-        else:
-            subgrid_mask = np.ones(full_proj[0].shape, dtype='int64')
-        xind, yind = [arr[used_points].ravel() for arr in np.indices(full_proj[0].shape)]
-        start_index = grid.get_global_startindex()
-        xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
-        ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
-        return ([xpoints, ypoints,
-                subgrid_mask[used_points].ravel(),
-                weight_proj[used_points].ravel()],
-                [data[used_points].ravel() for data in full_proj])
-
-    def _get_points_in_region(self, grid):
-        pointI = self.source._get_point_indices(grid, use_child_mask=False)
-        point_mask = np.zeros(grid.ActiveDimensions)
-        point_mask[pointI] = 1.0
-        if self._field_cuts is not None:
-            for cut in self._field_cuts:
-                point_mask *= eval(cut)
-        return point_mask
-
-    def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        if self._check_region:
-            bad_points = self._get_points_in_region(grid)
-        else:
-            bad_points = 1.0
-        return [grid[field] * bad_points for field in fields]
-
-    def _gen_node_name(self):
-        return  "%s/%s" % \
-            (self._top_node, self.axis)
-
-
 class YTCoveringGridBase(YTSelectionContainer3D):
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'ActiveDimensions')
+    _base_grid = None
     def __init__(self, level, left_edge, dims, fields = None,
-                 pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
+                 pf = None, num_ghost_zones = 0, use_pbar = True, 
+                 field_parameters = None):
         """A 3D region with all data extracted to a single, specified
         resolution.
 
@@ -766,8 +398,12 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                                   dims=[128, 128, 128])
 
         """
-        YTSelectionContainer3D.__init__(self, center=kwargs.pop("center", None),
-                           pf=pf, **kwargs)
+        if field_parameters is None:
+            center = None
+        else:
+            center = field_parameters.get("center", None)
+        YTSelectionContainer3D.__init__(self,
+            center, pf, field_parameters)
         self.left_edge = np.array(left_edge)
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
@@ -779,118 +415,57 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.global_startindex = np.rint((self.left_edge-self.pf.domain_left_edge)/self.dds).astype('int64')
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
-        self.get_data(fields)
+        self._setup_data_source()
 
-    def _get_list_of_grids(self, buffer = 0.0):
-        if self._grids is not None: return
-        if np.any(self.left_edge - buffer < self.pf.domain_left_edge) or \
-           np.any(self.right_edge + buffer > self.pf.domain_right_edge):
-            grids,ind = self.pf.hierarchy.get_periodic_box_grids_below_level(
-                            self.left_edge - buffer,
-                            self.right_edge + buffer, self.level)
-        else:
-            grids,ind = self.pf.hierarchy.get_box_grids_below_level(
-                self.left_edge - buffer,
-                self.right_edge + buffer, self.level)
-        sort_ind = np.argsort(self.pf.h.grid_levels.ravel()[ind])
-        self._grids = self.pf.hierarchy.grids[ind][(sort_ind,)][::-1]
+    def _setup_data_source(self):
+        self._data_source = self.pf.h.region(
+            self.center, self.left_edge, self.right_edge)
+        self._data_source.min_level = 0
+        self._data_source.max_level = self.level
 
-    def _refresh_data(self):
-        YTSelectionContainer3D._refresh_data(self)
-        self['dx'] = self.dds[0] * np.ones(self.ActiveDimensions, dtype='float64')
-        self['dy'] = self.dds[1] * np.ones(self.ActiveDimensions, dtype='float64')
-        self['dz'] = self.dds[2] * np.ones(self.ActiveDimensions, dtype='float64')
+    def get_data(self, fields = None):
+        fields = self._determine_fields(ensure_list(fields))
+        fields_to_get = [f for f in fields if f not in self.field_data]
+        fields_to_get = self._identify_dependencies(fields_to_get)
+        if len(fields_to_get) == 0: return
+        fill, gen = self._split_fields(fields_to_get)
+        if len(fill) > 0: self._fill_fields(fill)
+        if len(gen) > 0: self._generate_fields(gen)
 
-    def get_data(self, fields):
-        if self._grids is None:
-            self._get_list_of_grids()
-        fields = ensure_list(fields)
-        obtain_fields = []
-        for field in fields:
-            if self.field_data.has_key(field): continue
-            if field not in self.hierarchy.field_list:
-                try:
-                    #print "Generating", field
-                    self._generate_field(field)
-                    continue
-                except NeedsOriginalGrid, ngt_exception:
-                    pass
-            obtain_fields.append(field)
-            self[field] = np.zeros(self.ActiveDimensions, dtype='float64') -999
-        if len(obtain_fields) == 0: return
-        mylog.debug("Getting fields %s from %s possible grids",
-                   obtain_fields, len(self._grids))
-        if self._use_pbar: pbar = \
-                get_pbar('Searching grids for values ', len(self._grids))
-        count = self.ActiveDimensions.prod()
-        for i, grid in enumerate(self._grids):
-            if self._use_pbar: pbar.update(i)
-            count -= self._get_data_from_grid(grid, obtain_fields)
-            if count <= 0: break
-        if self._use_pbar: pbar.finish()
-        if count > 0 or np.any(self[obtain_fields[0]] == -999):
-            # and self.dx < self.hierarchy.grids[0].dx:
-            n_bad = np.where(self[obtain_fields[0]]==-999)[0].size
-            mylog.error("Covering problem: %s cells are uncovered", n_bad)
-            raise KeyError(n_bad)
+    def _split_fields(self, fields_to_get):
+        fill, gen = self.pf.h._split_fields(fields_to_get)
+        for field in gen:
+            finfo = self.pf._get_field_info(*field)
+            try:
+                finfo.check_available(self)
+            except NeedsOriginalGrid:
+                fill.append(field)
+        gen = [f for f in gen if f not in fill]
+        return fill, gen
 
-    def _generate_field(self, field):
-        if self.pf.field_info.has_key(field):
-            # First we check the validator; this might even raise!
-            self.pf.field_info[field].check_available(self)
-            self[field] = self.pf.field_info[field](self)
-        else: # Can't find the field, try as it might
-            raise KeyError(field)
+    def _fill_fields(self, fields):
+        output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
+                         for field in fields]
+        for chunk in self._data_source.chunks(fields, "io"):
+            input_fields = [chunk[field] for field in fields]
+            fill_region(input_fields, output_fields, self.level,
+                        self.global_startindex, chunk.icoords, chunk.ires)
+        for name, v in zip(fields, output_fields):
+            self[name] = v
 
-    def flush_data(self, fields=None):
-        """
-        Any modifications made to the data in this object are pushed back
-        to the originating grids, except the cells where those grids are both
-        below the current level `and` have child cells.
-        """
-        self._get_list_of_grids()
-        # We don't generate coordinates here.
-        for grid in self._grids:
-            self._flush_data_to_grid(grid, ensure_list(fields))
-
-    def _get_data_from_grid(self, grid, fields):
-        ll = int(grid.Level == self.level)
-        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [grid[field].astype("float64") for field in fields]
-        c_fields = [self[field] for field in fields]
-        count = FillRegion(ref_ratio,
-            grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields,
-            self.ActiveDimensions, grid.ActiveDimensions,
-            grid.child_mask, self.domain_width, ll, 0)
-        return count
-
-    def _flush_data_to_grid(self, grid, fields):
-        ll = int(grid.Level == self.level)
-        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = []
-        for field in fields:
-            if not grid.has_key(field): grid[field] = \
-               np.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
-            g_fields.append(grid[field])
-        c_fields = [self[field] for field in fields]
-        FillRegion(ref_ratio,
-            grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields,
-            self.ActiveDimensions, grid.ActiveDimensions,
-            grid.child_mask, self.domain_width, ll, 1)
-
-    @property
-    def LeftEdge(self):
-        return self.left_edge
-
-    @property
-    def RightEdge(self):
-        return self.right_edge
-
+class LevelState(object):
+    current_dx = None
+    current_dims = None
+    current_level = None
+    global_startindex = None
+    old_global_startindex = None
+    domain_iwidth = None
+    fields = None
+    data_source = None
 
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     _type_name = "smoothed_covering_grid"
+    filename = None
     @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
         """A 3D region with all data extracted and interpolated to a
@@ -924,249 +499,493 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         self.global_endindex = None
         YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
+
+    def _setup_data_source(self, level_state = None):
+        if level_state is None: return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
-        buffer = ((self.pf.domain_right_edge - self.pf.domain_left_edge)
-                 / self.pf.domain_dimensions).max()
-        self._base_region = self.pf.geometry.region(
+        level_state.data_source = self.pf.h.region(
             self.center,
-            self.left_edge - buffer,
-            self.right_edge + buffer)
+            self.left_edge - level_state.current_dx,
+            self.right_edge + level_state.current_dx)
+        level_state.data_source.min_level = level_state.current_level
+        level_state.data_source.max_level = level_state.current_level
 
-    def get_data(self, field):
-        self._get_list_of_grids()
-        # We don't generate coordinates here.
-        if field == None:
-            fields = self.fields[:]
-        else:
-            fields = ensure_list(field)
-        fields_to_get = []
-        for field in fields:
-            if self.field_data.has_key(field): continue
-            if field not in self.hierarchy.field_list:
-                try:
-                    #print "Generating", field
-                    self._generate_field(field)
-                    continue
-                except NeedsOriginalGrid, ngt_exception:
-                    pass
-            fields_to_get.append(field)
-        if len(fields_to_get) == 0: return
-        # Note that, thanks to some trickery, we have different dimensions
-        # on the field than one might think from looking at the dx and the
-        # L/R edges.
-        # We jump-start our task here
-        mylog.debug("Getting fields %s from %s possible grids",
-                   fields_to_get, len(self._grids))
-        self._update_level_state(0, fields_to_get)
-        if self._use_pbar: pbar = \
-                get_pbar('Searching grids for values ', len(self._grids))
-        # The grids are assumed to be pre-sorted
-        last_level = 0
-        for gi, grid in enumerate(self._grids):
-            if self._use_pbar: pbar.update(gi)
-            if grid.Level > last_level and grid.Level <= self.level:
-                mylog.debug("Updating level state to %s", last_level + 1)
-                self._update_level_state(last_level + 1)
-                self._refine(1, fields_to_get)
-                last_level = grid.Level
-            self._get_data_from_grid(grid, fields_to_get)
-        while last_level < self.level:
-            mylog.debug("Grid-free refinement %s to %s", last_level, last_level + 1)
-            self._update_level_state(last_level + 1)
-            self._refine(1, fields_to_get)
-            last_level += 1
-        if self.level > 0:
-            for field in fields_to_get:
-                self[field] = self[field][1:-1,1:-1,1:-1]
-                if np.any(self[field] == -999):
-                    # and self.dx < self.hierarchy.grids[0].dx:
-                    n_bad = (self[field]==-999).sum()
-                    mylog.error("Covering problem: %s cells are uncovered", n_bad)
-                    raise KeyError(n_bad)
-        if self._use_pbar: pbar.finish()
+    def _fill_fields(self, fields):
+        ls = self._initialize_level_state(fields)
+        for level in range(self.level + 1):
+            tot = 0
+            for chunk in ls.data_source.chunks(fields, "io"):
+                chunk[fields[0]]
+                input_fields = [chunk[field] for field in fields]
+                tot += fill_region(input_fields, ls.fields, ls.current_level,
+                            ls.global_startindex, chunk.icoords,
+                            chunk.ires)
+            self._update_level_state(ls)
+        for name, v in zip(fields, ls.fields):
+            if self.level > 0: v = v[1:-1,1:-1,1:-1]
+            self[name] = v
 
-    def _update_level_state(self, level, fields = None):
-        dx = self._base_dx / self.pf.refine_by**level
-        self.field_data['cdx'] = dx[0]
-        self.field_data['cdy'] = dx[1]
-        self.field_data['cdz'] = dx[2]
+    def _initialize_level_state(self, fields):
+        ls = LevelState()
+        ls.current_dx = self._base_dx
+        ls.current_level = 0
         LL = self.left_edge - self.pf.domain_left_edge
-        self._old_global_startindex = self.global_startindex
-        self.global_startindex = np.rint(LL / dx).astype('int64') - 1
-        self.domain_width = np.rint((self.pf.domain_right_edge -
-                    self.pf.domain_left_edge)/dx).astype('int64')
-        if level == 0 and self.level > 0:
+        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.domain_iwidth = np.rint((self.pf.domain_right_edge -
+                    self.pf.domain_left_edge)/ls.current_dx).astype('int64')
+        if self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = np.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
-            fields = ensure_list(fields)
-            for field in fields:
-                self.field_data[field] = np.zeros(idims,dtype='float64')-999
-            self._cur_dims = idims.astype("int32")
-        elif level == 0 and self.level == 0:
-            DLE = self.pf.domain_left_edge
-            self.global_startindex = np.array(np.floor(LL/ dx), dtype='int64')
-            idims = np.rint((self.ActiveDimensions*self.dds)/dx).astype('int64')
-            fields = ensure_list(fields)
-            for field in fields:
-                self.field_data[field] = np.zeros(idims,dtype='float64')-999
-            self._cur_dims = idims.astype("int32")
+            width = self.right_edge-self.left_edge
+            idims = np.rint(width/ls.current_dx).astype('int64') + 2
+        elif self.level == 0:
+            ls.global_startindex = np.array(np.floor(LL/ls.current_dx), dtype='int64')
+            idims = np.rint((self.ActiveDimensions*self.dds)/ls.current_dx).astype('int64')
+        ls.current_dims = idims.astype("int32")
+        ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
+        self._setup_data_source(ls)
+        return ls
 
-    def _refine(self, dlevel, fields):
-        rf = float(self.pf.refine_by**dlevel)
-
-        input_left = (self._old_global_startindex + 0.5) * rf 
-        dx = np.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
-        output_dims = np.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
-        self._cur_dims = output_dims
-
-        for field in fields:
+    def _update_level_state(self, level_state):
+        ls = level_state
+        if ls.current_level >= self.level: return
+        ls.current_level += 1
+        ls.current_dx = self._base_dx / self.pf.refine_by**ls.current_level
+        self._setup_data_source(ls)
+        LL = self.left_edge - self.pf.domain_left_edge
+        ls.old_global_startindex = ls.global_startindex
+        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.domain_iwidth = np.rint(self.pf.domain_width/ls.current_dx).astype('int64') 
+        rf = float(self.pf.refine_by)
+        input_left = (level_state.old_global_startindex + 0.5) * rf 
+        width = (self.ActiveDimensions*self.dds)
+        output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
+        level_state.current_dims = output_dims
+        new_fields = []
+        for input_field in level_state.fields:
             output_field = np.zeros(output_dims, dtype="float64")
             output_left = self.global_startindex + 0.5
-            ghost_zone_interpolate(rf, self[field], input_left,
+            ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
-            self.field_data[field] = output_field
+            new_fields.append(output_field)
+        level_state.fields = new_fields
 
-    @restore_field_information_state
-    def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        g_fields = [grid[field].astype("float64") for field in fields]
-        c_fields = [self.field_data[field] for field in fields]
-        count = FillRegion(1,
-            grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields, 
-            self._cur_dims, grid.ActiveDimensions,
-            grid.child_mask, self.domain_width, 1, 0)
-        return count
+class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
+    _type_name = "surface"
+    _con_args = ("data_source", "surface_field", "field_value")
+    vertices = None
+    def __init__(self, data_source, surface_field, field_value):
+        r"""This surface object identifies isocontours on a cell-by-cell basis,
+        with no consideration of global connectedness, and returns the vertices
+        of the Triangles in that isocontour.
 
-    def flush_data(self, *args, **kwargs):
-        raise KeyError("Can't do this")
-
-class YTFixedResProjectionBase(YTSelectionContainer2D):
-    _top_node = "/Projections"
-    _type_name = "fixed_res_proj"
-    _con_args = ('axis', 'field', 'weight_field')
-    def __init__(self, axis, level, left_edge, dims, pf=None,
-                 field_parameters = None):
-        """
-        This is a data structure that projects grids, but only to fixed (rather
-        than variable) resolution.
-
-        This object is typically accessed through the `fixed_res_proj` object
-        that hangs off of hierarchy objects.  This projection mechanism is much
-        simpler than the standard, variable-resolution projection.  Rather than
-        attempt to identify the highest-resolution element along every possible
-        line of sight, this data structure simply deposits every cell into one
-        of a fixed number of bins.  It is suitable for inline analysis, and it
-        should scale nicely.
-
+        This object simply returns the vertices of all the triangles
+        calculated by the marching cubes algorithm; for more complex
+        operations, such as identifying connected sets of cells above a given
+        threshold, see the extract_connected_sets function.  This is more
+        useful for calculating, for instance, total isocontour area, or
+        visualizing in an external program (such as `MeshLab
+        <http://meshlab.sf.net>`_.)  The object has the properties .vertices
+        and will sample values if a field is requested.  The values are
+        interpolated to the center of a given face.
+        
         Parameters
         ----------
-        axis : int
-            The axis along which to project.  Can be 0, 1, or 2 for x, y, z.
-        level : int
-            This is the level to which values will be projected.  Note that
-            the pixel size in the projection will be identical to a cell at
-            this level of refinement in the simulation.
-        left_edge : array of ints
-            The left edge, in level-local integer coordinates, of the
-            projection
-        dims : array of ints
-            The dimensions of the projection (which, in concert with the
-            left_edge, serves to define its right edge.)
-        field_parameters : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
+        data_source : AMR3DDataObject
+            This is the object which will used as a source
+        surface_field : string
+            Any field that can be obtained in a data object.  This is the field
+            which will be isocontoured.
+        field_value : float
+            The value at which the isocontour should be calculated.
+
+        References
+        ----------
+
+        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+        Examples
+        --------
+        This will create a data object, find a nice value in the center, and
+        output the vertices to "triangles.obj" after rescaling them.
+
+        >>> sp = pf.h.sphere("max", (10, "kpc")
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> print surf["Temperature"]
+        >>> print surf.vertices
+        >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
+        ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
+        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+        """
+        ParallelAnalysisInterface.__init__(self)
+        self.data_source = data_source
+        self.surface_field = surface_field
+        self.field_value = field_value
+        self.vertex_samples = YTFieldData()
+        center = data_source.get_field_parameter("center")
+        super(YTSurfaceBase, self).__init__(center = center, pf =
+                    data_source.pf )
+        self._grids = self.data_source._grids.copy()
+
+    def get_data(self, fields = None, sample_type = "face"):
+        if isinstance(fields, list) and len(fields) > 1:
+            for field in fields: self.get_data(field)
+            return
+        elif isinstance(fields, list):
+            fields = fields[0]
+        # Now we have a "fields" value that is either a string or None
+        pb = get_pbar("Extracting (sampling: %s)" % fields,
+                      len(list(self._get_grid_objs())))
+        verts = []
+        samples = []
+        for i,g in enumerate(self._get_grid_objs()):
+            pb.update(i)
+            my_verts = self._extract_isocontours_from_grid(
+                            g, self.surface_field, self.field_value,
+                            fields, sample_type)
+            if fields is not None:
+                my_verts, svals = my_verts
+                samples.append(svals)
+            verts.append(my_verts)
+        pb.finish()
+        verts = np.concatenate(verts).transpose()
+        verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
+        self.vertices = verts
+        if fields is not None:
+            samples = np.concatenate(samples)
+            samples = self.comm.par_combine_object(samples, op='cat',
+                                datatype='array')
+            if sample_type == "face":
+                self[fields] = samples
+            elif sample_type == "vertex":
+                self.vertex_samples[fields] = samples
+        
+
+    def _extract_isocontours_from_grid(self, grid, field, value,
+                                       sample_values = None,
+                                       sample_type = "face"):
+        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(field, no_ghost = False)
+        if sample_values is not None:
+            svals = grid.get_vertex_centered_data(sample_values)
+        else:
+            svals = None
+        sample_type = {"face":1, "vertex":2}[sample_type]
+        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
+                                    grid.dds, svals, sample_type)
+        return my_verts
+
+    def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
+        r"""This calculates the flux over the surface.
+
+        This function will conduct marching cubes on all the cells in a given
+        data container (grid-by-grid), and then for each identified triangular
+        segment of an isocontour in a given cell, calculate the gradient (i.e.,
+        normal) in the isocontoured field, interpolate the local value of the
+        "fluxing" field, the area of the triangle, and then return:
+
+        area * local_flux_value * (n dot v)
+
+        Where area, local_value, and the vector v are interpolated at the barycenter
+        (weighted by the vertex values) of the triangle.  Note that this
+        specifically allows for the field fluxing across the surface to be
+        *different* from the field being contoured.  If the fluxing_field is
+        not specified, it is assumed to be 1.0 everywhere, and the raw flux
+        with no local-weighting is returned.
+
+        Additionally, the returned flux is defined as flux *into* the surface,
+        not flux *out of* the surface.
+        
+        Parameters
+        ----------
+        field_x : string
+            The x-component field
+        field_y : string
+            The y-component field
+        field_z : string
+            The z-component field
+        fluxing_field : string, optional
+            The field whose passage over the surface is of interest.  If not
+            specified, assumed to be 1.0 everywhere.
+
+        Returns
+        -------
+        flux : float
+            The summed flux.  Note that it is not currently scaled; this is
+            simply the code-unit area times the fields.
+
+        References
+        ----------
+
+        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
 
         Examples
         --------
 
-        >>> pf = load("RedshiftOutput0005")
-        >>> fproj = pf.h.fixed_res_proj(1, [0, 0, 0], [64, 64, 64], ["Density"])
-        >>> print fproj["Density"]
-        """
-        YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
-        self.left_edge = np.array(left_edge)
-        self.level = level
-        self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
-        self.dims = np.array([dims]*2)
-        self.ActiveDimensions = np.array([dims]*3, dtype='int32')
-        self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
-        self.global_startindex = np.rint((self.left_edge - self.pf.domain_left_edge)
-                                         /self.dds).astype('int64')
-        self._dls = {}
-        self.domain_width = np.rint((self.pf.domain_right_edge -
-                    self.pf.domain_left_edge)/self.dds).astype('int64')
-        self._refresh_data()
+        This will create a data object, find a nice value in the center, and
+        calculate the metal flux over it.
 
-    def _get_list_of_grids(self):
-        if self._grids is not None: return
-        if np.any(self.left_edge < self.pf.domain_left_edge) or \
-           np.any(self.right_edge > self.pf.domain_right_edge):
-            grids,ind = self.pf.hierarchy.get_periodic_box_grids(
-                            self.left_edge, self.right_edge)
+        >>> sp = pf.h.sphere("max", (10, "kpc")
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> flux = surf.calculate_flux(
+        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
+        """
+        flux = 0.0
+        pb = get_pbar("Fluxing %s" % fluxing_field,
+                len(list(self._get_grid_objs())))
+        for i, g in enumerate(self._get_grid_objs()):
+            pb.update(i)
+            flux += self._calculate_flux_in_grid(g,
+                    field_x, field_y, field_z, fluxing_field)
+        pb.finish()
+        flux = self.comm.mpi_allreduce(flux, op="sum")
+        return flux
+
+    def _calculate_flux_in_grid(self, grid, 
+                    field_x, field_y, field_z, fluxing_field = None):
+        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
+        vals = grid.get_vertex_centered_data(self.surface_field)
+        if fluxing_field is None:
+            ff = np.ones(vals.shape, dtype="float64")
         else:
-            grids,ind = self.pf.hierarchy.get_box_grids(
-                            self.left_edge, self.right_edge)
-        level_ind = (self.pf.hierarchy.grid_levels.ravel()[ind] <= self.level)
-        sort_ind = np.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
-        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
+            ff = grid.get_vertex_centered_data(fluxing_field)
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+                     [field_x, field_y, field_z]]
+        return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
+                    ff, mask, grid.LeftEdge, grid.dds)
 
-    def _generate_coords(self):
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
-        ci = self.left_edge + self.dds*0.5
-        cf = self.left_edge + self.dds*(self.ActiveDimensions-0.5)
-        cx = np.mgrid[ci[xax]:cf[xax]:self.ActiveDimensions[xax]*1j]
-        cy = np.mgrid[ci[yax]:cf[yax]:self.ActiveDimensions[yax]*1j]
-        blank = np.ones( (self.ActiveDimensions[xax],
-                          self.ActiveDimensions[yax]), dtype='float64')
-        self['px'] = cx[None,:] * blank
-        self['py'] = cx[:,None] * blank
-        self['pdx'] = self.dds[xax]
-        self['pdy'] = self.dds[yax]
+    def export_ply(self, filename, bounds = None, color_field = None,
+                   color_map = "algae", color_log = True, sample_type = "face"):
+        r"""This exports the surface to the PLY format, suitable for visualization
+        in many different programs (e.g., MeshLab).
 
-    #@time_execution
-    def get_data(self, fields):
+        Parameters
+        ----------
+        filename : string
+            The file this will be exported to.  This cannot be a file-like object.
+        bounds : list of tuples
+            The bounds the vertices will be normalized to.  This is of the format:
+            [(xmin, xmax), (ymin, ymax), (zmin, zmax)].  Defaults to the full
+            domain.
+        color_field : string
+            Should a field be sample and colormapped?
+        color_map : string
+            Which color map should be applied?
+        color_log : bool
+            Should the color field be logged before being mapped?
+
+        Examples
+        --------
+
+        >>> sp = pf.h.sphere("max", (10, "kpc")
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> print surf["Temperature"]
+        >>> print surf.vertices
+        >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
+        ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
+        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
-        Iterates over the list of fields and generates/reads them all.
+        if self.vertices is None:
+            self.get_data(color_field, sample_type)
+        elif color_field is not None:
+            if sample_type == "face" and \
+                color_field not in self.field_data:
+                self[color_field]
+            elif sample_type == "vertex" and \
+                color_field not in self.vertex_data:
+                self.get_data(color_field, sample_type)
+        self._export_ply(filename, bounds, color_field, color_map, color_log,
+                         sample_type)
+
+    def _color_samples(self, cs, color_log, color_map, arr):
+            if color_log: cs = np.log10(cs)
+            mi, ma = cs.min(), cs.max()
+            cs = (cs - mi) / (ma - mi)
+            from yt.visualization.image_writer import map_to_colors
+            cs = map_to_colors(cs, color_map)
+            arr["red"][:] = cs[0,:,0]
+            arr["green"][:] = cs[0,:,1]
+            arr["blue"][:] = cs[0,:,2]
+
+    @parallel_root_only
+    def _export_ply(self, filename, bounds = None, color_field = None,
+                   color_map = "algae", color_log = True, sample_type = "face"):
+        if isinstance(filename, file):
+            f = filename
+        else:
+            f = open(filename, "wb")
+        if bounds is None:
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        nv = self.vertices.shape[1]
+        vs = [("x", "<f"), ("y", "<f"), ("z", "<f"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
+              ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
+        f.write("ply\n")
+        f.write("format binary_little_endian 1.0\n")
+        f.write("element vertex %s\n" % (nv))
+        f.write("property float x\n")
+        f.write("property float y\n")
+        f.write("property float z\n")
+        if color_field is not None and sample_type == "vertex":
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            v = np.empty(self.vertices.shape[1], dtype=vs)
+            cs = self.vertex_samples[color_field]
+            self._color_samples(cs, color_log, color_map, v)
+        else:
+            v = np.empty(self.vertices.shape[1], dtype=vs[:3])
+        f.write("element face %s\n" % (nv/3))
+        f.write("property list uchar int vertex_indices\n")
+        if color_field is not None and sample_type == "face":
+            f.write("property uchar red\n")
+            f.write("property uchar green\n")
+            f.write("property uchar blue\n")
+            # Now we get our samples
+            cs = self[color_field]
+            arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
+            self._color_samples(cs, color_log, color_map, arr)
+        else:
+            arr = np.empty(nv/3, np.dtype(fs[:-3]))
+        for i, ax in enumerate("xyz"):
+            # Do the bounds first since we cast to f32
+            tmp = self.vertices[i,:]
+            np.subtract(tmp, bounds[i][0], tmp)
+            w = bounds[i][1] - bounds[i][0]
+            np.divide(tmp, w, tmp)
+            np.subtract(tmp, 0.5, tmp) # Center at origin.
+            v[ax][:] = tmp 
+        f.write("end_header\n")
+        v.tofile(f)
+        arr["ni"][:] = 3
+        vi = np.arange(nv, dtype="<i")
+        vi.shape = (nv/3, 3)
+        arr["v1"][:] = vi[:,0]
+        arr["v2"][:] = vi[:,1]
+        arr["v3"][:] = vi[:,2]
+        arr.tofile(f)
+        if filename is not f:
+            f.close()
+
+    def export_sketchfab(self, title, description, api_key = None,
+                            color_field = None, color_map = "algae",
+                            color_log = True, bounds = None):
+        r"""This exports Surfaces to SketchFab.com, where they can be viewed
+        interactively in a web browser.
+
+        SketchFab.com is a proprietary web service that provides WebGL
+        rendering of models.  This routine will use temporary files to
+        construct a compressed binary representation (in .PLY format) of the
+        Surface and any optional fields you specify and upload it to
+        SketchFab.com.  It requires an API key, which can be found on your
+        SketchFab.com dashboard.  You can either supply the API key to this
+        routine directly or you can place it in the variable
+        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        parallel-safe.
+
+        Parameters
+        ----------
+        title : string
+            The title for the model on the website
+        description : string
+            How you want the model to be described on the website
+        api_key : string
+            Optional; defaults to using the one in the config file
+        color_field : string
+            If specified, the field by which the surface will be colored
+        color_map : string
+            The name of the color map to use to map the color field
+        color_log : bool
+            Should the field be logged before being mapped to RGB?
+        bounds : list of tuples
+            [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
+            will be scaled and centered.  Defaults to the full domain.
+
+        Returns
+        -------
+        URL : string
+            The URL at which your model can be viewed.
+
+        Examples
+        --------
+
+        from yt.mods import *
+        pf = load("redshift0058")
+        dd = pf.h.sphere("max", (200, "kpc"))
+        rho = 5e-27
+
+        bounds = [(dd.center[i] - 100.0/pf['kpc'],
+                   dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
+
+        surf = pf.h.surface(dd, "Density", rho)
+
+        rv = surf.export_sketchfab(
+            title = "Testing Upload",
+            description = "A simple test of the uploader",
+            color_field = "Temperature",
+            color_map = "hot",
+            color_log = True,
+            bounds = bounds
+        )
         """
-        self._get_list_of_grids()
-        if not self.has_key('pdx'):
-            self._generate_coords()
-        fields_to_get = ensure_list(fields)
-        if len(fields_to_get) == 0: return
-        temp_data = {}
-        for field in fields_to_get:
-            self[field] = np.zeros(self.dims, dtype='float64')
-        dls = self.__setup_dls(fields_to_get)
-        for i,grid in enumerate(self._get_grids()):
-            mylog.debug("Getting fields from %s", i)
-            self._get_data_from_grid(grid, fields_to_get, dls)
-        mylog.info("IO completed; summing")
-        for field in fields_to_get:
-            self[field] = self.comm.mpi_allreduce(self[field], op='sum')
-            conv = self.pf.units[self.pf.field_info[field].projection_conversion]
-            self[field] *= conv
+        api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
+        if api_key in (None, "None"):
+            raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
+        import zipfile, json
+        from tempfile import TemporaryFile
 
-    def __setup_dls(self, fields):
-        dls = {}
-        for level in range(self.level+1):
-            dls[level] = []
-            grid = self.select_grids(level)[0]
-            for field in fields:
-                if field is None: continue
-                dls[level].append(float(just_one(grid['d%s' % axis_names[self.axis]])))
-        return dls
+        ply_file = TemporaryFile()
+        self.export_ply(ply_file, bounds, color_field, color_map, color_log,
+                        sample_type = "vertex")
+        ply_file.seek(0)
+        # Greater than ten million vertices and we throw an error but dump
+        # to a file.
+        if self.vertices.shape[1] > 1e7:
+            tfi = 0
+            fn = "temp_model_%03i.ply" % tfi
+            while os.path.exists(fn):
+                fn = "temp_model_%03i.ply" % tfi
+                tfi += 1
+            open(fn, "wb").write(ply_file.read())
+            raise YTTooManyVertices(self.vertices.shape[1], fn)
 
-    #@restore_grid_state
-    def _get_data_from_grid(self, grid, fields, dls):
-        g_fields = [grid[field].astype("float64") for field in fields]
-        c_fields = [self[field] for field in fields]
-        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        FillBuffer(ref_ratio,
-            grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields,
-            self.ActiveDimensions, grid.ActiveDimensions,
-            grid.child_mask, self.domain_width, dls[grid.Level],
-            self.axis)
+        zfs = TemporaryFile()
+        with zipfile.ZipFile(zfs, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("yt_export.ply", ply_file.read())
+        zfs.seek(0)
+
+        zfs.seek(0)
+        data = {
+            'title': title,
+            'token': api_key,
+            'description': description,
+            'fileModel': zfs,
+            'filenameModel': "yt_export.zip",
+        }
+        upload_id = self._upload_to_sketchfab(data)
+        upload_id = self.comm.mpi_bcast(upload_id, root = 0)
+        return upload_id
+
+    @parallel_root_only
+    def _upload_to_sketchfab(self, data):
+        import urllib2, json
+        from yt.utilities.poster.encode import multipart_encode
+        from yt.utilities.poster.streaminghttp import register_openers
+        register_openers()
+        datamulti, headers = multipart_encode(data)
+        request = urllib2.Request("https://api.sketchfab.com/v1/models",
+                        datamulti, headers)
+        rv = urllib2.urlopen(request).read()
+        rv = json.loads(rv)
+        upload_id = rv.get("result", {}).get("id", None)
+        if upload_id:
+            mylog.info("Model uploaded to: https://sketchfab.com/show/%s",
+                       upload_id)
+        else:
+            mylog.error("Problem uploading.")
+        return upload_id
+
+

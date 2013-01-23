@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 cimport numpy as np
 import numpy as np
@@ -113,7 +113,7 @@ cdef class OctreeContainer:
         cdef Oct *this
         cdef int i
         while cur != NULL:
-            for i in range(cur.n):
+            for i in range(cur.n_assigned):
                 this = &cur.my_octs[i]
                 yield (this.ind, this.local_ind, this.domain)
             cur = cur.next
@@ -156,27 +156,21 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     def count_cells(self, SelectorObject selector,
               np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
-        cdef int i, j, k, oi
+        cdef int i, j, k
+        cdef np.int64_t oi
         # pos here is CELL center, not OCT center.
         cdef np.float64_t pos[3]
         cdef int n = mask.shape[0]
-        cdef np.float64_t base_dx[3], dx[3]
-        cdef int eterm[3]
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain, 'int64')
         print 'snl oct_container crash', self.nn[0], n
-        for i in range(3):
-            # This is the base_dx, but not the base distance from the center
-            # position.  Note that the positions will also all be offset by
-            # dx/2.0.
-            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
         cur = self.cont
         for oi in range(n):
-            if oi - cur.offset >= cur.n:
+            if oi - cur.offset >= cur.n_assigned:
                 cur = cur.next
             o = &cur.my_octs[oi - cur.offset]
             for i in range(8):
-                count[o.domain - 1] += mask[oi,i]
+                count[o.domain - 1] += mask[o.local_ind,i]
         return count
 
     @cython.boundscheck(False)
@@ -194,7 +188,6 @@ cdef class OctreeContainer:
         for ni in range(3):
             for nj in range(3):
                 for nk in range(3):
-                    #print "Handling neighbor", nn
                     if ni == nj == nk == 1:
                         neighbors[nn] = o
                         nn += 1
@@ -234,7 +227,6 @@ cdef class OctreeContainer:
                         # Worst case scenario
                         for i in range(3):
                             ind[i] = (npos[i] >> (o.level))
-                        #print "NULL", npos[0], npos[1], npos[2], ind[0], ind[1], ind[2], o.level
                         candidate = self.root_mesh[ind[0]][ind[1]][ind[2]]
                     # Now we have the common root, which may be NULL
                     while candidate.level < o.level:
@@ -546,6 +538,36 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
 
+    cdef Oct* next_root(self, int domain_id, int ind[3]):
+        cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        self.root_mesh[ind[0]][ind[1]][ind[2]] = next
+        next.parent = NULL
+        next.level = 0
+        for i in range(3):
+            next.pos[i] = ind[i]
+        self.nocts += 1
+        return next
+
+    cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
+        cdef Oct *next = parent.children[ind[0]][ind[1]][ind[2]]
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        parent.children[ind[0]][ind[1]][ind[2]] = next
+        next.parent = parent
+        next.level = parent.level + 1
+        for i in range(3):
+            next.pos[i] = ind[i] + (parent.pos[i] << 1)
+        self.nocts += 1
+        return next
+
     def allocate_domains(self, domain_counts):
         cdef int count, i
         cdef OctAllocationContainer *cur = self.cont
@@ -576,7 +598,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # This is the idiom for iterating over many containers.
         cur = self.cont
         for i in range(n):
-            if i - cur.offset >= cur.n: cur = cur.next
+            if i - cur.offset >= cur.n_assigned: cur = cur.next
             if mask[i] == 1:
                 count[cur.my_octs[i - cur.offset].domain - 1] += 1
         return count
@@ -586,6 +608,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef Oct oct
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int nbad = 0
+        cdef int nmissed = 0
+        cdef int unassigned = 0
         for pi in range(cont.n_assigned):
             oct = cont.my_octs[pi]
             for i in range(2):
@@ -593,12 +617,16 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     for k in range(2):
                         if oct.children[i][j][k] != NULL and \
                            oct.children[i][j][k].level != oct.level + 1:
-                            if curdom == 61:
-                                print pi, oct.children[i][j][k].level,
-                                print oct.level
                             nbad += 1
+                        if oct.domain != curdom:
+                            print curdom, oct.domain
+                            nmissed += 1
+                        if oct.domain == -1:
+                            unassigned += 1
         print "DOMAIN % 3i HAS % 9i BAD OCTS (%s / %s / %s)" % (curdom, nbad, 
             cont.n - cont.n_assigned, cont.n_assigned, cont.n)
+        print "DOMAIN % 3i HAS % 9i MISSED OCTS" % (curdom, nmissed)
+        print "DOMAIN % 3i HAS % 9i UNASSIGNED OCTS" % (curdom, unassigned)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -611,7 +639,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef Oct *cur, *next = NULL
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0] #number of octs
-        if curdom > self.max_domain: curdom = local_domain
+        if curdom > self.max_domain: return 0
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
@@ -624,22 +652,11 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
-                cp[i] = (ind[i] + 0.5) * dds[i]
+                cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
             if skip_boundary == in_boundary == 1: continue
-            cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
-            if cur == NULL:
-                if curlevel != 0:
-                    raise RuntimeError
-                cur = &cont.my_octs[cont.n_assigned]
-                cur.parent = NULL
-                cur.level = 0
-                for i in range(3):
-                    cur.pos[i] = ind[i]
-                cont.n_assigned += 1
-                self.nocts += 1
-                self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
+            cur = self.next_root(curdom, ind)
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
             for level in range(curlevel):
@@ -655,17 +672,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         ind[i] = 1
                         cp[i] += dds[i]/2.0
                 # Check if it has not been allocated
-                next = cur.children[ind[0]][ind[1]][ind[2]]
-                if next == NULL:
-                    next = &cont.my_octs[cont.n_assigned]
-                    cur.children[ind[0]][ind[1]][ind[2]] = next
-                    cont.n_assigned += 1
-                    next.parent = cur
-                    for i in range(3):
-                        next.pos[i] = ind[i] + (cur.pos[i] << 1)
-                    next.level = level + 1
-                    self.nocts += 1
-                cur = next
+                cur = self.next_child(curdom, ind, cur)
+            # Now we should be at the right level
             cur.domain = curdom
             if local == 1:
                 cur.ind = p
@@ -686,7 +694,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
-        for oi in range(cur.n):
+        for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
             for i in range(2):
                 for j in range(2):
@@ -734,7 +742,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef Oct *o
         cdef int oi, i
         level_count = np.zeros(max_level+1, 'int64')
-        for oi in range(cur.n):
+        for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
             for i in range(8):
                 if mask[o.local_ind, i] == 0: continue
@@ -812,10 +820,23 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             local_filled += 1
         return local_filled
 
+cdef int compare_octs(void *vo1, void *vo2) nogil:
+    cdef Oct *o1 = (<Oct**> vo1)[0]
+    cdef Oct *o2 = (<Oct**> vo2)[0]
+    if o1.domain < o2.domain: return -1
+    elif o1.domain == o2.domain:
+        if o1.level < o2.level: return -1
+        if o1.level > o2.level: return 1
+        else: return 0
+    elif o1.domain > o2.domain: return 1
+
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef ParticleArrays *first_sd
     cdef ParticleArrays *last_sd
     cdef Oct** oct_list
+    cdef np.int64_t *dom_offsets
+    cdef public int max_level
+    cdef public int n_ref
 
     def allocate_root(self):
         cdef int i, j, k
@@ -837,6 +858,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for j in range(self.nn[1]):
                 for k in range(self.nn[2]):
                     self.visit_free(self.root_mesh[i][j][k])
+        free(self.oct_list)
+        free(self.dom_offsets)
 
     cdef void visit_free(self, Oct *o):
         cdef int i, j, k
@@ -850,13 +873,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 for i in range(3):
                     free(o.sd.pos[i])
                 free(o.sd.pos)
-            free(o.sd.domain_id)
         free(o)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def icoords(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+    def icoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
@@ -864,6 +887,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         ci = 0
         for oi in range(self.nocts):
             o = self.oct_list[oi]
+            if o.domain != domain_id: continue
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
@@ -878,7 +902,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def ires(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+    def ires(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.empty(cell_count, dtype="int64")
@@ -886,6 +911,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         ci = 0
         for oi in range(self.nocts):
             o = self.oct_list[oi]
+            if o.domain != domain_id: continue
             for i in range(8):
                 if mask[oi, i] == 1:
                     res[ci] = o.level
@@ -895,7 +921,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fcoords(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+    def fcoords(self, int domain_id,
+                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="float64")
@@ -916,6 +943,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     break
             if proc == 0: continue
             o = self.oct_list[oi]
+            if o.domain != domain_id: continue
             for i in range(3):
                 # This gives the *grid* width for this level
                 dx[i] = base_dx[i] / (1 << o.level)
@@ -938,19 +966,33 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         pass
 
     def finalize(self):
+        cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
-        cdef i = 0
+        cdef np.int64_t i = 0
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
             self.oct_list[i] = c.oct
+            max_level = imax(max_level, c.oct.level)
             if c.np >= 0:
                 for j in range(3):
                     free(c.pos[j])
                 free(c.pos)
                 c.pos = NULL
-                # We should also include a shortening of the domain IDs here
             c = c.next
             i += 1
+        self.max_level = max_level
+        qsort(self.oct_list, self.nocts, sizeof(Oct*), &compare_octs)
+        cdef int cur_dom = -1
+        # We always need at least 2, and if max_domain is 0, we need 3.
+        self.dom_offsets = <np.int64_t *>malloc(sizeof(np.int64_t) *
+                                                (self.max_domain + 3))
+        self.dom_offsets[0] = 0
+        for i in range(self.nocts):
+            self.oct_list[i].local_ind = i
+            if self.oct_list[i].domain > cur_dom:
+                cur_dom = self.oct_list[i].domain
+                self.dom_offsets[cur_dom + 1] = i
+        self.dom_offsets[cur_dom + 2] = self.nocts
 
     cdef Oct* allocate_oct(self):
         self.nocts += 1
@@ -975,13 +1017,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.last_sd = sd
         sd.oct = my_oct
         sd.next = NULL
-        sd.domain_id = <np.int64_t *> malloc(sizeof(np.int64_t) * 32)
         sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
         for i in range(3):
-            sd.pos[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * 32)
-        for i in range(32):
+            sd.pos[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * self.n_ref)
+        for i in range(self.n_ref):
             sd.pos[0][i] = sd.pos[1][i] = sd.pos[2][i] = 0.0
-            sd.domain_id[i] = -1
         sd.np = 0
         return my_oct
 
@@ -993,12 +1033,33 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             c = c.next
         return total
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_levels(self, int max_level, int domain_id,
+                     np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef np.ndarray[np.int64_t, ndim=1] level_count
+        cdef Oct *o
+        cdef int oi, i
+        level_count = np.zeros(max_level+1, 'int64')
+        cdef np.int64_t ndo, doff
+        ndo = self.dom_offsets[domain_id + 2] \
+            - self.dom_offsets[domain_id + 1]
+        doff = self.dom_offsets[domain_id + 1]
+        for oi in range(ndo):
+            o = self.oct_list[oi + doff]
+            for i in range(8):
+                if mask[o.local_ind, i] == 0: continue
+                level_count[o.level] += 1
+        return level_count
+
     def add(self, np.ndarray[np.float64_t, ndim=2] pos, np.int64_t domain_id):
         cdef int no = pos.shape[0]
         cdef int p, i, level
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef int ind[3]
         self.max_domain = max(self.max_domain, domain_id)
+        cdef int mid, mad
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         for p in range(no):
             level = 0
@@ -1006,13 +1067,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
-                cp[i] = (ind[i] + 0.5) * dds[i]
+                cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
-            if cur.sd.np == 32:
+            if self._check_refine(cur, cp, domain_id) == 1:
                 self.refine_oct(cur, cp)
             while cur.sd.np < 0:
+                if level > 100:
+                    raise RuntimeError
                 for i in range(3):
                     dds[i] = dds[i] / 2.0
                     if cp[i] > pp[i]:
@@ -1023,15 +1086,23 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         cp[i] += dds[i]/2.0
                 cur = cur.children[ind[0]][ind[1]][ind[2]]
                 level += 1
-                if cur.sd.np == 32:
+                if self._check_refine(cur, cp, domain_id) == 1:
                     self.refine_oct(cur, cp)
             # Now we copy in our particle 
-            pi = cur.sd.np
             cur.level = level
             for i in range(3):
-                cur.sd.pos[i][pi] = pp[i]
-            cur.sd.domain_id[pi] = domain_id
+                cur.sd.pos[i][cur.sd.np] = pp[i]
+            cur.domain = domain_id
             cur.sd.np += 1
+
+    cdef int _check_refine(self, Oct *cur, np.float64_t cp[3], int domain_id):
+        if cur.children[0][0][0] != NULL:
+            return 0
+        elif cur.sd.np >= self.n_ref:
+            return 1
+        elif cur.domain >= 0 and cur.domain != domain_id:
+            return 1
+        return 0
 
     cdef void refine_oct(self, Oct *o, np.float64_t pos[3]):
         cdef int i, j, k, m, ind[3]
@@ -1046,7 +1117,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     noct.pos[2] = (o.pos[2] << 1) + k
                     noct.parent = o
                     o.children[i][j][k] = noct
-        for m in range(32):
+        for m in range(o.sd.np):
             for i in range(3):
                 if o.sd.pos[i][m] < pos[i]:
                     ind[i] = 0
@@ -1056,12 +1127,12 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             k = noct.sd.np
             for i in range(3):
                 noct.sd.pos[i][k] = o.sd.pos[i][m]
-            noct.sd.domain_id[k] = o.sd.domain_id[k]
+            noct.domain = o.domain
             noct.sd.np += 1
         o.sd.np = -1
+        o.domain = -1
         for i in range(3):
             free(o.sd.pos[i])
-        free(o.sd.domain_id)
         free(o.sd.pos)
 
     def recursively_count(self):
@@ -1097,14 +1168,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for oi in range(self.nocts):
             m = 0
             o = self.oct_list[oi]
-            if o.sd.np <= 0: continue
+            if o.sd.np <= 0 or o.domain == -1: continue
             for i in range(8):
                 if mask[oi, i] == 1:
                     m = 1
                     break
             if m == 0: continue
-            for i in range(o.sd.np):
-                dmask[o.sd.domain_id[i]] = 1
+            dmask[o.domain] = 1
         return dmask.astype("bool")
 
     @cython.boundscheck(False)
@@ -1120,4 +1190,25 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if neighbors[i].sd != NULL:
                 tnp += neighbors[i].sd.np
         return tnp
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, SelectorObject selector,
+              np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef int i, j, k, oi
+        # pos here is CELL center, not OCT center.
+        cdef np.float64_t pos[3]
+        cdef int n = mask.shape[0]
+        cdef np.float64_t base_dx[3], dx[3]
+        cdef int eterm[3]
+        cdef np.ndarray[np.int64_t, ndim=1] count
+        count = np.zeros(self.max_domain + 1, 'int64')
+        for oi in range(n):
+            o = self.oct_list[oi]
+            if o.domain == -1: continue
+            for i in range(8):
+                count[o.domain] += mask[oi,i]
+        return count
+
 

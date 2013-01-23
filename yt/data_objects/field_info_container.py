@@ -293,7 +293,7 @@ class FieldDetector(defaultdict):
             return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
-    def get_field_parameter(self, param):
+    def get_field_parameter(self, param, default = None):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return np.random.random(3) * 1e-2
@@ -406,7 +406,8 @@ class DerivedField(object):
         ii = self.check_available(data)
         original_fields = data.keys() # Copy
         dd = self._function(self, data)
-        dd *= self._convert_function(data)
+        if dd is not None:
+            dd *= self._convert_function(data)
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]

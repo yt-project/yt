@@ -99,10 +99,16 @@ class GeometryHandler(ParallelAnalysisInterface):
             mylog.warning("Refine by something other than two: reverting to"
                         + " overlap_proj")
             self.proj = self.overlap_proj
+        if self.pf.dimensionality < 3 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Dimensionality less than 3: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
         self.object_types.sort()
 
     def _setup_unknown_fields(self):
         known_fields = self.parameter_file._fieldinfo_known
+        mylog.debug("Checking %s", self.field_list)
         for field in self.field_list:
             # By allowing a backup, we don't mandate that it's found in our
             # current field info.  This means we'll instead simply override
@@ -200,6 +206,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         f.close()
 
     def _setup_data_io(self):
+        if getattr(self, "io", None) is not None: return
         self.io = io_registry[self.data_style]()
 
     def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):

@@ -163,6 +163,23 @@ class AMRGridPatch(YTSelectionContainer):
         cond = np.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
         return cond
 
+    def is_in_grid(self, x, y, z) :
+        """
+        Generate a mask that shows which points in *x*, *y*, and *z*
+        fall within this grid's boundaries.
+        """
+        xcond = np.logical_and(x >= self.LeftEdge[0],
+                               x < self.RightEdge[0])
+        ycond = np.logical_and(y >= self.LeftEdge[1],
+                               y < self.RightEdge[1])
+        zcond = np.logical_and(z >= self.LeftEdge[2],
+                               z < self.RightEdge[2])
+
+        cond = np.logical_and(xcond, ycond)
+        cond = np.logical_and(zcond, cond)
+
+        return cond
+        
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
 
@@ -368,13 +385,18 @@ class AMRGridPatch(YTSelectionContainer):
                   'use_pbar':False, 'fields':fields}
         # This should update the arguments to set the field parameters to be
         # those of this grid.
-        kwargs.update(self.field_parameters)
+        field_parameters = {}
+        field_parameters.update(self.field_parameters)
         if smoothed:
             cube = self.hierarchy.smoothed_covering_grid(
-                level, new_left_edge, **kwargs)
+                level, new_left_edge, 
+                field_parameters = field_parameters,
+                **kwargs)
         else:
-            cube = self.hierarchy.covering_grid(level, new_left_edge, **kwargs)
-
+            cube = self.hierarchy.covering_grid(level, new_left_edge,
+                field_parameters = field_parameters,
+                **kwargs)
+        cube._base_grid = self
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True, no_ghost=False):
