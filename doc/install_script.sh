@@ -850,5 +850,5 @@ function print_afterword
 print_afterword
 print_afterword >> ${LOG_FILE}
 
-echo "yt dependencies were last updated on" > ${YT_DEST}/.yt_update
-date >> ${YT_DEST}/.yt_update
+echo "yt dependencies were last updated on" > ${DEST_DIR}/.yt_update
+date >> ${DEST_DIR}/.yt_update
