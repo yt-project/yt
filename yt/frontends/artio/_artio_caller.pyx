@@ -325,7 +325,7 @@ class artio_grid_routines(object) :
                     self.sfc_min, self.sfc_max,\
                     self.min_level_to_read, self.max_level_to_read,\
                     ARTIO_READ_REFINED,\
-                    wrap_cell_pos_callback, <void*>self) 
+                    wrap_oct_pos_callback, <void*>self) 
         check_artio_status(status, artio_grid_routines.__name__)
         artio_fileset_close(handle) 
         print 'done filling oct positions'
@@ -393,7 +393,7 @@ class artio_grid_routines(object) :
             check_artio_status(status, artio_grid_routines.__name__)
             artio_fileset_close(handle) 
         print 'done buffering variables'
-    def cell_pos_callback(self, level, refined, isfc, pos):
+    def oct_pos_callback(self, level, refined, isfc, pos):
         self.oct_handler.add(self.cpu+1, level-self.min_level_to_read, 
                              self.ng, pos, self.domain_id)
     def cell_var_callback(self, level, refined, ichild, cell_var):
@@ -405,7 +405,7 @@ class artio_grid_routines(object) :
  
 
 ###### callbacks (e.g. https://github.com/cython/cython/tree/master/Demos/callback) ######
-cdef void wrap_cell_pos_callback(float *variables, int level, int refined, 
+cdef void wrap_oct_pos_callback(float *variables, int level, int refined, 
                                  int64_t isfc, double *pos, void *pyobject):
     position = np.empty((1, 3), dtype='float64')
     position[0,0] = pos[0]
@@ -416,14 +416,10 @@ cdef void wrap_cell_pos_callback(float *variables, int level, int refined,
     ytlevel = level+1 
     artioroutines = <object>pyobject
     #    print '_artio_caller.pyx:octpositionsandvalues',ytlevel, pos[0],pos[1],pos[2],level,variables[0]
-    artioroutines.cell_pos_callback(ytlevel, refined, isfc, position)
+    artioroutines.oct_pos_callback(ytlevel, refined, isfc, position)
 
 cdef void wrap_cell_var_callback(float *variables, int level, int refined, 
                                  int64_t ichild, void *pyobject):
-    # add one to level because in yt, octs live on the same level as their children
-    # 0-level ART octs do not exist in memory (the ART root cells are not children)
-    if ichild != -1:
-        level += 1 
     artioroutines = <object>pyobject
     cell_var={}
     cell_var = [ variables[i] for i in range(artioroutines.num_grid_variables) ]
