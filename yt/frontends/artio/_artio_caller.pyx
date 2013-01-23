@@ -416,7 +416,7 @@ cdef void wrap_cell_pos_callback(float *variables, int level, int refined,
     # 0-level ART octs do not exist in memory (the ART root cells are not children)
     ytlevel = level+1 
     artioroutines = <object>pyobject
-    print '_artio_caller.pyx:octpositionsandvalues',ytlevel, pos[0],pos[1],pos[2],level,variables[0]
+    #    print '_artio_caller.pyx:octpositionsandvalues',ytlevel, pos[0],pos[1],pos[2],level,variables[0]
     artioroutines.cell_pos_callback(ytlevel, refined, isfc, position)
 
 cdef void wrap_cell_var_callback(float *variables, int level, int refined, 

@@ -153,14 +153,14 @@ class ARTIODomainSubset(object):
     def fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
         # snl FIX: please don't hardcode this here 
-        DRE = self.oct_handler.parameter_file.domain_right_edge 
-        DLE = self.oct_handler.parameter_file.domain_left_edge
-        nn = self.oct_handler.parameter_file.domain_dimension
-        for i in range(3):
-            base_dx = (DRE[i] - DLE[i])/nn[i]
-        print 'in fwidth in data_structures.py', DRE, DLE, nn
-        print base_dx
-        sys.exit(1)
+#        DRE = self.oct_handler.parameter_file.domain_right_edge 
+#        DLE = self.oct_handler.parameter_file.domain_left_edge
+#        nn = self.oct_handler.parameter_file.domain_dimension
+#        for i in range(3):
+#            base_dx = (DRE[i] - DLE[i])/nn[i]
+#        print 'in fwidth in data_structures.py', DRE, DLE, nn
+#        print base_dx
+        base_dx = [1.0,1.0,1.0]
         widths = np.empty((self.masked_cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))
         for i in range(3):

@@ -119,7 +119,6 @@ cdef class OctreeContainer:
             cur = cur.next
 
     cdef void oct_bounds(self, Oct *o, np.float64_t *corner, np.float64_t *size):
-        cdef np.float64_t base_dx[3]
         cdef int i
         for i in range(3):
             size[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i] << o.level)
@@ -249,7 +248,6 @@ cdef class OctreeContainer:
         cdef np.float64_t corner[3], size[3]
         bounds = np.zeros((27,6), dtype="float64")
         cdef int i, ii
-        cdef np.float64_t base_dx[3]
         tnp = 0
         for i in range(27):
             self.oct_bounds(neighbors[i], corner, size)
@@ -1200,7 +1198,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # pos here is CELL center, not OCT center.
         cdef np.float64_t pos[3]
         cdef int n = mask.shape[0]
-        cdef np.float64_t base_dx[3], dx[3]
         cdef int eterm[3]
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain + 1, 'int64')
