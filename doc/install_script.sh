@@ -10,14 +10,17 @@
 # subversion checkout of YT, you can set YT_DIR, too.  (It'll already
 # check the current directory and one up.
 #
-# NOTE: If you have trouble with wxPython, set INST_WXPYTHON=0 .
-#
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
 DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
+
+if [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+then
+    DEST_DIR=${YT_DEST}
+fi
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
@@ -846,3 +849,6 @@ function print_afterword
 
 print_afterword
 print_afterword >> ${LOG_FILE}
+
+echo "yt dependencies were last updated on" > ${DEST_DIR}/.yt_update
+date >> ${DEST_DIR}/.yt_update

@@ -834,6 +834,9 @@ class LoadedHalo(Halo):
         self.bin_count = None
         self.overdensity = None
         self.indices = np.array([])  # Never used for a LoadedHalo.
+        self._saved_fields = {}
+        self._ds_sort = None
+        self._particle_mask = None
         # A supplementary data dict.
         if supp is None:
             self.supp = {}

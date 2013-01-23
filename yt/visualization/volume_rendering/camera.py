@@ -118,7 +118,7 @@ class Camera(ParallelAnalysisInterface):
             lead to large speed improvements, but at a loss of
             accuracy/smoothness in resulting image.  The effects are
             less notable when the transfer function is smooth and
-            broad. Default: False
+            broad. Default: True
         tree_type: string, optional
             Specifies the type of kd-Tree to be constructed/cast.
             There are three options, the default being 'domain'. Only
