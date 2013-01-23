@@ -355,6 +355,8 @@ class artio_grid_routines(object) :
             if len(self.label_index) > 0 :
                 # start with root run over root-level yt-only octs 
                 # where yt-octs live on level 0 
+                handle = artio_fileset_open( self.param_handle.file_prefix, 
+                                             ARTIO_OPEN_GRID, artio_context_global ) 
                 for iz in  range(self.domain_dimensions/2) :
                     for iy in  range(self.domain_dimensions/2) :
                         for ix in range(self.domain_dimensions/2) :
@@ -368,8 +370,6 @@ class artio_grid_routines(object) :
                                         child[1] = coords[1]+j
                                         child[2] = coords[2]+k
                                         isfc = sfc_index0(child[0], child[1], child[2], self.num_root_grid_refinements)
-                                        handle = artio_fileset_open( self.param_handle.file_prefix, 
-                                                                     ARTIO_OPEN_GRID, artio_context_global ) 
                                         status = artio_grid_read_sfc_range_yt(
                                             handle, isfc, isfc,\
                                                 0, 0,\
@@ -378,8 +378,7 @@ class artio_grid_routines(object) :
                                                 <void*>self
                                             ) #only reads root
                                         check_artio_status(status, artio_grid_routines.__name__)
-                                        artio_fileset_close(handle) 
-                            
+                artio_fileset_close(handle) 
                 print 'snlroot done with root var fill'
             #now run through oct children
             handle = artio_fileset_open( self.param_handle.file_prefix, 
