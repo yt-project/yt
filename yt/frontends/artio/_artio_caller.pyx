@@ -400,8 +400,8 @@ class artio_grid_routines(object) :
     def cell_var_callback(self, level, refined, ichild, cell_var):
         for field in self.matched_fieldnames : 
             self.source[field][self.count] = cell_var[self.label_index[field]] 
-            if level > 0:
-                print '_artio_caller.pyx:sourcefill', level, self.count, self.source[field][self.count]
+#            if level > 0:
+#                print '_artio_caller.pyx:sourcefill', level, self.count, self.source[field][self.count]
         self.count += 1
  
 
@@ -428,8 +428,8 @@ cdef void wrap_cell_var_callback(float *variables, int level, int refined,
     artioroutines = <object>pyobject
     cell_var={}
     cell_var = [ variables[i] for i in range(artioroutines.num_grid_variables) ]
-#    if level > 0:
-#        print '_artio_caller.pyx:sourcecallvalue', level, cell_var
+    #    if level > 0:
+    #        print '_artio_caller.pyx:sourcecallvalue', level, cell_var
     artioroutines.cell_var_callback(level, refined, ichild, cell_var)
 
 class artio_particle_routines(object) : 

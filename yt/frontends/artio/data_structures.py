@@ -138,6 +138,7 @@ class ARTIODomainSubset(object):
         print 'cumulative masked level counts',self.ncum_masked_level
         self.artiogrid = self.domain.artiogrid
         self.artioparticle = self.domain.artioparticle
+
         
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -151,7 +152,8 @@ class ARTIODomainSubset(object):
 
     def fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
-        base_dx = 1.0/self.domain.pf.domain_dimensions
+        # snl FIX: please don't hardcode this here 
+        base_dx = [ 1.0, 1.0, 1.0 ] #/self.domain.pf.domain_dimensions
         widths = np.empty((self.masked_cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))
         for i in range(3):

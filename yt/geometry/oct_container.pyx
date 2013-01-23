@@ -539,10 +539,8 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                         for i in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
-                            #snl FIX: indexing is wrong here !!!
-#                            dest[local_filled + offset] = source[o.ind*8+ii]
                             dest[local_filled + offset] = source[o.local_ind*8+ii]
-                            print 'oct_container.pyx:sourcemasked',o.level, o.local_ind*8+ii, source[o.local_ind*8+ii]
+                            # print 'oct_container.pyx:sourcemasked',o.level, o.local_ind*8+ii, source[o.local_ind*8+ii]
                             local_filled += 1
         return local_filled
 
