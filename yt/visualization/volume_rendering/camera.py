@@ -358,7 +358,7 @@ class Camera(ParallelAnalysisInterface):
         px1 = int(self.resolution[1]*(dy1/self.width[1]))
         lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]))
 
-    def draw_domain(self,im,alpha=0.5):
+    def draw_domain(self,im,alpha=0.3):
         r"""Draws domain edges on an existing volume rendering.
 
         Draws a white wireframe on the domain edges.
