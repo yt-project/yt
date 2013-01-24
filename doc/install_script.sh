@@ -47,6 +47,7 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
+INST_SCIPY=0    # Install scipy?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -301,6 +302,10 @@ printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
 echo "be installing PyX"
 
+printf "%-15s = %s so I " "INST_SCIPY" "${INST_SCIPY}"
+get_willwont ${INST_PYX}
+echo "be installing scipy"
+
 printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
 get_willwont ${INST_0MQ}
 echo "be installing ZeroMQ"
@@ -453,6 +458,9 @@ echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065
 echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
 echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
 echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
+echo 'd4fdd62f2db5285cd133649bd1bfa5175cb9da8304323abd74e0ef1207d55e6152f0f944da1da75f73e9dafb0f3bb14efba3c0526c732c348a653e0bd223ccfa  scipy-0.11.0.tar.gz' > scipy-0.11.0.tar.gz.sha512
+echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
+echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
@@ -464,6 +472,9 @@ echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a
 [ $INST_0MQ -eq 1 ] && get_ytproject zeromq-2.2.0.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject pyzmq-2.1.11.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject tornado-2.2.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject scipy-0.11.0.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject lapack-3.4.2.tar.gz
 get_ytproject Python-2.7.3.tgz
 get_ytproject numpy-1.6.1.tar.gz
 get_ytproject matplotlib-1.2.0.tar.gz
@@ -659,7 +670,40 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
+if [ $INST_SCIPY -eq 0 ]
+then
+    do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
+else
+    if [ ! -e scipy-0.11.0/done ]
+    then
+	if [ ! -e BLAS/done ]
+	then
+	    tar xfz blas.tar.gz
+	    echo "Building BLAS"
+	    cd BLAS
+	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
+	    ar r libfblas.a *.o 1>> ${LOG_FILE}
+	    ranlib libfblas.a 1>> ${LOG_FILE}
+	    rm -rf *.o
+	    touch done
+	    cd ..
+	fi
+	if [ ! -e lapack-3.4.2/done ]
+	then
+	    tar xfz lapack-3.4.2.tar.gz
+	    echo "Building LAPACK"
+	    cd lapack-3.4.2/
+	    cp INSTALL/make.inc.gfortran make.inc
+	    make lapacklib CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
+	    touch done
+	    cd ..
+	fi
+    fi
+    export BLAS=$PWD/BLAS/libfblas.a
+    export LAPACK=$PWD/lapack-3.4.2/liblapack.a    
+    do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
+    do_setup_py scipy-0.11.0 ${NUMPY_ARGS}
+fi
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
