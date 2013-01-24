@@ -162,7 +162,8 @@ cdef class OctreeContainer:
         cdef int n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain, 'int64')
-        print 'snl oct_container crash', self.nn[0], n
+        print 'snl oct_container num_octs',  n, ' assert  n is not bigger than my_octs'
+        # 
         cur = self.cont
         for oi in range(n):
             if oi - cur.offset >= cur.n_assigned:
@@ -520,8 +521,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
             dest = dest_fields[key]
             source = source_fields[key]
             # snl: an alternative to filling level 0 yt-octs is to produce a 
-            # mapping between the mask and the source read order, but 
-            # I'm not sure how to fill in the octs in this case.  
+            # mapping between the mask and the source read order
             for n in range(dom.n):
                 o = &dom.my_octs[n]
                 for k in range(2):

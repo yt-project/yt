@@ -232,8 +232,30 @@ class artio_grid_routines(object) :
         #snl FIX: this should in fields.py ?
         self.arttoyt_label_var = {}
         for label in self.grid_variable_labels :
-            if label == 'HVAR_GAS_DENSITY' :
+            if   label == 'HVAR_GAS_DENSITY' :
                 self.arttoyt_label_var[label] = 'Density'
+            elif label == 'HVAR_GAS_ENERGY' :
+                self.arttoyt_label_var[label] = 'TotalGasEnergy'
+            elif label == 'HVAR_INTERNAL_ENERGY' :
+                self.arttoyt_label_var[label] = 'GasEnergy'
+            elif label == 'HVAR_PRESSURE' :
+                self.arttoyt_label_var[label] = 'Pressure'
+            elif label == 'HVAR_MOMENTUM_X' :
+                self.arttoyt_label_var[label] = 'XMomentumDensity'
+            elif label == 'HVAR_MOMENTUM_Y' :
+                self.arttoyt_label_var[label] = 'YMomentumDensity'
+            elif label == 'HVAR_MOMENTUM_Z' :
+                self.arttoyt_label_var[label] = 'ZMomentumDensity'
+            elif label == 'HVAR_GAMMA' :
+                self.arttoyt_label_var[label] = 'Gamma'
+            elif label == 'HVAR_METAL_DENSITY_II' :
+                self.arttoyt_label_var[label] = 'MetalDensitySNIa'
+            elif label == 'HVAR_METAL_DENSITY_Ia' :
+                self.arttoyt_label_var[label] = 'MetalDensitySNII'
+            elif label == 'VAR_POTENTIAL' :
+                self.arttoyt_label_var[label] = 'Potential'
+            elif label == 'VAR_POTENTIAL_HYDRO' :
+                self.arttoyt_label_var[label] = 'PotentialHydro'
             else :
                 self.arttoyt_label_var[label] = label
         print 'arttoyt_label_var (in caller.pyx):', self.arttoyt_label_var
@@ -343,6 +365,14 @@ class artio_grid_routines(object) :
                     self.matched_fieldnames.append(field)
         print 'matched fields:',self.matched_fieldnames
         print 'art index of matched fields',self.label_index
+
+        
+#        i=-1
+#        for field in fields : 
+#            i+=1
+#            print field
+#            self.matched_fieldnames.append(field)
+#            self.label_index[field] = i
 #        print 'quitting in caller'
 #        sys.exit(1)
         self.count=0

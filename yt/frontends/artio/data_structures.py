@@ -266,8 +266,11 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         # snl Add additional fields and translator from artio <-> yt
-        self.fluid_field_list = [ "Density", "x-velocity", "y-velocity",
-	                        "z-velocity", "Pressure", "Metallicity" ]
+        self.fluid_field_list = [ 'Density', 'TotalEnergy',
+                                  'XMomentumDensity','YMomentumDensity','ZMomentumDensity',
+                                  'Pressure','Gamma','GasEnergy',
+                                  'MetalDensitySNII', 'MetalDensitySNIa',
+                                  'Potential','PotentialHydro']
         pfl = set([])
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
@@ -309,7 +312,41 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.masked_cell_count)
 
+class ARTIOconstants():
+    def __init__(self) : 
+        self.yr = 365.25*86400
+        self.Myr = 1.0e6*self.yr
+        self.Gyr = 1.0e9*self.yr
 
+        self.pc = 3.0856775813e18
+        self.kpc = 1.0e3*self.pc
+        self.Mpc = 1.0e6*self.pc
+        
+        self.kms = 1.0e5
+        
+        self.mp = 1.672621637e-24
+        self.k = 1.3806504e-16
+        self.G = 6.67428e-8
+        self.c = 2.99792458e10
+        
+        self.eV = 1.602176487e-12
+        self.amu = 1.660538782e-24
+        self.mH  = 1.007825*self.amu
+        self.mHe = 4.002602*self.amu
+
+        self.Msun = 1.32712440018e26/self.G
+        self.Zsun = 0.0199
+        
+        self.Yp    = 0.24
+        self.wmu   = 4.0/(8.0-5.0*self.Yp)
+        self.wmu_e = 1.0/(1.0-0.5*self.Yp)
+        self.XH    = 1.0 - self.Yp
+        self.XHe   = 0.25*self.Yp
+        self.gamma = 5.0/3.0
+        
+        self.sigmaT = 6.6524e-25
+    
+        
 class ARTIOStaticOutput(StaticOutput):
     _handle = None
     _hierarchy_class = ARTIOGeometryHandler
@@ -338,23 +375,37 @@ class ARTIOStaticOutput(StaticOutput):
             self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
+            
+        constants = ARTIOconstants()
+        mb = constants.XH*constants.mH + constants.XHe*constants.mHe;
+        
+        self.parameters['unit_d'] = self.parameters['unit_m']/self.parameters['unit_l']**3.0
+        self.parameters['unit_v'] = self.parameters['unit_l']/self.parameters['unit_t']
+        self.parameters['unit_E'] = self.parameters['unit_m'] * self.parameters['unit_v']**2.0
+        self.parameters['unit_T'] = self.parameters['unit_v']**2.0*mb/constants.k
+        self.parameters['unit_rhoE'] = self.parameters['unit_E']/self.parameters['unit_l']**3.0
+        self.parameters['unit_nden'] = self.parameters['unit_d']/mb
+       
+        #         if self.cosmological_simulation :
+        #             units_internal.length_in_chimps = unit_factors.length*cosmology->h/constants.Mpc
+       
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         self.conversion_factors["Density"] = self.parameters['unit_d']
-        vel_u = self.parameters['unit_l'] / self.parameters['unit_t']
-        self.conversion_factors["x-velocity"] = vel_u
-        self.conversion_factors["y-velocity"] = vel_u
-        self.conversion_factors["z-velocity"] = vel_u
-
+        self.conversion_factors["x-velocity"] = self.parameters['unit_v']
+        self.conversion_factors["y-velocity"] = self.parameters['unit_v']
+        self.conversion_factors["z-velocity"] = self.parameters['unit_v']
+        self.conversion_factors["Temperature"] = self.parameters['unit_T']*constants.wmu*(constants.gamma-1) #*cell_gas_internal_energy(cell)/cell_gas_density(cell);
+        print 'note temperature conversion is currently using fixed gamma not variable'
+       
     def _parse_parameter_file(self):
         # hard-coded -- not provided by headers 
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1. # default unit is 1...
-        self.min_level = 0  # ART has min_level=0. No self._handle.parameters['grid_min_level']
 
         # read header
         self.unique_identifier = \
@@ -365,26 +416,33 @@ class ARTIOStaticOutput(StaticOutput):
         self.domain_left_edge = np.zeros(3, dtype="float64")
         self.domain_right_edge = np.ones(3, dtype='float64')*num_grid
 
-        self.min_level = 0
+        self.min_level = 0  # ART has min_level=0. non-existent self._handle.parameters['grid_min_level']
         self.max_level = self._handle.parameters["max_refinement_level"][0]
 
         self.current_time = self._handle.parameters["tl"][0]
   
         # detect cosmology
         if self._handle.parameters["abox"] :
+            abox = self._handle.parameters["abox"][0] 
             self.cosmological_simulation = True
             self.omega_lambda = self._handle.parameters["OmegaL"][0]
             self.omega_matter = self._handle.parameters["OmegaM"][0]
             self.hubble_constant = self._handle.parameters["hubble"][0]
-            self.current_redshift = 1.0/self._handle.parameters["abox"][0] - 1.
+            self.current_redshift = 1.0/self._handle.parameters["abox"][0] - 1.0
 
-            self.parameters["initial_redshift"] = \
-                self._handle.parameters["auni_init"][0]
-
-        self.parameters['unit_l'] = self._handle.parameters["length_unit"][0]
-        self.parameters['unit_t'] = self._handle.parameters["time_unit"][0]
-        self.parameters['unit_m'] = self._handle.parameters["mass_unit"][0]
-        self.parameters['unit_d'] = self.parameters['unit_m']/self.parameters['unit_l']**(3.0)
+            self.parameters["initial_redshift"] = 1.0/self._handle.parameters["auni_init"][0] - 1.0
+        else :
+            self.cosmological_simulation = False
+ 
+        #units
+        if self.cosmological_simulation : 
+            self.parameters['unit_m'] = self._handle.parameters["mass_unit"][0]
+            self.parameters['unit_t'] = self._handle.parameters["time_unit"][0]*abox**2
+            self.parameters['unit_l'] = self._handle.parameters["length_unit"][0]*abox
+        else :
+            self.parameters['unit_l'] = self._handle.parameters["length_unit"][0]
+            self.parameters['unit_t'] = self._handle.parameters["time_unit"][0]
+            self.parameters['unit_m'] = self._handle.parameters["mass_unit"][0]
 
         # hard coded number of domains in ART = 1 ... that may change for parallelization 
         self.parameters['ncpu'] = 1
