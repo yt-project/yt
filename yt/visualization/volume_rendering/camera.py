@@ -308,7 +308,9 @@ class Camera(ParallelAnalysisInterface):
         self.draw_box(im, self.pf.domain_left_edge, self.pf.domain_right_edge,
                         color=np.array([1.0,1.0,1.0,alpha]))
 
-    def draw_box(self, im, le, re, color=np.array([1.0,1.0,1.0,1.0])):
+    def draw_box(self, im, le, re, color=None):
+        if color is None:
+            color = np.array([1.0,1.0,1.0,1.0]) 
         corners = get_corners(le,re)
         order  = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]
