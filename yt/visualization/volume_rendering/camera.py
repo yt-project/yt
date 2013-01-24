@@ -263,7 +263,35 @@ class Camera(ParallelAnalysisInterface):
         px = (res[1]*(dy/self.width[1])).astype('int')
         return px, py, dz
 
-    def add_grids(self, im, alpha=0.2, cmap='algae'):
+    def draw_grids(self, im, alpha=0.3, cmap='algae'):
+        r"""Draws Grids on an existing volume rendering.
+
+        By mapping grid level to a color, drawes edges of grids on 
+        a volume rendering using the camera orientation.
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera, 
+            which will be painted by grid lines.
+        alpha : float, optional
+            The alpha value for the grids being drawn.  Used to control
+            how bright the grid lines are with respect to the image.
+            Default : 0.3
+        cmap : string, optional
+            Colormap to be used mapping grid levels to colors.
+        
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> im = cam.snapshot() 
+        >>> cam.add_grids(im)
+        >>> write_bitmap(im, 'render_with_grids.png')
+
+        """
         corners = self.pf.h.grid_corners
         levels = self.pf.h.grid_levels[:,0]
         colors = apply_colormap(levels*1.0,
@@ -281,10 +309,45 @@ class Camera(ParallelAnalysisInterface):
             vertices[:,i] = corners[order,i,:].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
+        
+        # Must normalize the image
+        ma = im.max()
+        if ma > 0.0: 
+            enhance(im)
        
         lines(im, px, py, colors, 24)
 
-    def draw_line(self, im, x0, x1, color=np.array([1.0,1.0,1.0,1.0])):
+    def draw_line(self, im, x0, x1, color=None):
+        r"""Draws a line on an existing volume rendering.
+
+        Given starting and ending positions x0 and x1, draws a line on 
+        a volume rendering using the camera orientation.
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera, 
+            which will be painted by grid lines.
+        x0 : Numpy ndarray
+            Starting coordinate, in simulation coordinates
+        x1 : Numpy ndarray
+            Ending coordinate, in simulation coordinates
+        color : array like, optional
+            Color of the line (r, g, b, a). Defaults to white. 
+        
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> im = cam.snapshot() 
+        >>> cam.draw_line(im, np.array([0.1,0.2,0.3], np.array([0.5,0.6,0.7)))
+        >>> write_bitmap(im, 'render_with_line.png')
+
+        """
+        if color is None: color = np.array([1.0,1.0,1.0,1.0])
+
         dx0 = ((x0-self.origin)*self.orienter.unit_vectors[1]).sum()
         dx1 = ((x1-self.origin)*self.orienter.unit_vectors[1]).sum()
         dy0 = ((x0-self.origin)*self.orienter.unit_vectors[0]).sum()
@@ -295,13 +358,33 @@ class Camera(ParallelAnalysisInterface):
         px1 = int(self.resolution[1]*(dy1/self.width[1]))
         lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]))
 
-    def draw_grids(self,im, alpha=0.1):
-        ma = im.max()
-        if ma > 0.0: 
-            enhance(im)
-        self.add_grids(im, alpha=alpha, cmap='algae')
-
     def draw_domain(self,im,alpha=0.5):
+        r"""Draws domain edges on an existing volume rendering.
+
+        Draws a white wireframe on the domain edges.
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera, 
+            which will be painted by grid lines.
+        alpha : float, optional
+            The alpha value for the wireframe being drawn.  Used to control
+            how bright the lines are with respect to the image.
+            Default : 0.3
+        
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> im = cam.snapshot() 
+        >>> cam.draw_domain(im)
+        >>> write_bitmap(im, 'render_with_domain_boundary.png')
+
+        """
+
         ma = im.max()
         if ma > 0.0: 
             enhance(im)
@@ -309,6 +392,35 @@ class Camera(ParallelAnalysisInterface):
                         color=np.array([1.0,1.0,1.0,alpha]))
 
     def draw_box(self, im, le, re, color=None):
+        r"""Draws a box on an existing volume rendering.
+
+        Draws a box defined by a left and right edge by modifying an
+        existing volume rendering
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera, 
+            which will be painted by grid lines.
+        le: Numpy ndarray
+            Left corner of the box 
+        re : Numpy ndarray
+            Right corner of the box 
+        color : array like, optional
+            Color of the box (r, g, b, a). Defaults to white. 
+        
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> im = cam.snapshot() 
+        >>> cam.draw_box(im, np.array([0.1,0.2,0.3], np.array([0.5,0.6,0.7)))
+        >>> write_bitmap(im, 'render_with_box.png')
+
+        """
+
         if color is None:
             color = np.array([1.0,1.0,1.0,1.0]) 
         corners = get_corners(le,re)
