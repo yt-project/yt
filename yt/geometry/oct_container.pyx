@@ -381,7 +381,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             in_boundary = 0
             for i in range(3):
                 pp[i] = pos[p, i]
-                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
