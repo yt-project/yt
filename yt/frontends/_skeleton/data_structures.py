@@ -137,6 +137,7 @@ class SkeletonStaticOutput(StaticOutput):
         #   self.domain_right_edge      <= array of float64
         #   self.dimensionality         <= int
         #   self.domain_dimensions      <= array of int64
+        #   self.periodicity            <= three-element tuple of booleans
         #   self.current_time           <= simulation time in code units
         #
         # We also set up cosmological information.  Set these to zero if
