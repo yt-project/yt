@@ -324,6 +324,7 @@ class artio_grid_routines(object) :
         '''
         print 'start filling oct positions'
         self.oct_handler = oct_handler
+        self.oct_count=0
         # fill the root grid yt-only octs 
         if ROOT_LEVEL == 1 :    
             pos = np.empty((1,3), dtype='float64')
@@ -335,6 +336,7 @@ class artio_grid_routines(object) :
                         pos[0,1]=iy*2+1
                         pos[0,2]=iz*2+1
                         level=0
+                        self.oct_count += 1
                         self.oct_handler.add(self.cpu+1, level, 
                                              self.ng, pos, self.domain_id)
             ###################################
@@ -350,7 +352,8 @@ class artio_grid_routines(object) :
                     wrap_oct_pos_callback, <void*>self) 
         check_artio_status(status, artio_grid_routines.__name__)
         artio_fileset_close(handle) 
-        print 'done filling oct positions'
+        print 'done filling oct positions; allocated octs:', self.oct_count
+        # snl FIX assert oct_count matches num octs elsewhere
     def grid_var_fill(self, source, fields):
         print 'start filling grid vars the root grid fill takes too long...'
         self.source = source
@@ -424,13 +427,15 @@ class artio_grid_routines(object) :
             artio_fileset_close(handle) 
         print 'done buffering variables'
     def oct_pos_callback(self, level, refined, isfc, pos):
+#        print 'callerpos ',self.oct_count*8,pos[0,0],pos[0,1],pos[0,2],vars, level
+        self.oct_count += 1
         self.oct_handler.add(self.cpu+1, level-self.min_level_to_read, 
                              self.ng, pos, self.domain_id)
     def cell_var_callback(self, level, refined, ichild, cell_var):
         for field in self.matched_fieldnames : 
             self.source[field][self.count] = cell_var[self.label_index[field]] 
-#            if level > 0:
-#                print '_artio_caller.pyx:sourcefill', level, self.count, self.source[field][self.count]
+#        if (ichild == 0) and (level>0):
+#            print 'callervar ',self.count,cell_var[0],level
         self.count += 1
  
 
@@ -446,7 +451,7 @@ cdef void wrap_oct_pos_callback(float *variables, int level, int refined,
     ytlevel = level+1 
     artioroutines = <object>pyobject
     #    print '_artio_caller.pyx:octpositionsandvalues',ytlevel, pos[0],pos[1],pos[2],level,variables[0]
-    artioroutines.oct_pos_callback(ytlevel, refined, isfc, position)
+    artioroutines.oct_pos_callback(ytlevel, refined, isfc, position) #variables[0]
 
 cdef void wrap_cell_var_callback(float *variables, int level, int refined, 
                                  int64_t ichild, void *pyobject):

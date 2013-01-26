@@ -106,19 +106,19 @@ class ARTIODomainFile(object):
         self.artiogrid.grid_pos_fill(oct_handler, self.pf.domain_dimensions[0])
         #pdb.set_trace()
         
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = selector.fill_mask(self)
-        self._last_selector_id = id(selector)
-        return self._last_mask
-
-    def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
+#    def select(self, selector):
+#        if id(selector) == self._last_selector_id:
+#            return self._last_mask
+#        self._last_mask = selector.fill_mask(self)
+#        self._last_selector_id = id(selector)
+#        return self._last_mask
+#
+#    def count(self, selector):
+#        if id(selector) == self._last_selector_id:
+#            if self._last_mask is None: return 0
+#            return self._last_mask.sum()
+#        self.select(selector)
+#        return self.count(selector)
 
 class ARTIODomainSubset(object):
 
@@ -189,6 +189,7 @@ class ARTIODomainSubset(object):
             #temp[field] = np.empty((no,8), dtype="float64") 
             temp[field] = np.empty(nc, dtype="float32")  
 
+            # snl FIX: change the grid fill call to include domain and mask directly
         #buffer variables 
         self.artiogrid.grid_var_fill(temp, fields)
         
@@ -199,7 +200,7 @@ class ARTIODomainSubset(object):
              self.domain.domain_id,
             tr, temp, self.mask, level_offset) #[oct_container.pyx] RISM level_offset
         
-        print 'tr min/max in data_structures.py',tr['Density'].max(), tr['Density'].min() 
+#        print 'tr min/max in data_structures.py',tr['Density'].max(), tr['Density'].min() 
         return tr
 
     def get_particle_pos(self,accessed_species, fieldnames):

@@ -405,6 +405,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
+        ci=0
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for k in range(2):
@@ -412,11 +413,10 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     for i in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.local_ind, ii] == 0: continue
-                        ci = level_counts[o.level]
                         coords[ci, 0] = (o.pos[0] << 1) + i
                         coords[ci, 1] = (o.pos[1] << 1) + j
                         coords[ci, 2] = (o.pos[2] << 1) + k
-                        level_counts[o.level] += 1
+                        ci += 1
         return coords
 
     @cython.boundscheck(False)
@@ -438,9 +438,8 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
             o = &cur.my_octs[oi]
             for i in range(8):
                 if mask[oi + cur.offset, i] == 0: continue
-                ci = level_counts[o.level]
                 levels[ci] = o.level
-                level_counts[o.level] += 1
+                ci +=1
         return levels
 
     @cython.boundscheck(False)
@@ -476,6 +475,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="float64")
+        ci =0 
         for i in range(3):
             # This is the base_dx, but not the base distance from the center
             # position.  Note that the positions will also all be offset by
@@ -495,11 +495,10 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     for i in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.local_ind, ii] == 0: continue
-                        ci = level_counts[o.level]
                         coords[ci, 0] = pos[0] + dx[0] * i
                         coords[ci, 1] = pos[1] + dx[1] * j
                         coords[ci, 2] = pos[2] + dx[2] * k
-                        level_counts[o.level] += 1
+                        ci +=1 
         return coords
 
     @cython.boundscheck(False)
@@ -515,7 +514,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef int i, j, k, ii
         cdef int local_pos, local_filled
         cdef np.float64_t val
-        print 'domain number of octs', dom.n
+        print 'in fill_mask, domains number of octs',dom.n
         for key in dest_fields:
             local_filled = 0
             dest = dest_fields[key]
@@ -530,7 +529,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
                             dest[local_filled + offset] = source[o.local_ind*8+ii]
-                            # print 'oct_container.pyx:sourcemasked',o.level, o.local_ind*8+ii, source[o.local_ind*8+ii]
+                            # print 'oct_container.pyx:sourcemasked',o.level,local_filled, o.local_ind*8+ii, source[o.local_ind*8+ii]
                             local_filled += 1
         return local_filled
 
