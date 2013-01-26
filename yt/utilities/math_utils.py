@@ -32,12 +32,12 @@ import math
 
 def periodic_position(pos, pf):
     r"""Assuming periodicity, find the periodic position within the domain.
-    
+
     Parameters
     ----------
     pos : array
         An array of floats.
-    
+
     pf : StaticOutput
         A simulation static output.
     
@@ -55,15 +55,15 @@ def periodic_position(pos, pf):
     return pf.domain_left_edge + off
 
 def periodic_dist(a, b, period):
-    r"""Find the Euclidian periodic distance between two points.
+    r"""Find the Euclidean periodic distance between two sets of points.
     
     Parameters
     ----------
     a : array or list
-        An array or list of floats.
+        An (ndim, npoints) list of coordinates
     
     b : array of list
-        An array or list of floats.
+        An (ndim, npoints) list of coordinates
     
     period : float or array or list
         If the volume is symmetrically periodic, this can be a single float,
@@ -77,16 +77,47 @@ def periodic_dist(a, b, period):
     >>> period = 1.
     >>> dist = periodic_dist(a, b, 1.)
     >>> dist
-    0.3464102
+    0.346410161514
     """
     a = np.array(a)
     b = np.array(b)
-    if a.size != b.size: RunTimeError("Arrays must be the same shape.")
-    c = np.empty((2, a.size), dtype="float64")
+    period = np.array(period)
+    if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
+    if period.shape != b.shape and len(b.shape) > 1:
+        period = np.tile(period, (b.shape[1],1)).transpose()
+    c = np.empty((2,) + a.shape, dtype="float64")
     c[0,:] = abs(a - b)
     c[1,:] = period - abs(a - b)
     d = np.amin(c, axis=0)**2
-    return math.sqrt(d.sum())
+    return np.sqrt(d.sum(axis=0))
+
+def euclidean_dist(a, b):
+    r"""Find the Euclidean distance between two points.
+
+    Parameters
+    ----------
+    a : array or list
+        An (ndim, npoints) list of coordinates
+
+    b : array of list
+        An (ndim, npoints) list of coordinates
+
+    Examples
+    --------
+    >>> a = np.array([0.1, 0.1, 0.1])
+    >>> b = np.array([0.9, 0,9, 0.9])
+    >>> period = 1.
+    >>> dist = euclidean_dist(a, b, period)
+    >>> dist
+    1.38564064606
+
+    """
+    a = np.array(a)
+    b = np.array(b)
+    if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
+    c = np.empty(a.shape, dtype="float64")
+    c = (a - b)**2
+    return np.sqrt(c.sum(axis=0))
 
 def rotate_vector_3D(a, dim, angle):
     r"""Rotates the elements of an array around an axis by some angle.

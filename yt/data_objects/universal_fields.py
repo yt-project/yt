@@ -786,23 +786,27 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
 
 
 def _ParticleRadius(field, data):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data["particle_position_x"].shape, dtype='float64')
-    for i, ax in enumerate('xyz'):
-        r = np.abs(data["particle_position_%s" % ax] - center[i])
-        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
-    np.sqrt(radius, radius)
-    return radius
+    positions = np.array([data["particle_position_%s" % ax] for ax in 'xyz'])
+    c = data.get_field_parameter("center")
+    center = np.tile(c,(positions.shape[1],1)).transpose()
+    period = data.pf.domain_right_edge - data.pf.domain_left_edge
+    return periodic_dist(positions, center, period)
 def _Radius(field, data):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data["x"].shape, dtype='float64')
-    for i, ax in enumerate('xyz'):
-        r = np.abs(data[ax] - center[i])
-        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
-    np.sqrt(radius, radius)
-    return radius
+    positions = np.array([data['x'], data['y'], data['z']])
+    c = data.get_field_parameter("center")
+    center = np.tile(c,(positions.shape[1],1)).transpose()
+    period = data.pf.domain_right_edge - data.pf.domain_left_edge
+    return periodic_dist(positions, center, period)
+def _ParticleRadiusIsolated(field, data):
+    positions = np.array([data["particle_position_%s" % ax] for ax in 'xyz'])
+    c = data.get_field_parameter("center")
+    center = np.tile(c,(positions.shape[1],1)).transpose()
+    return euclidean_dist(positions, center)
+def _RadiusIsolated(field, data):
+    positions = np.array([data['x'], data['y'], data['z']])
+    c = data.get_field_parameter("center")
+    center = np.tile(c,(positions.shape[1],1)).transpose()
+    return euclidian_dist(positions, center)
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
 add_field("ParticleRadius", function=_ParticleRadius,
@@ -818,7 +822,7 @@ add_field("ParticleRadiusIsolated", function=_ParticleRadiusIsolated,
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}",
           particle_type = True,
           display_name = "Particle Radius")
-add_field("Radius", function=_Radius,
+add_field("RadiusIsolated", function=_RadiusIsolated,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
 

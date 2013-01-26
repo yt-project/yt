@@ -401,7 +401,7 @@ def assign_particle_data(pf, pdata) :
     pf.h.update_data(grid_pdata)
                                         
 def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
-                      nprocs=1, sim_time=0.0, periodicity=(True, True, True):
+                      nprocs=1, sim_time=0.0, periodicity=(True, True, True)):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -498,8 +498,8 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
-        particle_types=particle_types
-        periodicity
+        particle_types=particle_types,
+        periodicity=periodicity
     )
 
     handler.name = "UniformGridData"
