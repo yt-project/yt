@@ -33,6 +33,7 @@ import itertools
 import numpy as np
 
 from yt.funcs import *
+from yt.utilities.definitions import axis_names
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -198,6 +199,12 @@ class NeedsParameter(ValidationException):
         self.missing_parameters = missing_parameters
     def __str__(self):
         return "(%s)" % (self.missing_parameters)
+
+class IsNotPeriodic(ValidationException):
+    def __init__(self, direction):
+        self.direction = direction
+    def __str__(self):
+        return str(self.direction)
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -490,3 +497,19 @@ class ValidateGridType(FieldValidator):
         if isinstance(data, FieldDetector): return True
         if getattr(data, "_type_name", None) == 'grid': return True
         raise NeedsOriginalGrid()
+
+class ValidatePeriodic(FieldValidator):
+    def __init__(self):
+        """
+        This validator ensures that the parameter file's periodicity attribute
+        is True along all three directions
+        """
+        FieldValidator.__init__(self)
+    def __call__(self, data):
+        np = []
+        for i, p in enumerate(data.pf.periodicity):
+            if p == False:
+                np.append(i)
+        if len(np) > 0:
+            raise IsNotPeriodic([axis_names[i] for i in np])
+        return True
