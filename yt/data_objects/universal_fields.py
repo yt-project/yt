@@ -40,7 +40,6 @@ from field_info_container import \
     ValidateGridType, \
     ValidateParameter, \
     ValidateSpatial, \
-    ValidatePeriodic, \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \
@@ -784,58 +783,41 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 
-
+def get_radius(positions, data):
+    c = data.get_field_parameter("center")
+    center = np.tile(c,(positions.shape[1],1)).transpose()
+    periodicity = data.pf.periodicity
+    if np.any(periodicity):
+        period = data.pf.domain_right_edge - data.pf.domain_left_edge
+        return periodic_dist(positions, center, period, periodicity)
+    else:
+        return euclidean_dist(positions, center)
 def _ParticleRadius(field, data):
     positions = np.array([data["particle_position_%s" % ax] for ax in 'xyz'])
-    c = data.get_field_parameter("center")
-    center = np.tile(c,(positions.shape[1],1)).transpose()
-    period = data.pf.domain_right_edge - data.pf.domain_left_edge
-    return periodic_dist(positions, center, period)
+    return get_radius(positions, data)
 def _Radius(field, data):
     positions = np.array([data['x'], data['y'], data['z']])
-    c = data.get_field_parameter("center")
-    center = np.tile(c,(positions.shape[1],1)).transpose()
-    period = data.pf.domain_right_edge - data.pf.domain_left_edge
-    return periodic_dist(positions, center, period)
-def _ParticleRadiusIsolated(field, data):
-    positions = np.array([data["particle_position_%s" % ax] for ax in 'xyz'])
-    c = data.get_field_parameter("center")
-    center = np.tile(c,(positions.shape[1],1)).transpose()
-    return euclidean_dist(positions, center)
-def _RadiusIsolated(field, data):
-    positions = np.array([data['x'], data['y'], data['z']])
-    c = data.get_field_parameter("center")
-    center = np.tile(c,(positions.shape[1],1)).transpose()
-    return euclidian_dist(positions, center)
+    return get_radius(positions, data)
+
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
 add_field("ParticleRadius", function=_ParticleRadius,
-          validators=[ValidateParameter("center"), ValidatePeriodic()],
-          convert_function = _ConvertRadiusCGS, units=r"\rm{cm}",
-          particle_type = True,
-          display_name = "Particle Radius")
-add_field("Radius", function=_Radius,
-          validators=[ValidateParameter("center"), ValidatePeriodic()],
-          convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
-add_field("ParticleRadiusIsolated", function=_ParticleRadiusIsolated,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}",
           particle_type = True,
           display_name = "Particle Radius")
-add_field("RadiusIsolated", function=_RadiusIsolated,
+add_field("Radius", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
 
 def _ConvertRadiusMpc(data):
     return data.convert("mpc")
 add_field("RadiusMpc", function=_Radius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}",
           display_name = "Radius")
 add_field("ParticleRadiusMpc", function=_ParticleRadius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}",
           particle_type=True,
           display_name = "Particle Radius")
@@ -843,67 +825,57 @@ add_field("ParticleRadiusMpc", function=_ParticleRadius,
 def _ConvertRadiuskpc(data):
     return data.convert("kpc")
 add_field("ParticleRadiuskpc", function=_ParticleRadius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}",
           particle_type=True,
           display_name = "Particle Radius")
 add_field("Radiuskpc", function=_Radius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}",
           display_name = "Radius")
 
 def _ConvertRadiuskpch(data):
     return data.convert("kpch")
 add_field("ParticleRadiuskpch", function=_ParticleRadius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpch, units=r"\rm{kpc}/\rm{h}",
           particle_type=True,
           display_name = "Particle Radius")
 add_field("Radiuskpch", function=_Radius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}",
           display_name = "Radius")
 
 def _ConvertRadiuspc(data):
     return data.convert("pc")
 add_field("ParticleRadiuspc", function=_ParticleRadius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuspc, units=r"\rm{pc}",
           particle_type=True,
           display_name = "Particle Radius")
 add_field("Radiuspc", function=_Radius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuspc, units=r"\rm{pc}",
           display_name="Radius")
 
 def _ConvertRadiusAU(data):
     return data.convert("au")
 add_field("ParticleRadiusAU", function=_ParticleRadius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusAU, units=r"\rm{AU}",
           particle_type=True,
           display_name = "Particle Radius")
 add_field("RadiusAU", function=_Radius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusAU, units=r"\rm{AU}",
           display_name = "Radius")
 
 add_field("ParticleRadiusCode", function=_ParticleRadius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           particle_type=True,
           display_name = "Particle Radius (code)")
 add_field("RadiusCode", function=_Radius,
-          validators=[ValidateParameter("center"),
-                      ValidatePeriodic()],
+          validators=[ValidateParameter("center")],
           display_name = "Radius (code)")
 
 def _RadialVelocity(field, data):

@@ -42,7 +42,6 @@ from yt.config import ytcfg
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.data_objects import universal_fields
 from yt.utilities.lib import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree, get_box_grids_below_level, ghost_zone_interpolate, \
@@ -69,9 +68,7 @@ from .field_info_container import \
     NeedsOriginalGrid, \
     NeedsDataField, \
     NeedsProperty, \
-    NeedsParameter, \
-    IsNotPeriodic, \
-    ValidatePeriodic
+    NeedsParameter
 
 def force_array(item, shape):
     try:
@@ -359,16 +356,6 @@ class AMRData(object):
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
-            except IsNotPeriodic:
-                name = self.pf.field_info[field]._function.__name__
-                if name.endswith('Isolated') == False:
-                    setattr(self.pf.field_info[field], '_function',
-                            getattr(universal_fields,name+'Isolated'))
-                validators = self.pf.field_info[field].validators
-                validators = [v for v in validators if type(v) != ValidatePeriodic]
-                self.pf.field_info[field].validators = validators
-                self[field] = self.pf.field_info[field](self)
-                return True
             else:
                 self[field] = self.pf.field_info[field](self)
                 return True
@@ -3822,19 +3809,8 @@ class AMRCoveringGridBase(AMR3DData):
     def _generate_field(self, field):
         if self.pf.field_info.has_key(field):
             # First we check the validator; this might even raise!
-            try:
-                self.pf.field_info[field].check_available(self)
-            except IsNotPeriodic:
-                name = self.pf.field_info[field]._function.__name__
-                if name.endswith('Isolated') == False:
-                    setattr(self.pf.field_info[field], '_function',
-                            getattr(universal_fields,name+'Isolated'))
-                validators = self.pf.field_info[field].validators
-                validators = [v for v in validators if type(v) != ValidatePeriodic]
-                self.pf.field_info[field].validators = validators
-                self[field] = self.pf.field_info[field](self)
-            else:
-                self[field] = self.pf.field_info[field](self)
+            self.pf.field_info[field].check_available(self)
+            self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
             raise KeyError(field)
 

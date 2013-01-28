@@ -33,16 +33,13 @@ from yt.funcs import *
 from yt.utilities.definitions import x_dict, y_dict
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.data_objects import universal_fields
 from yt.utilities.definitions import x_dict, y_dict
 from .field_info_container import \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \
     NeedsProperty, \
-    NeedsParameter, \
-    IsNotPeriodic, \
-    ValidatePeriodic
+    NeedsParameter
 
 class AMRGridPatch(object):
     _spatial = True
@@ -144,15 +141,6 @@ class AMRGridPatch(object):
                 temp_array = self.pf.field_info[field](gz_grid)
                 sl = [slice(n_gz, -n_gz)] * 3
                 self[field] = temp_array[sl]
-            except IsNotPeriodic:
-                name = self.pf.field_info[field]._function.__name__
-                if name.endswith('Isolated') == False:
-                    setattr(self.pf.field_info[field], '_function',
-                            getattr(universal_fields,name+'Isolated'))
-                validators = self.pf.field_info[field].validators
-                validators = [v for v in validators if type(v) != ValidatePeriodic]
-                self.pf.field_info[field].validators = validators
-                self[field] = self.pf.field_info[field](self)
             else:
                 self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
