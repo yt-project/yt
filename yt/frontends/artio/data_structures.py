@@ -77,9 +77,8 @@ class ARTIODomainFile(object):
         #self.artioparticle = artio_particle_routines(self._handle)
         #    self._read_particle_header()
             print "Particle support not implemented"
-        else :
-            self.local_particle_count = 0
-            self.particle_field_offsets = {}                                                      
+        self.local_particle_count = 0
+        self.particle_field_offsets = {}                                                      
         
     def _read_grid(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
