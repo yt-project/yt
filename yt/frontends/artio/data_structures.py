@@ -76,9 +76,14 @@ class ARTIODomainFile(object):
         self._handle = artio_fileset_grid(self._fileset_prefix) 
         
         self.artiogrid = artio_grid_routines(self._handle)
-        self.artioparticle = artio_particle_routines(self._handle)
         self._read_grid_header()
-        self._read_particle_header()
+
+        if self._handle.parameters.has_key('num_particle_files') :
+            self.artioparticle = artio_particle_routines(self._handle)
+            self._read_particle_header()
+        else :
+            self.local_particle_count = 0
+            self.particle_field_offsets = {}
 
     ###########################################
     def _read_particle_header(self):
@@ -137,7 +142,9 @@ class ARTIODomainSubset(object):
         self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
         print 'cumulative masked level counts',self.ncum_masked_level
         self.artiogrid = self.domain.artiogrid
-        self.artioparticle = self.domain.artioparticle
+
+        if self.domain.local_particle_count > 0 :
+            self.artioparticle = self.domain.artioparticle
 
         
     def icoords(self, dobj):
@@ -423,7 +430,7 @@ class ARTIOStaticOutput(StaticOutput):
         self.current_time = self._handle.parameters["tl"][0]
   
         # detect cosmology
-        if self._handle.parameters["abox"] :
+        if self._handle.parameters.has_key("abox") :
             abox = self._handle.parameters["abox"][0] 
             self.cosmological_simulation = True
             self.omega_lambda = self._handle.parameters["OmegaL"][0]
