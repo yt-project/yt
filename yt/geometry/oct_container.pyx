@@ -325,6 +325,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0] #number of octs
         if curdom > self.max_domain: curdom = local_domain
+        if curdom < 1 : curdom = 1
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0

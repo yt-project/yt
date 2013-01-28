@@ -28,8 +28,7 @@ import weakref
 import cStringIO
 
 from _artio_caller import \
-    artio_is_valid, artio_fileset , artio_fileset_grid, \
-    artio_grid_routines, artio_particle_routines
+    artio_is_valid, artio_fileset 
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
@@ -62,42 +61,25 @@ import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     ARTIOOctreeContainer
 
-
-
-
 class ARTIODomainFile(object):
 
     def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
-        self.part_fn = "%s.p%03i" % (pf.parameter_filename[:-4],domain_id)
-        self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)
         self._fileset_prefix = pf.parameter_filename[:-4]
-        self._handle = artio_fileset_grid(self._fileset_prefix) 
-        
-        self.artiogrid = artio_grid_routines(self._handle)
-        self._read_grid_header()
+        self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)                         
+        #self._handle = artio_fileset(self._fileset_prefix)
+        self._handle = self.pf._handle
+        self.local_oct_count = self._handle.count_refined_octs() 
+        print "Local oct count = ", self.local_oct_count
 
         if self._handle.parameters.has_key('num_particle_files') :
-            self.artioparticle = artio_particle_routines(self._handle)
-            self._read_particle_header()
+        #self.artioparticle = artio_particle_routines(self._handle)
+        #    self._read_particle_header()
+            print "Particle support not implemented"
         else :
             self.local_particle_count = 0
-            self.particle_field_offsets = {}
-
-    ###########################################
-    def _read_particle_header(self):
-        if not os.path.exists(self.part_fn):
-            self.local_particle_count = 0
-            self.particle_field_offsets = {}
-            return
-
-    def _read_grid_header(self):
-        sfc_max = self._handle.parameters['grid_file_sfc_index'][1]-1
-        self.local_oct_count = self.artiogrid.count_refined_octs() #count_octs(self._handle)
-        self.art_level_count = self.artiogrid.art_level_count
-        print 'snl data_structures local_octs count',self.local_oct_count, self.art_level_count
-    ###########################################
+            self.particle_field_offsets = {}                                                      
         
     def _read_grid(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
@@ -106,24 +88,21 @@ class ARTIODomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
-        #oct_handler may not be attributed yet
-        self.artiogrid=artio_grid_routines(self._handle) 
-        self.artiogrid.grid_pos_fill(oct_handler, self.pf.domain_dimensions[0])
-        #pdb.set_trace()
+        self._handle.grid_pos_fill(oct_handler)
         
-#    def select(self, selector):
-#        if id(selector) == self._last_selector_id:
-#            return self._last_mask
-#        self._last_mask = selector.fill_mask(self)
-#        self._last_selector_id = id(selector)
-#        return self._last_mask
-#
-#    def count(self, selector):
-#        if id(selector) == self._last_selector_id:
-#            if self._last_mask is None: return 0
-#            return self._last_mask.sum()
-#        self.select(selector)
-#        return self.count(selector)
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
 
 class ARTIODomainSubset(object):
 
@@ -141,11 +120,6 @@ class ARTIODomainSubset(object):
         ncum_masked_level[0] = 0
         self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
         print 'cumulative masked level counts',self.ncum_masked_level
-        self.artiogrid = self.domain.artiogrid
-
-        if self.domain.local_particle_count > 0 :
-            self.artioparticle = self.domain.artioparticle
-
         
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -180,34 +154,41 @@ class ARTIODomainSubset(object):
                                      self.ncum_masked_level.copy())
 
     def fill(self, fields):
-        oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.fluid_field_list
-        min_level = self.domain.pf.min_level
-        fields = [f for ft, f in fields]
-        print 'all_fields:', all_fields 
-        print 'fields:', fields
-        tr = {}
-        for field in fields: 
-            tr[field] = np.zeros(self.masked_cell_count, 'float64')
-        temp = {}
-        nc = self.domain.art_level_count.sum() #this is straight from ART no masking 
-        print 'ncells masked (tr)',self.masked_cell_count, 'ncells total', nc
-        for field in fields:
-            #temp[field] = np.empty((no,8), dtype="float64") 
-            temp[field] = np.empty(nc, dtype="float32")  
+        # translate fields into ARTIO names (this dict should be moved to fields.py)
+        yt_to_art = { 
+            'Density':'HVAR_GAS_DENSITY',
+            'TotalGasEnergy':'HVAR_GAS_ENERGY',
+            'GasEnergy':'HVAR_INTERNAL_ENERGY',
+            'Pressure':'HVAR_PRESSURE',
+            'XMomentumDensity':'HVAR_MOMENTUM_X',
+            'YMomentumDensity':'HVAR_MOMENTUM_Y',
+            'ZMomentumDensity':'HVAR_MOMENTUM_Z',
+            'Gamma':'HVAR_GAMMA',
+            'MetalDensitySNIa':'HVAR_METAL_DENSITY_Ia',
+            'MetalDensitySNII':'HVAR_METAL_DENSITY_II',
+            'Potential':'VAR_POTENTIAL',
+            'PotentialHydro':'VAR_POTENTIAL_HYDRO' }
 
-            # snl FIX: change the grid fill call to include domain and mask directly
+        tr = {}
+        for fieldtype, fieldname in fields: 
+            tr[fieldname] = np.zeros(self.masked_cell_count, 'float64')
+
+        temp = {}
+        for fieldtype, fieldname in fields:
+            temp[yt_to_art[fieldname]] = np.empty(8*self.domain.local_oct_count, dtype="float32")  
+
         #buffer variables 
-        self.artiogrid.grid_var_fill(temp, fields)
+        self.domain._handle.grid_var_fill(temp, [yt_to_art[f[1]] for f in fields])
         
-        #mask unused cells 
-        oct_handler = self.oct_handler
-        level_offset = 0                       # RISM=ramsesism level_offset
-        level_offset += oct_handler.fill_mask(
-             self.domain.domain_id,
-            tr, temp, self.mask, level_offset) #[oct_container.pyx] RISM level_offset
+        # dhr - make sure these are shallow copies 
+        temp2 = {}
+        for fieldtype, fieldname in fields :
+            temp2[fieldname] = temp[yt_to_art[fieldname]]
+ 
+        #mask unused cells (all at once, not level-by-level)
+        self.oct_handler.fill_mask( self.domain.domain_id,
+                tr, temp2, self.mask, 0 ) 
         
-#        print 'tr min/max in data_structures.py',tr['Density'].max(), tr['Density'].min() 
         return tr
 
     def get_particle_pos(self,accessed_species, fieldnames):
@@ -230,7 +211,7 @@ class ARTIODomainSubset(object):
         #     
         # #buffer variables 
 
-        self.artiogrid.particle_var_fill(tr, fieldnames, accessed_species, particle_mask)
+        self.domain.particle_var_fill(tr, fieldnames, accessed_species, particle_mask)
 
         #     
         #mask unused cells 
@@ -248,14 +229,16 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self.max_level = pf.max_level
 
+        self.max_level = pf.max_level
+        print "max level: ", self.max_level
         self.float_type = np.float64
         super(ARTIOGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
         #domains are the class object ... ncpu == 1 currently 
         #only one file/"domain" for ART
+        print "Initializing oct container"
         self.domains = [ARTIODomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
         # this allocates space for the oct tree note that 
@@ -279,6 +262,7 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
                                   'Pressure','Gamma','GasEnergy',
                                   'MetalDensitySNII', 'MetalDensitySNIa',
                                   'Potential','PotentialHydro']
+
         pfl = set([])
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
@@ -367,6 +351,7 @@ class ARTIOStaticOutput(StaticOutput):
         self._filename = filename
         self._fileset_prefix = filename[:-4]
         self._handle = artio_fileset(self._fileset_prefix) 
+
         # Here we want to initiate a traceback, if the reader is not built.
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename 
@@ -419,7 +404,8 @@ class ARTIOStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
-        num_grid = (int)(self._handle.parameters["num_root_cells"][0]**(1./3.)+0.5)
+        # dhr - replace floating point math
+        num_grid = self._handle.num_grid
         self.domain_dimensions = np.ones(3,dtype='int32') * num_grid
         self.domain_left_edge = np.zeros(3, dtype="float64")
         self.domain_right_edge = np.ones(3, dtype='float64')*num_grid

@@ -9,23 +9,29 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "sfc.h"
 #include "artio.h"
 #include "artio_internal.h"
 
-int artio_grid_find_file(artio_grid_file ghandle, int start, int end, int64_t sfc);
-artio_grid_file artio_grid_file_allocate(void);
-void artio_grid_file_destroy(artio_grid_file ghandle);
+int artio_grid_find_file(artio_grid_file *ghandle, int start, int end, int64_t sfc);
+artio_grid_file *artio_grid_file_allocate(void);
+void artio_grid_file_destroy(artio_grid_file *ghandle);
+
+const double oct_pos_offsets[8][3] = {
+	{ -0.5, -0.5, -0.5 }, {  0.5, -0.5, -0.5 }, 
+	{ -0.5,  0.5, -0.5 }, {  0.5,  0.5, -0.5 }, 
+	{ -0.5, -0.5,  0.5 }, {  0.5, -0.5,  0.5 },
+	{ -0.5,  0.5,  0.5 }, {  0.5,  0.5,  0.5 }
+};
 
 /*
  * Open grid component of the fileset
  */
-int artio_fileset_open_grid(artio_file handle) {
+int artio_fileset_open_grid(artio_fileset *handle) {
 	int i;
 	char filename[256];
 	int first_file, last_file;
 	int mode;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -65,7 +71,7 @@ int artio_fileset_open_grid(artio_file handle) {
 		return ARTIO_ERR_MEMORY_ALLOCATION;
 	}
 
-	ghandle->ffh = (artio_fh *)malloc(ghandle->num_grid_files * sizeof(artio_fh));
+	ghandle->ffh = (artio_fh **)malloc(ghandle->num_grid_files * sizeof(artio_fh *));
 	if ( ghandle->ffh == NULL ) {
 		artio_grid_file_destroy(ghandle);
 		return ARTIO_ERR_MEMORY_ALLOCATION;
@@ -104,7 +110,7 @@ int artio_fileset_open_grid(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_fileset_add_grid(artio_file handle, 
+int artio_fileset_add_grid(artio_fileset *handle, 
 		int num_grid_files, int allocation_strategy, 
 		int num_grid_variables, 
 		char ** grid_variable_labels,
@@ -119,7 +125,7 @@ int artio_fileset_add_grid(artio_file handle,
 	char filename[256];
 	int mode;
 	int ret;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -216,7 +222,7 @@ int artio_fileset_add_grid(artio_file handle,
 	}
 
 	/* allocate file handles */
-	ghandle->ffh = (artio_fh *)malloc(num_grid_files * sizeof(artio_fh));
+	ghandle->ffh = (artio_fh **)malloc(num_grid_files * sizeof(artio_fh *));
 	if ( ghandle->ffh == NULL ) {
 		artio_grid_file_destroy(ghandle);
 		return ARTIO_ERR_MEMORY_ALLOCATION;
@@ -302,7 +308,7 @@ int artio_fileset_add_grid(artio_file handle,
 		}
 	}
 
-	handle->grid = ghandle;
+		handle->grid = ghandle;
 
 	artio_parameter_set_long_array(handle, "grid_file_sfc_index",
 			ghandle->num_grid_files + 1, ghandle->file_sfc_index);
@@ -311,9 +317,9 @@ int artio_fileset_add_grid(artio_file handle,
 	return ARTIO_SUCCESS;
 }
 
-artio_grid_file artio_grid_file_allocate(void) {
-	artio_grid_file ghandle = 
-			(artio_grid_file)malloc(sizeof(struct artio_grid_file_struct));                                          
+artio_grid_file *artio_grid_file_allocate(void) {
+	artio_grid_file *ghandle = 
+			(artio_grid_file *)malloc(sizeof(struct artio_grid_file_struct));                                          
 	if ( ghandle != NULL ) {
 		ghandle->ffh = NULL;
 		ghandle->num_grid_variables = -1;
@@ -329,11 +335,20 @@ artio_grid_file artio_grid_file_allocate(void) {
 		ghandle->cur_octs = -1;
 		ghandle->cur_sfc = -1;
 		ghandle->octs_per_level = NULL;
+
+		ghandle->pos_flag = 0;
+		ghandle->pos_cur_level = -1;
+		ghandle->next_level_size = -1;
+		ghandle->cur_level_size = -1;
+		ghandle->cell_size_level = 1e20;
+		ghandle->next_level_pos = NULL;
+		ghandle->cur_level_pos = NULL;
+		ghandle->next_level_oct = -1;
     }
 	return ghandle;
 }
 
-void artio_grid_file_destroy(artio_grid_file ghandle) {
+void artio_grid_file_destroy(artio_grid_file *ghandle) {
 	int i;
 	if ( ghandle == NULL ) return;	
 
@@ -349,10 +364,13 @@ void artio_grid_file_destroy(artio_grid_file ghandle) {
 	if ( ghandle->sfc_offset_table != NULL ) free(ghandle->sfc_offset_table);
 	if ( ghandle->octs_per_level != NULL ) free(ghandle->octs_per_level);
 	if ( ghandle->file_sfc_index != NULL ) free(ghandle->file_sfc_index);
+	if ( ghandle->next_level_pos != NULL ) free(ghandle->next_level_pos);
+	if ( ghandle->cur_level_pos != NULL ) free(ghandle->cur_level_pos);
+
 	free(ghandle);
 }
 
-int artio_fileset_close_grid(artio_file handle) {
+int artio_fileset_close_grid(artio_fileset *handle) {
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
@@ -367,12 +385,122 @@ int artio_fileset_close_grid(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_cache_sfc_range(artio_file handle, int64_t start, int64_t end) {
+int artio_grid_count_octs_in_sfc_range(artio_fileset *handle, 
+		int64_t start, int64_t end, int64_t *num_octs) {
+    int i;
+	int ret;
+	int file, first;
+	int64_t sfc;
+	int64_t offset, next_offset, size_offset;
+	int num_oct_levels;
+	int *num_octs_per_level;
+    artio_grid_file *ghandle;
+
+    if ( handle == NULL ) {
+        return ARTIO_ERR_INVALID_HANDLE;
+    }
+
+    if (handle->open_mode != ARTIO_FILESET_READ ||
+            !(handle->open_type & ARTIO_OPEN_GRID) ||
+            handle->grid == NULL ) {
+        return ARTIO_ERR_INVALID_FILESET_MODE;
+    }
+
+	if ( start > end || start < handle->proc_sfc_begin ||
+			end > handle->proc_sfc_end ) {
+		return ARTIO_ERR_INVALID_SFC_RANGE;
+	}
+
+	ghandle = handle->grid;
+
+	/* check that we're not in the middle of a read */
+	if ( ghandle->cur_sfc != -1 ) {
+		return ARTIO_ERR_INVALID_STATE;
+	}
+
+	*num_octs = 0;
+
+	if ( 8*ghandle->num_grid_variables <= ghandle->file_max_level ) {
+		/* we can't compute the number of octs through the offset table */
+		ret = artio_grid_cache_sfc_range( handle, start, end );
+		if ( ret != ARTIO_SUCCESS ) return ret;
+
+		num_octs_per_level = (int *)malloc(ghandle->file_max_level*sizeof(int) );
+		if ( num_octs_per_level == NULL ) {
+			return ARTIO_ERR_MEMORY_ALLOCATION;
+		}
+
+		for ( sfc = start; sfc <= end; sfc++ ) {
+			ret = artio_grid_read_root_cell_begin( handle, sfc, NULL, NULL, 
+					&num_oct_levels, num_octs_per_level );
+			if ( ret != ARTIO_SUCCESS ) return ret;
+
+			for ( i = 0; i < num_oct_levels; i++ ) {
+				*num_octs += num_octs_per_level[i];
+			}	
+
+			ret = artio_grid_read_root_cell_end( handle );
+			if ( ret != ARTIO_SUCCESS ) return ret;
+		}
+
+		free( num_octs_per_level );
+	} else {
+		/* TODO: add optimization if sfc range already cached */
+		file = artio_grid_find_file(ghandle, 0, ghandle->num_grid_files, start);
+		first = MAX( 0, start - ghandle->file_sfc_index[file] );
+
+		ret = artio_file_fseek(ghandle->ffh[file], 
+				sizeof(int64_t) * first, ARTIO_SEEK_SET);
+		if ( ret != ARTIO_SUCCESS ) return ret;
+
+		ret = artio_file_fread(ghandle->ffh[file], &offset, 1, ARTIO_TYPE_LONG );
+		if ( ret != ARTIO_SUCCESS ) return ret;
+
+		sfc = start;
+		while ( sfc <= end ) {
+		/* read next offset or compute end of file*/
+			if ( sfc < ghandle->file_sfc_index[file+1] - 1 ) {
+				ret = artio_file_fread(ghandle->ffh[file], &size_offset, 1, ARTIO_TYPE_LONG );
+				if ( ret != ARTIO_SUCCESS ) return ret;
+				next_offset = size_offset;
+			} else {
+				/* need to seek and ftell */
+				artio_file_fseek( ghandle->ffh[file], 0, ARTIO_SEEK_END );
+				artio_file_ftell( ghandle->ffh[file], &size_offset );
+				file++;
+
+				if ( sfc < end && file < ghandle->num_grid_files ) {
+					if ( sfc != ghandle->file_sfc_index[file] ) {
+						printf("ERROR!!!");
+						exit(1);
+					}
+					artio_file_fseek( ghandle->ffh[file], 0, ARTIO_SEEK_SET );
+					ret = artio_file_fread(ghandle->ffh[file], &next_offset, 
+							1, ARTIO_TYPE_LONG );
+					if ( ret != ARTIO_SUCCESS ) return ret;
+				}
+			}
+
+			/* this assumes (num_levels_per_root_tree)*sizeof(int) <
+			 *   size of an oct, or 8*num_variables > max_level so the 
+			 *   number of levels drops off in rounding to int */
+			*num_octs += (size_offset - offset - 
+				sizeof(float)*ghandle->num_grid_variables - sizeof(int) ) /
+				(8*(sizeof(float)*ghandle->num_grid_variables + sizeof(int) ));
+			offset = next_offset;
+			sfc++;
+		}
+	}
+
+	return ARTIO_SUCCESS;
+}
+
+int artio_grid_cache_sfc_range(artio_fileset *handle, int64_t start, int64_t end) {
 	int i;
 	int ret;
 	int first_file, last_file;
 	int64_t first, count, cur;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -384,17 +512,14 @@ int artio_grid_cache_sfc_range(artio_file handle, int64_t start, int64_t end) {
 		return ARTIO_ERR_INVALID_FILESET_MODE;
 	}
 
-	ghandle = handle->grid;
-
 	if ( start > end || start < handle->proc_sfc_begin ||
 			end > handle->proc_sfc_end ) {
 		return ARTIO_ERR_INVALID_SFC_RANGE;
 	}
 
+	artio_grid_clear_sfc_cache(handle);
 
-	if (ghandle->sfc_offset_table != NULL) {
-		free(ghandle->sfc_offset_table);
-	}
+	ghandle = handle->grid;
 
 	first_file = artio_grid_find_file(ghandle, 0, ghandle->num_grid_files, start);
 	last_file = artio_grid_find_file(ghandle, first_file, ghandle->num_grid_files, end);
@@ -426,12 +551,34 @@ int artio_grid_cache_sfc_range(artio_file handle, int64_t start, int64_t end) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_find_file(artio_grid_file ghandle, int start, int end, int64_t sfc) {
-	int j;
+int artio_grid_clear_sfc_cache( artio_fileset *handle ) {
+    artio_grid_file *ghandle;
 
-	if ( ghandle == NULL ) {
-		return ARTIO_ERR_INVALID_HANDLE;
+    if ( handle == NULL ) {
+        return ARTIO_ERR_INVALID_HANDLE;
+    }
+
+    if (handle->open_mode != ARTIO_FILESET_READ ||
+            !(handle->open_type & ARTIO_OPEN_GRID) ||
+            handle->grid == NULL ) {
+        return ARTIO_ERR_INVALID_FILESET_MODE;
+    }
+
+    ghandle = handle->grid;
+
+	if ( ghandle->sfc_offset_table != NULL ) {
+		free(ghandle->sfc_offset_table);
+		ghandle->sfc_offset_table = NULL;
 	}
+
+    ghandle->cache_sfc_begin = -1;
+    ghandle->cache_sfc_end = -1;
+
+	return ARTIO_SUCCESS;
+}
+
+int artio_grid_find_file(artio_grid_file *ghandle, int start, int end, int64_t sfc) {
+	int j;
 
 	if ( start < 0 || start > ghandle->num_grid_files ||
 			end < 0 || end > ghandle->num_grid_files || 
@@ -462,9 +609,9 @@ int artio_grid_find_file(artio_grid_file ghandle, int start, int end, int64_t sf
 	}
 }
 
-int artio_grid_seek_to_sfc(artio_file handle, int64_t sfc) {
+int artio_grid_seek_to_sfc(artio_fileset *handle, int64_t sfc) {
 	int64_t offset;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -489,11 +636,11 @@ int artio_grid_seek_to_sfc(artio_file handle, int64_t sfc) {
 			offset, ARTIO_SEEK_SET);
 }
 
-int artio_grid_write_root_cell_begin(artio_file handle, int64_t sfc,
+int artio_grid_write_root_cell_begin(artio_fileset *handle, int64_t sfc,
 		float *variables, int num_oct_levels, int *num_octs_per_level) {
 	int i;
 	int ret;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -538,7 +685,7 @@ int artio_grid_write_root_cell_begin(artio_file handle, int64_t sfc,
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_write_root_cell_end(artio_file handle) {
+int artio_grid_write_root_cell_end(artio_fileset *handle) {
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
@@ -553,8 +700,8 @@ int artio_grid_write_root_cell_end(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_write_level_begin(artio_file handle, int level) {
-	artio_grid_file ghandle;
+int artio_grid_write_level_begin(artio_fileset *handle, int level) {
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -577,8 +724,8 @@ int artio_grid_write_level_begin(artio_file handle, int level) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_write_level_end(artio_file handle) {
-	artio_grid_file ghandle;
+int artio_grid_write_level_end(artio_fileset *handle) {
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -603,11 +750,11 @@ int artio_grid_write_level_end(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_write_oct(artio_file handle, float *variables,
+int artio_grid_write_oct(artio_fileset *handle, float *variables,
 		int *cellrefined) {
 	int i;
 	int ret;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -648,11 +795,16 @@ int artio_grid_write_oct(artio_file handle, float *variables,
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,
-		float *variables, int *num_oct_levels, int *num_octs_per_level) {
+/*
+ *
+ */
+int artio_grid_read_root_cell_begin(artio_fileset *handle, int64_t sfc,
+		double *pos, float *variables, int *num_oct_levels, 
+		int *num_octs_per_level) {
 	int i;
 	int ret;
-	artio_grid_file ghandle;
+	int coords[3];
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -669,10 +821,17 @@ int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,
 	ret = artio_grid_seek_to_sfc(handle, sfc);
 	if ( ret != ARTIO_SUCCESS ) return ret;
 
-	ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
-			variables, ghandle->num_grid_variables,
-			ARTIO_TYPE_FLOAT);
-	if ( ret != ARTIO_SUCCESS ) return ret;
+	if ( variables == NULL ) {
+		ret = artio_file_fseek( ghandle->ffh[ghandle->cur_file],
+				ghandle->num_grid_variables*sizeof(float), 
+				ARTIO_SEEK_CUR );
+		if ( ret != ARTIO_SUCCESS ) return ret;
+	} else {
+		ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
+				variables, ghandle->num_grid_variables,
+				ARTIO_TYPE_FLOAT);
+		if ( ret != ARTIO_SUCCESS ) return ret;
+	}
 
 	ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
 			num_oct_levels, 1, ARTIO_TYPE_INT);
@@ -680,6 +839,36 @@ int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,
 
 	if ( *num_oct_levels > ghandle->file_max_level ) {
 		return ARTIO_ERR_INVALID_OCT_LEVELS;
+	}
+
+	if ( pos != NULL ) {
+		ghandle->pos_flag = 1;
+
+		/* compute position from sfc */
+		artio_sfc_coords( handle, sfc, coords );
+		for ( i = 0; i < 3; i++ ) {
+			pos[i] = (double)coords[i] + 0.5;
+		}
+
+		if ( *num_oct_levels > 0 ) {
+			/* compute next level position */
+			if ( ghandle->next_level_pos == NULL ) {
+				ghandle->next_level_pos = (double *)malloc( 3*sizeof(double) );
+				if ( ghandle->next_level_pos == NULL ) {
+					return ARTIO_ERR_MEMORY_ALLOCATION;
+				}
+				ghandle->next_level_size = 1;
+			}
+
+			for ( i = 0; i < 3; i++ ) {
+				ghandle->next_level_pos[i] = pos[i];
+			}
+			ghandle->pos_cur_level = 0;
+		} else {
+			ghandle->pos_cur_level = -1;
+		}
+	} else {
+		ghandle->pos_flag = 0;
 	}
 
 	if (*num_oct_levels > 0) {
@@ -699,63 +888,15 @@ int artio_grid_read_root_nocts(artio_file handle, int64_t sfc,
 
 	return ARTIO_SUCCESS;
 }
-int artio_grid_read_root_cell_begin(artio_file handle, int64_t sfc,
-		float *variables, int *num_oct_levels, int *num_octs_per_level) {
-	int i;
-	int ret;
-	artio_grid_file ghandle;
 
-	if ( handle == NULL ) {
-		return ARTIO_ERR_INVALID_HANDLE;
-	}
-
-	if (handle->open_mode != ARTIO_FILESET_READ || 
-			!(handle->open_type & ARTIO_OPEN_GRID) ||
-			handle->grid == NULL ) {
-		return ARTIO_ERR_INVALID_FILESET_MODE;
-	}
-
-	ghandle = handle->grid;
-
-	ret = artio_grid_seek_to_sfc(handle, sfc);
-	if ( ret != ARTIO_SUCCESS ) return ret;
-
-	ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
-			variables, ghandle->num_grid_variables,
-			ARTIO_TYPE_FLOAT);
-	if ( ret != ARTIO_SUCCESS ) return ret;
-
-	ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
-			num_oct_levels, 1, ARTIO_TYPE_INT);
-	if ( ret != ARTIO_SUCCESS ) return ret;
-
-	if ( *num_oct_levels > ghandle->file_max_level ) {
-		return ARTIO_ERR_INVALID_OCT_LEVELS;
-	}
-
-	if (*num_oct_levels > 0) {
-		ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
-				num_octs_per_level, *num_oct_levels,
-				ARTIO_TYPE_INT);
-		if ( ret != ARTIO_SUCCESS ) return ret;
-
-		for (i = 0; i < *num_oct_levels; i++) {
-			ghandle->octs_per_level[i] = num_octs_per_level[i];
-		}
-	}
-
-	ghandle->cur_sfc = sfc;
-	ghandle->cur_num_levels = *num_oct_levels;
-	ghandle->cur_level = -1;
-
-	return ARTIO_SUCCESS;
-}
-
-/* Description  */
-int artio_grid_read_oct(artio_file handle, float *variables,
+int artio_grid_read_oct(artio_fileset *handle, 
+		double *pos,
+		float *variables,
 		int *refined) {
+	int i, j;
 	int ret;
-	artio_grid_file ghandle;
+	int local_refined[8];
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -770,18 +911,60 @@ int artio_grid_read_oct(artio_file handle, float *variables,
 	ghandle = handle->grid;
 
 	if (ghandle->cur_level == -1 || 
-			ghandle->cur_octs > ghandle->octs_per_level[ghandle->cur_level - 1]) {
+			ghandle->cur_octs > ghandle->octs_per_level[ghandle->cur_level - 1] ||
+			(pos != NULL && !ghandle->pos_flag )) {
 		return ARTIO_ERR_INVALID_STATE;
 	}
 
-	ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
-			variables, 8 * ghandle->num_grid_variables,
-			ARTIO_TYPE_FLOAT);
-	if ( ret != ARTIO_SUCCESS ) return ret;
+	if ( variables == NULL ) {
+		ret = artio_file_fseek(ghandle->ffh[ghandle->cur_file],
+				8*ghandle->num_grid_variables*sizeof(float), 
+				ARTIO_SEEK_CUR );
+		if ( ret != ARTIO_SUCCESS ) return ret;
+	} else {
+		ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
+				variables, 8 * ghandle->num_grid_variables,
+				ARTIO_TYPE_FLOAT);
+		if ( ret != ARTIO_SUCCESS ) return ret;
+	}
 
-	ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
-			refined, 8, ARTIO_TYPE_INT);
-	if ( ret != ARTIO_SUCCESS ) return ret;
+	if ( !ghandle->pos_flag && refined == NULL ) {
+		ret = artio_file_fseek(ghandle->ffh[ghandle->cur_file],
+				8*sizeof(int), ARTIO_SEEK_CUR );
+		if ( ret != ARTIO_SUCCESS ) return ret;
+	} else {
+		ret = artio_file_fread(ghandle->ffh[ghandle->cur_file], 
+				local_refined, 8, ARTIO_TYPE_INT);
+		if ( ret != ARTIO_SUCCESS ) return ret;
+	}
+
+	if ( refined != NULL ) {
+		for ( i = 0; i < 8; i++ ) {
+			refined[i] = local_refined[i];
+		}
+	}
+
+	if ( ghandle->pos_flag ) {
+		if ( pos != NULL ) {
+			for ( i = 0; i < 3; i++ ) {
+				pos[i] = ghandle->cur_level_pos[3*ghandle->cur_octs + i];
+			}
+		}
+
+		for ( i = 0; i < 8; i++ ) {
+			if ( local_refined[i] ) {
+				if ( ghandle->next_level_oct >= ghandle->next_level_size ) {
+					return ARTIO_ERR_INVALID_STATE;
+				}
+				for ( j = 0; j < 3; j++ ) {
+					ghandle->next_level_pos[3*ghandle->next_level_oct+j] = 
+						ghandle->cur_level_pos[3*ghandle->cur_octs + j] + 
+						ghandle->cell_size_level*oct_pos_offsets[i][j];
+				}
+				ghandle->next_level_oct++;
+			}
+		}
+	}
 
 	ghandle->cur_octs++;
 
@@ -791,11 +974,13 @@ int artio_grid_read_oct(artio_file handle, float *variables,
 /*
  * Description        Obtain data from an appointed level tree node
  */
-int artio_grid_read_level_begin(artio_file handle, int level) {
+int artio_grid_read_level_begin(artio_fileset *handle, int level) {
 	int i;
 	int ret;
 	int64_t offset = 0;
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
+	int tmp_size;
+	double *tmp_pos;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -810,8 +995,40 @@ int artio_grid_read_level_begin(artio_file handle, int level) {
 	ghandle = handle->grid;
 
 	if ( ghandle->cur_sfc == -1 || level <= 0 || 
-			level > ghandle->cur_num_levels ) {
+			level > ghandle->cur_num_levels ||
+			(ghandle->pos_flag && ghandle->pos_cur_level != level - 1) ) {
 		return ARTIO_ERR_INVALID_STATE;
+	}
+
+	if ( ghandle->pos_flag ) { 
+		ghandle->cell_size_level = 1.0 / (double)(1<<level);
+
+		tmp_pos = ghandle->cur_level_pos;
+		tmp_size = ghandle->cur_level_size;
+		
+		ghandle->cur_level_pos = ghandle->next_level_pos;
+		ghandle->cur_level_size = ghandle->next_level_size;
+
+		ghandle->next_level_pos = tmp_pos;
+		ghandle->next_level_size = tmp_size;
+
+		ghandle->pos_cur_level = level;
+
+		if ( level < ghandle->cur_num_levels ) {
+			/* ensure the buffer for the next level positions is large enough */
+			if ( ghandle->octs_per_level[level] > ghandle->next_level_size ) {
+				if ( ghandle->next_level_pos != NULL ) {
+					free( ghandle->next_level_pos );
+				}
+				ghandle->next_level_pos = (double *)malloc( 3*ghandle->octs_per_level[level]*sizeof(double) );
+				if ( ghandle->next_level_pos == NULL ) {
+					return ARTIO_ERR_MEMORY_ALLOCATION;
+				}
+				ghandle->next_level_size = ghandle->octs_per_level[level];
+			}
+
+			ghandle->next_level_oct = 0;
+		}
 	}
 
 	offset = ghandle->sfc_offset_table[ghandle->cur_sfc - ghandle->cache_sfc_begin];
@@ -835,8 +1052,8 @@ int artio_grid_read_level_begin(artio_file handle, int level) {
 /*
  * Description        Do something at the end of each kind of read operation
  */
-int artio_grid_read_level_end(artio_file handle) {
-	artio_grid_file ghandle;
+int artio_grid_read_level_end(artio_fileset *handle) {
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -850,17 +1067,20 @@ int artio_grid_read_level_end(artio_file handle) {
 
 	ghandle = handle->grid;
 
-	if (ghandle->cur_level == -1) {
+	if (ghandle->cur_level == -1 &&
+			( ghandle->cur_level < ghandle->cur_num_levels - 1 ||
+				ghandle->next_level_oct != ghandle->octs_per_level[ghandle->cur_level] ) ) {
 		return ARTIO_ERR_INVALID_STATE;
 	}
 
 	ghandle->cur_level = -1;
 	ghandle->cur_octs = -1;
+	ghandle->next_level_oct = -1;
 
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_read_root_cell_end(artio_file handle) {
+int artio_grid_read_root_cell_end(artio_fileset *handle) {
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
@@ -871,24 +1091,30 @@ int artio_grid_read_root_cell_end(artio_file handle) {
 		return ARTIO_ERR_INVALID_FILESET_MODE;
 	}
 	handle->grid->cur_sfc = -1;
+	handle->grid->cur_level = -1;
+	handle->grid->pos_flag = 0;
+	handle->grid->pos_cur_level = -1;
+
 	return ARTIO_SUCCESS;
 }
 
-int artio_grid_read_sfc_range(artio_file handle, 
+int artio_grid_read_sfc_range(artio_fileset *handle, 
 		int64_t sfc1, int64_t sfc2,
 		int min_level_to_read, int max_level_to_read, 
 		int options,
 		GridCallBack callback) {
+	int i, j;
 	int64_t sfc;
-	int oct, level, j;
+	int oct, level;
 	int ret;
 	int *octs_per_level = NULL;
 	int refined;
 	int oct_refined[8];
 	int root_tree_levels;
-	float * variables = NULL;
+	float *variables = NULL;
+	double pos[3], cell_pos[3];
 
-	artio_grid_file ghandle;
+	artio_grid_file *ghandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -899,6 +1125,16 @@ int artio_grid_read_sfc_range(artio_file handle,
 		return ARTIO_ERR_INVALID_FILESET_MODE;
 	}
 
+	if ( ( options & ARTIO_RETURN_CELLS && 
+				!(options & ARTIO_READ_LEAFS) && 
+				!(options & ARTIO_READ_REFINED)) ||
+			( options & ARTIO_RETURN_OCTS && 
+				(options & ARTIO_READ_LEAFS || 
+				options & ARTIO_READ_REFINED ) &&
+				!(options & ARTIO_READ_ALL) ) ) {
+		return ARTIO_ERR_INVALID_CELL_TYPES;
+	}
+	
 	ghandle = handle->grid;
 
 	if ((min_level_to_read < 0) || (min_level_to_read > max_level_to_read)) {
@@ -922,19 +1158,19 @@ int artio_grid_read_sfc_range(artio_file handle,
 	}
 		
 	for (sfc = sfc1; sfc <= sfc2; sfc++) {
-		ret = artio_grid_read_root_cell_begin(handle, sfc, variables,
-				&root_tree_levels, octs_per_level);
+		ret = artio_grid_read_root_cell_begin(handle, sfc, pos,
+				variables, &root_tree_levels, octs_per_level);
 		if ( ret != ARTIO_SUCCESS ) {
 			free(octs_per_level);
 			free(variables);
 			return ret;
 		}
 
-		if (min_level_to_read == 0 && (options == ARTIO_READ_ALL || 
-				(options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
-				(options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
+		if (min_level_to_read == 0 && (options & ARTIO_READ_ALL || 
+				(options & ARTIO_READ_REFINED && root_tree_levels > 0) || 
+				(options & ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
 			refined = (root_tree_levels > 0) ? 1 : 0;
-			callback(variables, 0, refined, sfc);
+			callback( sfc, 0, pos, variables, &refined );
 		}
 
 		for (level = MAX(min_level_to_read,1); 
@@ -947,19 +1183,27 @@ int artio_grid_read_sfc_range(artio_file handle,
 			}
 
 			for (oct = 0; oct < octs_per_level[level - 1]; oct++) {
-				ret = artio_grid_read_oct(handle, variables, oct_refined);
+				ret = artio_grid_read_oct(handle, pos, variables, oct_refined);
 				if ( ret != ARTIO_SUCCESS ) {
 					free(octs_per_level);
 					free(variables);
 					return ret;
 				}
 
-				for (j = 0; j < 8; j++) {
-					if (options == ARTIO_READ_ALL || 
-							(options == ARTIO_READ_REFINED && oct_refined[j]) ||
-							(options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
-						callback(&variables[j * ghandle->num_grid_variables],
-								level, oct_refined[j], sfc);
+				if ( options & ARTIO_RETURN_OCTS ) {
+					callback( sfc, level, pos, variables, oct_refined );
+				} else {
+					for (i = 0; i < 8; i++) {
+						if (options & ARTIO_READ_ALL || 
+								(options & ARTIO_READ_REFINED && oct_refined[i]) ||
+								(options & ARTIO_READ_LEAFS && !oct_refined[i]) ) {
+							for ( j = 0; j < 3; j++ ) {
+								cell_pos[j] = pos[j] + ghandle->cell_size_level*oct_pos_offsets[i][j];
+							}
+							callback( sfc, level, cell_pos, 
+									&variables[i * ghandle->num_grid_variables],
+									&oct_refined[i] );
+						}
 					}
 				}
 			}
@@ -971,300 +1215,7 @@ int artio_grid_read_sfc_range(artio_file handle,
 	free(variables);
 	free(octs_per_level);
 
-	return ARTIO_SUCCESS;
-}
-
-
-
-
-
-int artio_grid_read_sfc_range_yt(artio_file handle, 
-		int64_t sfc1, int64_t sfc2,
-		int min_level_to_read, int max_level_to_read, 
-		int options,
-                GridCallBackYT callback, 
-                void *pyobject) {
-	int64_t sfc;
-	int oct, level, j;
-	int ret;
-	int *octs_per_level = NULL;
-	int refined;
-	int oct_refined[8];
-	int root_tree_levels;
-	float * variables = NULL;
-
-	artio_grid_file ghandle;
-
-	if ( handle == NULL ) {
-		return ARTIO_ERR_INVALID_HANDLE;
-	}
-
-	if (handle->open_mode != ARTIO_FILESET_READ ||
-			!(handle->open_type & ARTIO_OPEN_GRID) ) {
-		return ARTIO_ERR_INVALID_FILESET_MODE;
-	}
-
-	ghandle = handle->grid;
-
-	if ((min_level_to_read < 0) || (min_level_to_read > max_level_to_read)) {
-		return ARTIO_ERR_INVALID_LEVEL;
-	}
-
-	octs_per_level = (int *)malloc(ghandle->file_max_level * sizeof(int));
-	variables = (float *)malloc(8*ghandle->num_grid_variables * sizeof(float));
-
-	if ( octs_per_level == NULL || variables == NULL ) {
-		if ( octs_per_level != NULL ) free(octs_per_level);
-		if ( variables != NULL ) free(variables);
-		return ARTIO_ERR_MEMORY_ALLOCATION;
-	}
-
-	ret = artio_grid_cache_sfc_range(handle, sfc1, sfc2);
-	if ( ret != ARTIO_SUCCESS ) {
-		free(octs_per_level);
-		free(variables);
-		return ret;
-	}
-		
-	for (sfc = sfc1; sfc <= sfc2; sfc++) {
-		ret = artio_grid_read_root_cell_begin(handle, sfc, variables,
-				&root_tree_levels, octs_per_level);
-		if ( ret != ARTIO_SUCCESS ) {
-			free(octs_per_level);
-			free(variables);
-			return ret;
-		}
-
-		if (min_level_to_read == 0 && (options != ARTIO_READ_REFINED_NOT_ROOT) &&
-                    (options == ARTIO_READ_ALL || 
-                     (options == ARTIO_READ_REFINED && root_tree_levels > 0) || 
-                     (options == ARTIO_READ_LEAFS && root_tree_levels == 0)) ) {
-			refined = (root_tree_levels > 0) ? 1 : 0;
-                        j=-1;
-			callback(variables, 0, refined, j, pyobject);
-		}
-
-		for (level = MAX(min_level_to_read,1); 
-				level <= MIN(root_tree_levels,max_level_to_read); level++) {
-			ret = artio_grid_read_level_begin(handle, level);
-			if ( ret != ARTIO_SUCCESS ) {
-				free(octs_per_level);
-				free(variables);
-				return ret;
-			}
-
-			for (oct = 0; oct < octs_per_level[level - 1]; oct++) {
-				ret = artio_grid_read_oct(handle, variables, oct_refined);
-				if ( ret != ARTIO_SUCCESS ) {
-					free(octs_per_level);
-					free(variables);
-					return ret;
-				}
-
-				for (j = 0; j < 8; j++) {
-					if (options == ARTIO_READ_ALL || 
-							(options == ARTIO_READ_REFINED && oct_refined[j]) ||
-							(options == ARTIO_READ_REFINED_NOT_ROOT && oct_refined[j]) ||
-							(options == ARTIO_READ_LEAFS && !oct_refined[j]) ) {
-						callback(&variables[j * ghandle->num_grid_variables],
-                                                         level, oct_refined[j], j, pyobject);
-					}
-				}
-			}
-			artio_grid_read_level_end(handle);
-		}
-		artio_grid_read_root_cell_end(handle);
-	}
-
-	free(variables);
-	free(octs_per_level);
-
-	return ARTIO_SUCCESS;
-}
-
-
-/* array which describes how child cells are offset from 
- * the corner of their parent oct */
-#define num_children 8
-#define min_level 0
-const double cell_delta_corner[num_children][nDim] = {
-#if nDim == 1
-    { 0.0 }, { 1.0 }
-#elif nDim == 2
-    { 0.0 , 0.0  }, { 1.0, 0.0  }, { 0.0 , 1.0 }, { 1.0, 1.0 }
-#elif nDim == 3
-    { 0.0 , 0.0 , 0.0  }, {  1.0, 0.0 , 0.0  }, { 0.0 ,  1.0, 0.0  },
-    {  1.0,  1.0, 0.0  }, { 0.0 , 0.0 ,  1.0 }, {  1.0, 0.0 ,  1.0 },
-    { 0.0 ,  1.0,  1.0 }, {  1.0,  1.0,  1.0 }
-#else
-#error "No valid cell_delta for that number of dimensions!"
-#endif
-};
-int artio_grid_read_sfc_range_ytpos(artio_file handle, 
-                                  int64_t sfc1, int64_t sfc2,
-                                  int min_level_to_read, int max_level_to_read, 
-                                  int options,
-                                  GridCallBackYTPos callback, 
-                                  void *pyobject
-    ) {
-	int64_t sfc;
-	int oct, level, j, i;
-	int ret;
-	int *num_octs_per_level = NULL;
-        int num_level_octs, num_next_level_octs;
-        int num_root_levels;
-
-        int coords[nDim];
-        double pos[nDim];
-        double cpos[nDim];
-        double cell_size;
-        double *level_octs_pos_x, *next_level_octs_pos_x;
-        double *level_octs_pos_y, *next_level_octs_pos_y;
-        double *level_octs_pos_z, *next_level_octs_pos_z;
-	int refined;
-	int oct_refined[num_children];
-	int root_tree_levels;
-	float * variables = NULL;
-
-	artio_grid_file ghandle;
-
-	if ( handle == NULL ) {
-		return ARTIO_ERR_INVALID_HANDLE;
-	}
-
-	if (handle->open_mode != ARTIO_FILESET_READ ||
-			!(handle->open_type & ARTIO_OPEN_GRID) ) {
-		return ARTIO_ERR_INVALID_FILESET_MODE;
-	}
-
-	ghandle = handle->grid;
-
-	if ((min_level_to_read < 0) || (min_level_to_read > max_level_to_read)) {
-		return ARTIO_ERR_INVALID_LEVEL;
-	}
-
-        num_root_levels = log(handle->num_root_cells)/(3*log(2));
-	num_octs_per_level = (int *)malloc(ghandle->file_max_level * sizeof(int));
-	variables = (float *)malloc(num_children*ghandle->num_grid_variables * sizeof(float));
-
-	if ( num_octs_per_level == NULL || variables == NULL ) {
-		if ( num_octs_per_level != NULL ) free(num_octs_per_level);
-		if ( variables != NULL ) free(variables);
-		return ARTIO_ERR_MEMORY_ALLOCATION;
-	}
-
-	ret = artio_grid_cache_sfc_range(handle, sfc1, sfc2);
-	if ( ret != ARTIO_SUCCESS ) {
-		free(num_octs_per_level);
-		free(variables);
-		return ret;
-	}
-		
-	for (sfc = sfc1; sfc <= sfc2; sfc++) {
-		ret = artio_grid_read_root_cell_begin(handle, sfc, variables,
-				&root_tree_levels, num_octs_per_level);
-
-		if ( ret != ARTIO_SUCCESS ) {
-			free(num_octs_per_level);
-			free(variables);
-			return ret;
-		}
-                sfc_coords(sfc, coords, num_root_levels); 
-                for(i=0; i<nDim; i++){ pos[i] = (double)coords[i]; }
-                refined = (root_tree_levels > 0) ? 1 : 0;
-                if( refined ){
-                    
-                    num_next_level_octs = 1;
-                    next_level_octs_pos_x = malloc( sizeof(double)*num_next_level_octs );
-                    next_level_octs_pos_y = malloc( sizeof(double)*num_next_level_octs );
-                    next_level_octs_pos_z = malloc( sizeof(double)*num_next_level_octs );
-                    if ( next_level_octs_pos_x == NULL ||
-                         next_level_octs_pos_y == NULL ||
-                         next_level_octs_pos_z == NULL ){
-                        return ARTIO_ERR_MEMORY_ALLOCATION;
-                    }
-                    next_level_octs_pos_x[0] = pos[0] ;
-                    next_level_octs_pos_y[0] = pos[1] ;
-                    next_level_octs_pos_z[0] = pos[2] ;
-                }else{
-                    num_next_level_octs = 0;
-                }
-                        
-                // level is the cell_level; current octs live at level-1.
-		for (level = min_level+1; level <= MIN(root_tree_levels,max_level_to_read); level++) { 
-			ret = artio_grid_read_level_begin(handle, level);
-			if ( ret != ARTIO_SUCCESS ) {
-				free(num_octs_per_level);
-				free(variables);
-				return ret;
-			}
-                        
-                        //////////////////////////////////////
-                        if( num_next_level_octs > 0 ){
-                            num_level_octs = num_next_level_octs;
-                            level_octs_pos_x = next_level_octs_pos_x;
-                            level_octs_pos_y = next_level_octs_pos_y;
-                            level_octs_pos_z = next_level_octs_pos_z;
-                            
-                            // at max_level-1 the next level can only have cells -- no more octs
-                            if(num_level_octs != num_octs_per_level[level-1]){
-                                printf("bad oct counting next expected:%d octs per level array %d\n",
-                                       num_level_octs, num_octs_per_level[level-1]);
-                            }
-                            if ( level < MIN(root_tree_levels,max_level_to_read) && num_octs_per_level[level] > 0 ) {
-                                next_level_octs_pos_x = malloc( sizeof(double)*num_children*num_level_octs );
-                                next_level_octs_pos_y = malloc( sizeof(double)*num_children*num_level_octs );
-                                next_level_octs_pos_z = malloc( sizeof(double)*num_children*num_level_octs );
-                                if ( next_level_octs_pos_x == NULL ||
-                                     next_level_octs_pos_y == NULL ||
-                                     next_level_octs_pos_z == NULL ){
-                                    return ARTIO_ERR_MEMORY_ALLOCATION;
-                                }
-                            }
-                        }
-                        num_next_level_octs = 0;
-                        cell_size = pow(2,-level);
-                        //////////////////////////////////////
-                        
-			for (oct = 0; oct < num_octs_per_level[level - 1]; oct++) {
-				ret = artio_grid_read_oct(handle, variables, oct_refined);
-				if ( ret != ARTIO_SUCCESS ) {
-					free(num_octs_per_level);
-					free(variables);
-					return ret;
-				}
-
-                                if ( options == ARTIO_READ_ALL || 
-                                    (options == ARTIO_READ_REFINED)  ||
-                                    (options == ARTIO_READ_REFINED_NOT_ROOT) || 
-                                    (options == !ARTIO_READ_LEAFS) ) {
-                                    cpos[0] = level_octs_pos_x[oct]+cell_size;
-                                    cpos[1] = level_octs_pos_y[oct]+cell_size;
-                                    cpos[2] = level_octs_pos_z[oct]+cell_size;
-                                    callback(variables, level-1, 1, sfc, cpos, pyobject);
-                                }
-				for (j = 0; j < num_children; j++) {
-                                        pos[0] = level_octs_pos_x[oct]+cell_delta_corner[j][0]*cell_size;
-                                        pos[1] = level_octs_pos_y[oct]+cell_delta_corner[j][1]*cell_size;
-                                        pos[2] = level_octs_pos_z[oct]+cell_delta_corner[j][2]*cell_size;
-                                        if(oct_refined[j]){
-                                                next_level_octs_pos_x[num_next_level_octs] = pos[0];
-                                                next_level_octs_pos_y[num_next_level_octs] = pos[1];
-                                                next_level_octs_pos_z[num_next_level_octs] = pos[2];
-                                                num_next_level_octs++ ;
-                                        }
-				}
-			}
-                        free(level_octs_pos_x);
-                        free(level_octs_pos_y);
-                        free(level_octs_pos_z);
-			artio_grid_read_level_end(handle);
-		}
-		artio_grid_read_root_cell_end(handle);
-	}
-
-	free(variables);
-	free(num_octs_per_level);
+	artio_grid_clear_sfc_cache(handle);
 
 	return ARTIO_SUCCESS;
 }

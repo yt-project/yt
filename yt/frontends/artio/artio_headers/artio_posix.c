@@ -20,7 +20,6 @@ struct ARTIO_FH {
 	int mode;
 };
 
-
 #ifdef _WIN32
 #define FOPEN_FLAGS "b"
 #define fseek _fseeki64
@@ -28,13 +27,16 @@ struct ARTIO_FH {
 #define FOPEN_FLAGS ""
 #endif
 
-struct artio_context_struct artio_context_global_struct = { 0 };
-artio_context artio_context_global = &artio_context_global_struct;
+artio_context artio_context_global_struct = { 0 };
+const artio_context *artio_context_global = &artio_context_global_struct;
 
-artio_fh artio_file_fopen( char * filename, int mode, artio_context not_used ) {
+artio_fh *artio_file_fopen( char * filename, int mode, const artio_context *not_used ) {
 	int flag;
 
-	artio_fh ffh = (artio_fh)malloc(sizeof(struct ARTIO_FH));
+	artio_fh *ffh = (artio_fh *)malloc(sizeof(artio_fh));
+	if ( ffh == NULL ) {
+		return NULL;
+	}
 	
 	ffh->mode = mode;
 	flag = mode & ARTIO_MODE_ACCESS;
@@ -50,7 +52,7 @@ artio_fh artio_file_fopen( char * filename, int mode, artio_context not_used ) {
 	return ffh;
 }
 
-int artio_file_fwrite(artio_fh handle, void *buf, int64_t count, int type ) {
+int artio_file_fwrite(artio_fh *handle, void *buf, int64_t count, int type ) {
 	int size;
 
 	if ( !(handle->mode & ARTIO_MODE_WRITE) ||
@@ -63,7 +65,7 @@ int artio_file_fwrite(artio_fh handle, void *buf, int64_t count, int type ) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fflush(artio_fh handle) {
+int artio_file_fflush(artio_fh *handle) {
 	if ( !(handle->mode & ARTIO_MODE_ACCESS) ) {
 		return ARTIO_ERR_INVALID_FILE_MODE;
 	}
@@ -72,7 +74,7 @@ int artio_file_fflush(artio_fh handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fread(artio_fh handle, void *buf, int64_t count, int type ) {
+int artio_file_fread(artio_fh *handle, void *buf, int64_t count, int type ) {
 	int size;
 
 	if ( !(handle->mode & ARTIO_MODE_READ) ) {
@@ -80,17 +82,22 @@ int artio_file_fread(artio_fh handle, void *buf, int64_t count, int type ) {
 	}
 
 	size = artio_type_size( type );
-	if ( fread( buf, size, (size_t)count, handle->fh ) == count ) {
+	if ( fread( buf, size, (size_t)count, handle->fh ) == (size_t)count ) {
 		return ARTIO_SUCCESS;
 	} else {
 		return ARTIO_ERR_INSUFFICIENT_DATA;
 	}
 }
 
-int artio_file_fseek(artio_fh handle, int64_t offset, int whence ) {
+int artio_file_ftell( artio_fh *handle, int64_t *offset ) {
+	*offset = ftell( handle->fh );
+	return ARTIO_SUCCESS;
+}
+
+int artio_file_fseek(artio_fh *handle, int64_t offset, int whence ) {
 	int64_t current;
 
-	if (  handle->mode & ARTIO_MODE_ACCESS ) {
+	if ( handle->mode & ARTIO_MODE_ACCESS ) {
 		if ( whence == ARTIO_SEEK_CUR ) {
 			if ( offset == 0 ) {
 				return ARTIO_SUCCESS;
@@ -98,15 +105,18 @@ int artio_file_fseek(artio_fh handle, int64_t offset, int whence ) {
 				fseek( handle->fh, offset, SEEK_CUR );
 			}
 		} else if ( whence == ARTIO_SEEK_SET ) {
-			current = ftell( handle->fh );
-
-			if ( handle->mode & ARTIO_MODE_WRITE && 
-					current == offset ) {
-				return ARTIO_SUCCESS;
-			} else {
-				artio_file_fflush( handle );
-				fseek( handle->fh, offset, SEEK_SET );
+			if ( handle->mode & ARTIO_MODE_WRITE ) {
+				artio_file_ftell( handle, &current );
+				if ( current == offset ) {
+					return ARTIO_SUCCESS;
+				}
 			}
+
+			artio_file_fflush( handle );
+			fseek( handle->fh, offset, SEEK_SET );
+		} else if ( whence == ARTIO_SEEK_END ) {
+			artio_file_fflush( handle );
+			fseek( handle->fh, offset, SEEK_END );
 		} else {
 			/* unknown whence */
 			return ARTIO_ERR_INVALID_SEEK;
@@ -118,7 +128,7 @@ int artio_file_fseek(artio_fh handle, int64_t offset, int whence ) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fclose(artio_fh handle) {
+int artio_file_fclose(artio_fh *handle) {
 	if ( handle->mode & ARTIO_MODE_ACCESS ) {
 		artio_file_fflush(handle);
 		fclose(handle->fh);
@@ -126,7 +136,7 @@ int artio_file_fclose(artio_fh handle) {
 	return ARTIO_SUCCESS;
 }
 
-void artio_set_endian_swap_tag(artio_fh handle) {
+void artio_set_endian_swap_tag(artio_fh *handle) {
 	handle->mode |= ARTIO_MODE_ENDIAN_SWAP;
 }
 

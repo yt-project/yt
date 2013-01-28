@@ -12,19 +12,19 @@
 #include "artio.h"
 #include "artio_internal.h"
 
-int artio_particle_find_file(artio_particle_file phandle, int start, int end, int64_t sfc);
-artio_particle_file artio_particle_file_allocate(void);
-void artio_particle_file_destroy( artio_particle_file phandle );
+int artio_particle_find_file(artio_particle_file *phandle, int start, int end, int64_t sfc);
+artio_particle_file *artio_particle_file_allocate(void);
+void artio_particle_file_destroy( artio_particle_file *phandle );
 
 /*
  * Open existing particle files and add to fileset
  */
-int artio_fileset_open_particles(artio_file handle) {
+int artio_fileset_open_particles(artio_fileset *handle) {
 	int i;
 	char filename[256];
 	int first_file, last_file;
 	int mode;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -85,7 +85,7 @@ int artio_fileset_open_particles(artio_file handle) {
 			phandle->num_particle_files, handle->proc_sfc_end);
 
 	/* allocate file handles */
-	phandle->ffh = (artio_fh *)malloc(phandle->num_particle_files * sizeof(artio_fh));
+	phandle->ffh = (artio_fh **)malloc(phandle->num_particle_files * sizeof(artio_fh *));
 	if ( phandle->ffh == NULL ) {
 		artio_particle_file_destroy(phandle);
 		return ARTIO_ERR_MEMORY_ALLOCATION;
@@ -118,7 +118,7 @@ int artio_fileset_open_particles(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_fileset_add_particles( artio_file handle,
+int artio_fileset_add_particles( artio_fileset *handle,
         int num_particle_files, int allocation_strategy,
         int num_species, char ** species_labels,
         int * num_primary_variables,
@@ -136,7 +136,7 @@ int artio_fileset_add_particles( artio_file handle,
 	char species_label[64];
 	int mode;
 	int64_t *local_particles_per_species, *total_particles_per_species;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -283,7 +283,7 @@ int artio_fileset_add_particles( artio_file handle,
 	}
 
 	/* allocate file handles */
-	phandle->ffh = (artio_fh *)malloc(num_particle_files * sizeof(artio_fh));
+	phandle->ffh = (artio_fh **)malloc(num_particle_files * sizeof(artio_fh *));
 	if ( phandle->ffh == NULL ) {
 		artio_particle_file_destroy(phandle);
 		return ARTIO_ERR_MEMORY_ALLOCATION;
@@ -376,9 +376,9 @@ int artio_fileset_add_particles( artio_file handle,
 	return ARTIO_SUCCESS;
 }
 
-artio_particle_file artio_particle_file_allocate(void) {
-	artio_particle_file phandle = 
-		(artio_particle_file)malloc(sizeof(struct artio_particle_file_struct));
+artio_particle_file *artio_particle_file_allocate(void) {
+	artio_particle_file *phandle = 
+		(artio_particle_file *)malloc(sizeof(artio_particle_file));
 	if ( phandle != NULL ) {
 		phandle->ffh = NULL;
 		phandle->num_particle_files = -1;
@@ -396,7 +396,7 @@ artio_particle_file artio_particle_file_allocate(void) {
 	return phandle;
 }
 
-void artio_particle_file_destroy( artio_particle_file phandle ) {
+void artio_particle_file_destroy( artio_particle_file *phandle ) {
 	int i;
 
 	if ( phandle == NULL ) return;
@@ -419,7 +419,7 @@ void artio_particle_file_destroy( artio_particle_file phandle ) {
 	free(phandle);
 }
 
-int artio_fileset_close_particles(artio_file handle) {
+int artio_fileset_close_particles(artio_fileset *handle) {
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
@@ -433,13 +433,13 @@ int artio_fileset_close_particles(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_cache_sfc_range(artio_file handle, 
+int artio_particle_cache_sfc_range(artio_fileset *handle, 
 		int64_t start, int64_t end) {
 	int i;
 	int ret;
 	int first_file, last_file;
 	int64_t min, count, cur;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -496,7 +496,7 @@ int artio_particle_cache_sfc_range(artio_file handle,
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_find_file(artio_particle_file phandle,
+int artio_particle_find_file(artio_particle_file *phandle,
 		int start, int end, int64_t sfc) {
 	int j;
 
@@ -530,9 +530,9 @@ int artio_particle_find_file(artio_particle_file phandle,
 	}
 }
 
-int artio_particle_seek_to_sfc(artio_file handle, int64_t sfc) {
+int artio_particle_seek_to_sfc(artio_fileset *handle, int64_t sfc) {
 	int64_t offset;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -556,11 +556,11 @@ int artio_particle_seek_to_sfc(artio_file handle, int64_t sfc) {
 	return artio_file_fseek(phandle->ffh[phandle->cur_file], offset, ARTIO_SEEK_SET);
 }
 
-int artio_particle_write_root_cell_begin(artio_file handle, int64_t sfc,
+int artio_particle_write_root_cell_begin(artio_fileset *handle, int64_t sfc,
 		int * num_particles_per_species) {
 	int i;
 	int ret;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -596,7 +596,7 @@ int artio_particle_write_root_cell_begin(artio_file handle, int64_t sfc,
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_write_root_cell_end(artio_file handle) {
+int artio_particle_write_root_cell_end(artio_fileset *handle) {
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
@@ -616,9 +616,9 @@ int artio_particle_write_root_cell_end(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_write_species_begin(artio_file handle,
+int artio_particle_write_species_begin(artio_fileset *handle,
 		int species) {
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -646,8 +646,8 @@ int artio_particle_write_species_begin(artio_file handle,
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_write_species_end(artio_file handle) {
-	artio_particle_file phandle;
+int artio_particle_write_species_end(artio_fileset *handle) {
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -673,11 +673,11 @@ int artio_particle_write_species_end(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_write_particle(artio_file handle, int64_t pid, int subspecies,
+int artio_particle_write_particle(artio_fileset *handle, int64_t pid, int subspecies,
 		double * primary_variables, float *secondary_variables) {
 
 	int ret;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -719,11 +719,11 @@ int artio_particle_write_particle(artio_file handle, int64_t pid, int subspecies
 /*
  *
  */
-int artio_particle_read_root_cell_begin(artio_file handle, int64_t sfc,
+int artio_particle_read_root_cell_begin(artio_fileset *handle, int64_t sfc,
 		int * num_particles_per_species) {
 	int i;
 	int ret;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -755,10 +755,10 @@ int artio_particle_read_root_cell_begin(artio_file handle, int64_t sfc,
 }
 
 /* Description  */
-int artio_particle_read_particle(artio_file handle, int64_t * pid, int *subspecies,
+int artio_particle_read_particle(artio_fileset *handle, int64_t * pid, int *subspecies,
 		double * primary_variables, float * secondary_variables) {
 	int ret;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -800,11 +800,11 @@ int artio_particle_read_particle(artio_file handle, int64_t * pid, int *subspeci
 /*
  * Description        Start reading particle species
  */
-int artio_particle_read_species_begin(artio_file handle, int species) {
+int artio_particle_read_species_begin(artio_fileset *handle, int species) {
 	int i;
 	int ret;
 	int64_t offset = 0;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -848,8 +848,8 @@ int artio_particle_read_species_begin(artio_file handle, int species) {
 /*
  * Description        Do something at the end of each kind of read operation
  */
-int artio_particle_read_species_end(artio_file handle) {
-	artio_particle_file phandle;
+int artio_particle_read_species_end(artio_fileset *handle) {
+	artio_particle_file *phandle;
 
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -873,7 +873,7 @@ int artio_particle_read_species_end(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_read_root_cell_end(artio_file handle) {
+int artio_particle_read_root_cell_end(artio_fileset *handle) {
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
@@ -892,7 +892,7 @@ int artio_particle_read_root_cell_end(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_particle_read_sfc_range(artio_file handle, 
+int artio_particle_read_sfc_range(artio_fileset *handle, 
 		int64_t sfc1, int64_t sfc2, 
 		int start_species, int end_species, 
 		ParticleCallBack callback) {
@@ -900,7 +900,7 @@ int artio_particle_read_sfc_range(artio_file handle,
 	int64_t sfc;
 	int particle, species;
 	int *num_particles_per_species;
-	artio_particle_file phandle;
+	artio_particle_file *phandle;
 	int64_t pid = 0l;
 	int subspecies;
 	double * primary_variables = NULL;
@@ -986,121 +986,10 @@ int artio_particle_read_sfc_range(artio_file handle,
 					return ret;
 				}
 
-				callback(pid, 
+				callback(sfc, species, subspecies,
+						pid, 
 						primary_variables,
-						secondary_variables, 
-						species, subspecies, sfc);
-			}
-			artio_particle_read_species_end(handle);
-		}
-		artio_particle_read_root_cell_end(handle);
-	}
-
-	free(primary_variables);
-	free(secondary_variables);
-	free(num_particles_per_species);
-
-	return ARTIO_SUCCESS;
-}
-
-int artio_particle_read_sfc_range_yt(artio_file handle, 
-		int64_t sfc1, int64_t sfc2, 
-		int start_species, int end_species, 
-                ParticleCallBackYT callback, void *pyobject) {
-
-	int64_t sfc;
-	int particle, species;
-	int *num_particles_per_species;
-	artio_particle_file phandle;
-	int64_t pid = 0l;
-	int subspecies;
-	double * primary_variables = NULL;
-	float * secondary_variables = NULL;
-	int num_primary, num_secondary;
-	int ret;
-
-	if ( handle == NULL ) {
-		return ARTIO_ERR_INVALID_HANDLE;
-	}
-
-	if (handle->open_mode != ARTIO_FILESET_READ || 
-			!(handle->open_type & ARTIO_OPEN_PARTICLES) ) {
-		return ARTIO_ERR_INVALID_FILESET_MODE;
-	}
-
-	phandle = handle->particle;
-
-	if ( start_species < 0 || start_species > end_species || 
-			end_species > phandle->num_species-1 ) {
-		return ARTIO_ERR_INVALID_SPECIES;
-	}
-
-	num_particles_per_species = (int *)malloc(phandle->num_species * sizeof(int));
-	if ( num_particles_per_species == NULL ) {
-		return ARTIO_ERR_MEMORY_ALLOCATION;
-	}
-
-	ret = artio_particle_cache_sfc_range(handle, sfc1, sfc2);
-	if ( ret != ARTIO_SUCCESS ) {
-		free( num_particles_per_species );
-		return ret;
-	}
-
-	num_primary = num_secondary = 0;
-	for ( species = start_species; species <= end_species; species++ ) {
-		num_primary = MAX( phandle->num_primary_variables[species], num_primary );
-		num_secondary = MAX( phandle->num_secondary_variables[species], num_secondary );
-	}
-
-	primary_variables = (double *)malloc(num_primary * sizeof(double));
-	if ( primary_variables == NULL ) {
-		free( num_particles_per_species );
-		return ARTIO_ERR_MEMORY_ALLOCATION;
-    }
-
-	secondary_variables = (float *)malloc(num_secondary * sizeof(float));
-	if ( secondary_variables == NULL ) {
-		free( num_particles_per_species );
-		free( primary_variables );
-		return ARTIO_ERR_MEMORY_ALLOCATION;
-	}
-
-	for ( sfc = sfc1; sfc <= sfc2; sfc++ ) {
-		ret = artio_particle_read_root_cell_begin(handle, sfc,
-				num_particles_per_species);
-		if ( ret != ARTIO_SUCCESS ) {
-			free( num_particles_per_species );
-			free( primary_variables );
-			free( secondary_variables );
-			return ret;
-		}
-
-		for ( species = start_species; species <= end_species; species++) {
-			ret = artio_particle_read_species_begin(handle, species);
-			if ( ret != ARTIO_SUCCESS ) {
-				free( num_particles_per_species );
-				free( primary_variables );
-				free( secondary_variables );
-				return ret;
-			}
-
-			for (particle = 0; particle < num_particles_per_species[species]; particle++) {
-				ret = artio_particle_read_particle(handle, 
-						&pid, 
-						&subspecies,
-						primary_variables,
-						secondary_variables);
-				if ( ret != ARTIO_SUCCESS ) {
-					free( num_particles_per_species );
-					free( primary_variables );
-					free( secondary_variables );
-					return ret;
-				}
-
-				callback(pid, 
-						primary_variables,
-						secondary_variables, 
-                                         species, subspecies, sfc, pyobject);
+						secondary_variables );
 			}
 			artio_particle_read_species_end(handle);
 		}

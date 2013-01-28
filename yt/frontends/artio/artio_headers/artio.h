@@ -27,12 +27,14 @@ typedef __int64 int64_t;
 #define ARTIO_READ_LEAFS                    1
 #define ARTIO_READ_REFINED                  2
 #define	ARTIO_READ_ALL                      3
-#define	ARTIO_READ_REFINED_NOT_ROOT         4
+
+#define ARTIO_RETURN_OCTS					4
+#define ARTIO_RETURN_CELLS					0
 
 /* allocation strategy */
 #define ARTIO_ALLOC_EQUAL_SFC               0
 #define ARTIO_ALLOC_EQUAL_PROC              1
-#define ARTIO_ALLOC_MAX_FILE_SIZE  	    2
+#define ARTIO_ALLOC_MAX_FILE_SIZE  	        2
 
 #define ARTIO_TYPE_STRING                   0
 #define ARTIO_TYPE_CHAR                     1
@@ -62,10 +64,11 @@ typedef __int64 int64_t;
 #define ARTIO_ERR_INVALID_SPECIES           108
 #define ARTIO_ERR_INVALID_ALLOC_STRATEGY    109
 #define ARTIO_ERR_INVALID_LEVEL             110
-#define ARTIO_ERR_INVALID_PARAM_LIST        111
+#define ARTIO_ERR_INVALID_PARAMETER_LIST    111
 #define ARTIO_ERR_INVALID_DATATYPE          112
 #define ARTIO_ERR_INVALID_OCT_REFINED       113
 #define ARTIO_ERR_INVALID_HANDLE            114
+#define ARTIO_ERR_INVALID_CELL_TYPES        115
 
 #define ARTIO_ERR_DATA_EXISTS               200
 #define ARTIO_ERR_INSUFFICIENT_DATA         201
@@ -84,28 +87,26 @@ typedef __int64 int64_t;
 #ifdef ARTIO_MPI
 #include <mpi.h>
 
-struct artio_context_struct {
+typedef struct {
     MPI_Comm comm;
-};
+} artio_context;
 #else
-struct artio_context_struct {
+typedef struct {
     int comm;
-};
+} artio_context;
 #endif
 
-typedef struct artio_file_struct * artio_file;
-typedef struct artio_param_list * artio_parameters;
-typedef struct artio_context_struct * artio_context;
+typedef struct artio_fileset_struct artio_fileset;
 
-extern artio_context artio_context_global;
+extern const artio_context *artio_context_global;
 
 /*
  * Description: Open the file
  *
- *  filename			The file prefix
+ *  filename		The file prefix
  *  type			combination of ARTIO_OPEN_PARTICLES and ARTIO_OPEN_GRID flags
  */
-artio_file artio_fileset_open(char * file_name, int type, artio_context context);
+artio_fileset *artio_fileset_open( char * file_name, int type, const artio_context *context);
 
 /**
  * Description: Create fileset and begin populating header information
@@ -116,65 +117,61 @@ artio_file artio_fileset_open(char * file_name, int type, artio_context context)
  *  handle			the artio file handle
  *
  */
-artio_file artio_fileset_create(char * file_prefix, 
-        int64_t root_cells, int64_t proc_sfc_begin, int64_t proc_sfc_end, artio_context context);
+artio_fileset *artio_fileset_create(char * file_prefix, 
+        int64_t root_cells, int64_t proc_sfc_begin, int64_t proc_sfc_end, const artio_context *context);
 
 /*
  * Description	Close the file
  */
-int artio_fileset_close(artio_file handle);
+int artio_fileset_close(artio_fileset *handle);
 
 /* public parameter interface */
-int artio_parameter_iterate( artio_file handle, char *key, int *type, int *length );
-int artio_parameter_get_array_length(artio_file handle, char * key, int *length);
+int artio_parameter_iterate( artio_fileset *handle, char *key, int *type, int *length );
+int artio_parameter_get_array_length(artio_fileset *handle, const char * key, int *length);
 
-void artio_parameter_set_int(artio_file handle, char * key, int32_t value);
-int artio_parameter_get_int(artio_file handle, char * key, int32_t * value);
+int artio_parameter_set_int(artio_fileset *handle, const char * key, int32_t value);
+int artio_parameter_get_int(artio_fileset *handle, const char * key, int32_t * value);
 
-void artio_parameter_set_int_array(artio_file handle, char * key, int length,
+int artio_parameter_set_int_array(artio_fileset *handle, const char * key, int length,
 		int32_t *values);
-int artio_parameter_get_int_array(artio_file handle, char * key, int length,
+int artio_parameter_get_int_array(artio_fileset *handle, const char * key, int length,
 		int32_t *values);
 
-void artio_parameter_set_string(artio_file handle, char * key, char * value);
-int artio_parameter_get_string(artio_file handle, char * key, char * value, int max_length);
+int artio_parameter_set_string(artio_fileset *handle, const char * key, char * value);
+int artio_parameter_get_string(artio_fileset *handle, const char * key, char * value, int max_length);
 
-void artio_parameter_set_string_array(artio_file handle, char * key,
+int artio_parameter_set_string_array(artio_fileset *handle, const char * key,
 		int length, char ** values);
-int artio_parameter_get_string_array(artio_file handle, char * key,
+int artio_parameter_get_string_array(artio_fileset *handle, const char * key,
 		int length, char ** values, int max_length);
 
-void artio_parameter_set_float(artio_file handle, char * key, float value);
-int artio_parameter_get_float(artio_file handle, char * key, float * value);
+int artio_parameter_set_float(artio_fileset *handle, const char * key, float value);
+int artio_parameter_get_float(artio_fileset *handle, const char * key, float * value);
 
-void artio_parameter_set_float_array(artio_file handle, char * key,
+int artio_parameter_set_float_array(artio_fileset *handle, const char * key,
 		int length, float *values);
-int artio_parameter_get_float_array(artio_file handle, char * key,
+int artio_parameter_get_float_array(artio_fileset *handle, const char * key,
 		int length, float * values);
 
-void artio_parameter_set_double(artio_file handle, char * key, double value);
-int  artio_parameter_get_double(artio_file handle, char * key, double * value);
+int artio_parameter_set_double(artio_fileset *handle, const char * key, double value);
+int  artio_parameter_get_double(artio_fileset *handle, const char * key, double * value);
 
-void artio_parameter_set_double_array(artio_file handle, char * key,
+int artio_parameter_set_double_array(artio_fileset *handle, const char * key,
 		int length, double * values);
-int artio_parameter_get_double_array(artio_file handle, char * key,
+int artio_parameter_get_double_array(artio_fileset *handle, const char * key,
         int length, double *values);
 
-void artio_parameter_set_long(artio_file handle, char * key, int64_t value);
-int artio_parameter_get_long(artio_file handle, char * key, int64_t *value);
+int artio_parameter_set_long(artio_fileset *handle, const char * key, int64_t value);
+int artio_parameter_get_long(artio_fileset *handle, const char * key, int64_t *value);
 
-void artio_parameter_set_long_array(artio_file handle, char * key,
+int artio_parameter_set_long_array(artio_fileset *handle, const char * key,
         int length, int64_t *values);
-int artio_parameter_get_long_array(artio_file handle, char * key,
+int artio_parameter_get_long_array(artio_fileset *handle, const char * key,
         int length, int64_t *values);
 
 /* public grid interface */
-typedef void (* GridCallBack)(float * variables, int level, int refined,
-		int64_t sfc_index);
-typedef void (* GridCallBackYTPos)(double * variables, int level, int refined,
-                                 int64_t sfc_index, double pos[3], void * pyobject);
-typedef void (* GridCallBackYT)(double * variables, int level, int refined,
-                                 int64_t sfc_index, void * pyobject);
+typedef void (* GridCallBack)( int64_t sfc_index, int level,
+		double *pos, float * variables, int *refined );
 
 /*
  * Description:	Add a grid component to a fileset open for writing
@@ -187,17 +184,17 @@ typedef void (* GridCallBackYT)(double * variables, int level, int refined,
  *  num_levels_per_root_tree	Maximum tree depth for each oct tree
  *  num_octs_per_root_tree	Total octs in each oct tree
  */
-int artio_fileset_add_grid(artio_file handle,
+int artio_fileset_add_grid(artio_fileset *handle,
         int num_grid_files, int allocation_strategy,
         int num_grid_variables,
         char ** grid_variable_labels,
         int * num_levels_per_root_tree,
         int * num_octs_per_root_tree );
 
-int artio_fileset_open_grid(artio_file handle);
-int artio_fileset_close_grid(artio_file handle);
-int artio_fileset_open_particle(artio_file handle);
-int artio_fileset_close_particle(artio_file handle);
+int artio_fileset_open_grid(artio_fileset *handle);
+int artio_fileset_close_grid(artio_fileset *handle);
+int artio_fileset_open_particle(artio_fileset *handle);
+int artio_fileset_close_particle(artio_fileset *handle);
 
 /*
  * Description:	Output the variables of the root level cell and the hierarchy of the Oct tree correlated with this root level cell
@@ -208,23 +205,23 @@ int artio_fileset_close_particle(artio_file handle);
  *  level			The depth of the Oct tree correlated to the root level cell
  *  num_level_octs		The array store the number of Oct nodes each level
  */
-int artio_grid_write_root_cell_begin(artio_file handle, int64_t sfc, 
+int artio_grid_write_root_cell_begin(artio_fileset *handle, int64_t sfc, 
 		float * variables, int level, int * num_octs_per_level);
 
 /*
  * Description:	Do something at the end of writing the root level cell
  */
-int artio_grid_write_root_cell_end(artio_file handle);
+int artio_grid_write_root_cell_end(artio_fileset *handle);
 
 /*
  * Description:	Do something at the beginning of each level
  */
-int artio_grid_write_level_begin(artio_file handle, int level );
+int artio_grid_write_level_begin(artio_fileset *handle, int level );
 
 /*
  * Description:	Do something at the end of each level
  */
-int artio_grid_write_level_end(artio_file handle);
+int artio_grid_write_level_end(artio_fileset *handle);
 
 /*
  * Description:	Output the data of a special oct tree node to the file
@@ -232,7 +229,7 @@ int artio_grid_write_level_end(artio_file handle);
  *  handle			The handle of the file
  *  variables 			The array recording the variables of the eight cells belonging to this Octree node.
  */
-int artio_grid_write_oct(artio_file handle, float *variables, int *refined);
+int artio_grid_write_oct(artio_fileset *handle, float *variables, int *refined);
 
 /*
  * Description:	Read the variables of the root level cell and the hierarchy of the Octtree
@@ -244,32 +241,36 @@ int artio_grid_write_oct(artio_file handle, float *variables, int *refined);
  *  num_octs_per_level		The number of node of each oct level
  *
  */
-int artio_grid_read_root_nocts(artio_file handle, int64_t sfc, float *variables,
-		int *num_tree_levels, int *num_octs_per_level);
-int artio_grid_read_root_cell_begin(artio_file handle, int64_t sfc, float *variables,
+int artio_grid_read_root_cell_begin(artio_fileset *handle, int64_t sfc, 
+		double *pos, float *variables,
 		int *num_tree_levels, int *num_octs_per_level);
 
 /*
  * Description:	Do something at the end of reading the root level cell
  */
-int artio_grid_read_root_cell_end(artio_file handle);
+int artio_grid_read_root_cell_end(artio_fileset *handle);
 
 /*
  * Description:	Do something at the beginning of each level
  */
-int artio_grid_read_level_begin(artio_file handle, int level );
+int artio_grid_read_level_begin(artio_fileset *handle, int level );
 
 /*
  * Description:	Do something at the end of each level
  */
-int artio_grid_read_level_end(artio_file handle);
+int artio_grid_read_level_end(artio_fileset *handle);
 
 /*
  * Description:	Read the data of a special oct tree node from the file
  */
-int artio_grid_read_oct(artio_file handle, float *variables, int *refined);
+int artio_grid_read_oct(artio_fileset *handle, double *pos, 
+		float *variables, int *refined);
 
-int artio_grid_cache_sfc_range(artio_file handle, int64_t sfc_start, int64_t sfc_end);
+int artio_grid_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int64_t sfc_end);
+int artio_grid_clear_sfc_cache(artio_fileset *handle );
+
+int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
+        int64_t start, int64_t end, int64_t *num_octs);
 
 /*
  * Description:	Read a segment of oct nodes
@@ -281,17 +282,14 @@ int artio_grid_cache_sfc_range(artio_file handle, int64_t sfc_start, int64_t sfc
  *  option			1. refined nodes; 2 leaf nodes; 3 all nodes
  *  callback			callback function
  */
-int artio_grid_read_sfc_range(       artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBack callback);
-int artio_grid_read_sfc_range_ytpos(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read,int max_level_to_read, int options, GridCallBackYTPos callback, void *pyobject);
-int artio_grid_read_sfc_range_yt(artio_file handle, int64_t sfc1, int64_t sfc2, int min_level_to_read, int max_level_to_read, int options, GridCallBackYT callback, void *pyobject);
-		
+int artio_grid_read_sfc_range(artio_fileset *handle, int64_t sfc1, int64_t sfc2, 
+		int min_level_to_read, int max_level_to_read, 
+		int options, GridCallBack callback);
 
-typedef void (* ParticleCallBack)(int64_t pid, 
-		double *primary_variables, float *secondary_variables, 
-		int species, int subspecies, int64_t sfc_index);
-typedef void (* ParticleCallBackYT)(int64_t pid, 
-		double *primary_variables, float *secondary_variables, 
-                int species, int subspecies, int64_t sfc_index, void *pyobject);
+
+typedef void (* ParticleCallBack)(int64_t sfc_index,
+		int species, int subspecies, int64_t pid, 
+		double *primary_variables, float *secondary_variables );
 
 /**
  *  header			head file name
@@ -302,7 +300,7 @@ typedef void (* ParticleCallBackYT)(int64_t pid,
  *  handle			the artio file handle
  *
  */
-int artio_fileset_add_particles(artio_file handle, 
+int artio_fileset_add_particles(artio_fileset *handle, 
         int num_particle_files, int allocation_strategy,
         int num_species, char **species_labels,
         int *num_primary_variables,
@@ -311,8 +309,8 @@ int artio_fileset_add_particles(artio_file handle,
         char ***secondary_variable_labels_per_species,
         int *num_particles_per_species_per_root_tree );
 
-int artio_fileset_open_particles(artio_file handle);
-int artio_fileset_close_particles(artio_file handle);
+int artio_fileset_open_particles(artio_fileset *handle);
+int artio_fileset_close_particles(artio_fileset *handle);
 
 /*
  * Description:	Output the variables of the root level cell and the hierarchy of 
@@ -324,23 +322,23 @@ int artio_fileset_close_particles(artio_file handle);
  *  level			The depth of the Oct tree correlated to the root level cell
  *  num_level_octs		The array store the number of Oct nodes each level
  */
-int artio_particle_write_root_cell_begin(artio_file handle, int64_t sfc,
+int artio_particle_write_root_cell_begin(artio_fileset *handle, int64_t sfc,
 		int *num_particles_per_species);
 
 /*
  * Description:	Do something at the end of writing the root level cell
  */
-int artio_particle_write_root_cell_end(artio_file handle);
+int artio_particle_write_root_cell_end(artio_fileset *handle);
 
 /*
  * Description:	Do something at the beginning of each level
  */
-int artio_particle_write_species_begin(artio_file handle, int species );
+int artio_particle_write_species_begin(artio_fileset *handle, int species );
 
 /*
  * Description:	Do something at the end of each level
  */
-int artio_particle_write_species_end(artio_file handle);
+int artio_particle_write_species_end(artio_fileset *handle);
 
 /*
  * Description: Output the data of a special oct tree node to the file
@@ -348,7 +346,7 @@ int artio_particle_write_species_end(artio_file handle);
  *  handle			The handle of the file
  *  variables 			The array recording the variables of the eight cells belonging to this Octree node.
  */
-int artio_particle_write_particle(artio_file handle, int64_t pid, int subspecies, 
+int artio_particle_write_particle(artio_fileset *handle, int64_t pid, int subspecies, 
 			double* primary_variables, float *secondary_variables);
 
 /*
@@ -361,31 +359,31 @@ int artio_particle_write_particle(artio_file handle, int64_t pid, int subspecies
  *  num_octs_per_level		The number of node of each oct level
  *
  */
-int artio_particle_read_root_cell_begin(artio_file handle, int64_t sfc, 
+int artio_particle_read_root_cell_begin(artio_fileset *handle, int64_t sfc, 
 			int * num_particle_per_species);
 
 /*
  * Description:	Do something at the end of reading the root level cell
  */
-int artio_particle_read_root_cell_end(artio_file handle);
+int artio_particle_read_root_cell_end(artio_fileset *handle);
 
 /*
  * Description:	Do something at the beginning of each level
  */
-int artio_particle_read_species_begin(artio_file handle, int species );
+int artio_particle_read_species_begin(artio_fileset *handle, int species );
 
 /*
  * Description:  Do something at the end of each level
  */
-int artio_particle_read_species_end(artio_file handle);
+int artio_particle_read_species_end(artio_fileset *handle);
 
 /*
  * Description:	Read the data of a single particle from the file
  */
-int artio_particle_read_particle(artio_file handle, int64_t *pid, int *subspecies,
+int artio_particle_read_particle(artio_fileset *handle, int64_t *pid, int *subspecies,
 			double *primary_variables, float *secondary_variables);
 
-int artio_particle_cache_sfc_range(artio_file handle, int64_t sfc_start, int64_t sfc_end);
+int artio_particle_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int64_t sfc_end);
 
 /*
  * Description: Read a segment of particles
@@ -397,14 +395,9 @@ int artio_particle_cache_sfc_range(artio_file handle, int64_t sfc_start, int64_t
  *  end_species			the last particle species to read
  *  callback			callback function
  */
-int artio_particle_read_sfc_range(artio_file handle, 
+int artio_particle_read_sfc_range(artio_fileset *handle, 
 		int64_t sfc1, int64_t sfc2, 
 		int start_species, int end_species,
 		ParticleCallBack callback);
-
-int artio_particle_read_sfc_range_yt(artio_file handle, 
-		int64_t sfc1, int64_t sfc2, 
-		int start_species, int end_species,
-                ParticleCallBackYT callback, void *pyobject);
 
 #endif /* __ARTIO_H__ */

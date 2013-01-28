@@ -14,16 +14,17 @@
 #include "artio.h"
 #include "artio_internal.h"
 
-artio_file artio_fileset_allocate( char *file_prefix, int mode,
-        artio_context context );
-void artio_fileset_destroy( artio_file handle );
+artio_fileset *artio_fileset_allocate( char *file_prefix, int mode,
+		const artio_context *context );
+void artio_fileset_destroy( artio_fileset *handle );
 
-artio_file artio_fileset_open(char * file_prefix, int type, artio_context context) {
-	artio_fh head_fh;
+artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_context *context) {
+	artio_fh *head_fh;
 	char filename[256];
 	int ret;
+	int64_t tmp;
 
-	artio_file handle = 
+	artio_fileset *handle = 
 		artio_fileset_allocate( file_prefix, ARTIO_FILESET_READ, context );
 	if ( handle == NULL ) {
 		return NULL;
@@ -39,7 +40,7 @@ artio_file artio_fileset_open(char * file_prefix, int type, artio_context contex
 		return NULL;
 	}
 
-	ret = artio_parameter_read(head_fh, &handle->param_list);
+	ret = artio_parameter_read(head_fh, handle->parameters );
 	if ( ret != ARTIO_SUCCESS ) {
 		artio_fileset_destroy(handle);
 		return NULL;
@@ -48,6 +49,17 @@ artio_file artio_fileset_open(char * file_prefix, int type, artio_context contex
 	artio_file_fclose(head_fh);
 
 	artio_parameter_get_long(handle, "num_root_cells", &handle->num_root_cells);
+	
+	if ( artio_parameter_get_int(handle, "sfc_type", &handle->sfc_type ) != ARTIO_SUCCESS ) {
+		handle->sfc_type = ARTIO_SFC_HILBERT;
+	}
+
+	handle->nBitsPerDim = 0;
+	tmp = handle->num_root_cells >> 3;
+	while ( tmp ) {
+		handle->nBitsPerDim++;
+		tmp >>= 3;
+	}
 
 	/* default to accessing all sfc indices */
 	handle->proc_sfc_begin = 0;
@@ -73,9 +85,9 @@ artio_file artio_fileset_open(char * file_prefix, int type, artio_context contex
 	return handle;
 }
 
-artio_file artio_fileset_create(char * file_prefix, int64_t root_cells, 
-		int64_t proc_sfc_begin, int64_t proc_sfc_end, artio_context context) {
-    artio_file handle = 
+artio_fileset *artio_fileset_create(char * file_prefix, int64_t root_cells, 
+		int64_t proc_sfc_begin, int64_t proc_sfc_end, const artio_context *context) {
+    artio_fileset *handle = 
 		artio_fileset_allocate( file_prefix, ARTIO_FILESET_WRITE, context );
     if ( handle == NULL ) {
         return NULL;
@@ -90,7 +102,7 @@ artio_file artio_fileset_create(char * file_prefix, int64_t root_cells,
 
 #ifdef ARTIO_MPI
 	MPI_Allgather( &proc_sfc_begin, 1, MPI_LONG_LONG, 
-			handle->proc_sfc_index, 1, MPI_LONG_LONG, context->comm );
+			handle->proc_sfc_index, 1, MPI_LONG_LONG, handle->context->comm );
 #else
 	handle->proc_sfc_index[0] = 0;
 #endif /* ARTIO_MPI */
@@ -105,9 +117,9 @@ artio_file artio_fileset_create(char * file_prefix, int64_t root_cells,
 	return handle;
 }
 
-int artio_fileset_close(artio_file handle) {
+int artio_fileset_close(artio_fileset *handle) {
 	char header_filename[256];
-	artio_fh head_fh;
+	artio_fh *head_fh;
 	
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
@@ -135,7 +147,7 @@ int artio_fileset_close(artio_file handle) {
 		}
 
 		if (0 == handle->rank) {
-			artio_parameter_write(head_fh, &handle->param_list);
+			artio_parameter_write(head_fh, handle->parameters );
 		}
 
 		artio_file_fclose(head_fh);
@@ -146,18 +158,24 @@ int artio_fileset_close(artio_file handle) {
 	return ARTIO_SUCCESS;
 }
 
-artio_file artio_fileset_allocate( char *file_prefix, int mode, 
-		artio_context context ) {
+artio_fileset *artio_fileset_allocate( char *file_prefix, int mode, 
+		const artio_context *context ) {
 	int my_rank;
 	int num_procs;
 
-    artio_file handle = (artio_file)malloc(sizeof(struct artio_file_struct));
+    artio_fileset *handle = (artio_fileset *)malloc(sizeof(artio_fileset));
 	if ( handle != NULL ) {
-		artio_parameter_list_init(&handle->param_list);
+		handle->parameters = artio_parameter_list_init();
+
+		handle->context = (artio_context *)malloc(sizeof(artio_context));
+		if ( handle->context == NULL ) {
+			return NULL;
+		}
+		memcpy( handle->context, context, sizeof(artio_context) );
 
 #ifdef ARTIO_MPI
-		MPI_Comm_size(context->comm, &num_procs);
-		MPI_Comm_rank(context->comm, &my_rank);
+		MPI_Comm_size(handle->context->comm, &num_procs);
+		MPI_Comm_rank(handle->context->comm, &my_rank);
 #else
 		num_procs = 1;
 		my_rank = 0;
@@ -170,7 +188,6 @@ artio_file artio_fileset_allocate( char *file_prefix, int mode,
 
 		handle->rank = my_rank;
 		handle->num_procs = num_procs;
-		handle->context = context;
 		handle->endian_swap = 0;
 
 		handle->proc_sfc_index = NULL;
@@ -184,7 +201,7 @@ artio_file artio_fileset_allocate( char *file_prefix, int mode,
 	return handle;
 }
 
-void artio_fileset_destroy( artio_file handle ) {
+void artio_fileset_destroy( artio_fileset *handle ) {
 	if ( handle == NULL ) return;
 
 	if ( handle->proc_sfc_index != NULL ) free( handle->proc_sfc_index );
@@ -197,7 +214,9 @@ void artio_fileset_destroy( artio_file handle ) {
         artio_fileset_close_particles(handle);
     }
 
-	artio_parameter_free_list(&handle->param_list);
+	if ( handle->context != NULL ) free( handle->context );
+
+	artio_parameter_list_free(handle->parameters);
 
 	free(handle);
 }

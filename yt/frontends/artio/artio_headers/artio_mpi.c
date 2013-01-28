@@ -18,9 +18,8 @@
 
 #define MPI_FH_BUFFERSIZE		16384
 
-struct artio_context_struct artio_context_global_struct = { MPI_COMM_WORLD };
-artio_context artio_context_global = &artio_context_global_struct;
-
+struct artio_context artio_context_global_struct = { MPI_COMM_WORLD };
+const artio_context *artio_context_global = &artio_context_global_struct;
 
 struct ARTIO_FH {
 	MPI_File fh;
@@ -32,7 +31,7 @@ struct ARTIO_FH {
 	int bfend;
 };
 
-artio_fh artio_file_fopen( char * filename, int mode, artio_context context) {
+artio_fh *artio_file_fopen( char * filename, int mode, const artio_context *context) {
 	int status;
 	int flag;
 	int rank;
@@ -49,7 +48,7 @@ artio_fh artio_file_fopen( char * filename, int mode, artio_context context) {
 		return NULL;
 	}
 
-	artio_fh ffh = (artio_fh)malloc(sizeof(struct ARTIO_FH));
+	artio_fh *ffh = (artio_fh *)malloc(sizeof(artio_fh));
 
 	ffh->mode = mode;
 	flag = mode & ARTIO_MODE_ACCESS;
@@ -84,7 +83,7 @@ artio_fh artio_file_fopen( char * filename, int mode, artio_context context) {
 	return ffh;
 }
 
-int artio_file_fwrite(artio_fh handle, void *buf, int64_t count, int type ) {
+int artio_file_fwrite(artio_fh *handle, void *buf, int64_t count, int type ) {
 	int size, part, remain;
 	int64_t size64;
 
@@ -131,7 +130,7 @@ int artio_file_fwrite(artio_fh handle, void *buf, int64_t count, int type ) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fflush(artio_fh handle) {
+int artio_file_fflush(artio_fh *handle) {
 	if ( !(handle->mode & ARTIO_MODE_ACCESS) ) {
 		return ARTIO_ERR_INVALID_FILE_MODE;
 	}
@@ -152,7 +151,7 @@ int artio_file_fflush(artio_fh handle) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fread(artio_fh handle, void *buf, int64_t count, int type ) {
+int artio_file_fread(artio_fh *handle, void *buf, int64_t count, int type ) {
 	MPI_Status status;
 
 	int size, avail, remain, size_read;
@@ -233,7 +232,18 @@ int artio_file_fread(artio_fh handle, void *buf, int64_t count, int type ) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fseek(artio_fh handle, int64_t offset, int whence ) {
+int artio_file_ftell(artio_fh *handle, int64_t *offset) {
+	MPI_Offset current;
+	MPI_File_get_position( handle->fh, &current );
+	if ( handle->bfend < 0 ) {
+		*offset = current;
+	} else {
+		*offset = current - handle->bfend + handle->bfptr;
+	}
+	return ARTIO_SUCCESS;
+}
+
+int artio_file_fseek(artio_fh *handle, int64_t offset, int whence ) {
 	MPI_Offset current;
 
 	if ( handle->mode & ARTIO_MODE_ACCESS ) {
@@ -263,9 +273,11 @@ int artio_file_fseek(artio_fh handle, int64_t offset, int whence ) {
 				handle->bfptr = offset - current + handle->bfend;
 			} else {
 				artio_file_fflush( handle );
-				current = (MPI_Offset)offset;
-				MPI_File_seek( handle->fh, current, MPI_SEEK_SET );
+				MPI_File_seek( handle->fh, (MPI_Offset)offset, MPI_SEEK_SET );
 			}
+		} else if ( whence == ARTIO_SEEK_END ) {
+			artio_file_fflush(handle);
+			MPI_File_seek( handle->fh, (MPI_Offset)offset, MPI_SEEK_END );	
 		} else {
 			/* unknown whence */
 			return ARTIO_ERR_INVALID_SEEK;
@@ -278,7 +290,7 @@ int artio_file_fseek(artio_fh handle, int64_t offset, int whence ) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_file_fclose(artio_fh handle) {
+int artio_file_fclose(artio_fh *handle) {
 	if ( handle->mode & ARTIO_MODE_ACCESS ) {
 		artio_file_fflush(handle);
 		MPI_File_close(&handle->fh);
@@ -291,7 +303,7 @@ int artio_file_fclose(artio_fh handle) {
 	return ARTIO_SUCCESS;
 }
 
-void artio_set_endian_swap_tag(artio_fh handle) {
+void artio_set_endian_swap_tag(artio_fh *handle) {
 	handle->mode |= ARTIO_MODE_ENDIAN_SWAP;
 }
 
