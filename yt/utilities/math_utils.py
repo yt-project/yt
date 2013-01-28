@@ -92,13 +92,13 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     if period.size == 1:
         period = np.array([period, period, period])
 
-    if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
-
-    if period.shape != b.shape and len(b.shape) > 1:
+    if a.shape != b.shape: 
+        raise RuntimeError("Arrays must be the same shape.")
+    
+    if period.shape != a.shape and len(a.shape) > 1:
         n_tup = tuple([1 for i in range(a.ndim-1)])
-        period = np.reshape(period, (a.shape[0],)+n_tup)
         period = np.tile(np.reshape(period, (a.shape[0],)+n_tup), (1,)+a.shape[1:])
-    elif len(b.shape) == 1:
+    elif len(a.shape) == 1:
         a = np.reshape(a, (a.shape[0],)+(1,1))
         b = np.reshape(b, (a.shape[0],)+(1,1))
         period = np.reshape(period, (a.shape[0],)+(1,1))
@@ -116,7 +116,7 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     d = np.amin(c, axis=0)**2
     r2 = d.sum(axis=0)
     if r2.size == 1:
-        return np.sqrt(r2[0])
+        return np.sqrt(r2[0,0])
     return np.sqrt(r2)
 
 def euclidean_dist(a, b):
