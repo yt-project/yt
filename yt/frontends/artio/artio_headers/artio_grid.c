@@ -470,10 +470,6 @@ int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
 				file++;
 
 				if ( sfc < end && file < ghandle->num_grid_files ) {
-					if ( sfc != ghandle->file_sfc_index[file] ) {
-						printf("ERROR!!!");
-						exit(1);
-					}
 					artio_file_fseek( ghandle->ffh[file], 0, ARTIO_SEEK_SET );
 					ret = artio_file_fread(ghandle->ffh[file], &next_offset, 
 							1, ARTIO_TYPE_LONG );
@@ -837,7 +833,8 @@ int artio_grid_read_root_cell_begin(artio_fileset *handle, int64_t sfc,
 			num_oct_levels, 1, ARTIO_TYPE_INT);
 	if ( ret != ARTIO_SUCCESS ) return ret;
 
-	if ( *num_oct_levels > ghandle->file_max_level ) {
+	if ( *num_oct_levels > ghandle->file_max_level || *num_oct_levels < 0 ) {
+		printf("*num_oct_levels = %d\n", *num_oct_levels );
 		return ARTIO_ERR_INVALID_OCT_LEVELS;
 	}
 

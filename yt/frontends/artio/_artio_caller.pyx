@@ -273,31 +273,17 @@ cdef class artio_fileset :
         cdef int count
         cdef double dpos[3]
 
-        print "Field list:", fields
- 
         # translate fields from ARTIO names to indices
         if not all(f in self.parameters['grid_variable_labels'] for f in fields) :
             print "Asked for a variable that doesn't exist!"
             sys.exit(1)
         field_order = dict([(f,self.parameters['grid_variable_labels'].index(f)) for f in fields])
 
-        print "field order: ", field_order
- 
         status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
         check_artio_status(status) 
 
         num_octs_per_level = <int *>malloc(self.max_level*sizeof(int))
         variables = <float *>malloc(8*self.num_grid_variables*sizeof(float))
-
-        #art_order = {}
-        #for ix in range(2) :
-        #    for iy in range(2) :
-        #        for iz in range(2) :
-        #        #    art_order[ix+2*(iy+2*iz)] = iz+2*(iy+2*ix)
-        #            art_order[iz+2*(iy+2*ix)] = ix+2*(iy+2*iz)
-        #
-        #for i in range(8) :
-        #    print i, art_order[i]
 
         count = self.num_root_cells
         seen = [False for i in range(self.num_root_cells)]
@@ -315,8 +301,8 @@ cdef class artio_fileset :
             cy = 0 if dpos[1] < (2*iy + 1) else 1
             cz = 0 if dpos[2] < (2*iz + 1) else 1
             
-            root_oct = iz+(self.num_grid/2)*(iy+(self.num_grid/2)*ix)
-            child = cz+2*(cy+2*cx)
+            root_oct = ix+(self.num_grid/2)*(iy+(self.num_grid/2)*iz)
+            child = cx+2*(cy+2*cz)
             order = 8*root_oct + child
 
             assert( root_oct < self.num_root_cells / 8 )
