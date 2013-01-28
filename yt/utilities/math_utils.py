@@ -88,23 +88,31 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     a = np.array(a)
     b = np.array(b)
     period = np.array(period)
+
     if period.size == 1:
         period = np.array([period, period, period])
+
     if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
+
     if period.shape != b.shape and len(b.shape) > 1:
-        period = np.tile(period, (b.shape[1],1)).transpose()
+        n_tup = tuple([1 for i in range(a.ndim-1)])
+        period = np.reshape(period, (a.shape[0],)+n_tup)
+        period = np.tile(np.reshape(period, (a.shape[0],)+n_tup), (1,)+a.shape[1:])
     elif len(b.shape) == 1:
-        a = np.tile(a, (1,1)).transpose()
-        b = np.tile(b, (1,1)).transpose()
-        period = np.tile(period, (1,1)).transpose()
-    p_directions = [i for i,p in enumerate(periodicity) if p == True]
-    np_directions = [i for i,p in enumerate(periodicity) if p == False]
+        a = np.reshape(a, (a.shape[0],)+(1,1))
+        b = np.reshape(b, (a.shape[0],)+(1,1))
+        period = np.reshape(period, (a.shape[0],)+(1,1))
+
     c = np.empty((2,) + a.shape, dtype="float64")
     c[0,:] = abs(a - b)
+    
+    p_directions = [i for i,p in enumerate(periodicity) if p == True]
+    np_directions = [i for i,p in enumerate(periodicity) if p == False]
     for d in p_directions:
         c[1,d,:] = period[d,:] - abs(a - b)[d,:]
     for d in np_directions:
         c[1,d,:] = c[0,d,:]
+
     d = np.amin(c, axis=0)**2
     r2 = d.sum(axis=0)
     if r2.size == 1:
