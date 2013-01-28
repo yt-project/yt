@@ -66,7 +66,8 @@ from yt.utilities.math_utils import \
     get_cyl_theta_component, \
     get_cyl_r, get_cyl_theta, \
     get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi
+    get_sph_theta, get_sph_phi, \
+    periodic_dist, euclidean_dist
      
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
