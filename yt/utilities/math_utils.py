@@ -137,7 +137,7 @@ def euclidean_dist(a, b):
     >>> a = [0.1, 0.1, 0.1]
     >>> b = [0.9, 0,9, 0.9]
     >>> period = 1.
-    >>> dist = euclidean_dist(a, b, period)
+    >>> dist = euclidean_dist(a, b)
     >>> dist
     1.38564064606
 

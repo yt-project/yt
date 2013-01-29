@@ -785,7 +785,7 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          validators=[ValidateParameter('center')])
 
 def get_radius(positions, data):
-    c = np.expand_dims(data.get_field_parameter("center"),positions.ndim)
+    c = data.get_field_parameter("center")
     n_tup = tuple([1 for i in range(positions.ndim-1)])
     center = np.tile(np.reshape(c, (positions.shape[0],)+n_tup),(1,)+positions.shape[1:])
     periodicity = data.pf.periodicity
