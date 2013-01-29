@@ -229,6 +229,8 @@ class GDFStaticOutput(StaticOutput):
         self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
+        p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
+        self.periodicity = ensure_tuple(p)
         if self.cosmological_simulation:
             self.current_redshift = sp["current_redshift"]
             self.omega_lambda = sp["omega_lambda"]
