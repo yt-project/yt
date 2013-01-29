@@ -156,7 +156,7 @@ class ARTIODomainSubset(object):
         # translate fields into ARTIO names (this dict should be moved to fields.py)
         yt_to_art = { 
             'Density':'HVAR_GAS_DENSITY',
-            'TotalGasEnergy':'HVAR_GAS_ENERGY',
+            'TotalEnergy':'HVAR_GAS_ENERGY',
             'GasEnergy':'HVAR_INTERNAL_ENERGY',
             'Pressure':'HVAR_PRESSURE',
             'XMomentumDensity':'HVAR_MOMENTUM_X',
@@ -377,7 +377,8 @@ class ARTIOStaticOutput(StaticOutput):
         self.parameters['unit_T'] = self.parameters['unit_v']**2.0*mb/constants.k
         self.parameters['unit_rhoE'] = self.parameters['unit_E']/self.parameters['unit_l']**3.0
         self.parameters['unit_nden'] = self.parameters['unit_d']/mb
-       
+        self.parameters['Gamma'] = constants.gamma
+        
         #         if self.cosmological_simulation :
         #             units_internal.length_in_chimps = unit_factors.length*cosmology->h/constants.Mpc
        
