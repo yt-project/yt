@@ -80,7 +80,7 @@ def ensure_tuple(obj):
     scalar, list, or array arguments specified by a user in a context where
     we assume a tuple internally
     """
-    if isintance(obj, types.TupleType):
+    if isinstance(obj, types.TupleType):
         return obj
     elif isinstance(obj, (types.ListType, np.ndarray)):
         return tuple(obj)
