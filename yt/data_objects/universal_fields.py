@@ -789,7 +789,7 @@ def get_radius(positions, data):
     n_tup = tuple([1 for i in range(positions.ndim-1)])
     center = np.tile(np.reshape(c, (positions.shape[0],)+n_tup),(1,)+positions.shape[1:])
     periodicity = data.pf.periodicity
-    if np.any(periodicity):
+    if any(periodicity):
         period = data.pf.domain_right_edge - data.pf.domain_left_edge
         return periodic_dist(positions, center, period, periodicity)
     else:

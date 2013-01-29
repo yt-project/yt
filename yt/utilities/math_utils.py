@@ -104,12 +104,12 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
         period = np.reshape(period, (a.shape[0],)+(1,1))
 
     c = np.empty((2,) + a.shape, dtype="float64")
-    c[0,:] = abs(a - b)
+    c[0,:] = np.abs(a - b)
     
     p_directions = [i for i,p in enumerate(periodicity) if p == True]
     np_directions = [i for i,p in enumerate(periodicity) if p == False]
     for d in p_directions:
-        c[1,d,:] = period[d,:] - abs(a - b)[d,:]
+        c[1,d,:] = period[d,:] - np.abs(a - b)[d,:]
     for d in np_directions:
         c[1,d,:] = c[0,d,:]
 
@@ -145,9 +145,16 @@ def euclidean_dist(a, b):
     a = np.array(a)
     b = np.array(b)
     if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
-    c = np.empty(a.shape, dtype="float64")
-    c = (a - b)**2
-    return np.sqrt(c.sum(axis=0))
+    c = a.copy()
+    np.subtract(c, b, c)
+    np.power(c, 2, c)
+    c = c.sum(axis = 0)
+    if isinstance(c, np.ndarray):
+        np.sqrt(c, c)
+    else:
+        # This happens if a and b only have one entry.
+        c = math.sqrt(c)
+    return c
 
 def rotate_vector_3D(a, dim, angle):
     r"""Rotates the elements of an array around an axis by some angle.
