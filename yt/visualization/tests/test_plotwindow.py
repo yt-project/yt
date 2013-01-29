@@ -47,8 +47,10 @@ def assert_fname(fname):
     data = str(data)
     image_type = ''
 
+    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
     if data.startswith('\211PNG\r\n\032\n'):
         image_type = '.png'
+    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
     elif data.startswith('\377\330'):
         image_type = '.jpeg'
     elif data.startswith('%!PS-Adobe'):
