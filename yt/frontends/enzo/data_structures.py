@@ -819,7 +819,7 @@ class EnzoStaticOutput(StaticOutput):
         for k, v in data_label_factors.items():
             self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = tuple(ensure_list(self.parameters["LeftFaceBoundaryCondition"] == 3))
+        self.periodicity = ensure_tuple(self.parameters["LeftFaceBoundaryCondition"] == 3))
         self.dimensionality = self.parameters["TopGridRank"]
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]

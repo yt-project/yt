@@ -606,7 +606,7 @@ class NyxStaticOutput(StaticOutput):
             elif param.startswith("particles.write_in_plotfile"):
                 self.use_particles = boxlib_bool_to_int(vals[0])
             elif param.startswith("nyx.lo_bc"):
-                self.periodicity = tuple([i == 0 for i in vals])
+                self.periodicity = ensure_tuple([i == 0 for i in vals])
 
         # aliases we need
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
