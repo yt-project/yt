@@ -60,9 +60,10 @@ cdef class OctreeContainer:
 
 cdef class ARTIOOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
-	cdef Oct *next_free_oct( self, int curdom )
+    cdef Oct *get_root_oct(self, np.float64_t ppos[3])
+    cdef Oct *next_free_oct( self, int curdom )
     cdef int valid_domain_oct(self, int curdom, Oct *parent)
-    cdef Oct *add_oct(self, int curdom, Oct *parent, int curlevel, np.float64_t pp[3])
+    cdef Oct *add_oct(self, int curdom, Oct *parent, int curlevel, double pp[3])
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains

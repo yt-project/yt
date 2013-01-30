@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import sys
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 cimport numpy as np
@@ -320,31 +321,46 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef OctAllocationContainer *cont
         cdef Oct *next_oct
 
-        if curdom < 1 or curdom > self.max_domains or self.domains == NULL  :
+        if curdom < 1 or curdom > self.max_domain or self.domains == NULL  :
+            print "Error, invalid domain or unallocated domains"
             raise RuntimeError
         
         cont = self.domains[curdom - 1]
-        if cont.n >= self.n_assigned :
+        if cont.n_assigned >= cont.n :
+            print "Error, ran out of octs in domain curdom"
             raise RuntimeError
 
-        self.nOcts += 1
+        self.nocts += 1
         next_oct = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
+        return next_oct
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef int valid_domain_oct(self, int curdom, Oct *parent) :
         cdef OctAllocationContainer *cont
 
-        if curdom < 1 or curdom > self.max_domains or self.domains == NULL  :
+        if curdom < 1 or curdom > self.max_domain or self.domains == NULL  :
             raise RuntimeError
         cont = self.domains[curdom - 1]
 
-        if parent == NULL or parent < &cont.my_octs[0] or 
+        if parent == NULL or parent < &cont.my_octs[0] or \
                 parent > &cont.my_octs[cont.n_assigned] :
             return 0
         else :
             return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef Oct *get_root_oct(self, np.float64_t ppos[3]):
+        cdef np.int64_t ind[3]
+        cdef np.float64_t dds
+        cdef int i
+        for i in range(3):
+            dds = (self.DRE[i] - self.DLE[i])/self.nn[i]
+            ind[i] = <np.int64_t> floor((ppos[i]-self.DLE[i])/dds)
+        return self.root_mesh[ind[0]][ind[1]][ind[2]]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -362,36 +378,29 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         for i in range(3):
             if pp[i] < self.DLE[i] or pp[i] > self.DRE[i] :
                 raise RuntimeError
-            dds = (self.DRE[i] - self.DLE[i])/(<np.int64_t)self.nn[i]<<curlevel)
+            dds = (self.DRE[i] - self.DLE[i])/(<np.int64_t>self.nn[i]>>curlevel)
             pos[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds)
 
-        if parent == NULL :
-            cur = self.root_mesh[pos[0]][pos[1]][pos[2]]
-            if cur == NULL:
-                if curlevel != 0:
-                    raise RuntimeError
-            else :
+        if curlevel == 0 :
+            cur = NULL
+        elif parent == NULL :
+            cur = self.get_root_oct(pp)
+            # Now we find the location we want
+            for level in range(1,curlevel):
+                # At every level, find the cell this oct lives inside
                 for i in range(3) :
-                    if pos[i] < (cur.pos[i]<<curlevel) :
+                    if pos[i] < (2*cur.pos[i]+1)<<(curlevel-level) :
                         ind[i] = 0
                     else :
                         ind[i] = 1
-
-                # Now we find the location we want
-                for level in range(1,curlevel):
-                    # At every level, find the cell this oct lives inside
-                    cur = cur.children[ind[0]][ind[1]][ind[2]]
-                    if cur == NULL:
-                        # in ART we don't allocate down to curlevel 
-                        # if parent doesn't exist
-                        raise RuntimeError
-                    for i in range(3) :
-                        if pos[i] < (cur.pos[i] << (curlevel-level)) :
-                            ind[i] = 0
-                        else :
-                            ind[i] = 1
+                cur = cur.children[ind[0]][ind[1]][ind[2]]
+                if cur == NULL:
+                    # in ART we don't allocate down to curlevel 
+                    # if parent doesn't exist
+                    print "Error, no oct exists at that level"
+                    raise RuntimeError
         else :
-            if level == 0 or not self.valid_domain_oct(curdom,parent) or 
+            if not self.valid_domain_oct(curdom,parent) or \
                     parent.level != curlevel - 1:
                 raise RuntimeError
             cur = parent
@@ -400,10 +409,17 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         if cur == NULL :
             self.root_mesh[pos[0]][pos[1]][pos[2]] = next_oct
         else :
+            for i in range(3) :
+                if pos[i] < 2*cur.pos[i]+1 :
+                    ind[i] = 0
+                else :
+                    ind[i] = 1
             cur.children[ind[0]][ind[1]][ind[2]] = next_oct
-        next_oct.pos = pos 
+        for i in range(3) :
+            next_oct.pos[i] = pos[i]
+        next_oct.domain = curdom
         next_oct.parent = cur
-        next_oct.ind = 1
+        #next_oct.ind = 1
         next_oct.level = curlevel
         return next_oct
 
