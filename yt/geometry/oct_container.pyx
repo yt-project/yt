@@ -316,71 +316,56 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def add(self, int curdom, int curlevel, int ng,
-            np.ndarray[np.float64_t, ndim=2] pos,
-            int local_domain, int skip_boundary = 1):
+    cdef int add_oct(self, int curdom, int curlevel, 
+                     np.float64_t pp[3]):
         cdef int level, no, p, i, j, k, ind[3]
-        cdef int local = (local_domain == curdom)
         cdef Oct *cur, *next = NULL
-        cdef np.float64_t pp[3], cp[3], dds[3]
-        no = pos.shape[0] #number of octs
-        if curdom > self.max_domain: curdom = local_domain
-        if curdom < 1 : curdom = 1
+        cdef np.float64_t cp[3], dds[3]
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
-        cdef int in_boundary = 0
-        for p in range(no): #oct number p out of no octs to allocate
-            #for every oct we're trying to add, find the 
-            #floating point unitary position on this level
-            in_boundary = 0
+        for i in range(3):
+            dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+            ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
+            cp[i] = (ind[i] + 0.5) * dds[i]
+        cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        if cur == NULL:
+            if curlevel != 0:
+                raise RuntimeError
+            cur = &cont.my_octs[cont.n_assigned] 
+            cur.parent = NULL
+            cur.level = 0
             for i in range(3):
-                pp[i] = pos[p, i] 
-                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
-                cp[i] = (ind[i] + 0.5) * dds[i]
-                if ind[i] < 0 or ind[i] >= self.nn[i]:
-                    in_boundary = 1
-            if skip_boundary == in_boundary == 1: continue
-            cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
-            if cur == NULL:
-                if curlevel != 0:
-                    raise RuntimeError
-                cur = &cont.my_octs[cont.n_assigned] 
-                cur.parent = NULL
-                cur.level = 0
-                for i in range(3):
-                    cur.pos[i] = ind[i]
+                cur.pos[i] = ind[i]
+            cont.n_assigned += 1
+            self.nocts += 1
+            self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
+        # Now we find the location we want
+        for level in range(curlevel):
+            # At every level, find the cell this oct lives inside
+            for i in range(3):
+                #as we get deeper, oct size halves
+                dds[i] = dds[i] / 2.0
+                if cp[i] > pp[i]: 
+                    ind[i] = 0
+                    cp[i] -= dds[i]/2.0
+                else:
+                    ind[i] = 1
+                    cp[i] += dds[i]/2.0
+            # Check if it has not been allocated
+            next = cur.children[ind[0]][ind[1]][ind[2]]
+            if next == NULL:
+                next = &cont.my_octs[cont.n_assigned]
+                cur.children[ind[0]][ind[1]][ind[2]] = next
                 cont.n_assigned += 1
-                self.nocts += 1
-                self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
-            # Now we find the location we want
-            for level in range(curlevel):
-                # At every level, find the cell this oct lives inside
+                next.parent = cur
                 for i in range(3):
-                    #as we get deeper, oct size halves
-                    dds[i] = dds[i] / 2.0
-                    if cp[i] > pp[i]: 
-                        ind[i] = 0
-                        cp[i] -= dds[i]/2.0
-                    else:
-                        ind[i] = 1
-                        cp[i] += dds[i]/2.0
-                # Check if it has not been allocated
-                next = cur.children[ind[0]][ind[1]][ind[2]]
-                if next == NULL:
-                    next = &cont.my_octs[cont.n_assigned]
-                    cur.children[ind[0]][ind[1]][ind[2]] = next
-                    cont.n_assigned += 1
-                    next.parent = cur
-                    for i in range(3):
-                        next.pos[i] = ind[i] + (cur.pos[i] << 1)
-                    next.level = level + 1  
-                    self.nocts += 1
-                cur = next
-            cur.domain = curdom 
-            if local == 1:
-                cur.ind = p
-            cur.level = curlevel
+                    next.pos[i] = ind[i] + (cur.pos[i] << 1)
+                next.level = level + 1  
+                self.nocts += 1
+            cur = next
+        cur.domain = curdom 
+        cur.ind = 1
+        cur.level = curlevel
         return cont.n_assigned - initial
     # ii:mask/art ; ci=ramses loop backward (k<-fast, j ,i<-slow) 
     # ii=0 000 art 000 ci 000 

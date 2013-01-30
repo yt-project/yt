@@ -225,12 +225,12 @@ cdef class artio_fileset :
         oct_count = 0
         level = 0
         for iz in range(self.num_grid/2) :
-            pos[0,2] = iz*2+1
+            dpos[2] = iz*2+1
             for iy in range(self.num_grid/2) :
-                pos[0,1] = iy*2+1
+                dpos[1] = iy*2+1
                 for ix in range(self.num_grid/2) :
-                    pos[0,0]=ix*2+1
-                    oct_handler.add(self.cpu+1, level, self.num_grid, pos, self.domain_id) 
+                    dpos[0]=ix*2+1
+                    oct_handler.add_oct(self.cpu+1, level, dpos)
                     oct_count += 1
 
         # Now do real ART octs
@@ -256,7 +256,7 @@ cdef class artio_fileset :
                     pos[0,0] = dpos[0]
                     pos[0,1] = dpos[1]
                     pos[0,2] = dpos[2]
-                    oct_count += oct_handler.add(self.cpu+1, level+1, self.num_grid, pos, self.domain_id )
+                    oct_count += oct_handler.add_oct(self.cpu+1, level+1, dpos)
 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
