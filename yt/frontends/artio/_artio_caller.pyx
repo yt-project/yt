@@ -9,7 +9,6 @@ import sys
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 import  data_structures  
-from yt.utilities.exceptions import YTFieldNotFound
 from yt.geometry.oct_container cimport \
     OctreeContainer, \
     ARTIOOctreeContainer
@@ -296,7 +295,8 @@ cdef class artio_fileset :
         for i, f in enumerate(fields):
             # It might be better to do this check in the Python code
             if f not in var_labels:
-                raise YTFieldNotFound(f, self)
+                print "This field is not known to ARTIO:", f
+                raise RuntimeError
             j = var_labels.index(f)
             arr = source[f]
             fpoint[i] = <np.float32_t *>arr.data
@@ -309,18 +309,15 @@ cdef class artio_fileset :
         variables = <float *>malloc(8*self.num_grid_variables*sizeof(float))
 
         count = self.num_root_cells
-        cdef int *seen = <int*>malloc(count * sizeof(int))
-        for i in range(count):
-            seen[i] = 0
 
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
             status = artio_grid_read_root_cell_begin( self.handle, sfc, 
                     dpos, variables, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
 
-            ix = <int>((dpos[0]-0.5) / 2)
-            iy = <int>((dpos[1]-0.5) / 2)
-            iz = <int>((dpos[2]-0.5) / 2)
+            ix = <int>(dpos[0]-0.5) / 2
+            iy = <int>(dpos[1]-0.5) / 2
+            iz = <int>(dpos[2]-0.5) / 2
 
             cx = 0 if dpos[0] < (2*ix + 1) else 1
             cy = 0 if dpos[1] < (2*iy + 1) else 1
@@ -333,9 +330,6 @@ cdef class artio_fileset :
             assert( root_oct < self.num_root_cells / 8 )
             assert( child >= 0 and child < 8 )
             assert( order >= 0 and order < self.num_root_cells )
-
-            assert( seen[order] == 0 )
-            seen[order] = 1
 
             for i in range(nf):
                 fpoint[i][order] = variables[forder[i]]
@@ -364,7 +358,6 @@ cdef class artio_fileset :
 
         free(num_octs_per_level) 
         free(variables)
-        free(seen)
         free(fpoint)
         free(forder)
 
