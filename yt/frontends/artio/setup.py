@@ -13,7 +13,9 @@ def configuration(parent_package='', top_path=None):
     config = Configuration('artio', parent_package, top_path)
     config.add_extension("_artio_caller",
         ["yt/frontends/artio/_artio_caller.pyx"]+artio_sources,
-        include_dirs=["yt/frontends/artio/artio_headers/"],
+        include_dirs=["yt/frontends/artio/artio_headers/",
+                      "yt/geometry/",
+                      "yt/utilities/lib/"],
         depends=artio_sources
         )
     config.make_config_py()  # installs __config__.py

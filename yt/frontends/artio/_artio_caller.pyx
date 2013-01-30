@@ -1,6 +1,7 @@
 """
 
 """
+cimport cython
 import numpy as np
 cimport numpy as np
 import sys 
@@ -8,6 +9,13 @@ import sys
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 import  data_structures  
+from yt.utilities.exceptions import YTFieldNotFound
+from yt.geometry.oct_container cimport \
+    OctreeContainer, \
+    ARTIOOctreeContainer
+
+cdef extern from "stdlib.h":
+    void *alloca(int)
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
@@ -74,7 +82,7 @@ cdef extern from "artio.h":
     int artio_grid_count_octs_in_sfc_range(artio_fileset_handle *handle,
             int64_t start, int64_t end, int64_t *num_octs)
 
-def check_artio_status(status, fname="[unknown]"):
+cdef check_artio_status(int status, char *fname="[unknown]"):
     if status!=ARTIO_SUCCESS :
         callername = sys._getframe().f_code.co_name
         nline = sys._getframe().f_lineno
@@ -83,7 +91,7 @@ def check_artio_status(status, fname="[unknown]"):
 
 cdef class artio_fileset :
     cdef public object parameters 
-    cdef object oct_handler
+    cdef ARTIOOctreeContainer oct_handler
     cdef artio_fileset_handle *handle
     cdef int64_t num_root_cells
     cdef int64_t sfc_min, sfc_max
@@ -196,18 +204,19 @@ cdef class artio_fileset :
  
         return num_total_octs
 
-    def grid_pos_fill(self, oct_handler) :
+    def grid_pos_fill(self, ARTIOOctreeContainer oct_handler) :
         ''' adds all refined octs and a new array of ghost octs for  
         the "fully refined octs" at level=-1 in ART or 0 in yt convention 
         so that root level can consist of children
         '''
         cdef int64_t sfc
-        cdef int level
+        cdef int level, ix, iy, iz
         cdef int num_oct_levels
         cdef int *num_octs_per_level
         cdef double dpos[3]
         cdef int oct_count
 
+        cdef np.ndarray[np.float64_t, ndim=2] pos 
         pos = np.empty((1,3), dtype='float64')
 
         print 'start filling oct positions'
@@ -221,7 +230,7 @@ cdef class artio_fileset :
                 pos[0,1] = iy*2+1
                 for ix in range(self.num_grid/2) :
                     pos[0,0]=ix*2+1
-                    self.oct_handler.add(self.cpu+1, level, self.num_grid, pos, self.domain_id) 
+                    oct_handler.add(self.cpu+1, level, self.num_grid, pos, self.domain_id) 
                     oct_count += 1
 
         # Now do real ART octs
@@ -247,7 +256,7 @@ cdef class artio_fileset :
                     pos[0,0] = dpos[0]
                     pos[0,1] = dpos[1]
                     pos[0,2] = dpos[2]
-                    oct_count += self.oct_handler.add(self.cpu+1, level+1, self.num_grid, pos, self.domain_id )
+                    oct_count += oct_handler.add(self.cpu+1, level+1, self.num_grid, pos, self.domain_id )
 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
@@ -262,6 +271,9 @@ cdef class artio_fileset :
 
         print 'done filling oct positions', oct_count
 
+    #@cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def grid_var_fill(self, source, fields):
         cdef int num_oct_levels
         cdef int *num_octs_per_level
@@ -270,14 +282,25 @@ cdef class artio_fileset :
         cdef int root_oct, child, order
         cdef int ix, iy, iz
         cdef int cx, cy, cz
-        cdef int count
         cdef double dpos[3]
+        cdef np.ndarray[np.float32_t, ndim=1] arr
+        # This relies on the fields being contiguous
+        cdef np.float32_t **fpoint
+        cdef int nf = len(fields)
+        fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*nf)
+        forder = <int*>malloc(sizeof(int)*nf)
+        cdef int i, j, level
 
         # translate fields from ARTIO names to indices
-        if not all(f in self.parameters['grid_variable_labels'] for f in fields) :
-            print "Asked for a variable that doesn't exist!"
-            sys.exit(1)
-        field_order = dict([(f,self.parameters['grid_variable_labels'].index(f)) for f in fields])
+        var_labels = self.parameters['grid_variable_labels']
+        for i, f in enumerate(fields):
+            # It might be better to do this check in the Python code
+            if f not in var_labels:
+                raise YTFieldNotFound(f, self)
+            j = var_labels.index(f)
+            arr = source[f]
+            fpoint[i] = <np.float32_t *>arr.data
+            forder[i] = j
 
         status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
         check_artio_status(status) 
@@ -286,16 +309,18 @@ cdef class artio_fileset :
         variables = <float *>malloc(8*self.num_grid_variables*sizeof(float))
 
         count = self.num_root_cells
-        seen = [False for i in range(self.num_root_cells)]
+        cdef int *seen = <int*>malloc(count * sizeof(int))
+        for i in range(count):
+            seen[i] = 0
 
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
             status = artio_grid_read_root_cell_begin( self.handle, sfc, 
                     dpos, variables, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
 
-            ix = (int)(dpos[0]-0.5) / 2
-            iy = (int)(dpos[1]-0.5) / 2
-            iz = (int)(dpos[2]-0.5) / 2
+            ix = <int>((dpos[0]-0.5) / 2)
+            iy = <int>((dpos[1]-0.5) / 2)
+            iz = <int>((dpos[2]-0.5) / 2)
 
             cx = 0 if dpos[0] < (2*ix + 1) else 1
             cy = 0 if dpos[1] < (2*iy + 1) else 1
@@ -309,11 +334,11 @@ cdef class artio_fileset :
             assert( child >= 0 and child < 8 )
             assert( order >= 0 and order < self.num_root_cells )
 
-            assert( not seen[order] )
-            seen[order] = True
+            assert( seen[order] == 0 )
+            seen[order] = 1
 
-            for f in fields :
-                source[f][order] = variables[field_order[f]]
+            for i in range(nf):
+                fpoint[i][order] = variables[forder[i]]
  
             for level in range(num_oct_levels) :
                 status = artio_grid_read_level_begin( self.handle, level+1 )
@@ -324,8 +349,8 @@ cdef class artio_fileset :
                     check_artio_status(status) 
 
                     for child in range(8) :
-                        for f in fields :
-                            source[f][count] = variables[self.num_grid_variables*child+field_order[f]]
+                        for i in range(nf):
+                            fpoint[i][count] = variables[self.num_grid_variables*child+forder[i]]
                         count += 1
  
                 status = artio_grid_read_level_end( self.handle )
@@ -339,6 +364,9 @@ cdef class artio_fileset :
 
         free(num_octs_per_level) 
         free(variables)
+        free(seen)
+        free(fpoint)
+        free(forder)
 
         print 'done filling oct variables', count
 
