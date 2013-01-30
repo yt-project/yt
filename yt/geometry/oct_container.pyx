@@ -316,57 +316,97 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int add_oct(self, int curdom, int curlevel, 
-                     np.float64_t pp[3]):
-        cdef int level, no, p, i, j, k, ind[3]
-        cdef Oct *cur, *next = NULL
-        cdef np.float64_t cp[3], dds[3]
-        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
-        cdef int initial = cont.n_assigned
+    cdef Oct *next_free_oct( self, int curdom ) :
+        cdef OctAllocationContainer *cont
+        cdef Oct *next_oct
+
+        if curdom < 1 or curdom > self.max_domains or self.domains == NULL  :
+            raise RuntimeError
+        
+        cont = self.domains[curdom - 1]
+        if cont.n >= self.n_assigned :
+            raise RuntimeError
+
+        self.nOcts += 1
+        next_oct = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int valid_domain_oct(self, int curdom, Oct *parent) :
+        cdef OctAllocationContainer *cont
+
+        if curdom < 1 or curdom > self.max_domains or self.domains == NULL  :
+            raise RuntimeError
+        cont = self.domains[curdom - 1]
+
+        if parent == NULL or parent < &cont.my_octs[0] or 
+                parent > &cont.my_octs[cont.n_assigned] :
+            return 0
+        else :
+            return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef Oct *add_oct(self, int curdom, Oct *parent, 
+                    int curlevel, np.float64_t pp[3]):
+
+        cdef int level, i, ind[3]
+        cdef Oct *cur, *next_oct
+        cdef np.int64_t pos[3]
+        cdef np.float64_t dds
+
+        if curlevel < 0 :
+            raise RuntimeError
         for i in range(3):
-            dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
-            cp[i] = (ind[i] + 0.5) * dds[i]
-        cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
-        if cur == NULL:
-            if curlevel != 0:
+            if pp[i] < self.DLE[i] or pp[i] > self.DRE[i] :
                 raise RuntimeError
-            cur = &cont.my_octs[cont.n_assigned] 
-            cur.parent = NULL
-            cur.level = 0
-            for i in range(3):
-                cur.pos[i] = ind[i]
-            cont.n_assigned += 1
-            self.nocts += 1
-            self.root_mesh[ind[0]][ind[1]][ind[2]] = cur
-        # Now we find the location we want
-        for level in range(curlevel):
-            # At every level, find the cell this oct lives inside
-            for i in range(3):
-                #as we get deeper, oct size halves
-                dds[i] = dds[i] / 2.0
-                if cp[i] > pp[i]: 
-                    ind[i] = 0
-                    cp[i] -= dds[i]/2.0
-                else:
-                    ind[i] = 1
-                    cp[i] += dds[i]/2.0
-            # Check if it has not been allocated
-            next = cur.children[ind[0]][ind[1]][ind[2]]
-            if next == NULL:
-                next = &cont.my_octs[cont.n_assigned]
-                cur.children[ind[0]][ind[1]][ind[2]] = next
-                cont.n_assigned += 1
-                next.parent = cur
-                for i in range(3):
-                    next.pos[i] = ind[i] + (cur.pos[i] << 1)
-                next.level = level + 1  
-                self.nocts += 1
-            cur = next
-        cur.domain = curdom 
-        cur.ind = 1
-        cur.level = curlevel
-        return cont.n_assigned - initial
+            dds = (self.DRE[i] - self.DLE[i])/(<np.int64_t)self.nn[i]<<curlevel)
+            pos[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds)
+
+        if parent == NULL :
+            cur = self.root_mesh[pos[0]][pos[1]][pos[2]]
+            if cur == NULL:
+                if curlevel != 0:
+                    raise RuntimeError
+            else :
+                for i in range(3) :
+                    if pos[i] < (cur.pos[i]<<curlevel) :
+                        ind[i] = 0
+                    else :
+                        ind[i] = 1
+
+                # Now we find the location we want
+                for level in range(1,curlevel):
+                    # At every level, find the cell this oct lives inside
+                    cur = cur.children[ind[0]][ind[1]][ind[2]]
+                    if cur == NULL:
+                        # in ART we don't allocate down to curlevel 
+                        # if parent doesn't exist
+                        raise RuntimeError
+                    for i in range(3) :
+                        if pos[i] < (cur.pos[i] << (curlevel-level)) :
+                            ind[i] = 0
+                        else :
+                            ind[i] = 1
+        else :
+            if level == 0 or not self.valid_domain_oct(curdom,parent) or 
+                    parent.level != curlevel - 1:
+                raise RuntimeError
+            cur = parent
+ 
+        next_oct = self.next_free_oct( curdom )
+        if cur == NULL :
+            self.root_mesh[pos[0]][pos[1]][pos[2]] = next_oct
+        else :
+            cur.children[ind[0]][ind[1]][ind[2]] = next_oct
+        next_oct.pos = pos 
+        next_oct.parent = cur
+        next_oct.ind = 1
+        next_oct.level = curlevel
+        return next_oct
+
     # ii:mask/art ; ci=ramses loop backward (k<-fast, j ,i<-slow) 
     # ii=0 000 art 000 ci 000 
     # ii=1 100 art 100 ci 001 
