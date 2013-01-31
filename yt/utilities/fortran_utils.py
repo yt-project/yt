@@ -33,7 +33,9 @@ def read_attrs(f, attrs):
 
     Fortran unformatted files provide total bytesize at the beginning and end
     of a record.  By correlating the components of that record with attribute
-    names, we construct a dictionary that gets returned.
+    names, we construct a dictionary that gets returned.  Note that this
+    function is used for reading sequentially-written records.  If you have
+    many written that were written simultaneously, see read_record.
 
     Parameters
     ----------
@@ -132,4 +134,48 @@ def skip(f, n = 1):
         fmt = "=I"
         ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
         f.seek(ss + struct.calcsize("=I"), os.SEEK_CUR)
+
+def read_record(f, rspec):
+    r"""This function accepts a file pointer and reads from that file pointer
+    a single "record" with different components.
+
+    Fortran unformatted files provide total bytesize at the beginning and end
+    of a record.  By correlating the components of that record with attribute
+    names, we construct a dictionary that gets returned.
+
+    Parameters
+    ----------
+    f : File object
+        An open file object.  Should have been opened in mode rb.
+    rspec : iterable of iterables
+        This object should be an iterable of the format [ (attr_name, count,
+        struct type), ... ].
+
+    Returns
+    -------
+    values : dict
+        This will return a dict of iterables of the components of the values in
+        the file.
+
+    Examples
+    --------
+
+    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> f = open("fort.3", "rb")
+    >>> rv = read_record(f, header)
+    """
+    vv = {}
+    net_format = "=I" + "".join(["%s%s" % (n, t) for a, n, t in rspec]) + "I"
+    size = struct.calcsize(net_format)
+    vals = list(struct.unpack(net_format, f.read(size)))
+    vvv = vals[:]
+    s1, s2 = vals.pop(0), vals.pop(-1)
+    if s1 != s2:
+        print "S1 = %s ; S2 = %s ; SIZE = %s"
+        raise RuntimeError
+    pos = 0
+    for a, n, t in rspec:
+        vv[a] = vals[pos:pos+n]
+        pos += n
+    return vv
 

@@ -226,6 +226,27 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
 
+def _H_NumberDensity(field, data):
+    field_data = np.zeros(data["Density"].shape,
+                          dtype=data["Density"].dtype)
+    if data.pf.parameters["MultiSpecies"] == 0:
+        field_data += data["Density"] * \
+          data.pf.parameters["HydrogenFractionByMass"]
+    if data.pf.parameters["MultiSpecies"] > 0:
+        field_data += data["HI_Density"]
+        field_data += data["HII_Density"]
+    if data.pf.parameters["MultiSpecies"] > 1:
+        field_data += data["HM_Density"]
+        field_data += data["H2I_Density"]
+        field_data += data["H2II_Density"]
+    if data.pf.parameters["MultiSpecies"] > 2:
+        field_data += data["HDI_Density"] / 2.0
+    return field_data
+add_field("H_NumberDensity", units=r"\rm{cm}^{-3}",
+          function=_H_NumberDensity,
+          convert_function=_ConvertNumberDensity)
+
+
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
 
@@ -278,7 +299,7 @@ def _convertRadiationAccel(data):
 for dim in range(1,4):
     f = KnownEnzoFields["RadAccel%d" % dim]
     f._convert_function = _convertRadiationAccel
-    f._units=r"\rm{cm}\ \rm{s}^{-2}"
+    f._units=r"\rm{cm}\/\rm{s}^{-2}"
     f.take_log=False
 def _RadiationAccelerationMagnitude(field, data):
     return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
@@ -286,7 +307,7 @@ def _RadiationAccelerationMagnitude(field, data):
 add_field("RadiationAcceleration", 
           function=_RadiationAccelerationMagnitude,
           validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
-          display_name="Radiation\ Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
+          display_name="Radiation\/Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
 
 # Now we override
 
@@ -302,18 +323,18 @@ add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
           validators=[ValidateDataField("Dark_Matter_Density"),
                       ValidateSpatial(0)],
-          display_name = "Dark\ Matter\ Density",
+          display_name = "Dark\/Matter\/Density",
           not_in_all = True)
 
 def _Dark_Matter_Mass(field, data):
     return data['Dark_Matter_Density'] * data["CellVolume"]
 add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
           validators=ValidateDataField("Dark_Matter_Density"),
-          display_name="Dark\ Matter\ Mass", units=r"\rm{g}")
+          display_name="Dark\/Matter\/Mass", units=r"\rm{g}")
 add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           convert_function=_convertCellMassMsun,
           validators=ValidateDataField("Dark_Matter_Density"),
-          display_name="Dark\ Matter\ Mass", units=r"M_{\odot}")
+          display_name="Dark\/Matter\/Mass", units=r"M_{\odot}")
 
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
 KnownEnzoFields["Temperature"].units = r"K"

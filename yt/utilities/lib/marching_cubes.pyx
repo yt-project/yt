@@ -33,7 +33,7 @@ from fixed_interpolator cimport *
 cdef struct Triangle:
     Triangle *next
     np.float64_t p[3][3]
-    np.float64_t val
+    np.float64_t val[3] # Usually only use one value
 
 cdef struct TriangleCollection:
     int count
@@ -64,12 +64,14 @@ cdef int CountTriangles(Triangle *first):
     return count
 
 cdef void FillTriangleValues(np.ndarray[np.float64_t, ndim=1] values,
-                             Triangle *first):
+                             Triangle *first, int nskip = 1):
     cdef Triangle *this = first
     cdef Triangle *last
     cdef int i = 0
+    cdef int j
     while this != NULL:
-        values[i] = this.val
+        for j in range(nskip):
+            values[i*nskip + j] = this.val[j]
         i += 1
         last = this
         this = this.next
@@ -463,7 +465,7 @@ def march_cubes_grid(np.float64_t isovalue,
                      np.ndarray[np.int32_t, ndim=3] mask,
                      np.ndarray[np.float64_t, ndim=1] left_edge,
                      np.ndarray[np.float64_t, ndim=1] dxs,
-                     obj_sample = None):
+                     obj_sample = None, int sample_type = 1):
     cdef int dims[3]
     cdef int i, j, k, n, m, nt
     cdef int offset
@@ -478,7 +480,7 @@ def march_cubes_grid(np.float64_t isovalue,
     if obj_sample is not None:
         sample = obj_sample
         sdata = <np.float64_t *> sample.data
-        do_sample = 1
+        do_sample = sample_type # 1 for face, 2 for vertex
     else:
         do_sample = 0
     for i in range(3):
@@ -502,13 +504,16 @@ def march_cubes_grid(np.float64_t isovalue,
                     offset_fill(dims, intdata, gv)
                     nt = march_cubes(gv, isovalue, dds, pos[0], pos[1], pos[2],
                                 &triangles)
-                    if do_sample == 1 and nt > 0:
+                    if nt == 0 or do_sample == 0:
+                        pos[2] += dds[2]
+                        continue
+                    if last == NULL and triangles.first != NULL:
+                        current = triangles.first
+                        last = NULL
+                    elif last != NULL:
+                        current = last.next
+                    if do_sample == 1:
                         # At each triangle's center, sample our secondary field
-                        if last == NULL and triangles.first != NULL:
-                            current = triangles.first
-                            last = NULL
-                        elif last != NULL:
-                            current = last.next
                         while current != NULL:
                             for n in range(3):
                                 point[n] = 0.0
@@ -517,8 +522,18 @@ def march_cubes_grid(np.float64_t isovalue,
                                     point[m] += (current.p[n][m]-pos[m])*idds[m]
                             for n in range(3):
                                 point[n] /= 3.0
-                            current.val = offset_interpolate(dims, point,
+                            current.val[0] = offset_interpolate(dims, point,
                                                              sdata + offset)
+                            last = current
+                            if current.next == NULL: break
+                            current = current.next
+                    elif do_sample == 2:
+                        while current != NULL:
+                            for n in range(3):
+                                for m in range(3):
+                                    point[m] = (current.p[n][m]-pos[m])*idds[m]
+                                current.val[n] = offset_interpolate(dims,
+                                                    point, sdata + offset)
                             last = current
                             if current.next == NULL: break
                             current = current.next
@@ -528,13 +543,17 @@ def march_cubes_grid(np.float64_t isovalue,
     # Hallo, we are all done.
     cdef np.ndarray[np.float64_t, ndim=2] vertices 
     vertices = np.zeros((triangles.count*3,3), dtype='float64')
-    if do_sample == 1:
-        sampled = np.zeros(triangles.count, dtype='float64')
-        FillTriangleValues(sampled, triangles.first)
+    if do_sample == 0:
         FillAndWipeTriangles(vertices, triangles.first)
-        return vertices, sampled
+    cdef int nskip
+    if do_sample == 1:
+        nskip = 1
+    elif do_sample == 2:
+        nskip = 3
+    sampled = np.zeros(triangles.count * nskip, dtype='float64')
+    FillTriangleValues(sampled, triangles.first, nskip)
     FillAndWipeTriangles(vertices, triangles.first)
-    return vertices
+    return vertices, sampled
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

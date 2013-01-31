@@ -8,7 +8,6 @@ def setup():
 
 def test_covering_grid():
     # We decompose in different ways
-    return
     for level in [0, 1, 2]:
         for nprocs in [1, 2, 4, 8]:
             pf = fake_random_pf(16, nprocs = nprocs)
@@ -17,6 +16,7 @@ def test_covering_grid():
                     dn * pf.domain_dimensions)
             yield assert_equal, cg["Ones"].max(), 1.0
             yield assert_equal, cg["Ones"].min(), 1.0
+            yield assert_equal, cg["GridLevel"], 0
             yield assert_equal, cg["CellVolume"].sum(), pf.domain_width.prod()
             for g in pf.h.grids:
                 di = g.get_global_startindex()

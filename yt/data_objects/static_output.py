@@ -258,7 +258,7 @@ class StaticOutput(object):
             self._last_freq = field
             self._last_finfo = self.field_info[fname]
             return self._last_finfo
-        raise YTFieldNotFound((fname, ftype), self)
+        raise YTFieldNotFound((ftype, fname), self)
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

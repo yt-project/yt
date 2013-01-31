@@ -42,7 +42,7 @@ from .definitions import \
      pluto2enzoDict, \
      yt2plutoFieldsDict, \
      parameterDict \
-     
+
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
      AMRGridPatch
@@ -74,7 +74,7 @@ class ChomboGrid(AMRGridPatch):
         """
         Return the integer starting index for each dimension at the current
         level.
-        
+
         """
         if self.start_index != None:
             return self.start_index
@@ -96,7 +96,7 @@ class ChomboGrid(AMRGridPatch):
 class ChomboHierarchy(GridGeometryHandler):
 
     grid = ChomboGrid
-    
+
     def __init__(self,pf,data_style='chombo_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
@@ -106,7 +106,7 @@ class ChomboHierarchy(GridGeometryHandler):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.hierarchy = os.path.abspath(self.hierarchy_filename)
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.directory = pf.fullpath
         self._fhandle = h5py.File(self.hierarchy_filename, 'r')
 
         self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
@@ -127,7 +127,7 @@ class ChomboHierarchy(GridGeometryHandler):
                 particle_position_z = float(line.split(' ')[3])
                 coord = [particle_position_x, particle_position_y, particle_position_z]
                 # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py                                                                                                             
+                # copied from object_finding_mixin.py
                 mask=np.ones(self.num_grids)
                 for i in xrange(len(coord)):
                     np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
@@ -143,13 +143,10 @@ class ChomboHierarchy(GridGeometryHandler):
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
 
-    def _initialize_data_storage(self):
-        pass
-
     def _detect_fields(self):
         ncomp = int(self._fhandle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._fhandle['/'].attrs.items()[-ncomp:]]
-    
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         GridGeometryHandler._setup_classes(self, dd)
@@ -159,10 +156,10 @@ class ChomboHierarchy(GridGeometryHandler):
         self.num_grids = 0
         for lev in self._levels:
             self.num_grids += self._fhandle[lev]['Processors'].len()
-        
+
     def _parse_hierarchy(self):
         f = self._fhandle # shortcut
-        
+
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
         levels = f.keys()[1:]
@@ -213,7 +210,7 @@ class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
     _fieldinfo_known = KnownChomboFields
-    
+
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
         fileh = h5py.File(filename,'r')
@@ -222,7 +219,8 @@ class ChomboStaticOutput(StaticOutput):
         self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
-        
+        fileh.close()
+
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
@@ -276,6 +274,7 @@ class ChomboStaticOutput(StaticOutput):
             self.dimensionality = 3
             fileh = h5py.File(self.parameter_filename,'r')
             self.refine_by = fileh['/level_0'].attrs['ref_ratio']
+            fileh.close()
 
     def _parse_pluto_file(self, ini_filename):
         """
@@ -290,7 +289,7 @@ class ChomboStaticOutput(StaticOutput):
         lines = open(self.ini_filename).readlines()
         # read the file line by line, storing important parameters
         for lineI, line in enumerate(lines):
-            try: 
+            try:
                 param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
@@ -318,13 +317,14 @@ class ChomboStaticOutput(StaticOutput):
         RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
         fileh.close()
         return RE
-                  
+
     def __calc_domain_dimensions(self):
         fileh = h5py.File(self.parameter_filename,'r')
         L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
         R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        fileh.close()
         return R_index - L_index
- 
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:

@@ -76,6 +76,43 @@ class IOHandlerStream(BaseIOHandler):
                     ind += data.size
         return rv
 
+    def _read_particle_selection(self, chunks, selector, fields):
+        chunks = list(chunks)
+        if any((ftype != "all" for ftype, fname in fields)):
+            raise NotImplementedError
+        rv = {}
+        # Now we have to do something unpleasant
+        mylog.debug("First pass: counting particles.")
+        size = 0
+        pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.NumberOfParticles == 0: continue
+                size += g.count_particles(selector, 
+                    self.fields[g.id][pfields[0]],
+                    self.fields[g.id][pfields[1]],
+                    self.fields[g.id][pfields[2]])
+        for field in fields:
+            # TODO: figure out dataset types
+            rv[field] = np.empty(size, dtype='float64')
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s points of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+        ind = 0
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.NumberOfParticles == 0: continue
+                mask = g.select_particles(selector,
+                    self.fields[g.id][pfields[0]],
+                    self.fields[g.id][pfields[1]],
+                    self.fields[g.id][pfields[2]])
+                if mask is None: continue
+                for field in set(fields):
+                    gdata = self.fields[g.id][field][mask]
+                    rv[field][ind:ind+gdata.size] = gdata
+                ind += gdata.size
+        return rv
+
     @property
     def _read_exception(self):
         return KeyError

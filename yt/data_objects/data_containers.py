@@ -234,21 +234,33 @@ class YTDataContainer(object):
         try:
             self.pf.field_info[fname].check_available(gen_obj)
         except NeedsGridType as ngt_exception:
-            rv = np.empty(self.size, dtype="float64")
-            ind = 0
-            ngz = ngt_exception.ghost_zones
+            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
+        else:
+            rv = self.pf.field_info[fname](gen_obj)
+        return rv
+
+    def _generate_spatial_fluid(self, field, ngz):
+        rv = np.empty(self.size, dtype="float64")
+        ind = 0
+        if ngz == 0:
             for io_chunk in self.chunks([], "io"):
-                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = ngz)):
+                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
                     mask = self._current_chunk.objs[0].select(self.selector)
                     if mask is None: continue
-                    data = self[field]
-                    if ngz > 0:
-                        data = data[ngz:-ngz, ngz:-ngz, ngz:-ngz]
-                    data = data[mask]
+                    data = self[field][mask]
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
-            rv = self.pf.field_info[fname](gen_obj)
+            chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
+            for i, chunk in enumerate(chunks):
+                with self._chunked_read(chunk):
+                    gz = self._current_chunk.objs[0]
+                    wogz = gz._base_grid
+                    mask = wogz.select(self.selector)
+                    if mask is None: continue
+                    data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz][mask]
+                    rv[ind:ind+data.size] = data
+                    ind += data.size
         return rv
 
     def _generate_particle_field(self, field):
@@ -415,7 +427,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._selector is not None: return self._selector
         sclass = getattr(yt.geometry.selection_routines,
                          "%s_selector" % self._type_name, None)
-        if sclass is None: raise NotImplementedError
+        if sclass is None:
+            raise YTDataSelectorNotImplemented(self._type_name)
         self._selector = sclass(self)
         return self._selector
 
@@ -429,6 +442,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
+    def _identify_dependencies(self, fields_to_get):
+        inspected = 0
+        fields_to_get = fields_to_get[:]
+        for ftype, field in itertools.cycle(fields_to_get):
+            if inspected >= len(fields_to_get): break
+            inspected += 1
+            if field not in self.pf.field_dependencies: continue
+            fd = self.pf.field_dependencies[field]
+            requested = self._determine_fields(list(set(fd.requested)))
+            deps = [d for d in requested if d not in fields_to_get]
+            fields_to_get += deps
+        return fields_to_get
+    
     def get_data(self, fields=None):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -441,15 +467,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         elif self._locked == True:
             raise GenerationInProgress(fields)
         # At this point, we want to figure out *all* our dependencies.
-        inspected = 0
-        for ftype, field in itertools.cycle(fields_to_get):
-            if inspected >= len(fields_to_get): break
-            inspected += 1
-            if field not in self.pf.field_dependencies: continue
-            fd = self.pf.field_dependencies[field]
-            requested = self._determine_fields(list(set(fd.requested)))
-            deps = [d for d in requested if d not in fields_to_get]
-            fields_to_get += deps
+        fields_to_get = self._identify_dependencies(fields_to_get)
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         for ftype, fname in fields_to_get:
@@ -469,6 +487,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                         particles, self, self._current_chunk)
         self.field_data.update(read_particles)
         fields_to_generate = gen_fluids + gen_particles
+        self._generate_fields(fields_to_generate)
+
+    def _generate_fields(self, fields_to_generate):
         index = 0
         with self._field_lock():
             while any(f not in self.field_data for f in fields_to_generate):
@@ -496,11 +517,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         old_size, self.size = self.size, chunk.data_size
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
-        self.shape = (self.size,)
+        #self.shape = (self.size,)
         yield
         self.field_data = old_field_data
         self.size = old_size
-        self.shape = (old_size,)
+        #self.shape = (old_size,)
         self._current_chunk = old_chunk
         self._locked = old_locked
 
@@ -552,15 +573,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
     def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
         axis = self.axis
-        if fields == None:
-            if self.fields == None:
-                raise SyntaxError("The fields keyword argument must be set")
-        else:
-            self.fields = ensure_list(fields)
+        self.fields = [k for k in self.field_data.keys()
+                       if k not in self._container_fields]
         from yt.visualization.plot_window import \
-            GetBoundsAndCenter, PWViewerMPL
+            GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        (bounds, center) = GetBoundsAndCenter(axis, center, width, self.pf)
+        (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
+        if axes_unit is None and units != ('1', '1'):
+            axes_unit = units
         pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
@@ -760,12 +780,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
             ma = np.max(verts, axis=0)
             verts = (verts - mi) / (ma - mi).max()
         if filename is not None and self.comm.rank == 0:
-            f = open(filename, "w")
+            if hasattr(filename, "write"): f = filename
+            else: f = open(filename, "w")
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts)/3):
                 f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
-            f.close()
+            if not hasattr(filename, "write"): f.close()
         if sample_values is not None:
             return verts, samples
         return verts

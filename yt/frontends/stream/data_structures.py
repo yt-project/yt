@@ -105,7 +105,8 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields, io = None):
+                 fields, io = None, particle_types = None):
+        if particle_types is None: particle_types = {}
         self.left_edges = left_edges
         self.right_edges = right_edges
         self.dimensions = dimensions
@@ -116,10 +117,18 @@ class StreamHandler(object):
         self.num_grids = self.levels.size
         self.fields = fields
         self.io = io
-
+        self.particle_types = particle_types
+            
     def get_fields(self):
         return self.fields.all_fields
 
+    def get_particle_type(self, field) :
+
+        if self.particle_types.has_key(field) :
+            return self.particle_types[field]
+        else :
+            return False
+        
 class StreamHierarchy(GridGeometryHandler):
 
     grid = StreamGrid
@@ -210,6 +219,33 @@ class StreamHierarchy(GridGeometryHandler):
         else:
             self.io = io_registry[self.data_style](self.stream_handler)
 
+    def update_data(self, data) :
+
+        """
+        Update the stream data with a new data dict. If fields already exist,
+        they will be replaced, but if they do not, they will be added. Fields
+        already in the stream but not part of the data dict will be left
+        alone. 
+        """
+        
+        particle_types = set_particle_types(data[0])
+
+        for key in data[0].keys() :
+            if key is "number_of_particles": continue
+            self.stream_handler.particle_types[key] = particle_types[key]
+            if key not in self.field_list:
+                self.field_list.append(key)
+                
+        for i, grid in enumerate(self.grids) :
+            if data[i].has_key("number_of_particles") :
+                grid.NumberOfParticles = data[i].pop("number_of_particles")
+            for key in data[i].keys() :
+                if key in grid.keys() : grid.field_data.pop(key, None)
+                self.stream_handler.fields[grid.id][key] = data[i][key]
+            
+        self._detect_fields()
+        self._setup_unknown_fields()
+                
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo
@@ -261,8 +297,66 @@ class StreamDictFieldHandler(dict):
     @property
     def all_fields(self): return self[0].keys()
 
+def set_particle_types(data) :
+
+    particle_types = {}
+    
+    for key in data.keys() :
+
+        if key is "number_of_particles": continue
+        
+        if len(data[key].shape) == 1:
+            particle_types[key] = True
+        else :
+            particle_types[key] = False
+    
+    return particle_types
+
+def assign_particle_data(pf, pdata) :
+
+    """
+    Assign particle data to the grids using find_points. This
+    will overwrite any existing particle data, so be careful!
+    """
+    
+    if pf.h.num_grids > 1 :
+
+        try:
+            x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
+        except KeyError:
+            raise KeyError("Cannot decompose particle data without position fields!")
+        
+        particle_grids, particle_grid_inds = pf.h.find_points(x,y,z)
+        idxs = np.argsort(particle_grid_inds)
+        particle_grid_count = np.bincount(particle_grid_inds,
+                                          minlength=pf.h.num_grids)
+        particle_indices = np.zeros(pf.h.num_grids + 1, dtype='int64')
+        if pf.h.num_grids > 1 :
+            np.add.accumulate(particle_grid_count.squeeze(),
+                              out=particle_indices[1:])
+        else :
+            particle_indices[1] = particle_grid_count.squeeze()
+    
+        pdata.pop("number_of_particles")    
+        grid_pdata = []
+        
+        for i, pcount in enumerate(particle_grid_count) :
+            grid = {}
+            grid["number_of_particles"] = pcount
+            start = particle_indices[i]
+            end = particle_indices[i+1]
+            for key in pdata.keys() :
+                grid[key] = pdata[key][idxs][start:end]
+            grid_pdata.append(grid)
+
+    else :
+
+        grid_pdata = [pdata]
+        
+    pf.h.update_data(grid_pdata)
+                                        
 def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
-                      nprocs=1, sim_time=0.0, number_of_particles=0):
+                      nprocs=1, sim_time=0.0):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -274,6 +368,9 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
           disappointing or non-existent in most cases.
         * Particles may be difficult to integrate.
 
+    Particle fields are detected as one-dimensional fields. The number of particles
+    is set by the "number_of_particles" key in data.
+    
     Parameters
     ----------
     data : dict
@@ -288,8 +385,6 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
         The simulation time in seconds
-    number_of_particles : int, optional
-        If particle fields are included, set this to the number of particles
 
     Examples
     --------
@@ -309,14 +404,29 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
     sfh = StreamDictFieldHandler()
-
+    
+    if data.has_key("number_of_particles") :
+        number_of_particles = data.pop("number_of_particles")
+    else :
+        number_of_particles = int(0)
+    
+    if number_of_particles > 0 :
+        particle_types = set_particle_types(data)
+        pdata = {}
+        pdata["number_of_particles"] = number_of_particles
+        for key in data.keys() :
+            if len(data[key].shape) == 1 :
+                pdata[key] = data.pop(key)
+    else :
+        particle_types = {}
+    
     if nprocs > 1:
         temp = {}
         new_data = {}
         for key in data.keys():
             psize = get_psize(np.array(data[key].shape), nprocs)
             grid_left_edges, grid_right_edges, temp[key] = \
-                decompose_array(data[key], psize, bbox)
+                             decompose_array(data[key], psize, bbox)
             grid_dimensions = np.array([grid.shape for grid in temp[key]],
                                        dtype="int32")
         for gid in range(nprocs):
@@ -337,9 +447,10 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         grid_dimensions,
         grid_levels,
         -np.ones(nprocs, dtype='int64'),
-        number_of_particles*np.ones(nprocs, dtype='int64').reshape(nprocs,1),
+        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
+        particle_types=particle_types
     )
 
     handler.name = "UniformGridData"
@@ -358,10 +469,24 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+
+    # Now figure out where the particles go
+
+    if number_of_particles > 0 :
+        if ("all", "particle_position_x") not in pdata:
+            pdata_ftype = {}
+            for f in [k for k in sorted(pdata)]:
+                if not hasattr(pdata[f], "shape"): continue
+                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
+                pdata_ftype["all",f] = pdata.pop(f)
+            pdata_ftype.update(pdata)
+            pdata = pdata_ftype
+        assign_particle_data(spf, pdata)
+    
     return spf
 
 def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
-                   sim_time=0.0, number_of_particles=0):
+                   sim_time=0.0):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -380,8 +505,9 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     grid_data : list of dicts
         This is a list of dicts.  Each dict must have entries "left_edge",
         "right_edge", "dimensions", "level", and then any remaining entries are
-        assumed to be fields.  This will be modified in place and can't be
-        assumed to be static..
+        assumed to be fields.  They also may include a particle count, otherwise
+        assumed to be zero. This will be modified in place and can't be
+        assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
     sim_unit_to_cm : float
@@ -390,8 +516,6 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
         Size of computational domain in units sim_unit_to_cm
     sim_time : float, optional
         The simulation time in seconds
-    number_of_particles : int, optional
-        If particle fields are included, set this to the number of particles
 
     Examples
     --------
@@ -400,11 +524,13 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     ...     dict(left_edge = [0.0, 0.0, 0.0],
     ...          right_edge = [1.0, 1.0, 1.],
     ...          level = 0,
-    ...          dimensions = [32, 32, 32]),
+    ...          dimensions = [32, 32, 32],
+    ...          number_of_particles = 0)
     ...     dict(left_edge = [0.25, 0.25, 0.25],
     ...          right_edge = [0.75, 0.75, 0.75],
     ...          level = 1,
-    ...          dimensions = [32, 32, 32])
+    ...          dimensions = [32, 32, 32],
+    ...          number_of_particles = 0)
     ... ]
     ... 
     >>> for g in grid_data:
@@ -423,23 +549,27 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     grid_left_edges = np.zeros((ngrids, 3), dtype="float32")
     grid_right_edges = np.zeros((ngrids, 3), dtype="float32")
     grid_dimensions = np.zeros((ngrids, 3), dtype="int32")
+    number_of_particles = np.zeros((ngrids,1), dtype='int64')
     sfh = StreamDictFieldHandler()
     for i, g in enumerate(grid_data):
         grid_left_edges[i,:] = g.pop("left_edge")
         grid_right_edges[i,:] = g.pop("right_edge")
         grid_dimensions[i,:] = g.pop("dimensions")
         grid_levels[i,:] = g.pop("level")
+        if g.has_key("number_of_particles") :
+            number_of_particles[i,:] = g.pop("number_of_particles")  
         sfh[i] = g
-
+            
     handler = StreamHandler(
         grid_left_edges,
         grid_right_edges,
         grid_dimensions,
         grid_levels,
         None, # parent_ids is none
-        number_of_particles*np.ones(ngrids, dtype='int64').reshape(ngrids,1),
+        number_of_particles,
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
+        particle_types=set_particle_types(grid_data[0])
     )
 
     handler.name = "AMRGridData"
@@ -491,9 +621,25 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     >>> ug = load_uniform_grid({'Density': data}, domain_dims, 1.0)
     >>> pf = refine_amr(ug, rc, fo, 5)
     """
+
+    # If we have particle data, set it aside for now
+
+    number_of_particles = np.sum([grid.NumberOfParticles
+                                  for grid in base_pf.h.grids])
+
+    if number_of_particles > 0 :
+        pdata = {}
+        for field in base_pf.h.field_list :
+            if base_pf.field_info[field].particle_type :
+                pdata[field] = np.concatenate([grid[field]
+                                               for grid in base_pf.h.grids])
+        pdata["number_of_particles"] = number_of_particles
+        
     last_gc = base_pf.h.num_grids
     cur_gc = -1
     pf = base_pf    
+    bbox = np.array( [ (pf.domain_left_edge[i], pf.domain_right_edge[i])
+                       for i in range(3) ])
     while pf.h.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   pf.h.max_level)
@@ -507,20 +653,38 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
             for field in pf.h.field_list:
-                gd[field] = g[field]
+                if not pf.field_info[field].particle_type :
+                    gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < pf.h.max_level: continue
             fg = FlaggingGrid(g, refinement_criteria)
             nsg = fg.find_subgrids()
             for sg in nsg:
-                LE = sg.left_index * g.dds
+                LE = sg.left_index * g.dds + pf.domain_left_edge
                 dims = sg.dimensions * pf.refine_by
                 grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
                 for field in pf.h.field_list:
-                    gd[field] = grid[field]
+                    if not pf.field_info[field].particle_type :
+                        gd[field] = grid[field]
                 grid_data.append(gd)
-        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0)
+        
+        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0,
+                            bbox = bbox)
         cur_gc = pf.h.num_grids
+
+    # Now reassign particle data to grids
+
+    if number_of_particles > 0:
+        if ("all", "particle_position_x") not in pdata:
+            pdata_ftype = {}
+            for f in [k for k in sorted(pdata)]:
+                if not hasattr(pdata[f], "shape"): continue
+                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
+                pdata_ftype["all",f] = pdata.pop(f)
+            pdata_ftype.update(pdata)
+            pdata = pdata_ftype
+        assign_particle_data(pf, pdata)
+    
     return pf

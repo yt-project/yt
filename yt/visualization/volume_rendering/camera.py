@@ -118,7 +118,7 @@ class Camera(ParallelAnalysisInterface):
             lead to large speed improvements, but at a loss of
             accuracy/smoothness in resulting image.  The effects are
             less notable when the transfer function is smooth and
-            broad. Default: False
+            broad. Default: True
         tree_type: string, optional
             Specifies the type of kd-Tree to be constructed/cast.
             There are three options, the default being 'domain'. Only
@@ -193,10 +193,12 @@ class Camera(ParallelAnalysisInterface):
             resolution = (resolution, resolution)
         self.resolution = resolution
         self.sub_samples = sub_samples
+        self.rotation_vector = north_vector
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
-        self.rotation_vector = self.orienter.unit_vectors[1]
+        if not steady_north:
+            self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -283,7 +285,7 @@ class Camera(ParallelAnalysisInterface):
         if center is not None:
             self.center = center
         if north_vector is None:
-            north_vector = self.orienter.unit_vectors[1]
+            north_vector = self.orienter.north_vector
         if normal_vector is None:
             normal_vector = self.orienter.normal_vector
         self.orienter.switch_orientation(normal_vector = normal_vector,
@@ -574,17 +576,72 @@ class Camera(ParallelAnalysisInterface):
 
         >>> cam.rotate(np.pi/4)
         """
+        rotate_all = rot_vector is not None
         if rot_vector is None:
             rot_vector = self.rotation_vector
+        else:
+            rot_vector = ensure_numpy_array(rot_vector)
+            rot_vector = rot_vector/np.linalg.norm(rot_vector)
           
         R = get_rotation_matrix(theta, rot_vector)
 
         normal_vector = self.front_center-self.center
 
-        self.switch_view(normal_vector=np.dot(R,normal_vector))
+        if rotate_all:
+            self.switch_view(
+                normal_vector=np.dot(R, normal_vector),
+                north_vector=np.dot(R, self.orienter.unit_vectors[1]))
+        else:
+            self.switch_view(normal_vector=np.dot(R, normal_vector))
 
+
+    def pitch(self, theta):
+        r"""Rotate by a given angle about the horizontal axis
+
+        Pitch the view.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to pitch the view.
+
+        Examples
+        --------
+
+        >>> cam.roll(np.pi/4)
+        """
+        rot_vector = self.orienter.unit_vectors[0]
+        R = get_rotation_matrix(theta, rot_vector)
+        normal_vector = self.front_center-self.center
+        self.switch_view(
+                normal_vector=np.dot(R, self.orienter.unit_vectors[2]),
+                north_vector=np.dot(R, self.orienter.unit_vectors[1]))
+        if self.orienter.steady_north:
+            self.orienter.north_vector = self.orienter.unit_vectors[1]
+ 
+    def yaw(self, theta):
+        r"""Rotate by a given angle about the vertical axis
+
+        Yaw the view.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to yaw the view.
+
+        Examples
+        --------
+
+        >>> cam.roll(np.pi/4)
+        """
+        rot_vector = self.orienter.unit_vectors[1]
+        R = get_rotation_matrix(theta, rot_vector)
+        normal_vector = self.front_center-self.center
+        self.switch_view(
+                normal_vector=np.dot(R, self.orienter.unit_vectors[2]))
+ 
     def roll(self, theta):
-        r"""Roll by a given angle
+        r"""Rotate by a given angle about the view normal axis
 
         Roll the view.
 
@@ -598,10 +655,13 @@ class Camera(ParallelAnalysisInterface):
 
         >>> cam.roll(np.pi/4)
         """
-        rot_vector = self.orienter.normal_vector
+        rot_vector = self.orienter.unit_vectors[2]
         R = get_rotation_matrix(theta, rot_vector)
-        north_vector = self.orienter.unit_vectors[1]
-        self.switch_view(north_vector=np.dot(R, north_vector))
+        self.switch_view(
+                normal_vector=np.dot(R, self.orienter.unit_vectors[2]),
+                north_vector=np.dot(R, self.orienter.unit_vectors[1]))
+        if self.orienter.steady_north:
+            self.orienter.north_vector = np.dot(R, self.orienter.north_vector)
 
     def rotation(self, theta, n_steps, rot_vector=None, clip_ratio = None):
         r"""Loop over rotate, creating a rotation
@@ -1009,6 +1069,9 @@ class FisheyeCamera(Camera):
             volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields)
         self.volume = volume
+
+    def get_information(self):
+        return {}
 
     def new_image(self):
         image = np.zeros((self.resolution**2,1,3), dtype='float64', order='C')

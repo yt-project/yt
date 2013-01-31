@@ -450,3 +450,46 @@ def grow_flagging_field(oofield):
                             if ofield[i, j, k] == 1:
                                 nfield[ni, nj, nk] = 1
     return nfield.astype("bool")
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def fill_region(input_fields, output_fields,
+                np.int32_t output_level,
+                np.ndarray[np.int64_t, ndim=1] left_index,
+                np.ndarray[np.int64_t, ndim=2] ipos,
+                np.ndarray[np.int64_t, ndim=1] ires,
+                np.int64_t refine_by = 2
+                ):
+    cdef int i, n
+    cdef np.int64_t tot
+    cdef np.int64_t iind[3], oind[3], dim[3], oi, oj, ok, rf
+    cdef np.ndarray[np.float64_t, ndim=3] ofield
+    cdef np.ndarray[np.float64_t, ndim=1] ifield
+    nf = len(input_fields)
+    for i in range(3):
+        dim[i] = output_fields[0].shape[i]
+    for n in range(nf):
+        tot = 0
+        ofield = output_fields[n]
+        ifield = input_fields[n]
+        for i in range(ipos.shape[0]):
+            rf = refine_by**(output_level - ires[i]) 
+            for n in range(3):
+                iind[n] = ipos[i, n] * rf - left_index[n]
+            for oi in range(rf):
+                oind[0] = oi + iind[0]
+                if oind[0] < 0 or oind[0] >= dim[0]:
+                    continue
+                for oj in range(rf):
+                    oind[1] = oj + iind[1]
+                    if oind[1] < 0 or oind[1] >= dim[1]:
+                        continue
+                    for ok in range(rf):
+                        oind[2] = ok + iind[2]
+                        if oind[2] < 0 or oind[2] >= dim[2]:
+                            continue
+                        ofield[oind[0], oind[1], oind[2]] = \
+                            ifield[i]
+                        tot += 1
+    return tot
