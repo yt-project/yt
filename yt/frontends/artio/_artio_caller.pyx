@@ -11,7 +11,8 @@ from libc.stdlib cimport malloc, free
 import  data_structures  
 from yt.geometry.oct_container cimport \
     OctreeContainer, \
-    ARTIOOctreeContainer
+    ARTIOOctreeContainer, \
+    Oct
 
 cdef extern from "stdlib.h":
     void *alloca(int)
@@ -213,60 +214,104 @@ cdef class artio_fileset :
         cdef int num_oct_levels
         cdef int *num_octs_per_level
         cdef double dpos[3]
+        cdef int refined[8]
         cdef int oct_count
+        cdef int ioct
 
-        cdef np.ndarray[np.float64_t, ndim=2] pos 
-        pos = np.empty((1,3), dtype='float64')
+        cdef Oct **next_level_parents=NULL, **cur_level_parents=NULL, **tmp_parents
+        cdef int num_next_parents, num_cur_parents, tmp_size
+        cdef int next_parents_size, cur_parents_size, cur_parent
 
         print 'start filling oct positions'
         self.oct_handler = oct_handler
-
         oct_count = 0
-        level = 0
+
         for iz in range(self.num_grid/2) :
-            pos[0,2] = iz*2+1
+            dpos[2] = iz*2+1
             for iy in range(self.num_grid/2) :
-                pos[0,1] = iy*2+1
+                dpos[1] = iy*2+1
                 for ix in range(self.num_grid/2) :
-                    pos[0,0]=ix*2+1
-                    oct_handler.add(self.cpu+1, level, self.num_grid, pos, self.domain_id) 
+                    dpos[0]=ix*2+1
+                    oct_handler.add_oct(self.cpu+1, NULL, 0, dpos)
                     oct_count += 1
 
-        # Now do real ART octs
-        print 'start filling oct positions children'
+        print "done filling root oct positions"
+
         status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
         check_artio_status(status) 
 
         num_octs_per_level = <int *>malloc(self.max_level*sizeof(int))
+        if not num_octs_per_level :
+            raise MemoryError
+        next_level_parents = <Oct **>malloc(sizeof(Oct *))
+        if not next_level_parents :
+            raise MemoryError
+        next_parents_size = 1
+        cur_level_parents = <Oct **>malloc(sizeof(Oct *))
+        if not cur_level_parents :
+            raise MemoryError
+        cur_parents_size = 1
 
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
             status = artio_grid_read_root_cell_begin( self.handle, sfc, 
                 dpos, NULL, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
 
-            for level in range(num_oct_levels) :
-                status = artio_grid_read_level_begin( self.handle, level+1 )
+            next_level_parents[0] = oct_handler.get_root_oct(dpos)
+            num_next_parents = 1
+
+            for level in range(1,num_oct_levels+1) :
+                tmp_parents = cur_level_parents
+                tmp_size = cur_parents_size
+
+                cur_level_parents = next_level_parents
+                cur_parents_size = next_parents_size
+                num_cur_parents = num_next_parents
+
+                cur_parent = 0
+                num_next_parents = 0
+                next_parents_size = tmp_size
+                next_level_parents = tmp_parents
+
+                if level < num_oct_levels and \
+                         next_parents_size < num_octs_per_level[level] :
+                    free(next_level_parents)
+                    next_parents_size = num_octs_per_level[level]
+                    next_level_parents = <Oct **>malloc(next_parents_size*sizeof(Oct *))
+                    if not next_level_parents :
+                        raise MemoryError
+
+                status = artio_grid_read_level_begin( self.handle, level )
                 check_artio_status(status) 
 
-                for oct in range(num_octs_per_level[level]) :
-                    status = artio_grid_read_oct( self.handle, dpos, NULL, NULL )
+                for ioct in range(num_octs_per_level[level-1]) :
+                    status = artio_grid_read_oct( self.handle, dpos, NULL, refined )
                     check_artio_status(status) 
- 
-                    pos[0,0] = dpos[0]
-                    pos[0,1] = dpos[1]
-                    pos[0,2] = dpos[2]
-                    oct_count += oct_handler.add(self.cpu+1, level+1, self.num_grid, pos, self.domain_id )
+
+                    new_oct = oct_handler.add_oct(self.cpu+1, 
+                            cur_level_parents[cur_parent],
+                            level, dpos)
+                    oct_count += 1
+                    cur_parent += 1
+
+                    if level < num_oct_levels :
+                        for i in range(8) :
+                            if refined[i] :
+                                next_level_parents[num_next_parents] = new_oct
+                                num_next_parents += 1
 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
 
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status) 
-        
+       
         status = artio_grid_clear_sfc_cache( self.handle )
         check_artio_status(status)
 
-        free(num_octs_per_level) 
+        free(num_octs_per_level)
+        free(next_level_parents)
+        free(cur_level_parents)
 
         print 'done filling oct positions', oct_count
 
@@ -334,11 +379,11 @@ cdef class artio_fileset :
             for i in range(nf):
                 fpoint[i][order] = variables[forder[i]]
  
-            for level in range(num_oct_levels) :
-                status = artio_grid_read_level_begin( self.handle, level+1 )
+            for level in range(1,num_oct_levels) :
+                status = artio_grid_read_level_begin( self.handle, level )
                 check_artio_status(status) 
 
-                for oct in range(num_octs_per_level[level]) :
+                for oct in range(num_octs_per_level[level-1]) :
                     status = artio_grid_read_oct( self.handle, NULL, variables, NULL )
                     check_artio_status(status) 
 
