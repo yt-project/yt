@@ -51,7 +51,7 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        # First pass to generate mask
+        # First pass to read in particles
 	print "kln reading particle data"
         # FIX need an input for particle type (in fields?)
         # http://yt-project.org/doc/analyzing/particles.html

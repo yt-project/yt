@@ -199,19 +199,17 @@ class ARTIODomainSubset(object):
             'particle_position_z': 'POSITION_Z',
             'particle_velocity_x': 'VELOCITY_X',
             'particle_velocity_y': 'VELOCITY_Y',
-            'particle_velocity_z': 'VELOCITY_Z' }
+            'particle_velocity_z': 'VELOCITY_Z',
+            'particle_mass': 'particle_species_mass'}
 
-	yt_to_art_static = {
-	'particle_mass': 'particle_species_mass'
-	}
 
         masked_particles = {}
-	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, [yt_to_art[f[1]] for f in fields], )
+	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, [yt_to_art[f[1]] for f in fields] )
 
 	# dhr - make sure these are shallow copies
         tr = {}
         for fieldtype, fieldname in fields :
-            tr[fieldname] = temp[yt_to_art[fieldname]]
+            tr[fieldname] = masked_particles[yt_to_art[fieldname]]
 	
         return tr
 
