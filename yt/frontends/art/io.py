@@ -32,8 +32,6 @@ import os.path
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
 import yt.utilities.lib as au
 
 from yt.frontends.art.definitions import *
@@ -41,111 +39,61 @@ from yt.frontends.art.definitions import *
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
 
-    def __init__(self, filename, nhydro_vars, level_info, level_offsets,
-                 *args, **kwargs):
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.filename = filename
-        self.nhydro_vars = nhydro_vars
-        self.level_info = level_info
-        self.level_offsets = level_offsets
-        self.level_data = {}
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        # Chunks in this case will have affiliated domain subset objects
+        # Each domain subset will contain a hydro_offset array, which gives
+        # pointers to level-by-level hydro information
+        tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
+        cp = 0
+        for chunk in chunks:
+            for subset in chunk.objs:
+                # Now we read the entire thing
+                f = open(subset.domain.hydro_fn, "rb")
+                # This contains the boundary information, so we skim through
+                # and pick off the right vectors
+                content = cStringIO.StringIO(f.read())
+                rv = subset.fill(content, fields)
+                for ft, f in fields:
+                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                        f, subset.cell_count, rv[f].min(), rv[f].max(),
+                        cp, cp+subset.cell_count)
+                    tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
+                cp += subset.cell_count
+        return tr
 
-    def preload_level(self, level,field=None):
-        """ Reads in the full ART tree. From the ART source:
-            iOctLv :    >0   - level of an oct
-            iOctPr :         - parent of an oct
-            iOctCh :    >0   - pointer to an oct of children
-                        0   - there are no children; the cell is a leaf
-            iOctNb :    >0   - pointers to neighbouring cells 
-            iOctPs :         - coordinates of Oct centers
-            iOctLL1:         - doubly linked list of octs
-            iOctLL2:         - doubly linked list of octs
-            tl - current  time moment for level L
-            tlold - previous time moment for level L
-            dtl - dtime0/2**iTimeBin
-            dtlold -  previous time step for level L
-            iSO - sweep order
-            hvar(1,*) - gas density 
-            hvar(2,*) - gas energy 
-            hvar(3,*) - x-momentum 
-            hvar(4,*) - y-momentum
-            hvar(5,*) - z-momentum
-            hvar(6,*) - pressure
-            hvar(7,*) - Gamma
-            hvar(8,*) - internal energy 
-            var (1,*) - total density 
-            var (2,*) - potential (new)
-            var (3,*) - potential (old)
-        """
-        
-        if level in self.level_data: return
-        if level == 0:
-            self.preload_root_level()
-            return
-        f = open(self.filename, 'rb')
-        f.seek(self.level_offsets[level])
-        ncells = 8*self.level_info[level]
-        nvals = ncells * (self.nhydro_vars + 6) # 2 vars, 2 pads
-        arr = np.fromfile(f, dtype='>f', count=nvals)
-        arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
-        assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
-        arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
-        if field==None:
-            self.level_data[level] = arr.astype('float32')
-        else:
-            self.level_data[level] = arr.astype('float32')
-        del arr
+    def _read_particle_selection(self, chunks, selector, fields):
+        size = 0
+        masks = {}
+        for chunk in chunks:
+            for subset in chunk.objs:
+                # We read the whole thing, then feed it back to the selector
+                offsets = []
+                f = open(subset.domain.part_fn, "rb")
+                foffsets = subset.domain.particle_field_offsets
+                selection = {}
+                for ax in 'xyz':
+                    field = "particle_position_%s" % ax
+                    f.seek(foffsets[field])
+                    selection[ax] = fpu.read_vector(f, 'd')
+                mask = selector.select_points(selection['x'],
+                            selection['y'], selection['z'])
+                if mask is None: continue
+                size += mask.sum()
+                masks[id(subset)] = mask
+        # Now our second pass
+        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
+        for chunk in chunks:
+            for subset in chunk.objs:
+                f = open(subset.domain.part_fn, "rb")
+                mask = masks.pop(id(subset), None)
+                if mask is None: continue
+                for ftype, fname in fields:
+                    offsets.append((foffsets[fname], (ftype,fname)))
+                for offset, field in sorted(offsets):
+                    f.seek(offset)
+                    tr[field] = fpu.read_vector(f, 'd')[mask]
+        return tr
 
-    def preload_root_level(self):
-        f = open(self.filename, 'rb')
-        f.seek(self.level_offsets[0] + 4) # Ditch the header
-        ncells = self.level_info[0]
-        nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
-        hvar = np.fromfile(f, dtype='>f', count=nhvals).astype("float32")
-        hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
-        np.fromfile(f,dtype='>i',count=2) #throw away the pads
-        nvars = ncells * (2) # 0 vars, 0 pads
-        var = np.fromfile(f, dtype='>f', count=nvars).astype("float32")
-        var = var.reshape((2, ncells), order="F")
-        arr = np.concatenate((hvar,var))
-        self.level_data[0] = arr
-
-    def clear_level(self, level):
-        self.level_data.pop(level, None)
-
-    def _read_data_set(self, grid, field):
-        if field in particle_fields:
-            return self._read_particle_field(grid, field)
-        pf = grid.pf
-        field_id = grid.pf.h.field_list.index(field)
-        if grid.Level == 0: # We only have one root grid
-            self.preload_level(0)
-            tr = self.level_data[0][field_id,:].reshape(
-                    pf.domain_dimensions, order="F").copy()
-            return tr.swapaxes(0, 2).astype("float64")
-        tr = np.zeros(grid.ActiveDimensions, dtype='float32')
-        grids = [grid]
-        l_delta = 0
-        filled = np.zeros(grid.ActiveDimensions, dtype='uint8')
-        to_fill = grid.ActiveDimensions.prod()
-        while to_fill > 0 and len(grids) > 0:
-            next_grids = []
-            for g in grids:
-                self.preload_level(g.Level,field=field_id)
-                #print "Filling %s from %s (%s)" % (grid, g, g.Level)
-                to_fill -= au.read_art_grid(field_id, 
-                        grid.get_global_startindex(), grid.ActiveDimensions,
-                        tr, filled, self.level_data[g.Level],
-                        g.Level, 2**l_delta, g.locations)
-                next_grids += g.Parent
-            grids = next_grids
-            l_delta += 1
-        return tr.astype("float64")
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid, field)[sl]
 
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):
