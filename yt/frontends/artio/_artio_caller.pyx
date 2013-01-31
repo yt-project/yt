@@ -105,6 +105,7 @@ cdef class artio_fileset :
     cdef public object parameters 
     cdef ARTIOOctreeContainer oct_handler
     cdef artio_fileset_handle *handle
+    cdef artio_fileset_handle *particle_handle
     cdef int64_t num_root_cells
     cdef int64_t sfc_min, sfc_max
     cdef public int num_grid
@@ -112,7 +113,6 @@ cdef class artio_fileset :
     # grid attributes
     cdef int min_level, max_level
     cdef int num_grid_variables
-    cdef int num_particle_variables
 
     cdef int cpu
     cdef int domain_id
@@ -122,6 +122,7 @@ cdef class artio_fileset :
         cdef int64_t num_root
 
         self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global ) 
+        self.particle_handle = artio_fileset_open( file_prefix, artio_type, artio_context_global )
         self.read_parameters()
         print 'print parameters in caller.pyx',self.parameters
         print 'done reading header parameters'
@@ -134,7 +135,7 @@ cdef class artio_fileset :
             num_root >>= 3
 
         #kln - add particle detection code
-        status = artio_fileset_open_particles( self.handle )
+        status = artio_fileset_open_particles( self.particle_handle )
         check_artio_status(status)
  
         # dhr - add grid detection code 
@@ -336,7 +337,6 @@ cdef class artio_fileset :
     def particle_var_fill(self, accessed_species, source, selector, fields) :
         cdef double *primary_variables
         cdef float *secondary_variables
-        cdef int *num_particles_per_species
         cdef int status
         cdef np.ndarray[np.float32_t, ndim=1] arr
         # This relies on the fields being contiguous
@@ -345,17 +345,17 @@ cdef class artio_fileset :
         fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*nf)
         forder = <int*>malloc(sizeof(int)*nf)
         cdef int i, j, level
-        cdef int subspecies
-        cdef int64_t pid = 0l
+        cdef int *subspecies
+        cdef int64_t *pid
 #        cdef np.float64_t dds[3], pos[3]
 #        cdef int eterm[3]
-        dds = []
-        pos = []
-        eterm = []
+        dds = np.zeros(3)
+        pos = np.zeros(3)
+        eterm = np.zeros(3)
         cdef int **mask
         mask = <int**>malloc(sizeof(int*)*len(accessed_species))
 
-        status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
+        status = artio_particle_cache_sfc_range( self.particle_handle, self.sfc_min, self.sfc_max )
         check_artio_status(status)
 
         count_mask = {}
@@ -364,8 +364,10 @@ cdef class artio_fileset :
         for species in range(len(accessed_species)) :
              mask[species] = <int*>malloc(self.parameters['particle_species_num'][species] * sizeof(int))
              count_mask[species] = 0
-             count[species] = 0             
-
+             count[species] = 0
+         
+        cdef int *num_particles_per_species 
+        num_particles_per_species =  <int *>malloc(sizeof(int)*len(self.parameters['particle_species_labels']))
         primary_labels = self.parameters['species_00_primary_variable_labels']
         static_labels = ["particle_species_mass"]
         var_labels = primary_labels+static_labels
@@ -383,40 +385,39 @@ cdef class artio_fileset :
             forder[i] = j
             if f not in primary_labels :
                npf -= 1
-        primary_variables = <double *>malloc(len(primary_labels)*sizeof(float))
+        primary_variables = <double *>malloc(len(primary_labels)*sizeof(double))
 
         print "generating mask for particles"
         count_all_particles = 0
-        print "sfc limits", self.sfc_min, self.sfc_max+1
+
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
-                print sfc    
-                status = artio_particle_read_root_cell_begin( self.handle, sfc,
+                status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
                     num_particles_per_species )
                 check_artio_status(status)
 
                 for species in range(len(accessed_species) ) :
-                        print species
-                        status = artio_particle_read_species_begin(self.handle, species)
+                        status = artio_particle_read_species_begin(self.particle_handle, species)
                         check_artio_status(status)
 
                         for particle in range( num_particles_per_species[species] ) :
-                               print particle
-                               status = artio_particle_read_particle(self.handle,
-                                        &pid, &subspecies, primary_variables,
+                               print count_mask[species], count[species]
+                               status = artio_particle_read_particle(self.particle_handle,
+                                        pid, subspecies, primary_variables,
                                         secondary_variables)
                                check_artio_status(status)
+
                                pos[0] = primary_variables[pos_index[0]]
                                pos[1] = primary_variables[pos_index[1]]
                                pos[2] = primary_variables[pos_index[2]]
-
+                               #kln - fails at select_cell
                                mask[species][count[species]] = selector.select_cell(pos, dds, eterm)
                                count_mask[species] += mask[species][count_mask[species]]
                                count[species] += 1
-	
-                        status = artio_particle_read_species_end( self.handle )
+                        	
+                        status = artio_particle_read_species_end( self.particle_handle )
                         check_artio_status(status)
 
-                status = artio_particle_read_root_cell_end( self.handle )
+                status = artio_particle_read_root_cell_end( self.particle_handle )
                 check_artio_status(status)
 
         for i, f in enumerate(fields):
@@ -430,17 +431,17 @@ cdef class artio_fileset :
 	
         print "reading in particle variables"
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
-                status = artio_particle_read_root_cell_begin( self.handle, sfc,
+                status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
                     num_particles_per_species )
                 check_artio_status(status)	
 
                 for species in range(len(accessed_species) ) :
-                    status = artio_particle_read_species_begin(self.handle, species);
+                    status = artio_particle_read_species_begin(self.particle_handle, species);
                     check_artio_status(status)
 
                     for particle in range( num_particles_per_species[species] ) :
-                        status = artio_particle_read_particle(self.handle,
-                                        &pid, &subspecies, primary_variables,
+                        status = artio_particle_read_particle(self.particle_handle,
+                                        pid, subspecies, primary_variables,
                                         secondary_variables)
                         check_artio_status(status)
 
@@ -452,10 +453,10 @@ cdef class artio_fileset :
                              count_all_particles += 1
                         count[species] += 1
 
-                    status = artio_particle_read_species_end( self.handle )
+                    status = artio_particle_read_species_end( self.particle_handle )
                     check_artio_status(status)
 
-                status = artio_particle_read_root_cell_end( self.handle )
+                status = artio_particle_read_root_cell_end( self.particle_handle )
                 check_artio_status(status)
 
         free(primary_variables)
