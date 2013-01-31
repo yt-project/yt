@@ -35,6 +35,7 @@ class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
+	print 'reading in fluid data'
         tr = dict((ftuple, np.empty(size, dtype='float64')) for ftuple in fields)
         cp = 0
         for onechunk in chunks:
@@ -51,46 +52,28 @@ class IOHandlerARTIO(BaseIOHandler):
 
     def _read_particle_selection(self, chunks, selector, fields):
         # First pass to generate mask
-
+	print "kln reading particle data"
         # FIX need an input for particle type (in fields?)
         # http://yt-project.org/doc/analyzing/particles.html
         # ->creation_time >0 used to indicate star particles
-#        accessed_species = ['N-BODY']#,'STAR']
-#
-#        totsize = 0
-#        onesize = 0
-#        sizes = {}
-#        masks = {}
-#        (fieldnames, fieldtypes) = fields
-#        print 'fieldnames in io.py', fieldnames
-#        print 'quitting from io.py '
-#        sys.exit(1)
-#        for onechunk in chunks:
-#            for subset in onechunk.objs:
-#                print 'getting mask from ', subset.domain.part_fn
-#                # list of all x positions all y positions and all z positions
-#                selection = subset.get_particle_pos(accessed_species, fieldnames) 
-#                mask = selector.select_points(selection['x'],
-#                            selection['y'], selection['z'])
-#                if mask is None: continue
-#                onesize = mask.sum()
-#                totsize += onesize
-#                sizes[id(subset)] = onesize
-#                masks[id(subset)] = mask
-#
-#        # Second pass fills particles where masked
-#        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
-#        cp = 0
-#        for onechunk in chunks:
-#            for subset in onechunk.objs:
-#                print 'reading values from', subset.domain.part_fn
-#                mask = masks.pop(id(subset), None)
-#                if mask is None: continue
-#                rv = subset.fill_particles(fields, accessed_species, mask, sizes[id(subset)],mask) 
-#                for fieldtype, fieldname in fields:
-#                    tr[(fieldtype,fieldname)][cp:cp+sizes[id(subset)]] = rv.pop(fieldname)
-#                cp += sizes[id(subset)]
+        accessed_species = ['N-BODY']#,'STAR']
 
-        raise NotImplementedError 
+	print fields
+
+	print "kln size variable is not calculated. when parallelizing, we will need to determine total number of particles before reading them in."
+#        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
+        cp = 0
+        for onechunk in chunks:
+            for subset in onechunk.objs:
+                print 'reading values from', subset.domain.part_fn
+                rv = subset.fill_particles( accessed_species, selector, fields)
+		tr = dict((f, np.empty(shape(rv[f[1]]), dtype="float64")) for f in fields)
+
+                for fieldtype, fieldname in fields:
+                    tr[(fieldtype,fieldname)][cp:cp+len(rv[fieldname])] = rv.pop(fieldname)
+		cp += len(rv[0])
+                #cp += sizes[id(subset)]
+
+#       raise NotImplementedError 
         return tr
 

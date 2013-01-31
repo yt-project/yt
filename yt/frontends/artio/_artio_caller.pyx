@@ -82,6 +82,17 @@ cdef extern from "artio.h":
     int artio_grid_count_octs_in_sfc_range(artio_fileset_handle *handle,
             int64_t start, int64_t end, int64_t *num_octs)
 
+    #particle functions
+    int artio_particle_read_root_cell_begin(artio_fileset_handle *handle, int64_t sfc,
+                        int * num_particle_per_species)
+    int artio_particle_read_root_cell_end(artio_fileset_handle *handle)
+    int artio_particle_read_particle(artio_fileset_handle *handle, int64_t *pid, int *subspecies,
+                        double *primary_variables, float *secondary_variables)
+    int artio_particle_cache_sfc_range(artio_fileset_handle *handle, int64_t sfc_start, int64_t sfc_end)
+    int artio_particle_read_species_begin(artio_fileset_handle *handle, int species)
+    int artio_particle_read_species_end(artio_fileset_handle *handle) 
+   
+
 cdef check_artio_status(int status, char *fname="[unknown]"):
     if status!=ARTIO_SUCCESS :
         callername = sys._getframe().f_code.co_name
@@ -100,6 +111,7 @@ cdef class artio_fileset :
     # grid attributes
     cdef int min_level, max_level
     cdef int num_grid_variables
+    cdef int num_particle_variables
 
     cdef int cpu
     cdef int domain_id
@@ -314,6 +326,131 @@ cdef class artio_fileset :
         free(cur_level_parents)
 
         print 'done filling oct positions', oct_count
+
+
+    def particle_var_fill(self, accessed_species, source, selector, fields, static_fields) :
+        cdef double *primary_variables
+        cdef float *secondary_variables
+        cdef int *num_particles_per_species
+        cdef int status
+        cdef np.ndarray[np.float32_t, ndim=1] arr
+        # This relies on the fields being contiguous
+        cdef np.float32_t **fpoint
+        cdef int nf = len(fields)
+        fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*nf)
+        forder = <int*>malloc(sizeof(int)*nf)
+        cdef int i, j, level
+        cdef int subspecies
+        cdef int64_t pid = 0l
+#        cdef np.float64_t dds[3], pos[3]
+        dds = []
+        pos = []
+        eterm = []
+        dds[0] = dds[1] = dds[2] = 0.0
+#        cdef int eterm[3]
+        cdef int **mask
+        mask = <int**>malloc(sizeof(int*)*len(accessed_species))
+
+        status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
+        check_artio_status(status)
+
+        count_mask = []
+        count = []
+	
+        for species in range(len(accessed_species)) :
+             mask[species] = <int*>malloc(self.parameters['particle_species_num'][species] * sizeof(int))
+             count_mask[species] = 0
+             count[species] = 0             
+
+        for sfc in range( self.sfc_min, self.sfc_max+1 ) :
+                status = artio_particl`e_read_root_cell_begin( self.handle, sfc,
+                    num_particles_per_species )
+                check_artio_status(status)
+
+                for species in range(len(accessed_species) ) :
+                        status = artio_particle_read_species_begin(self.handle, species)
+                        check_artio_status(status)
+
+                        for particle in range( num_particles_per_species[species] ) :
+                               status = artio_particle_read_particle(self.handle,
+                                        &pid, &subspecies, primary_variables,
+                                        secondary_variables)
+                               check_artio_status(status)
+                               pos[0] = primary_variables[0]
+                               pos[1] = primary_variables[1]
+                               pos[2] = primary_variables[2]
+
+                               mask[species][count[species]] = selector.select_cell(pos, dds, eterm)
+                               count_mask[species] += mask[species][count_mask[species]]
+                               count[species] += 1
+	
+                        status = artio_particle_read_species_end( self.handle )
+                        check_artio_status(status)
+
+                status = artio_particle_read_root_cell_end( self.handle )
+                check_artio_status(status)
+
+        var_labels = self.parameters['species_00_primary_variable_labels']
+        for i, f in enumerate(fields):
+            # It might be better to do this check in the Python code
+            if f not in var_labels:
+		if f not in static_fields :
+                    print "This field is not known to ARTIO: ", f
+                    raise RuntimeError
+            j = var_labels.index(f)
+            source[f] = np.empty(count_mask.sum())    
+            arr = source[f]
+            fpoint[i] = <np.float32_t *>arr.data
+            forder[i] = j
+            primary_variables = <double *>malloc(8*len(var_labels)*sizeof(float))
+
+        for species in range(len(accessed_species)) :
+             count_mask[species] = 0
+             count[species] = 0
+	
+        count_all_particles = 0
+        for sfc in range( self.sfc_min, self.sfc_max+1 ) :
+                status = artio_particle_read_root_cell_begin( self.handle, sfc,
+                    num_particles_per_species )
+                check_artio_status(status)	
+
+                for species in range(len(accessed_species) ) :
+                    status = artio_particle_read_species_begin(self.handle, species);
+                    check_artio_status(status)
+
+                    for particle in range( num_particles_per_species[species] ) :
+                        if mask[species][count[species]] == 1 :
+
+                             status = artio_particle_read_particle(self.handle,
+                                        &pid, &subspecies, primary_variables,
+                                        secondary_variables)
+                             check_artio_status(status)
+
+                             for i in range(nf):
+                                 fpoint[i][count_all_particles] = primary_variables[forder[i]]
+                             count_all_particles += 1
+                        count[species] += 1
+
+                    status = artio_particle_read_species_end( self.handle )
+                    check_artio_status(status)
+
+                status = artio_particle_read_root_cell_end( self.handle )
+                check_artio_status(status)
+	
+	for i, f in enumerate(fields):
+            # It might be better to do this check in the Python code
+            if f not in var_labels:
+                if f in static_fields :
+			
+
+
+        free(primary_variables)
+        free(fpoint)
+        free(forder)
+
+        print 'done filling particle variables', count_all_particles
+
+
 
     #@cython.boundscheck(False)
     @cython.wraparound(False)

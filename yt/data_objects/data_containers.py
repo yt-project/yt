@@ -473,6 +473,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise GenerationInProgress(fields)
         print 'snl we are in data_containers.py 2'
         # At this point, we want to figure out *all* our dependencies.
+	print 'kln identifying dependencies'
         fields_to_get = self._identify_dependencies(fields_to_get)
         # We now split up into readers for the types of fields
         print 'snl we are in data_containers.py splitting fields'
@@ -483,6 +484,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
+	print 'fluid fields: ', fluids
+	print 'particle fields: ', particles
         print 'snl we are in data_containers.py before reading fluids'
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that

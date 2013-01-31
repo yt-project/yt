@@ -221,6 +221,13 @@ ARTIOFieldInfo["Metal_Density"]._projected_units = r""
 
 #Particle fields
 
+for ax in 'xyz':
+    pf = "particle_velocity_%s" % ax
+    add_artio_field(pf, function=NullFunc,
+              particle_type=True)
+
+add_artio_field("particle_mass", function=NullFunc, particle_type=True)
+
 def ParticleMass(field,data):
     return data['particle_mass']
 add_field("ParticleMass",function=ParticleMass,units=r"\rm{g}",particle_type=True)
@@ -229,7 +236,7 @@ add_field("ParticleMass",function=ParticleMass,units=r"\rm{g}",particle_type=Tru
 #Derived particle fields
 
 def ParticleMassMsun(field,data):
-    return data['particle_mass']*data.pf['Msun']
+    return data['particle_mass']/1.989e33 #*data.pf['Msun']
 add_field("ParticleMassMsun",function=ParticleMassMsun,units=r"\rm{g}",particle_type=True)
 
 def _creation_time(field,data):

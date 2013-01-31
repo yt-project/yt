@@ -67,16 +67,17 @@ class ARTIODomainFile(object):
         self.pf = pf
         self.domain_id = domain_id
         self._fileset_prefix = pf.parameter_filename[:-4]
-        self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)                         
+        self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)
+	self.part_fn = "%s.p%03i" % (pf.parameter_filename[:-4],domain_id)
         #self._handle = artio_fileset(self._fileset_prefix)
         self._handle = self.pf._handle
         self.local_oct_count = self._handle.count_refined_octs() 
         print "Local oct count = ", self.local_oct_count
 
-        if self._handle.parameters.has_key('num_particle_files') :
-        #self.artioparticle = artio_particle_routines(self._handle)
-        #    self._read_particle_header()
-            print "Particle support not implemented"
+    #    if self._handle.parameters.has_key('num_particle_files') :
+       # self.artioparticle = artio_particle_routines(self._handle)
+ #           self._read_particle_header()
+           # print "Particle support not implemented"
         self.local_particle_count = 0
         self.particle_field_offsets = {}                                                      
         
@@ -190,17 +191,37 @@ class ARTIODomainSubset(object):
         
         return tr
 
-    def get_particle_pos(self,accessed_species, fieldnames):
-        ppositions = self.artioparticle.particle_pos_fill(accessed_species, fieldnames)
-        return ppositions
+    def fill_particles(self,accessed_species, selector, fields):
 
-    def fill_particles(self, fields, accessed_species, masked_particle_count, particle_mask):
-        fieldnames = [f for ft, f in fields]
-        print 'all_fields:', all_fields 
-        print 'fieldnames:', fieldnames
+        yt_to_art = {
+            'particle_position_x': 'POSITION_X',
+            'particle_position_y': 'POSITION_Y',
+            'particle_position_z': 'POSITION_Z',
+            'particle_velocity_x': 'VELOCITY_X',
+            'particle_velocity_y': 'VELOCITY_Y',
+            'particle_velocity_z': 'VELOCITY_Z' }
+
+	yt_to_art_static = {
+	'particle_mass': 'particle_species_mass'
+	}
+
+        masked_particles = {}
+	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, [yt_to_art[f[1]] for f in fields], )
+
+	# dhr - make sure these are shallow copies
         tr = {}
-        for onefieldname in fieldnames: 
-            tr[onefieldname] = np.zeros(masked_particle_count, 'float64')
+        for fieldtype, fieldname in fields :
+            tr[fieldname] = temp[yt_to_art[fieldname]]
+	
+        return tr
+
+ #   def fill_particles(self, fields, accessed_species, masked_particle_count, particle_mask):
+  #      fieldnames = [f for ft, f in fields]
+  #      print 'all_fields:', all_fields 
+  #      print 'fieldnames:', fieldnames
+  #      tr = {}
+     #   for onefieldname in fieldnames: 
+     #       tr[onefieldname] = np.zeros(masked_particle_count, 'float64')
         # temp = {}
         # nc = self.domain.art_level_count.sum()
         # print 'ncells total',self.masked_cell_count, 'ncells masked', nc
@@ -210,7 +231,7 @@ class ARTIODomainSubset(object):
         #     
         # #buffer variables 
 
-        self.domain.particle_var_fill(tr, fieldnames, accessed_species, particle_mask)
+     #   self.domain.particle_var_fill(tr, fieldnames, accessed_species, particle_mask)
 
         #     
         #mask unused cells 
@@ -218,7 +239,7 @@ class ARTIODomainSubset(object):
         #      self.domain.domain_id,
         #     tr, temp, self.mask, level_offset) #[oct_container.pyx] RISM level_offset
 
-        return tr
+     #   return tr
 
 class ARTIOGeometryHandler(OctreeGeometryHandler):
 
@@ -262,10 +283,14 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
                                   'MetalDensitySNII', 'MetalDensitySNIa',
                                   'Potential','PotentialHydro']
 
-        pfl = set([])
-        for domain in self.domains:
-            pfl.update(set(domain.particle_field_offsets.keys()))
-        self.particle_field_list = list(pfl)
+	self.particle_field_list =['particle_position_x', 'particle_position_y',
+				   'particle_position_z', 'particle_velocity_x',
+				   'particle_velocity_y', 'particle_velocity_z',
+				   'particle_mass']
+      #  pfl = set([])
+     #   for domain in self.domains:
+     #       pfl.update(set(domain.particle_field_offsets.keys()))
+     #   self.particle_field_list = list(pfl)
         self.field_list = self.fluid_field_list + self.particle_field_list
     
     def _setup_classes(self):
