@@ -58,16 +58,13 @@ class IOHandlerART(BaseIOHandler):
                         0   - there are no children; the cell is a leaf
             iOctNb :    >0   - pointers to neighbouring cells 
             iOctPs :         - coordinates of Oct centers
-            
             iOctLL1:         - doubly linked list of octs
             iOctLL2:         - doubly linked list of octs
-            
             tl - current  time moment for level L
             tlold - previous time moment for level L
             dtl - dtime0/2**iTimeBin
             dtlold -  previous time step for level L
             iSO - sweep order
-            
             hvar(1,*) - gas density 
             hvar(2,*) - gas energy 
             hvar(3,*) - x-momentum 
@@ -76,13 +73,9 @@ class IOHandlerART(BaseIOHandler):
             hvar(6,*) - pressure
             hvar(7,*) - Gamma
             hvar(8,*) - internal energy 
-
             var (1,*) - total density 
             var (2,*) - potential (new)
             var (3,*) - potential (old)
-            
-            
-            
         """
         
         if level in self.level_data: return
@@ -120,18 +113,6 @@ class IOHandlerART(BaseIOHandler):
     def clear_level(self, level):
         self.level_data.pop(level, None)
 
-    def _read_particle_field(self, grid, field):
-        dat = getattr(grid,field,None)
-        if dat is not None: 
-            return dat
-        starfield = field.replace('star','particle')
-        dat = getattr(grid,starfield,None)
-        if dat is not None:
-            psi = grid.pf.particle_star_index
-            idx = grid.particle_type==psi
-            return dat[idx]
-        raise KeyError
-        
     def _read_data_set(self, grid, field):
         if field in particle_fields:
             return self._read_particle_field(grid, field)
@@ -292,21 +273,15 @@ def read_particles(file,Nrow):
     data = np.squeeze(np.dstack(pages)).T # x,y,z,vx,vy,vz
     return data[:,0:3],data[:,3:]
 
-def read_stars(file):
-    fh = open(file,'rb')
-    tdum,adum   = _read_frecord(fh,'>d')
-    nstars      = _read_frecord(fh,'>i')
-    ws_old, ws_oldi = _read_frecord(fh,'>d')
-    mass    = _read_frecord(fh,'>f') 
-    imass   = _read_frecord(fh,'>f') 
-    tbirth  = _read_frecord(fh,'>f') 
-    if fh.tell() < os.path.getsize(file):
-        metallicity1 = _read_frecord(fh,'>f') 
-    if fh.tell() < os.path.getsize(file):
-        metallicity2 = _read_frecord(fh,'>f')     
-    assert fh.tell() == os.path.getsize(file)
-    return  nstars, mass, imass, tbirth, metallicity1, metallicity2,\
-            ws_old,ws_oldi,tdum,adum
+def read_star_field(file,field=None):
+    data = {}
+    with open(file,'rb') as fh:
+        for dtype, variables in star_struct:
+            if field in variables or dtype=='>d' or dtype=='>d':
+                data[field] = _read_frecord(fh,'>f')
+            else:
+                _skip_record(fh)
+    return data.pop(field),data
 
 def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     f.seek(level_child_offsets[level])
@@ -475,9 +450,8 @@ def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
         #lage=rage
         if logger: logger(i)
     #we didn't get the last iter
-    i=ages.shape[0]-1
-    n = i-lidx #n stars affected
-    rage = ages[i]
+    n = agesd.shape[0]-lidx
+    rage = ages[-1]
     lage = max(rage-spread,0.0)
-    agesd[lidx:i]=np.linspace(lage,rage,n)
+    agesd[lidx:]=np.linspace(lage,rage,n)
     return agesd

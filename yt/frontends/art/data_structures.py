@@ -52,19 +52,13 @@ import yt.utilities.lib as amr_utils
 
 from .definitions import *
 from io import _read_child_mask_level
-from io import read_particles
-from io import read_stars
-from io import spread_ages
 from io import _count_art_octs
 from io import _read_art_level_info
-from io import _read_art_child
 from io import _skip_record
 from io import _read_record
 from io import _read_frecord
-from io import _read_record_size
 from io import _read_struct
 from io import b2t
-
 
 import yt.frontends.ramses._ramses_reader as _ramses_reader
 
@@ -84,22 +78,19 @@ class ARTGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, hierarchy, level, locations,start_index, le,re,gd,
-            child_mask=None,nop=0):
+            child_mask=None):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
         start_index =start_index 
+        self.id = id
         self.Level = level
         self.Parent = []
         self.Children = []
         self.locations = locations
         self.start_index = start_index.copy()
-        
         self.LeftEdge = le
         self.RightEdge = re
         self.ActiveDimensions = gd
-        self.NumberOfParticles=nop
-        for particle_field in particle_fields:
-            setattr(self,particle_field,np.array([]))
 
     def _setup_dx(self):
         id = self.id - self._id_offset
@@ -329,67 +320,6 @@ class ARTHierarchy(AMRHierarchy):
                     start_index,le,re,gd))
                 gi += 1
         self.grids = np.empty(len(grids), dtype='object')
-        if not self.pf.skip_particles and self.pf.file_particle_data:
-            lspecies = self.pf.parameters['lspecies']
-            wspecies = self.pf.parameters['wspecies']
-            self.pf.particle_position,self.pf.particle_velocity= \
-                read_particles(self.pf.file_particle_data,
-                        self.pf.parameters['Nrow'])
-            nparticles = lspecies[-1]
-            if not np.all(self.pf.particle_position[nparticles:]==0.0):
-                mylog.info('WARNING: unused particles discovered from lspecies')
-            self.pf.particle_position = self.pf.particle_position[:nparticles]
-            self.pf.particle_velocity = self.pf.particle_velocity[:nparticles]
-            self.pf.particle_position  /= self.pf.domain_dimensions 
-            self.pf.particle_type = np.zeros(nparticles,dtype='int')
-            self.pf.particle_mass = np.zeros(nparticles,dtype='float64')
-            self.pf.particle_star_index = len(wspecies)-1
-            a=0
-            for i,(b,m) in enumerate(zip(lspecies,wspecies)):
-                if i == self.pf.particle_star_index:
-                    assert m==0.0
-                    sa,sb = a,b
-                else:
-                    assert m>0.0
-                self.pf.particle_type[a:b] = i #particle type
-                self.pf.particle_mass[a:b] = m #mass in code units
-                a=b
-            if not self.pf.skip_stars and self.pf.file_particle_stars: 
-                (nstars_rs,), mass, imass, tbirth, metallicity1, metallicity2, \
-                        ws_old,ws_oldi,tdum,adum \
-                     = read_stars(self.pf.file_particle_stars)
-                self.pf.nstars_rs = nstars_rs     
-                self.pf.nstars_pa = b-a
-                inconsistent=self.pf.particle_type==self.pf.particle_star_index
-                if not nstars_rs==np.sum(inconsistent):
-                    mylog.info('WARNING!: nstars is inconsistent!')
-                del inconsistent
-                if nstars_rs > 0 :
-                    n=min(1e2,len(tbirth))
-                    birthtimes= b2t(tbirth,n=n)
-                    birthtimes = birthtimes.astype('float64')
-                    assert birthtimes.shape == tbirth.shape    
-                    birthtimes*= 1.0e9 #from Gyr to yr
-                    birthtimes*= 365*24*3600 #to seconds
-                    ages = self.pf.current_time-birthtimes
-                    spread = self.pf.spread_age
-                    if type(spread)==type(5.5):
-                        ages = spread_ages(ages,spread=spread)
-                    elif spread:
-                        ages = spread_ages(ages)
-                    idx = self.pf.particle_type == self.pf.particle_star_index
-                    for psf in particle_star_fields:
-                        if getattr(self.pf,psf,None) is None:
-                            setattr(self.pf,psf,
-                                    np.zeros(nparticles,dtype='float64'))
-                    self.pf.particle_age[sa:sb] = ages
-                    self.pf.particle_mass[sa:sb] = mass
-                    self.pf.particle_mass_initial[sa:sb] = imass
-                    self.pf.particle_creation_time[sa:sb] = birthtimes
-                    self.pf.particle_metallicity1[sa:sb] = metallicity1
-                    self.pf.particle_metallicity2[sa:sb] = metallicity2
-                    self.pf.particle_metallicity[sa:sb]  = metallicity1\
-                                                          + metallicity2
         for gi,g in enumerate(grids):    
             self.grids[gi]=g
                     
@@ -412,7 +342,7 @@ class ARTHierarchy(AMRHierarchy):
                                 self.grid_levels, mask)
             parents = self.grids[mask.astype("bool")]
             if len(parents) > 0:
-                g.Parent.extend((p for p in parents.tolist()
+                g.Parent.extend((p for p in parents.tolist() \ 
                         if p.locations[0,0] == g.locations[0,0]))
                 for p in parents: p.Children.append(g)
             #Now we do overlapping siblings; note that one has to "win" with
@@ -429,22 +359,6 @@ class ARTHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
             #instead of gridding particles assign them all to the root grid
-            if gi==0:
-                for particle_field in particle_fields:
-                    source = getattr(self.pf,particle_field,None)
-                    if source is None:
-                        for i,ax in enumerate('xyz'):
-                            pf = particle_field.replace('_%s'%ax,'')
-                            source = getattr(self.pf,pf,None)
-                            if source is not None:
-                                source = source[:,i]
-                                break
-                    if source is not None:
-                        mylog.info("Attaching %s to the root grid",
-                                    particle_field)
-                        g.NumberOfParticles = source.shape[0]
-                        setattr(g,particle_field,source)
-                g.particle_index = np.arange(g.NumberOfParticles)
         pb.finish()
         self.max_level = self.grid_levels.max()
 
@@ -481,7 +395,8 @@ class ARTStaticOutput(StaticOutput):
     _fieldinfo_known = KnownARTFields
     
     def __init__(self, file_amr, storage_filename = None,
-            skip_particles=False,skip_stars=False,limit_level=None,
+            skip_particles=False,skip_stars=False,
+            limit_level=None,
             spread_age=True,data_style='art'):
         self.data_style = data_style
         self._find_files(file_amr)
@@ -505,22 +420,34 @@ class ARTStaticOutput(StaticOutput):
         affix = os.path.basename(file_amr).replace(prefix,'')
         affix = affix.replace(suffix,'')
         affix = affix.replace('_','')
+        full_affix = affix
         affix = affix[1:-1]
         dirname = os.path.dirname(file_amr)
-        for filetype, pattern in filename_pattern.items():
-            #sometimes the affix is surrounded by an extraneous _
-            #so check for an extra character on either side
-            check_filename = dirname+'/'+pattern%('?%s?'%affix)
-            filenames = glob.glob(check_filename)
-            if len(filenames)==1:
-                setattr(self,"file_"+filetype,filenames[0])
-                mylog.info('discovered %s',filetype)
-            elif len(filenames)>1:
-                setattr(self,"file_"+filetype,None)
-                mylog.info("Ambiguous number of files found for %s",
-                        check_filename)
-            else:
-                setattr(self,"file_"+filetype,None)
+        for fp in (filename_pattern_hf,filename_pattern):
+            for filetype, pattern in fp.items():
+                #if this attribute is already set skip it
+                if getattr(self,"file_"+filetype,None) is not None:
+                    continue
+                #sometimes the affix is surrounded by an extraneous _
+                #so check for an extra character on either side
+                check_filename = dirname+'/'+pattern%('?%s?'%affix)
+                filenames = glob.glob(check_filename)
+                if len(filenames)>1:
+                    check_filename_strict = \
+                            dirname+'/'+pattern%('?%s'%full_affix[1:])
+                    filenames = glob.glob(check_filename_strict)
+
+                if len(filenames)==1:
+                    setattr(self,"file_"+filetype,filenames[0])
+                    mylog.info('discovered %s:%s',filetype,filenames[0])
+                elif len(filenames)>1:
+                    setattr(self,"file_"+filetype,None)
+                    mylog.info("Ambiguous number of files found for %s",
+                            check_filename)
+                    for fn in filenames:
+                        faffix = float(affix)
+                else:
+                    setattr(self,"file_"+filetype,None)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -567,7 +494,7 @@ class ARTStaticOutput(StaticOutput):
         #v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
         v0 = 50.0*r0*np.sqrt(Om0)
         t0 = r0/v0
-        #rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
+        rho1 = 1.8791e-29 * hubble**2.0 * self.omega_matter
         rho0 = 2.776e11 * hubble**2.0 * Om0
         tr = 2./3. *(3.03e5*r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))     
         aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
@@ -578,6 +505,7 @@ class ARTStaticOutput(StaticOutput):
         cf['v0']=v0
         cf['t0']=t0
         cf['rho0']=rho0
+        cf['rho1']=rho1
         cf['tr']=tr
         cf['aM0']=aM0
 
@@ -585,7 +513,7 @@ class ARTStaticOutput(StaticOutput):
         cf['Pressure'] = P0 #already cgs
         cf['Velocity'] = v0/aexpn*1.0e5 #proper cm/s
         cf["Mass"] = aM0 * 1.98892e33
-        cf["Density"] = rho0*(aexpn**-3.0)
+        cf["Density"] = rho1*(aexpn**-3.0)
         cf["GasEnergy"] = rho0*v0**2*(aexpn**-5.0)
         cf["Potential"] = 1.0
         cf["Entropy"] = S_0
@@ -597,12 +525,8 @@ class ARTStaticOutput(StaticOutput):
             self.conversion_factors[particle_field] =  1.0
         for ax in 'xyz':
             self.conversion_factors["%s-velocity" % ax] = 1.0
-            self.conversion_factors["particle_velocity_%s"%ax] = cf['Velocity']
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
-        self.conversion_factors['particle_mass'] = cf['Mass']
-        self.conversion_factors['particle_creation_time'] =  31556926.0
-        self.conversion_factors['Msun'] = 5.027e-34 
 
     def _parse_parameter_file(self):
         """

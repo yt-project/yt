@@ -55,7 +55,8 @@ particle_fields= [
     'particle_velocity_x',
     'particle_velocity_y',
     'particle_velocity_z',
-    'particle_type'
+    'particle_type',
+    'particle_index'
 ]
 
 particle_star_fields = [
@@ -73,6 +74,11 @@ filename_pattern = {
 	'particle_header':'PMcrd%s.DAT',
 	'particle_data':'PMcrs0%s.DAT',
 	'particle_stars':'stars_%s.dat'
+}
+
+filename_pattern_hf = {				
+	'particle_header':'PMcrd_%s.DAT',
+	'particle_data':'PMcrs0_%s.DAT',
 }
 
 amr_header_struct = [
@@ -139,6 +145,26 @@ particle_header_struct =[
     ('>f','unknown'),
     ('>i','pad')
 ]
+
+star_struct = [
+        ('>d',('tdum','adum')),
+        ('>i','nstars'),
+        ('>d',('ws_old','ws_oldi')),
+        ('>f','mass'),
+        ('>f','imass'),
+        ('>f','tbirth'),
+        ('>f','metallicity1'),
+        ('>f','metallicity2')
+        ]
+
+star_name_map = {
+        'particle_mass':'mass',
+        'particle_mass_initial':'imass',
+        'particle_age':'tbirth',
+        'particle_metallicity1':'metallicity1',
+        'particle_metallicity2':'metallicity2',
+        'particle_metallicity':'metallicity',
+        }
 
 constants = {
     "Y_p":0.245,
