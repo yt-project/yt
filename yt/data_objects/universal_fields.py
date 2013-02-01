@@ -66,7 +66,8 @@ from yt.utilities.math_utils import \
     get_cyl_theta_component, \
     get_cyl_r, get_cyl_theta, \
     get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi
+    get_sph_theta, get_sph_phi, \
+    periodic_dist, euclidean_dist
      
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
@@ -783,25 +784,23 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 
-
+def get_radius(positions, data):
+    c = data.get_field_parameter("center")
+    n_tup = tuple([1 for i in range(positions.ndim-1)])
+    center = np.tile(np.reshape(c, (positions.shape[0],)+n_tup),(1,)+positions.shape[1:])
+    periodicity = data.pf.periodicity
+    if any(periodicity):
+        period = data.pf.domain_right_edge - data.pf.domain_left_edge
+        return periodic_dist(positions, center, period, periodicity)
+    else:
+        return euclidean_dist(positions, center)
 def _ParticleRadius(field, data):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data["particle_position_x"].shape, dtype='float64')
-    for i, ax in enumerate('xyz'):
-        r = np.abs(data["particle_position_%s" % ax] - center[i])
-        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
-    np.sqrt(radius, radius)
-    return radius
+    positions = np.array([data["particle_position_%s" % ax] for ax in 'xyz'])
+    return get_radius(positions, data)
 def _Radius(field, data):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data["x"].shape, dtype='float64')
-    for i, ax in enumerate('xyz'):
-        r = np.abs(data[ax] - center[i])
-        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
-    np.sqrt(radius, radius)
-    return radius
+    positions = np.array([data['x'], data['y'], data['z']])
+    return get_radius(positions, data)
+
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
 add_field("ParticleRadius", function=_ParticleRadius,
