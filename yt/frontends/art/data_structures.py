@@ -73,17 +73,6 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
-
-class ARTDomainFile(object):
-    _last_mask = None
-    _last_selector_id = None
-
-    def __init__(self,pf,domain_id,nvar):
-        self.nvar = nvar
-        self.pf = pf
-        self.domain_id =  domain_id
-        #establish file neames
-
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
     _fieldinfo_fallback = ARTFieldInfo
@@ -102,6 +91,7 @@ class ARTStaticOutput(StaticOutput):
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.limit_level = limit_level
+        self.max_level = limit_level
         self.spread_age = spread_age
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
@@ -262,4 +252,164 @@ class ARTStaticOutput(StaticOutput):
                 os.path.exists(f): 
                 return True
         return False
+
+class ARTGeometryHandler(OctreeGeometryHandler):
+    def __init__(self,pf,data_style="art"):
+        """
+        Life is made simpler because we only have one AMR file
+        and one domain. However, we are matching to the RAMSES
+        multi-domain architecture.
+        """
+        self.fluid_field_list = fluid_fields
+        self.data_style = data_style
+        self.parameter_file = weakref.proxy(pf)
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.max_level = pf.max_level
+        self.float_type = np.float64
+        super(ARTGeometryHandler,self).__init__(pf,data_style)
+
+    def _initialize_oct_handler(self):
+        """
+        Just count the number of octs per domain and
+        allocate the requisite memory in the oct tree
+        """
+        nv = len(self.fluid_field_list)
+        self.domains = [ARTDomainFile(self.parameter_file)]
+        octs_per_domain = sum(dom.local_oct_count for dom in self.domains)
+        self.num_grids = sum(total_octs)
+        self.oct_handler = ARTOctreeContainer(
+            self.parameter_file.domain_dimensions/2,
+            self.parameter_file.domain_left_edge,
+            self.parameter_file.domain_right_edge)
+        mylog.debug("Allocating %s octs", total_octs)
+        self.oct_handler.allocate_domains(octs_per_domain)
+        for domain in self.domains:
+            domain._read_amr(self.oct_handler)
+
+    def _detect_fields(self):
+        self.particle_field_list = particle_fields
+        self.field_list = fluid_fields + particle_fields + particle_star_fields
+        self.field_list = set(self.field_list)
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        super(RAMSESGeometryHandler, self)._setup_classes(dd)
+        self.object_types.sort()
+
+    def _identify_base_chunk(self, dobj):
+        """
+        Take the passed in data source dobj, and use its embedded selector
+        to calculate the domain mask, build the reduced domain 
+        subsets and oct counts. Attach this information to dobj.
+        """
+        if getattr(dobj, "_chunk_info", None) is None:
+            #Get all octs within this oct handler
+            mask = dobj.selector.select_octs(self.oct_handler)
+            counts = self.oct_handler.count_cells(dobj.selector, mask)
+            #For all domains, figure out how many counts we have 
+            #and build a subset of domains 
+            subsets = [RAMSESDomainSubset(d, mask, c)
+                       for d, c in zip(self.domains, counts) if c > 0]
+            dobj._chunk_info = subsets
+            dobj.size = sum(counts)
+            dobj.shape = (dobj.size,)
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+
+    def _chunk_all(self, dobj):
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        #We pass the chunk both the current chunk and list of chunks,
+        #as well as the referring data source
+        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+
+    def _chunk_spatial(self, dobj, ngz):
+        raise NotImplementedError
+
+    def _chunk_io(self, dobj):
+        """
+        Since subsets are calculated per domain,
+        i.e. per file, yield each domain at a time to 
+        organize by IO. We will eventually chunk out NMSU ART
+        to be level-by-level.
+        """
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in oobjs:
+            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+
+class ARTDomainSubset(object):
+    def __init__(self, domain, mask, cell_count):
+        self.mask = mask
+        self.domain = domain
+        self.oct_handler = domain.pf.h.oct_handler
+        self.cell_count = cell_count
+        level_counts = self.oct_handler.count_levels(
+            self.domain.pf.max_level, self.domain.domain_id, mask)
+        assert(level_counts.sum() == cell_count)
+        level_counts[1:] = level_counts[:-1]
+        level_counts[0] = 0
+        #the cumulative level counts
+        self.level_counts = np.add_acumulate(level_counts)
+
+    def icoords(self, dobj):
+        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
+                                        self.cell_count,
+                                        self.level_counts.copy())
+
+    def fcoords(self, dobj):
+        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
+                                        self.cell_count,
+                                        self.level_counts.copy())
+
+    def ires(self, dobj):
+        return self.oct_handler.ires(self.domain.domain_id, self.mask,
+                                     self.cell_count,
+                                     self.level_counts.copy())
+
+    def fwidth(self, dobj):
+        base_dx = 1.0/self.domain.pf.domain_dimensions
+        widths = np.empty((self.cell_count, 3), dtype="float64")
+        dds = (2**self.ires(dobj))
+        for i in range(3):
+            widths[:,i] = base_dx[i] / dds
+        return widths
+
+    def fill(self, content, fields):
+        """
+        This is called from IOHandler. It takes content
+        which is a binary stream, reads the requested field
+        over this while domain. It then uses oct_handler fill
+        to reorgnize values from IO read index order to
+        the order they are in in the octhandler.
+        """
+        oct_handler = self.oct_handler
+        all_fields = self.domain.pf.h.fluid_field_list
+        fields = [f for ft, f in fields]
+        tr = {}
+        filled = pos = level_offset = 0
+        min_level = self.domain.pf.min_level
+        for field in fields:
+            tr[field] = np.zeros(self.cell_count, 'float64')
+        for level, offset in enumerate(self.level_info):
+            if offset == -1: continue
+            content.seek(offset)
+            nc = self.domain.level_count[level]
+            temp = {}
+            for field in all_fields:
+                temp[field] = np.empty((nc, 8), dtype="float64")
+            for i in range(8):
+                for field in all_fields:
+                    if field not in fields:
+                        #print "Skipping %s in %s : %s" % (field, level,
+                        #        self.domain.domain_id)
+                        fpu.skip(content)
+                    else:
+                        #print "Reading %s in %s : %s" % (field, level,
+                        #        self.domain.domain_id)
+                        temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
+            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
+                                   tr, temp, self.mask, level_offset)
+            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, level_offset)
+        #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
+        return tr
+
 

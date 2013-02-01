@@ -186,7 +186,6 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     le = le[idx]
     fl = fl[idx]
 
-
     #left edges are expressed as if they were on 
     #level 15, so no matter what level max(le)=2**15 
     #correct to the yt convention
@@ -203,8 +202,6 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #we are looking for iOctCh
     #we record if iOctCh is >0, in which it is subdivided
     iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
-    
-    
     
     f.seek(pos)
     return le,fl,nLevel,root_level
