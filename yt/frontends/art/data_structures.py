@@ -51,14 +51,7 @@ from yt.utilities.lib import \
 import yt.utilities.lib as amr_utils
 
 from .definitions import *
-from io import _read_child_mask_level
-from io import _count_art_octs
-from io import _read_art_level_info
-from io import _skip_record
-from io import _read_record
-from io import _read_frecord
-from io import _read_struct
-from io import b2t
+from .io import *
 
 import yt.frontends.ramses._ramses_reader as _ramses_reader
 
@@ -73,6 +66,7 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
+
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
     _fieldinfo_fallback = ARTFieldInfo
@@ -186,6 +180,7 @@ class ARTStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters.update(constants)
+        #read the amr header
         with open(self.file_amr,'rb') as f:
             amr_header_vals = _read_struct(f,amr_header_struct)
             for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
@@ -207,6 +202,7 @@ class ARTStaticOutput(StaticOutput):
             self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
             self.child_grid_offset = f.tell()
         self.parameters.update(amr_header_vals)
+        #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
                 particle_header_vals = _read_struct(fh,particle_header_struct)
@@ -386,10 +382,9 @@ class ARTDomainSubset(object):
         fields = [f for ft, f in fields]
         tr = {}
         filled = pos = level_offset = 0
-        min_level = self.domain.pf.min_level
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
-        for level, offset in enumerate(self.level_info):
+        for level, offset in enumerate(self.domain.level_oct_offsets):
             if offset == -1: continue
             content.seek(offset)
             nc = self.domain.level_count[level]
@@ -412,4 +407,70 @@ class ARTDomainSubset(object):
         #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
         return tr
 
+class ARTDomainFile(object):
+    """
+    Read in the AMR, left/right edges, fill out the octhandler
+    """
+    #We already read in the header in static output,
+    #and since these headers are defined in only a single file it's
+    #best to leave them in the static output
+    _last_mask = None
+    _last_seletor_id = None
+
+    def __init__(self,pf,domain_id,nvar):
+        self.nvar = nvar
+        self.pf = pf
+        self.domain_id = domain_id
+
+    @property
+    def level_count(self):
+        if self._level_count is not None: return self._level_count
+        self.level_offsets
+        return self._level_count
+
+    @property
+    def level_offsets(self): 
+        #this is used by the IO operations to find the file offset,
+        #and then start reading to fill values
+        #note that this is called hydro_offset in ramses
+        if self._level_oct_offsets is not None: 
+            return self._level_oct_offsets
+        # We now have to open the file and calculate it
+        f = open(self.pf.file_amr, "rb")
+        nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = 
+            _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
+                            self.pf.max_level)
+        self._level_oct_offsets = _level_oct_offsets
+        self._level_child_offsets = _level_child_offsets
+        self._level_count = level_count
+        return self._level_oct_offsets
+    
+    def _read_amr(self, oct_handler):
+        """Open the oct file, read in octs level-by-level.
+           For each oct, only the position, index, level and domain 
+           are needed - its position in the octree is found automatically.
+           The most important is finding all the information to feed
+           oct_handler.add
+        """
+        self.level_offsets
+        f = open(self.pf.file_amr, "rb")
+        for level in xrange(1, len(self.pf.max_level)):
+            left_index, fl, nocts,root_level = _read_art_level_info(f, 
+                self.pf.level_oct_offsets,level,
+                coarse_grid=self.pf.domain_dimensions[0])
+            oct_handler.add(1,level, nocts, left_index, self.domain_id)
+
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
 
