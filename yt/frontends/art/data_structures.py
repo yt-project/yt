@@ -378,33 +378,23 @@ class ARTDomainSubset(object):
         the order they are in in the octhandler.
         """
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.fluid_field_list
+        all_fields  = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
         filled = pos = level_offset = 0
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
-        for level, offset in enumerate(self.domain.level_oct_offsets):
-            if offset == -1: continue
-            content.seek(offset)
-            nc = self.domain.level_count[level]
-            temp = {}
-            for field in all_fields:
-                temp[field] = np.empty((nc, 8), dtype="float64")
-            for i in range(8):
-                for field in all_fields:
-                    if field not in fields:
-                        #print "Skipping %s in %s : %s" % (field, level,
-                        #        self.domain.domain_id)
-                        fpu.skip(content)
-                    else:
-                        #print "Reading %s in %s : %s" % (field, level,
-                        #        self.domain.domain_id)
-                        temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
-                                   tr, temp, self.mask, level_offset)
-            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, level_offset)
-        #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
+        for level, offset in enumerate(self.domain.level_offsets()):
+            f.seek(self._level_oct_offsets[level])
+            ncells = 8*self.level_info[level]
+            nvals = ncells * (self.domain.nhydrovars+ 6) # 2 vars, 2 pads
+            arr = np.fromfile(content, dtype='>f', count=nvals)
+            arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
+            assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
+            arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
+            temp[field][:,:] = arr
+        level_offset += oct_handler.fill_level(self.domain.domain_id, level,
+                               tr, temp, self.mask, level_offset)
         return tr
 
 class ARTDomainFile(object):
@@ -440,6 +430,9 @@ class ARTDomainFile(object):
         nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = 
             _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
                             self.pf.max_level)
+        _level_oct_offsets[0] = self.pf.root_grid_offset
+        self.nhydrovars = nhydrovars
+        self.inoll = inoll
         self._level_oct_offsets = _level_oct_offsets
         self._level_child_offsets = _level_child_offsets
         self._level_count = level_count
@@ -456,7 +449,7 @@ class ARTDomainFile(object):
         f = open(self.pf.file_amr, "rb")
         for level in xrange(1, len(self.pf.max_level)):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
-                self.pf.level_oct_offsets,level,
+                self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
             oct_handler.add(1,level, nocts, left_index, self.domain_id)
 
