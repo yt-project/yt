@@ -90,8 +90,46 @@ class ARTStaticOutput(StaticOutput):
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
 
+    def _find_files(self,file_amr):
+        """
+        Given the AMR base filename, attempt to find the
+        particle header, star files, etc.
+        """
+        prefix,suffix = filename_pattern['amr'].split('%s')
+        affix = os.path.basename(file_amr).replace(prefix,'')
+        affix = affix.replace(suffix,'')
+        affix = affix.replace('_','')
+        full_affix = affix
+        affix = affix[1:-1]
+        dirname = os.path.dirname(file_amr)
+        for fp in (filename_pattern_hf,filename_pattern):
+            for filetype, pattern in fp.items():
+                #if this attribute is already set skip it
+                if getattr(self,"file_"+filetype,None) is not None:
+                    continue
+                #sometimes the affix is surrounded by an extraneous _
+                #so check for an extra character on either side
+                check_filename = dirname+'/'+pattern%('?%s?'%affix)
+                filenames = glob.glob(check_filename)
+                if len(filenames)>1:
+                    check_filename_strict = \
+                            dirname+'/'+pattern%('?%s'%full_affix[1:])
+                    filenames = glob.glob(check_filename_strict)
+                
+                if len(filenames)==1:
+                    setattr(self,"file_"+filetype,filenames[0])
+                    mylog.info('discovered %s:%s',filetype,filenames[0])
+                elif len(filenames)>1:
+                    setattr(self,"file_"+filetype,None)
+                    mylog.info("Ambiguous number of files found for %s",
+                            check_filename)
+                    for fn in filenames:
+                        faffix = float(affix)
+                else:
+                    setattr(self,"file_"+filetype,None)
+
     def __repr__(self):
-        return self.basename.rsplit(".",1)[0]
+        return self.file_amr.rsplit(".",1)[0]
 
     def _set_units(self):
         """
@@ -201,7 +239,7 @@ class ARTStaticOutput(StaticOutput):
             _skip_record(f) # var
             self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
             self.child_grid_offset = f.tell()
-        self.parameters.update(amr_header_vals)
+            self.parameters.update(amr_header_vals)
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
@@ -225,7 +263,7 @@ class ARTStaticOutput(StaticOutput):
                     self.parameters[k]=v
             self.parameters_particles = particle_header_vals
     
-        #setup standard simulation yt expects to see
+        #setup standard simulation params yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
         self.omega_lambda = amr_header_vals['Oml0']
         self.omega_matter = amr_header_vals['Om0']
@@ -274,7 +312,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.domains = [ARTDomainFile(self.parameter_file)]
         octs_per_domain = sum(dom.local_oct_count for dom in self.domains)
         self.num_grids = sum(total_octs)
-        self.oct_handler = ARTOctreeContainer(
+        self.oct_handler = RAMSESOctreeContainer(
             self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
@@ -285,12 +323,12 @@ class ARTGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         self.particle_field_list = particle_fields
-        self.field_list = fluid_fields + particle_fields + particle_star_fields
-        self.field_list = set(self.field_list)
+        self.field_list = set(fluid_fields + particle_fields + particle_star_fields)
+        self.field_list = list(self.field_list)
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(RAMSESGeometryHandler, self)._setup_classes(dd)
+        super(ARTGeometryHandler, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
@@ -304,8 +342,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             mask = dobj.selector.select_octs(self.oct_handler)
             counts = self.oct_handler.count_cells(dobj.selector, mask)
             #For all domains, figure out how many counts we have 
-            #and build a subset of domains 
-            subsets = [RAMSESDomainSubset(d, mask, c)
+            #and build a subset=mask of domains 
+            subsets = [ARTDomainSubset(d, mask, c)
                        for d, c in zip(self.domains, counts) if c > 0]
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
@@ -382,19 +420,18 @@ class ARTDomainSubset(object):
         fields = [f for ft, f in fields]
         tr = {}
         filled = pos = level_offset = 0
+        field_idx = fluid_fields.index(field)
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.level_offsets()):
-            f.seek(self._level_oct_offsets[level])
-            ncells = 8*self.level_info[level]
-            nvals = ncells * (self.domain.nhydrovars+ 6) # 2 vars, 2 pads
-            arr = np.fromfile(content, dtype='>f', count=nvals)
-            arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
-            assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
-            arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
-            temp[field][:,:] = arr
-        level_offset += oct_handler.fill_level(self.domain.domain_id, level,
-                               tr, temp, self.mask, level_offset)
+            nc = self.domain.level_count[level]
+            data = _read_art_child(content,self.domain.level_child_offsets,
+                                   level,nc,field_idx)
+            for field in all_fields:
+                temp[field] = np.empty((nc, 8), dtype="float64")
+            temp[field][:,:] = arr[field_idx,:]
+            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
+                                   tr, temp, self.mask, level_offset)
         return tr
 
 class ARTDomainFile(object):
@@ -419,6 +456,12 @@ class ARTDomainFile(object):
         return self._level_count
 
     @property
+    def level_child_offsets(self):
+        if self._level_count is not None: return self._level_count
+        self.level_offsets
+        return self._level_child_offsets
+
+    @property
     def level_offsets(self): 
         #this is used by the IO operations to find the file offset,
         #and then start reading to fill values
@@ -435,7 +478,7 @@ class ARTDomainFile(object):
         self.inoll = inoll
         self._level_oct_offsets = _level_oct_offsets
         self._level_child_offsets = _level_child_offsets
-        self._level_count = level_count
+        self._level_count = inoll
         return self._level_oct_offsets
     
     def _read_amr(self, oct_handler):
@@ -445,6 +488,7 @@ class ARTDomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
+        #leave this code here instead of static output - it's memory intensive
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
         for level in xrange(1, len(self.pf.max_level)):
