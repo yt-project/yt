@@ -51,29 +51,31 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        # First pass to read in particles
-	print "kln reading particle data"
-        # FIX need an input for particle type (in fields?)
         # http://yt-project.org/doc/analyzing/particles.html
         # ->creation_time >0 used to indicate star particles
+	print "reading particle data"
+        #
+        # FIX need an input for particle type (in fields?)
         accessed_species = ['N-BODY']#,'STAR']
-
-	print fields
-
-	print "kln size variable is not calculated. when parallelizing, we will need to determine total number of particles before reading them in."
-#        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
+        #
+	print 'io.py particle fields ',fields
         cp = 0
+        tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         for onechunk in chunks:
             for subset in onechunk.objs:
                 print 'reading values from', subset.domain.part_fn
                 rv = subset.fill_particles( accessed_species, selector, fields)
-		tr = dict((f, np.empty(shape(rv[f[1]]), dtype="float64")) for f in fields)
-
+                #get size and ensure that all fields have the same size (np)
+                subset_size = 0 
                 for fieldtype, fieldname in fields:
-                    tr[(fieldtype,fieldname)][cp:cp+len(rv[fieldname])] = rv.pop(fieldname)
-		cp += len(rv[0])
-                #cp += sizes[id(subset)]
-
-#       raise NotImplementedError 
+                    if subset_size != 0 and subset_size != len(rv[fieldname]) :
+                        print 'size varies between fields! exiting'
+                        sys.exit(1)
+                    subset_size = len(rv[fieldname])
+                cp_newsize = cp+subset_size
+                for fieldtype, fieldname in fields:
+                    tr[(fieldtype,fieldname)].resize(cp_newsize) 
+                    tr[(fieldtype,fieldname)][cp:cp_newsize] = rv.pop(fieldname)
+		cp = cp_newsize
         return tr
 

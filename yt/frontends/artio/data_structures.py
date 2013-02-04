@@ -69,18 +69,14 @@ class ARTIODomainFile(object):
         self._fileset_prefix = pf.parameter_filename[:-4]
         self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)
 	self.part_fn = "%s.p%03i" % (pf.parameter_filename[:-4],domain_id)
-        #self._handle = artio_fileset(self._fileset_prefix)
         self._handle = self.pf._handle
         self.local_oct_count = self._handle.count_refined_octs() 
         print "Local oct count = ", self.local_oct_count
 
-    #    if self._handle.parameters.has_key('num_particle_files') :
-       # self.artioparticle = artio_particle_routines(self._handle)
- #           self._read_particle_header()
-           # print "Particle support not implemented"
         self.local_particle_count = 0
         self.particle_field_offsets = {}                                                      
-        
+ 
+    # snl why not in DomainSubset?
     def _read_grid(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain 
@@ -89,7 +85,8 @@ class ARTIODomainFile(object):
            oct_handler.add
         """
         self._handle.grid_pos_fill(oct_handler)
-        
+ 
+    # snl are these methods used??
     def select(self, selector):
         if id(selector) == self._last_selector_id:
             return self._last_mask
@@ -202,9 +199,14 @@ class ARTIODomainSubset(object):
             'particle_velocity_z': 'VELOCITY_Z',
             'particle_mass': 'particle_species_mass'}
 
+        art_fields = []
+        for f in fields :
+            assert (yt_to_art.has_key(f[1])) #fields must exist in ART
+            art_fields.append(yt_to_art[f[1]])
 
         masked_particles = {}
-	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, [yt_to_art[f[1]] for f in fields] )
+        assert ( art_fields != None )
+	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, art_fields )
 
 	# dhr - make sure these are shallow copies
         tr = {}
@@ -212,32 +214,6 @@ class ARTIODomainSubset(object):
             tr[fieldname] = masked_particles[yt_to_art[fieldname]]
 	
         return tr
-
- #   def fill_particles(self, fields, accessed_species, masked_particle_count, particle_mask):
-  #      fieldnames = [f for ft, f in fields]
-  #      print 'all_fields:', all_fields 
-  #      print 'fieldnames:', fieldnames
-  #      tr = {}
-     #   for onefieldname in fieldnames: 
-     #       tr[onefieldname] = np.zeros(masked_particle_count, 'float64')
-        # temp = {}
-        # nc = self.domain.art_level_count.sum()
-        # print 'ncells total',self.masked_cell_count, 'ncells masked', nc
-        # for onefieldname in fieldnames:
-        #    #temp[onefieldname] = np.empty((no,8), dtype="float64") 
-        #    temp[onefieldname] = np.empty(nc, dtype="float32") 
-        #     
-        # #buffer variables 
-
-     #   self.domain.particle_var_fill(tr, fieldnames, accessed_species, particle_mask)
-
-        #     
-        #mask unused cells 
-        # level_offset += oct_handler.fill_mask(
-        #      self.domain.domain_id,
-        #     tr, temp, self.mask, level_offset) #[oct_container.pyx] RISM level_offset
-
-     #   return tr
 
 class ARTIOGeometryHandler(OctreeGeometryHandler):
 
@@ -463,6 +439,9 @@ class ARTIOStaticOutput(StaticOutput):
 
         # hard coded number of domains in ART = 1 ... that may change for parallelization 
         self.parameters['ncpu'] = 1
+
+        # hard coded assumption of 3D periodicity (until added to parameter file)
+        self.periodicity = (True,True,True)
 
     @classmethod
     def _is_valid(self, *args, **kwargs) :

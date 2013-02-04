@@ -6,6 +6,7 @@ import numpy as np
 cimport numpy as np
 import sys 
 
+from yt.geometry.selection_routines cimport SelectorObject
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 import  data_structures  
@@ -334,124 +335,230 @@ cdef class artio_fileset :
         print 'done filling oct positions', oct_count
 
 
-    def particle_var_fill(self, accessed_species, source, selector, fields) :
-        cdef double *primary_variables
-        cdef float *secondary_variables
+#    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def particle_var_fill(self, accessed_species, masked_particles,SelectorObject selector, fields) :
+        # major issues:
+        # 1) cannot choose which subspecies to access
+        # 2) but what if a species doesnt have a field? make it zeroes
+        # 3) mask size should be calculated and not just num_acc_species   
+        # e.g.   
+        # accessed species = nbody, stars, bh
+        # secondary speces[nbody] = []
+        # secondary speces[stars] = [birth, mass, blah]
+        # secondary speces[bh] = [accretionrate, mass, spin]
+        #
+        cdef double **primary_variables
+        cdef float **secondary_variables
+        cdef int **forder
+        cdef int *sorder 
         cdef int status
         cdef np.ndarray[np.float32_t, ndim=1] arr
-        # This relies on the fields being contiguous
-        cdef np.float32_t **fpoint
-        cdef int nf = len(fields)
-        fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*nf)
-        forder = <int*>malloc(sizeof(int)*nf)
-        cdef int i, j, level
-        cdef int *subspecies
-        cdef int64_t *pid
-#        cdef np.float64_t dds[3], pos[3]
-#        cdef int eterm[3]
-        dds = np.zeros(3)
-        pos = np.zeros(3)
-        eterm = np.zeros(3)
         cdef int **mask
-        mask = <int**>malloc(sizeof(int*)*len(accessed_species))
-
-        status = artio_particle_cache_sfc_range( self.particle_handle, self.sfc_min, self.sfc_max )
-        check_artio_status(status)
-
-        count_mask = {}
-        count = {}
-	
-        for species in range(len(accessed_species)) :
-             mask[species] = <int*>malloc(self.parameters['particle_species_num'][species] * sizeof(int))
-             count_mask[species] = 0
-             count[species] = 0
-         
         cdef int *num_particles_per_species 
-        num_particles_per_species =  <int *>malloc(sizeof(int)*len(self.parameters['particle_species_labels']))
-        primary_labels = self.parameters['species_00_primary_variable_labels']
-        static_labels = ["particle_species_mass"]
-        var_labels = primary_labels+static_labels
+        cdef int **pos_index
 
-        npf = nf
-        for i, f in enumerate(fields):
-            # It might be better to do this check in the Python code
-            if f not in var_labels:
-                    print "This field is not known to ARTIO: ", f
-                    raise RuntimeError
+        cdef int *subspecies
+        subspecies = <int*>malloc(sizeof(int))
+        cdef int64_t *pid
+        pid = <int64_t *>malloc(sizeof(int64_t))
+
+        cdef int nf = len(fields)
+        cdef int i, j, level
+        cdef np.float64_t dds[3], pos[3]
+        cdef int eterm[3]
+
+
+        if len(accessed_species) != 1 : 
+            print 'multiple particle species access needs serious thought'
+            sys.exit(1)
+            
+        # setup the range for all reads:
+        status = artio_particle_cache_sfc_range( self.particle_handle, 
+                                                 self.sfc_min, self.sfc_max )
+        check_artio_status(status)
+	
+        # mask ####################
+        # mask[spec][particle] fields are irrelevant for masking 
+        # -- masking only cares abount position
+        num_acc_species = len(accessed_species)
+        mask = <int**>malloc(sizeof(int*)*num_acc_species)
+        if not mask :
+            raise MemoryError
+        for aspec in range(num_acc_species) :
+             mask[aspec] = <int*>malloc(
+                 self.parameters['particle_species_num'][aspec] 
+                 * sizeof(int))
+             if not mask[aspec] :
+                 raise MemoryError
  
-            j = var_labels.index(f)
-            pos_index = [var_labels.index('POSITION_X'), var_labels.index('POSITION_Y'),
-                         var_labels.index('POSITION_Z')]
-            forder[i] = j
-            if f not in primary_labels :
-               npf -= 1
-        primary_variables = <double *>malloc(len(primary_labels)*sizeof(double))
+        # particle species ##########        
+        num_species = self.parameters['num_particle_species'][0]
+        labels_species = self.parameters['particle_species_labels']
 
+        forder = <int**>malloc(sizeof(int*)*num_species)
+        if not forder: raise MemoryError
+        pos_index = <int**>malloc(sizeof(int*)*num_species)
+        if not pos_index: raise MemoryError
+        num_particles_per_species =  <int *>malloc(
+            sizeof(int)*num_species) 
+        if not num_particles_per_species : raise MemoryError
+        sorder = <int*>malloc(sizeof(int)*num_acc_species)
+        if not sorder: raise MemoryError
+        for i, s in enumerate(accessed_species):
+            j = labels_species.index(s)
+            sorder[i] = j
+            # species of the same type (e.g. N-BODY) MUST be sequential in the label array
+            if i > 0 and sorder[i] == sorder[i-1] :
+                sorder[i] = j+1
+        # check that sorder points to uniq indices
+        for i in range(num_acc_species): 
+            for j in range(i+1,num_acc_species):  
+                if sorder[i]==sorder[j]:
+                    print sorder[i]
+                    print 'some accessed species indices point to the same ispec; exitting'
+                    sys.exit(1)
+            
+        # particle field labels and order ##########        
+        labels_primary={}
+        labels_secondary={}
+        labels_static={}
+        labels_all={}
+        # if field is static assign it a parameter.
+        nfnostatic=[]
+        # if field is empty assign it 0.
+        nfempty=[]
+        for ispec in range(num_species) : 
+            forder[ispec] = <int*>malloc(nf*sizeof(int))
+            if not forder[ispec] : raise MemoryError
+        for ispec in range(num_species) : 
+            param_name = "species_%02d_primary_variable_labels" % ispec
+            labels_primary[ispec] = self.parameters[param_name]
+            if self.parameters["num_secondary_variables"][ispec] > 0 :
+                param_name = "species_%02d_secondary_variable_labels" % ispec
+                labels_secondary[ispec] = self.parameters[param_name]
+            else : 
+                labels_secondary[ispec] = []
+                
+            if labels_species[ispec] == 'NBODY' :#only static for nbody !!
+                labels_static[ispec] = ["particle_species_mass"] 
+            else : 
+                labels_static[ispec] = [] 
+            labels_all[ispec] = labels_primary[ispec]+labels_secondary[ispec]+labels_static[ispec]
+
+            #calculate forder, and num_fields by category 
+            nfnostatic.append(nf) #non-static field count
+            nfempty.append(0) #non-static field count
+            for i, f in enumerate(fields):
+                if f in labels_all[ispec]:
+                    j = labels_all[ispec].index(f)
+                    forder[ispec][i] = j
+                    if f in labels_static[ispec] :
+                        nfnostatic[ispec] -= 1 
+                else :
+                    nfempty[ispec] += 1
+            #fix pos_index
+            pos_index[ispec] = <int*>malloc(3*sizeof(int))
+            pos_index[ispec][0] = labels_all[ispec].index('POSITION_X')
+            pos_index[ispec][1] = labels_all[ispec].index('POSITION_Y')
+            pos_index[ispec][2] = labels_all[ispec].index('POSITION_Z')
+                                
+                                
+
+        # allocate io pointers ############
+        primary_variables = <double **>malloc(sizeof(double**)*num_acc_species)  
+        secondary_variables = <float **>malloc(sizeof(float**)*num_acc_species)  
+        if (not primary_variables) or (not secondary_variables) : raise MemoryError
+            
+        for aspec in range(num_acc_species) : 
+            primary_variables[aspec]   = <double *>malloc(self.parameters['num_primary_variables'][aspec]*sizeof(double))
+            secondary_variables[aspec] = <float *>malloc(self.parameters['num_secondary_variables'][aspec]*sizeof(float))
+            if (not primary_variables[aspec]) or (not secondary_variables[aspec]) : raise MemoryError
+
+        count_mask = []
+        count = []
+        # counts=0 ##########
+        for aspec in range(num_acc_species) :
+             count_mask.append(0)
+             count.append(0)
+        # mask begin ##########
         print "generating mask for particles"
-        count_all_particles = 0
-
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
-                status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
-                    num_particles_per_species )
+            status = artio_particle_read_root_cell_begin( 
+                self.particle_handle, sfc,
+                num_particles_per_species )
+            check_artio_status(status)
+            # ispec is index out of all specs and aspecs is index out of accessed
+            # ispec only needed for num_particles_per_species and 
+            #    artio_particle_read_species_begin
+            for aspec in range(num_acc_species ) :
+                ispec = sorder[aspec]
+                status = artio_particle_read_species_begin(
+                    self.particle_handle, ispec)
                 check_artio_status(status)
-
-                for species in range(len(accessed_species) ) :
-                        status = artio_particle_read_species_begin(self.particle_handle, species)
-                        check_artio_status(status)
-
-                        for particle in range( num_particles_per_species[species] ) :
-                               print count_mask[species], count[species]
-                               status = artio_particle_read_particle(self.particle_handle,
-                                        pid, subspecies, primary_variables,
-                                        secondary_variables)
-                               check_artio_status(status)
-
-                               pos[0] = primary_variables[pos_index[0]]
-                               pos[1] = primary_variables[pos_index[1]]
-                               pos[2] = primary_variables[pos_index[2]]
-                               #kln - fails at select_cell
-                               mask[species][count[species]] = selector.select_cell(pos, dds, eterm)
-                               count_mask[species] += mask[species][count_mask[species]]
-                               count[species] += 1
-                        	
-                        status = artio_particle_read_species_end( self.particle_handle )
-                        check_artio_status(status)
-
-                status = artio_particle_read_root_cell_end( self.particle_handle )
+                for particle in range( num_particles_per_species[ispec] ) :
+                    print 'snl in caller: aspec count_mask count',aspec,ispec, count_mask[aspec], count[aspec]
+                    status = artio_particle_read_particle(
+                        self.particle_handle,
+                        pid, subspecies, primary_variables[aspec],
+                        secondary_variables[aspec])
+                    check_artio_status(status)
+                    pos[0] = primary_variables[aspec][pos_index[aspec][0]]
+                    pos[1] = primary_variables[aspec][pos_index[aspec][1]]
+                    pos[2] = primary_variables[aspec][pos_index[aspec][2]]
+                    mask[aspec][count[aspec]] = selector.select_cell(pos, dds, eterm)
+                    count_mask[aspec] += mask[aspec][count_mask[aspec]]
+                    count[aspec] += 1
+                status = artio_particle_read_species_end( self.particle_handle )
                 check_artio_status(status)
+            status = artio_particle_read_root_cell_end( self.particle_handle )
+            check_artio_status(status)
+        print 'finished masking'
+	##########################################################
 
+        cdef np.float32_t **fpoint
+        fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*nf)
+        num_masked_particles = sum(count_mask)
+        if not fpoint : raise MemoryError
         for i, f in enumerate(fields):
-            source[f] = np.empty(count_mask.sum())    
-            arr = source[f]
+            masked_particles[f] = np.empty(num_masked_particles,dtype="float32")    
+            arr = masked_particles[f]
             fpoint[i] = <np.float32_t *>arr.data
 
-        for species in range(len(accessed_species)) :
-             count_mask[species] = 0
-             count[species] = 0
-	
+	##########################################################
+        #variable begin ##########
         print "reading in particle variables"
+        for aspec in range(num_acc_species) :
+             count_mask[aspec] = 0
+             count[aspec] = 0
+        count_all_particles = 0
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
                 status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
                     num_particles_per_species )
                 check_artio_status(status)	
 
-                for species in range(len(accessed_species) ) :
-                    status = artio_particle_read_species_begin(self.particle_handle, species);
+                for aspec in range(num_acc_species) :
+                    ispec = sorder[aspec]
+                    status = artio_particle_read_species_begin(self.particle_handle, ispec);
                     check_artio_status(status)
+                    for particle in range( num_particles_per_species[ispec] ) :
 
-                    for particle in range( num_particles_per_species[species] ) :
                         status = artio_particle_read_particle(self.particle_handle,
-                                        pid, subspecies, primary_variables,
-                                        secondary_variables)
+                                        pid, subspecies, primary_variables[aspec],
+                                        secondary_variables[aspec])
                         check_artio_status(status)
 
-                        if mask[species][count[species]] == 1 :
-                             for i in range(npf):
-                                 fpoint[i][count_all_particles] = primary_variables[forder[i]]
-                             for i in range(npf, nf):
-                                 fpoint[i][count_all_particles] = self.parameter[var_labels[forder[i]]][species]
+                        ########## snl this is not right because of primary overflow
+                        if mask[aspec][count[aspec]] == 1 :
+                             for i in range(nfnostatic[ispec]):
+                                 fpoint[i][count_all_particles] = primary_variables[aspec][forder[ispec][i]]
+                             for i in range(nfnostatic[ispec], nf):
+                                 fpoint[i][count_all_particles] = 0#self.parameter[labels_all[forder[aspec][i]]][aspec]
                              count_all_particles += 1
-                        count[species] += 1
+                        ########## snl this is not right because of primary overflow
+                        count[aspec] += 1
+                        print 'reading into fpoitt', count[aspec]
 
                     status = artio_particle_read_species_end( self.particle_handle )
                     check_artio_status(status)
