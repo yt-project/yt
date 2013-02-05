@@ -480,11 +480,11 @@ cdef class artio_fileset :
             if (not primary_variables[aspec]) or (not secondary_variables[aspec]) : raise MemoryError
 
         count_mask = []
-        count = []
+        ipspec = []
         # counts=0 ##########
         for aspec in range(num_acc_species) :
              count_mask.append(0)
-             count.append(0)
+             ipspec.append(0)
         # mask begin ##########
         print "generating mask for particles"
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
@@ -501,7 +501,7 @@ cdef class artio_fileset :
                     self.particle_handle, ispec)
                 check_artio_status(status)
                 for particle in range( num_particles_per_species[ispec] ) :
-                    print 'snl in caller: aspec count_mask count',aspec,ispec, count_mask[aspec], count[aspec]
+                    # print 'snl in caller: aspec count_mask count',aspec,ispec, count_mask[aspec], ipspec[aspec]
                     status = artio_particle_read_particle(
                         self.particle_handle,
                         pid, subspecies, primary_variables[aspec],
@@ -510,9 +510,9 @@ cdef class artio_fileset :
                     pos[0] = primary_variables[aspec][pos_index[aspec][0]]
                     pos[1] = primary_variables[aspec][pos_index[aspec][1]]
                     pos[2] = primary_variables[aspec][pos_index[aspec][2]]
-                    mask[aspec][count[aspec]] = selector.select_cell(pos, dds, eterm)
+                    mask[aspec][ipspec[aspec]] = selector.select_cell(pos, dds, eterm)
                     count_mask[aspec] += mask[aspec][count_mask[aspec]]
-                    count[aspec] += 1
+                    ipspec[aspec] += 1
                 status = artio_particle_read_species_end( self.particle_handle )
                 check_artio_status(status)
             status = artio_particle_read_root_cell_end( self.particle_handle )
@@ -534,8 +534,8 @@ cdef class artio_fileset :
         print "reading in particle variables"
         for aspec in range(num_acc_species) :
              count_mask[aspec] = 0
-             count[aspec] = 0
-        count_all_particles = 0
+             ipspec[aspec] = 0
+        ipall = 0
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
                 status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
                     num_particles_per_species )
@@ -553,24 +553,24 @@ cdef class artio_fileset :
                         check_artio_status(status)
 
                         ########## snl this is not right because of primary overflow
-                        if mask[aspec][count[aspec]] == 1 :
+                        if mask[aspec][ipspec[aspec]] == 1 :
                              for i in range(nf):
                                  if   howtoread[ispec,i] == 'primary' : 
-                                     fpoint[i][count_all_particles] = primary_variables[aspec][fieldtoindex[ispec][i]]
+                                     fpoint[i][ipall] = primary_variables[aspec][fieldtoindex[ispec][i]]
                                  elif howtoread[ispec,i] == 'secondary' : 
-                                     fpoint[i][count_all_particles] = secondary_variables[aspec][fieldtoindex[ispec][i]]
+                                     fpoint[i][ipall] = secondary_variables[aspec][fieldtoindex[ispec][i]]
                                  elif howtoread[ispec,i] == 'static' : 
-                                     fpoint[i][count_all_particles] = self.parameters[labels_static[ispec]][fieldtoindex[ispec][i]]
+                                     fpoint[i][ipall] = self.parameters[labels_static[ispec]][fieldtoindex[ispec][i]]
                                  elif howtoread[ispec,i] == 'empty' : 
-                                     fpoint[i][count_all_particles] = 0
+                                     fpoint[i][ipall] = 0
                                  else : 
                                      print 'undefined how to read in caller', howtoread[ispec,i]
                                      print 'this should be impossible.'
                                      sys.exit(1)
-                             count_all_particles += 1
+                                 # print 'reading into fpoint', ipall,fpoint[i][ipall], fields[i]
+                             ipall += 1
                         ########## snl this is not right because of primary overflow
-                        count[aspec] += 1
-                        print 'reading into fpoitt', count[aspec]
+                        ipspec[aspec] += 1
 
                     status = artio_particle_read_species_end( self.particle_handle )
                     check_artio_status(status)
@@ -589,7 +589,7 @@ cdef class artio_fileset :
         free(fpoint)
         free(fieldtoindex)
 
-        print 'done filling particle variables', count_all_particles
+        print 'done filling particle variables', ipall
 
 
 

@@ -1071,7 +1071,8 @@ class HaloList(object):
             else:
                 self.particle_fields[field] = \
                     self._data_source[field][ii].astype('float64')
-            del self._data_source[field]
+            print 'snl in halo_objects field',self._fields, 'had to remove delete field'
+            #del self._data_source[field]
         self._base_indices = np.arange(tot_part)[ii]
         gc.collect()
 

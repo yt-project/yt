@@ -218,7 +218,7 @@ add_field("Metal_Density", function=_metal_density, units = r"\mathrm{K}",take_l
 ARTIOFieldInfo["Metal_Density"]._units = r""
 ARTIOFieldInfo["Metal_Density"]._projected_units = r""
 
-
+##################################################
 #Particle fields
 
 for ax in 'xyz':
@@ -227,6 +227,11 @@ for ax in 'xyz':
               particle_type=True)
 
 add_artio_field("particle_mass", function=NullFunc, particle_type=True)
+
+for ax in 'xyz':
+    pf = "particle_position_%s" % ax
+    add_artio_field(pf, function=NullFunc,
+              particle_type=True)
 
 def ParticleMass(field,data):
     return data['particle_mass']
