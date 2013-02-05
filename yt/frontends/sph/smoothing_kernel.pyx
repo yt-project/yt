@@ -6,8 +6,8 @@ from libc.math cimport sqrt
 from fp_utils cimport iclip
 cimport cython
 
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 @cython.cdivision(True)
 def smooth_particles(
         input_fields, output_grids,
@@ -32,6 +32,9 @@ def smooth_particles(
 
     cdef np.float64_t *kernel_sum = \
         <np.float64_t *>malloc(ngas * sizeof(np.float64_t))
+    cdef np.float64_t *pdist = \
+        <np.float64_t *>malloc(dims[0]*dims[1]*dims[2]*
+                               sizeof(np.float64_t))
 
     nf = len(input_fields)
     assert(nf == len(output_grids))
@@ -56,6 +59,10 @@ def smooth_particles(
             half_len = <int>(hsml[p]/dds[i]) + 1
             ib0[i] = ind[i] - half_len
             ib1[i] = ind[i] + half_len
+            #pos[i] = ppos[p, i] - left_edge[i]
+            #ind[i] = <int>(pos[i] / dds[i])
+            #ib0[i] = <int>((pos[i] - hsml[i]) / dds[i]) - 1
+            #ib1[i] = <int>((pos[i] + hsml[i]) / dds[i]) + 1
             if ib0[i] >= dims[i] or ib1[i] < 0:
                 skip = 1
             ib0[i] = iclip(ib0[i], 0, dims[i] - 1)
@@ -69,20 +76,18 @@ def smooth_particles(
                     idist[2] = (ind[2] - k) * (ind[2] - k) * sdds[2]
                     dist = idist[0] + idist[1] + idist[2]
                     dist = sqrt(dist) / hsml[p]
-                    kernel_sum[p] += sph_kernel(dist)
-        for i from ib0[0] <= i <= ib1[0]:
-            idist[0] = (ind[0] - i) * (ind[0] - i) * sdds[0]
-            for j from ib0[1] <= j <= ib1[1]:
-                idist[1] = (ind[1] - j) * (ind[1] - j) * sdds[1] 
-                for k from ib0[2] <= k <= ib1[2]:
-                    idist[2] = (ind[2] - k) * (ind[2] - k) * sdds[2]
-                    dist = idist[0] + idist[1] + idist[2]
-                    dist = sqrt(dist) / hsml[p]
-                    kern = sph_kernel(dist)
                     gi = ((i * dims[1] + j) * dims[2]) + k
+                    pdist[gi] = sph_kernel(dist)
+                    kernel_sum[p] += pdist[gi]
+        for i from ib0[0] <= i <= ib1[0]:
+            for j from ib0[1] <= j <= ib1[1]:
+                for k from ib0[2] <= k <= ib1[2]:
+                    gi = ((i * dims[1] + j) * dims[2]) + k
+                    dist = pdist[gi] / kernel_sum[p]
                     for d in range(nf):
-                        gdata[d][gi] += pdata[d][p] * kern / kernel_sum[p]
+                        gdata[d][gi] += pdata[d][p] * dist
     free(kernel_sum)
+    free(pdist)
     free(gdata)
     free(pdata)
 
