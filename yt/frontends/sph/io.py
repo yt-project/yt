@@ -80,7 +80,7 @@ class IOHandlerOWLS(BaseIOHandler):
                     del coords
                     if mask is None: continue
                     for field in field_list:
-                        data = g[field][mask,...]
+                        data = g[field][:][mask,...]
                         my_ind = ind[ptype, field]
                         mylog.debug("Filling from %s to %s with %s",
                             my_ind, my_ind+data.shape[0], field)

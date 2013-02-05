@@ -19,7 +19,7 @@ def smooth_particles(
     cdef np.int64_t ngas
     cdef np.float64_t dds[3], sdds[3], pos[3], idist[3], kern
     cdef int p, i, j, k, d, ind[3], ib0[3], ib1[3], dims[3]
-    cdef int nf, half_len, skip
+    cdef int nf, half_len, skip, gi
     cdef np.float64_t dist
     cdef np.ndarray[np.float64_t, ndim=1] gas_arr
     cdef np.ndarray[np.float64_t, ndim=3] grid_arr
@@ -93,8 +93,8 @@ def smooth_particles(
 
 ##############################################
 #Standard SPH kernel for use with the Grid method
-cdef float sph_kernel(float x) nogil:
-    cdef float kernel
+cdef np.float64_t sph_kernel(np.float64_t x) nogil:
+    cdef np.float64_t kernel
     if x <= 0.5:
         kernel = 1.-6.*x*x*(1.-x)
     elif x>0.5 and x<=1.0:
