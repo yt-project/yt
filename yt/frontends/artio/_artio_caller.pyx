@@ -334,7 +334,6 @@ cdef class artio_fileset :
 
         print 'done filling oct positions', oct_count
 
-
 #    @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -351,8 +350,8 @@ cdef class artio_fileset :
         #
         cdef double **primary_variables
         cdef float **secondary_variables
-        cdef int **forder
-        cdef int *sorder 
+        cdef int **fieldtoindex
+        cdef int *iacctoispec 
         cdef int status
         cdef np.ndarray[np.float32_t, ndim=1] arr
         cdef int **mask
@@ -397,26 +396,26 @@ cdef class artio_fileset :
         num_species = self.parameters['num_particle_species'][0]
         labels_species = self.parameters['particle_species_labels']
 
-        forder = <int**>malloc(sizeof(int*)*num_species)
-        if not forder: raise MemoryError
+        fieldtoindex = <int**>malloc(sizeof(int*)*num_species)
+        if not fieldtoindex: raise MemoryError
         pos_index = <int**>malloc(sizeof(int*)*num_species)
         if not pos_index: raise MemoryError
         num_particles_per_species =  <int *>malloc(
             sizeof(int)*num_species) 
         if not num_particles_per_species : raise MemoryError
-        sorder = <int*>malloc(sizeof(int)*num_acc_species)
-        if not sorder: raise MemoryError
-        for i, s in enumerate(accessed_species):
-            j = labels_species.index(s)
-            sorder[i] = j
+        iacctoispec = <int*>malloc(sizeof(int)*num_acc_species)
+        if not iacctoispec: raise MemoryError
+        for i, spec in enumerate(accessed_species):
+            j = labels_species.index(spec)
+            iacctoispec[i] = j
             # species of the same type (e.g. N-BODY) MUST be sequential in the label array
-            if i > 0 and sorder[i] == sorder[i-1] :
-                sorder[i] = j+1
-        # check that sorder points to uniq indices
+            if i > 0 and iacctoispec[i] == iacctoispec[i-1] :
+                iacctoispec[i] = j+1
+        # check that iacctoispec points to uniq indices
         for i in range(num_acc_species): 
             for j in range(i+1,num_acc_species):  
-                if sorder[i]==sorder[j]:
-                    print sorder[i]
+                if iacctoispec[i]==iacctoispec[j]:
+                    print iacctoispec[i]
                     print 'some accessed species indices point to the same ispec; exitting'
                     sys.exit(1)
             
@@ -424,15 +423,16 @@ cdef class artio_fileset :
         labels_primary={}
         labels_secondary={}
         labels_static={}
-        labels_all={}
-        # if field is static assign it a parameter.
-        nfnostatic=[]
-        # if field is empty assign it 0.
-        nfempty=[]
+        howtoread = {}
         for ispec in range(num_species) : 
-            forder[ispec] = <int*>malloc(nf*sizeof(int))
-            if not forder[ispec] : raise MemoryError
+            fieldtoindex[ispec] = <int*>malloc(nf*sizeof(int))
+            if not fieldtoindex[ispec] : raise MemoryError
+
+        countnbody = 0 
         for ispec in range(num_species) : 
+            # data_structures converted fields into ART labels
+            # now attribute ART fields to each species primary/secondary/static/empty
+            # so that we know how to read them
             param_name = "species_%02d_primary_variable_labels" % ispec
             labels_primary[ispec] = self.parameters[param_name]
             if self.parameters["num_secondary_variables"][ispec] > 0 :
@@ -440,29 +440,32 @@ cdef class artio_fileset :
                 labels_secondary[ispec] = self.parameters[param_name]
             else : 
                 labels_secondary[ispec] = []
-                
-            if labels_species[ispec] == 'NBODY' :#only static for nbody !!
-                labels_static[ispec] = ["particle_species_mass"] 
+
+            #the only static label for now is NBODY mass
+            if labels_species[ispec] == 'N-BODY' :
+                labels_static[ispec] = "particle_species_mass"
             else : 
                 labels_static[ispec] = [] 
-            labels_all[ispec] = labels_primary[ispec]+labels_secondary[ispec]+labels_static[ispec]
 
-            #calculate forder, and num_fields by category 
-            nfnostatic.append(nf) #non-static field count
-            nfempty.append(0) #non-static field count
             for i, f in enumerate(fields):
-                if f in labels_all[ispec]:
-                    j = labels_all[ispec].index(f)
-                    forder[ispec][i] = j
-                    if f in labels_static[ispec] :
-                        nfnostatic[ispec] -= 1 
-                else :
-                    nfempty[ispec] += 1
+                if   f in labels_primary[ispec]:
+                    howtoread[ispec,i]= 'primary'
+                    fieldtoindex[ispec][i] = labels_primary[ispec].index(f)
+                elif f in labels_secondary[ispec]:
+                    howtoread[ispec,i]= 'secondary'
+                    fieldtoindex[ispec][i] = labels_secondary[ispec].index(f)
+                elif f in labels_static[ispec]:
+                    howtoread[ispec,i]= 'static'
+                    fieldtoindex[ispec][i] = countnbody
+                    countnbody += 1 #particle_mass happens once per N-BODY species
+                else : 
+                    howtoread[ispec,i]= 'empty'
+                    fieldtoindex[ispec][i] = 9999999
             #fix pos_index
             pos_index[ispec] = <int*>malloc(3*sizeof(int))
-            pos_index[ispec][0] = labels_all[ispec].index('POSITION_X')
-            pos_index[ispec][1] = labels_all[ispec].index('POSITION_Y')
-            pos_index[ispec][2] = labels_all[ispec].index('POSITION_Z')
+            pos_index[ispec][0] = labels_primary[ispec].index('POSITION_X')
+            pos_index[ispec][1] = labels_primary[ispec].index('POSITION_Y')
+            pos_index[ispec][2] = labels_primary[ispec].index('POSITION_Z')
                                 
                                 
 
@@ -493,7 +496,7 @@ cdef class artio_fileset :
             # ispec only needed for num_particles_per_species and 
             #    artio_particle_read_species_begin
             for aspec in range(num_acc_species ) :
-                ispec = sorder[aspec]
+                ispec = iacctoispec[aspec]
                 status = artio_particle_read_species_begin(
                     self.particle_handle, ispec)
                 check_artio_status(status)
@@ -539,7 +542,7 @@ cdef class artio_fileset :
                 check_artio_status(status)	
 
                 for aspec in range(num_acc_species) :
-                    ispec = sorder[aspec]
+                    ispec = iacctoispec[aspec]
                     status = artio_particle_read_species_begin(self.particle_handle, ispec);
                     check_artio_status(status)
                     for particle in range( num_particles_per_species[ispec] ) :
@@ -551,10 +554,19 @@ cdef class artio_fileset :
 
                         ########## snl this is not right because of primary overflow
                         if mask[aspec][count[aspec]] == 1 :
-                             for i in range(nfnostatic[ispec]):
-                                 fpoint[i][count_all_particles] = primary_variables[aspec][forder[ispec][i]]
-                             for i in range(nfnostatic[ispec], nf):
-                                 fpoint[i][count_all_particles] = 0#self.parameter[labels_all[forder[aspec][i]]][aspec]
+                             for i in range(nf):
+                                 if   howtoread[ispec,i] == 'primary' : 
+                                     fpoint[i][count_all_particles] = primary_variables[aspec][fieldtoindex[ispec][i]]
+                                 elif howtoread[ispec,i] == 'secondary' : 
+                                     fpoint[i][count_all_particles] = secondary_variables[aspec][fieldtoindex[ispec][i]]
+                                 elif howtoread[ispec,i] == 'static' : 
+                                     fpoint[i][count_all_particles] = self.parameters[labels_static[ispec]][fieldtoindex[ispec][i]]
+                                 elif howtoread[ispec,i] == 'empty' : 
+                                     fpoint[i][count_all_particles] = 0
+                                 else : 
+                                     print 'undefined how to read in caller', howtoread[ispec,i]
+                                     print 'this should be impossible.'
+                                     sys.exit(1)
                              count_all_particles += 1
                         ########## snl this is not right because of primary overflow
                         count[aspec] += 1
@@ -566,9 +578,16 @@ cdef class artio_fileset :
                 status = artio_particle_read_root_cell_end( self.particle_handle )
                 check_artio_status(status)
 
+        free(subspecies)
+        free(pid)
+        free(mask)
+        free(pos_index)
+        free(num_particles_per_species)
+        free(iacctoispec)
         free(primary_variables)
+        free(secondary_variables)
         free(fpoint)
-        free(forder)
+        free(fieldtoindex)
 
         print 'done filling particle variables', count_all_particles
 
