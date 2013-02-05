@@ -176,24 +176,55 @@ function host_specific
         echo
         echo "NOTE: you must have the Xcode command line tools installed."
         echo
-        echo "OS X 10.5: download Xcode 3.0 from the mac developer tools"
-        echo "website"
+	echo "The instructions for obtaining these tools varies according"
+	echo "to your exact OS version.  On older versions of OS X, you"
+	echo "must register for an account on the apple developer tools"
+	echo "website: https://developer.apple.com/downloads to obtain the"
+	echo "download link."
+	echo 
+	echo "We have gathered some additional instructions for each"
+	echo "version of OS X below.  If you have trouble setting up Xcode"
+	echo "after following these instructions, don't hesitate to contact"
+	echo "the yt user's e-mail list."
+	echo
+	echo "You can see which version of OSX you are running by clicking"
+	echo "'About This Mac' in the apple menu on the left hand side of"
+	echo "menu bar."
+	echo 
+        echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the" 
+	echo "Apple developer tools website."
         echo
-        echo "OS X 10.6: download Xcode 3.2 from the mac developer tools"
-        echo "website"
+        echo "OS X 10.6.8: search for download Xcode 3.2 from the Apple"
+	echo "developer tools website.  You can either download the"
+	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+	echo "Software Update to update to XCode 3.2.6 or" 
+	echo "alternatively, you can download the Xcode 3.2.6/iOS SDK" 
+	echo "bundle (4.1 GB)."
         echo
-        echo "OS X 10.7: download Xcode 4.0 from the mac app store or"
-        echo "alternatively download the Xcode command line tools from"
-        echo "the mac developer tools website"
+        echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
+	echo "(search for Xcode)."
+        echo "Alternatively, download the Xcode command line tools from"
+        echo "the Apple developer tools website."
         echo
-        echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
-        echo "Leopard) or newer.  If you do, please set the following"
-        echo "environment variables, remove any broken installation tree, and"
-        echo "re-run this script verbatim."
+	echo "OS X 10.8.2: download Xcode 4.6 from the mac app store."
+	echo "(search for Xcode)."
+	echo "Additionally, you will have to manually install the Xcode"
+	echo "command line tools, see:" 
+	echo "http://stackoverflow.com/questions/9353444"
+	echo "Alternatively, download the Xcode command line tools from"
+	echo "the Apple developer tools website."
+	echo
+        echo "NOTE: It's possible that the installation will fail, if so," 
+	echo "please set the following environment variables, remove any" 
+	echo "broken installation tree, and re-run this script verbatim."
         echo
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
         echo
+	echo "If the installation fails with these environment variables"
+	echo "set, we're happy to offer some additional help on the yt"
+	echo "user's mailing list."
+	echo
         OSX_VERSION=`sw_vers -productVersion`
         if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
