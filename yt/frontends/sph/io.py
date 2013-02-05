@@ -27,6 +27,7 @@ import h5py
 import numpy as np
 from yt.funcs import *
 from yt.utilities.exceptions import *
+from yt.geometry.selection_routines import particle_mask_fill
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -80,12 +81,19 @@ class IOHandlerOWLS(BaseIOHandler):
                     del coords
                     if mask is None: continue
                     for field in field_list:
-                        data = g[field][mask,...]
                         my_ind = ind[ptype, field]
-                        mylog.debug("Filling from %s to %s with %s",
-                            my_ind, my_ind+data.shape[0], field)
-                        rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                        ind[ptype, field] += data.shape[0]
+                        if field in _vector_fields:
+                            mylog.debug("Filling (vectors) from %s with %s",
+                                my_ind, field)
+                            data = g[field][:].astype("float64")
+                            ind[ptype, field] = particle_mask_fill(
+                                mask, data, rv[ptype, field], my_ind)
+                        else:
+                            data = g[field][:][mask]
+                            mylog.debug("Filling (scalars) from %s to %s with %s",
+                                my_ind, my_ind+data.shape[0], field)
+                            rv[ptype, field][my_ind:my_ind + data.shape[0]] = data
+                            ind[ptype, field] += data.shape[0]
                 f.close()
         return rv
 

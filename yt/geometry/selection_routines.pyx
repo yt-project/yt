@@ -114,6 +114,21 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
     else:
         raise RuntimeError
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def particle_mask_fill(np.ndarray[np.uint8_t, ndim=1, cast=True] mask,
+                       np.ndarray[np.float64_t, ndim=2] input,
+                       np.ndarray[np.float64_t, ndim=2] output,
+                       np.int64_t offset):
+    cdef np.int64_t i, j
+    for i in range(mask.shape[0]):
+        if mask[i] == 0: continue
+        for j in range(3):
+            output[offset, j] = input[i, j]
+        offset += 1
+    return offset
+
 # Inclined Box
 
 cdef class SelectorObject:
