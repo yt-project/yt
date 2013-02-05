@@ -159,18 +159,6 @@ function host_specific
         echo "   $ module swap PE-pgi PE-gnu"
         echo
     fi
-    if [ "${MYHOSTLONG%%ranger}" != "${MYHOSTLONG}" ]
-    then
-        echo "Looks like you're on Ranger."
-        echo
-        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
-        echo "These commands should take care of that for you:"
-        echo
-        echo "   $ module unload mvapich2"
-        echo "   $ module swap pgi gcc"
-        echo "   $ module load mvapich2"
-        echo
-    fi
     if [ "${MYHOST##steele}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Steele."
