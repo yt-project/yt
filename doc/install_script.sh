@@ -261,7 +261,7 @@ function host_specific
         echo " to avoid conflicts with other command-line programs "
         echo " (like eog and evince, for example)."
     fi
-    if [$INST_SCIPY -eq 1]
+    if [ $INST_SCIPY -eq 1 ]
     then
 	echo
 	echo "Looks like you've requested that the install script build SciPy."
