@@ -725,7 +725,7 @@ else
 	    echo "Building LAPACK"
 	    cd lapack-3.4.2/
 	    cp INSTALL/make.inc.gfortran make.inc
-	    make lapacklib CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
+	    make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
 	    touch done
 	    cd ..
 	fi
