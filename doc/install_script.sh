@@ -334,7 +334,7 @@ get_willwont ${INST_PYX}
 echo "be installing PyX"
 
 printf "%-15s = %s so I " "INST_SCIPY" "${INST_SCIPY}"
-get_willwont ${INST_PYX}
+get_willwont ${INST_SCIPY}
 echo "be installing scipy"
 
 printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
