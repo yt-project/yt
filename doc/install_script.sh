@@ -26,7 +26,7 @@ fi
 # and install it on its own
 #HDF5_DIR=
 
-# If you need to supply arguments to the NumPy build, supply them here
+# If you need to supply arguments to the NumPy and scipy build, supply them here
 # This one turns on gfortran manually:
 #NUMPY_ARGS="--fcompiler=gnu95"
 # If you absolutely can't get the fortran to work, try this:
@@ -183,18 +183,20 @@ function host_specific
 	echo "download link."
 	echo 
 	echo "We have gathered some additional instructions for each"
-	echo "version of OS X below.  If you have trouble setting up Xcode"
+	echo "version of OS X below. If you have trouble setting up Xcode"
 	echo "after following these instructions, don't hesitate to contact"
 	echo "the yt user's e-mail list."
 	echo
 	echo "You can see which version of OSX you are running by clicking"
 	echo "'About This Mac' in the apple menu on the left hand side of"
-	echo "menu bar."
+	echo "menu bar.  We're assuming that you've installed all operating"
+	echo "system updates; if you have an older version, we suggest"
+	echo "running software update and installing all available updates."
 	echo 
         echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the" 
 	echo "Apple developer tools website."
         echo
-        echo "OS X 10.6.8: search for download Xcode 3.2 from the Apple"
+        echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
 	echo "developer tools website.  You can either download the"
 	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
 	echo "Software Update to update to XCode 3.2.6 or" 
@@ -222,8 +224,8 @@ function host_specific
         echo "$ export CXX=g++-4.2"
         echo
 	echo "If the installation fails with these environment variables"
-	echo "set, we're happy to offer some additional help on the yt"
-	echo "user's mailing list."
+	echo "set, don't hesitate to ask for help on the yt user's mailing"
+	echo "list."
 	echo
         OSX_VERSION=`sw_vers -productVersion`
         if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
@@ -262,6 +264,19 @@ function host_specific
         echo 
         echo " to avoid conflicts with other command-line programs "
         echo " (like eog and evince, for example)."
+    fi
+    if [$INST_SCIPY -eq 1]
+    then
+	echo
+	echo "Looks like you've requested that the install script build scipy."
+	echo
+	echo "If the scipy build fails, please uncomment the line at the top of"
+	echo "the install script that sets NUMPY_ARGS, delete any broken"
+	echo "installation tree, and re-run the install script verbatim."
+	echo
+	echo "If that doesn't work, don't hesitate to ask for help on the yt"
+	echo "user's mailing list."
+	echo
     fi
     if [ ! -z "${CFLAGS}" ]
     then
