@@ -220,6 +220,7 @@ class ChomboStaticOutput(StaticOutput):
         self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
+        self.backup_filename  = self.fullplotdir + '_backup.gdf'
         self.cosmological_simulation = False
         fileh.close()
 
