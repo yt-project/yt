@@ -8,7 +8,7 @@
 # that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
 # installation you can set HDF5_DIR, or if you want to use some other
 # subversion checkout of YT, you can set YT_DIR, too.  (It'll already
-# check the current directory and one up.
+# check the current directory and one up).
 #
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
@@ -26,7 +26,7 @@ fi
 # and install it on its own
 #HDF5_DIR=
 
-# If you need to supply arguments to the NumPy and scipy build, supply them here
+# If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
 #NUMPY_ARGS="--fcompiler=gnu95"
 # If you absolutely can't get the fortran to work, try this:
@@ -183,7 +183,7 @@ function host_specific
 	echo "download link."
 	echo 
 	echo "We have gathered some additional instructions for each"
-	echo "version of OS X below. If you have trouble setting up Xcode"
+	echo "version of OS X below. If you have trouble installing yt"
 	echo "after following these instructions, don't hesitate to contact"
 	echo "the yt user's e-mail list."
 	echo
@@ -222,10 +222,6 @@ function host_specific
         echo
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
-        echo
-	echo "If the installation fails with these environment variables"
-	echo "set, don't hesitate to ask for help on the yt user's mailing"
-	echo "list."
 	echo
         OSX_VERSION=`sw_vers -productVersion`
         if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
@@ -268,11 +264,12 @@ function host_specific
     if [$INST_SCIPY -eq 1]
     then
 	echo
-	echo "Looks like you've requested that the install script build scipy."
+	echo "Looks like you've requested that the install script build SciPy."
 	echo
-	echo "If the scipy build fails, please uncomment the line at the top of"
-	echo "the install script that sets NUMPY_ARGS, delete any broken"
-	echo "installation tree, and re-run the install script verbatim."
+	echo "If the SciPy build fails, please uncomment one of the the lines"
+	echo "at the top of the install script that sets NUMPY_ARGS, delete"
+	echo "any broken installation tree, and re-run the install script"
+	echo "verbatim."
 	echo
 	echo "If that doesn't work, don't hesitate to ask for help on the yt"
 	echo "user's mailing list."
