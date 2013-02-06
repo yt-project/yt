@@ -220,6 +220,7 @@ class ChomboStaticOutput(StaticOutput):
         self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
+        self.cosmological_simulation = False
         fileh.close()
 
     def _set_units(self):
