@@ -50,20 +50,30 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fhandle.close()
     
     def _read_data_set(self,grid,field):
-        fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
+        # try to read from backup file first
+        try:
+            backup_filename = grid.pf.backup_filename
+            fhandle = h5py.File(backup_filename, 'r')
+            g = fhandle["data"]
+            grid_group = g["grid_%010i" % grid.id]
+            data = grid_group[field][:]
+            fhandle.close()
+            return data
+        except:
+            fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
 
-        field_dict = self._field_dict(fhandle)
-        lstring = 'level_%i' % grid.Level
-        lev = fhandle[lstring]
-        dims = grid.ActiveDimensions
-        boxsize = dims.prod()
+            field_dict = self._field_dict(fhandle)
+            lstring = 'level_%i' % grid.Level
+            lev = fhandle[lstring]
+            dims = grid.ActiveDimensions
+            boxsize = dims.prod()
         
-        grid_offset = lev[self._offset_string][grid._level_id]
-        start = grid_offset+field_dict[field]*boxsize
-        stop = start + boxsize
-        data = lev[self._data_string][start:stop]
+            grid_offset = lev[self._offset_string][grid._level_id]
+            start = grid_offset+field_dict[field]*boxsize
+            stop = start + boxsize
+            data = lev[self._data_string][start:stop]
 
-        fhandle.close()
+            fhandle.close()
         return data.reshape(dims, order='F')
 
     def _read_data_slice(self, grid, field, axis, coord):
