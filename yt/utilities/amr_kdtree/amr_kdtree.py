@@ -26,12 +26,12 @@ License:
 from yt.funcs import *
 import numpy as np
 import h5py
-from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
+from amr_kdtools import Node, Split, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids, \
         receive_and_reduce, send_to_parent, scatter_image, find_node, \
         depth_first_touch
 from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import ParallelAnalysisInterface, parallel_root_only
+    import ParallelAnalysisInterface 
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
 
@@ -445,10 +445,10 @@ class AMRKDTree(ParallelAnalysisInterface):
         if self.comm.rank != (self.comm.size-1):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
 
-
-    @parallel_root_only
     def join_parallel_trees(self):
-        nid, pid, lid, rid, les, res, gid = self.get_node_arrays()
+        if self.comm.size == 0: return
+        nid, pid, lid, rid, les, res, gid, splitdims, splitposs = \
+                self.get_node_arrays()
         nid = self.comm.par_combine_object(nid, 'cat', 'list') 
         pid = self.comm.par_combine_object(pid, 'cat', 'list') 
         lid = self.comm.par_combine_object(lid, 'cat', 'list') 
@@ -456,9 +456,11 @@ class AMRKDTree(ParallelAnalysisInterface):
         gid = self.comm.par_combine_object(gid, 'cat', 'list') 
         les = self.comm.par_combine_object(les, 'cat', 'list') 
         res = self.comm.par_combine_object(res, 'cat', 'list') 
+        splitdims = self.comm.par_combine_object(splitdims, 'cat', 'list') 
+        splitposs = self.comm.par_combine_object(splitposs, 'cat', 'list') 
         nid = np.array(nid)
         new_tree = self.rebuild_tree_from_array(nid, pid, lid, 
-            rid, les, res, gid)
+            rid, les, res, gid, splitdims, splitposs)
 
     def get_node_arrays(self):
         nids = []
@@ -468,6 +470,8 @@ class AMRKDTree(ParallelAnalysisInterface):
         les = []
         res = []
         gridids = []
+        splitdims = []
+        splitposs = []
         for node in depth_first_touch(self.tree):
             nids.append(node.id) 
             les.append(node.left_edge) 
@@ -488,10 +492,18 @@ class AMRKDTree(ParallelAnalysisInterface):
                 gridids.append(-1) 
             else:
                 gridids.append(node.grid) 
-        return nids, parentids, leftids, rightids, les, res, gridids
+            if node.split is None:
+                splitdims.append(-1)
+                splitposs.append(np.nan)
+            else:
+                splitdims.append(node.split.dim)
+                splitposs.append(node.split.pos)
+
+        return nids, parentids, leftids, rightids, les, res, gridids,\
+                splitdims, splitposs
 
     def rebuild_tree_from_array(self, nids, pids, lids,
-                               rids, les, res, gids):
+                               rids, les, res, gids, splitdims, splitposs):
         del self.tree.trunk
 
         self.tree.trunk = Node(None, 
@@ -512,6 +524,10 @@ class AMRKDTree(ParallelAnalysisInterface):
                                       None, None, rids[i])
             if gids[i] != -1:
                 n.grid = gids[i]
+
+            if splitdims[i] != -1:
+                n.split = Split(splitdims[i], splitposs[i])
+
         mylog.info('AMRKDTree rebuilt, Final Volume: %e' % kd_sum_volume(self.tree.trunk))
         return self.tree.trunk
 
