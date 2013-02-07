@@ -164,9 +164,9 @@ def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
     ug = load_uniform_grid(data, ndims, 1.0, nprocs = nprocs)
     return ug
 
-def expand_keyword_dictionary(keywords):
+def expand_keywords(keywords):
     """
-    expand_keyword_dictionary is a means for testing all possible keyword
+    expand_keywords is a means for testing all possible keyword
     arguments in the nosetests.  Simply pass it a dictionary of all the
     keyword arguments and all of the values for these arguments that you
     want to test.
@@ -193,7 +193,7 @@ def expand_keyword_dictionary(keywords):
     >>> keywords = {}
     >>> keywords['dpi'] = (50, 100, 200)
     >>> keywords['cmap'] = ('algae', 'jet')
-    >>> list_of_kwargs = expand_keyword_dictionary(keywords)
+    >>> list_of_kwargs = expand_keywords(keywords)
     >>> print list_of_kwargs
 
     array([{'cmap': 'algae', 'dpi': 50}, {'cmap': 'jet', 'dpi': 100},
