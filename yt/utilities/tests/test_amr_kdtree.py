@@ -28,6 +28,7 @@ from yt.utilities.amr_kdtree.amr_kdtools import kd_node_check, depth_traverse
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
+import numpy as np
 
 def test_amr_kdtree():
     domain_dims = (32, 32, 32)

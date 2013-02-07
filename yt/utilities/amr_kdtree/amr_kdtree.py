@@ -31,7 +31,7 @@ from amr_kdtools import Node, kd_is_leaf, kd_sum_volume, kd_node_check, \
         receive_and_reduce, send_to_parent, scatter_image, find_node, \
         depth_first_touch
 from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import ParallelAnalysisInterface
+    import ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
 
@@ -446,6 +446,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
 
 
+    @parallel_root_only
     def join_parallel_trees(self):
         nid, pid, lid, rid, les, res, gid = self.get_node_arrays()
         nid = self.comm.par_combine_object(nid, 'cat', 'list') 

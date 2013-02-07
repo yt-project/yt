@@ -7,12 +7,12 @@ def setup():
 
 _fields = ("Density", "x-velocity", "y-velocity", "z-velocity")
 
-def test_covering_grid():
+def test_streamlines():
     # We decompose in different ways
     cs = np.mgrid[0.47:0.53:2j,0.47:0.53:2j,0.47:0.53:2j]
     cs = np.array([a.ravel() for a in cs]).T
     length = (1.0/128) * 16 # 16 half-widths of a cell
-    for nprocs in [1, 2, 4, 8]:
+    for nprocs in [1]:
         pf = fake_random_pf(64, nprocs = nprocs, fields = _fields)
         streams = Streamlines(pf, cs, length=length)
         streams.integrate_through_volume()
