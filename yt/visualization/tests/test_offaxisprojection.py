@@ -74,14 +74,14 @@ def test_write_projection():
     wp_kwargs['take_log'] = (True, False)
     wp_kwargs['figsize'] = ((8,6), [1,1])
     wp_kwargs['dpi'] = (100, 50)
-    wp_kwargs['cmap'] = ('algae', 'jet')
+    wp_kwargs['cmap_name'] = ('algae', 'jet')
     wp_kwargs_list = expand_keywords(wp_kwargs)
 
     # test all off_axis_projection kwargs and write_projection kwargs
     # make sure they are able to be projected, then remove and try next
     # iteration
     for oap_kwargs in oap_kwargs_list:
-        image = off_axis_projetion(*oap_args, **oap_kwargs)
+        image = off_axis_projection(*oap_args, **oap_kwargs)
         for wp_kwargs in wp_kwargs_list:
             write_projection(image, fn, **wp_kwargs)
             yield assert_equal, os.path.exists(fn), True
