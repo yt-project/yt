@@ -163,3 +163,74 @@ def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
                  for field,offset in zip(fields,offsets))
     ug = load_uniform_grid(data, ndims, 1.0, nprocs = nprocs)
     return ug
+
+def expand_keyword_dictionary(keywords):
+    """
+    expand_keyword_dictionary is a means for testing all possible keyword
+    arguments in the nosetests.  Simply pass it a dictionary of all the
+    keyword arguments and all of the values for these arguments that you
+    want to test.
+
+    It will return a list of **kwargs dicts containing combinations of
+    the various kwarg values you passed it.  Note, this does not return
+    every unique combination of keywords, but it does return lists
+    which probe each value of each keyword.  These can then be passed
+    to the appropriate function in nosetests. 
+
+    keywords : dict
+        a dictionary where the keys are the keywords for the function,
+        and the values of each key are the possible values that this key
+        can take in the function
+
+    Returns
+    -------
+    array of dicts
+        An array of **kwargs dictionaries to be individually passed to
+        the appropriate function matching these kwargs.
+
+    Examples
+    --------
+    >>> keywords = {}
+    >>> keywords['dpi'] = (50, 100, 200)
+    >>> keywords['cmap'] = ('algae', 'jet')
+    >>> list_of_kwargs = expand_keyword_dictionary(keywords)
+    >>> print list_of_kwargs
+
+    array([{'cmap': 'algae', 'dpi': 50}, {'cmap': 'jet', 'dpi': 100},
+           {'cmap': 'algae', 'dpi': 200}], dtype=object)
+
+    >>> for kwargs in list_of_kwargs:
+    ...     write_projection(*args, **kwargs)
+    """
+
+    # Determine the maximum number of values any of the keywords has
+    max_num_values = 0
+    import pdb; pdb.set_trace()
+    for val in keywords.values():
+        if isinstance(val, str):
+            max_num_values = max(1.0, max_num_values)
+        else:
+            max_num_values = max(len(val), max_num_values)
+
+    # Construct array of kwargs dicts, each element of the list is a different
+    # **kwargs dict.  each kwargs dict gives a different combination of
+    # the possible values of the kwargs
+
+    # initialize array
+    list_of_kwarg_dicts = np.array([dict() for x in range(max_num_values)])
+
+    # fill in array
+    for i in np.arange(max_num_values):
+        list_of_kwarg_dicts[i] = {}
+        for key in keywords.keys():
+            # if it's a string, use it (there's only one)
+            if isinstance(keywords[key], str):
+                list_of_kwarg_dicts[i][key] = keywords[key]
+            # if there are more options, use the i'th val
+            elif i < len(keywords[key]):
+                list_of_kwarg_dicts[i][key] = keywords[key][i]
+            # if there are not more options, use the 0'th val
+            else:
+                list_of_kwarg_dicts[i][key] = keywords[key][0]
+
+    return list_of_kwarg_dicts
