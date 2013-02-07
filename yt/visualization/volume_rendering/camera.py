@@ -2120,6 +2120,7 @@ class ProjectionCamera(Camera):
             image *= dl
         else:
             image[:,:,0] /= image[:,:,1]
+
         return image[:,:,0]
 
 
@@ -2127,8 +2128,10 @@ class ProjectionCamera(Camera):
         # Calculate the eight corners of the box
         # Back corners ...
         if self.interpolated:
-            return Camera._render(self, double_check, num_threads, image,
+            image = Camera._render(self, double_check, num_threads, image,
                     sampler)
+            image = self.finalize_image(image)
+            return image
         pf = self.pf
         width = self.width[2]
         north_vector = self.orienter.unit_vectors[0]
@@ -2161,8 +2164,7 @@ class ProjectionCamera(Camera):
             pb.update(i)
         pb.finish()
 
-        image = sampler.aimage
-        self.finalize_image(image)
+        image = self.finalize_image(sampler.aimage)
         return image
 
     def save_image(self, fn, clip_ratio, image):
@@ -2273,5 +2275,5 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
     del projcam
-    return image[:,:,0]
+    return image[:,:]
 
