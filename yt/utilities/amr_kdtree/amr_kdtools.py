@@ -42,6 +42,7 @@ class Node(object):
         self.parent = parent
         self.id = node_id
         self.data = None
+        self.split = None
 
 class Split(object):
     def __init__(self, dim, pos):
