@@ -58,6 +58,17 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     f.close()
 
 def save_field(pf, field_name):
+    """
+    Write a single field associated with the parameter file pf to the
+    backup file.
+
+    Parameters
+    ----------
+    pf : StaticOutput object
+        The yt parameter file that the field is associated with.
+    field_name : string
+        The name of the field to save.
+    """
     backup_filename = pf.backup_filename
     if os.path.exists(backup_filename):
         # backup file already exists, open it
