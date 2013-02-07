@@ -205,7 +205,6 @@ def expand_keywords(keywords):
 
     # Determine the maximum number of values any of the keywords has
     max_num_values = 0
-    import pdb; pdb.set_trace()
     for val in keywords.values():
         if isinstance(val, str):
             max_num_values = max(1.0, max_num_values)
