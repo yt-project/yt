@@ -371,8 +371,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.add_field_table(tf, 0, weight_table_id = 3)
             self.link_channels(i, i)
         self.add_field_table(self.funcs[3], 0)
+        self.link_channels(3,3)
         # We don't have a fifth table, so the value will *always* be zero.
-        self.link_channels(4, [3,4,5])
+        #self.link_channels(4, [3,4,5])
 
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
@@ -481,7 +482,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
         pyplot.savefig(filename)
 
-    def show(self):
+    def show(self, ax=None):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -509,6 +510,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlim(0, self.alpha.x.size)
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        if len(xticks) > 5:
+            xticks = xticks[::len(xticks)/5]
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
@@ -516,10 +519,74 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         yticks = np.linspace(0,1,5) * self.alpha.y.size
         ax.yaxis.set_ticks(yticks)
         def y_format(y, pos):
-            return (y / self.alpha.y.size)
+            s = '%0.2f' % ( y )
+            return s
         ax.yaxis.set_major_formatter(FuncFormatter(y_format))
-        ax.set_ylabel("Transmission")
+        ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
+
+    def vert_cbar(self, ax=None, label=None):
+        r"""Display an image of the transfer function
+
+        This function loads up matplotlib and displays the current transfer function.
+
+        Parameters
+        ----------
+
+        Examples
+        --------
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, 1.0)
+        >>> tf.show()
+        """
+        from matplotlib import pyplot
+        from matplotlib.ticker import FuncFormatter
+        #pyplot.clf()
+        if ax is None:
+            ax = pyplot.axes()
+        if label is None:
+            label = ''
+        alpha = self.alpha.y 
+        max_alpha = alpha.max()
+        norm = max_alpha
+        i_data = np.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
+        i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
+        i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
+        i_data[:,:,2] = np.outer(self.funcs[2].y, np.ones(self.alpha.x.size))
+        ax.imshow(i_data, origin='lower', aspect='auto')
+        ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
+
+        # Set TF limits based on what is visible
+        visible = np.argwhere(self.alpha.y > 1.0e-3*self.alpha.y.max())
+
+        # Display colobar values
+        xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
+        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        if len(xticks) > 5:
+            xticks = xticks[::len(xticks)/5]
+
+        # Add colorbar limits to the ticks (May not give ideal results)
+        xticks = np.append(visible[0], xticks)
+        xticks = np.append(visible[-1], xticks)
+        ax.yaxis.set_ticks(xticks)
+        def x_format(x, pos):
+            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+        ax.yaxis.set_major_formatter(FuncFormatter(x_format))
+
+        yticks = np.linspace(0,1,2,endpoint=True) * max_alpha
+        ax.xaxis.set_ticks(yticks)
+        def y_format(y, pos):
+            s = '%0.2f' % ( y )
+            return s
+        ax.xaxis.set_major_formatter(FuncFormatter(y_format))
+        ax.set_xlim(0., max_alpha)
+        ax.get_xaxis().set_ticks([])
+        ax.set_ylim(visible[0], visible[-1])
+        ax.tick_params(axis='y', colors='white', size=10)
+        ax.set_ylabel(label, color='white')
+        
+
         
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
@@ -576,7 +643,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.x_bounds[0]))
         tomap = np.linspace(0.,1.,num=rel1-rel0)
         cmap = get_cmap(colormap)
-        cc = cmap(tomap)*scale
+        cc = cmap(tomap)
         if scale_func is None:
             scale_mult = 1.0
         else:
@@ -584,7 +651,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
         self.green.y[rel0:rel1]= cc[:,1]*scale_mult
         self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
-        self.alpha.y[rel0:rel1]= cc[:,3]*scale_mult
+        self.alpha.y[rel0:rel1]= scale*cc[:,3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
