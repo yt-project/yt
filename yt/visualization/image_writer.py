@@ -336,7 +336,7 @@ def splat_points(image, points_x, points_y,
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
                      title=None, limits=None, take_log=True, figsize=(8,6),
-                     dpi=100, cmap='algae'):
+                     dpi=100, cmap_name='algae'):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
@@ -368,7 +368,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         width, height in inches of final image
     dpi : int
         final image resolution in pixels / inch
-    cmap : string
+    cmap_name : string
         The name of the colormap.
 
     Examples
@@ -397,7 +397,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     ax = fig.add_subplot(111)
     fig.tight_layout()
 
-    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap)
+    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap_name)
     
     if title:
         ax.set_title(title)
