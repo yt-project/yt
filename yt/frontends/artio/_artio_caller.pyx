@@ -657,7 +657,7 @@ cdef class artio_fileset :
             for i in range(nf):
                 fpoint[i][order] = variables[forder[i]]
  
-            for level in range(1,num_oct_levels) :
+            for level in range(1,num_oct_levels+1) :
                 status = artio_grid_read_level_begin( self.handle, level )
                 check_artio_status(status) 
 

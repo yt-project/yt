@@ -378,13 +378,15 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         for i in range(3):
             if pp[i] < self.DLE[i] or pp[i] > self.DRE[i] :
                 raise RuntimeError
-            dds = (self.DRE[i] - self.DLE[i])/(<np.int64_t>self.nn[i]>>curlevel)
-            pos[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds)
+            dds = (self.DRE[i] - self.DLE[i])/(<np.int64_t>self.nn[i])
+            pos[i] = <np.int64_t> floor((pp[i]-self.DLE[i])*<np.float64_t>(1<<curlevel)/dds)
 
         if curlevel == 0 :
             cur = NULL
         elif parent == NULL :
             cur = self.get_root_oct(pp)
+            assert( cur != NULL )
+
             # Now we find the location we want
             for level in range(1,curlevel):
                 # At every level, find the cell this oct lives inside
@@ -414,12 +416,17 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     ind[i] = 0
                 else :
                     ind[i] = 1
+            if cur.level != curlevel - 1 or  \
+                    cur.children[ind[0]][ind[1]][ind[2]] != NULL :
+                print "Error in add_oct: child already filled!"
+                raise RuntimeError
+
             cur.children[ind[0]][ind[1]][ind[2]] = next_oct
         for i in range(3) :
             next_oct.pos[i] = pos[i]
         next_oct.domain = curdom
         next_oct.parent = cur
-        #next_oct.ind = 1
+        next_oct.ind = 1
         next_oct.level = curlevel
         return next_oct
 
