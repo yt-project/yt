@@ -441,11 +441,11 @@ cdef class artio_fileset :
             else : 
                 labels_secondary[ispec] = []
 
-            #the only static label for now is NBODY mass
             if labels_species[ispec] == 'N-BODY' :
-                labels_static[ispec] = "particle_species_mass"
+                labels_static[ispec] = ["particle_species_mass"]
             else : 
                 labels_static[ispec] = [] 
+            labels_static[ispec].append("particle_index") 
 
             for i, f in enumerate(fields):
                 if   f in labels_primary[ispec]:
@@ -455,9 +455,14 @@ cdef class artio_fileset :
                     howtoread[ispec,i]= 'secondary'
                     fieldtoindex[ispec][i] = labels_secondary[ispec].index(f)
                 elif f in labels_static[ispec]:
-                    howtoread[ispec,i]= 'static'
-                    fieldtoindex[ispec][i] = countnbody
-                    countnbody += 1 #particle_mass happens once per N-BODY species
+                    #each new N-BODY spec adds one to the static mass location
+                    if labels_species[ispec] == 'N-BODY' and f == 'particle_species_mass' :
+                        howtoread[ispec,i]= 'staticNBODY'
+                        fieldtoindex[ispec][i] = countnbody
+                        countnbody += 1 #particle_mass happens once per N-BODY species
+                        print 'count the nbody species',countnbody
+                    else :
+                        howtoread[ispec,i]= 'staticINDEX'
                 else : 
                     howtoread[ispec,i]= 'empty'
                     fieldtoindex[ispec][i] = 9999999
@@ -559,8 +564,10 @@ cdef class artio_fileset :
                                      fpoint[i][ipall] = primary_variables[aspec][fieldtoindex[ispec][i]]
                                  elif howtoread[ispec,i] == 'secondary' : 
                                      fpoint[i][ipall] = secondary_variables[aspec][fieldtoindex[ispec][i]]
-                                 elif howtoread[ispec,i] == 'static' : 
-                                     fpoint[i][ipall] = self.parameters[labels_static[ispec]][fieldtoindex[ispec][i]]
+                                 elif howtoread[ispec,i] == 'staticNBODY' : 
+                                     fpoint[i][ipall] = self.parameters["particle_species_mass"][fieldtoindex[ispec][i]]
+                                 elif howtoread[ispec,i] == 'staticINDEX' : 
+                                     fpoint[i][ipall] = ipall
                                  elif howtoread[ispec,i] == 'empty' : 
                                      fpoint[i][ipall] = 0
                                  else : 

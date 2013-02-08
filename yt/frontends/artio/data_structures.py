@@ -322,15 +322,15 @@ class ARTIOStaticOutput(StaticOutput):
         self.conversion_factors["Temperature"] = self.parameters['unit_T']*constants.wmu*(constants.gamma-1) #*cell_gas_internal_energy(cell)/cell_gas_density(cell);
         print 'note temperature conversion is currently using fixed gamma not variable'
 
-        for particle_field in particle_fields:
-            self.conversion_factors[particle_field] =  1.0
+#        for particle_field in particle_fields:
+#            self.conversion_factors[particle_field] =  1.0
         for ax in 'xyz':
             self.conversion_factors["particle_velocity_%s"%ax] = self.parameters['unit_v']
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
         self.conversion_factors['particle_mass'] = self.parameters['unit_m']
-        self.conversion_factors['particle_creation_time'] =  31556926.0
-        self.conversion_factors['Msun'] = 5.027e-34 
+        self.conversion_factors['particle_creation_time'] =  self.parameters['unit_t']
+        self.conversion_factors['particle_mass_msun'] = self.parameters['unit_m']/constants.Msun
        
     def _parse_parameter_file(self):
         # hard-coded -- not provided by headers 

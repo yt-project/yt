@@ -42,7 +42,7 @@ fluid_fields = [
 
 particle_fields= [
 #    'particle_age',
-#    'particle_index',
+    'particle_index',
     'particle_mass',
     'particle_mass_initial',
     'particle_creation_time',
@@ -87,7 +87,8 @@ yt_to_art = {
     'particle_velocity_x': 'VELOCITY_X',
     'particle_velocity_y': 'VELOCITY_Y',
     'particle_velocity_z': 'VELOCITY_Z',
-    'particle_mass': 'particle_species_mass'
+    'particle_mass': 'particle_species_mass',
+    'particle_index': 'particle_index'
 }
 
 class ARTIOconstants():

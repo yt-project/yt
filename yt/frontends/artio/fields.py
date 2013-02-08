@@ -151,17 +151,11 @@ KnownARTIOFields["PotentialHydro"]._convert_function=_convertPotentialHydro
 ####### Derived fields
 import sys
 def _temperature(field, data):
-    tr = data["GasEnergy"]/data.pf.conversion_factors["GasEnergy"]*data.pf.conversion_factors["Density"]/data["Density"] #*(data["Gamma"]-1)*wmu 
-    #ghost cells have zero density?
+    tr = data["GasEnergy"]/data["Density"] #Gamma fixed not field *(data["Gamma"]-1)*wmu 
     tr[np.isnan(tr)] = 0.0
-    #dd[di] = -1.0
-    #if data.id==460:
-    #tr[di] = -1.0 #replace the zero-density points with zero temp
-    #print tr.min()
-    #assert np.all(np.isfinite(tr))
     return tr
 def _converttemperature(data):
-    x = data.pf.conversion_factors["Temperature"]
+    x = data.pf.conversion_factors["Temperature"]*data.pf.conversion_factors["Density"]/data.pf.conversion_factors["GasEnergy"]
     return x
 add_field("Temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
 ARTIOFieldInfo["Temperature"]._units = r"\mathrm{K}"
@@ -225,8 +219,8 @@ for ax in 'xyz':
     pf = "particle_velocity_%s" % ax
     add_artio_field(pf, function=NullFunc,
               particle_type=True)
-
 add_artio_field("particle_mass", function=NullFunc, particle_type=True)
+add_artio_field("particle_index", function=NullFunc, particle_type=True)
 
 for ax in 'xyz':
     pf = "particle_position_%s" % ax
@@ -235,14 +229,19 @@ for ax in 'xyz':
 
 def ParticleMass(field,data):
     return data['particle_mass']
-add_field("ParticleMass",function=ParticleMass,units=r"\rm{g}",particle_type=True)
-
-
-#Derived particle fields
+def _convertParticleMass(field,data):
+    return data.convert('particle_mass')
+add_field("ParticleMass",
+          function=ParticleMass,
+          convert_function=_convertParticleMass,
+          units=r"\rm{g}",
+          particle_type=True)
 
 def ParticleMassMsun(field,data):
-    return data['particle_mass']/1.989e33 #*data.pf['Msun']
-add_field("ParticleMassMsun",function=ParticleMassMsun,units=r"\rm{g}",particle_type=True)
+    return data['particle_mass']*data.pf.conversion_factors['particle_mass_msun']
+add_field("ParticleMassMsun",
+          function=ParticleMassMsun,
+          units=r"\rm{M\odot}",particle_type=True)
 
 def _creation_time(field,data):
     pa = data["particle_age"]
