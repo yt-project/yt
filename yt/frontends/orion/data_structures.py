@@ -468,7 +468,6 @@ class OrionStaticOutput(StaticOutput):
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
 
-        self.backup_filename = self.parameter_filename + '_backup.gdf'
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...

@@ -698,7 +698,6 @@ class EnzoStaticOutput(StaticOutput):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-        self.backup_filename = filename + '_backup.gdf'
 
         StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:

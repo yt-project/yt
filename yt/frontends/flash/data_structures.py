@@ -221,7 +221,6 @@ class FLASHStaticOutput(StaticOutput):
         self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
-        self.backup_filename = filename + '_backup.gdf'
         self.particle_filename = particle_filename
 
         if self.particle_filename is None :
