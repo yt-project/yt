@@ -26,7 +26,7 @@ License:
 """
 
 import os
-
+import sys
 import h5py
 import numpy as np
 
@@ -72,7 +72,7 @@ def save_field(pf, field_name):
     backup_filename = pf.backup_filename
     if os.path.exists(backup_filename):
         # backup file already exists, open it
-        f = h5py.File(backup_filename, "a")
+        f = h5py.File(backup_filename, "r+")
     else:
         # backup file does not exist, create it
         f = _create_new_gdf(pf, backup_filename, data_author=None, data_comment=None,
@@ -89,8 +89,12 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
     # add field info to field_types group
     g = fhandle["field_types"]
     # create the subgroup with the field's name
-    sg = g.create_group(field_name)
-
+    try:
+        sg = g.create_group(field_name)
+    except ValueError:
+        print "Error - File already contains field called " + field_name
+        sys.exit(1)
+        
     # grab the display name and units from the field info container.
     display_name = pf.field_info[field_name].display_name
     units = pf.field_info[field_name].get_units()
