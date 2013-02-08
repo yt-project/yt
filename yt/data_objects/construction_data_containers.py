@@ -807,6 +807,16 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             arr["green"][:] = cs[0,:,1]
             arr["blue"][:] = cs[0,:,2]
 
+    @property
+    def triangles(self):
+        if self.vertices is None:
+            self.get_data()
+        vv = np.empty((self.vertices.shape[1]/3, 3, 3), dtype="float64")
+        for i in range(3):
+            for j in range(3):
+                vv[:,i,j] = self.vertices[j,i::3]
+        return vv
+ 
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
