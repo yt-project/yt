@@ -221,7 +221,7 @@ class FLASHStaticOutput(StaticOutput):
         self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
-
+        self.backup_filename = filename + '_backup.gdf'
         self.particle_filename = particle_filename
 
         if self.particle_filename is None :
@@ -449,10 +449,6 @@ class FLASHStaticOutput(StaticOutput):
 
         # Get the simulation time
         self.current_time = self.parameters["time"]
-
-        # Determine if this is a periodic box
-        p = [self.parameters.get("%sl_boundary_type" % ax, None) == "periodic" for ax in 'xyz']
-        self.periodicity = tuple(p)
 
         # Determine cosmological parameters.
         try: 
