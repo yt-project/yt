@@ -402,6 +402,10 @@ class AthenaStaticOutput(StaticOutput):
         self.num_ghost_zones = 0
         self.field_ordering = 'fortran'
         self.boundary_conditions = [1]*6
+        if 'periodicity' in self.specified_parameters:
+            self.periodicity = ensure_tuple(self.specified_parameters['periodicity'])
+        else:
+            self.periodicity = (True,)*self.dimensionality
 
         dname = self.parameter_filename
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))

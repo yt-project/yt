@@ -621,6 +621,7 @@ class CastroStaticOutput(StaticOutput):
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
+        self.periodicity = ensure_tuple(self.fparameters['castro.lo_bc'] == 0)
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.refine_by = self.parameters.get("RefineBy", 2)
 

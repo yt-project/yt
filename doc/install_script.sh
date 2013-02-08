@@ -8,7 +8,7 @@
 # that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
 # installation you can set HDF5_DIR, or if you want to use some other
 # subversion checkout of YT, you can set YT_DIR, too.  (It'll already
-# check the current directory and one up.
+# check the current directory and one up).
 #
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
@@ -26,7 +26,7 @@ fi
 # and install it on its own
 #HDF5_DIR=
 
-# If you need to supply arguments to the NumPy build, supply them here
+# If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
 #NUMPY_ARGS="--fcompiler=gnu95"
 # If you absolutely can't get the fortran to work, try this:
@@ -159,18 +159,6 @@ function host_specific
         echo "   $ module swap PE-pgi PE-gnu"
         echo
     fi
-    if [ "${MYHOSTLONG%%ranger}" != "${MYHOSTLONG}" ]
-    then
-        echo "Looks like you're on Ranger."
-        echo
-        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
-        echo "These commands should take care of that for you:"
-        echo
-        echo "   $ module unload mvapich2"
-        echo "   $ module swap pgi gcc"
-        echo "   $ module load mvapich2"
-        echo
-    fi
     if [ "${MYHOST##steele}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Steele."
@@ -188,24 +176,53 @@ function host_specific
         echo
         echo "NOTE: you must have the Xcode command line tools installed."
         echo
-        echo "OS X 10.5: download Xcode 3.0 from the mac developer tools"
-        echo "website"
+	echo "The instructions for obtaining these tools varies according"
+	echo "to your exact OS version.  On older versions of OS X, you"
+	echo "must register for an account on the apple developer tools"
+	echo "website: https://developer.apple.com/downloads to obtain the"
+	echo "download link."
+	echo 
+	echo "We have gathered some additional instructions for each"
+	echo "version of OS X below. If you have trouble installing yt"
+	echo "after following these instructions, don't hesitate to contact"
+	echo "the yt user's e-mail list."
+	echo
+	echo "You can see which version of OSX you are running by clicking"
+	echo "'About This Mac' in the apple menu on the left hand side of"
+	echo "menu bar.  We're assuming that you've installed all operating"
+	echo "system updates; if you have an older version, we suggest"
+	echo "running software update and installing all available updates."
+	echo 
+        echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the" 
+	echo "Apple developer tools website."
         echo
-        echo "OS X 10.6: download Xcode 3.2 from the mac developer tools"
-        echo "website"
+        echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
+	echo "developer tools website.  You can either download the"
+	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+	echo "Software Update to update to XCode 3.2.6 or" 
+	echo "alternatively, you can download the Xcode 3.2.6/iOS SDK" 
+	echo "bundle (4.1 GB)."
         echo
-        echo "OS X 10.7: download Xcode 4.0 from the mac app store or"
-        echo "alternatively download the Xcode command line tools from"
-        echo "the mac developer tools website"
+        echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
+	echo "(search for Xcode)."
+        echo "Alternatively, download the Xcode command line tools from"
+        echo "the Apple developer tools website."
         echo
-        echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
-        echo "Leopard) or newer.  If you do, please set the following"
-        echo "environment variables, remove any broken installation tree, and"
-        echo "re-run this script verbatim."
+	echo "OS X 10.8.2: download Xcode 4.6 from the mac app store."
+	echo "(search for Xcode)."
+	echo "Additionally, you will have to manually install the Xcode"
+	echo "command line tools, see:" 
+	echo "http://stackoverflow.com/questions/9353444"
+	echo "Alternatively, download the Xcode command line tools from"
+	echo "the Apple developer tools website."
+	echo
+        echo "NOTE: It's possible that the installation will fail, if so," 
+	echo "please set the following environment variables, remove any" 
+	echo "broken installation tree, and re-run this script verbatim."
         echo
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
-        echo
+	echo
         OSX_VERSION=`sw_vers -productVersion`
         if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
@@ -243,6 +260,20 @@ function host_specific
         echo 
         echo " to avoid conflicts with other command-line programs "
         echo " (like eog and evince, for example)."
+    fi
+    if [ $INST_SCIPY -eq 1 ]
+    then
+	echo
+	echo "Looks like you've requested that the install script build SciPy."
+	echo
+	echo "If the SciPy build fails, please uncomment one of the the lines"
+	echo "at the top of the install script that sets NUMPY_ARGS, delete"
+	echo "any broken installation tree, and re-run the install script"
+	echo "verbatim."
+	echo
+	echo "If that doesn't work, don't hesitate to ask for help on the yt"
+	echo "user's mailing list."
+	echo
     fi
     if [ ! -z "${CFLAGS}" ]
     then
@@ -303,7 +334,7 @@ get_willwont ${INST_PYX}
 echo "be installing PyX"
 
 printf "%-15s = %s so I " "INST_SCIPY" "${INST_SCIPY}"
-get_willwont ${INST_PYX}
+get_willwont ${INST_SCIPY}
 echo "be installing scipy"
 
 printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
@@ -694,7 +725,7 @@ else
 	    echo "Building LAPACK"
 	    cd lapack-3.4.2/
 	    cp INSTALL/make.inc.gfortran make.inc
-	    make lapacklib CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
+	    make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
 	    touch done
 	    cd ..
 	fi
