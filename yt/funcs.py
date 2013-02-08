@@ -74,6 +74,19 @@ def ensure_numpy_array(obj):
     else:
         return np.asarray([obj])
 
+def ensure_tuple(obj):
+    """
+    This function ensures that *obj* is a tuple.  Typically used to convert
+    scalar, list, or array arguments specified by a user in a context where
+    we assume a tuple internally
+    """
+    if isinstance(obj, types.TupleType):
+        return obj
+    elif isinstance(obj, (types.ListType, np.ndarray)):
+        return tuple(obj)
+    else:
+        return (obj,)
+
 def read_struct(f, fmt):
     """
     This reads a struct, and only that struct, from an open file.
@@ -587,8 +600,8 @@ def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
 
 def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1].lstrip('.')
-    return suffix if suffix in ['png', 'eps', 'ps', 'pdf'] else ''
+    suffix = os.path.splitext(name)[1]
+    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
 
 # This is a modification of:
 # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python

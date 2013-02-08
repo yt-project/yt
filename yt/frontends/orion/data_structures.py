@@ -549,6 +549,8 @@ class OrionStaticOutput(StaticOutput):
             elif param.startswith("geometry.prob_lo"):
                 self.domain_left_edge = \
                     np.array([float(i) for i in vals.split()])
+            elif param.startswith("Prob.lo_bc"):
+                self.periodicity = ensure_tuple([i == 0 for i in vals])
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]

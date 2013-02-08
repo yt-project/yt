@@ -351,7 +351,7 @@ for ax in ['x','y','z']:
 
 def _spdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return blank
+    if data["particle_position_x"].size == 0: return blank
     filter = data['creation_time'] > 0.0
     if not filter.any(): return blank
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
@@ -368,18 +368,19 @@ add_field("star_density", function=_spdensity,
 
 def _dmpdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return blank
+    if data["particle_position_x"].size == 0: return blank
     if 'creation_time' in data.pf.field_info:
         filter = data['creation_time'] <= 0.0
         if not filter.any(): return blank
+        num = filter.sum()
     else:
-        filter = np.ones(data.NumberOfParticles, dtype='bool')
-    if not filter.any(): return blank
+        filter = None
+        num = data["particle_position_x"].size
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),
                            data["particle_position_z"][filter].astype(np.float64),
                            data["particle_mass"][filter].astype(np.float32),
-                           np.int64(np.where(filter)[0].size),
+                           num,
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
@@ -394,13 +395,13 @@ def _cic_particle_field(field, data):
     """
     particle_field = field.name[4:]
     top = np.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return top
+    if data["particle_position_x"].size == 0: return top
     particle_field_data = data[particle_field] * data['particle_mass']
     amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
                            data["particle_position_y"].astype(np.float64),
                            data["particle_position_z"].astype(np.float64),
                            particle_field_data.astype(np.float32),
-                           np.int64(data.NumberOfParticles),
+                           data["particle_position_x"].size,
                            top, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
@@ -411,7 +412,7 @@ def _cic_particle_field(field, data):
                            data["particle_position_y"].astype(np.float64),
                            data["particle_position_z"].astype(np.float64),
                            data["particle_mass"].astype(np.float32),
-                           np.int64(data.NumberOfParticles),
+                           data["particle_position_x"].size,
                            bottom, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
@@ -433,7 +434,7 @@ def _star_field(field, data):
     """
     particle_field = field.name[5:]
     top = np.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return top
+    if data["particle_position_x"].size == 0: return top
     filter = data['creation_time'] > 0.0
     if not filter.any(): return top
     particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
