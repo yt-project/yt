@@ -103,7 +103,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             f = h5py.File(backup_filename, 'r')
             for field_name in f['field_types']:
                 self.field_list.append(field_name)
-        except:
+        except IOError:
+            return
+        except KeyError:
             return
 
     def _get_parameters(self):
