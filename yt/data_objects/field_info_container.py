@@ -239,6 +239,7 @@ class FieldDetector(defaultdict):
             pf.domain_left_edge = np.zeros(3, 'float64')
             pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
+            pf.periodicity = (True, True, True)
         self.pf = pf
 
         class fake_hierarchy(object):

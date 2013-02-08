@@ -154,7 +154,7 @@ from yt.convenience import \
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
-    ortho_find, quartiles
+    ortho_find, quartiles, periodic_position 
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -

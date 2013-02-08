@@ -188,6 +188,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         rh = RockstarHaloFinder(ts)
         rh.run()
         """
+        mylog.warning("The citation for the Rockstar halo finder can be found at")
+        mylog.warning("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
         if ytcfg.getboolean("yt", "inline") == True:

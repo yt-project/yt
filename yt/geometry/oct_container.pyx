@@ -23,7 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 cimport numpy as np
@@ -76,6 +75,15 @@ cdef void free_octs(
         first = cur.next
         free(cur)
 
+# Here is the strategy for RAMSES containers:
+#   * Read each domain individually, creating *all* octs found in that domain
+#     file, even if they reside on other CPUs.
+#   * Only allocate octs that reside on >= domain
+#   * For all octs, insert into tree, which may require traversing existing
+#     octs
+#   * Note that this doesn ot allow OctAllocationContainer to exactly be a
+#     chunk, but it is close.  For IO chunking, we can theoretically examine
+#     those octs that live inside a given allocator.
 
 cdef class OctreeContainer:
 
@@ -136,7 +144,7 @@ cdef class OctreeContainer:
         for i in range(3):
             pp[i] = ppos[i] - self.DLE[i]
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
+            ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
         while cur.children[0][0][0] != NULL:
@@ -696,8 +704,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             in_boundary = 0
             for i in range(3):
                 pp[i] = pos[p, i]
-                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
+                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
@@ -841,7 +849,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
-                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset): 
+                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
@@ -1112,7 +1120,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for i in range(3):
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> floor((pp[i]-self.DLE[i])/dds[i])
+                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:

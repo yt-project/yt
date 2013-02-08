@@ -23,21 +23,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import os
-import sys
 import tempfile
 import shutil
 from yt.testing import \
-    fake_random_pf
+    fake_random_pf, assert_equal
 from yt.mods import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
-
-
-EXT_TO_TYPE = {
-    '.ps': 'PostScript document text conforming DSC level 3.0',
-    '.eps': 'PostScript document text conforming DSC level 3.0, type EPS',
-    '.pdf': 'PDF document, version 1.4',
-    '.png': 'PNG image data, 1070 x 1000, 8-bit/color RGBA, non-interlaced'
-}
 
 
 def setup():
@@ -51,19 +42,26 @@ def assert_fname(fname):
     if fname is None:
         return
 
-    try:
-        import magic
-    except ImportError:
-        # OS X doesn't come with libmagic
-        pass
+    with open(fname, 'rb') as fimg:
+        data = fimg.read()
+    data = str(data)
+    image_type = ''
 
-    if 'magic' in sys.modules:
-        ext = os.path.splitext(fname)[1]
-        mds = magic.open(magic.MAGIC_NONE)
-        mds.load()
-        magic_text = mds.file(fname)
-        mds.close()
-        assert magic_text == EXT_TO_TYPE[ext]
+    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
+    if data.startswith('\211PNG\r\n\032\n'):
+        image_type = '.png'
+    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
+    elif data.startswith('\377\330'):
+        image_type = '.jpeg'
+    elif data.startswith('%!PS-Adobe'):
+        if 'EPSF' in data[:data.index('\n')]:
+            image_type = '.eps'
+        else:
+            image_type = '.ps'
+    elif data.startswith('%PDF'):
+        image_type = '.pdf'
+
+    return image_type == os.path.splitext(fname)[1]
 
 
 def test_plotwindow():
@@ -81,16 +79,16 @@ def test_plotwindow():
     for fname in test_flnms:
         for dim in [0, 1, 2]:
             obj = SlicePlot(test_pf, dim, 'Density')
-            yield assert_fname, obj.save(fname)[0]
+            yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
             obj = ProjectionPlot(test_pf, dim, 'Density')
-            yield assert_fname, obj.save(fname)[0]
+            yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
         obj = OffAxisSlicePlot(test_pf, normal, 'Density')
-        yield assert_fname, obj.save(fname)[0]
+        yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
         obj = OffAxisProjectionPlot(test_pf, normal, 'Density')
-        yield assert_fname, obj.save(fname)[0]
+        yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
     os.chdir(curdir)
     # clean up
