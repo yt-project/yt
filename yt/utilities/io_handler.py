@@ -28,6 +28,8 @@ from collections import defaultdict
 import yt.utilities.lib as au
 import exceptions
 import cPickle
+import os
+import h5py
 
 _axis_ids = {0:2,1:1,2:0}
 
@@ -68,8 +70,36 @@ class BaseIOHandler(object):
             raise ValueError
         self.queue[grid][field] = data
 
-    # Now we define our interface
+    def _field_in_backup(self, grid, backup_file, field_name):
+        if os.path.exists(backup_file):
+            fhandle = h5py.File(backup_file, 'r')
+            g = fhandle["data"]
+            grid_group = g["grid_%010i" % grid.id]
+            if field_name in grid_group:
+                return_val = True
+            else:
+                return_val = False
+            fhandle.close()
+            return return_val
+        else:
+            return False
+            
     def _read_data_set(self, grid, field):
+        # check backup file first. if field not found,
+        # call frontend-specific io method
+        backup_filename = grid.pf.backup_filename
+        if self._field_in_backup(grid, backup_filename, field):
+            fhandle = h5py.File(backup_filename, 'r')
+            g = fhandle["data"]
+            grid_group = g["grid_%010i" % grid.id]
+            data = grid_group[field][:]
+            fhandle.close()
+            return data
+        else:
+            return self._read_data_set_from_pf(grid, field)
+                
+    # Now we define our interface
+    def _read_data_set_from_pf(self, grid, field):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):

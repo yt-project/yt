@@ -24,6 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import h5py
+import os
 import re
 import numpy as np
 
@@ -49,31 +50,22 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
         fhandle.close()
     
-    def _read_data_set(self,grid,field):
-        # try to read from backup file first
-        try:
-            backup_filename = grid.pf.backup_filename
-            fhandle = h5py.File(backup_filename, 'r')
-            g = fhandle["data"]
-            grid_group = g["grid_%010i" % grid.id]
-            data = grid_group[field][:]
-            fhandle.close()
-            return data
-        except:
-            fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
+    def _read_data_set_from_pf(self,grid,field):
 
-            field_dict = self._field_dict(fhandle)
-            lstring = 'level_%i' % grid.Level
-            lev = fhandle[lstring]
-            dims = grid.ActiveDimensions
-            boxsize = dims.prod()
+        fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
+
+        field_dict = self._field_dict(fhandle)
+        lstring = 'level_%i' % grid.Level
+        lev = fhandle[lstring]
+        dims = grid.ActiveDimensions
+        boxsize = dims.prod()
         
-            grid_offset = lev[self._offset_string][grid._level_id]
-            start = grid_offset+field_dict[field]*boxsize
-            stop = start + boxsize
-            data = lev[self._data_string][start:stop]
-
-            fhandle.close()
+        grid_offset = lev[self._offset_string][grid._level_id]
+        start = grid_offset+field_dict[field]*boxsize
+        stop = start + boxsize
+        data = lev[self._data_string][start:stop]
+        
+        fhandle.close()
         return data.reshape(dims, order='F')
 
     def _read_data_slice(self, grid, field, axis, coord):
