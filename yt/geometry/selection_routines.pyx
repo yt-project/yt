@@ -190,13 +190,6 @@ cdef class SelectorObject:
         res = self.select_grid(LE, RE, level)
         cdef int eterm[3] 
         eterm[0] = eterm[1] = eterm[2] = 0
-        if res == 0:
-            for i in range(8):
-                mask[root.local_ind,i] = 0
-            return
-        # Now we visit all our children.  We subtract off sdds for the first
-        # pass because we center it on the first cell.
-        spos[0] = pos[0] - sdds[0]/2.0
         cdef int next_level, this_level
         # next_level: an int that says whether or not we can progress to children
         # this_level: an int that says whether or not we can select from this
@@ -206,6 +199,16 @@ cdef class SelectorObject:
             next_level = 0
         if level < self.min_level or level > self.max_level:
             this_level = 0
+        if res == 0:
+            for i in range(8):
+                mask[root.local_ind,i] = 0
+            # If this level *is* being selected (i.e., no early termination)
+            # then we know no child zones will be selected.
+            if this_level == 1:
+                return
+        # Now we visit all our children.  We subtract off sdds for the first
+        # pass because we center it on the first cell.
+        spos[0] = pos[0] - sdds[0]/2.0
         for i in range(2):
             spos[1] = pos[1] - sdds[1]/2.0
             for j in range(2):
@@ -213,7 +216,7 @@ cdef class SelectorObject:
                 for k in range(2):
                     ii = ((k*2)+j)*2+i
                     ch = root.children[i][j][k]
-                    if this_level == 1 and ch != NULL:
+                    if next_level == 1 and ch != NULL:
                         mask[root.local_ind, ii] = 0
                         self.recursively_select_octs(
                             ch, spos, sdds, mask, level + 1)
