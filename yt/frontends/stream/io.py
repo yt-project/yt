@@ -40,7 +40,7 @@ class IOHandlerStream(BaseIOHandler):
         self.fields = stream_handler.fields
         BaseIOHandler.__init__(self)
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         # This is where we implement processor-locking
         #if grid.id not in self.grids_in_memory:
         #    mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())

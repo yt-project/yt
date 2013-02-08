@@ -132,7 +132,7 @@ class IOHandlerART(BaseIOHandler):
             return dat[idx]
         raise KeyError
         
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         if field in particle_fields:
             return self._read_particle_field(grid, field)
         pf = grid.pf
@@ -164,7 +164,7 @@ class IOHandlerART(BaseIOHandler):
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid, field)[sl]
+        return self._read_data(grid, field)[sl]
 
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):

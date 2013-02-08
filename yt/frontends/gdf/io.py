@@ -45,7 +45,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
         fhandle.close()
         return names
     
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
         data = (fhandle['/data/grid_%010i/'%grid.id+field][:]).copy()
         fhandle.close()

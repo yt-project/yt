@@ -37,7 +37,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         self.ramses_tree = ramses_tree
         BaseIOHandler.__init__(self, *args, **kwargs)
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         tr = np.zeros(grid.ActiveDimensions, dtype='float64')
         filled = np.zeros(grid.ActiveDimensions, dtype='int32')
         to_fill = grid.ActiveDimensions.prod()
@@ -58,7 +58,7 @@ class IOHandlerRAMSES(BaseIOHandler):
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid, field)[sl]
+        return self._read_data(grid, field)[sl]
 
     def preload(self, grids, sets):
         if len(grids) == 0: return
@@ -72,7 +72,7 @@ class IOHandlerRAMSES(BaseIOHandler):
             mylog.debug("Starting read of domain %s (%s)", domain, sets)
             for field in sets:
                 for g in grids:
-                    self.queue[g.id][field] = self._read_data_set(g, field)
+                    self.queue[g.id][field] = self._read_data(g, field)
                 print "Clearing", field, domain
                 self.ramses_tree.clear_tree(field, domain - 1)
         mylog.debug("Finished read of %s", sets)

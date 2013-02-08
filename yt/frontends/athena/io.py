@@ -43,7 +43,7 @@ class IOHandlerAthena(BaseIOHandler):
     def _read_field_names(self,grid):
         pass
 
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
         f = file(grid.filename, 'rb')
         dtype, offsetr = grid.hierarchy._field_map[field]
         grid_ncells = np.prod(grid.ActiveDimensions)

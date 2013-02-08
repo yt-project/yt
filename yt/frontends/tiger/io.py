@@ -34,7 +34,7 @@ class IOHandlerTiger(BaseIOHandler):
         BaseIOHandler.__init__(self, *args, **kwargs)
         self._memmaps = {}
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
         LD = np.array(grid.left_dims, dtype='int64')
         SS = np.array(grid.ActiveDimensions, dtype='int64')
