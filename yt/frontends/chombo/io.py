@@ -24,7 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import h5py
-import os
+
 import re
 import numpy as np
 
