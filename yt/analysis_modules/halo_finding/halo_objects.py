@@ -149,15 +149,13 @@ class Halo(object):
         c_vec = np.zeros(3)
         com = []
         for i in range(3):
-            # A halo is likely periodic around a boundary if a distance 
-            # between the sorted particle positions is too large.
-            # There are other ways to test periodicity of a halo, but I think
-            # this is the best way to do it.
-            cs = c[i][c[i].argsort()]
-            csdiff = np.abs(np.diff(cs))
-            # We skip the rest of this loop if the converse is true.
-            # We'll use a tenth of the box as the threshold.
-            if (csdiff < (self.pf.domain_width[i] / 10)).all():
+            # A halo is likely periodic around a boundary if the distance 
+            # between the max and min particle
+            # positions are larger than half the box. 
+            # So skip the rest if the converse is true.
+            # Note we might make a change here when periodicity-handling is
+            # fully implemented.
+            if (c[i].max() - c[i].min()) < (self.pf.domain_width[i] / 2.):
                 com.append(c[i])
                 continue
             # Now we want to flip around only those close to the left boundary.
