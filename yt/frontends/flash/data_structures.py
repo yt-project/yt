@@ -451,7 +451,7 @@ class FLASHStaticOutput(StaticOutput):
         self.current_time = self.parameters["time"]
 
         # Determine if this is a periodic box
-        p = [self.parameters.get("%sl_boundary_type" % ax, None) == Periodic for ax in 'xyz']
+        p = [self.parameters.get("%sl_boundary_type" % ax, None) == "periodic" for ax in 'xyz']
         self.periodicity = tuple(p)
 
         # Determine cosmological parameters.
