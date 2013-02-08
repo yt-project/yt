@@ -129,7 +129,7 @@ class Halo(object):
         # This matches them up.
         self._particle_mask = np.in1d(sp_pid, pid)
         return self._particle_mask
-
+    
     def center_of_mass(self):
         r"""Calculate and return the center of mass.
 
@@ -142,18 +142,30 @@ class Halo(object):
         if self.CoM is not None:
             return self.CoM
         pm = self["ParticleMassMsun"]
-        cx = self["particle_position_x"]
-        cy = self["particle_position_y"]
-        cz = self["particle_position_z"]
-        if isinstance(self, FOFHalo):
-            c_vec = np.array([cx[0], cy[0], cz[0]]) - self.pf.domain_center
-        else:
-            c_vec = self.maximum_density_location() - self.pf.domain_center
-        cx = (cx - c_vec[0])
-        cy = (cy - c_vec[1])
-        cz = (cz - c_vec[2])
-        com = np.array([v - np.floor(v) for v in [cx, cy, cz]])
-        return (com * pm).sum(axis=1) / pm.sum() + c_vec
+        c = {}
+        c[0] = self["particle_position_x"]
+        c[1] = self["particle_position_y"]
+        c[2] = self["particle_position_z"]
+        c_vec = np.zeros(3)
+        com = []
+        for i in range(3):
+            # A halo is likely periodic around a boundary if the distance 
+            # between the max and min particle
+            # positions are larger than half the box. 
+            # So skip the rest if the converse is true.
+            # Note we might make a change here when periodicity-handling is
+            # fully implemented.
+            if (c[i].max() - c[i].min()) < (self.pf.domain_width[i] / 2.):
+                com.append(c[i])
+                continue
+            # Now we want to flip around only those close to the left boundary.
+            d_left = c[i] - self.pf.domain_left_edge[i]
+            sel = (d_left <= (self.pf.domain_width[i]/2))
+            c[i][sel] += self.pf.domain_width[i]
+            com.append(c[i])
+        com = np.array(com)
+        c = (com * pm).sum(axis=1) / pm.sum()
+        return c%self.pf.domain_width
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to
@@ -2197,7 +2209,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self.comm.size == 1:
-            self._data_source = self.hierarchy.periodic_region_strict([0.5] * 3,
+        #snl temporary fix until periodicity comes along:
+            self._data_source = self.hierarchy.region([0.5] * 3,
                 LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case where the full box is what we want.
