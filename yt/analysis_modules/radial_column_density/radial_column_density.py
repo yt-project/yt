@@ -154,13 +154,11 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # This will be index by bin index.
         self.surfaces = {}
         for i, radius in enumerate(self.bins):
-            #cam = camera.HEALpixCamera(self.center, radius, self.Nside,
-            #    pf = self.pf, log_fields = [False], fields = field)
-            #bitmap = cam.snapshot()
-            #self.surfaces[i] = radius * self.pf['cm'] * \
-            #    bitmap[:,0,0][self.pixi].reshape((self.real_ang_divs,self.real_ang_divs))
-            bitmap = allsky_projection(self.pf, self.center, radius,
-                      self.Nside, field, None)
+            cam = camera.HEALpixCamera(self.center, radius, self.Nside,
+                pf = self.pf, log_fields = [False], fields = field)
+            bitmap = cam.snapshot()
+            self.surfaces[i] = radius * self.pf['cm'] * \
+                bitmap[:,0,0][self.pixi].reshape((self.real_ang_divs,self.real_ang_divs))
             self.surfaces[i] = self.comm.mpi_allreduce(self.surfaces[i], op='max')
 
     def _build_derived_field(self, data, minval=None):
