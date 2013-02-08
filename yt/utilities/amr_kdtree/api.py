@@ -3,8 +3,6 @@ API for yt.utilities.amr_kdtree
 
 Authors: Samuel Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
-Wil St. Charles <fallen751@gmail.com>
-Affiliation: University of Colorado at Boulder
 
 Homepage: http://yt-project.org/
 License:
