@@ -52,7 +52,7 @@ class IOHandlerEnzoHDF4(BaseIOHandler):
         """
         return SD.SD(grid.filename).datasets().keys()
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         """
         Returns after having obtained or generated a field.  Should throw an
         exception.  Should only be called as EnzoGridInstance.readData()
@@ -86,7 +86,7 @@ class IOHandlerEnzoHDF4_2D(IOHandlerEnzoHDF4):
 
     _data_style = "enzo_hdf4_2d"
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         t = SD.SD(grid.filename).select(field).get()[:,:,None]
         return t.swapaxes(0,1)
 
@@ -109,7 +109,7 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
         """
         return hdf5_light_reader.ReadListOfDatasets(grid.filename, "/")
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         return hdf5_light_reader.ReadData(grid.filename, "/%s" % field).swapaxes(0,2)
 
     def _read_data_slice(self, grid, field, axis, coord):
@@ -180,7 +180,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             for gid in data: self.queue[gid].update(data[gid])
         mylog.debug("Finished read of %s", sets)
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         tr = hdf5_light_reader.ReadData(grid.filename,
                 "/Grid%08i/%s" % (grid.id, field))
         if tr.dtype == "float32": tr = tr.astype("float64")
@@ -231,7 +231,7 @@ class IOHandlerInMemory(BaseIOHandler):
                       slice(ghost_zones,-ghost_zones))
         BaseIOHandler.__init__(self)
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         if grid.id not in self.grids_in_memory:
             mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
             raise KeyError
@@ -272,7 +272,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_2d"
     _particle_reader = False
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
 
@@ -290,7 +290,7 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_1d"
     _particle_reader = False
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
 

@@ -99,7 +99,7 @@ class BaseIOHandler(object):
             return self._read_data_set_from_pf(grid, field)
                 
     # Now we define our interface
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):

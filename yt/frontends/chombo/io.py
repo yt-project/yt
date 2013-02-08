@@ -24,7 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import h5py
-
+import os
 import re
 import numpy as np
 
@@ -50,7 +50,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
         fhandle.close()
     
-    def _read_data_set_from_pf(self,grid,field):
+    def _read_data(self,grid,field):
 
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
 

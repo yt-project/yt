@@ -53,7 +53,7 @@ class IOHandlerFLASH(BaseIOHandler):
             count_list, conv_factors):
         pass
 
-    def _read_data_set_from_pf(self, grid, field):
+    def _read_data(self, grid, field):
         f = self._handle
         f_part = self._particle_handle
         if field in self._particle_fields:

@@ -78,7 +78,7 @@ class IOHandlerNative(BaseIOHandler):
                         particles.append(read(line, field))
         return np.array(particles)
 
-    def _read_data_set_from_pf(self,grid,field):
+    def _read_data(self,grid,field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
 
