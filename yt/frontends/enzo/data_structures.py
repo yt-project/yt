@@ -698,6 +698,7 @@ class EnzoStaticOutput(StaticOutput):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
+        self.backup_filename = filename + '_backup.gdf'
 
         StaticOutput.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
@@ -819,7 +820,6 @@ class EnzoStaticOutput(StaticOutput):
         for k, v in data_label_factors.items():
             self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
         self.dimensionality = self.parameters["TopGridRank"]
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
@@ -827,7 +827,6 @@ class EnzoStaticOutput(StaticOutput):
                 tmp = self.domain_dimensions.tolist()
                 tmp.append(1)
                 self.domain_dimensions = np.array(tmp)
-                self.periodicity += (False,)
             self.domain_left_edge = np.array(self.parameters["DomainLeftEdge"],
                                              "float64").copy()
             self.domain_right_edge = np.array(self.parameters["DomainRightEdge"],
@@ -838,7 +837,6 @@ class EnzoStaticOutput(StaticOutput):
             self.domain_right_edge = np.array(self.parameters["DomainRightEdge"],
                                              "float64")
             self.domain_dimensions = np.array([self.parameters["TopGridDimensions"],1,1])
-            self.periodicity += (False, False)
 
         self.current_time = self.parameters["InitialTime"]
         # To be enabled when we can break old pickles:

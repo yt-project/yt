@@ -80,6 +80,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         mylog.debug("Detecting fields.")
         self._detect_fields()
 
+        mylog.debug("Detecting fields in backup file")
+        self._detect_fields_backup()
+
         mylog.debug("Adding unknown detected fields")
         self._setup_unknown_fields()
 
@@ -92,6 +95,16 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     def __del__(self):
         if self._data_file is not None:
             self._data_file.close()
+
+    def _detect_fields_backup(self):
+        # grab fields from backup file as well, if present
+        try:
+            backup_filename = self.parameter_file.backup_filename
+            f = h5py.File(backup_filename, 'r')
+            for field_name in f['field_types']:
+                self.field_list.append(field_name)
+        except:
+            return
 
     def _get_parameters(self):
         return self.parameter_file.parameters

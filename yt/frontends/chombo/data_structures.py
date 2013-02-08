@@ -146,15 +146,6 @@ class ChomboHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = int(self._fhandle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._fhandle['/'].attrs.items()[-ncomp:]]
-
-        # grab fields from backup file as well, if present
-        try:
-            backup_filename = self.parameter_file.backup_filename
-            f = h5py.File(backup_filename, 'r')
-            for field_name in f['field_types']:
-                self.field_list.append(field_name)
-        except:
-             return
           
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
