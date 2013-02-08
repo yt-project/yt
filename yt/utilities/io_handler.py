@@ -96,7 +96,7 @@ class BaseIOHandler(object):
             fhandle.close()
             return data
         else:
-            return self._read_data_set_from_pf(grid, field)
+            return self._read_data(grid, field)
                 
     # Now we define our interface
     def _read_data(self, grid, field):
