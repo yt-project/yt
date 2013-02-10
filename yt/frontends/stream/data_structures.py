@@ -105,7 +105,8 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields, io = None, particle_types = None):
+                 fields, io = None, particle_types = None, 
+                 periodicity = (True, True, True)):
         if particle_types is None: particle_types = {}
         self.left_edges = left_edges
         self.right_edges = right_edges
@@ -118,6 +119,7 @@ class StreamHandler(object):
         self.fields = fields
         self.io = io
         self.particle_types = particle_types
+        self.periodicity = periodicity
             
     def get_fields(self):
         return self.fields.all_fields
@@ -313,6 +315,7 @@ class StreamStaticOutput(StaticOutput):
         self.domain_right_edge = self.stream_handler.domain_right_edge[:]
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality
+        self.periodicity = self.stream_handler.periodicity
         self.domain_dimensions = self.stream_handler.domain_dimensions
         self.current_time = self.stream_handler.simulation_time
         if self.stream_handler.cosmology_simulation:
@@ -398,7 +401,7 @@ def assign_particle_data(pf, pdata) :
     pf.h.update_data(grid_pdata)
                                         
 def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
-                      nprocs=1, sim_time=0.0):
+                      nprocs=1, sim_time=0.0, periodicity=(True, True, True)):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -427,6 +430,9 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
         The simulation time in seconds
+    periodicity : tuple of booleans
+        Determines whether the data will be treated as periodic along
+        each axis
 
     Examples
     --------
@@ -492,7 +498,8 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
-        particle_types=particle_types
+        particle_types=particle_types,
+        periodicity=periodicity
     )
 
     handler.name = "UniformGridData"

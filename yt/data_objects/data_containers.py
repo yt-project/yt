@@ -3782,6 +3782,11 @@ class AMRCoveringGridBase(AMR3DData):
                     continue
                 except NeedsOriginalGrid, ngt_exception:
                     pass
+            elif self.pf.field_info[field].particle_type:
+                region = self.pf.h.region(self.center,
+                            self.left_edge, self.right_edge)
+                self.field_data[field] = region[field]
+                continue
             obtain_fields.append(field)
             self[field] = np.zeros(self.ActiveDimensions, dtype='float64') -999
         if len(obtain_fields) == 0: return
@@ -3922,6 +3927,11 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
                     continue
                 except NeedsOriginalGrid, ngt_exception:
                     pass
+            elif self.pf.field_info[field].particle_type:
+                region = self.pf.h.region(self.center,
+                            self.left_edge, self.right_edge)
+                self.field_data[field] = region[field]
+                continue
             fields_to_get.append(field)
         if len(fields_to_get) == 0: return
         # Note that, thanks to some trickery, we have different dimensions
@@ -4370,6 +4380,16 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                      [field_x, field_y, field_z]]
         return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
+
+    @property
+    def triangles(self):
+        if self.vertices is None:
+            self.get_data()
+        vv = np.empty((self.vertices.shape[1]/3, 3, 3), dtype="float64")
+        for i in range(3):
+            for j in range(3):
+                vv[:,i,j] = self.vertices[j,i::3]
+        return vv
 
     def export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):

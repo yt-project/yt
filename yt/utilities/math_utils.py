@@ -32,12 +32,12 @@ import math
 
 def periodic_position(pos, pf):
     r"""Assuming periodicity, find the periodic position within the domain.
-    
+
     Parameters
     ----------
     pos : array
         An array of floats.
-    
+
     pf : StaticOutput
         A simulation static output.
     
@@ -54,39 +54,107 @@ def periodic_position(pos, pf):
     off = (pos - pf.domain_left_edge) % pf.domain_width
     return pf.domain_left_edge + off
 
-def periodic_dist(a, b, period):
-    r"""Find the Euclidian periodic distance between two points.
+def periodic_dist(a, b, period, periodicity=(True, True, True)):
+    r"""Find the Euclidean periodic distance between two sets of points.
     
     Parameters
     ----------
     a : array or list
-        An array or list of floats.
+        Either an ndim long list of coordinates corresponding to a single point
+        or an (ndim, npoints) list of coordinates for many points in space.
     
     b : array of list
-        An array or list of floats.
+        Either an ndim long list of coordinates corresponding to a single point
+        or an (ndim, npoints) list of coordinates for many points in space.
     
     period : float or array or list
         If the volume is symmetrically periodic, this can be a single float,
         otherwise an array or list of floats giving the periodic size of the
         volume for each dimension.
 
+    periodicity : An ndim-element tuple of booleans
+        If an entry is true, the domain is assumed to be periodic along
+        that direction.
+
     Examples
     --------
-    >>> a = np.array([0.1, 0.1, 0.1])
-    >>> b = np.array([0.9, 0,9, 0.9])
+    >>> a = [0.1, 0.1, 0.1]
+    >>> b = [0.9, 0,9, 0.9]
     >>> period = 1.
     >>> dist = periodic_dist(a, b, 1.)
     >>> dist
-    0.3464102
+    0.346410161514
     """
     a = np.array(a)
     b = np.array(b)
-    if a.size != b.size: RunTimeError("Arrays must be the same shape.")
-    c = np.empty((2, a.size), dtype="float64")
-    c[0,:] = abs(a - b)
-    c[1,:] = period - abs(a - b)
+    period = np.array(period)
+
+    if period.size == 1:
+        period = np.array([period, period, period])
+
+    if a.shape != b.shape: 
+        raise RuntimeError("Arrays must be the same shape.")
+    
+    if period.shape != a.shape and len(a.shape) > 1:
+        n_tup = tuple([1 for i in range(a.ndim-1)])
+        period = np.tile(np.reshape(period, (a.shape[0],)+n_tup), (1,)+a.shape[1:])
+    elif len(a.shape) == 1:
+        a = np.reshape(a, (a.shape[0],)+(1,1))
+        b = np.reshape(b, (a.shape[0],)+(1,1))
+        period = np.reshape(period, (a.shape[0],)+(1,1))
+
+    c = np.empty((2,) + a.shape, dtype="float64")
+    c[0,:] = np.abs(a - b)
+    
+    p_directions = [i for i,p in enumerate(periodicity) if p == True]
+    np_directions = [i for i,p in enumerate(periodicity) if p == False]
+    for d in p_directions:
+        c[1,d,:] = period[d,:] - np.abs(a - b)[d,:]
+    for d in np_directions:
+        c[1,d,:] = c[0,d,:]
+
     d = np.amin(c, axis=0)**2
-    return math.sqrt(d.sum())
+    r2 = d.sum(axis=0)
+    if r2.size == 1:
+        return np.sqrt(r2[0,0])
+    return np.sqrt(r2)
+
+def euclidean_dist(a, b):
+    r"""Find the Euclidean distance between two points.
+
+    Parameters
+    ----------
+    a : array or list
+        Either an ndim long list of coordinates corresponding to a single point
+        or an (ndim, npoints) list of coordinates for many points in space.
+
+    b : array or list
+        Either an ndim long list of coordinates corresponding to a single point
+        or an (ndim, npoints) list of coordinates for many points in space.
+
+    Examples
+    --------
+    >>> a = [0.1, 0.1, 0.1]
+    >>> b = [0.9, 0,9, 0.9]
+    >>> period = 1.
+    >>> dist = euclidean_dist(a, b)
+    >>> dist
+    1.38564064606
+
+    """
+    a = np.array(a)
+    b = np.array(b)
+    if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
+    c = a.copy()
+    np.subtract(c, b, c)
+    np.power(c, 2, c)
+    c = c.sum(axis = 0)
+    if isinstance(c, np.ndarray):
+        np.sqrt(c, c)
+    else:
+        # This happens if a and b only have one entry.
+        c = math.sqrt(c)
+    return c
 
 def rotate_vector_3D(a, dim, angle):
     r"""Rotates the elements of an array around an axis by some angle.

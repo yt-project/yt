@@ -335,8 +335,8 @@ def splat_points(image, points_x, points_y,
     return im
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
-                     title=None, limits=None, take_log=True, var_fig_size=False,
-                     cmap='algae'):
+                     title=None, limits=None, take_log=True, figsize=(8,6),
+                     dpi=100, cmap_name='algae'):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
@@ -344,7 +344,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     framework (i.e. the Camera interface or off_axis_projection).
 
     Accepts an NxM sized array representing the projection itself as well
-    as the filename to which you will save this figure.  
+    as the filename to which you will save this figure.  Note that the final
+    resolution of your image will be a product of dpi/100 * figsize.
 
     Parameters
     ----------
@@ -363,10 +364,11 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         of the data array
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
-    var_fig_size : boolean
-        If we want the resolution (and size) of the output image to scale 
-        with the resolution of the image array.  
-    cmap : string
+    figsize : array_like
+        width, height in inches of final image
+    dpi : int
+        final image resolution in pixels / inch
+    cmap_name : string
         The name of the colormap.
 
     Examples
@@ -375,7 +377,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     >>> image = off_axis_projection(pf, c, L, W, N, "Density", no_ghost=False)
     >>> write_projection(image, 'test.png', 
                          colorbar_label="Column Density (cm$^{-2}$)", 
-                         title="Offaxis Projection", limits=(1e-3,1e-5), 
+                         title="Offaxis Projection", limits=(1e-5,1e-3), 
                          take_log=True)
     """
     import matplotlib
@@ -391,11 +393,11 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         limits = [None, None]
 
     # Create the figure and paint the data on
-    fig = matplotlib.figure.Figure()
+    fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
     fig.tight_layout()
 
-    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap)
+    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap_name)
     
     if title:
         ax.set_title(title)
@@ -409,16 +411,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         cbar = fig.colorbar(cax)
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
-
-    # If we want the resolution of the image to scale with the resolution
-    # of the image array. we increase the dpi value accordingly
-    
-    if var_fig_size:
-        N = data.shape[0]
-        mag_factor = N/480.
-        dpi = 100*mag_factor
-    else:
-        dpi = None
 
     suffix = get_image_suffix(filename)
 
@@ -436,7 +428,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas = FigureCanvasAgg(fig)
 
-    canvas.print_figure(filename)
+    canvas.print_figure(filename, dpi=dpi)
     return filename
 
 
