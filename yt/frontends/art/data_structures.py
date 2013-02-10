@@ -213,6 +213,7 @@ class ARTStaticOutput(StaticOutput):
         """
         self.dimensionality = 3
         self.refine_by = 2
+        self.periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.unique_identifier = \

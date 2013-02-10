@@ -275,18 +275,6 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
             vp[i,j,2] = cos(theta)
     return vp
 
-def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
-        np.ndarray[np.float64_t, ndim=2] R):
-    cdef int nx = vecs.shape[0]
-    cdef int ny = vecs.shape[1]
-    rotated = np.empty((nx,ny,3),dtype='float64') 
-    for i in range(nx):
-        for j in range(ny):
-            for k in range(3):
-                rotated[i,j,k] =\
-                    R[k,0]*vecs[i,j,0]+R[k,1]*vecs[i,j,1]+R[k,2]*vecs[i,j,2]
-    return rotated
-
 cdef class star_kdtree_container:
     cdef kdtree_utils.kdtree *tree
     cdef public np.float64_t sigma
