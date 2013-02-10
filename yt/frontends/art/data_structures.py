@@ -94,6 +94,8 @@ class ARTStaticOutput(StaticOutput):
         self.limit_level = limit_level
         self.max_level = limit_level
         self.spread_age = spread_age
+        self.domain_left_edge = np.zeros(3,dtype='float')+1.0
+        self.domain_right_edge = np.zeros(3,dtype='float')
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
 
