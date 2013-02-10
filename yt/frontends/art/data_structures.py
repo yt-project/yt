@@ -32,10 +32,10 @@ import weakref
 import cStringIO
 
 from yt.funcs import *
-from yt.data_objects.grid_patch import \
-      AMRGridPatch
-from yt.data_objects.hierarchy import \
-      AMRHierarchy
+from yt.geometry.oct_geometry_handler import \
+    OctreeGeometryHandler
+from yt.geometry.geometry_handler import \
+    GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
       StaticOutput
 from yt.data_objects.field_info_container import \
@@ -51,7 +51,15 @@ from yt.utilities.lib import \
 import yt.utilities.lib as amr_utils
 
 from .definitions import *
-from .io import *
+from .io import _read_frecord
+from .io import _read_record
+from .io import _read_struct
+from .io import _read_art_child
+from .io import _read_art_level_info
+from .io import _read_child_mask_level
+from .io import _read_art_child
+from .io import _skip_record
+from .io import b2t
 
 import yt.frontends.ramses._ramses_reader as _ramses_reader
 
@@ -68,12 +76,11 @@ from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
 
 class ARTStaticOutput(StaticOutput):
-    _hierarchy_class = ARTHierarchy
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
 
     def __init__(self,filename,data_style='art',
-                 fields = None, storage_filename = None
+                 fields = None, storage_filename = None,
                  skip_particles=False,skip_stars=False,
                  limit_level=None,spread_age=True):
         if fields is None:
@@ -471,7 +478,7 @@ class ARTDomainFile(object):
             return self._level_oct_offsets
         # We now have to open the file and calculate it
         f = open(self.pf.file_amr, "rb")
-        nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = 
+        nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
             _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
                             self.pf.max_level)
         _level_oct_offsets[0] = self.pf.root_grid_offset
