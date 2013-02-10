@@ -112,7 +112,6 @@ class ARTStaticOutput(StaticOutput):
         full_affix = affix
         affix = affix[1:-1]
         dirname = os.path.dirname(file_amr)
-        import pdb; pdb.set_trace()
         for fp in (filename_pattern_hf,filename_pattern):
             for filetype, pattern in fp.items():
                 #if this attribute is already set skip it
