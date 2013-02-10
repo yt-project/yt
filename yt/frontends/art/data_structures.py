@@ -85,6 +85,7 @@ class ARTStaticOutput(StaticOutput):
                  limit_level=None,spread_age=True):
         if fields is None:
             fields = fluid_fields
+        filename = os.path.abspath(filename)
         self._fields_in_file = fields
         self._find_files(filename)
         self.file_amr = filename
@@ -111,6 +112,7 @@ class ARTStaticOutput(StaticOutput):
         full_affix = affix
         affix = affix[1:-1]
         dirname = os.path.dirname(file_amr)
+        import pdb; pdb.set_trace()
         for fp in (filename_pattern_hf,filename_pattern):
             for filetype, pattern in fp.items():
                 #if this attribute is already set skip it
