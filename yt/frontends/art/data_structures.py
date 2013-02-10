@@ -75,7 +75,91 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
 
+class ARTGeometryHandler(OctreeGeometryHandler):
+    def __init__(self,pf,data_style="art"):
+        """
+        Life is made simpler because we only have one AMR file
+        and one domain. However, we are matching to the RAMSES
+        multi-domain architecture.
+        """
+        self.fluid_field_list = fluid_fields
+        self.data_style = data_style
+        self.parameter_file = weakref.proxy(pf)
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.max_level = pf.max_level
+        self.float_type = np.float64
+        super(ARTGeometryHandler,self).__init__(pf,data_style)
+
+    def _initialize_oct_handler(self):
+        """
+        Just count the number of octs per domain and
+        allocate the requisite memory in the oct tree
+        """
+        nv = len(self.fluid_field_list)
+        self.domains = [ARTDomainFile(self.parameter_file)]
+        octs_per_domain = sum(dom.local_oct_count for dom in self.domains)
+        self.num_grids = sum(total_octs)
+        self.oct_handler = RAMSESOctreeContainer(
+            self.parameter_file.domain_dimensions/2,
+            self.parameter_file.domain_left_edge,
+            self.parameter_file.domain_right_edge)
+        mylog.debug("Allocating %s octs", total_octs)
+        self.oct_handler.allocate_domains(octs_per_domain)
+        for domain in self.domains:
+            domain._read_amr(self.oct_handler)
+
+    def _detect_fields(self):
+        self.particle_field_list = particle_fields
+        self.field_list = set(fluid_fields + particle_fields + particle_star_fields)
+        self.field_list = list(self.field_list)
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        super(ARTGeometryHandler, self)._setup_classes(dd)
+        self.object_types.sort()
+
+    def _identify_base_chunk(self, dobj):
+        """
+        Take the passed in data source dobj, and use its embedded selector
+        to calculate the domain mask, build the reduced domain 
+        subsets and oct counts. Attach this information to dobj.
+        """
+        if getattr(dobj, "_chunk_info", None) is None:
+            #Get all octs within this oct handler
+            mask = dobj.selector.select_octs(self.oct_handler)
+            counts = self.oct_handler.count_cells(dobj.selector, mask)
+            #For all domains, figure out how many counts we have 
+            #and build a subset=mask of domains 
+            subsets = [ARTDomainSubset(d, mask, c)
+                       for d, c in zip(self.domains, counts) if c > 0]
+            dobj._chunk_info = subsets
+            dobj.size = sum(counts)
+            dobj.shape = (dobj.size,)
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+
+    def _chunk_all(self, dobj):
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        #We pass the chunk both the current chunk and list of chunks,
+        #as well as the referring data source
+        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+
+    def _chunk_spatial(self, dobj, ngz):
+        raise NotImplementedError
+
+    def _chunk_io(self, dobj):
+        """
+        Since subsets are calculated per domain,
+        i.e. per file, yield each domain at a time to 
+        organize by IO. We will eventually chunk out NMSU ART
+        to be level-by-level.
+        """
+        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in oobjs:
+            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+
 class ARTStaticOutput(StaticOutput):
+    _hierarchy_class = ARTGeometryHandler
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
 
@@ -297,89 +381,6 @@ class ARTStaticOutput(StaticOutput):
                 os.path.exists(f): 
                 return True
         return False
-
-class ARTGeometryHandler(OctreeGeometryHandler):
-    def __init__(self,pf,data_style="art"):
-        """
-        Life is made simpler because we only have one AMR file
-        and one domain. However, we are matching to the RAMSES
-        multi-domain architecture.
-        """
-        self.fluid_field_list = fluid_fields
-        self.data_style = data_style
-        self.parameter_file = weakref.proxy(pf)
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
-        self.max_level = pf.max_level
-        self.float_type = np.float64
-        super(ARTGeometryHandler,self).__init__(pf,data_style)
-
-    def _initialize_oct_handler(self):
-        """
-        Just count the number of octs per domain and
-        allocate the requisite memory in the oct tree
-        """
-        nv = len(self.fluid_field_list)
-        self.domains = [ARTDomainFile(self.parameter_file)]
-        octs_per_domain = sum(dom.local_oct_count for dom in self.domains)
-        self.num_grids = sum(total_octs)
-        self.oct_handler = RAMSESOctreeContainer(
-            self.parameter_file.domain_dimensions/2,
-            self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge)
-        mylog.debug("Allocating %s octs", total_octs)
-        self.oct_handler.allocate_domains(octs_per_domain)
-        for domain in self.domains:
-            domain._read_amr(self.oct_handler)
-
-    def _detect_fields(self):
-        self.particle_field_list = particle_fields
-        self.field_list = set(fluid_fields + particle_fields + particle_star_fields)
-        self.field_list = list(self.field_list)
-    
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(ARTGeometryHandler, self)._setup_classes(dd)
-        self.object_types.sort()
-
-    def _identify_base_chunk(self, dobj):
-        """
-        Take the passed in data source dobj, and use its embedded selector
-        to calculate the domain mask, build the reduced domain 
-        subsets and oct counts. Attach this information to dobj.
-        """
-        if getattr(dobj, "_chunk_info", None) is None:
-            #Get all octs within this oct handler
-            mask = dobj.selector.select_octs(self.oct_handler)
-            counts = self.oct_handler.count_cells(dobj.selector, mask)
-            #For all domains, figure out how many counts we have 
-            #and build a subset=mask of domains 
-            subsets = [ARTDomainSubset(d, mask, c)
-                       for d, c in zip(self.domains, counts) if c > 0]
-            dobj._chunk_info = subsets
-            dobj.size = sum(counts)
-            dobj.shape = (dobj.size,)
-        dobj._current_chunk = list(self._chunk_all(dobj))[0]
-
-    def _chunk_all(self, dobj):
-        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        #We pass the chunk both the current chunk and list of chunks,
-        #as well as the referring data source
-        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
-
-    def _chunk_spatial(self, dobj, ngz):
-        raise NotImplementedError
-
-    def _chunk_io(self, dobj):
-        """
-        Since subsets are calculated per domain,
-        i.e. per file, yield each domain at a time to 
-        organize by IO. We will eventually chunk out NMSU ART
-        to be level-by-level.
-        """
-        oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
 class ARTDomainSubset(object):
     def __init__(self, domain, mask, cell_count):
