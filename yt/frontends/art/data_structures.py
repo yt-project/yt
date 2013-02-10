@@ -510,11 +510,13 @@ class ARTDomainFile(object):
         #leave this code here instead of static output - it's memory intensive
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
-        for level in xrange(1, len(self.pf.max_level)):
+        for level in xrange(1, self.pf.max_level):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
-            oct_handler.add(1,level, nocts, left_index, self.domain_id)
+            #left_index to LE in float
+            left_edge = left_index.astype(np.float64)/(128.0*2**level)
+            oct_handler.add(1,level, nocts, left_edge, self.domain_id)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
