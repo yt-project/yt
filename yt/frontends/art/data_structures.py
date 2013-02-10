@@ -38,6 +38,8 @@ from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
       StaticOutput
+from yt.geometry.oct_container import \
+    RAMSESOctreeContainer
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import \
@@ -59,7 +61,9 @@ from .io import _read_art_level_info
 from .io import _read_child_mask_level
 from .io import _read_art_child
 from .io import _skip_record
+from .io import _count_art_octs
 from .io import b2t
+
 
 import yt.frontends.ramses._ramses_reader as _ramses_reader
 
@@ -97,15 +101,15 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         allocate the requisite memory in the oct tree
         """
         nv = len(self.fluid_field_list)
-        self.domains = [ARTDomainFile(self.parameter_file)]
-        octs_per_domain = sum(dom.local_oct_count for dom in self.domains)
-        self.num_grids = sum(total_octs)
+        self.domains = [ARTDomainFile(self.parameter_file,1,nv)]
+        self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
+        self.total_octs = sum(self.octs_per_domain)
         self.oct_handler = RAMSESOctreeContainer(
             self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
-        mylog.debug("Allocating %s octs", total_octs)
-        self.oct_handler.allocate_domains(octs_per_domain)
+        mylog.debug("Allocating %s octs", self.total_octs)
+        self.oct_handler.allocate_domains(self.octs_per_domain)
         for domain in self.domains:
             domain._read_amr(self.oct_handler)
 
@@ -460,6 +464,9 @@ class ARTDomainFile(object):
         self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
+        self._level_count = None
+        self._level_oct_offsets = None
+        self._level_child_offsets = None
 
     @property
     def level_count(self):
