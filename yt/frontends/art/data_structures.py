@@ -409,12 +409,12 @@ class ARTDomainSubset(object):
         level_counts = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
         assert(level_counts.sum() == cell_count)
-        level_counts[1:] = level_counts[:-1]
-        level_counts[0] = 0
         #the cumulative level counts
-        self.level_counts = np.add_acumulate(level_counts)
+        #self.level_counts = np.add.accumulate(level_counts)
+        self.level_counts = level_counts
 
     def icoords(self, dobj):
+        import pdb; pdb.set_trace()
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.cell_count,
                                         self.level_counts.copy())
@@ -547,7 +547,7 @@ class ARTDomainFile(object):
                                       self.domain_id)
         assert(oct_handler.nocts == root_fc.shape[0])
         nocts_added = root_fc.shape[0]
-        mylog.debug("Added %i octs on level %i, cumulative is %i",
+        mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     root_octs_side**3, 0,nocts_added)
         for level in xrange(1, self.pf.max_level+1):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
@@ -564,7 +564,7 @@ class ARTDomainFile(object):
             nocts_check = oct_handler.add(1,level, nocts, float_left_edge, self.domain_id)
             nocts_added += nocts
             assert(oct_handler.nocts == nocts_added)
-            mylog.debug("Added %i octs on level %i, cumulative is %i",
+            mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                         nocts, level,nocts_added)
 
     def select(self, selector):
