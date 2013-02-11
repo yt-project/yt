@@ -484,6 +484,7 @@ class ARTDomainFile(object):
 
     @property
     def level_count(self):
+        #this is number of *octs*
         if self._level_count is not None: return self._level_count
         self.level_offsets
         return self._level_count
@@ -506,9 +507,11 @@ class ARTDomainFile(object):
         nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
             _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
                             self.pf.max_level)
+        #remember that the root grid is by itself; manually add it back in
+        inoll[0] = self.pf.domain_dimensions[0].prod()/8
         _level_oct_offsets[0] = self.pf.root_grid_offset
         self.nhydrovars = nhydrovars
-        self.inoll = inoll
+        self.inoll = inoll #number of octs
         self._level_oct_offsets = _level_oct_offsets
         self._level_child_offsets = _level_child_offsets
         self._level_count = inoll
@@ -525,7 +528,8 @@ class ARTDomainFile(object):
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
         #add the root *cell* not *oct* mesh
-        NX = np.ones(3)*128 
+        root_octs_side = self.pf.domain_dimensions[0]/2
+        NX = np.ones(3)*root_octs_side
         LE = np.array([0.0, 0.0, 0.0], dtype='float64')
         RE = np.array([1.0, 1.0, 1.0], dtype='float64')
         root_dx = (RE - LE) / NX
@@ -535,8 +539,8 @@ class ARTDomainFile(object):
                          LL[1]:RL[1]:NX[1]*1j,
                          LL[2]:RL[2]:NX[2]*1j ]
         root_le= np.vstack([p.ravel() for p in root_le]).T
-        nocts_check = oct_handler.add(1, 0, 128**3, root_le, self.domain_id)
-        assert(nocts_check == 0) #oct handler shouldn't leave any octs left over
+        nocts_check = oct_handler.add(1, 0, root_octs_side**3, root_le, \
+                                      self.domain_id)
         assert(oct_handler.nocts == root_le.shape[0])
         nocts_added = root_le.shape[0]
         for level in xrange(1, self.pf.max_level):
@@ -544,7 +548,7 @@ class ARTDomainFile(object):
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
             #left_index to LE in float
-            left_edge = left_index.astype("float64") / (NX*2**level)
+            left_edge = left_index.astype("float64") / (NX*2**(level+1))
             assert np.all(left_edge<1.0)
             nocts_check = oct_handler.add(1,level, nocts, left_edge, self.domain_id)
             nocts_added += nocts
