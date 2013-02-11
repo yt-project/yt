@@ -508,7 +508,7 @@ class ARTDomainFile(object):
             _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
                             self.pf.max_level)
         #remember that the root grid is by itself; manually add it back in
-        inoll[0] = self.pf.domain_dimensions[0].prod()/8
+        inoll[0] = self.pf.domain_dimensions.prod()/8
         _level_oct_offsets[0] = self.pf.root_grid_offset
         self.nhydrovars = nhydrovars
         self.inoll = inoll #number of octs
@@ -547,7 +547,9 @@ class ARTDomainFile(object):
                                       self.domain_id)
         assert(oct_handler.nocts == root_fc.shape[0])
         nocts_added = root_fc.shape[0]
-        for level in xrange(1, self.pf.max_level):
+        mylog.debug("Added %i octs on level %i, cumulative is %i",
+                    root_octs_side**3, 0,nocts_added)
+        for level in xrange(1, self.pf.max_level+1):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
@@ -559,9 +561,11 @@ class ARTDomainFile(object):
             float_center = float_left_edge + 0.5*1.0/octs_side
             #all floatin unitary positions should fit inside the domain
             assert np.all(float_center<1.0)
-            nocts_check = oct_handler.add(1,level, nocts, float_center, self.domain_id)
+            nocts_check = oct_handler.add(1,level, nocts, float_left_edge, self.domain_id)
             nocts_added += nocts
             assert(oct_handler.nocts == nocts_added)
+            mylog.debug("Added %i octs on level %i, cumulative is %i",
+                        nocts, level,nocts_added)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
