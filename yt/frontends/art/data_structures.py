@@ -129,9 +129,12 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         to calculate the domain mask, build the reduced domain 
         subsets and oct counts. Attach this information to dobj.
         """
+        import pdb; pdb.set_trace()
         if getattr(dobj, "_chunk_info", None) is None:
             #Get all octs within this oct handler
             mask = dobj.selector.select_octs(self.oct_handler)
+            if mask.sum()==0:
+                mylog.debug("Warning: selected zero octs")
             counts = self.oct_handler.count_cells(dobj.selector, mask)
             #For all domains, figure out how many counts we have 
             #and build a subset=mask of domains 
@@ -158,6 +161,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         organize by IO. We will eventually chunk out NMSU ART
         to be level-by-level.
         """
+        import pdb; pdb.set_trace()
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
@@ -510,12 +514,27 @@ class ARTDomainFile(object):
         #leave this code here instead of static output - it's memory intensive
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
+        #add the root mesh
+        NX = na.ones(3)*128 / 2
+        LE = na.array([0.0, 0.0, 0.0], dtype='float64')
+        RE = na.array([1.0, 1.0, 1.0], dtype='float64')
+        
+        root_dx = (RE - LE) / NX
+        LL = LE + root_dx/2.0
+        RL = RE - root_dx/2.0
+        root_le= np.mgrid[ LL[0]:RL[0]:NX[0]*1j,
+                         LL[1]:RL[1]:NX[1]*1j,
+                         LL[2]:RL[2]:NX[2]*1j ]
+        root_le= np.vstack([p.ravel() for p in root_le]).T
+        oct_handler.add(1, 0, -1, root_le, self.domain_id)
+        assert(oct_handler.nocts == rpos.shape[0])
         for level in xrange(1, self.pf.max_level):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
             #left_index to LE in float
             left_edge = left_index.astype(np.float64)/(128.0*2**level)
+            import pdb; pdb.set_trace()
             oct_handler.add(1,level, nocts, left_edge, self.domain_id)
 
     def select(self, selector):
