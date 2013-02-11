@@ -27,7 +27,6 @@ import numpy as np
 import struct
 import os
 import os.path
-import cStringIO
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -50,8 +49,7 @@ class IOHandlerART(BaseIOHandler):
                 f = open(subset.domain.pf.file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                content = cStringIO.StringIO(f.read())
-                rv = subset.fill(content, fields)
+                rv = subset.fill(f, fields)
                 for ft, f in fields:
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
                         f, subset.cell_count, rv[f].min(), rv[f].max(),
@@ -263,7 +261,7 @@ def _read_art_child(f, level_child_offsets,level,nLevel,field):
     f.seek(pos)
     return arr[field,:]
 
-def _read_root_level(f,level_offsets,level_info,nhydro_vars):
+def _read_root_level(f,level_offsets,level_info,nhydro_vars=12):
     f.seek(level_offsets[0] + 4) # Ditch the header
     ncells = level_info[0]
     nhvals = ncells * nhydro_vars # 0 vars, 0 pads

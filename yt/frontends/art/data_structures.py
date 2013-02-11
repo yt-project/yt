@@ -60,6 +60,7 @@ from .io import _read_art_child
 from .io import _read_art_level_info
 from .io import _read_child_mask_level
 from .io import _read_art_child
+from .io import _read_root_level
 from .io import _read_record_size
 from .io import _skip_record
 from .io import _count_art_octs
@@ -445,24 +446,28 @@ class ARTDomainSubset(object):
         oct_handler = self.oct_handler
         all_fields  = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in fields]
-        tr = {}
+        dest= {}
         filled = pos = level_offset = 0
         field_idxs = [all_fields.index(f) for f in fields]
         for field in fields:
-            tr[field] = np.zeros(self.cell_count, 'float64')
+            dest[field] = np.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.level_offsets):
             nc = self.domain.level_count[level]
             if level==0:
-                pass
+                data = _read_root_level(content,self.domain.level_child_offsets,
+                                       self.domain.level_count)
+                data = data[field_idxs,:]
             else:
                 data = _read_art_child(content,self.domain.level_child_offsets,
                                        level,nc,field_idxs)
-                for i,field in enumerate(fields):
-                    temp[field] = np.empty((nc, 8), dtype="float64")
-                    temp[field][:,:] = data[i,:]
-                level_offset += oct_handler.fill_level(self.domain.domain_id, level,
-                                       tr, temp, self.mask, level_offset)
-        return tr
+            source= {}
+            for i,field in enumerate(fields):
+                source[field] = np.empty((nc/8, 8), dtype="float64")
+                source[field][:,:] = np.reshape(data[i,:],(nc/8,8))
+            import pdb; pdb.set_trace()
+            level_offset += oct_handler.fill_level(self.domain.domain_id, 
+                                   level, dest, source, self.mask, level_offset)
+        return dest
 
 class ARTDomainFile(object):
     """
