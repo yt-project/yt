@@ -409,12 +409,9 @@ class ARTDomainSubset(object):
         level_counts = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
         assert(level_counts.sum() == cell_count)
-        #the cumulative level counts
-        #self.level_counts = np.add.accumulate(level_counts)
         self.level_counts = level_counts
 
     def icoords(self, dobj):
-        import pdb; pdb.set_trace()
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.cell_count,
                                         self.level_counts.copy())
