@@ -380,9 +380,15 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             #floating point unitary position on this level
             in_boundary = 0
             for i in range(3):
+                #pos is any floating point position contained by the oct
+                #it can therefore be the center, or anything between the
+                #left and right edges
                 pp[i] = pos[p, i]
+                #dds is floating point unitary width of each oct
                 dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+                #integer position is a multiple of oct width
                 ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
+                # add a half-width to get the floating center
                 cp[i] = (ind[i] + 0.5) * dds[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
