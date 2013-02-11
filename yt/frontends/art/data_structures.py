@@ -447,18 +447,21 @@ class ARTDomainSubset(object):
         fields = [f for ft, f in fields]
         tr = {}
         filled = pos = level_offset = 0
-        field_idx = fluid_fields.index(field)
+        field_idxs = [all_fields.index(f) for f in fields]
         for field in fields:
             tr[field] = np.zeros(self.cell_count, 'float64')
-        for level, offset in enumerate(self.domain.level_offsets()):
+        for level, offset in enumerate(self.domain.level_offsets):
             nc = self.domain.level_count[level]
-            data = _read_art_child(content,self.domain.level_child_offsets,
-                                   level,nc,field_idx)
-            for field in all_fields:
-                temp[field] = np.empty((nc, 8), dtype="float64")
-            temp[field][:,:] = arr[field_idx,:]
-            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
-                                   tr, temp, self.mask, level_offset)
+            if level==0:
+                pass
+            else:
+                data = _read_art_child(content,self.domain.level_child_offsets,
+                                       level,nc,field_idxs)
+                for i,field in enumerate(fields):
+                    temp[field] = np.empty((nc, 8), dtype="float64")
+                    temp[field][:,:] = data[i,:]
+                level_offset += oct_handler.fill_level(self.domain.domain_id, level,
+                                       tr, temp, self.mask, level_offset)
         return tr
 
 class ARTDomainFile(object):

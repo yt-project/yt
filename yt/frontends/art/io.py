@@ -25,15 +25,14 @@ License:
 
 import numpy as np
 import struct
-
 import os
 import os.path
+import cStringIO
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-
 import yt.utilities.lib as au
-
+from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *
 
 class IOHandlerART(BaseIOHandler):
@@ -48,7 +47,7 @@ class IOHandlerART(BaseIOHandler):
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.hydro_fn, "rb")
+                f = open(subset.domain.pf.file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 content = cStringIO.StringIO(f.read())
