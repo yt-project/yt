@@ -56,10 +56,9 @@ from .definitions import *
 from .io import _read_frecord
 from .io import _read_record
 from .io import _read_struct
-from .io import _read_art_child
 from .io import _read_art_level_info
 from .io import _read_child_mask_level
-from .io import _read_art_child
+from .io import _read_child_level
 from .io import _read_root_level
 from .io import _read_record_size
 from .io import _skip_record
@@ -458,8 +457,9 @@ class ARTDomainSubset(object):
                                        self.domain.level_count)
                 data = data[field_idxs,:]
             else:
-                data = _read_art_child(content,self.domain.level_child_offsets,
-                                       level,no,field_idxs)
+                data = _read_child_level(content,self.domain.level_child_offsets,
+                                       self.domain.level_count,level)
+                data = data[field_idxs,:]
             source= {}
             for i,field in enumerate(fields):
                 source[field] = np.empty((no, 8), dtype="float64")
