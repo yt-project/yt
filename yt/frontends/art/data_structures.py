@@ -60,6 +60,7 @@ from .io import _read_art_child
 from .io import _read_art_level_info
 from .io import _read_child_mask_level
 from .io import _read_art_child
+from .io import _read_record_size
 from .io import _skip_record
 from .io import _count_art_octs
 from .io import b2t
@@ -105,7 +106,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
         self.oct_handler = RAMSESOctreeContainer(
-            self.parameter_file.domain_dimensions/2,
+            self.parameter_file.domain_dimensions/2, #dd is # of root cells
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
         mylog.debug("Allocating %s octs", self.total_octs)
@@ -129,7 +130,6 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         to calculate the domain mask, build the reduced domain 
         subsets and oct counts. Attach this information to dobj.
         """
-        import pdb; pdb.set_trace()
         if getattr(dobj, "_chunk_info", None) is None:
             #Get all octs within this oct handler
             mask = dobj.selector.select_octs(self.oct_handler)
@@ -161,7 +161,6 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         organize by IO. We will eventually chunk out NMSU ART
         to be level-by-level.
         """
-        import pdb; pdb.set_trace()
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
@@ -331,15 +330,26 @@ class ARTStaticOutput(StaticOutput):
             est = int(np.rint(self.ncell**(1.0/3.0)))
             # Note here: this is the number of *cells* on the root grid.
             # This is not the same as the number of Octs.
-            self.domain_dimensions = np.ones(3, dtype='int64')*est 
+            #domain dimensions is the number of root *cells*
+            self.domain_dimensions = np.ones(3, dtype='int64')*est
             self.root_grid_mask_offset = f.tell()
-            root_cells = self.domain_dimensions.prod()
-            self.root_iOctCh = _read_frecord(f,'>i')[:root_cells]
+            self.root_nocts = self.domain_dimensions.prod()/8
+            self.root_ncells = self.root_nocts*8
+            mylog.debug("Estimating %i cells on a root grid side,"+ \
+                        "%i root octs",est,self.root_nocts)
+            self.root_iOctCh = _read_frecord(f,'>i')[:self.root_ncells]
             self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
                  order='F')
             self.root_grid_offset = f.tell()
-            _skip_record(f) # hvar
-            _skip_record(f) # var
+            #_skip_record(f) # hvar
+            #_skip_record(f) # var
+            self.root_nhvar = _read_frecord(f,'>f',size_only=True)
+            self.root_nvar  = _read_frecord(f,'>f',size_only=True)
+            #make sure that the number of root variables is a multiple of rootcells
+            assert self.root_nhvar%self.root_ncells==0
+            assert self.root_nvar%self.root_ncells==0
+            self.nhydro_variables = ((self.root_nhvar+self.root_nvar)/ 
+                                    self.root_ncells)
             self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
@@ -514,11 +524,10 @@ class ARTDomainFile(object):
         #leave this code here instead of static output - it's memory intensive
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
-        #add the root mesh
-        NX = na.ones(3)*128 / 2
-        LE = na.array([0.0, 0.0, 0.0], dtype='float64')
-        RE = na.array([1.0, 1.0, 1.0], dtype='float64')
-        
+        #add the root *cell* not *oct* mesh
+        NX = np.ones(3)*128 
+        LE = np.array([0.0, 0.0, 0.0], dtype='float64')
+        RE = np.array([1.0, 1.0, 1.0], dtype='float64')
         root_dx = (RE - LE) / NX
         LL = LE + root_dx/2.0
         RL = RE - root_dx/2.0
@@ -526,16 +535,20 @@ class ARTDomainFile(object):
                          LL[1]:RL[1]:NX[1]*1j,
                          LL[2]:RL[2]:NX[2]*1j ]
         root_le= np.vstack([p.ravel() for p in root_le]).T
-        oct_handler.add(1, 0, -1, root_le, self.domain_id)
-        assert(oct_handler.nocts == rpos.shape[0])
+        nocts_check = oct_handler.add(1, 0, 128**3, root_le, self.domain_id)
+        assert(nocts_check == 0) #oct handler shouldn't leave any octs left over
+        assert(oct_handler.nocts == root_le.shape[0])
+        nocts_added = root_le.shape[0]
         for level in xrange(1, self.pf.max_level):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
             #left_index to LE in float
-            left_edge = left_index.astype(np.float64)/(128.0*2**level)
-            import pdb; pdb.set_trace()
-            oct_handler.add(1,level, nocts, left_edge, self.domain_id)
+            left_edge = left_index.astype("float64") / (NX*2**level)
+            assert np.all(left_edge<1.0)
+            nocts_check = oct_handler.add(1,level, nocts, left_edge, self.domain_id)
+            nocts_added += nocts
+            assert(oct_handler.nocts == nocts_added)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
