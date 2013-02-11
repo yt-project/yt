@@ -464,7 +464,6 @@ class ARTDomainSubset(object):
             for i,field in enumerate(fields):
                 source[field] = np.empty((no, 8), dtype="float64")
                 source[field][:,:] = np.reshape(data[i,:],(no,8))
-            import pdb; pdb.set_trace()
             level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)
         return dest
