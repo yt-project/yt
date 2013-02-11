@@ -186,8 +186,8 @@ class ARTStaticOutput(StaticOutput):
         self.limit_level = limit_level
         self.max_level = limit_level
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3,dtype='float')+1.0
-        self.domain_right_edge = np.zeros(3,dtype='float')
+        self.domain_left_edge = np.zeros(3,dtype='float')
+        self.domain_right_edge = np.zeros(3,dtype='float')+1.0
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
 
@@ -524,6 +524,9 @@ class ARTDomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
+        #on the root level we typically have 64^3 octs
+        #giving rise to 128^3 cells
+        #but on level 1 instead of 128^3 octs, we have 256^3 octs
         #leave this code here instead of static output - it's memory intensive
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
@@ -535,22 +538,28 @@ class ARTDomainFile(object):
         root_dx = (RE - LE) / NX
         LL = LE + root_dx/2.0
         RL = RE - root_dx/2.0
-        root_le= np.mgrid[ LL[0]:RL[0]:NX[0]*1j,
+        #compute floating point centers of root octs
+        root_fc= np.mgrid[ LL[0]:RL[0]:NX[0]*1j,
                          LL[1]:RL[1]:NX[1]*1j,
                          LL[2]:RL[2]:NX[2]*1j ]
-        root_le= np.vstack([p.ravel() for p in root_le]).T
-        nocts_check = oct_handler.add(1, 0, root_octs_side**3, root_le, \
+        root_fc= np.vstack([p.ravel() for p in root_fc]).T
+        nocts_check = oct_handler.add(1, 0, root_octs_side**3, root_fc, \
                                       self.domain_id)
-        assert(oct_handler.nocts == root_le.shape[0])
-        nocts_added = root_le.shape[0]
+        assert(oct_handler.nocts == root_fc.shape[0])
+        nocts_added = root_fc.shape[0]
         for level in xrange(1, self.pf.max_level):
             left_index, fl, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
-            #left_index to LE in float
-            left_edge = left_index.astype("float64") / (NX*2**(level+1))
-            assert np.all(left_edge<1.0)
-            nocts_check = oct_handler.add(1,level, nocts, left_edge, self.domain_id)
+            left_index/=2
+            #at least one of the indices should be odd
+            #assert np.sum(left_index[:,0]%2==1)>0
+            octs_side = NX*2**level
+            float_left_edge = left_index.astype("float64") / octs_side
+            float_center = float_left_edge + 0.5*1.0/octs_side
+            #all floatin unitary positions should fit inside the domain
+            assert np.all(float_center<1.0)
+            nocts_check = oct_handler.add(1,level, nocts, float_center, self.domain_id)
             nocts_added += nocts
             assert(oct_handler.nocts == nocts_added)
 

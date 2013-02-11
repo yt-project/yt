@@ -138,7 +138,7 @@ def _count_art_octs(f, offset,
 def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
-    #MaMaMaMaMaMaGet the info for this level, skip the rest
+    #Get the info for this level, skip the rest
     junk, nLevel, iOct = struct.unpack(
        '>iii', _read_record(f))
     
