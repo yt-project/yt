@@ -458,12 +458,11 @@ class ARTDomainSubset(object):
                 data = data[field_idxs,:]
             else:
                 data = _read_child_level(content,self.domain.level_child_offsets,
-                                       self.domain.level_count,level)
-                data = data[field_idxs,:]
+                                       self.domain.level_count,level,fields)
             source= {}
             for i,field in enumerate(fields):
                 source[field] = np.empty((no, 8), dtype="float64")
-                source[field][:,:] = np.reshape(data[i,:],(no,8),order="F")
+                source[field][:,:] = np.reshape(data[i,:],(no,8))
             level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)
         return dest

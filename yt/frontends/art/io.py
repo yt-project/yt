@@ -160,6 +160,13 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
         iocts[idxa:idxb] = data[:,-3] 
         idxa=idxa+this_chunk
     del data
+
+    #emulate fortran code
+    #     do ic1 = 1 , nLevel
+    #       read(19) (iOctPs(i,iOct),i=1,3),(iOctNb(i,iOct),i=1,6),
+    #&                iOctPr(iOct), iOctLv(iOct), iOctLL1(iOct), 
+    #&                iOctLL2(iOct)
+    #       iOct = iOctLL1(iOct)
     
     #ioct always represents the index of the next variable
     #not the current, so shift forward one index
@@ -198,7 +205,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #now read the hvars and vars arrays
     #we are looking for iOctCh
     #we record if iOctCh is >0, in which it is subdivided
-    iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
+    #iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
     
     f.seek(pos)
     return le,fl,nLevel,root_level
@@ -252,16 +259,22 @@ def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
 nchem=8+2
 dtyp = np.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
                 ",>%sf4"%(2)+",>i4")
-def _read_child_level(f,level_offsets,level_info,level,nhydro_vars=10):
+def _read_child_level(f,level_offsets,level_info,level,
+                      fields,nhydro_vars=10):
+    #emulate the fortran code for reading cell data
+    #read ( 19 ) idc, iOctCh(idc), (hvar(i,idc),i=1,nhvar), 
+    #    &                 (var(i,idc), i=2,3)
     nocts = level_info[level]
     ncells = nocts*8
     f.seek(level_offsets[level])
-    nvals = ncells * (nhydro_vars + 6) # 2 vars, 2 pads
-    arr = np.fromfile(f, dtype='>f', count=nvals)
-    arr = arr.reshape((nhydro_vars+6, ncells), order="F")
-    assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
-    arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
-    return arr
+    arr = np.fromfile(f,dtype=hydro_struct,count=ncells)
+    assert np.all(arr['pad1']==arr['pad2']) #pads must be equal
+    idc = np.argsort(arr['idc']) #correct fortran indices
+    if len(fields)>1:
+        vars = np.concatenate((arr[field][idc] for field in fields))
+    else:
+        vars = arr[field][idc].reshape((1,arr.shape[0]))
+    return vars
 
 def _read_root_level(f,level_offsets,level_info,nhydro_vars=10):
     nocts = level_info[0]
