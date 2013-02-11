@@ -252,14 +252,16 @@ def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
 nchem=8+2
 dtyp = np.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
                 ",>%sf4"%(2)+",>i4")
-def _read_art_child(f, level_child_offsets,level,nLevel,field):
-    pos=f.tell()
-    f.seek(level_child_offsets[level])
-    arr = np.fromfile(f, dtype='>f', count=nLevel * 8)
-    arr = arr.reshape((nLevel,16), order="F")
-    arr = arr[3:-1,:].astype("float64")
-    f.seek(pos)
-    return arr[field,:]
+def _read_child_level(f,level_offsets,level_info,level,nhydro_vars=10):
+    nocts = level_info[level]
+    ncells = nocts*8
+    f.seek(level_offsets[level])
+    nvals = ncells * (nhydro_vars + 6) # 2 vars, 2 pads
+    arr = np.fromfile(f, dtype='>f', count=nvals)
+    arr = arr.reshape((nhydro_vars+6, ncells), order="F")
+    assert np.all(arr[0,:]==arr[-1,:]) #pads must be equal
+    arr = arr[3:-1,:] #skip beginning pad, idc, iOctCh, + ending pad
+    return arr
 
 def _read_root_level(f,level_offsets,level_info,nhydro_vars=10):
     nocts = level_info[0]
