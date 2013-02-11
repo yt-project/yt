@@ -269,12 +269,14 @@ def _skip_record(f):
     f.seek(s[0], 1)
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
 
-def _read_frecord(f,fmt):
+def _read_frecord(f,fmt,size_only=False):
     s1 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
     count = s1/np.dtype(fmt).itemsize
     ss = np.fromfile(f,fmt,count=count)
     s2 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
     assert s1==s2
+    if size_only:
+        return count
     return ss
 
 
