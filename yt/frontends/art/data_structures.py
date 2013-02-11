@@ -452,18 +452,18 @@ class ARTDomainSubset(object):
         for field in fields:
             dest[field] = np.zeros(self.cell_count, 'float64')
         for level, offset in enumerate(self.domain.level_offsets):
-            nc = self.domain.level_count[level]
+            no = self.domain.level_count[level]
             if level==0:
                 data = _read_root_level(content,self.domain.level_child_offsets,
                                        self.domain.level_count)
                 data = data[field_idxs,:]
             else:
                 data = _read_art_child(content,self.domain.level_child_offsets,
-                                       level,nc,field_idxs)
+                                       level,no,field_idxs)
             source= {}
             for i,field in enumerate(fields):
-                source[field] = np.empty((nc/8, 8), dtype="float64")
-                source[field][:,:] = np.reshape(data[i,:],(nc/8,8))
+                source[field] = np.empty((no, 8), dtype="float64")
+                source[field][:,:] = np.reshape(data[i,:],(no,8))
             import pdb; pdb.set_trace()
             level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)
@@ -496,7 +496,7 @@ class ARTDomainFile(object):
 
     @property
     def level_child_offsets(self):
-        if self._level_count is not None: return self._level_count
+        if self._level_count is not None: return self._level_child_offsets
         self.level_offsets
         return self._level_child_offsets
 
@@ -514,7 +514,7 @@ class ARTDomainFile(object):
                             self.pf.max_level)
         #remember that the root grid is by itself; manually add it back in
         inoll[0] = self.pf.domain_dimensions.prod()/8
-        _level_oct_offsets[0] = self.pf.root_grid_offset
+        _level_child_offsets[0] = self.pf.root_grid_offset
         self.nhydrovars = nhydrovars
         self.inoll = inoll #number of octs
         self._level_oct_offsets = _level_oct_offsets
