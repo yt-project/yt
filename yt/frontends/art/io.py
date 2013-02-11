@@ -263,6 +263,19 @@ def _read_art_child(f, level_child_offsets,level,nLevel,field):
     f.seek(pos)
     return arr[field,:]
 
+def _read_root_level(f,level_offsets,level_info,nhydro_vars):
+    f.seek(level_offsets[0] + 4) # Ditch the header
+    ncells = level_info[0]
+    nhvals = ncells * nhydro_vars # 0 vars, 0 pads
+    hvar = np.fromfile(f, dtype='>f', count=nhvals).astype("float32")
+    hvar = hvar.reshape((nhydro_vars, ncells), order="F")
+    np.fromfile(f,dtype='>i',count=2) #throw away the pads
+    nvars = ncells * (2) # 0 vars, 0 pads
+    var = np.fromfile(f, dtype='>f', count=nvars).astype("float32")
+    var = var.reshape((2, ncells), order="F")
+    arr = np.concatenate((hvar,var))
+    return arr
+
 def _skip_record(f):
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
     f.seek(s[0], 1)
