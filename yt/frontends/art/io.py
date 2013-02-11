@@ -273,7 +273,7 @@ def _read_child_level(f,level_offsets,level_info,level,
     if len(fields)>1:
         vars = np.concatenate((arr[field][idc] for field in fields))
     else:
-        vars = arr[field][idc].reshape((1,arr.shape[0]))
+        vars = arr[fields[0]][idc].reshape((1,arr.shape[0]))
     return vars
 
 def _read_root_level(f,level_offsets,level_info,nhydro_vars=10):
