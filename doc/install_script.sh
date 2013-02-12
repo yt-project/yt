@@ -7,7 +7,7 @@
 # There are a few options, but you only need to set *one* of them.  And
 # that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
 # installation you can set HDF5_DIR, or if you want to use some other
-# subversion checkout of YT, you can set YT_DIR, too.  (It'll already
+# subversion checkout of yt, you can set YT_DIR, too.  (It'll already
 # check the current directory and one up.
 #
 # NOTE: If you have trouble with wxPython, set INST_WXPYTHON=0 .
@@ -44,7 +44,7 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 
-# If you've got YT some other place, set this to point to it.
+# If you've got yt some other place, set this to point to it.
 YT_DIR=""
 
 # If you need to pass anything to matplotlib, do so here.
@@ -244,9 +244,9 @@ echo
 echo
 echo "========================================================================"
 echo
-echo "Hi there!  This is the YT installation script.  We're going to download"
+echo "Hi there!  This is the yt installation script.  We're going to download"
 echo "some stuff and install it to create a self-contained, isolated"
-echo "environment for YT to run within."
+echo "environment for yt to run within."
 echo
 echo "Inside the installation script you can set a few variables.  Here's what"
 echo "they're currently set to -- you can hit Ctrl-C and edit the values in "
@@ -555,7 +555,7 @@ fi
 
 if [ ! -e Python-2.7.2/done ]
 then
-    echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
+    echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
     [ ! -e Python-2.7.2 ] && tar xfz Python-2.7.2.tgz
     cd Python-2.7.2
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
