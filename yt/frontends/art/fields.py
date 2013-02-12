@@ -168,9 +168,9 @@ KnownARTFields["PotentialOld"]._convert_function=_convertPotentialOld
 ####### Derived fields
 
 def _temperature(field, data):
-    dg = data["GasEnergy"].astype('float64')
+    dg = data["GasEnergy"] #.astype('float64')
     dg /= data.pf.conversion_factors["GasEnergy"]
-    dd = data["Density"].astype('float64')
+    dd = data["Density"] #.astype('float64')
     dd /= data.pf.conversion_factors["Density"]
     tr = dg/dd*data.pf.conversion_factors['tr']
     #ghost cells have zero density?

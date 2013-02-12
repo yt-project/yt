@@ -58,6 +58,13 @@ cdef class OctreeContainer:
     cdef void neighbors(self, Oct *, Oct **)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
 
+cdef class ARTIOOctreeContainer(OctreeContainer):
+    cdef OctAllocationContainer **domains
+    cdef Oct *get_root_oct(self, np.float64_t ppos[3])
+    cdef Oct *next_free_oct( self, int curdom )
+    cdef int valid_domain_oct(self, int curdom, Oct *parent)
+    cdef Oct *add_oct(self, int curdom, Oct *parent, int curlevel, double pp[3])
+
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
     cdef Oct *next_root(self, int domain_id, int ind[3])

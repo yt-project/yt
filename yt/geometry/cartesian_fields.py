@@ -42,41 +42,26 @@ add_cart_field = CartesianFieldInfo.add_field
 
 
 def _dx(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
-add_cart_field('dx', function=_dx, display_field=False,
-          validators=[ValidateSpatial(0)])
+    return data.pf.domain_width[0] * data.fwidth[:,0]
+add_cart_field('dx', function=_dx, display_field=False)
 
 def _dy(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
-add_cart_field('dy', function=_dy, display_field=False,
-          validators=[ValidateSpatial(0)])
+    return data.pf.domain_width[1] * data.fwidth[:,1]
+add_cart_field('dy', function=_dy, display_field=False)
 
 def _dz(field, data):
-    return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
-add_cart_field('dz', function=_dz,
-          display_field=False, validators=[ValidateSpatial(0)])
+    return data.pf.domain_width[2] * data.fwidth[:,2]
+add_cart_field('dz', function=_dz, display_field=False)
 
 def _coordX(field, data):
-    dim = data.ActiveDimensions[0]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[0])[:,None,None]
-            +0.5) * data['dx'] + data.LeftEdge[0]
-add_cart_field('x', function=_coordX, display_field=False,
-          validators=[ValidateSpatial(0)])
+    return data.pf.domain_left_edge[0] + data.fcoords[:,0]
+add_cart_field('x', function=_coordX, display_field=False)
 
 def _coordY(field, data):
-    dim = data.ActiveDimensions[1]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[1])[None,:,None]
-            +0.5) * data['dy'] + data.LeftEdge[1]
-add_cart_field('y', function=_coordY, display_field=False,
-          validators=[ValidateSpatial(0)])
+    return data.pf.domain_left_edge[1] + data.fcoords[:,1]
+add_cart_field('y', function=_coordY, display_field=False)
 
 def _coordZ(field, data):
-    dim = data.ActiveDimensions[2]
-    return (np.ones(data.ActiveDimensions, dtype='float64')
-                   * np.arange(data.ActiveDimensions[2])[None,None,:]
-            +0.5) * data['dz'] + data.LeftEdge[2]
-add_cart_field('z', function=_coordZ, display_field=False,
-          validators=[ValidateSpatial(0)])
+    return data.pf.domain_left_edge[2] + data.fcoords[:,2]
+add_cart_field('z', function=_coordZ, display_field=False)
 
