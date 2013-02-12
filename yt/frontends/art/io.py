@@ -173,7 +173,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #the last index isn't used
     ioctso = iocts.copy()
     iocts[1:]=iocts[:-1] #shift
-    iocts = iocts[:nLevel] #chop off the last index
+    iocts = iocts[:nLevel] #chop off the last, unused, index
     iocts[0]=iOct #starting value
 
     #now correct iocts for fortran indices start @ 1
@@ -208,7 +208,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     #iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
     
     f.seek(pos)
-    return le,fl,nLevel,root_level
+    return le,fl,iocts,nLevel,root_level
 
 
 def read_particles(file,Nrow):
@@ -259,23 +259,30 @@ def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
 nchem=8+2
 dtyp = np.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
                 ",>%sf4"%(2)+",>i4")
-def _read_child_level(f,level_offsets,level_info,level,
-                      fields,nhydro_vars=10):
+def _read_child_level(f,level_child_offsets,level_oct_offsets,level_info,level,
+                      fields,domain_dimensions,ncell0,nhydro_vars=10,nchild=8):
     #emulate the fortran code for reading cell data
     #read ( 19 ) idc, iOctCh(idc), (hvar(i,idc),i=1,nhvar), 
     #    &                 (var(i,idc), i=2,3)
     #contiguous 8-cell sections are for the same oct;
     #ie, we don't write out just the 0 cells, then the 1 cells
+    left_index, fl, octs, nocts,root_level = _read_art_level_info(f, 
+        level_oct_offsets,level, coarse_grid=domain_dimensions[0])
     nocts = level_info[level]
     ncells = nocts*8
-    f.seek(level_offsets[level])
+    f.seek(level_child_offsets[level])
     arr = np.fromfile(f,dtype=hydro_struct,count=ncells)
     assert np.all(arr['pad1']==arr['pad2']) #pads must be equal
-    idc = np.argsort(arr['idc']) #correct fortran indices
+    #idc = np.argsort(arr['idc']) #correct fortran indices
+    #translate idc into icell, and then to iOct
+    icell = (arr['idc'] >> 3) << 3
+    iocts = (icell-ncell0)/nchild #without a F correction, theres a +1
+    #assert that the children are read in the same order as the octs
+    assert np.all(octs==iocts[::nchild]) 
     if len(fields)>1:
-        vars = np.concatenate((arr[field][idc] for field in fields))
+        vars = np.concatenate((arr[field] for field in fields))
     else:
-        vars = arr[fields[0]][idc].reshape((1,arr.shape[0]))
+        vars = arr[fields[0]].reshape((1,arr.shape[0]))
     return vars
 
 def _read_root_level(f,level_offsets,level_info,nhydro_vars=10):
