@@ -171,7 +171,6 @@ cdef class OctreeContainer:
         cdef int n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=1] count
         count = np.zeros(self.max_domain, 'int64')
-        print 'snl oct_container num_octs',  n, ' assert  n is not bigger than my_octs'
         # 
         cur = self.cont
         for oi in range(n):
@@ -571,7 +570,6 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         cdef int i, j, k, ii
         cdef int local_pos, local_filled
         cdef np.float64_t val
-        print 'in fill_mask, domains number of octs',dom.n
         for key in dest_fields:
             local_filled = 0
             dest = dest_fields[key]
