@@ -353,6 +353,7 @@ class ARTStaticOutput(StaticOutput):
             self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
+            self.parameters['ncell0'] = self.parameters['ng']**3
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
@@ -458,7 +459,10 @@ class ARTDomainSubset(object):
                 data = data[field_idxs,:]
             else:
                 data = _read_child_level(content,self.domain.level_child_offsets,
-                                       self.domain.level_count,level,fields)
+                                         self.domain.level_offsets,
+                                         self.domain.level_count,level,fields,
+                                         self.domain.pf.domain_dimensions,
+                                         self.domain.pf.parameters['ncell0'])
             source= {}
             for i,field in enumerate(fields):
                 source[field] = np.empty((no, 8), dtype="float64")
@@ -553,7 +557,7 @@ class ARTDomainFile(object):
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     root_octs_side**3, 0,nocts_added)
         for level in xrange(1, self.pf.max_level+1):
-            left_index, fl, nocts,root_level = _read_art_level_info(f, 
+            left_index, fl, iocts, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
             left_index/=2
