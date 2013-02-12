@@ -264,6 +264,8 @@ def _read_child_level(f,level_offsets,level_info,level,
     #emulate the fortran code for reading cell data
     #read ( 19 ) idc, iOctCh(idc), (hvar(i,idc),i=1,nhvar), 
     #    &                 (var(i,idc), i=2,3)
+    #contiguous 8-cell sections are for the same oct;
+    #ie, we don't write out just the 0 cells, then the 1 cells
     nocts = level_info[level]
     ncells = nocts*8
     f.seek(level_offsets[level])
