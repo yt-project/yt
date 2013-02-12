@@ -552,8 +552,8 @@ class ARTDomainFile(object):
                           LL[1]:RL[1]:NX[1]*1j,
                           LL[2]:RL[2]:NX[2]*1j ]
         root_fc= np.vstack([p.ravel() for p in root_fc]).T
-        nocts_check = oct_handler.add(1, 0, root_octs_side**3, root_fc, \
-                                      self.domain_id)
+        nocts_check = oct_handler.add(1, 0, root_octs_side**3,
+                                      root_fc, self.domain_id)
         assert(oct_handler.nocts == root_fc.shape[0])
         nocts_added = root_fc.shape[0]
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",

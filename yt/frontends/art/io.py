@@ -181,15 +181,6 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
 
     assert np.unique(iocts).shape[0] == nLevel
     
-    #ioct tries to access arrays much larger than le & fl
-    #just make sure they appear in the right order, skipping
-    #the empty space in between
-    idx = np.argsort(iocts)
-    
-    #now rearrange le & fl in order of the ioct
-    le = le[idx]
-    fl = fl[idx]
-
     #left edges are expressed as if they were on 
     #level 15, so no matter what level max(le)=2**15 
     #correct to the yt convention
