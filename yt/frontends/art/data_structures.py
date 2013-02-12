@@ -410,7 +410,9 @@ class ARTDomainSubset(object):
         level_counts = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
         assert(level_counts.sum() == cell_count)
-        self.level_counts = level_counts
+        level_counts[1:] = level_counts[:-1]
+        level_counts[0] = 0
+        self.level_counts = np.add.accumulate(level_counts)
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -546,9 +548,9 @@ class ARTDomainFile(object):
         LL = LE + root_dx/2.0
         RL = RE - root_dx/2.0
         #compute floating point centers of root octs
-        root_fc= np.mgrid[ LL[0]:RL[0]:NX[0]*1j,
-                         LL[1]:RL[1]:NX[1]*1j,
-                         LL[2]:RL[2]:NX[2]*1j ]
+        root_fc= np.mgrid[LL[0]:RL[0]:NX[0]*1j,
+                          LL[1]:RL[1]:NX[1]*1j,
+                          LL[2]:RL[2]:NX[2]*1j ]
         root_fc= np.vstack([p.ravel() for p in root_fc]).T
         nocts_check = oct_handler.add(1, 0, root_octs_side**3, root_fc, \
                                       self.domain_id)
