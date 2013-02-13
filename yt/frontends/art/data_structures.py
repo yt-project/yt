@@ -98,7 +98,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         allocate the requisite memory in the oct tree
         """
         nv = len(self.fluid_field_list)
-        self.domains = [ARTDomainFile(self.parameter_file,1,nv)]
+        self.domains = [ARTDomainFile(self.parameter_file,i+1,nv,l)
+                        for i,l in enumerate(range(self.pf.max_level))]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
         self.oct_handler = RAMSESOctreeContainer(
@@ -134,8 +135,10 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             counts = self.oct_handler.count_cells(dobj.selector, mask)
             #For all domains, figure out how many counts we have 
             #and build a subset=mask of domains 
-            subsets = [ARTDomainSubset(d, mask, c)
-                       for d, c in zip(self.domains, counts) if c > 0]
+            subsets = []
+            for d,c in zip(self.domains,counts):
+                if c>0:
+                    subsets += ARTDomainSubset(d,mask,c,d.domain_level),
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
             dobj.shape = (dobj.size,)
@@ -396,11 +399,12 @@ class ARTStaticOutput(StaticOutput):
         return False
 
 class ARTDomainSubset(object):
-    def __init__(self, domain, mask, cell_count):
+    def __init__(self, domain, mask, cell_count,domain_level):
         self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
         self.cell_count = cell_count
+        self.domain_level = domain_level
         level_counts = self.oct_handler.count_levels(
             self.domain.pf.max_level, self.domain.domain_id, mask)
         assert(level_counts.sum() == cell_count)
@@ -447,28 +451,29 @@ class ARTDomainSubset(object):
         field_idxs = [all_fields.index(f) for f in fields]
         for field in fields:
             dest[field] = np.zeros(self.cell_count, 'float64')
-        for level, offset in enumerate(self.domain.level_offsets):
-            no = self.domain.level_count[level]
+        level = self.domain_level
+        offset = self.domain.level_offsets
+        no = self.domain.level_count[level]
+        if level==0:
+            data = _read_root_level(content,self.domain.level_child_offsets,
+                                   self.domain.level_count)
+            data = data[field_idxs,:]
+        else:
+            data = _read_child_level(content,self.domain.level_child_offsets,
+                                     self.domain.level_offsets,
+                                     self.domain.level_count,level,fields,
+                                     self.domain.pf.domain_dimensions,
+                                     self.domain.pf.parameters['ncell0'])
+        source= {}
+        for i,field in enumerate(fields):
             if level==0:
-                data = _read_root_level(content,self.domain.level_child_offsets,
-                                       self.domain.level_count)
-                data = data[field_idxs,:]
+                temp = np.reshape(data[i,:],(no,8),order='C')
             else:
-                data = _read_child_level(content,self.domain.level_child_offsets,
-                                         self.domain.level_offsets,
-                                         self.domain.level_count,level,fields,
-                                         self.domain.pf.domain_dimensions,
-                                         self.domain.pf.parameters['ncell0'])
-            source= {}
-            for i,field in enumerate(fields):
-                if level==0:
-                    temp = np.reshape(data[i,:],(no,8),order='C')
-                else:
-                    temp = np.reshape(data[i,:],(no,8),order='C')
-                temp = temp.astype('float64')
-                source[field] = temp
-            level_offset += oct_handler.fill_level(self.domain.domain_id, 
-                                   level, dest, source, self.mask, level_offset)
+                temp = np.reshape(data[i,:],(no,8),order='C')
+            temp = temp.astype('float64')
+            source[field] = temp
+        level_offset += oct_handler.fill_level(self.domain.domain_id, 
+                               level, dest, source, self.mask, level_offset)
         return dest
 
 class ARTDomainFile(object):
@@ -481,20 +486,22 @@ class ARTDomainFile(object):
     _last_mask = None
     _last_seletor_id = None
 
-    def __init__(self,pf,domain_id,nvar):
+    def __init__(self,pf,domain_id,nvar,level):
         self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
+        self.domain_level = level
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
+
 
     @property
     def level_count(self):
         #this is number of *octs*
         if self._level_count is not None: return self._level_count
         self.level_offsets
-        return self._level_count
+        return self._level_count[self.domain_level]
 
     @property
     def level_child_offsets(self):
@@ -538,44 +545,43 @@ class ARTDomainFile(object):
         self.level_offsets
         f = open(self.pf.file_amr, "rb")
         #add the root *cell* not *oct* mesh
+        level = self.domain_level
         root_octs_side = self.pf.domain_dimensions[0]/2
         NX = np.ones(3)*root_octs_side
-        LE = np.array([0.0, 0.0, 0.0], dtype='float64')
-        RE = np.array([1.0, 1.0, 1.0], dtype='float64')
-        root_dx = (RE - LE) / NX
-        LL = LE + root_dx/2.0
-        RL = RE - root_dx/2.0
-        #compute floating point centers of root octs
-        root_fc= np.mgrid[LL[0]:RL[0]:NX[0]*1j,
-                          LL[1]:RL[1]:NX[1]*1j,
-                          LL[2]:RL[2]:NX[2]*1j ]
-        root_idx = na.arange(np.prod(root_fc.shape))
-        #must add in 000,100,200,300,...010,020,...
-        #001,002,003,... xyz order
-        root_fc= np.vstack([p.ravel() for p in root_fc]).T
-        nocts_check = oct_handler.add(1, 0, root_octs_side**3,
-                                      root_fc, self.domain_id)
-        assert(oct_handler.nocts == root_fc.shape[0])
-        nocts_added = root_fc.shape[0]
-        mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
-                    root_octs_side**3, 0,nocts_added)
-        for level in xrange(1, self.pf.max_level+1):
+        octs_side = NX*2**level
+        if level == 0:
+            LE = np.array([0.0, 0.0, 0.0], dtype='float64')
+            RE = np.array([1.0, 1.0, 1.0], dtype='float64')
+            root_dx = (RE - LE) / NX
+            LL = LE + root_dx/2.0
+            RL = RE - root_dx/2.0
+            #compute floating point centers of root octs
+            root_fc= np.mgrid[LL[0]:RL[0]:NX[0]*1j,
+                              LL[1]:RL[1]:NX[1]*1j,
+                              LL[2]:RL[2]:NX[2]*1j ]
+            root_fc= np.vstack([p.ravel() for p in root_fc]).T
+            nocts_check = oct_handler.add(self.domain_id, level, 
+                                          root_octs_side**3,
+                                          root_fc, self.domain_id)
+            assert(oct_handler.nocts == root_fc.shape[0])
+            mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
+                        root_octs_side**3, 0,oct_handler.nocts)
+        else:
             left_index, fl, iocts, nocts,root_level = _read_art_level_info(f, 
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0])
             left_index/=2
             #at least one of the indices should be odd
             #assert np.sum(left_index[:,0]%2==1)>0
-            octs_side = NX*2**level
             float_left_edge = left_index.astype("float64") / octs_side
             float_center = float_left_edge + 0.5*1.0/octs_side
             #all floatin unitary positions should fit inside the domain
             assert np.all(float_center<1.0)
-            nocts_check = oct_handler.add(1,level, nocts, float_left_edge, self.domain_id)
-            nocts_added += nocts
-            assert(oct_handler.nocts == nocts_added)
+            nocts_check = oct_handler.add(self.domain_id,level, nocts, 
+                                          float_left_edge, self.domain_id)
+            assert(nocts_check == nocts)
             mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
-                        nocts, level,nocts_added)
+                        nocts, level,oct_handler.nocts)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
