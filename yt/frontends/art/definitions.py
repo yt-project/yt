@@ -100,33 +100,17 @@ amr_header_struct = [
 ]
 
 particle_header_struct =[
-    ('pad',1,'>i'),
-    ('header',1,'45s'), 
-    ('aexpn',1,'>f'),
-    ('aexp0',1,'>f'),
-    ('amplt',1,'>f'),
-    ('astep',1,'>f'),
-    ('istep',1,'>i'),
-    ('partw',1,'>f'),
-    ('tintg',1,'>f'),
-    ('Ekin',1,'>f'),
-    ('Ekin1',1,'>f'),
-    ('Ekin2',1,'>f'),
-    ('au0',1,'>f'),
-    ('aeu0',1,'>f'),
-    ('Nrow',1,'>i'),
-    ('Ngridc',1,'>i'),
-    ('Nspecies',1,'>i'),
-    ('Nseed',1,'>i'),
-    ('Om0',1,'>f'),
-    ('Oml0',1,'>f'),
-    ('hubble',1,'>f'),
-    ('Wp5',1,'>f'),
-    ('Ocurv',1,'>f'),
-    ('Omb0',1,'>f'),
-    ('extras',1,'>%ds'%(396)),
-    ('unknown',1,'>f'),
-    ('pad',1,'>i')
+    (('header',
+     'aexpn','aexp0','amplt','astep',
+     'istep',
+     'partw','tintg',
+     'Ekin','Ekin1','Ekin2',
+     'au0','aeu0',
+     'Nrow','Ngridc','Nspecies','Nseed',
+     'Om0','Oml0','hubble','Wp5','Ocurv','Omb0',
+     'extras','unknown'),
+      1,
+     '45sffffi'+'fffffff'+'iiii'+'ffffff'+'396s'+'f')
 ]
 
 star_struct = [

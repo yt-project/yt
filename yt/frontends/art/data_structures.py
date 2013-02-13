@@ -351,7 +351,7 @@ class ARTStaticOutput(StaticOutput):
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
-                particle_header_vals = read_attrs(fh,particle_header_struct)
+                particle_header_vals = read_attrs(fh,particle_header_struct,'>')
                 fh.seek(seek_extras)
                 n = particle_header_vals['Nspecies']
                 wspecies = np.fromfile(fh,dtype='>f',count=10)
