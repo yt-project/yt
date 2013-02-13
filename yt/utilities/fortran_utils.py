@@ -132,18 +132,25 @@ def skip(f, n=1, endian='='):
     endian : str
         '=' is native, '>' is big, '<' is little endian
 
+    Returns
+    -------
+    skipped: The number of elements in the skipped array
+
     Examples
     --------
 
     >>> f = open("fort.3", "rb")
     >>> skip(f, 3)
     """
+    skipped = 0
     for i in range(n):
         fmt = endian+"I"
         s1= struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
         f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
         s2= struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
         assert s1==s2 
+        skipped += s1/struct.calcsize(fmt)
+    return skipped
 
 def read_record(f, rspec, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
