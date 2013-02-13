@@ -45,7 +45,7 @@ def read_attrs(f, attrs,endian='='):
         This object should be an iterable of one of the formats: 
         [ (attr_name, count, struct type), ... ].
         [ ((name1,name2,name3),count, vector type]
-        [ ((name1,name2,name3),count, [type,type,type]]
+        [ ((name1,name2,name3),count, 'type type type']
     endian : str
         '=' is native, '>' is big, '<' is little endian
 
@@ -117,16 +117,18 @@ def read_vector(f, d, endian='='):
     >>> f = open("fort.3", "rb")
     >>> rv = read_vector(f, 'd')
     """
-    fmt = endian+"I"
-    ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
-    ds = struct.calcsize(endian+"%s" % d)
-    if ss % ds != 0:
-        print "fmt = '%s' ; ss = %s ; ds = %s" % (fmt, ss, ds)
+    fmt = endian+"%s" % d
+    size = struct.calcsize(fmt)
+    padfmt = endian + "I"
+    padsize = struct.calcsize(padfmt)
+    length = struct.unpack(padfmt,f.read(padsize))[0]
+    if length % size!= 0:
+        print "fmt = '%s' ; length = %s ; size= %s" % (fmt, length, size)
         raise RuntimeError
-    count = ss / ds
-    tr = np.fromstring(f.read(np.dtype(d).itemsize*count), d, count)
-    vec = struct.unpack(fmt, f.read(struct.calcsize(fmt)))
-    assert(vec[-1] == ss)
+    count = length/ size
+    tr = np.fromfile(f,fmt,count=count)
+    length2= struct.unpack(padfmt,f.read(padsize))[0]
+    assert(length == length2)
     return tr
 
 def skip(f, n=1, endian='='):
@@ -158,9 +160,10 @@ def skip(f, n=1, endian='='):
     skipped = 0
     for i in range(n):
         fmt = endian+"I"
-        s1= struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
+        size = f.read(struct.calcsize(fmt))
+        s1= struct.unpack(fmt, size)[0]
         f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
-        s2= struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
+        s2= struct.unpack(fmt, size)[0]
         assert s1==s2 
         skipped += s1/struct.calcsize(fmt)
     return skipped
