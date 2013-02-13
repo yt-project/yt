@@ -27,7 +27,7 @@ import struct
 import numpy as np
 import os
 
-def read_attrs(f, attrs):
+def read_attrs(f, attrs,endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     according to a definition of attributes, returning a dictionary.
 
@@ -44,6 +44,8 @@ def read_attrs(f, attrs):
     attrs : iterable of iterables
         This object should be an iterable of the format [ (attr_name, count,
         struct type), ... ].
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Returns
     -------
@@ -59,7 +61,7 @@ def read_attrs(f, attrs):
     >>> rv = read_attrs(f, header)
     """
     vv = {}
-    net_format = "="
+    net_format = endian
     for a, n, t in attrs:
         net_format += "".join(["I"] + ([t] * n) + ["I"])
     size = struct.calcsize(net_format)
@@ -70,16 +72,15 @@ def read_attrs(f, attrs):
         v = [vals.pop(0) for i in range(b)]
         s2 = vals.pop(0)
         if s1 != s2:
-            size = struct.calcsize("=I" + "".join(b*[n]) + "I")
+            size = struct.calcsize(endian "I" + "".join(b*[n]) + "I")
             print "S1 = %s ; S2 = %s ; %s %s %s = %s" % (
                     s1, s2, a, b, n, size)
-            raise RuntimeError
         assert(s1 == s2)
         if b == 1: v = v[0]
         vv[a] = v
     return vv
 
-def read_vector(f, d):
+def read_vector(f, d, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     a vector of values.
 
@@ -89,6 +90,8 @@ def read_vector(f, d):
         An open file object.  Should have been opened in mode rb.
     d : data type
         This is the datatype (from the struct module) that we should read.
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Returns
     -------
@@ -101,9 +104,9 @@ def read_vector(f, d):
     >>> f = open("fort.3", "rb")
     >>> rv = read_vector(f, 'd')
     """
-    fmt = "=I"
+    fmt = endian+"I"
     ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
-    ds = struct.calcsize("=%s" % d)
+    ds = struct.calcsize(endian+"%s" % d)
     if ss % ds != 0:
         print "fmt = '%s' ; ss = %s ; ds = %s" % (fmt, ss, ds)
         raise RuntimeError
@@ -113,9 +116,10 @@ def read_vector(f, d):
     assert(vec[-1] == ss)
     return tr
 
-def skip(f, n = 1):
+def skip(f, n=1, endian='='):
     r"""This function accepts a file pointer and skips a Fortran unformatted
-    record.
+    record. Optionally check that the skip was done correctly by checking 
+    the pad bytes.
 
     Parameters
     ----------
@@ -123,6 +127,10 @@ def skip(f, n = 1):
         An open file object.  Should have been opened in mode rb.
     n : int
         Number of records to skip.
+    check : bool
+        Assert that the pad bytes are equal
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Examples
     --------
@@ -131,11 +139,13 @@ def skip(f, n = 1):
     >>> skip(f, 3)
     """
     for i in range(n):
-        fmt = "=I"
-        ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
-        f.seek(ss + struct.calcsize("=I"), os.SEEK_CUR)
+        fmt = endian+"I"
+        s1= struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
+        f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
+        s2= struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
+        assert s1==s2 
 
-def read_record(f, rspec):
+def read_record(f, rspec, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     a single "record" with different components.
 
@@ -150,6 +160,8 @@ def read_record(f, rspec):
     rspec : iterable of iterables
         This object should be an iterable of the format [ (attr_name, count,
         struct type), ... ].
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Returns
     -------
