@@ -52,7 +52,7 @@ from yt.utilities.lib import \
     get_box_grids_level
 import yt.utilities.lib as amr_utils
 
-from .definitions import *
+from yt.frontends.art.definitions import *
 from yt.utilities.fortran_utils import *
 from .io import _read_art_level_info
 from .io import _read_child_mask_level
@@ -318,10 +318,10 @@ class ARTStaticOutput(StaticOutput):
         self.parameters.update(constants)
         #read the amr header
         with open(self.file_amr,'rb') as f:
-            amr_header_vals = read_attrs(f,amr_header_struct)
+            amr_header_vals = read_attrs(f,amr_header_struct,'>')
             for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
-                skip(f)
-            self.ncell = read_vector(f,'l','>')
+                skipped=skip(f,endian='>')
+            (self.ncell) = read_vector(f,'i','>')[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell**(1.0/3.0)))
             # Note here: this is the number of *cells* on the root grid.
@@ -337,14 +337,14 @@ class ARTStaticOutput(StaticOutput):
             self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
                  order='F')
             self.root_grid_offset = f.tell()
-            self.root_nhvar = skip(f)
-            self.root_nvar  = skip(f)
+            self.root_nhvar = skip(f,endian='>')
+            self.root_nvar  = skip(f,endian='>')
             #make sure that the number of root variables is a multiple of rootcells
             assert self.root_nhvar%self.root_ncells==0
             assert self.root_nvar%self.root_ncells==0
             self.nhydro_variables = ((self.root_nhvar+self.root_nvar)/ 
                                     self.root_ncells)
-            self.iOctFree, self.nOct = read_vector(f,'ii','>')
+            self.iOctFree, self.nOct = read_vector(f,'i','>')
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
             self.parameters['ncell0'] = self.parameters['ng']**3
