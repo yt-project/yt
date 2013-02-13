@@ -91,7 +91,7 @@ filename_pattern_hf = {
 
 amr_header_struct = [
     ('jname',1,'256s'),
-    (('istep','i','dt','aexpn','ainit'),1,'iddff'),
+    (('istep','t','dt','aexpn','ainit'),1,'iddff'),
     (('boxh','Om0','Oml0','Omb0','hubble'),5,'f'),
     ('nextras',1,'i'),
     (('extra1','extra2'),2,'f'),
