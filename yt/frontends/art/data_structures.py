@@ -461,8 +461,12 @@ class ARTDomainSubset(object):
                                          self.domain.pf.parameters['ncell0'])
             source= {}
             for i,field in enumerate(fields):
-                source[field] = np.empty((no, 8), dtype="float64")
-                source[field][:,:] = np.reshape(data[i,:],(no,8))
+                if level==0:
+                    temp = np.reshape(data[i,:],(no,8),order='C')
+                else:
+                    temp = np.reshape(data[i,:],(no,8),order='C')
+                temp = temp.astype('float64')
+                source[field] = temp
             level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)
         return dest
@@ -545,6 +549,10 @@ class ARTDomainFile(object):
         root_fc= np.mgrid[LL[0]:RL[0]:NX[0]*1j,
                           LL[1]:RL[1]:NX[1]*1j,
                           LL[2]:RL[2]:NX[2]*1j ]
+        root_idx = na.arange(np.prod(root_fc.shape))
+        import pdb; pdb.set_trace()
+        #must add in 000,100,200,300,...010,020,...
+        #001,002,003,... xyz order
         root_fc= np.vstack([p.ravel() for p in root_fc]).T
         nocts_check = oct_handler.add(1, 0, root_octs_side**3,
                                       root_fc, self.domain_id)
