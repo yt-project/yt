@@ -683,7 +683,7 @@ class Camera(ParallelAnalysisInterface):
         """
         if "__IPYTHON__" in dir(__builtin__):
             from IPython.core.displaypub import publish_display_data
-            image = self.snapshot()
+            image = self.snapshot()[:,:,:3]
             if clip_ratio is not None: clip_ratio *= image.std()
             data = write_bitmap(image, None, clip_ratio)
             publish_display_data(
