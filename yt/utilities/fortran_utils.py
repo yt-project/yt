@@ -42,8 +42,10 @@ def read_attrs(f, attrs,endian='='):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of the format [ (attr_name, count,
-        struct type), ... ].
+        This object should be an iterable of one of the formats: 
+        [ (attr_name, count, struct type), ... ].
+        [ ((name1,name2,name3),count, vector type]
+        [ ((name1,name2,name3),count, [type,type,type]]
     endian : str
         '=' is native, '>' is big, '<' is little endian
 
@@ -63,21 +65,32 @@ def read_attrs(f, attrs,endian='='):
     vv = {}
     net_format = endian
     for a, n, t in attrs:
+        for end in '@=<>':
+            t = t.replace(end,'')
         net_format += "".join(["I"] + ([t] * n) + ["I"])
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vv = {}
-    for a, b, n in attrs:
+    for a, n, t in attrs:
+        for end in '@=<>':
+            t = t.replace(end,'')
+        if type(a)==tuple:
+            n = len(a)
         s1 = vals.pop(0)
-        v = [vals.pop(0) for i in range(b)]
+        v = [vals.pop(0) for i in range(n)]
         s2 = vals.pop(0)
         if s1 != s2:
-            size = struct.calcsize(endian "I" + "".join(b*[n]) + "I")
+            size = struct.calcsize(endian + "I" + "".join(n*[t]) + "I")
             print "S1 = %s ; S2 = %s ; %s %s %s = %s" % (
-                    s1, s2, a, b, n, size)
+                    s1, s2, a, n, t, size)
         assert(s1 == s2)
-        if b == 1: v = v[0]
-        vv[a] = v
+        if n == 1: v = v[0]
+        if type(a)==tuple:
+            assert len(a) == len(v)
+            for k,val in zip(a,v):
+                vv[k]=val
+        else:
+            vv[a] = v
     return vv
 
 def read_vector(f, d, endian='='):
@@ -184,7 +197,11 @@ def read_record(f, rspec, endian='='):
     >>> rv = read_record(f, header)
     """
     vv = {}
-    net_format = "=I" + "".join(["%s%s" % (n, t) for a, n, t in rspec]) + "I"
+    net_format = endian + "I"
+    for a, n, t in rspec:
+        t = t if len(t)==1 else t[-1]
+        net_format += "%s%s"%(n, t)
+    net_format += "I"
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vvv = vals[:]
