@@ -158,6 +158,7 @@ def skip(f, n=1, endian='='):
     >>> skip(f, 3)
     """
     skipped = 0
+    pos = f.tell()
     for i in range(n):
         fmt = endian+"I"
         size = f.read(struct.calcsize(fmt))
@@ -167,6 +168,27 @@ def skip(f, n=1, endian='='):
         assert s1==s2 
         skipped += s1/struct.calcsize(fmt)
     return skipped
+
+def peek_record_size(f,endian='='):
+    r""" This function accept the file handle and returns
+    the size of the next record and then rewinds the file
+    to the previous position.
+
+    Parameters
+    ----------
+    f : File object
+        An open file object.  Should have been opened in mode rb.
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
+
+    Returns
+    -------
+    Number of bytes in the next record
+    """
+    pos = f.tell()
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    f.seek(pos)
+    return s[0]
 
 def read_record(f, rspec, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer

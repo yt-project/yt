@@ -108,7 +108,7 @@ def _count_art_octs(f, offset,
         #Get the info for this level, skip the rest
         #print "Reading oct tree data for level", Lev
         #print 'offset:',f.tell()
-        Level[Lev], iNOLL[Lev], iHOLL[Lev] = read_vector(f,'iii','>')
+        Level[Lev], iNOLL[Lev], iHOLL[Lev] = read_vector(f,'i','>')
         #print 'Level %i : '%Lev, iNOLL
         #print 'offset after level record:',f.tell()
         iOct = iHOLL[Lev] - 1
@@ -117,13 +117,13 @@ def _count_art_octs(f, offset,
         ntot = ntot + nLevel
 
         #Skip all the oct hierarchy data
-        ns = skip(f)
+        ns = peek_record_size(f,endian='>')
         size = struct.calcsize('>i') + ns + struct.calcsize('>i')
         f.seek(f.tell()+size * nLevel)
 
         level_child_offsets.append(f.tell())
         #Skip the child vars data
-        ns = skip(f)
+        ns = peek_record_size(f,endian='>')
         size = struct.calcsize('>i') + ns + struct.calcsize('>i')
         f.seek(f.tell()+size * nLevel*nchild)
 
@@ -136,7 +136,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
     #Get the info for this level, skip the rest
-    junk, nLevel, iOct = read_vector(f,'iii','>')
+    junk, nLevel, iOct = read_vector(f,'i','>')
     
     #fortran indices start at 1
     

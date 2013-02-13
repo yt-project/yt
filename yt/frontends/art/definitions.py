@@ -43,10 +43,10 @@ fluid_fields= [
     'PotentialOld'
 ]
 
-hydro_struct = [('pad1',1,'>i'),('idc',1,'>i'),('iOctCh',1,'>i')]
+hydro_struct = [('pad1','>i'),('idc','>i'),('iOctCh','>i')]
 for field in fluid_fields:
-    hydro_struct += (field,1,'>f'),
-hydro_struct += ('pad2',1,'>i'),
+    hydro_struct += (field,'>f'),
+hydro_struct += ('pad2','>i'),
 
 particle_fields= [
     'particle_age',
