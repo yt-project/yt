@@ -409,7 +409,7 @@ echo '1531789e0a77d4829796d18552a4de7aecae7e8b63763a7951a8091921995800740fe03e72
 echo '9644896e4a84665ad22f87eb885cbd4a0c60a5c30085d5dd5dba5f3c148dbee626f0cb01e59a7995a84245448a3f1e9ba98687d3f10250e2ee763074ed8ddc0e  hdf5-1.8.7.tar.gz' > hdf5-1.8.7.tar.gz.sha512
 echo 'dbefad00fa34f4f21dca0f1e92e95bd55f1f4478fa0095dcf015b4d06f0c823ff11755cd777e507efaf1c9098b74af18f613ec9000e5c3a5cc1c7554fb5aefb8  libpng-1.5.12.tar.gz' > libpng-1.5.12.tar.gz.sha512
 echo 'f5ab95c29ef6958096970265a6079f0eb8c43a500924346c4a6c6eb89d9110eeeb6c34a53715e71240e82ded2b76a7b8d5a9b05a07baa000b2926718264ad8ff  matplotlib-1.1.0.tar.gz' > matplotlib-1.1.0.tar.gz.sha512
-echo 'ec7416729f99f5eef6700507e740552e771d6dd8863f757311538d7d67a0eecd3426381bd42a7ddbf0771bdde8bba5cb943f60031ae3567d6a3dcac738facda8  mercurial-2.2.2.tar.gz' > mercurial-2.2.2.tar.gz.sha512
+echo '91693ca5f34934956a7c2c98bb69a5648b2a5660afd2ecf4a05035c5420450d42c194eeef0606d7683e267e4eaaaab414df23f30b34c88219bdd5c1a0f1f66ed  mercurial-2.5.1.tar.gz' > mercurial-2.5.1.tar.gz.sha512
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
 echo '5ad681f99e75849a5ca6f439c7a19bb51abc73d121b50f4f8e4c0da42891950f30407f761a53f0fe51b370b1dbd4c4f5a480557cb2444c8c7c7d5412b328a474  sqlite-autoconf-3070500.tar.gz' > sqlite-autoconf-3070500.tar.gz.sha512
 echo 'edae735960279d92acf58e1f4095c6392a7c2059b8f1d2c46648fc608a0fb06b392db2d073f4973f5762c034ea66596e769b95b3d26ad963a086b9b2d09825f2  zlib-1.2.3.tar.bz2' > zlib-1.2.3.tar.bz2.sha512
@@ -432,7 +432,7 @@ echo '57fa5e57dfb98154a42d2d477f29401c2260ae7ad3a8128a4098b42ee3b35c54367b1a3254
 get_ytproject Python-2.7.2.tgz
 get_ytproject numpy-1.6.1.tar.gz
 get_ytproject matplotlib-1.1.0.tar.gz
-get_ytproject mercurial-2.2.2.tar.gz
+get_ytproject mercurial-2.5.1.tar.gz
 get_ytproject ipython-0.13.tar.gz
 get_ytproject h5py-2.0.1.tar.gz
 get_ytproject Cython-0.16.tar.gz
@@ -573,7 +573,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-2.2.2
+    do_setup_py mercurial-2.5.1
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
