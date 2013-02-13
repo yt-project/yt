@@ -31,6 +31,7 @@ import os.path
 from yt.utilities.io_handler import \
     BaseIOHandler
 import yt.utilities.lib as au
+from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *
 
@@ -107,8 +108,7 @@ def _count_art_octs(f, offset,
         #Get the info for this level, skip the rest
         #print "Reading oct tree data for level", Lev
         #print 'offset:',f.tell()
-        Level[Lev], iNOLL[Lev], iHOLL[Lev] = struct.unpack(
-           '>iii', _read_record(f))
+        Level[Lev], iNOLL[Lev], iHOLL[Lev] = read_vector(f,'iii','>')
         #print 'Level %i : '%Lev, iNOLL
         #print 'offset after level record:',f.tell()
         iOct = iHOLL[Lev] - 1
@@ -117,13 +117,13 @@ def _count_art_octs(f, offset,
         ntot = ntot + nLevel
 
         #Skip all the oct hierarchy data
-        ns = _read_record_size(f)
+        ns = skip(f)
         size = struct.calcsize('>i') + ns + struct.calcsize('>i')
         f.seek(f.tell()+size * nLevel)
 
         level_child_offsets.append(f.tell())
         #Skip the child vars data
-        ns = _read_record_size(f)
+        ns = skip(f)
         size = struct.calcsize('>i') + ns + struct.calcsize('>i')
         f.seek(f.tell()+size * nLevel*nchild)
 
@@ -136,8 +136,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
     #Get the info for this level, skip the rest
-    junk, nLevel, iOct = struct.unpack(
-       '>iii', _read_record(f))
+    junk, nLevel, iOct = read_vector(f,'iii','>')
     
     #fortran indices start at 1
     
@@ -218,9 +217,9 @@ def read_star_field(file,field=None):
     with open(file,'rb') as fh:
         for dtype, variables in star_struct:
             if field in variables or dtype=='>d' or dtype=='>d':
-                data[field] = _read_frecord(fh,'>f')
+                data[field] = read_vector(fh,'f','>')
             else:
-                _skip_record(fh)
+                skip(fh,endian='>')
     return data.pop(field),data
 
 def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
@@ -279,53 +278,12 @@ def _read_child_level(f,level_child_offsets,level_oct_offsets,level_info,level,
 def _read_root_level(f,level_offsets,level_info,nhydro_vars=10):
     nocts = level_info[0]
     f.seek(level_offsets[0]) # Ditch the header
-    hvar = _read_frecord(f,'>f')
-    var  = _read_frecord(f,'>f')
+    hvar = read_vector(f,'f','>')
+    var = read_vector(f,'f','>')
     hvar = hvar.reshape((nhydro_vars, nocts*8), order="F")
     var = var.reshape((2, nocts*8), order="F")
     arr = np.concatenate((hvar,var))
     return arr
-
-def _skip_record(f):
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    f.seek(s[0], 1)
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-
-def _read_frecord(f,fmt,size_only=False):
-    s1 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
-    count = s1/np.dtype(fmt).itemsize
-    ss = np.fromfile(f,fmt,count=count)
-    s2 = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
-    assert s1==s2
-    if size_only:
-        return count
-    return ss
-
-
-def _read_record(f,fmt=None):
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
-    ss = f.read(s)
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    if fmt is not None:
-        return struct.unpack(ss,fmt)
-    return ss
-
-def _read_record_size(f):
-    pos = f.tell()
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
-    f.seek(pos)
-    return s[0]
-
-def _read_struct(f,structure,verbose=False):
-    vals = {}
-    for format,name in structure:
-        size = struct.calcsize(format)
-        (val,) = struct.unpack(format,f.read(size))
-        vals[name] = val
-        if verbose: print "%s:\t%s\t (%d B)" %(name,val,f.tell())
-    return vals
-
-
 
 #All of these functions are to convert from hydro time var to 
 #proper time
