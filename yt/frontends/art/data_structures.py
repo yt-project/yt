@@ -53,15 +53,11 @@ from yt.utilities.lib import \
 import yt.utilities.lib as amr_utils
 
 from .definitions import *
-from .io import _read_frecord
-from .io import _read_record
-from .io import _read_struct
+from yt.utilities.fortran_utils import *
 from .io import _read_art_level_info
 from .io import _read_child_mask_level
 from .io import _read_child_level
 from .io import _read_root_level
-from .io import _read_record_size
-from .io import _skip_record
 from .io import _count_art_octs
 from .io import b2t
 
@@ -322,10 +318,10 @@ class ARTStaticOutput(StaticOutput):
         self.parameters.update(constants)
         #read the amr header
         with open(self.file_amr,'rb') as f:
-            amr_header_vals = _read_struct(f,amr_header_struct)
+            amr_header_vals = read_attrs(f,amr_header_struct)
             for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
-                _skip_record(f)
-            (self.ncell,) = struct.unpack('>l', _read_record(f))
+                skip(f)
+            self.ncell = read_vector(f,'l','>')
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell**(1.0/3.0)))
             # Note here: this is the number of *cells* on the root grid.
@@ -337,27 +333,25 @@ class ARTStaticOutput(StaticOutput):
             self.root_ncells = self.root_nocts*8
             mylog.debug("Estimating %i cells on a root grid side,"+ \
                         "%i root octs",est,self.root_nocts)
-            self.root_iOctCh = _read_frecord(f,'>i')[:self.root_ncells]
+            self.root_iOctCh = read_vector(f,'i','>')[:self.root_ncells]
             self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
                  order='F')
             self.root_grid_offset = f.tell()
-            #_skip_record(f) # hvar
-            #_skip_record(f) # var
-            self.root_nhvar = _read_frecord(f,'>f',size_only=True)
-            self.root_nvar  = _read_frecord(f,'>f',size_only=True)
+            self.root_nhvar = skip(f)
+            self.root_nvar  = skip(f)
             #make sure that the number of root variables is a multiple of rootcells
             assert self.root_nhvar%self.root_ncells==0
             assert self.root_nvar%self.root_ncells==0
             self.nhydro_variables = ((self.root_nhvar+self.root_nvar)/ 
                                     self.root_ncells)
-            self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
+            self.iOctFree, self.nOct = read_vector(f,'ii','>')
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
             self.parameters['ncell0'] = self.parameters['ng']**3
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
-                particle_header_vals = _read_struct(fh,particle_header_struct)
+                particle_header_vals = read_attrs(fh,particle_header_struct)
                 fh.seek(seek_extras)
                 n = particle_header_vals['Nspecies']
                 wspecies = np.fromfile(fh,dtype='>f',count=10)
