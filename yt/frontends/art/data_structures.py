@@ -550,7 +550,6 @@ class ARTDomainFile(object):
                           LL[1]:RL[1]:NX[1]*1j,
                           LL[2]:RL[2]:NX[2]*1j ]
         root_idx = na.arange(np.prod(root_fc.shape))
-        import pdb; pdb.set_trace()
         #must add in 000,100,200,300,...010,020,...
         #001,002,003,... xyz order
         root_fc= np.vstack([p.ravel() for p in root_fc]).T
