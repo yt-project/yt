@@ -50,7 +50,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
             hdua = pyfits.ImageHDU(image[:,:,3])
             hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
             hdulist.writeto('%s.fits'%fn,clobber=True)
-        except: print 'You do not have pyfits, install before attempting to use fits exporter'
+        except: mylog.error('You do not have pyfits, install before attempting to use fits exporter')
 
 def import_rgba(name, h5=True):
     """
@@ -66,7 +66,7 @@ def import_rgba(name, h5=True):
         a = f['A'].value
         f.close()
     else:
-        print 'No support for fits import.'
+        mylog.error('No support for fits import.')
     return np.array([r,g,b,a]).swapaxes(0,2).swapaxes(0,1)
 
 def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0e-10, 

@@ -152,7 +152,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     for grid in pf.h.grids:
         # add group for this grid
 
-        grid_group = g.create_group("grid_%010i" % grid.id)
+        grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid
         particles_group = grid_group.create_group("particles")
         pt_group = particles_group.create_group(particle_type_name)
