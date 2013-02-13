@@ -42,10 +42,8 @@ def read_attrs(f, attrs,endian='='):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of the format 
-        [ (attr_name, count,  struct type), ... ]. 
-        or of format 
-        [ (attr_name, struct type), ... ]. 
+        This object should be an iterable of the format [ (attr_name, count,
+        struct type), ... ].
     endian : str
         '=' is native, '>' is big, '<' is little endian
 
@@ -64,25 +62,21 @@ def read_attrs(f, attrs,endian='='):
     """
     vv = {}
     net_format = endian
-    for attr in attrs:
-        a,t = attr[0],attr[-1]
-        n = 1 if len(attr)==2 else attr[1]
+    for a, n, t in attrs:
         net_format += "".join(["I"] + ([t] * n) + ["I"])
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vv = {}
-    for attr in attrs:
-        a,t = attr[0],attr[-1]
-        n = 1 if len(attr)==2 else attr[1]
+    for a, b, n in attrs:
         s1 = vals.pop(0)
-        v = [vals.pop(0) for i in range(n)]
+        v = [vals.pop(0) for i in range(b)]
         s2 = vals.pop(0)
         if s1 != s2:
-            size = struct.calcsize(endian "I" + "".join([t]*n) + "I")
+            size = struct.calcsize(endian "I" + "".join(b*[n]) + "I")
             print "S1 = %s ; S2 = %s ; %s %s %s = %s" % (
-                    s1, s2, a, n, t, size)
+                    s1, s2, a, b, n, size)
         assert(s1 == s2)
-        if n == 1: v = v[0]
+        if b == 1: v = v[0]
         vv[a] = v
     return vv
 
