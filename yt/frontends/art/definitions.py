@@ -25,6 +25,9 @@ License:
 
 """
 
+#If not otherwise specified, we are big endian
+endian = '>'
+
 fluid_fields= [ 
     'Density',
     'TotalEnergy',
@@ -87,43 +90,18 @@ filename_pattern_hf = {
 }
 
 amr_header_struct = [
-    ('pad byte',1,'>i'),
-    ('jname',1,'>256s'),
-    ('pad byte',1,'>i'),
-    ('pad byte',1,'>i'),
-    ('istep',1,'>i'),
-    ('t',1,'>d'),
-    ('dt',1,'>d'),
-    ('aexpn',1,'>f'),
-    ('ainit',1,'>f'),
-    ('pad byte',1,'>i'),
-    ('pad byte',1,'>i'),
-    ('boxh',1,'>f'),
-    ('Om0',1,'>f'),
-    ('Oml0',1,'>f'),
-    ('Omb0',1,'>f'),
-    ('hubble',1,'>f'),
-    ('pad byte',1,'>i'),
-    ('pad byte',1,'>i'),
-    ('nextras',1,'>i'),
-    ('pad byte',1,'>i'),
-    ('pad byte',1,'>i'),
-    ('extra1',1,'>f'),
-    ('extra2',1,'>f'),
-    ('pad byte',1,'>i'),
-    ('pad byte',1,'>i'),
-    ('lextra',1,'>256s'),
-    ('lextra',1,'>256s'),
-    ('pad byte',1,'>i'),
-    ( 'pad byte',1,'>i'),
-    ( 'min_level',1,'>i'),
-    ( 'max_level',1,'>i'),
-    ( 'pad byte',1,'>i')
+    ('jname',1,'256s'),
+    (('istep','i','dt','aexpn','ainit'),1,'iddff'),
+    (('boxh','Om0','Oml0','Omb0','hubble'),5,'f'),
+    ('nextras',1,'i'),
+    (('extra1','extra2'),2,'f'),
+    ('lextra',1,'512s'),
+    (('min_level','max_level'),2,'i')
 ]
 
 particle_header_struct =[
     ('pad',1,'>i'),
-    ('header',1,'45s', 
+    ('header',1,'45s'), 
     ('aexpn',1,'>f'),
     ('aexp0',1,'>f'),
     ('amplt',1,'>f'),
