@@ -88,7 +88,9 @@ class BaseIOHandler(object):
         # check backup file first. if field not found,
         # call frontend-specific io method
         backup_filename = grid.pf.backup_filename
-        if self._field_in_backup(grid, backup_filename, field):
+        if not grid.pf.read_from_backup:
+            return self._read_data(grid, field)
+        elif self._field_in_backup(grid, backup_filename, field):
             fhandle = h5py.File(backup_filename, 'r')
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
