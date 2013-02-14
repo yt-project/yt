@@ -101,14 +101,11 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         try:
             backup_filename = self.parameter_file.backup_filename
             f = h5py.File(backup_filename, 'r')
-            for field_name in f['field_types']:
-                g = f["data"]
-                grid = self.grids[0]
-                grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-                if field_name in grid_group:
-                    self.field_list.append(field_name)
-        except IOError:
-            return
+            g = f["data"]
+            grid = self.grids[0] # simply check one of the grids
+            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            for field_name in grid_group:
+                self.field_list.append(field_name)
         except KeyError:
             return
 
