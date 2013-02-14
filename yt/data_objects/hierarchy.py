@@ -105,8 +105,11 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             grid = self.grids[0] # simply check one of the grids
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             for field_name in grid_group:
-                self.field_list.append(field_name)
+                if field_name != 'particles':
+                    self.field_list.append(field_name)
         except KeyError:
+            return
+        except IOError:
             return
 
     def _get_parameters(self):

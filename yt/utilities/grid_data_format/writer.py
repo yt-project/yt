@@ -69,6 +69,12 @@ def save_field(pf, field_name):
     field_name : string
         The name of the field to save.
     """
+
+    field_obj = pf.field_info[field_name]
+    if field_obj.particle_type:
+        print( "Saving particle fields currently not supported." )
+        return
+    
     backup_filename = pf.backup_filename
     if os.path.exists(backup_filename):
         # backup file already exists, open it
