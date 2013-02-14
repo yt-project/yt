@@ -24,8 +24,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import h5py
+import os
 import re
-import numpy as na
+import numpy as np
 
 from yt.utilities.io_handler import \
            BaseIOHandler
@@ -49,7 +50,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
         fhandle.close()
     
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
+
         fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
 
         field_dict = self._field_dict(fhandle)
@@ -62,14 +64,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         start = grid_offset+field_dict[field]*boxsize
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
-
+        
         fhandle.close()
         return data.reshape(dims, order='F')
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid,field)[sl]
 
     def _read_particles(self, grid, field):
         """
@@ -108,4 +105,4 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                     if ( (grid.LeftEdge < coord).all() and
                          (coord <= grid.RightEdge).all() ):
                         particles.append(read(line, field))
-        return na.array(particles)
+        return np.array(particles)

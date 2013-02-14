@@ -8,7 +8,7 @@ Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
+  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.
   All Rights Reserved.
 
   This file is part of yt.
@@ -28,7 +28,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -37,8 +37,10 @@ from yt.data_objects.hierarchy import \
            AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
+from yt.utilities.lib import \
+    get_box_grids_level
 from yt.utilities.definitions import \
-    sec_conversion
+    mpc_conversion, sec_conversion
 
 from .fields import GDFFieldInfo, KnownGDFFields
 from yt.data_objects.field_info_container import \
@@ -71,7 +73,7 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -79,7 +81,7 @@ class GDFGrid(AMRGridPatch):
 class GDFHierarchy(AMRHierarchy):
 
     grid = GDFGrid
-    
+
     def __init__(self, pf, data_style='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
         self.data_style = data_style
@@ -96,7 +98,7 @@ class GDFHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         self.field_list = self._fhandle['field_types'].keys()
-    
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -104,14 +106,17 @@ class GDFHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         self.num_grids = self._fhandle['/grid_parent_id'].shape[0]
-       
+
     def _parse_hierarchy(self):
-        f = self._fhandle 
-        dxs=[]
-        self.grids = na.empty(self.num_grids, dtype='object')
+        f = self._fhandle
+        dxs = []
+        self.grids = np.empty(self.num_grids, dtype='object')
         levels = (f['grid_level'][:]).copy()
         glis = (f['grid_left_index'][:]).copy()
         gdims = (f['grid_dimensions'][:]).copy()
+        active_dims = ~((np.max(gdims, axis=0) == 1) &
+                        (self.parameter_file.domain_dimensions == 1))
+
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i, self, levels[i],
                                       glis[i],
@@ -120,31 +125,42 @@ class GDFHierarchy(AMRHierarchy):
 
             dx = (self.parameter_file.domain_right_edge-
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-            dx = dx/self.parameter_file.refine_by**(levels[i])
+            dx[active_dims] = dx[active_dims]/self.parameter_file.refine_by**(levels[i])
             dxs.append(dx)
-        dx = na.array(dxs)
+        dx = np.array(dxs)
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx*glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx*self.grid_dimensions
         self.grid_particle_count = f['grid_particle_count'][:]
         del levels, glis, gdims
- 
+
     def _populate_grid_objects(self):
-        for g in self.grids:
+        mask = np.empty(self.grids.size, dtype='int32')
+        for gi, g in enumerate(self.grids):
             g._prepare_grid()
             g._setup_dx()
 
-        for g in self.grids:
+        for gi, g in enumerate(self.grids):
             g.Children = self._get_grid_children(g)
             for g1 in g.Children:
                 g1.Parent.append(g)
+            get_box_grids_level(self.grid_left_edge[gi,:],
+                                self.grid_right_edge[gi,:],
+                                self.grid_levels[gi],
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            m = mask.astype("bool")
+            m[gi] = False
+            siblings = self.grids[gi:][m[gi:]]
+            if len(siblings) > 0:
+                g.OverlappingSiblings = siblings.tolist()
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
     def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
+        mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
@@ -153,13 +169,13 @@ class GDFStaticOutput(StaticOutput):
     _hierarchy_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
-    
+
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
-        
+
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
@@ -172,6 +188,8 @@ class GDFStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         self.units['cm'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
+        for unit in mpc_conversion.keys():
+            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
 
@@ -188,12 +206,12 @@ class GDFStaticOutput(StaticOutput):
             except:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
-                   units=current_fields_unit, projected_units="", 
+                   units=current_fields_unit, projected_units="",
                    convert_function=_get_convert(field_name))
 
         self._handle.close()
         del self._handle
-        
+
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
         sp = self._handle["/simulation_parameters"].attrs
@@ -202,7 +220,7 @@ class GDFStaticOutput(StaticOutput):
         self.domain_dimensions = sp["domain_dimensions"][:]
         refine_by = sp["refine_by"]
         if refine_by is None: refine_by = 2
-        self.refine_by = refine_by 
+        self.refine_by = refine_by
         self.dimensionality = sp["dimensionality"]
         self.current_time = sp["current_time"]
         self.unique_identifier = sp["unique_identifier"]
@@ -211,6 +229,8 @@ class GDFStaticOutput(StaticOutput):
         self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
+        p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
+        self.periodicity = ensure_tuple(p)
         if self.cosmological_simulation:
             self.current_redshift = sp["current_redshift"]
             self.omega_lambda = sp["omega_lambda"]
@@ -223,17 +243,19 @@ class GDFStaticOutput(StaticOutput):
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()
         del self._handle
-            
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
             if "gridded_data_format" in fileh:
+                fileh.close()
                 return True
+            fileh.close()
         except:
             pass
         return False
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
-        
+

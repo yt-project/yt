@@ -78,7 +78,7 @@ class TimeSeriesParametersContainer(object):
         raise AttributeError(attr)
 
 class TimeSeriesData(object):
-    def __init__(self, outputs, parallel = True):
+    def __init__(self, outputs, parallel = True ,**kwargs):
         r"""The TimeSeriesData object is a container of multiple datasets,
         allowing easy iteration and computation on them.
 
@@ -107,12 +107,13 @@ class TimeSeriesData(object):
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
         self.parallel = parallel
+        self.kwargs = kwargs
 
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
             if isinstance(o, types.StringTypes):
-                yield load(o)
+                yield load(o,**self.kwargs)
             else:
                 yield o
 
@@ -124,7 +125,7 @@ class TimeSeriesData(object):
             return TimeSeriesData(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
         if isinstance(o, types.StringTypes):
-            o = load(o)
+            o = load(o,**self.kwargs)
         return o
 
     def __len__(self):
@@ -172,12 +173,12 @@ class TimeSeriesData(object):
         This demonstrates how one might store results:
 
         >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy")
-        >>> storage = {}
-        >>> for sto, pf in ts.piter():
+        >>> my_storage = {}
+        >>> for sto, pf in ts.piter(storage=my_storage):
         ...     v, c = pf.h.find_max("Density")
         ...     sto.result = (v, c)
         ...
-        >>> for i, (v, c) in sorted(storage.items()):
+        >>> for i, (v, c) in sorted(my_storage.items()):
         ...     print "% 4i  %0.3e" % (i, v)
         ...
 
@@ -223,7 +224,7 @@ class TimeSeriesData(object):
         return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filenames, parallel = True):
+    def from_filenames(cls, filenames, parallel = True, **kwargs):
         r"""Create a time series from either a filename pattern or a list of
         filenames.
 
@@ -257,10 +258,13 @@ class TimeSeriesData(object):
         ...     SlicePlot(pf, "x", "Density").save()
 
         """
+        
         if isinstance(filenames, types.StringTypes):
             filenames = glob.glob(filenames)
             filenames.sort()
-        obj = cls(filenames[:], parallel = parallel)
+        if len(filenames) == 0:
+            raise YTOutputNotIdentified(filenames, {})
+        obj = cls(filenames[:], parallel = parallel, **kwargs)
         return obj
 
     @classmethod
@@ -320,7 +324,7 @@ class SimulationTimeSeries(TimeSeriesData):
                 simulation_time_series_registry[code_name] = cls
                 mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
-    def __init__(self, parameter_filename):
+    def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.
         Principally consists of a *parameter_filename*.
@@ -342,10 +346,10 @@ class SimulationTimeSeries(TimeSeriesData):
 
         # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
-        self.print_key_parameters()
-
         # Get all possible datasets.
-        self._get_all_outputs()
+        self._get_all_outputs(find_outputs=find_outputs)
+        
+        self.print_key_parameters()
 
     def __repr__(self):
         return self.parameter_filename
@@ -373,3 +377,5 @@ class SimulationTimeSeries(TimeSeriesData):
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
+        mylog.info("Total datasets: %d." % len(self.all_outputs))
+

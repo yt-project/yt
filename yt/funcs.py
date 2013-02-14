@@ -23,9 +23,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
+import numpy as np
 from distutils import version
 from math import floor, ceil
 
@@ -59,6 +61,31 @@ def ensure_list(obj):
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
+
+def ensure_numpy_array(obj):
+    """
+    This function ensures that *obj* is a numpy array. Typically used to
+    convert scalar, list or tuple argument passed to functions using Cython.
+    """
+    if isinstance(obj, np.ndarray):
+        return obj
+    elif isinstance(obj, (types.ListType, types.TupleType)):
+        return np.asarray(obj)
+    else:
+        return np.asarray([obj])
+
+def ensure_tuple(obj):
+    """
+    This function ensures that *obj* is a tuple.  Typically used to convert
+    scalar, list, or array arguments specified by a user in a context where
+    we assume a tuple internally
+    """
+    if isinstance(obj, types.TupleType):
+        return obj
+    elif isinstance(obj, (types.ListType, np.ndarray)):
+        return tuple(obj)
+    else:
+        return (obj,)
 
 def read_struct(f, fmt):
     """
@@ -167,7 +194,7 @@ def rootonly(func):
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
         if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
-            return 
+            return
         return func(*args, **kwargs)
     return check_parallel_rank
 
@@ -184,7 +211,7 @@ def deprecate(func):
 
     .. code-block:: python
 
-       @rootonly
+       @deprecate
        def some_really_old_function(...):
 
     """
@@ -204,7 +231,7 @@ def pdb_run(func):
 
     .. code-block:: python
 
-       @rootonly
+       @pdb_run
        def some_function_to_debug(...):
 
     """
@@ -310,7 +337,8 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       ytcfg.getboolean("yt", "ipython_notebook"):
+       "__IPYTHON__" in dir(__builtin__) or \
+       ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar
@@ -464,6 +492,11 @@ def get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
@@ -562,6 +595,10 @@ def get_num_threads():
     if nt < 0:
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
-        
+
 def fix_axis(axis):
     return inv_axis_names.get(axis, axis)
+
+def get_image_suffix(name):
+    suffix = os.path.splitext(name)[1]
+    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''

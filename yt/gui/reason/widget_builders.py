@@ -35,7 +35,7 @@ class RenderingScene(object):
         self._tf = tf
 
         self.center = self.pf.domain_center
-        self.normal_vector = na.array([0.7,1.0,0.3])
+        self.normal_vector = np.array([0.7,1.0,0.3])
         self.north_vector = [0.,0.,1.]
         self.steady_north = True
         self.fields = ['Density']
@@ -54,7 +54,7 @@ class RenderingScene(object):
             roi = self.pf.h.region(self.center, self.center-self.width, self.center+self.width)
             self.mi, self.ma = roi.quantities['Extrema'](self.fields[0])[0]
             if self.log_fields[0]:
-                self.mi, self.ma = na.log10(self.mi), na.log10(self.ma)
+                self.mi, self.ma = np.log10(self.mi), np.log10(self.ma)
 
         self._tf = ColorTransferFunction((self.mi-2, self.ma+2), nbins=nbins)
 
@@ -87,10 +87,10 @@ def get_isocontour(pf, field, value=None, rel_val = False):
     dd = pf.h.all_data()
     if value is None or rel_val:
         if value is None: value = 0.5
-        mi, ma = na.log10(dd.quantities["Extrema"]("Density")[0])
+        mi, ma = np.log10(dd.quantities["Extrema"]("Density")[0])
         value = 10.0**(value*(ma - mi) + mi)
     vert = dd.extract_isocontours("Density", value)
-    na.multiply(vert, 100, vert)
+    np.multiply(vert, 100, vert)
     return vert
 
 def get_streamlines(pf):

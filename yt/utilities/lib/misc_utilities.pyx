@@ -117,6 +117,70 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def lines(np.ndarray[np.float64_t, ndim=3] image, 
+          np.ndarray[np.int64_t, ndim=1] xs,
+          np.ndarray[np.int64_t, ndim=1] ys,
+          np.ndarray[np.float64_t, ndim=2] colors,
+          int points_per_color=1):
+    
+    cdef int nx = image.shape[0]
+    cdef int ny = image.shape[1]
+    cdef int nl = xs.shape[0]
+    cdef np.float64_t alpha[3], nalpha 
+    cdef int i, j
+    cdef int dx, dy, sx, sy, e2, err
+    cdef np.int64_t x0, x1, y0, y1
+    for j in range(0, nl, 2):
+        # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
+        x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
+        dx = abs(x1-x0)
+        dy = abs(y1-y0)
+        err = dx - dy
+        for i in range(3):
+            alpha[i] = colors[j/points_per_color,3]*colors[j/points_per_color,i]
+        nalpha = 1.0-colors[j/points_per_color,3]
+        if x0 < x1: 
+            sx = 1
+        else:
+            sx = -1
+        if y0 < y1:
+            sy = 1
+        else:
+            sy = -1
+        while(1): 
+            if (x0 < 0 and sx == -1): break
+            elif (x0 >= nx and sx == 1): break
+            elif (y0 < 0 and sy == -1): break
+            elif (y0 >= nx and sy == 1): break
+            if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
+                for i in range(3):
+                    image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+            if (x0 == x1 and y0 == y1):
+                break
+            e2 = 2*err
+            if e2 > -dy:
+                err = err - dy
+                x0 += sx
+            if e2 < dx :
+                err = err + dx
+                y0 += sy
+    return 
+
+def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
+        np.ndarray[np.float64_t, ndim=2] R):
+    cdef int nx = vecs.shape[0]
+    cdef int ny = vecs.shape[1]
+    rotated = np.empty((nx,ny,3),dtype='float64') 
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(3):
+                rotated[i,j,k] =\
+                    R[k,0]*vecs[i,j,0]+R[k,1]*vecs[i,j,1]+R[k,2]*vecs[i,j,2]
+    return rotated
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.ndarray[np.float64_t, ndim=1] py,
                      np.ndarray[np.float64_t, ndim=1] pdx,
@@ -233,49 +297,6 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def obtain_rvec(data):
-    # This is just to let the pointers exist and whatnot.  We can't cdef them
-    # inside conditionals.
-    cdef np.ndarray[np.float64_t, ndim=1] xf
-    cdef np.ndarray[np.float64_t, ndim=1] yf
-    cdef np.ndarray[np.float64_t, ndim=1] zf
-    cdef np.ndarray[np.float64_t, ndim=2] rf
-    cdef np.ndarray[np.float64_t, ndim=3] xg
-    cdef np.ndarray[np.float64_t, ndim=3] yg
-    cdef np.ndarray[np.float64_t, ndim=3] zg
-    cdef np.ndarray[np.float64_t, ndim=4] rg
-    cdef np.float64_t c[3]
-    cdef int i, j, k
-    center = data.get_field_parameter("center")
-    c[0] = center[0]; c[1] = center[1]; c[2] = center[2]
-    if len(data['x'].shape) == 1:
-        # One dimensional data
-        xf = data['x']
-        yf = data['y']
-        zf = data['z']
-        rf = np.empty((3, xf.shape[0]), 'float64')
-        for i in range(xf.shape[0]):
-            rf[0, i] = xf[i] - c[0]
-            rf[1, i] = yf[i] - c[1]
-            rf[2, i] = zf[i] - c[2]
-        return rf
-    else:
-        # Three dimensional data
-        xg = data['x']
-        yg = data['y']
-        zg = data['z']
-        rg = np.empty((3, xg.shape[0], xg.shape[1], xg.shape[2]), 'float64')
-        for i in range(xg.shape[0]):
-            for j in range(xg.shape[1]):
-                for k in range(xg.shape[2]):
-                    rg[0,i,j,k] = xg[i,j,k] - c[0]
-                    rg[1,i,j,k] = yg[i,j,k] - c[1]
-                    rg[2,i,j,k] = zg[i,j,k] - c[2]
-        return rg
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] l_corner,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
@@ -334,3 +355,25 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
     # Return out unique values
     return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")
 
+
+def grow_flagging_field(oofield):
+    cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")
+    cdef np.ndarray[np.uint8_t, ndim=3] nfield
+    nfield = np.zeros_like(ofield)
+    cdef int i, j, k, ni, nj, nk
+    cdef int oi, oj, ok
+    for ni in range(ofield.shape[0]):
+        for nj in range(ofield.shape[1]):
+            for nk in range(ofield.shape[2]):
+                for oi in range(3):
+                    i = ni + (oi - 1)
+                    if i < 0 or i >= ofield.shape[0]: continue
+                    for oj in range(3):
+                        j = nj + (oj - 1)
+                        if j < 0 or j >= ofield.shape[1]: continue
+                        for ok in range(3):
+                            k = nk + (ok - 1)
+                            if k < 0 or k >= ofield.shape[2]: continue
+                            if ofield[i, j, k] == 1:
+                                nfield[ni, nj, nk] = 1
+    return nfield.astype("bool")

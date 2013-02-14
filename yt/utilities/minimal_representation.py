@@ -23,13 +23,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import abc
 import json
 import urllib2
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
+from yt.utilities.exceptions import *
 
 from .poster.streaminghttp import register_openers
 from .poster.encode import multipart_encode
@@ -93,14 +94,15 @@ class MinimalRepresentation(object):
     def upload(self):
         api_key = ytcfg.get("yt","hub_api_key")
         url = ytcfg.get("yt","hub_url")
+        if api_key == '': raise YTHubRegisterError
         metadata, (final_name, chunks) = self._generate_post()
         if hasattr(self, "_pf_mrep"):
             self._pf_mrep.upload()
         for i in metadata:
-            if isinstance(metadata[i], na.ndarray):
+            if isinstance(metadata[i], np.ndarray):
                 metadata[i] = metadata[i].tolist()
             elif hasattr(metadata[i], 'dtype'):
-                metadata[i] = na.asscalar(metadata[i])
+                metadata[i] = np.asscalar(metadata[i])
         metadata['obj_type'] = self.type
         if len(chunks) == 0:
             chunk_info = {'chunks': []}
@@ -129,7 +131,7 @@ class MinimalRepresentation(object):
         for i, (cn, cv) in enumerate(chunks):
             remaining = cv.size * cv.itemsize
             f = TemporaryFile()
-            na.save(f, cv)
+            np.save(f, cv)
             f.seek(0)
             pbar = UploaderBar("%s, % 2i/% 2i" % (self.type, i+1, len(chunks)))
             datagen, headers = multipart_encode({'chunk_data' : f}, cb = pbar)
@@ -229,7 +231,7 @@ class MinimalNotebook(MinimalRepresentation):
         if title is None:
             title = json.loads(self.data)['metadata']['name']
         self.title = title
-        self.data = na.fromstring(self.data, dtype='c')
+        self.data = np.fromstring(self.data, dtype='c')
 
     def _generate_post(self):
         metadata = self._attrs

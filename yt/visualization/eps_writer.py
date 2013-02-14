@@ -27,7 +27,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import pyx
-import numpy as na
+import numpy as np
 from matplotlib import cm
 from _mpl_imports import FigureCanvasAgg
 
@@ -243,7 +243,7 @@ class DualEPS(object):
             if xdata == None:
                 self.canvas.plot(blank_data)
             else:
-                data = pyx.graph.data.points(na.array([xdata, ydata]).T, x=1, y=2)
+                data = pyx.graph.data.points(np.array([xdata, ydata]).T, x=1, y=2)
                 self.canvas.plot(data, [pyx.graph.style.line([pyx.style.linewidth.Thick])])
         else:
             plot = pyx.graph.graphxy \
@@ -253,7 +253,7 @@ class DualEPS(object):
             if xdata == None:
                 plot.plot(blank_data)
             else:
-                data = pyx.graph.data.points(na.array([xdata, ydata]).T, x=1, y=2)
+                data = pyx.graph.data.points(np.array([xdata, ydata]).T, x=1, y=2)
                 plot.plot(data, [pyx.graph.style.line([pyx.style.linewidth.Thick])])
             self.canvas.insert(plot)
         self.axes_drawn = True
@@ -495,7 +495,7 @@ class DualEPS(object):
         origin = (origin[0] + shift[0], origin[1] + shift[1])
 
         # Convert the colormap into a string
-        x = na.linspace(1,0,256)
+        x = np.linspace(1,0,256)
         cm_string = cm.cmap_d[name](x, bytes=True)[:,0:3].tostring()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)

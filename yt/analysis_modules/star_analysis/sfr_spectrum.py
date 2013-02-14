@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import h5py
 import math, itertools
 
@@ -66,8 +66,8 @@ class StarFormationRate(object):
         """
         self._pf = pf
         self._data_source = data_source
-        self.star_mass = na.array(star_mass)
-        self.star_creation_time = na.array(star_creation_time)
+        self.star_mass = np.array(star_mass)
+        self.star_creation_time = np.array(star_creation_time)
         self.volume = volume
         self.bin_count = bins
         # Check to make sure we have the right set of informations.
@@ -114,13 +114,13 @@ class StarFormationRate(object):
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
-        self.time_bins = na.linspace(tmin*0.99, self._pf.current_time,
+        self.time_bins = np.linspace(tmin*0.99, self._pf.current_time,
             num = self.bin_count + 1)
         # Figure out which bins the stars go into.
-        inds = na.digitize(ct_stars, self.time_bins) - 1
+        inds = np.digitize(ct_stars, self.time_bins) - 1
         # Sum up the stars created in each time bin.
-        self.mass_bins = na.zeros(self.bin_count + 1, dtype='float64')
-        for index in na.unique(inds):
+        self.mass_bins = np.zeros(self.bin_count + 1, dtype='float64')
+        for index in np.unique(inds):
             self.mass_bins[index] += sum(mass_stars[inds == index])
         # Calculate the cumulative mass sum over time by forward adding.
         self.cum_mass_bins = self.mass_bins.copy()
@@ -162,13 +162,13 @@ class StarFormationRate(object):
                 (self.time_bins_dt[i] * tc / YEAR) / vol)
             self.Msol.append(self.mass_bins[i])
             self.Msol_cumulative.append(self.cum_mass_bins[i])
-        self.time = na.array(self.time)
-        self.lookback_time = na.array(self.lookback_time)
-        self.redshift = na.array(self.redshift)
-        self.Msol_yr = na.array(self.Msol_yr)
-        self.Msol_yr_vol = na.array(self.Msol_yr_vol)
-        self.Msol = na.array(self.Msol)
-        self.Msol_cumulative = na.array(self.Msol_cumulative)
+        self.time = np.array(self.time)
+        self.lookback_time = np.array(self.lookback_time)
+        self.redshift = np.array(self.redshift)
+        self.Msol_yr = np.array(self.Msol_yr)
+        self.Msol_yr_vol = np.array(self.Msol_yr_vol)
+        self.Msol = np.array(self.Msol)
+        self.Msol_cumulative = np.array(self.Msol_cumulative)
     
     def write_out(self, name="StarFormationRate.out"):
         r"""Write out the star analysis to a text file *name*. The columns are in
@@ -234,10 +234,10 @@ METAL2 = 0.0632
 METAL3 = 0.2828
 METAL4 = 0.6325
 METAL5 = 1.5811
-METALS = na.array([METAL1, METAL2, METAL3, METAL4, METAL5])
+METALS = np.array([METAL1, METAL2, METAL3, METAL4, METAL5])
 
 # Translate METALS array digitize to the table dicts
-MtoD = na.array(["Z0001", "Z0004", "Z004", "Z008", "Z02",  "Z05"])
+MtoD = np.array(["Z0001", "Z0004", "Z004", "Z008", "Z02",  "Z05"])
 
 """
 This spectrum code is based on code from Ken Nagamine, converted from C to Python.
@@ -340,7 +340,7 @@ class SpectrumBuilder(object):
         >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         """
         # Initialize values
-        self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
+        self.final_spec = np.zeros(self.wavelength.size, dtype='float64')
         self._data_source = data_source
         if iterable(star_mass):
             self.star_mass = star_mass
@@ -372,7 +372,7 @@ class SpectrumBuilder(object):
                 """)
                 return None
             if star_metallicity_constant is not None:
-                self.star_metal = na.ones(self.star_mass.size, dtype='float64') * \
+                self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
             if star_metallicity_fraction is not None:
                 self.star_metal = star_metallicity_fraction
@@ -382,7 +382,7 @@ class SpectrumBuilder(object):
             self.star_creation_time = ct[ct > 0]
             self.star_mass = self._data_source["ParticleMassMsun"][ct > 0]
             if star_metallicity_constant is not None:
-                self.star_metal = na.ones(self.star_mass.size, dtype='float64') * \
+                self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
             else:
                 self.star_metal = self._data_source["metallicity_fraction"][ct > 0]
@@ -390,25 +390,26 @@ class SpectrumBuilder(object):
         self.star_metal /= Zsun
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time * self._pf['Time']) / YEAR
-        dt = na.maximum(dt, 0.0)
+        dt = np.maximum(dt, 0.0)
         # Remove young stars
         sub = dt >= self.min_age
+        if len(sub) == 0: return
         self.star_metal = self.star_metal[sub]
         dt = dt[sub]
         self.star_creation_time = self.star_creation_time[sub]
         # Figure out which METALS bin the star goes into.
-        Mindex = na.digitize(self.star_metal, METALS)
+        Mindex = np.digitize(self.star_metal, METALS)
         # Replace the indices with strings.
         Mname = MtoD[Mindex]
         # Figure out which age bin this star goes into.
-        Aindex = na.digitize(dt, self.age)
+        Aindex = np.digitize(dt, self.age)
         # Ratios used for the interpolation.
         ratio1 = (dt - self.age[Aindex-1]) / (self.age[Aindex] - self.age[Aindex-1])
         ratio2 = (self.age[Aindex] - dt) / (self.age[Aindex] - self.age[Aindex-1])
         # Sort the stars by metallicity and then by age, which should reduce
         # memory access time by a little bit in the loop.
-        indexes = na.arange(self.star_metal.size)
-        sort = na.asarray([indexes[i] for i in na.lexsort([indexes, Aindex, Mname])])
+        indexes = np.arange(self.star_metal.size)
+        sort = np.asarray([indexes[i] for i in np.lexsort([indexes, Aindex, Mname])])
         Mname = Mname[sort]
         Aindex = Aindex[sort]
         ratio1 = ratio1[sort]
@@ -425,15 +426,15 @@ class SpectrumBuilder(object):
             # Get the one just before the one above.
             flux_1 = self.flux[star[0]][star[1]-1,:]
             # interpolate in log(flux), linear in time.
-            int_flux = star[3] * na.log10(flux_1) + star[2] * na.log10(flux)
+            int_flux = star[3] * np.log10(flux_1) + star[2] * np.log10(flux)
             # Add this flux to the total, weighted by mass.
-            self.final_spec += na.power(10., int_flux) * star[4]
+            self.final_spec += np.power(10., int_flux) * star[4]
             pbar.update(i)
         pbar.finish()    
         
         # Normalize.
-        self.total_mass = na.sum(self.star_mass)
-        self.avg_mass = na.mean(self.star_mass)
+        self.total_mass = np.sum(self.star_mass)
+        self.avg_mass = np.mean(self.star_mass)
         tot_metal = sum(self.star_metal * self.star_mass)
         self.avg_metal = math.log10(tot_metal / self.total_mass / Zsun)
 
@@ -454,25 +455,25 @@ class SpectrumBuilder(object):
 #             # From the flux array for this metal, and our selection, build
 #             # a new flux array just for the ages of these stars, in the 
 #             # same order as the selection of stars.
-#             this_flux = na.matrix(self.flux[metal_name][A])
+#             this_flux = np.matrix(self.flux[metal_name][A])
 #             # Make one for the last time step for each star in the same fashion
 #             # as above.
-#             this_flux_1 = na.matrix(self.flux[metal_name][A-1])
+#             this_flux_1 = np.matrix(self.flux[metal_name][A-1])
 #             # This is kind of messy, but we're going to multiply this_fluxes
 #             # by the appropriate ratios and add it together to do the 
 #             # interpolation in log(flux) and linear in time.
 #             print r1.size
-#             r1 = na.matrix(r1.tolist()*self.wavelength.size).reshape(self.wavelength.size,r1.size).T
-#             r2 = na.matrix(r2.tolist()*self.wavelength.size).reshape(self.wavelength.size,r2.size).T
+#             r1 = np.matrix(r1.tolist()*self.wavelength.size).reshape(self.wavelength.size,r1.size).T
+#             r2 = np.matrix(r2.tolist()*self.wavelength.size).reshape(self.wavelength.size,r2.size).T
 #             print this_flux_1.shape, r1.shape
-#             int_flux = na.multiply(na.log10(this_flux_1),r1) \
-#                 + na.multiply(na.log10(this_flux),r2)
+#             int_flux = np.multiply(np.log10(this_flux_1),r1) \
+#                 + np.multiply(np.log10(this_flux),r2)
 #             # Weight the fluxes by mass.
-#             sm = na.matrix(sm.tolist()*self.wavelength.size).reshape(self.wavelength.size,sm.size).T
-#             int_flux = na.multiply(na.power(10., int_flux), sm)
+#             sm = np.matrix(sm.tolist()*self.wavelength.size).reshape(self.wavelength.size,sm.size).T
+#             int_flux = np.multiply(np.power(10., int_flux), sm)
 #             # Sum along the columns, converting back to an array, adding
 #             # to the full spectrum.
-#             self.final_spec += na.array(int_flux.sum(axis=0))[0,:]
+#             self.final_spec += np.array(int_flux.sum(axis=0))[0,:]
 
     
     def write_out(self, name="sum_flux.out"):
@@ -517,8 +518,8 @@ class SpectrumBuilder(object):
         >>> spec.write_out_SED(name = "SED.out", flux_norm = 6000.)
         """
         # find the f_nu closest to flux_norm
-        fn_wavelength = na.argmin(abs(self.wavelength - flux_norm))
-        f_nu = self.final_spec * na.power(self.wavelength, 2.) / LIGHT
+        fn_wavelength = np.argmin(abs(self.wavelength - flux_norm))
+        f_nu = self.final_spec * np.power(self.wavelength, 2.) / LIGHT
         # Normalize f_nu
         self.f_nu = f_nu / f_nu[fn_wavelength]
         # Write out.

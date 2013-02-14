@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import stat
 import weakref
 
@@ -79,7 +79,7 @@ class RAMSESGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -93,10 +93,10 @@ class RAMSESGrid(AMRGridPatch):
             return self.start_index
         if len(self.Parent) == 0:
             start_index = self.LeftEdge / self.dds
-            return na.rint(start_index).astype('int64').ravel()
+            return np.rint(start_index).astype('int64').ravel()
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+                       np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
         self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
@@ -116,7 +116,7 @@ class RAMSESHierarchy(AMRHierarchy):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.tree_proxy = pf.ramses_tree
 
-        self.float_type = na.float64
+        self.float_type = np.float64
         AMRHierarchy.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
@@ -153,12 +153,12 @@ class RAMSESHierarchy(AMRHierarchy):
         MAX_EDGE = (2 << (LEVEL_OF_EDGE- 1))
         level_info = self.tree_proxy.count_zones()
         num_ogrids = sum(level_info)
-        ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
-        ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
-        ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
-        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        ogrid_hilbert_indices = na.zeros(num_ogrids, dtype='uint64')
-        ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
+        ogrid_left_edge = np.zeros((num_ogrids,3), dtype='float64')
+        ogrid_right_edge = np.zeros((num_ogrids,3), dtype='float64')
+        ogrid_levels = np.zeros((num_ogrids,1), dtype='int32')
+        ogrid_file_locations = np.zeros((num_ogrids,6), dtype='int64')
+        ogrid_hilbert_indices = np.zeros(num_ogrids, dtype='uint64')
+        ochild_masks = np.zeros((num_ogrids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
             self.pf.domain_dimensions,
             ogrid_left_edge, ogrid_right_edge,
@@ -180,7 +180,7 @@ class RAMSESHierarchy(AMRHierarchy):
             if level_info[level] == 0: continue
             # Get the indices of grids on this level
             ggi = (ogrid_levels == level).ravel()
-            dims = na.ones((ggi.sum(), 3), dtype='int64') * 2 
+            dims = np.ones((ggi.sum(), 3), dtype='int64') * 2 
             mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
             nd = self.pf.domain_dimensions * 2**level
             fl = ogrid_file_locations[ggi,:]
@@ -189,7 +189,7 @@ class RAMSESHierarchy(AMRHierarchy):
             # We want grids that cover no more than MAX_EDGE cells in every direction
             psgs = []
             # left_index is integers of the index, with respect to this level
-            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
+            left_index = np.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
             # we've got octs, so it's +2
             pbar = get_pbar("Re-gridding ", left_index.shape[0])
             dlp = [None, None, None]
@@ -203,18 +203,18 @@ class RAMSESHierarchy(AMRHierarchy):
             #print level, hilbert_indices.min(), hilbert_indices.max()
             # Strictly speaking, we don't care about the index of any
             # individual oct at this point.  So we can then split them up.
-            unique_indices = na.unique(hilbert_indices)
+            unique_indices = np.unique(hilbert_indices)
             mylog.debug("Level % 2i has % 10i unique indices for %0.3e octs",
                         level, unique_indices.size, hilbert_indices.size)
             locs, lefts = _ramses_reader.get_array_indices_lists(
                         hilbert_indices, unique_indices, left_index, fl)
             for ddleft_index, ddfl in zip(lefts, locs):
-                for idomain in na.unique(ddfl[:,0]):
+                for idomain in np.unique(ddfl[:,0]):
                     dom_ind = ddfl[:,0] == idomain
                     dleft_index = ddleft_index[dom_ind,:]
                     dfl = ddfl[dom_ind,:]
-                    initial_left = na.min(dleft_index, axis=0)
-                    idims = (na.max(dleft_index, axis=0) - initial_left).ravel()+2
+                    initial_left = np.min(dleft_index, axis=0)
+                    idims = (np.max(dleft_index, axis=0) - initial_left).ravel()+2
                     psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
                                     dleft_index, dfl)
                     if psg.efficiency <= 0: continue
@@ -226,12 +226,12 @@ class RAMSESHierarchy(AMRHierarchy):
             pbar.finish()
             self.proto_grids.append(psgs)
             print sum(len(psg.grid_file_locations) for psg in psgs)
-            sums = na.zeros(3, dtype='int64')
+            sums = np.zeros(3, dtype='int64')
             mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
             #for g in self.proto_grids[level]:
             #    sums += [s.sum() for s in g.sigs]
-            #assert(na.all(sums == dims.prod(axis=1).sum()))
+            #assert(np.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
     def _parse_hierarchy(self):
@@ -251,11 +251,11 @@ class RAMSESHierarchy(AMRHierarchy):
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
         self.proto_grids = []
-        self.grids = na.empty(len(grids), dtype='object')
+        self.grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
 
     def _populate_grid_objects(self):
-        mask = na.empty(self.grids.size, dtype='int32')
+        mask = np.empty(self.grids.size, dtype='int32')
         print self.grid_levels.dtype
         for gi,g in enumerate(self.grids):
             get_box_grids_level(self.grid_left_edge[gi,:],
@@ -346,14 +346,15 @@ class RAMSESStaticOutput(StaticOutput):
         rheader = self.ramses_tree.get_file_info()
         self.parameters.update(rheader)
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
-        self.domain_right_edge = na.ones(3, dtype='float64') \
+        self.domain_right_edge = np.ones(3, dtype='float64') \
                                            * rheader['boxlen']
-        self.domain_left_edge = na.zeros(3, dtype='float64')
-        self.domain_dimensions = na.ones(3, dtype='int32') * 2
+        self.domain_left_edge = np.zeros(3, dtype='float64')
+        self.domain_dimensions = np.ones(3, dtype='int32') * 2
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
         mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
         self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]

@@ -25,7 +25,7 @@ License:
 import h5py
 try: import pyfits
 except: pass
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -50,7 +50,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
             hdua = pyfits.ImageHDU(image[:,:,3])
             hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
             hdulist.writeto('%s.fits'%fn,clobber=True)
-        except: print 'You do not have pyfits, install before attempting to use fits exporter'
+        except: mylog.error('You do not have pyfits, install before attempting to use fits exporter')
 
 def import_rgba(name, h5=True):
     """
@@ -66,8 +66,8 @@ def import_rgba(name, h5=True):
         a = f['A'].value
         f.close()
     else:
-        print 'No support for fits import.'
-    return na.array([r,g,b,a]).swapaxes(0,2).swapaxes(0,1)
+        mylog.error('No support for fits import.')
+    return np.array([r,g,b,a]).swapaxes(0,2).swapaxes(0,1)
 
 def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0e-10, 
                  label=None, label_color='w', label_size='large'):
@@ -84,7 +84,7 @@ def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0
     import matplotlib
     import pylab
     Nvec = image.shape[0]
-    image[na.isnan(image)] = 0.0
+    image[np.isnan(image)] = 0.0
     ma = image[image>0.0].max()
     image[image==0.0] = ma*zero_factor
     if log:
@@ -113,7 +113,7 @@ def plot_rgb(image, name, label=None, label_color='w', label_size='large'):
     """
     import pylab
     Nvec = image.shape[0]
-    image[na.isnan(image)] = 0.0
+    image[np.isnan(image)] = 0.0
     if image.shape[2] >= 4:
         image = image[:,:,:3]
     pylab.clf()

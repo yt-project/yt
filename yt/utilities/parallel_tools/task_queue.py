@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import time, threading, random
 
 from yt.funcs import *
@@ -142,8 +142,8 @@ def task_queue(func, tasks, njobs=0):
                     njobs, (my_size - 1))
         raise RunTimeError
     my_rank = comm.rank
-    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
-    all_new_comms.insert(0, na.array([0]))
+    all_new_comms = np.array_split(np.arange(1, my_size), njobs)
+    all_new_comms.insert(0, np.array([0]))
     for i,comm_set in enumerate(all_new_comms):
         if my_rank in comm_set:
             my_new_id = i
@@ -157,7 +157,7 @@ def task_queue(func, tasks, njobs=0):
     communication_system.pop()
     return my_q.run(func)
 
-def dynamic_parallel_objects(tasks, njobs=0, storage=None):
+def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
     comm = _get_comm(())
     if not parallel_capable:
         mylog.error("Cannot create task queue for serial process.")
@@ -170,8 +170,8 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None):
                     njobs, (my_size - 1))
         raise RunTimeError
     my_rank = comm.rank
-    all_new_comms = na.array_split(na.arange(1, my_size), njobs)
-    all_new_comms.insert(0, na.array([0]))
+    all_new_comms = np.array_split(np.arange(1, my_size), njobs)
+    all_new_comms.insert(0, np.array([0]))
     for i,comm_set in enumerate(all_new_comms):
         if my_rank in comm_set:
             my_new_id = i
@@ -193,7 +193,10 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None):
                 my_q.send_result(rstore.result)
 
     if storage is not None:
-        my_results = my_q.comm.comm.bcast(my_q.results, root=0)
+        if broadcast:
+            my_results = my_q.comm.comm.bcast(my_q.results, root=0)
+        else:
+            my_results = my_q.results
         storage.update(my_results)
 
     communication_system.pop()

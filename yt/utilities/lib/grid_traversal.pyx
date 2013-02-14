@@ -37,6 +37,8 @@ from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
 
+DEF Nch = 4
+
 cdef extern from "math.h":
     double exp(double x) nogil
     float expf(float x) nogil
@@ -228,7 +230,7 @@ cdef struct ImageContainer:
     np.float64_t *x_vec, *y_vec
 
 cdef struct ImageAccumulator:
-    np.float64_t rgba[3]
+    np.float64_t rgba[Nch]
     void *supp_data
 
 cdef class ImageSampler:
@@ -274,6 +276,7 @@ cdef class ImageSampler:
             imagec.vp_strides[i] = vp_pos.strides[i] / 8
             imagec.im_strides[i] = image.strides[i] / 8
             self.width[i] = width[i]
+
         if vp_dir.ndim > 1:
             for i in range(3):
                 imagec.vd_strides[i] = vp_dir.strides[i] / 8
@@ -376,10 +379,10 @@ cdef class ImageSampler:
                     v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
                     offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    for i in range(Nch): idata.rgba[i] = im.image[i + offset]
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
                                 (<void *> idata))
-                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+                    for i in range(Nch): im.image[i + offset] = idata.rgba[i]
                 free(idata)
                 free(v_pos)
         else:
@@ -394,10 +397,12 @@ cdef class ImageSampler:
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    for i in range(3): idata.rgba[i] = im.image[i + offset]
+                    # Note that for Nch != 3 we need a different offset into
+                    # the image object than for the vectors!
+                    for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
                                 (<void *> idata))
-                    for i in range(3): im.image[i + offset] = idata.rgba[i]
+                    for i in range(Nch): im.image[i + Nch*j] = idata.rgba[i]
                 free(v_dir)
                 free(idata)
                 free(v_pos)
@@ -418,7 +423,7 @@ cdef void projection_sampler(
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
     cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
-    for i in range(imin(3, vc.n_fields)):
+    for i in range(imin(4, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
 cdef struct VolumeRenderAccumulator:
@@ -533,6 +538,7 @@ cdef void volume_render_sampler(
         for j in range(3):
             dp[j] += ds[j]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -590,7 +596,7 @@ cdef class star_kdtree_container:
         cdef np.float64_t *pointer = <np.float64_t *> star_colors.data
         for i in range(pos_x.shape[0]):
             kdtree_utils.kd_insert3(self.tree,
-                pos_x[i], pos_y[i], pos_z[i], pointer + i*3)
+                pos_x[i], pos_y[i], pos_z[i], <void *> (pointer + i*3))
 
     def __dealloc__(self):
         kdtree_utils.kd_free(self.tree)
@@ -616,7 +622,7 @@ cdef void volume_render_stars_sampler(
     cdef np.float64_t slopes[6], dp[3], ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
     cdef np.float64_t dvs[6], cell_left[3], local_dds[3], pos[3]
-    cdef int nstars
+    cdef int nstars, dti, i, j
     cdef np.float64_t *colors = NULL, gexp, gaussian, px, py, pz
     for i in range(3):
         dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
@@ -648,6 +654,7 @@ cdef void volume_render_stars_sampler(
         dvs[i] = temp
     for dti in range(vri.n_samples): 
         # Now we add the contribution from stars
+        kdtree_utils.kd_res_rewind(ballq)
         for i in range(nstars):
             kdtree_utils.kd_res_item3(ballq, &px, &py, &pz)
             colors = <np.float64_t *> kdtree_utils.kd_res_item_data(ballq)
@@ -655,20 +662,22 @@ cdef void volume_render_stars_sampler(
             gexp = (px - pos[0])*(px - pos[0]) \
                  + (py - pos[1])*(py - pos[1]) \
                  + (pz - pos[2])*(pz - pos[2])
-            gaussian = vri.star_coeff * expl(-gexp/vri.star_sigma_num)
-            for i in range(3): im.rgba[i] += gaussian*dt*colors[i]
+            gaussian = vri.star_coeff * exp(-gexp/vri.star_sigma_num)
+            for j in range(3): im.rgba[j] += gaussian*dt*colors[j]
         for i in range(3):
             pos[i] += local_dds[i]
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, vri.fits,
                           vri.field_table_ids, vri.grey_opacity)
         for i in range(vc.n_fields):
             dvs[i] += slopes[i]
+    kdtree_utils.kd_res_free(ballq)
 
 cdef class VolumeRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
     cdef public object tf_obj
     cdef public object my_field_tables
     cdef kdtree_utils.kdtree **trees
+    cdef object tree_containers
     def __cinit__(self, 
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
@@ -709,6 +718,7 @@ cdef class VolumeRenderSampler(ImageSampler):
             self.vra.field_table_ids[i] = tf_obj.field_table_ids[i]
         self.supp_data = <void *> self.vra
         cdef star_kdtree_container skdc
+        self.tree_containers = star_list
         if star_list is None:
             self.trees = NULL
         else:
@@ -719,10 +729,15 @@ cdef class VolumeRenderSampler(ImageSampler):
                 self.trees[i] = skdc.tree
 
     cdef void setup(self, PartitionedGrid pg):
+        cdef star_kdtree_container star_tree
         if self.trees == NULL:
             self.sampler = volume_render_sampler
         else:
+            star_tree = self.tree_containers[pg.parent_grid_id]
             self.vra.star_list = self.trees[pg.parent_grid_id]
+            self.vra.star_sigma_num = 2.0*star_tree.sigma**2.0
+            self.vra.star_er = 2.326 * star_tree.sigma
+            self.vra.star_coeff = star_tree.coeff
             self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
@@ -980,9 +995,9 @@ cdef int walk_volume(VolumeContainer *vc,
             tmax[i] = 1e60
     # We have to jumpstart our calculation
     for i in range(3):
-        if cur_ind[i] == vc.dims[i] and step[i] == 1:
+        if cur_ind[i] == vc.dims[i] and step[i] >= 0:
             return 0
-        if cur_ind[i] == -1 and step[i] == -1:
+        if cur_ind[i] == -1 and step[i] <= -1:
             return 0
     enter_t = intersect_t
     hit = 0

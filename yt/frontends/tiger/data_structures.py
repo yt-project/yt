@@ -44,15 +44,15 @@ class TigerGrid(AMRGridPatch):
         self.RightEdge = right_edge
         self.Level = 0
         self.NumberOfParticles = 0
-        self.left_dims = na.array(left_dims, dtype='int32')
-        self.right_dims = na.array(right_dims, dtype='int32')
+        self.left_dims = np.array(left_dims, dtype='int32')
+        self.right_dims = np.array(right_dims, dtype='int32')
         self.ActiveDimensions = self.right_dims - self.left_dims
         self.Parent = None
         self.Children = []
 
     @property
     def child_mask(self):
-        return na.ones(self.ActiveDimensions, dtype='int32')
+        return np.ones(self.ActiveDimensions, dtype='int32')
 
     def __repr__(self):
         return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
@@ -70,7 +70,7 @@ class TigerHierarchy(AMRHierarchy):
         # Tiger is unigrid
         self.ngdims = [i/j for i,j in
                 izip(self.pf.root_size, self.pf.max_grid_size)]
-        self.num_grids = na.prod(self.ngdims)
+        self.num_grids = np.prod(self.ngdims)
         self.max_level = 0
 
     def _setup_classes(self):
@@ -87,18 +87,18 @@ class TigerHierarchy(AMRHierarchy):
         DW = DRE - DLE
         gds = DW / self.ngdims
         rd = [self.pf.root_size[i]-self.pf.max_grid_size[i] for i in range(3)]
-        glx, gly, glz = na.mgrid[DLE[0]:DRE[0]-gds[0]:self.ngdims[0]*1j,
+        glx, gly, glz = np.mgrid[DLE[0]:DRE[0]-gds[0]:self.ngdims[0]*1j,
                                  DLE[1]:DRE[1]-gds[1]:self.ngdims[1]*1j,
                                  DLE[2]:DRE[2]-gds[2]:self.ngdims[2]*1j]
-        gdx, gdy, gdz = na.mgrid[0:rd[0]:self.ngdims[0]*1j,
+        gdx, gdy, gdz = np.mgrid[0:rd[0]:self.ngdims[0]*1j,
                                  0:rd[1]:self.ngdims[1]*1j,
                                  0:rd[2]:self.ngdims[2]*1j]
         LE, RE, levels, counts = [], [], [], []
         i = 0
         for glei, gldi in izip(izip(glx.flat, gly.flat, glz.flat),
                                izip(gdx.flat, gdy.flat, gdz.flat)):
-            gld = na.array(gldi)
-            gle = na.array(glei)
+            gld = np.array(gldi)
+            gle = np.array(glei)
             gre = gle + gds
             g = self.grid(i, self, gle, gre, gld, gld+self.pf.max_grid_size)
             grids.append(g)
@@ -108,13 +108,13 @@ class TigerHierarchy(AMRHierarchy):
             levels.append(g.Level)
             counts.append(g.NumberOfParticles)
             i += 1
-        self.grids = na.empty(len(grids), dtype='object')
+        self.grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
-        self.grid_dimensions[:] = na.array(dims, dtype='int64')
-        self.grid_left_edge[:] = na.array(LE, dtype='float64')
-        self.grid_right_edge[:] = na.array(RE, dtype='float64')
-        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
-        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
+        self.grid_dimensions[:] = np.array(dims, dtype='int64')
+        self.grid_left_edge[:] = np.array(LE, dtype='float64')
+        self.grid_right_edge[:] = np.array(RE, dtype='float64')
+        self.grid_levels.flat[:] = np.array(levels, dtype='int32')
+        self.grid_particle_count.flat[:] = np.array(counts, dtype='int32')
 
     def _populate_grid_objects(self):
         # We don't need to do anything here
@@ -186,8 +186,8 @@ class TigerStaticOutput(StaticOutput):
         self.parameters['RefineBy'] = 2
 
     def _set_units(self):
-        self.domain_left_edge = na.zeros(3, dtype='float64')
-        self.domain_right_edge = na.ones(3, dtype='float64')
+        self.domain_left_edge = np.zeros(3, dtype='float64')
+        self.domain_right_edge = np.ones(3, dtype='float64')
         self.units = {}
         self.time_units = {}
         self.time_units['1'] = 1

@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 from yt.utilities.math_utils import get_rotation_matrix
@@ -52,37 +52,41 @@ class Orientation:
            
         """
         self.steady_north = steady_north
-        if na.all(north_vector == normal_vector):
+        if np.all(north_vector == normal_vector):
             mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
             north_vector = None
         if north_vector is not None: self.steady_north = True
         self.north_vector = north_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
+        if self.north_vector is None:
+            self.north_vector = self.unit_vectors[1] 
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
         # Now we set up our various vectors
-        normal_vector /= na.sqrt( na.dot(normal_vector, normal_vector))
+        normal_vector /= np.sqrt( np.dot(normal_vector, normal_vector))
         if north_vector is None:
-            vecs = na.identity(3)
-            t = na.cross(normal_vector, vecs).sum(axis=1)
+            vecs = np.identity(3)
+            t = np.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
-            east_vector = na.cross(vecs[ax,:], normal_vector).ravel()
-            north_vector = na.cross(normal_vector, east_vector).ravel()
+            east_vector = np.cross(vecs[ax,:], normal_vector).ravel()
+            # self.north_vector must remain None otherwise rotations about a fixed axis will break.  
+            # The north_vector calculated here will still be included in self.unit_vectors.
+            north_vector = np.cross(normal_vector, east_vector).ravel()
         else:
             if self.steady_north:
-                north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
-            east_vector = na.cross(north_vector, normal_vector).ravel()
-        north_vector /= na.sqrt(na.dot(north_vector, north_vector))
-        east_vector /= na.sqrt(na.dot(east_vector, east_vector))
+                north_vector = north_vector - np.dot(north_vector,normal_vector)*normal_vector
+            east_vector = np.cross(north_vector, normal_vector).ravel()
+        north_vector /= np.sqrt(np.dot(north_vector, north_vector))
+        east_vector /= np.sqrt(np.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
         self.unit_vectors = [east_vector, north_vector, normal_vector]
-        self.inv_mat = na.linalg.pinv(self.unit_vectors)
+        self.inv_mat = np.linalg.pinv(self.unit_vectors)
         
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""Change the view direction based on any of the orientation parameters.
 
         This will recalculate all the necessary vectors and vector planes related
-        to a an orientable object.
+        to an orientable object.
 
         Parameters
         ----------

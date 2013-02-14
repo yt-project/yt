@@ -27,7 +27,7 @@ import cPickle
 import cStringIO
 import itertools
 import logging
-import numpy as na
+import numpy as np
 import sys
 
 from yt.funcs import *
@@ -131,13 +131,13 @@ class ParallelObjectIterator(ObjectIterator):
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
         if self._use_all:
-            self.my_obj_ids = na.arange(len(self._objs))
+            self.my_obj_ids = np.arange(len(self._objs))
         else:
             if not round_robin:
-                self.my_obj_ids = na.array_split(
-                                na.arange(len(self._objs)), self._skip)[self._offset]
+                self.my_obj_ids = np.array_split(
+                                np.arange(len(self._objs)), self._skip)[self._offset]
             else:
-                self.my_obj_ids = na.arange(len(self._objs))[self._offset::self._skip]
+                self.my_obj_ids = np.arange(len(self._objs))[self._offset::self._skip]
         
     def __iter__(self):
         for gid in self.my_obj_ids:
@@ -198,9 +198,9 @@ def parallel_passthrough(func):
     output; otherwise, the function gets called.  Used as a decorator.
     """
     @wraps(func)
-    def passage(self, data, **kwargs):
-        if not self._distributed: return data
-        return func(self, data, **kwargs)
+    def passage(self, *args, **kwargs):
+        if not self._distributed: return args[0]
+        return func(self, *args, **kwargs)
     return passage
 
 def _get_comm(args):
@@ -252,9 +252,10 @@ def parallel_root_only(func):
     @wraps(func)
     def root_only(*args, **kwargs):
         comm = _get_comm(args)
+        rv = None
         if comm.rank == 0:
             try:
-                func(*args, **kwargs)
+                rv = func(*args, **kwargs)
                 all_clear = 1
             except:
                 traceback.print_last()
@@ -263,6 +264,7 @@ def parallel_root_only(func):
             all_clear = None
         all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
+        return rv
     if parallel_capable: return root_only
     return func
 
@@ -271,7 +273,7 @@ class Workgroup(object):
         self.size = size
         self.ranks = ranks
         self.comm = comm
-	self.name = name
+        self.name = name
 
 class ProcessorPool(object):
     comm = None
@@ -279,26 +281,25 @@ class ProcessorPool(object):
     ranks = None
     available_ranks = None
     tasks = None
-    workgroups = []
     def __init__(self):
         self.comm = communication_system.communicators[-1]
         self.size = self.comm.size
         self.ranks = range(self.size)
         self.available_ranks = range(self.size)
+        self.workgroups = []
     
     def add_workgroup(self, size=None, ranks=None, name=None):
         if size is None:
             size = len(self.available_ranks)
         if len(self.available_ranks) < size:
-            print 'Not enough resources available', size, self.available_ranks
+            mylog.error('Not enough resources available, asked for %d have %d',
+                size, self.available_ranks)
             raise RuntimeError
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
-
-	# Default name to the workgroup number.
+        # Default name to the workgroup number.
         if name is None: 
-	    name = string(len(workgroups))
-	    
+            name = str(len(self.workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
@@ -306,16 +307,20 @@ class ProcessorPool(object):
         self.workgroups.append(Workgroup(len(ranks), ranks, new_comm, name))
     
     def free_workgroup(self, workgroup):
+        # If you want to actually delete the workgroup you will need to
+        # pop it out of the self.workgroups list so you don't have references
+        # that are left dangling, e.g. see free_all() below.
         for i in workgroup.ranks:
             if self.comm.rank == i:
                 communication_system.communicators.pop()
             self.available_ranks.append(i) 
-        del workgroup
         self.available_ranks.sort()
 
     def free_all(self):
         for wg in self.workgroups:
             self.free_workgroup(wg)
+        for i in range(len(self.workgroups)):
+            self.workgroups.pop(0)
 
     @classmethod
     def from_sizes(cls, sizes):
@@ -423,14 +428,14 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
             njobs, my_size)
         raise RuntimeError
     my_rank = my_communicator.rank
-    all_new_comms = na.array_split(na.arange(my_size), njobs)
+    all_new_comms = np.array_split(np.arange(my_size), njobs)
     for i,comm_set in enumerate(all_new_comms):
         if my_rank in comm_set:
             my_new_id = i
             break
     if parallel_capable:
         communication_system.push_with_ids(all_new_comms[my_new_id].tolist())
-    obj_ids = na.arange(len(objects))
+    obj_ids = np.arange(len(objects))
 
     to_share = {}
     # If our objects object is slice-aware, like time series data objects are,
@@ -527,14 +532,14 @@ class Communicator(object):
         #   cat
         #   join
         # data is selected to be of types:
-        #   na.ndarray
+        #   np.ndarray
         #   dict
         #   data field dict
         if datatype is not None:
             pass
         elif isinstance(data, types.DictType):
             datatype == "dict"
-        elif isinstance(data, na.ndarray):
+        elif isinstance(data, np.ndarray):
             datatype == "array"
         elif isinstance(data, types.ListType):
             datatype == "list"
@@ -551,14 +556,14 @@ class Communicator(object):
             field_keys = data.keys()
             field_keys.sort()
             size = data[field_keys[0]].shape[-1]
-            sizes = na.zeros(self.comm.size, dtype='int64')
-            outsize = na.array(size, dtype='int64')
+            sizes = np.zeros(self.comm.size, dtype='int64')
+            outsize = np.array(size, dtype='int64')
             self.comm.Allgather([outsize, 1, MPI.LONG],
                                      [sizes, 1, MPI.LONG] )
             # This nested concatenate is to get the shapes to work out correctly;
             # if we just add [0] to sizes, it will broadcast a summation, not a
             # concatenation.
-            offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+            offsets = np.add.accumulate(np.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             for key in field_keys:
                 dd = data[key]
@@ -583,16 +588,18 @@ class Communicator(object):
                     ncols, size = data.shape
             ncols = self.comm.allreduce(ncols, op=MPI.MAX)
             if ncols == 0:
-                    data = na.zeros(0, dtype=dtype) # This only works for
+                data = np.zeros(0, dtype=dtype) # This only works for
+            elif data is None:
+                data = np.zeros((ncols, 0), dtype=dtype)
             size = data.shape[-1]
-            sizes = na.zeros(self.comm.size, dtype='int64')
-            outsize = na.array(size, dtype='int64')
+            sizes = np.zeros(self.comm.size, dtype='int64')
+            outsize = np.array(size, dtype='int64')
             self.comm.Allgather([outsize, 1, MPI.LONG],
                                      [sizes, 1, MPI.LONG] )
             # This nested concatenate is to get the shapes to work out correctly;
             # if we just add [0] to sizes, it will broadcast a summation, not a
             # concatenation.
-            offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+            offsets = np.add.accumulate(np.concatenate([[0], sizes]))[:-1]
             arr_size = self.comm.allreduce(size, op=MPI.SUM)
             data = self.alltoallv_array(data, arr_size, offsets, sizes)
             return data
@@ -610,7 +617,7 @@ class Communicator(object):
     def mpi_bcast(self, data, root = 0):
         # The second check below makes sure that we know how to communicate
         # this type of array. Otherwise, we'll pickle it.
-        if isinstance(data, na.ndarray) and \
+        if isinstance(data, np.ndarray) and \
                 get_mpi_type(data.dtype) is not None:
             if self.comm.rank == root:
                 info = (data.shape, data.dtype)
@@ -618,7 +625,7 @@ class Communicator(object):
                 info = ()
             info = self.comm.bcast(info, root=root)
             if self.comm.rank != root:
-                data = na.empty(info[0], dtype=info[1])
+                data = np.empty(info[0], dtype=info[1])
             mpi_type = get_mpi_type(info[1])
             self.comm.Bcast([data, mpi_type], root = root)
             return data
@@ -638,7 +645,7 @@ class Communicator(object):
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op='sum'):
         op = op_names[op]
-        if isinstance(data, na.ndarray) and data.dtype != na.bool:
+        if isinstance(data, np.ndarray) and data.dtype != np.bool:
             if dtype is None:
                 dtype = data.dtype
             if dtype != data.dtype:
@@ -745,7 +752,7 @@ class Communicator(object):
         return (obj._owner == self.comm.rank)
 
     def send_quadtree(self, target, buf, tgd, args):
-        sizebuf = na.zeros(1, 'int64')
+        sizebuf = np.zeros(1, 'int64')
         sizebuf[0] = buf[0].size
         self.comm.Send([sizebuf, MPI.LONG], dest=target)
         self.comm.Send([buf[0], MPI.INT], dest=target)
@@ -753,11 +760,11 @@ class Communicator(object):
         self.comm.Send([buf[2], MPI.DOUBLE], dest=target)
         
     def recv_quadtree(self, target, tgd, args):
-        sizebuf = na.zeros(1, 'int64')
+        sizebuf = np.zeros(1, 'int64')
         self.comm.Recv(sizebuf, source=target)
-        buf = [na.empty((sizebuf[0],), 'int32'),
-               na.empty((sizebuf[0], args[2]),'float64'),
-               na.empty((sizebuf[0],),'float64')]
+        buf = [np.empty((sizebuf[0],), 'int32'),
+               np.empty((sizebuf[0], args[2]),'float64'),
+               np.empty((sizebuf[0],),'float64')]
         self.comm.Recv([buf[0], MPI.INT], source=target)
         self.comm.Recv([buf[1], MPI.DOUBLE], source=target)
         self.comm.Recv([buf[2], MPI.DOUBLE], source=target)
@@ -777,8 +784,8 @@ class Communicator(object):
         sys.exit()
 
         args = qt.get_args() # Will always be the same
-        tgd = na.array([args[0], args[1]], dtype='int64')
-        sizebuf = na.zeros(1, 'int64')
+        tgd = np.array([args[0], args[1]], dtype='int64')
+        sizebuf = np.zeros(1, 'int64')
 
         while mask < size:
             if (mask & rank) != 0:
@@ -792,7 +799,7 @@ class Communicator(object):
                 if target < size:
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
-                    qto = QuadTree(tgd, args[2])
+                    qto = QuadTree(tgd, args[2], qt.bounds)
                     qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
                     merge_quadtrees(qt, qto, style = merge_style)
                     del qto
@@ -804,21 +811,21 @@ class Communicator(object):
             sizebuf[0] = buf[0].size
         self.comm.Bcast([sizebuf, MPI.LONG], root=0)
         if rank != 0:
-            buf = [na.empty((sizebuf[0],), 'int32'),
-                   na.empty((sizebuf[0], args[2]),'float64'),
-                   na.empty((sizebuf[0],),'float64')]
+            buf = [np.empty((sizebuf[0],), 'int32'),
+                   np.empty((sizebuf[0], args[2]),'float64'),
+                   np.empty((sizebuf[0],),'float64')]
         self.comm.Bcast([buf[0], MPI.INT], root=0)
         self.comm.Bcast([buf[1], MPI.DOUBLE], root=0)
         self.comm.Bcast([buf[2], MPI.DOUBLE], root=0)
         self.refined = buf[0]
         if rank != 0:
-            qt = QuadTree(tgd, args[2])
+            qt = QuadTree(tgd, args[2], qt.bounds)
             qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 
 
     def send_array(self, arr, dest, tag = 0):
-        if not isinstance(arr, na.ndarray):
+        if not isinstance(arr, np.ndarray):
             self.comm.send((None,None), dest=dest, tag=tag)
             self.comm.send(arr, dest=dest, tag=tag)
             return
@@ -832,7 +839,7 @@ class Communicator(object):
         dt, ne = self.comm.recv(source=source, tag=tag)
         if dt is None and ne is None:
             return self.comm.recv(source=source, tag=tag)
-        arr = na.empty(ne, dtype=dt)
+        arr = np.empty(ne, dtype=dt)
         tmp = arr.view(self.__tocast)
         self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
         return arr
@@ -843,11 +850,11 @@ class Communicator(object):
             for i in range(send.shape[0]):
                 recv.append(self.alltoallv_array(send[i,:].copy(), 
                                                  total_size, offsets, sizes))
-            recv = na.array(recv)
+            recv = np.array(recv)
             return recv
         offset = offsets[self.comm.rank]
         tmp_send = send.view(self.__tocast)
-        recv = na.empty(total_size, dtype=send.dtype)
+        recv = np.empty(total_size, dtype=send.dtype)
         recv[offset:offset+send.size] = send[:]
         dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
         roff = [off * dtr for off in offsets]
@@ -869,7 +876,7 @@ class Communicator(object):
 
 communication_system = CommunicationSystem()
 if parallel_capable:
-    ranks = na.arange(MPI.COMM_WORLD.size)
+    ranks = np.arange(MPI.COMM_WORLD.size)
     communication_system.push_with_ids(ranks)
 
 class ParallelAnalysisInterface(object):
@@ -928,13 +935,13 @@ class ParallelAnalysisInterface(object):
         xax, yax = x_dict[axis], y_dict[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
         mi = self.comm.rank
-        cx, cy = na.unravel_index(mi, cc)
-        x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
+        cx, cy = np.unravel_index(mi, cc)
+        x = np.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
+        y = np.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
 
         DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        LE = na.ones(3, dtype='float64') * DLE
-        RE = na.ones(3, dtype='float64') * DRE
+        LE = np.ones(3, dtype='float64') * DLE
+        RE = np.ones(3, dtype='float64') * DRE
         LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
         RE[xax] = x[1] * (DRE[xax]-DLE[xax]) + DLE[xax]
         LE[yax] = y[0] * (DRE[yax]-DLE[yax]) + DLE[yax]
@@ -945,7 +952,7 @@ class ParallelAnalysisInterface(object):
         return True, reg
 
     def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
-        LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
+        LE, RE = np.array(ds.left_edge), np.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
         if (LE == self.pf.domain_left_edge).all() and \
@@ -975,13 +982,13 @@ class ParallelAnalysisInterface(object):
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
-        cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+        cx, cy, cz = np.unravel_index(mi, cc)
+        x = np.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = np.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = np.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
 
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+        LE = np.array([x[0], y[0], z[0]], dtype='float64')
+        RE = np.array([x[1], y[1], z[1]], dtype='float64')
 
         if padding > 0:
             return True, \
@@ -1002,13 +1009,13 @@ class ParallelAnalysisInterface(object):
         
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
-        cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+        cx, cy, cz = np.unravel_index(mi, cc)
+        x = np.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = np.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = np.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
 
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+        LE = np.array([x[0], y[0], z[0]], dtype='float64')
+        RE = np.array([x[1], y[1], z[1]], dtype='float64')
 
         if padding > 0:
             return True, \
@@ -1060,3 +1067,49 @@ class ParallelAnalysisInterface(object):
                 nextdim = (nextdim + 1) % 3
         return cuts
     
+class GroupOwnership(ParallelAnalysisInterface):
+    def __init__(self, items):
+        ParallelAnalysisInterface.__init__(self)
+        self.num_items = len(items)
+        self.items = items
+        assert(self.num_items >= self.comm.size)
+        self.owned = range(self.comm.size)
+        self.pointer = 0
+        if parallel_capable:
+            communication_system.push_with_ids([self.comm.rank])
+
+    def __del__(self):
+        if parallel_capable:
+            communication_system.pop()
+
+    def inc(self, n = -1):
+        old_item = self.item
+        if n == -1: n = self.comm.size
+        for i in range(n):
+            if self.pointer >= self.num_items - self.comm.size: break
+            self.owned[self.pointer % self.comm.size] += self.comm.size
+            self.pointer += 1
+        if self.item is not old_item:
+            self.switch()
+            
+    def dec(self, n = -1):
+        old_item = self.item
+        if n == -1: n = self.comm.size
+        for i in range(n):
+            if self.pointer == 0: break
+            self.owned[(self.pointer - 1) % self.comm.size] -= self.comm.size
+            self.pointer -= 1
+        if self.item is not old_item:
+            self.switch()
+
+    _last = None
+    @property
+    def item(self):
+        own = self.owned[self.comm.rank]
+        if self._last != own:
+            self._item = self.items[own]
+            self._last = own
+        return self._item
+
+    def switch(self):
+        pass

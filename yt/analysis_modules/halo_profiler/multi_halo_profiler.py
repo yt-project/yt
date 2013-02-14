@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import os
 import h5py
 import types
@@ -281,10 +281,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Create output directories.
         self.output_dir = output_dir
         if output_dir is None:
-            output_dir = '.'
+            self.output_dir = self.pf.fullpath
         else:
             self.__check_directory(output_dir)
-        self.output_dir = os.path.join(output_dir, os.path.basename(self.pf.fullpath))
+            self.output_dir = os.path.join(output_dir, self.pf.directory)
         self.__check_directory(self.output_dir)
         self.profile_output_dir = os.path.join(self.output_dir, profile_output_dir)
         self.projection_output_dir = os.path.join(self.output_dir, projection_output_dir)
@@ -606,6 +606,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
+            if os.path.exists(filename): os.remove(filename)
             if filename.endswith('.h5'):
                 profile.write_out_h5(filename)
             else:
@@ -684,7 +685,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 max_val, maxi, mx, my, mz, mg = sphere.quantities['MaxLocation'](self.velocity_center[1],
                                                                                  lazy_reader=True)
                 max_grid = self.pf.h.grids[mg]
-                max_cell = na.unravel_index(maxi, max_grid.ActiveDimensions)
+                max_cell = np.unravel_index(maxi, max_grid.ActiveDimensions)
                 sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
                                                              max_grid['y-velocity'][max_cell],
                                                              max_grid['z-velocity'][max_cell]])
@@ -717,7 +718,9 @@ class HaloProfiler(ParallelAnalysisInterface):
             Default=True.
         njobs : int
             The number of jobs over which to split the projections.  Set
-            to -1 so that each halo is done by a single processor.
+            to -1 so that each halo is done by a single processor.  Halo 
+            projections do not currently work in parallel, so this must 
+            be set to -1.
             Default: -1.
         dynamic : bool
             If True, distribute halos using a task queue.  If False,
@@ -731,6 +734,12 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         """
 
+        # Halo projections cannot run in parallel because they are done by 
+        # giving a data source to the projection object.
+        if njobs > 0:
+            mylog.warn("Halo projections cannot use more than one processor per halo, setting njobs to -1.")
+            njobs = -1
+        
         # Get list of halos for projecting.
         if halo_list == 'filtered':
             halo_projection_list = self.filtered_halos
@@ -845,7 +854,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                               (self.projection_output_dir, halo['id'],
                                dataset_name, axis_labels[w])
                             if (frb[hp['field']] != 0).any():
-                                write_image(na.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
+                                write_image(np.log10(frb[hp['field']]), filename, cmap_name=hp['cmap'])
                             else:
                                 mylog.info('Projection of %s for halo %d is all zeros, skipping image.' %
                                             (hp['field'], halo['id']))
@@ -1076,7 +1085,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                     profile[field].append(float(onLine[q]))
 
         for field in fields:
-            profile[field] = na.array(profile[field])
+            profile[field] = np.array(profile[field])
 
         profile_obj._data = profile
 
@@ -1171,7 +1180,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         for halo in self.filtered_halos:
             for halo_field in halo_fields:
                 if isinstance(halo[halo_field], types.ListType):
-                    field_data = na.array(halo[halo_field])
+                    field_data = np.array(halo[halo_field])
                     field_data.tofile(out_file, sep="\t", format=format)
                 else:
                     if halo_field == 'id':
@@ -1179,7 +1188,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                     else:
                         out_file.write("%s" % halo[halo_field])
                 out_file.write("\t")
-            field_data = na.array([halo[field] for field in fields])
+            field_data = np.array([halo[field] for field in fields])
             field_data.tofile(out_file, sep="\t", format=format)
             out_file.write("\n")
         out_file.close()
@@ -1207,7 +1216,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             value_list = []
             for halo in self.filtered_halos:
                 value_list.append(halo[halo_field])
-            value_list = na.array(value_list)
+            value_list = np.array(value_list)
             out_file.create_dataset(halo_field, data=value_list)
         out_file.close()
 
@@ -1215,7 +1224,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         fid = open(filename, "w")
         fields = [field for field in sorted(profile.keys()) if field != "UsedBins"]
         fid.write("\t".join(["#"] + fields + ["\n"]))
-        field_data = na.array([profile[field] for field in fields])
+        field_data = np.array([profile[field] for field in fields])
         for line in range(field_data.shape[1]):
             field_data[:, line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
@@ -1300,17 +1309,17 @@ def _shift_projections(pf, projections, oldCenter, newCenter, axis):
         add2_y_weight_field = plot['weight_field'][plot['py'] - 0.5 * plot['pdy'] < 0]
 
         # Add the hanging cells back to the projection data.
-        plot.field_data['px'] = na.concatenate([plot['px'], add_x_px, add_y_px,
+        plot.field_data['px'] = np.concatenate([plot['px'], add_x_px, add_y_px,
                                                 add2_x_px, add2_y_px])
-        plot.field_data['py'] = na.concatenate([plot['py'], add_x_py, add_y_py,
+        plot.field_data['py'] = np.concatenate([plot['py'], add_x_py, add_y_py,
                                                 add2_x_py, add2_y_py])
-        plot.field_data['pdx'] = na.concatenate([plot['pdx'], add_x_pdx, add_y_pdx,
+        plot.field_data['pdx'] = np.concatenate([plot['pdx'], add_x_pdx, add_y_pdx,
                                                  add2_x_pdx, add2_y_pdx])
-        plot.field_data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy,
+        plot.field_data['pdy'] = np.concatenate([plot['pdy'], add_x_pdy, add_y_pdy,
                                                  add2_x_pdy, add2_y_pdy])
-        plot.field_data[field] = na.concatenate([plot[field], add_x_field, add_y_field,
+        plot.field_data[field] = np.concatenate([plot[field], add_x_field, add_y_field,
                                                  add2_x_field, add2_y_field])
-        plot.field_data['weight_field'] = na.concatenate([plot['weight_field'],
+        plot.field_data['weight_field'] = np.concatenate([plot['weight_field'],
                                                           add_x_weight_field, add_y_weight_field,
                                                           add2_x_weight_field, add2_y_weight_field])
 

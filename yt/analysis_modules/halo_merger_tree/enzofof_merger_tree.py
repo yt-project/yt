@@ -41,7 +41,7 @@ License:
 # 8. Parentage is described by a fraction of particles that pass from one to
 #    the other; we have both descendent fractions and ancestory fractions. 
 
-import numpy as na
+import numpy as np
 import h5py
 import time
 import pdb
@@ -119,7 +119,7 @@ class HaloCatalog(object):
             x,y,z = [float(f) for f in line.split(None, 3)[:-1]]
             hp.append([x,y,z])
         if hp != []:
-            self.halo_positions = na.array(hp)
+            self.halo_positions = np.array(hp)
             self.halo_kdtree = KDTree(self.halo_positions)
         else:
             self.halo_positions = None
@@ -158,7 +158,7 @@ class HaloCatalog(object):
 class HaloParticleList(object):
     def __init__(self, halo_id, position, particle_ids):
         self.halo_id = halo_id
-        self.position = na.array(position)
+        self.position = np.array(position)
         self.particle_ids = particle_ids
         self.number_of_particles = particle_ids.size
 
@@ -168,7 +168,7 @@ class HaloParticleList(object):
     def find_relative_parentage(self, child):
         # Return two values: percent this halo gave to the other, and percent
         # of the other that comes from this halo
-        overlap = na.intersect1d(self.particle_ids, child.particle_ids).size
+        overlap = np.intersect1d(self.particle_ids, child.particle_ids).size
         of_child_from_me = float(overlap)/child.particle_ids.size
         of_mine_from_me = float(overlap)/self.particle_ids.size
         return of_child_from_me, of_mine_from_me

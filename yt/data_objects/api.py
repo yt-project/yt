@@ -65,6 +65,9 @@ from derived_quantities import \
     quantity_info, \
     add_quantity
 
+from image_array import \
+    ImageArray
+
 from field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
@@ -81,6 +84,7 @@ from field_info_container import \
     ValidateSpatial, \
     ValidateGridType, \
     add_field, \
+    add_grad, \
     derived_field
 
 from particle_trajectories import \

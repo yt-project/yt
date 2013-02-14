@@ -25,7 +25,7 @@ License:
 
 import copy
 import h5py
-import numpy as na
+import numpy as np
 
 from yt.funcs import *
 
@@ -44,7 +44,8 @@ class LightRay(CosmologySplice):
                  near_redshift, far_redshift,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
-                 time_data=True, redshift_data=True):
+                 time_data=True, redshift_data=True,
+                 find_outputs=False):
         """
         Create a LightRay object.  A light ray is much like a light cone,
         in that it stacks together multiple datasets in order to extend a
@@ -93,6 +94,10 @@ class LightRay(CosmologySplice):
             Whether or not to include redshift outputs when gathering
             datasets for time series.
             Default: True.
+        find_outputs : bool
+            Whether or not to search for parameter files in the current 
+            directory.
+            Default: False.
 
         """
 
@@ -106,7 +111,8 @@ class LightRay(CosmologySplice):
         self._data = {}
 
         # Get list of datasets for light ray solution.
-        CosmologySplice.__init__(self, parameter_filename, simulation_type)
+        CosmologySplice.__init__(self, parameter_filename, simulation_type,
+                                 find_outputs=find_outputs)
         self.light_ray_solution = \
           self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                        minimal=self.use_minimum_datasets,
@@ -118,7 +124,7 @@ class LightRay(CosmologySplice):
         "Create list of datasets to be added together to make the light ray."
 
         # Calculate dataset sizes, and get random dataset axes and centers.
-        na.random.seed(seed)
+        np.random.seed(seed)
 
         # For box coherence, keep track of effective depth travelled.
         box_fraction_used = 0.0
@@ -156,9 +162,9 @@ class LightRay(CosmologySplice):
                     (box_fraction_used +
                      self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
                 # Random start point
-                self.light_ray_solution[q]['start'] = na.random.random(3)
-                theta = na.pi * na.random.random()
-                phi = 2 * na.pi * na.random.random()
+                self.light_ray_solution[q]['start'] = np.random.random(3)
+                theta = np.pi * np.random.random()
+                phi = 2 * np.pi * np.random.random()
                 box_fraction_used = 0.0
             else:
                 # Use end point of previous segment and same theta and phi.
@@ -168,9 +174,9 @@ class LightRay(CosmologySplice):
             self.light_ray_solution[q]['end'] = \
               self.light_ray_solution[q]['start'] + \
                 self.light_ray_solution[q]['traversal_box_fraction'] * \
-                na.array([na.cos(phi) * na.sin(theta),
-                          na.sin(phi) * na.sin(theta),
-                          na.cos(theta)])
+                np.array([np.cos(phi) * np.sin(theta),
+                          np.sin(phi) * np.sin(theta),
+                          np.cos(theta)])
             box_fraction_used += \
               self.light_ray_solution[q]['traversal_box_fraction']
 
@@ -359,30 +365,30 @@ class LightRay(CosmologySplice):
             sub_data = {}
             sub_data['segment_redshift'] = my_segment['redshift']
             for field in all_fields:
-                sub_data[field] = na.array([])
+                sub_data[field] = np.array([])
 
             # Get data for all subsegments in segment.
             for sub_segment in sub_segments:
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
                 sub_ray = pf.h.ray(sub_segment[0], sub_segment[1])
-                sub_data['dl'] = na.concatenate([sub_data['dl'],
+                sub_data['dl'] = np.concatenate([sub_data['dl'],
                                                  (sub_ray['dts'] *
                                                   vector_length(sub_segment[0],
                                                                 sub_segment[1]))])
                 for field in fields:
-                    sub_data[field] = na.concatenate([sub_data[field],
+                    sub_data[field] = np.concatenate([sub_data[field],
                                                       (sub_ray[field])])
 
                 if get_los_velocity:
                     line_of_sight = sub_segment[1] - sub_segment[0]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
-                    sub_vel = na.array([sub_ray['x-velocity'],
+                    sub_vel = np.array([sub_ray['x-velocity'],
                                         sub_ray['y-velocity'],
                                         sub_ray['z-velocity']])
                     sub_data['los_velocity'] = \
-                      na.concatenate([sub_data['los_velocity'],
-                                      (na.rollaxis(sub_vel, 1) *
+                      np.concatenate([sub_data['los_velocity'],
+                                      (np.rollaxis(sub_vel, 1) *
                                        line_of_sight).sum(axis=1)])
                     del sub_vel
 
@@ -464,20 +470,20 @@ class LightRay(CosmologySplice):
         if fields is None: fields = []
 
         # Create position array from halo list.
-        halo_centers = na.array(map(lambda halo: halo['center'], halo_list))
-        halo_field_values = dict([(field, na.array(map(lambda halo: halo[field],
+        halo_centers = np.array(map(lambda halo: halo['center'], halo_list))
+        halo_field_values = dict([(field, np.array(map(lambda halo: halo[field],
                                                        halo_list))) \
                                   for field in fields])
 
-        nearest_distance = na.zeros(data['x'].shape)
-        field_data = dict([(field, na.zeros(data['x'].shape)) \
+        nearest_distance = np.zeros(data['x'].shape)
+        field_data = dict([(field, np.zeros(data['x'].shape)) \
                            for field in fields])
         for index in xrange(nearest_distance.size):
-            nearest = na.argmin(periodic_distance(na.array([data['x'][index],
+            nearest = np.argmin(periodic_distance(np.array([data['x'][index],
                                                             data['y'][index],
                                                             data['z'][index]]),
                                                   halo_centers))
-            nearest_distance[index] = periodic_distance(na.array([data['x'][index],
+            nearest_distance[index] = periodic_distance(np.array([data['x'][index],
                                                                   data['y'][index],
                                                                   data['z'][index]]),
                                                         halo_centers[nearest])
@@ -526,41 +532,41 @@ def _flatten_dict_list(data, exceptions=None):
         for field in [field for field in datum.keys()
                       if field not in exceptions]:
             if field in new_data:
-                new_data[field] = na.concatenate([new_data[field], datum[field]])
+                new_data[field] = np.concatenate([new_data[field], datum[field]])
             else:
-                new_data[field] = na.copy(datum[field])
+                new_data[field] = np.copy(datum[field])
     return new_data
 
 def vector_length(start, end):
     "Calculate vector length."
 
-    return na.sqrt(na.power((end - start), 2).sum())
+    return np.sqrt(np.power((end - start), 2).sum())
 
 def periodic_distance(coord1, coord2):
     "Calculate length of shortest vector between to points in periodic domain."
     dif = coord1 - coord2
 
-    dim = na.ones(coord1.shape,dtype=int)
+    dim = np.ones(coord1.shape,dtype=int)
     def periodic_bind(num):
-        pos = na.abs(num % dim)
-        neg = na.abs(num % -dim)
-        return na.min([pos,neg],axis=0)
+        pos = np.abs(num % dim)
+        neg = np.abs(num % -dim)
+        return np.min([pos,neg],axis=0)
 
     dif = periodic_bind(dif)
-    return na.sqrt((dif * dif).sum(axis=-1))
+    return np.sqrt((dif * dif).sum(axis=-1))
 
 def periodic_ray(start, end, left=None, right=None):
     "Break up periodic ray into non-periodic segments."
 
     if left is None:
-        left = na.zeros(start.shape)
+        left = np.zeros(start.shape)
     if right is None:
-        right = na.ones(start.shape)
+        right = np.ones(start.shape)
     dim = right - left
 
     vector = end - start
-    wall = na.zeros(start.shape)
-    close = na.zeros(start.shape, dtype=object)
+    wall = np.zeros(start.shape)
+    close = np.zeros(start.shape, dtype=object)
 
     left_bound = vector < 0
     right_bound = vector > 0
@@ -568,15 +574,15 @@ def periodic_ray(start, end, left=None, right=None):
     bound = vector != 0.0
 
     wall[left_bound] = left[left_bound]
-    close[left_bound] = na.max
+    close[left_bound] = np.max
     wall[right_bound] = right[right_bound]
-    close[right_bound] = na.min
-    wall[no_bound] = na.inf
-    close[no_bound] = na.min
+    close[right_bound] = np.min
+    wall[no_bound] = np.inf
+    close[no_bound] = np.min
 
     segments = []
-    this_start = na.copy(start)
-    this_end = na.copy(end)
+    this_start = np.copy(start)
+    this_end = np.copy(end)
     t = 0.0
     tolerance = 1e-6
 
@@ -590,14 +596,14 @@ def periodic_ray(start, end, left=None, right=None):
             this_start[hit_right] -= dim[hit_right]
             this_end[hit_right] -= dim[hit_right]
 
-        nearest = na.array([close[q]([this_end[q], wall[q]]) \
+        nearest = np.array([close[q]([this_end[q], wall[q]]) \
                                 for q in range(start.size)])
         dt = ((nearest - this_start) / vector)[bound].min()
         now = this_start + vector * dt
-        close_enough = na.abs(now - nearest) < 1e-10
+        close_enough = np.abs(now - nearest) < 1e-10
         now[close_enough] = nearest[close_enough]
-        segments.append([na.copy(this_start), na.copy(now)])
-        this_start = na.copy(now)
+        segments.append([np.copy(this_start), np.copy(now)])
+        this_start = np.copy(now)
         t += dt
 
     return segments
