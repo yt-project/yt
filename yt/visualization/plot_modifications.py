@@ -426,24 +426,20 @@ class StreamlineCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
-        if plot._type_name == 'OffAxisProjection':
-            pixX = (plot.frb[self.field_x])[::self.factor,::self.factor]
-            pixY = -1*(plot.frb[self.field_y])[::self.factor,::self.factor]
-        else:
-            pixX = _MPL.Pixelize(plot.data['px'],
-                                 plot.data['py'],
-                                 plot.data['pdx'],
-                                 plot.data['pdy'],
-                                 plot.data[self.field_x] - self.bv_x,
-                                 int(nx), int(ny),
-                                 (x0, x1, y0, y1),).transpose()
-            pixY = _MPL.Pixelize(plot.data['px'],
-                                 plot.data['py'],
-                                 plot.data['pdx'],
-                                 plot.data['pdy'],
-                                 plot.data[self.field_y] - self.bv_y,
-                                 int(nx), int(ny),
-                                 (x0, x1, y0, y1),).transpose()
+        pixX = _MPL.Pixelize(plot.data['px'],
+                             plot.data['py'],
+                             plot.data['pdx'],
+                             plot.data['pdy'],
+                             plot.data[self.field_x] - self.bv_x,
+                             int(nx), int(ny),
+                             (x0, x1, y0, y1),).transpose()
+        pixY = _MPL.Pixelize(plot.data['px'],
+                             plot.data['py'],
+                             plot.data['pdx'],
+                             plot.data['pdy'],
+                             plot.data[self.field_y] - self.bv_y,
+                             int(nx), int(ny),
+                             (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         plot._axes.streamplot(X,Y, pixX, pixY, density = self.dens,
