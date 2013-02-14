@@ -161,11 +161,6 @@ class IOHandlerART(BaseIOHandler):
             l_delta += 1
         return tr.astype("float64")
 
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data(grid, field)[sl]
-
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):
     level_oct_offsets= [0,]

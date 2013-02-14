@@ -65,11 +65,3 @@ class IOHandlerFLASH(BaseIOHandler):
         else:
             tr = f["/%s" % field][grid.id - grid._id_offset,:,:,:].transpose()
         return tr.astype("float64")
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        f = self._handle
-        tr = f["/%s" % field][grid.id - grid._id_offset].transpose()[sl]
-        return tr.astype("float64")
-

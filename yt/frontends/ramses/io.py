@@ -55,11 +55,6 @@ class IOHandlerRAMSES(BaseIOHandler):
             l_delta += 1
         return tr
 
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data(grid, field)[sl]
-
     def preload(self, grids, sets):
         if len(grids) == 0: return
         domain_keys = defaultdict(list)

@@ -105,7 +105,11 @@ class BaseIOHandler(object):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):
-        pass
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        tr = self._read_data_set(grid, field)[sl]
+        if tr.dtype == "float32": tr = tr.astype("float64")
+        return tr
 
     def _read_field_names(self, grid):
         pass

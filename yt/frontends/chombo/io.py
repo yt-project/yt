@@ -68,11 +68,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fhandle.close()
         return data.reshape(dims, order='F')
 
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid,field)[sl]
-
     def _read_particles(self, grid, field):
         """
         parses the Orion Star Particle text files

@@ -77,9 +77,3 @@ class IOHandlerNative(BaseIOHandler):
 
         return field
 
-    def _read_data_slice(self, grid, field, axis, coord):
-        # wishful thinking?
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        #sl = tuple(reversed(sl))
-        return self._read_data(grid, field)[sl]
