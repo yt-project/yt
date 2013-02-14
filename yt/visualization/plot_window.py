@@ -111,6 +111,7 @@ field_transforms = {}
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field):
+        self.frb = frb
         self.data = frb.data_source
         self._axes = window_plot.axes
         self._figure = window_plot.figure
@@ -124,11 +125,11 @@ class CallbackWrapper(object):
         self.pf = frb.pf
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
-        if 'Cutting' in self.data.__class__.__name__:
+        if 'OffAxisSlice' in viewer._plot_type:
             self._type_name = "CuttingPlane"
         else:
-            self._type_name = ''
-
+            self._type_name = viewer._plot_type
+ 
 class FieldTransform(object):
     def __init__(self, name, func, locator):
         self.name = name
@@ -644,6 +645,14 @@ class PWViewer(PlotWindow):
         for key in callback_registry:
             ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
                        'UnitBoundaryCallback']
+            if self._plot_type.startswith('OffAxis'):
+                ignored += ['HopCirclesCallback','HopParticleCallback',
+                            'ParticleCallback','ClumpContourCallback',
+                            'GridBoundaryCallback']
+            if self._plot_type == 'OffAxisProjection':
+                ignored += ['VelocityCallback','MagFieldCallback',
+                            'QuiverCallback','CuttingQuiverCallback',
+                            'StreamlineCallback']
             if key in ignored: 
                 continue
             cbname = callback_registry[key]._type_name

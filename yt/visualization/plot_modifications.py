@@ -10,6 +10,8 @@ Affiliation: UC San Diego
 Author: Anthony Scopatz <scopatz@gmail.com>
 Affiliation: The University of Chicago
 Homepage: http://yt-project.org/
+Author: Nathan Goldbaum <goldbaum@ucolick.org>
+Affiliation: UC Santa Cruz
 License:
   Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
 
@@ -253,43 +255,51 @@ class ContourCallback(PlotCallback):
         dx = (xx1 - xx0) / (x1-x0)
         dy = (yy1 - yy0) / (y1-y0)
 
-        #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
-        #Now makes a copy of the position fields "px" and "py" and adds the
-        #appropriate shift to the coppied field.  
-
-        #set the cumulative arrays for the periodic shifting.
-        AllX = np.zeros(plot.data["px"].size, dtype='bool')
-        AllY = np.zeros(plot.data["py"].size, dtype='bool')
-        XShifted = plot.data["px"].copy()
-        YShifted = plot.data["py"].copy()
-        dom_x, dom_y = plot._period
-        for shift in np.mgrid[-1:1:3j]:
-            xlim = ((plot.data["px"] + shift*dom_x >= x0)
-                 &  (plot.data["px"] + shift*dom_x <= x1))
-            ylim = ((plot.data["py"] + shift*dom_y >= y0)
-                 &  (plot.data["py"] + shift*dom_y <= y1))
-            XShifted[xlim] += shift * dom_x
-            YShifted[ylim] += shift * dom_y
-            AllX |= xlim
-            AllY |= ylim
-        # At this point XShifted and YShifted are the shifted arrays of
-        # position data in data coordinates
-        wI = (AllX & AllY)
-
         # We want xi, yi in plot coordinates
-        xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),\
+        xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),
                           yy0:yy1:numPoints_y/(self.factor*1j)]
 
-        # This converts XShifted and YShifted into plot coordinates
-        x = (XShifted[wI]-x0)*dx + xx0
-        y = (YShifted[wI]-y0)*dy + yy0
-        z = plot.data[self.field][wI]
-        if plot.pf.field_info[self.field].take_log: z=np.log10(z)
+        if plot._type_name in ['CuttingPlane','Projection','Slice']:
+            if plot._type_name == 'CuttingPlane':
+                x = plot.data["px"]*dx
+                y = plot.data["py"]*dy
+                z = plot.data[self.field]
+            elif plot._type_name in ['Projection','Slice']:
+                #Makes a copy of the position fields "px" and "py" and adds the
+                #appropriate shift to the copied field.  
 
-        # Both the input and output from the triangulator are in plot
-        # coordinates
-        zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
+                AllX = np.zeros(plot.data["px"].size, dtype='bool')
+                AllY = np.zeros(plot.data["py"].size, dtype='bool')
+                XShifted = plot.data["px"].copy()
+                YShifted = plot.data["py"].copy()
+                dom_x, dom_y = plot._period
+                for shift in np.mgrid[-1:1:3j]:
+                    xlim = ((plot.data["px"] + shift*dom_x >= x0) &
+                            (plot.data["px"] + shift*dom_x <= x1))
+                    ylim = ((plot.data["py"] + shift*dom_y >= y0) &
+                            (plot.data["py"] + shift*dom_y <= y1))
+                    XShifted[xlim] += shift * dom_x
+                    YShifted[ylim] += shift * dom_y
+                    AllX |= xlim
+                    AllY |= ylim
+            
+                # At this point XShifted and YShifted are the shifted arrays of
+                # position data in data coordinates
+                wI = (AllX & AllY)
+
+                # This converts XShifted and YShifted into plot coordinates
+                x = (XShifted[wI]-x0)*dx + xx0
+                y = (YShifted[wI]-y0)*dy + yy0
+                z = plot.data[self.field][wI]
         
+            # Both the input and output from the triangulator are in plot
+            # coordinates
+            zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
+        elif plot._type_name == 'OffAxisProjection':
+            zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
+        
+        if plot.pf.field_info[self.field].take_log: zi=np.log10(zi)
+
         if plot.pf.field_info[self.field].take_log and self.clim is not None: 
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
@@ -422,16 +432,16 @@ class StreamlineCallback(PlotCallback):
                              plot.data['pdy'],
                              plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                             (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                             (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
-                          np.linspace(yy0,yy1,ny,endpoint=True))
+               np.linspace(yy0,yy1,ny,endpoint=True))
         plot._axes.streamplot(X,Y, pixX, pixY, density = self.dens,
                               **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -742,7 +752,7 @@ class MarkerAnnotateCallback(PlotCallback):
         """
         annotate_marker(pos, marker='x', plot_args=None)
 
-        Adds text *marker* at *pos* in code-arguments.  *plot_args* is a dict
+        Adds text *marker* at *pos* in code units.  *plot_args* is a dict
         that will be forwarded to the plot command.
         """
         self.pos = pos
@@ -753,10 +763,10 @@ class MarkerAnnotateCallback(PlotCallback):
     def __call__(self, plot):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        if np.array(self.pos).shape == (3,):
+        if len(self.pos) == 3:
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
-        elif np.array(self.pos).shape == (2,):
+        elif len(self.pos) == 2:
             pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
@@ -791,7 +801,10 @@ class SphereCallback(PlotCallback):
         
         radius = self.radius * self.pixel_scale(plot)[0]
 
-        (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+        if plot.data.axis == 4:
+            (xi, yi) = (0, 1)
+        else:
+            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
 
         (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
         
