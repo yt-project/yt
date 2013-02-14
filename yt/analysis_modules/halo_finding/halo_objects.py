@@ -142,18 +142,30 @@ class Halo(object):
         if self.CoM is not None:
             return self.CoM
         pm = self["ParticleMassMsun"]
-        cx = self["particle_position_x"]
-        cy = self["particle_position_y"]
-        cz = self["particle_position_z"]
-        if isinstance(self, FOFHalo):
-            c_vec = np.array([cx[0], cy[0], cz[0]]) - self.pf.domain_center
-        else:
-            c_vec = self.maximum_density_location() - self.pf.domain_center
-        cx = (cx - c_vec[0])
-        cy = (cy - c_vec[1])
-        cz = (cz - c_vec[2])
-        com = np.array([v - np.floor(v) for v in [cx, cy, cz]])
-        return (com * pm).sum(axis=1) / pm.sum() + c_vec
+        c = {}
+        c[0] = self["particle_position_x"]
+        c[1] = self["particle_position_y"]
+        c[2] = self["particle_position_z"]
+        c_vec = np.zeros(3)
+        com = []
+        for i in range(3):
+            # A halo is likely periodic around a boundary if the distance 
+            # between the max and min particle
+            # positions are larger than half the box. 
+            # So skip the rest if the converse is true.
+            # Note we might make a change here when periodicity-handling is
+            # fully implemented.
+            if (c[i].max() - c[i].min()) < (self.pf.domain_width[i] / 2.):
+                com.append(c[i])
+                continue
+            # Now we want to flip around only those close to the left boundary.
+            d_left = c[i] - self.pf.domain_left_edge[i]
+            sel = (d_left <= (self.pf.domain_width[i]/2))
+            c[i][sel] += self.pf.domain_width[i]
+            com.append(c[i])
+        com = np.array(com)
+        c = (com * pm).sum(axis=1) / pm.sum()
+        return c%self.pf.domain_width
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to
@@ -809,7 +821,6 @@ class LoadedHalo(Halo):
     _radjust = 1.05
 
     def __init__(self, pf, id, size=None, CoM=None,
-
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
         e1_vec=None, tilt=None, supp=None):
@@ -843,6 +854,10 @@ class LoadedHalo(Halo):
             self.supp = {}
         else:
             self.supp = supp
+        self._saved_fields = {}
+        self._ds_sort = None
+        self._particle_mask = None
+
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,

@@ -1387,9 +1387,11 @@ class AMRCuttingPlaneBase(AMR2DData):
         else:
             self.fields = ensure_list(fields)
         from yt.visualization.plot_window import \
-            GetOffAxisBoundsAndCenter, PWViewerMPL
+            GetObliqueWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        (bounds, center_rot) = GetOffAxisBoundsAndCenter(normal, center, width, self.pf)
+        (bounds, center_rot, units) = GetObliqueWindowParameters(normal, center, width, self.pf)
+        if axes_unit is None and units != ('1', '1'):
+            axes_units = units
         pw = PWViewerMPL(self, bounds, origin='center-window', periodic=False, oblique=True,
                          frb_generator=ObliqueFixedResolutionBuffer, plot_type='OffAxisSlice')
         pw.set_axes_unit(axes_unit)
