@@ -230,6 +230,27 @@ function host_specific
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
         fi
     fi
+    if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
+    then
+        echo "Looks like you're on an OpenSUSE-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * devel_C_C++"
+        echo "  * libopenssl-devel"
+        echo "  * libuuid-devel"
+        echo "  * zip"
+        echo "  * gcc-c++"
+        echo
+        echo "You can accomplish this by executing:"
+        echo
+        echo "$ sudo zypper install -t pattern devel_C_C++"
+        echo "$ sudo zypper install gcc-c++ libopenssl-devel libuuid-devel zip"
+        echo
+        echo "I am also setting special configure arguments to Python to"
+        echo "specify control lib/lib64 issues."
+        PYCONF_ARGS="--libdir=${DEST_DIR}/lib"
+    fi
     if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
     then
         echo "Looks like you're on an Ubuntu-compatible machine."
@@ -639,7 +660,7 @@ then
     echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
     [ ! -e Python-2.7.3 ] && tar xfz Python-2.7.3.tgz
     cd Python-2.7.3
-    ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
