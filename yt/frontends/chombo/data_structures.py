@@ -146,7 +146,7 @@ class ChomboHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = int(self._fhandle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._fhandle['/'].attrs.items()[-ncomp:]]
-
+          
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -220,6 +220,7 @@ class ChomboStaticOutput(StaticOutput):
         self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
+        self.cosmological_simulation = False
         fileh.close()
 
     def _set_units(self):
