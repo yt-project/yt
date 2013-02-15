@@ -26,7 +26,7 @@ License:
 """
 
 import os
-
+import sys
 import h5py
 import numpy as np
 
@@ -46,6 +46,95 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
         The path of the file to output.
 
     """
+
+    f = _create_new_gdf(pf, gdf_path, data_author, data_comment,
+                       particle_type_name)
+
+    # now add the fields one-by-one
+    for field_name in pf.h.field_list:
+        _write_field_to_gdf(pf, f, field_name, particle_type_name)
+
+    # don't forget to close the file.
+    f.close()
+
+def save_field(pf, field_name):
+    """
+    Write a single field associated with the parameter file pf to the
+    backup file.
+
+    Parameters
+    ----------
+    pf : StaticOutput object
+        The yt parameter file that the field is associated with.
+    field_name : string
+        The name of the field to save.
+    """
+
+    field_obj = pf.field_info[field_name]
+    if field_obj.particle_type:
+        print( "Saving particle fields currently not supported." )
+        return
+    
+    backup_filename = pf.backup_filename
+    if os.path.exists(backup_filename):
+        # backup file already exists, open it
+        f = h5py.File(backup_filename, "r+")
+    else:
+        # backup file does not exist, create it
+        f = _create_new_gdf(pf, backup_filename, data_author=None, data_comment=None,
+                       particle_type_name="dark_matter")
+
+    # now save the field
+    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter")
+
+    # don't forget to close the file.
+    f.close()
+        
+def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
+
+    # add field info to field_types group
+    g = fhandle["field_types"]
+    # create the subgroup with the field's name
+    try:
+        sg = g.create_group(field_name)
+    except ValueError:
+        print "Error - File already contains field called " + field_name
+        sys.exit(1)
+        
+    # grab the display name and units from the field info container.
+    display_name = pf.field_info[field_name].display_name
+    units = pf.field_info[field_name].get_units()
+
+    # check that they actually contain something...
+    if display_name:
+        sg.attrs["field_name"] = display_name
+    else:
+        sg.attrs["field_name"] = field_name
+    if units:
+        sg.attrs["field_units"] = units
+    else:
+        sg.attrs["field_units"] = "None"
+    # @todo: the values must be in CGS already right?
+    sg.attrs["field_to_cgs"] = 1.0
+    # @todo: is this always true?
+    sg.attrs["staggering"] = 0
+
+    # now add actual data, grid by grid
+    g = fhandle["data"]     
+    for grid in pf.h.grids:
+        grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+        particles_group = grid_group["particles"]
+        pt_group = particles_group[particle_type_name]
+        # add the field data to the grid group
+        # Check if this is a real field or particle data.
+        field_obj = pf.field_info[field_name]
+        if field_obj.particle_type:  # particle data
+            pt_group[field_name] = grid.get_data(field_name)
+        else:  # a field
+            grid_group[field_name] = grid.get_data(field_name)
+
+def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
+                   particle_type_name="dark_matter"):
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
@@ -100,29 +189,6 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     g = f.create_group("field_types")
 
-    # Which field list should we iterate over?
-    for field_name in pf.h.field_list:
-        # create the subgroup with the field's name
-        sg = g.create_group(field_name)
-
-        # grab the display name and units from the field info container.
-        display_name = pf.field_info[field_name].display_name
-        units = pf.field_info[field_name].get_units()
-
-        # check that they actually contain something...
-        if display_name:
-            sg.attrs["field_name"] = display_name
-        else:
-            sg.attrs["field_name"] = field_name
-        if units:
-            sg.attrs["field_units"] = units
-        else:
-            sg.attrs["field_units"] = "None"
-        # @todo: the values must be in CGS already right?
-        sg.attrs["field_to_cgs"] = 1.0
-        # @todo: is this always true?
-        sg.attrs["staggering"] = 0
-
     ###
     # "particle_types" group
     ###
@@ -147,25 +213,14 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     # "data" group -- where we should spend the most time
     ###
+    
     g = f.create_group("data")
-
     for grid in pf.h.grids:
         # add group for this grid
-
-        grid_group = g.create_group("grid_%010i" % grid.id)
+        grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid
         particles_group = grid_group.create_group("particles")
         pt_group = particles_group.create_group(particle_type_name)
 
-        # add the field data to the grid group
-        for field_name in pf.h.field_list:
-            # Check if this is a real field or particle data.
-            field_obj = pf.field_info[field_name]
+    return f
 
-            if field_obj.particle_type:  # particle data
-                pt_group[field_name] = grid.get_data(field_name)
-            else:  # a field
-                grid_group[field_name] = grid.get_data(field_name)
-
-    # don't forget to close the file.
-    f.close()

@@ -132,7 +132,6 @@ class HaloMassFcn(ParallelAnalysisInterface):
         not stored in enzo datasets, so must be entered by hand.
         sigma8input=%f primordial_index=%f omega_baryon0=%f
         """ % (self.sigma8input, self.primordial_index, self.omega_baryon0))
-        time.sleep(1)
         
         # Do the calculations.
         self.sigmaM()
