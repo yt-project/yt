@@ -44,6 +44,8 @@ License:
 # 8. Parentage is described by a fraction of particles that pass from one to
 #    the other; we have both descendent fractions and ancestory fractions. 
 
+# plot_halo_evolution gives a good full example of how to use the framework
+
 import numpy as np
 import h5py
 import time
