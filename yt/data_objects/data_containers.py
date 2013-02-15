@@ -4523,24 +4523,22 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         Examples
         --------
 
-        from yt.mods import *
-        pf = load("redshift0058")
-        dd = pf.h.sphere("max", (200, "kpc"))
-        rho = 5e-27
-
-        bounds = [(dd.center[i] - 100.0/pf['kpc'],
-                   dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
-
-        surf = pf.h.surface(dd, "Density", rho)
-
-        rv = surf.export_sketchfab(
-            title = "Testing Upload",
-            description = "A simple test of the uploader",
-            color_field = "Temperature",
-            color_map = "hot",
-            color_log = True,
-            bounds = bounds
-        )
+        >>> from yt.mods import *
+        >>> pf = load("redshift0058")
+        >>> dd = pf.h.sphere("max", (200, "kpc"))
+        >>> rho = 5e-27
+        >>> bounds = [(dd.center[i] - 100.0/pf['kpc'],
+        ...            dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
+        ...
+        >>> surf = pf.h.surface(dd, "Density", rho)
+        >>> rv = surf.export_sketchfab(
+        ...     title = "Testing Upload",
+        ...     description = "A simple test of the uploader",
+        ...     color_field = "Temperature",
+        ...     color_map = "hot",
+        ...     color_log = True,
+        ...     bounds = bounds)
+        ...
         """
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):

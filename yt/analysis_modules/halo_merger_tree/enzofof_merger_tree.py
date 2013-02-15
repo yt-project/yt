@@ -730,8 +730,22 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
     x_quantity, y_quantity : str, optional
         The quantity that you want to plot as the x_coord (or y_coords).
         Valid options are:
-            cycle, mass, fraction, halo_id, redshift, dense_x, dense_y, dense_z
-            COM_x, COM_y, COM_z, COM_vx, COM_vy, COM_vz
+
+           * cycle
+           * mass
+           * fraction
+           * halo_id
+           * redshift
+           * dense_x
+           * dense_y
+           * dense_z
+           * COM_x
+           * COM_y
+           * COM_z
+           * COM_vx
+           * COM_vy
+           * COM_vz
+
     x_log, y_log : bool, optional
         Do you want the x(y)-axis to be in log or linear?
     FOF_directory : str, optional
@@ -739,23 +753,23 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
 
     Examples
     --------
-    # generates mass history plots for the 20 most massive halos at t_fin.
 
-    ts = TimeSeriesData.from_filenames("DD????/DD????")
-
-    # long step--must run FOF on each DD, but saves outputs for later use
-    for pf in ts:   
-        halo_list = FOFHaloFinder(pf)
-        i = int(pf.basename[2:])
-        halo_list.write_out("FOF/groups_%05i.txt" % i)
-        halo_list.write_particle_lists("FOF/particles_%05i" % i)
-
-    mt = EnzoFOFMergerTree(external_FOF=False)
-    for i in range(20):
-        mt.build_tree(i)
-        mt.save_halo_evolution('halos.h5')
-    for i in range(20):
-        plot_halo_evolution('halos.h5', i)
+    >>> # generates mass history plots for the 20 most massive halos at t_fin.
+    >>> ts = TimeSeriesData.from_filenames("DD????/DD????")
+    >>> # long step--must run FOF on each DD, but saves outputs for later use
+    >>> for pf in ts:   
+    ...     halo_list = FOFHaloFinder(pf)
+    ...     i = int(pf.basename[2:])
+    ...     halo_list.write_out("FOF/groups_%05i.txt" % i)
+    ...     halo_list.write_particle_lists("FOF/particles_%05i" % i)
+    ...
+    >>> mt = EnzoFOFMergerTree(external_FOF=False)
+    >>> for i in range(20):
+    ...     mt.build_tree(i)
+    ...     mt.save_halo_evolution('halos.h5')
+    ...
+    >>> for i in range(20):
+    ...     plot_halo_evolution('halos.h5', i)
     """
     import matplotlib.pyplot as plt
     f = h5py.File("%s/%s" % (FOF_directory, filename), 'r')
