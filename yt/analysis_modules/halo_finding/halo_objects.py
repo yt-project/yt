@@ -2187,7 +2187,6 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03, \
         total_mass=None, num_particles=None, tree='F'):
-
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
@@ -2484,7 +2483,6 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     >>> pf = load("RedshiftOutput0000")
     >>> halos = HaloFinder(pf)
     """
-
     def __init__(self, pf, subvolume=None, threshold=160, dm_only=True,
             padding=0.02, total_mass=None):
         if subvolume is not None:
@@ -2579,7 +2577,6 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     >>> pf = load("RedshiftOutput0000")
     >>> halos = FOFHaloFinder(pf)
     """
-
     def __init__(self, pf, subvolume=None, link=0.2, dm_only=True,
         padding=0.02):
         if subvolume is not None:
@@ -2653,7 +2650,6 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
     >>> pf = load("data0005")
     >>> halos = LoadHaloes(pf, "HopAnalysis")
     """
-
     def __init__(self, pf, basename):
         self.basename = basename
         LoadedHaloList.__init__(self, pf, self.basename)
@@ -2691,7 +2687,6 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
     >>> halos[0].supp['m']
         3.28392048e14
     """
-
     def __init__(self, pf, filename, columns, comment = "#"):
         TextHaloList.__init__(self, pf, filename, columns, comment)
 
@@ -2711,7 +2706,6 @@ class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
     >>> pf = load("data0005")
     >>> halos = LoadRockstarHalos(pf, "other_name.out")
     """
-
     def __init__(self, pf, filename = None):
         if filename is None:
             filename = 'rockstar_halos/out_0.list'

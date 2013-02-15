@@ -49,6 +49,64 @@ from .light_cone_projection import \
      _light_cone_projection
 
 class LightCone(CosmologySplice):
+    """
+    Initialize a LightCone object.
+
+    Parameters
+    ----------
+    near_redshift : float
+        The near (lowest) redshift for the light cone.
+    far_redshift : float
+        The far (highest) redshift for the light cone.
+    observer_redshift : float
+        The redshift of the observer.
+        Default: 0.0.
+    field_of_view_in_arcminutes : float
+        The field of view of the image in units of arcminutes.
+        Default: 600.0.
+    image_resolution_in_arcseconds : float
+        The size of each image pixel in units of arcseconds.
+        Default: 60.0.
+    use_minimum_datasets : bool
+        If True, the minimum number of datasets is used to connect the initial
+        and final redshift.  If false, the light cone solution will contain
+        as many entries as possible within the redshift interval.
+        Default: True.
+    deltaz_min : float
+        Specifies the minimum :math:`\Delta z` between consecutive datasets in
+        the returned list.
+        Default: 0.0.
+    minimum_coherent_box_fraction : float
+        Used with use_minimum_datasets set to False, this parameter specifies
+        the fraction of the total box size to be traversed before rerandomizing
+        the projection axis and center.  This was invented to allow light cones
+        with thin slices to sample coherent large scale structure, but in
+        practice does not work so well.  Try setting this parameter to 1 and
+        see what happens.
+        Default: 0.0.
+    time_data : bool
+        Whether or not to include time outputs when gathering
+        datasets for time series.
+        Default: True.
+    redshift_data : bool
+        Whether or not to include redshift outputs when gathering
+        datasets for time series.
+        Default: True.
+    find_outputs : bool
+        Whether or not to search for parameter files in the current 
+        directory.
+        Default: False.
+    set_parameters : dict
+        Dictionary of parameters to attach to pf.parameters.
+        Default: None.
+    output_dir : string
+        The directory in which images and data files will be written.
+        Default: 'LC'.
+    output_prefix : string
+        The prefix of all images and data files.
+        Default: 'LightCone'.
+
+    """
     def __init__(self, parameter_filename, simulation_type,
                  near_redshift, far_redshift,
                  observer_redshift=0.0,
@@ -59,64 +117,6 @@ class LightCone(CosmologySplice):
                  time_data=True, redshift_data=True,
                  find_outputs=False, set_parameters=None,
                  output_dir='LC', output_prefix='LightCone'):
-        """
-        Initialize a LightCone object.
-
-        Parameters
-        ----------
-        near_redshift : float
-            The near (lowest) redshift for the light cone.
-        far_redshift : float
-            The far (highest) redshift for the light cone.
-        observer_redshift : float
-            The redshift of the observer.
-            Default: 0.0.
-        field_of_view_in_arcminutes : float
-            The field of view of the image in units of arcminutes.
-            Default: 600.0.
-        image_resolution_in_arcseconds : float
-            The size of each image pixel in units of arcseconds.
-            Default: 60.0.
-        use_minimum_datasets : bool
-            If True, the minimum number of datasets is used to connect the initial
-            and final redshift.  If false, the light cone solution will contain
-            as many entries as possible within the redshift interval.
-            Default: True.
-        deltaz_min : float
-            Specifies the minimum :math:`\Delta z` between consecutive datasets in
-            the returned list.
-            Default: 0.0.
-        minimum_coherent_box_fraction : float
-            Used with use_minimum_datasets set to False, this parameter specifies
-            the fraction of the total box size to be traversed before rerandomizing
-            the projection axis and center.  This was invented to allow light cones
-            with thin slices to sample coherent large scale structure, but in
-            practice does not work so well.  Try setting this parameter to 1 and
-            see what happens.
-            Default: 0.0.
-        time_data : bool
-            Whether or not to include time outputs when gathering
-            datasets for time series.
-            Default: True.
-        redshift_data : bool
-            Whether or not to include redshift outputs when gathering
-            datasets for time series.
-            Default: True.
-        find_outputs : bool
-            Whether or not to search for parameter files in the current 
-            directory.
-            Default: False.
-        set_parameters : dict
-            Dictionary of parameters to attach to pf.parameters.
-            Default: None.
-        output_dir : string
-            The directory in which images and data files will be written.
-            Default: 'LC'.
-        output_prefix : string
-            The prefix of all images and data files.
-            Default: 'LightCone'.
-
-        """
 
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift

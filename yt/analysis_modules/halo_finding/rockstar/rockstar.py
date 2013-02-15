@@ -114,80 +114,80 @@ class StandardRunner(ParallelAnalysisInterface):
         return pool, workgroup
 
 class RockstarHaloFinder(ParallelAnalysisInterface):
+    r"""Spawns the Rockstar Halo finder, distributes dark matter
+    particles and finds halos.
+
+    The halo finder requires dark matter particles of a fixed size.
+    Rockstar has three main processes: reader, writer, and the 
+    server which coordinates reader/writer processes.
+
+    Parameters
+    ----------
+    ts   : TimeSeriesData, StaticOutput
+        This is the data source containing the DM particles. Because 
+        halo IDs may change from one snapshot to the next, the only
+        way to keep a consistent halo ID across time is to feed 
+        Rockstar a set of snapshots, ie, via TimeSeriesData.
+    num_readers: int
+        The number of reader can be increased from the default
+        of 1 in the event that a single snapshot is split among
+        many files. This can help in cases where performance is
+        IO-limited. Default is 1. If run inline, it is
+        equal to the number of MPI threads.
+    num_writers: int
+        The number of writers determines the number of processing threads
+        as well as the number of threads writing output data.
+        The default is set to comm.size-num_readers-1. If run inline,
+        the default is equal to the number of MPI threads.
+    outbase: str
+        This is where the out*list files that Rockstar makes should be
+        placed. Default is 'rockstar_halos'.
+    dm_type: 1
+        In order to exclude stars and other particle types, define
+        the dm_type. Default is 1, as Enzo has the DM particle type=1.
+    force_res: float
+        This parameter specifies the force resolution that Rockstar uses
+        in units of Mpc/h.
+        If no value is provided, this parameter is automatically set to
+        the width of the smallest grid element in the simulation from the
+        last data snapshot (i.e. the one where time has evolved the
+        longest) in the time series:
+        ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+    total_particles : int
+        If supplied, this is a pre-calculated total number of dark matter
+        particles present in the simulation. For example, this is useful
+        when analyzing a series of snapshots where the number of dark
+        matter particles should not change and this will save some disk
+        access time. If left unspecified, it will
+        be calculated automatically. Default: ``None``.
+    dm_only : boolean
+        If set to ``True``, it will be assumed that there are only dark
+        matter particles present in the simulation. This can save analysis
+        time if this is indeed the case. Default: ``False``.
+        
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    To use the script below you must run it using MPI:
+    mpirun -np 3 python test_rockstar.py --parallel
+
+    test_rockstar.py:
+
+    from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
+    from yt.mods import *
+    import sys
+
+    ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
+    pm = 7.81769027e+11
+    rh = RockstarHaloFinder(ts)
+    rh.run()
+    """
     def __init__(self, ts, num_readers = 1, num_writers = None,
             outbase="rockstar_halos", dm_type=1, 
             force_res=None, total_particles=None, dm_only=False):
-        r"""Spawns the Rockstar Halo finder, distributes dark matter
-        particles and finds halos.
-
-        The halo finder requires dark matter particles of a fixed size.
-        Rockstar has three main processes: reader, writer, and the 
-        server which coordinates reader/writer processes.
-
-        Parameters
-        ----------
-        ts   : TimeSeriesData, StaticOutput
-            This is the data source containing the DM particles. Because 
-            halo IDs may change from one snapshot to the next, the only
-            way to keep a consistent halo ID across time is to feed 
-            Rockstar a set of snapshots, ie, via TimeSeriesData.
-        num_readers: int
-            The number of reader can be increased from the default
-            of 1 in the event that a single snapshot is split among
-            many files. This can help in cases where performance is
-            IO-limited. Default is 1. If run inline, it is
-            equal to the number of MPI threads.
-        num_writers: int
-            The number of writers determines the number of processing threads
-            as well as the number of threads writing output data.
-            The default is set to comm.size-num_readers-1. If run inline,
-            the default is equal to the number of MPI threads.
-        outbase: str
-            This is where the out*list files that Rockstar makes should be
-            placed. Default is 'rockstar_halos'.
-        dm_type: 1
-            In order to exclude stars and other particle types, define
-            the dm_type. Default is 1, as Enzo has the DM particle type=1.
-        force_res: float
-            This parameter specifies the force resolution that Rockstar uses
-            in units of Mpc/h.
-            If no value is provided, this parameter is automatically set to
-            the width of the smallest grid element in the simulation from the
-            last data snapshot (i.e. the one where time has evolved the
-            longest) in the time series:
-            ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
-        total_particles : int
-            If supplied, this is a pre-calculated total number of dark matter
-            particles present in the simulation. For example, this is useful
-            when analyzing a series of snapshots where the number of dark
-            matter particles should not change and this will save some disk
-            access time. If left unspecified, it will
-            be calculated automatically. Default: ``None``.
-        dm_only : boolean
-            If set to ``True``, it will be assumed that there are only dark
-            matter particles present in the simulation. This can save analysis
-            time if this is indeed the case. Default: ``False``.
-            
-        Returns
-        -------
-        None
-
-        Examples
-        --------
-        To use the script below you must run it using MPI:
-        mpirun -np 3 python test_rockstar.py --parallel
-
-        test_rockstar.py:
-
-        from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
-        from yt.mods import *
-        import sys
-
-        ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
-        pm = 7.81769027e+11
-        rh = RockstarHaloFinder(ts)
-        rh.run()
-        """
         mylog.warning("The citation for the Rockstar halo finder can be found at")
         mylog.warning("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)

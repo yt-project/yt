@@ -35,62 +35,62 @@ import numpy as np
 import weakref
 
 class FixedResolutionBuffer(object):
+    r"""
+    FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
+
+    This accepts a 2D data object, such as a Projection or Slice, and
+    implements a protocol for generating a pixelized, fixed-resolution
+    image buffer.
+
+    yt stores 2D AMR data internally as a set of 2D coordinates and the
+    half-width of individual pixels.  Converting this to an image buffer
+    requires a deposition step, where individual variable-resolution pixels
+    are deposited into a buffer of some resolution, to create an image.
+    This object is an interface to that pixelization step: it can deposit
+    multiple fields.  It acts as a standard AMRData object, such that
+    dict-style access returns an image of a given field.
+
+    Parameters
+    ----------
+    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
+        This is the source to be pixelized, which can be a projection or a
+        slice.  (For cutting planes, see
+        `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
+    bounds : sequence of floats
+        Bounds are the min and max in the image plane that we want our
+        image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
+        where the coordinates are all in the appropriate code units.
+    buff_size : sequence of ints
+        The size of the image to generate.
+    antialias : boolean
+        This can be true or false.  It determines whether or not sub-pixel
+        rendering is used during data deposition.
+    periodic : boolean
+        This can be true or false, and governs whether the pixelization
+        will span the domain boundaries.
+
+    See Also
+    --------
+    :class:`yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer` : A similar object,
+                                                     used for cutting
+                                                     planes.
+
+    Examples
+    --------
+    To make a projection and then several images, you can generate a
+    single FRB and then access multiple fields:
+
+    >>> proj = pf.h.proj(0, "Density")
+    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
+                    (1024, 1024))
+    >>> print frb1["Density"].max()
+    1.0914e-9
+    >>> print frb1["Temperature"].max()
+    104923.1
+    """
     _exclude_fields = ('pz','pdz','dx','x','y','z')
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
-        r"""
-        FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
-
-        This accepts a 2D data object, such as a Projection or Slice, and
-        implements a protocol for generating a pixelized, fixed-resolution
-        image buffer.
-
-        yt stores 2D AMR data internally as a set of 2D coordinates and the
-        half-width of individual pixels.  Converting this to an image buffer
-        requires a deposition step, where individual variable-resolution pixels
-        are deposited into a buffer of some resolution, to create an image.
-        This object is an interface to that pixelization step: it can deposit
-        multiple fields.  It acts as a standard AMRData object, such that
-        dict-style access returns an image of a given field.
-
-        Parameters
-        ----------
-        data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
-            This is the source to be pixelized, which can be a projection or a
-            slice.  (For cutting planes, see
-            `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
-        bounds : sequence of floats
-            Bounds are the min and max in the image plane that we want our
-            image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
-            where the coordinates are all in the appropriate code units.
-        buff_size : sequence of ints
-            The size of the image to generate.
-        antialias : boolean
-            This can be true or false.  It determines whether or not sub-pixel
-            rendering is used during data deposition.
-        periodic : boolean
-            This can be true or false, and governs whether the pixelization
-            will span the domain boundaries.
-
-        See Also
-        --------
-        :class:`yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer` : A similar object,
-                                                         used for cutting
-                                                         planes.
-
-        Examples
-        --------
-        To make a projection and then several images, you can generate a
-        single FRB and then access multiple fields:
-
-        >>> proj = pf.h.proj(0, "Density")
-        >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
-                        (1024, 1024))
-        >>> print frb1["Density"].max()
-        1.0914e-9
-        >>> print frb1["Temperature"].max()
-        104923.1
-        """
         self.data_source = data_source
         self.pf = data_source.pf
         self.bounds = bounds

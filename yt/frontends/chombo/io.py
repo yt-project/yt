@@ -36,36 +36,40 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def _field_dict(self,fhandle):
-        ncomp = int(fhandle['/'].attrs['num_components'])
-        temp =  fhandle['/'].attrs.items()[-ncomp:]
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+        self._handle = pf._handle
+
+    _field_dict = None
+    @property
+    def field_dict(self):
+        if self._field_dict is not None:
+            return self._field_dict
+        ncomp = int(self._handle['/'].attrs['num_components'])
+        temp =  self._handle['/'].attrs.items()[-ncomp:]
         val, keys = zip(*temp)
         val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
-        return dict(zip(keys,val))
+        self._field_dict = dict(zip(keys,val))
+        return self._field_dict
         
     def _read_field_names(self,grid):
-        fhandle = h5py.File(grid.filename,'r')
-        ncomp = int(fhandle['/'].attrs['num_components'])
+        ncomp = int(self._handle['/'].attrs['num_components'])
 
         fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
-        fhandle.close()
     
     def _read_data(self,grid,field):
 
-        fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
-
-        field_dict = self._field_dict(fhandle)
         lstring = 'level_%i' % grid.Level
-        lev = fhandle[lstring]
+        lev = self._handle[lstring]
         dims = grid.ActiveDimensions
         boxsize = dims.prod()
         
         grid_offset = lev[self._offset_string][grid._level_id]
-        start = grid_offset+field_dict[field]*boxsize
+        start = grid_offset+self.field_dict[field]*boxsize
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
         
-        fhandle.close()
         return data.reshape(dims, order='F')
 
     def _read_particles(self, grid, field):
