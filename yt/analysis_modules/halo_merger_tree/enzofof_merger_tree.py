@@ -523,14 +523,14 @@ class EnzoFOFMergerTree(object):
 
         for i, lvl in enumerate(sorted(self.levels, reverse=True)):
             if lvl not in self.redshifts: continue
-            print "========== Cycle %5.5d (z=%f) ==========" % \
-                  (lvl, self.redshifts[lvl])
+            mylog.info("========== Cycle %5.5d (z=%f) ==========" % \
+                  (lvl, self.redshifts[lvl]))
             cycle[i] = lvl 
             redshift[i] = self.redshifts[lvl]
 
             br = self.levels[lvl][0]
-            print "Parent halo = %d" % br.halo_id
-            print "--> Most massive progenitor == Halo %d" % (br.progenitor)
+            mylog.info("Parent halo = %d" % br.halo_id)
+            mylog.info("-> Most massive progenitor == Halo %d" % (br.progenitor))
             halo_id[i] = br.halo_id
 
             if len(br.children) == 0:           # lineage for this halo ends
