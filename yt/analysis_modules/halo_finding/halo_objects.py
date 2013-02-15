@@ -2007,6 +2007,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
+        # if path denoted in filename, assure path exists
+        if len(filename.split('/')) > 1:
+            mkdir_rec('/'.join(filename.split('/')[:-1]))
+
         f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f, ellipsoid_data)
 
@@ -2026,6 +2030,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
+        # if path denoted in prefix, assure path exists
+        if len(prefix.split('/')) > 1:
+            mkdir_rec('/'.join(prefix.split('/')[:-1]))
+
         f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
@@ -2049,6 +2057,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
+        # if path denoted in prefix, assure path exists
+        if len(prefix.split('/')) > 1:
+            mkdir_rec('/'.join(prefix.split('/')[:-1]))
+
         fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -2082,6 +2094,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.dump("MyHalos")
         """
+        # if path denoted in basename, assure path exists
+        if len(basename.split('/')) > 1:
+            mkdir_rec('/'.join(basename.split('/')[:-1]))
+
         self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)

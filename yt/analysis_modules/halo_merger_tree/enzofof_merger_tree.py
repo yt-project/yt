@@ -670,9 +670,7 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
 
     Examples
     --------
-    files = glob.glob("DD????/DD????")
-    files.sort()
-    ts = TimeSeriesData.from_filenames(files)
+    ts = TimeSeriesData.from_filenames("DD????/DD????")
     if not os.path.isdir('FOF'): os.mkdir('FOF')
     for pf in ts:
         halo_list = FOFHaloFinder(pf)
