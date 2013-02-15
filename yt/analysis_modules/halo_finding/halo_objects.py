@@ -1059,7 +1059,7 @@ class HaloList(object):
 
     _fields = ["particle_position_%s" % ax for ax in 'xyz']
 
-    def __init__(self, data_source, dm_only=True):
+    def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -1074,6 +1074,7 @@ class HaloList(object):
         mylog.info("Parsing outputs")
         self._parse_output()
         mylog.debug("Finished. (%s)", len(self))
+        self.redshift = redshift
 
     def __obtain_particles(self):
         if self.dm_only:
@@ -1257,6 +1258,7 @@ class HaloList(object):
         else:
             f = open(filename, "w")
         f.write("# HALOS FOUND WITH %s\n" % (self._name))
+        f.write("# REDSHIFT OF OUTPUT = %f\n" % (self.redshift))
 
         if not ellipsoid_data:
             f.write("\t".join(["# Group","Mass","# part","max dens"
@@ -1453,18 +1455,17 @@ class RockstarHaloList(HaloList):
         pass
 
 class HOPHaloList(HaloList):
-
+    """
+    Run hop on *data_source* with a given density *threshold*.  If
+    *dm_only* is set, only run it on the dark matter particles, otherwise
+    on all particles.  Returns an iterable collection of *HopGroup* items.
+    """
     _name = "HOP"
     _halo_class = HOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["ParticleMassMsun"]
 
     def __init__(self, data_source, threshold=160.0, dm_only=True):
-        """
-        Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
-        """
         self.threshold = threshold
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
@@ -1502,10 +1503,10 @@ class FOFHaloList(HaloList):
     _name = "FOF"
     _halo_class = FOFHalo
 
-    def __init__(self, data_source, link=0.2, dm_only=True):
+    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1):
         self.link = link
         mylog.info("Initializing FOF")
-        HaloList.__init__(self, data_source, dm_only)
+        HaloList.__init__(self, data_source, dm_only, redshift=redshift)
 
     def _run_finder(self):
         self.tags = \
@@ -1653,6 +1654,11 @@ class TextHaloList(HaloList):
 
 
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
+    """
+    Run hop on *data_source* with a given density *threshold*.  If
+    *dm_only* is set, only run it on the dark matter particles, otherwise
+    on all particles.  Returns an iterable collection of *HopGroup* items.
+    """
     _name = "parallelHOP"
     _halo_class = parallelHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
@@ -1661,11 +1667,6 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
         period, threshold=160.0, dm_only=True, rearrange=True, premerge=True,
         tree='F'):
-        """
-        Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
-        """
         ParallelAnalysisInterface.__init__(self)
         self.threshold = threshold
         self.num_neighbors = num_neighbors
@@ -2007,6 +2008,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
+        # if path denoted in filename, assure path exists
+        if len(filename.split('/')) > 1:
+            mkdir_rec('/'.join(filename.split('/')[:-1]))
+
         f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f, ellipsoid_data)
 
@@ -2026,6 +2031,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
+        # if path denoted in prefix, assure path exists
+        if len(prefix.split('/')) > 1:
+            mkdir_rec('/'.join(prefix.split('/')[:-1]))
+
         f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
@@ -2049,6 +2058,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
+        # if path denoted in prefix, assure path exists
+        if len(prefix.split('/')) > 1:
+            mkdir_rec('/'.join(prefix.split('/')[:-1]))
+
         fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -2082,6 +2095,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.dump("MyHalos")
         """
+        # if path denoted in basename, assure path exists
+        if len(basename.split('/')) > 1:
+            mkdir_rec('/'.join(basename.split('/')[:-1]))
+
         self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)
@@ -2568,6 +2585,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.period = pf.domain_right_edge - pf.domain_left_edge
         self.pf = pf
         self.hierarchy = pf.h
+        self.redshift = pf.current_redshift
         self._data_source = pf.h.all_data()
         GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
             padding)
@@ -2602,7 +2620,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         #self._reposition_particles((LE, RE))
         # here is where the FOF halo finder is run
         mylog.info("Using a linking length of %0.3e", linking_length)
-        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only)
+        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
+                             redshift=self.redshift)
         self._parse_halolist(1.)
         self._join_halolists()
 
