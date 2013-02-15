@@ -532,42 +532,42 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self[field] = self[field][self._sortkey]
        
 class AMROrthoRayBase(AMR1DData):
+    """
+    This is an orthogonal ray cast through the entire domain, at a specific
+    coordinate.
+
+    This object is typically accessed through the `ortho_ray` object that
+    hangs off of hierarchy objects.  The resulting arrays have their
+    dimensionality reduced to one, and an ordered list of points at an
+    (x,y) tuple along `axis` are available.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+    coords : tuple of floats
+        The (plane_x, plane_y) coordinates at which to cast the ray.  Note
+        that this is in the plane coordinates: so if you are casting along
+        x, this will be (y,z).  If you are casting along y, this will be
+        (x,z).  If you are casting along z, this will be (x,y).
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
+    >>> print oray["Density"]
+    """
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
-        """
-        This is an orthogonal ray cast through the entire domain, at a specific
-        coordinate.
-
-        This object is typically accessed through the `ortho_ray` object that
-        hangs off of hierarchy objects.  The resulting arrays have their
-        dimensionality reduced to one, and an ordered list of points at an
-        (x,y) tuple along `axis` are available.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
-        coords : tuple of floats
-            The (plane_x, plane_y) coordinates at which to cast the ray.  Note
-            that this is in the plane coordinates: so if you are casting along
-            x, this will be (y,z).  If you are casting along y, this will be
-            (x,z).  If you are casting along z, this will be (x,y).
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
-        >>> print oray["Density"]
-        """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.axis = axis
         self.px_ax = x_dict[self.axis]
@@ -613,41 +613,41 @@ class AMROrthoRayBase(AMR1DData):
         return gf[np.where(grid.child_mask[sl])]
 
 class AMRRayBase(AMR1DData):
+    """
+    This is an arbitrarily-aligned ray cast through the entire domain, at a
+    specific coordinate.
+
+    This object is typically accessed through the `ray` object that hangs
+    off of hierarchy objects.  The resulting arrays have their
+    dimensionality reduced to one, and an ordered list of points at an
+    (x,y) tuple along `axis` are available, as is the `t` field, which
+    corresponds to a unitless measurement along the ray from start to
+    end.
+
+    Parameters
+    ----------
+    start_point : array-like set of 3 floats
+        The place where the ray starts.
+    end_point : array-like set of 3 floats
+        The place where the ray ends.
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> print ray["Density"], ray["t"], ray["dts"]
+    """
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     sort_by = 't'
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
-        """
-        This is an arbitrarily-aligned ray cast through the entire domain, at a
-        specific coordinate.
-
-        This object is typically accessed through the `ray` object that hangs
-        off of hierarchy objects.  The resulting arrays have their
-        dimensionality reduced to one, and an ordered list of points at an
-        (x,y) tuple along `axis` are available, as is the `t` field, which
-        corresponds to a unitless measurement along the ray from start to
-        end.
-
-        Parameters
-        ----------
-        start_point : array-like set of 3 floats
-            The place where the ray starts.
-        end_point : array-like set of 3 floats
-            The place where the ray ends.
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
-        >>> print ray["Density"], ray["t"], ray["dts"]
-        """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = np.array(start_point, dtype='float64')
         self.end_point = np.array(end_point, dtype='float64')
@@ -708,46 +708,46 @@ class AMRRayBase(AMR1DData):
         return mask
 
 class AMRStreamlineBase(AMR1DData):
+    """
+    This is a streamline, which is a set of points defined as
+    being parallel to some vector field.
+
+    This object is typically accessed through the Streamlines.path
+    function.  The resulting arrays have their dimensionality
+    reduced to one, and an ordered list of points at an (x,y)
+    tuple along `axis` are available, as is the `t` field, which
+    corresponds to a unitless measurement along the ray from start
+    to end.
+
+    Parameters
+    ----------
+    positions : array-like
+        List of streamline positions
+    length : float
+        The magnitude of the distance; dts will be divided by this
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    pf : Parameter file object
+        Passed in to access the hierarchy
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> from yt.visualization.api import Streamlines
+    >>> streamlines = Streamlines(pf, [0.5]*3) 
+    >>> streamlines.integrate_through_volume()
+    >>> stream = streamlines.path(0)
+    >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+    
+    """
     _type_name = "streamline"
     _con_args = ('positions')
     sort_by = 't'
     def __init__(self, positions, length = 1.0, fields=None, pf=None, **kwargs):
-        """
-        This is a streamline, which is a set of points defined as
-        being parallel to some vector field.
-
-        This object is typically accessed through the Streamlines.path
-        function.  The resulting arrays have their dimensionality
-        reduced to one, and an ordered list of points at an (x,y)
-        tuple along `axis` are available, as is the `t` field, which
-        corresponds to a unitless measurement along the ray from start
-        to end.
-
-        Parameters
-        ----------
-        positions : array-like
-            List of streamline positions
-        length : float
-            The magnitude of the distance; dts will be divided by this
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        pf : Parameter file object
-            Passed in to access the hierarchy
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> from yt.visualization.api import Streamlines
-        >>> streamlines = Streamlines(pf, [0.5]*3) 
-        >>> streamlines.integrate_through_volume()
-        >>> stream = streamlines.path(0)
-        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-        
-        """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.positions = positions
         self.dts = np.empty_like(positions[:,0])
@@ -998,50 +998,50 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         self._store_fields(self.fields, node_name, force)
 
 class AMRSliceBase(AMR2DData):
+    """
+    This is a data object corresponding to a slice through the simulation
+    domain.
+
+    This object is typically accessed through the `slice` object that hangs
+    off of hierarchy objects.  AMRSlice is an orthogonal slice through the
+    data, taking all the points at the finest resolution available and then
+    indexing them.  It is more appropriately thought of as a slice
+    'operator' than an object, however, as its field and coordinate can
+    both change.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    coord : float
+        The coordinate along the axis at which to slice.  This is in
+        "domain" coordinates.
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> slice = pf.h.slice(0, 0.25)
+    >>> print slice["Density"]
+    """
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
     #@time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, **kwargs):
-        """
-        This is a data object corresponding to a slice through the simulation
-        domain.
-
-        This object is typically accessed through the `slice` object that hangs
-        off of hierarchy objects.  AMRSlice is an orthogonal slice through the
-        data, taking all the points at the finest resolution available and then
-        indexing them.  It is more appropriately thought of as a slice
-        'operator' than an object, however, as its field and coordinate can
-        both change.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        coord : float
-            The coordinate along the axis at which to slice.  This is in
-            "domain" coordinates.
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        center : array_like, optional
-            The 'center' supplied to fields that use it.  Note that this does
-            not have to have `coord` as one value.  Strictly optional.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> slice = pf.h.slice(0, 0.25)
-        >>> print slice["Density"]
-        """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self._set_center(center)
         self.coord = coord
@@ -1210,6 +1210,49 @@ class AMRSliceBase(AMR2DData):
         return pw
 
 class AMRCuttingPlaneBase(AMR2DData):
+    """
+    This is a data object corresponding to an oblique slice through the
+    simulation domain.
+
+    This object is typically accessed through the `cutting` object
+    that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
+    plane through the data, defined by a normal vector and a coordinate.
+    It attempts to guess an 'up' vector, which cannot be overridden, and
+    then it pixelizes the appropriate data onto the plane without
+    interpolation.
+
+    Parameters
+    ----------
+    normal : array_like
+        The vector that defines the desired plane.  For instance, the
+        angular momentum of a sphere.
+    center : array_like, optional
+        The center of the cutting plane.
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Notes
+    -----
+
+    This data object in particular can be somewhat expensive to create.
+    It's also important to note that unlike the other 2D data objects, this
+    oject provides px, py, pz, as some cells may have a height from the
+    plane.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
+    >>> print cp["Density"]
+    """
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = AMR2DData._key_fields + ['pz','pdz']
@@ -1217,49 +1260,6 @@ class AMRCuttingPlaneBase(AMR2DData):
     _con_args = ('normal', 'center')
     def __init__(self, normal, center, fields = None, node_name = None,
                  north_vector = None, **kwargs):
-        """
-        This is a data object corresponding to an oblique slice through the
-        simulation domain.
-
-        This object is typically accessed through the `cutting` object
-        that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
-        plane through the data, defined by a normal vector and a coordinate.
-        It attempts to guess an 'up' vector, which cannot be overridden, and
-        then it pixelizes the appropriate data onto the plane without
-        interpolation.
-
-        Parameters
-        ----------
-        normal : array_like
-            The vector that defines the desired plane.  For instance, the
-            angular momentum of a sphere.
-        center : array_like, optional
-            The center of the cutting plane.
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Notes
-        -----
-
-        This data object in particular can be somewhat expensive to create.
-        It's also important to note that unlike the other 2D data objects, this
-        oject provides px, py, pz, as some cells may have a height from the
-        plane.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
-        >>> print cp["Density"]
-        """
         AMR2DData.__init__(self, 4, fields, **kwargs)
         self._set_center(center)
         self.set_field_parameter('center',center)
@@ -1452,6 +1452,11 @@ class AMRCuttingPlaneBase(AMR2DData):
 
 class AMRFixedResCuttingPlaneBase(AMR2DData):
     """
+    The fixed resolution Cutting Plane slices at an oblique angle,
+    where we use the *normal* vector at the *center* to define the
+    viewing plane.  The plane is *width* units wide.  The 'up'
+    direction is guessed at automatically if not given.
+
     AMRFixedResCuttingPlaneBase is an oblique plane through the data,
     defined by a normal vector and a coordinate.  It trilinearly
     interpolates the data to a fixed resolution slice.  It differs from
@@ -1463,12 +1468,6 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
     _con_args = ('normal', 'center', 'width', 'dims')
     def __init__(self, normal, center, width, dims, fields = None,
                  node_name = None, **kwargs):
-        """
-        The fixed resolution Cutting Plane slices at an oblique angle,
-        where we use the *normal* vector at the *center* to define the
-        viewing plane.  The plane is *width* units wide.  The 'up'
-        direction is guessed at automatically if not given.
-        """
         #
         # Taken from Cutting Plane
         #
@@ -1654,6 +1653,68 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             (self._top_node, cen_name, L_name)
         
 class AMRQuadTreeProjBase(AMR2DData):
+    """
+    This is a data object corresponding to a line integral through the
+    simulation domain.
+
+    This object is typically accessed through the `proj` object that
+    hangs off of hierarchy objects.  AMRQuadProj is a projection of a
+    `field` along an `axis`.  The field can have an associated
+    `weight_field`, in which case the values are multiplied by a weight
+    before being summed, and then divided by the sum of that weight; the
+    two fundamental modes of operating are direct line integral (no
+    weighting) and average along a line of sight (weighting.)  What makes
+    `proj` different from the standard projection mechanism is that it
+    utilizes a quadtree data structure, rather than the old mechanism for
+    projections.  It will not run in parallel, but serial runs should be
+    substantially faster.  Note also that lines of sight are integrated at
+    every projected finest-level cell.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    field : string
+        This is the field which will be "projected" along the axis.  If
+        multiple are specified (in a list) they will all be projected in
+        the first pass.
+    weight_field : string
+        If supplied, the field being projected will be multiplied by this
+        weight value before being integrated, and at the conclusion of the
+        projection the resultant values will be divided by the projected
+        `weight_field`.
+    max_level : int
+        If supplied, only cells at or below this level will be projected.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    source : `yt.data_objects.api.AMRData`, optional
+        If specified, this will be the data source used for selecting
+        regions to project.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    field_cuts : list of strings, optional
+        If supplied, each of these strings will be evaluated to cut a
+        region of a grid out.  They can be of the form "grid['Temperature']
+        > 100" for instance.
+    preload_style : string
+        Either 'level', 'all', or None (default).  Defines how grids are
+        loaded -- either level by level, or all at once.  Only applicable
+        during parallel runs.
+    serialize : bool, optional
+        Whether we should store this projection in the .yt file or not.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> qproj = pf.h.quad_proj(0, "Density")
+    >>> print qproj["Density"]
+    """
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
     _type_name = "proj"
@@ -1663,68 +1724,6 @@ class AMRQuadTreeProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style=None, serialize=True,
                  style = "integrate", **kwargs):
-        """
-        This is a data object corresponding to a line integral through the
-        simulation domain.
-
-        This object is typically accessed through the `proj` object that
-        hangs off of hierarchy objects.  AMRQuadProj is a projection of a
-        `field` along an `axis`.  The field can have an associated
-        `weight_field`, in which case the values are multiplied by a weight
-        before being summed, and then divided by the sum of that weight; the
-        two fundamental modes of operating are direct line integral (no
-        weighting) and average along a line of sight (weighting.)  What makes
-        `proj` different from the standard projection mechanism is that it
-        utilizes a quadtree data structure, rather than the old mechanism for
-        projections.  It will not run in parallel, but serial runs should be
-        substantially faster.  Note also that lines of sight are integrated at
-        every projected finest-level cell.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        field : string
-            This is the field which will be "projected" along the axis.  If
-            multiple are specified (in a list) they will all be projected in
-            the first pass.
-        weight_field : string
-            If supplied, the field being projected will be multiplied by this
-            weight value before being integrated, and at the conclusion of the
-            projection the resultant values will be divided by the projected
-            `weight_field`.
-        max_level : int
-            If supplied, only cells at or below this level will be projected.
-        center : array_like, optional
-            The 'center' supplied to fields that use it.  Note that this does
-            not have to have `coord` as one value.  Strictly optional.
-        source : `yt.data_objects.api.AMRData`, optional
-            If specified, this will be the data source used for selecting
-            regions to project.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        field_cuts : list of strings, optional
-            If supplied, each of these strings will be evaluated to cut a
-            region of a grid out.  They can be of the form "grid['Temperature']
-            > 100" for instance.
-        preload_style : string
-            Either 'level', 'all', or None (default).  Defines how grids are
-            loaded -- either level by level, or all at once.  Only applicable
-            during parallel runs.
-        serialize : bool, optional
-            Whether we should store this projection in the .yt file or not.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> qproj = pf.h.quad_proj(0, "Density")
-        >>> print qproj["Density"]
-        """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.proj_style = style
         if style == "mip":
@@ -2002,6 +2001,64 @@ class AMRQuadTreeProjBase(AMR2DData):
 
 
 class AMRProjBase(AMR2DData):
+    """
+    This is a data object corresponding to a line integral through the
+    simulation domain.
+
+    This object is typically accessed through the `proj` object that
+    hangs off of hierarchy objects.  AMRProj is a projection of a `field`
+    along an `axis`.  The field can have an associated `weight_field`, in
+    which case the values are multiplied by a weight before being summed,
+    and then divided by the sum of that weight; the two fundamental modes
+    of operating are direct line integral (no weighting) and average along
+    a line of sight (weighting.)  Note also that lines of sight are
+    integrated at every projected finest-level cell
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    field : string
+        This is the field which will be "projected" along the axis.  If
+        multiple are specified (in a list) they will all be projected in
+        the first pass.
+    weight_field : string
+        If supplied, the field being projected will be multiplied by this
+        weight value before being integrated, and at the conclusion of the
+        projection the resultant values will be divided by the projected
+        `weight_field`.
+    max_level : int
+        If supplied, only cells at or below this level will be projected.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    source : `yt.data_objects.api.AMRData`, optional
+        If specified, this will be the data source used for selecting
+        regions to project.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    field_cuts : list of strings, optional
+        If supplied, each of these strings will be evaluated to cut a
+        region of a grid out.  They can be of the form "grid['Temperature']
+        > 100" for instance.
+    preload_style : string
+        Either 'level' (default) or 'all'.  Defines how grids are loaded --
+        either level by level, or all at once.  Only applicable during
+        parallel runs.
+    serialize : bool, optional
+        Whether we should store this projection in the .yt file or not.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> proj = pf.h.proj(0, "Density")
+    >>> print proj["Density"]
+    """
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
     _type_name = "overlap_proj"
@@ -2010,64 +2067,6 @@ class AMRProjBase(AMR2DData):
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
-        """
-        This is a data object corresponding to a line integral through the
-        simulation domain.
-
-        This object is typically accessed through the `proj` object that
-        hangs off of hierarchy objects.  AMRProj is a projection of a `field`
-        along an `axis`.  The field can have an associated `weight_field`, in
-        which case the values are multiplied by a weight before being summed,
-        and then divided by the sum of that weight; the two fundamental modes
-        of operating are direct line integral (no weighting) and average along
-        a line of sight (weighting.)  Note also that lines of sight are
-        integrated at every projected finest-level cell
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        field : string
-            This is the field which will be "projected" along the axis.  If
-            multiple are specified (in a list) they will all be projected in
-            the first pass.
-        weight_field : string
-            If supplied, the field being projected will be multiplied by this
-            weight value before being integrated, and at the conclusion of the
-            projection the resultant values will be divided by the projected
-            `weight_field`.
-        max_level : int
-            If supplied, only cells at or below this level will be projected.
-        center : array_like, optional
-            The 'center' supplied to fields that use it.  Note that this does
-            not have to have `coord` as one value.  Strictly optional.
-        source : `yt.data_objects.api.AMRData`, optional
-            If specified, this will be the data source used for selecting
-            regions to project.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        field_cuts : list of strings, optional
-            If supplied, each of these strings will be evaluated to cut a
-            region of a grid out.  They can be of the form "grid['Temperature']
-            > 100" for instance.
-        preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
-        serialize : bool, optional
-            Whether we should store this projection in the .yt file or not.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> proj = pf.h.proj(0, "Density")
-        >>> print proj["Density"]
-        """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.weight_field = weight_field
         self._field_cuts = field_cuts
@@ -2393,51 +2392,51 @@ class AMRProjBase(AMR2DData):
             (self._top_node, self.axis)
 
 class AMRFixedResProjectionBase(AMR2DData):
+    """
+    This is a data structure that projects grids, but only to fixed (rather
+    than variable) resolution.
+
+    This object is typically accessed through the `fixed_res_proj` object
+    that hangs off of hierarchy objects.  This projection mechanism is much
+    simpler than the standard, variable-resolution projection.  Rather than
+    attempt to identify the highest-resolution element along every possible
+    line of sight, this data structure simply deposits every cell into one
+    of a fixed number of bins.  It is suitable for inline analysis, and it
+    should scale nicely.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to project.  Can be 0, 1, or 2 for x, y, z.
+    level : int
+        This is the level to which values will be projected.  Note that
+        the pixel size in the projection will be identical to a cell at
+        this level of refinement in the simulation.
+    left_edge : array of ints
+        The left edge, in level-local integer coordinates, of the
+        projection
+    dims : array of ints
+        The dimensions of the projection (which, in concert with the
+        left_edge, serves to define its right edge.)
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> fproj = pf.h.fixed_res_proj(1, [0, 0, 0], [64, 64, 64], ["Density"])
+    >>> print fproj["Density"]
+    """
     _top_node = "/Projections"
     _type_name = "fixed_res_proj"
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, level, left_edge, dims,
                  fields = None, pf=None, **kwargs):
-        """
-        This is a data structure that projects grids, but only to fixed (rather
-        than variable) resolution.
-
-        This object is typically accessed through the `fixed_res_proj` object
-        that hangs off of hierarchy objects.  This projection mechanism is much
-        simpler than the standard, variable-resolution projection.  Rather than
-        attempt to identify the highest-resolution element along every possible
-        line of sight, this data structure simply deposits every cell into one
-        of a fixed number of bins.  It is suitable for inline analysis, and it
-        should scale nicely.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to project.  Can be 0, 1, or 2 for x, y, z.
-        level : int
-            This is the level to which values will be projected.  Note that
-            the pixel size in the projection will be identical to a cell at
-            this level of refinement in the simulation.
-        left_edge : array of ints
-            The left edge, in level-local integer coordinates, of the
-            projection
-        dims : array of ints
-            The dimensions of the projection (which, in concert with the
-            left_edge, serves to define its right edge.)
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> fproj = pf.h.fixed_res_proj(1, [0, 0, 0], [64, 64, 64], ["Density"])
-        >>> print fproj["Density"]
-        """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
@@ -2969,37 +2968,34 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
 
 class ExtractedRegionBase(AMR3DData):
     """
-    ExtractedRegions are arbitrarily defined containers of data, useful
-    for things like selection along a baryon field.
+    An arbitrarily defined data container that allows for selection
+    of all data meeting certain criteria.
+
+    In order to create an arbitrarily selected set of data, the
+    ExtractedRegion takes a `base_region` and a set of `indices`
+    and creates a region within the `base_region` consisting of
+    all data indexed by the `indices`. Note that `indices` must be
+    precomputed. This does not work well for parallelized
+    operations.
+
+    Parameters
+    ----------
+    base_region : yt data source
+        A previously selected data source.
+    indices : array_like
+        An array of indices
+
+    Other Parameters
+    ----------------
+    force_refresh : bool
+       Force a refresh of the data. Defaults to True.
+    
+    Examples
+    --------
     """
     _type_name = "extracted_region"
     _con_args = ('_base_region', '_indices')
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
-        """An arbitrarily defined data container that allows for selection
-        of all data meeting certain criteria.
-
-        In order to create an arbitrarily selected set of data, the
-        ExtractedRegion takes a `base_region` and a set of `indices`
-        and creates a region within the `base_region` consisting of
-        all data indexed by the `indices`. Note that `indices` must be
-        precomputed. This does not work well for parallelized
-        operations.
-
-        Parameters
-        ----------
-        base_region : yt data source
-            A previously selected data source.
-        indices : array_like
-            An array of indices
-
-        Other Parameters
-        ----------------
-        force_refresh : bool
-           Force a refresh of the data. Defaults to True.
-        
-        Examples
-        --------
-        """
         cen = kwargs.pop("center", None)
         if cen is None: cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
@@ -3140,17 +3136,14 @@ class InLineExtractedRegionBase(AMR3DData):
 
 class AMRCylinderBase(AMR3DData):
     """
-    We can define a cylinder (or disk) to act as a data object.
+    By providing a *center*, a *normal*, a *radius* and a *height* we
+    can define a cylinder of any proportion.  Only cells whose centers are
+    within the cylinder will be selected.
     """
     _type_name = "disk"
     _con_args = ('center', '_norm_vec', '_radius', '_height')
     def __init__(self, center, normal, radius, height, fields=None,
                  pf=None, **kwargs):
-        """
-        By providing a *center*, a *normal*, a *radius* and a *height* we
-        can define a cylinder of any proportion.  Only cells whose centers are
-        within the cylinder will be selected.
-        """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
@@ -3202,18 +3195,18 @@ class AMRCylinderBase(AMR3DData):
         return cm
 
 class AMRInclinedBox(AMR3DData):
+    """
+    A rectangular prism with arbitrary alignment to the computational
+    domain.  *origin* is the origin of the box, while *box_vectors* is an
+    array of ordering [ax, ijk] that describes the three vectors that
+    describe the box.  No checks are done to ensure that the box satisfies
+    a right-hand rule, but if it doesn't, behavior is undefined.
+    """
     _type_name="inclined_box"
     _con_args = ('origin','box_vectors')
 
     def __init__(self, origin, box_vectors, fields=None,
                  pf=None, **kwargs):
-        """
-        A rectangular prism with arbitrary alignment to the computational
-        domain.  *origin* is the origin of the box, while *box_vectors* is an
-        array of ordering [ax, ijk] that describes the three vectors that
-        describe the box.  No checks are done to ensure that the box satisfies
-        a right-hand rule, but if it doesn't, behavior is undefined.
-        """
         self.origin = np.array(origin)
         self.box_vectors = np.array(box_vectors, dtype='float64')
         self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
@@ -3269,31 +3262,28 @@ class AMRInclinedBox(AMR3DData):
         
 
 class AMRRegionBase(AMR3DData):
-    """
-    AMRRegions are rectangular prisms of data.
+    """A 3D region of data with an arbitrary center.
+
+    Takes an array of three *left_edge* coordinates, three
+    *right_edge* coordinates, and a *center* that can be anywhere
+    in the domain. If the selected region extends past the edges
+    of the domain, no data will be found there, though the
+    object's `left_edge` or `right_edge` are not modified.
+
+    Parameters
+    ----------
+    center : array_like
+        The center of the region
+    left_edge : array_like
+        The left edge of the region
+    right_edge : array_like
+        The right edge of the region
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
     _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """A 3D region of data with an arbitrary center.
-
-        Takes an array of three *left_edge* coordinates, three
-        *right_edge* coordinates, and a *center* that can be anywhere
-        in the domain. If the selected region extends past the edges
-        of the domain, no data will be found there, though the
-        object's `left_edge` or `right_edge` are not modified.
-
-        Parameters
-        ----------
-        center : array_like
-            The center of the region
-        left_edge : array_like
-            The left edge of the region
-        right_edge : array_like
-            The right edge of the region
-        """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
         self.right_edge = right_edge
@@ -3405,26 +3395,19 @@ class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
     _dx_pad = 0.0
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """same as periodic region, but does not include cells unless
-        the selected region encompasses their centers.
-
-        """
         AMRPeriodicRegionBase.__init__(self, center, left_edge, right_edge, 
                                        fields = None, pf = None, **kwargs)
     
 
 class AMRGridCollectionBase(AMR3DData):
     """
-    An arbitrary selection of grids, within which we accept all points.
+    By selecting an arbitrary *grid_list*, we can act on those grids.
+    Child cells are not returned.
     """
     _type_name = "grid_collection"
     _con_args = ("center", "grid_list")
     def __init__(self, center, grid_list, fields = None,
                  pf = None, **kwargs):
-        """
-        By selecting an arbitrary *grid_list*, we can act on those grids.
-        Child cells are not returned.
-        """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = np.array(grid_list)
         self.grid_list = self._grids
@@ -3447,15 +3430,15 @@ class AMRGridCollectionBase(AMR3DData):
         return pointI
 
 class AMRMaxLevelCollection(AMR3DData):
+    """
+    By selecting an arbitrary *max_level*, we can act on those grids.
+    Child cells are masked when the level of the grid is below the max
+    level.
+    """
     _type_name = "grid_collection_max_level"
     _con_args = ("center", "max_level")
     def __init__(self, center, max_level, fields = None,
                  pf = None, **kwargs):
-        """
-        By selecting an arbitrary *max_level*, we can act on those grids.
-        Child cells are masked when the level of the grid is below the max
-        level.
-        """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.max_level = max_level
         self._refresh_data()
@@ -3482,26 +3465,24 @@ class AMRMaxLevelCollection(AMR3DData):
 
 class AMRSphereBase(AMR3DData):
     """
-    A sphere of points
+    A sphere f points defined by a *center* and a *radius*.
+
+    Parameters
+    ----------
+    center : array_like
+        The center of the sphere.
+    radius : float
+        The radius of the sphere.
+
+    Examples
+    --------
+    >>> pf = load("DD0010/moving7_0010")
+    >>> c = [0.5,0.5,0.5]
+    >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, fields = None, pf = None, **kwargs):
-        """A sphere f points defined by a *center* and a *radius*.
-
-        Parameters
-        ----------
-        center : array_like
-            The center of the sphere.
-        radius : float
-            The radius of the sphere.
-
-        Examples
-        --------
-        >>> pf = load("DD0010/moving7_0010")
-        >>> c = [0.5,0.5,0.5]
-        >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
-        """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.pf)
@@ -3539,42 +3520,38 @@ class AMRSphereBase(AMR3DData):
 
 class AMREllipsoidBase(AMR3DData):
     """
-    We can define an ellipsoid to act as a data object.
+    By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
+    can define a ellipsoid of any proportion.  Only cells whose
+    centers are within the ellipsoid will be selected.
+
+    Parameters
+    ----------
+    center : array_like
+        The center of the ellipsoid.
+    A : float
+        The magnitude of the largest semi-major axis of the ellipsoid.
+    B : float
+        The magnitude of the medium semi-major axis of the ellipsoid.
+    C : float
+        The magnitude of the smallest semi-major axis of the ellipsoid.
+    e0 : array_like (automatically normalized)
+        the direction of the largest semi-major axis of the ellipsoid
+    tilt : float
+        After the rotation about the z-axis to allign e0 to x in the x-y
+        plane, and then rotating about the y-axis to align e0 completely
+        to the x-axis, tilt is the angle in radians remaining to
+        rotate about the x-axis to align both e1 to the y-axis and e2 to
+        the z-axis.
+    Examples
+    --------
+    >>> pf = load("DD####/DD####")
+    >>> c = [0.5,0.5,0.5]
+    >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
                  pf=None, **kwargs):
-        """
-        By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
-        can define a ellipsoid of any proportion.  Only cells whose
-        centers are within the ellipsoid will be selected.
-
-        Parameters
-        ----------
-        center : array_like
-            The center of the ellipsoid.
-        A : float
-            The magnitude of the largest semi-major axis of the ellipsoid.
-        B : float
-            The magnitude of the medium semi-major axis of the ellipsoid.
-        C : float
-            The magnitude of the smallest semi-major axis of the ellipsoid.
-        e0 : array_like (automatically normalized)
-            the direction of the largest semi-major axis of the ellipsoid
-        tilt : float
-            After the rotation about the z-axis to allign e0 to x in the x-y
-            plane, and then rotating about the y-axis to align e0 completely
-            to the x-axis, tilt is the angle in radians remaining to
-            rotate about the x-axis to align both e1 to the y-axis and e2 to
-            the z-axis.
-        Examples
-        --------
-        >>> pf = load("DD####/DD####")
-        >>> c = [0.5,0.5,0.5]
-        >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
-        """
-
         AMR3DData.__init__(self, np.array(center), fields, pf, **kwargs)
         # make sure the magnitudes of semi-major axes are in order
         if A<B or B<C:
@@ -3707,31 +3684,31 @@ class AMREllipsoidBase(AMR3DData):
         return cm
 
 class AMRCoveringGridBase(AMR3DData):
+    """A 3D region with all data extracted to a single, specified
+    resolution.
+    
+    Parameters
+    ----------
+    level : int
+        The resolution level data is uniformly gridded at
+    left_edge : array_like
+        The left edge of the region to be extracted
+    dims : array_like
+        Number of cells along each axis of resulting covering_grid
+    fields : array_like, optional
+        A list of fields that you'd like pre-generated for your object
+
+    Examples
+    --------
+    cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                              right_edge=[1.0, 1.0, 1.0],
+                              dims=[128, 128, 128])
+    """
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
-        """A 3D region with all data extracted to a single, specified
-        resolution.
-        
-        Parameters
-        ----------
-        level : int
-            The resolution level data is uniformly gridded at
-        left_edge : array_like
-            The left edge of the region to be extracted
-        dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        fields : array_like, optional
-            A list of fields that you'd like pre-generated for your object
-
-        Examples
-        --------
-        cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  right_edge=[1.0, 1.0, 1.0],
-                                  dims=[128, 128, 128])
-        """
         AMR3DData.__init__(self, center=kwargs.pop("center", None),
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
@@ -3870,34 +3847,33 @@ class AMRCoveringGridBase(AMR3DData):
         return self.right_edge
 
 class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
+    """A 3D region with all data extracted and interpolated to a
+    single, specified resolution. (Identical to covering_grid,
+    except that it interpolates.)
+
+    Smoothed covering grids start at level 0, interpolating to
+    fill the region to level 1, replacing any cells actually
+    covered by level 1 data, and then recursively repeating this
+    process until it reaches the specified `level`.
+    
+    Parameters
+    ----------
+    level : int
+        The resolution level data is uniformly gridded at
+    left_edge : array_like
+        The left edge of the region to be extracted
+    dims : array_like
+        Number of cells along each axis of resulting covering_grid.
+    fields : array_like, optional
+        A list of fields that you'd like pre-generated for your object
+
+    Example
+    -------
+    cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                              dims=[128, 128, 128])
+    """
     _type_name = "smoothed_covering_grid"
-    @wraps(AMRCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
-        """A 3D region with all data extracted and interpolated to a
-        single, specified resolution. (Identical to covering_grid,
-        except that it interpolates.)
-
-        Smoothed covering grids start at level 0, interpolating to
-        fill the region to level 1, replacing any cells actually
-        covered by level 1 data, and then recursively repeating this
-        process until it reaches the specified `level`.
-        
-        Parameters
-        ----------
-        level : int
-            The resolution level data is uniformly gridded at
-        left_edge : array_like
-            The left edge of the region to be extracted
-        dims : array_like
-            Number of cells along each axis of resulting covering_grid.
-        fields : array_like, optional
-            A list of fields that you'd like pre-generated for your object
-
-        Example
-        -------
-        cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  dims=[128, 128, 128])
-        """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
                self.pf.domain_dimensions.astype("float64"))
@@ -4029,34 +4005,30 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
 class AMRBooleanRegionBase(AMR3DData):
     """
-    A hybrid region built by boolean comparison between
-    existing regions.
+    This will build a hybrid region based on the boolean logic
+    of the regions.
+    
+    Parameters
+    ----------
+    regions : list
+        A list of region objects and strings describing the boolean logic
+        to use when building the hybrid region. The boolean logic can be
+        nested using parentheses.
+    
+    Examples
+    --------
+    >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
+        [0.6, 0.6, 0.6])
+    >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
+        [0.55, 0.55, 0.55])
+    >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
+    >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
+    >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
+        sp1, ")"])
     """
     _type_name = "boolean"
     _con_args = ("regions")
     def __init__(self, regions, fields = None, pf = None, **kwargs):
-        """
-        This will build a hybrid region based on the boolean logic
-        of the regions.
-        
-        Parameters
-        ----------
-        regions : list
-            A list of region objects and strings describing the boolean logic
-            to use when building the hybrid region. The boolean logic can be
-            nested using parentheses.
-        
-        Examples
-        --------
-        >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
-            [0.6, 0.6, 0.6])
-        >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
-            [0.55, 0.55, 0.55])
-        >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
-        >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
-        >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
-            sp1, ")"])
-        """
         # Center is meaningless, but we'll define it all the same.
         AMR3DData.__init__(self, [0.5]*3, fields, pf, **kwargs)
         self.regions = regions
@@ -4198,52 +4170,52 @@ class AMRBooleanRegionBase(AMR3DData):
         return this_cut_mask
 
 class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
+    r"""This surface object identifies isocontours on a cell-by-cell basis,
+    with no consideration of global connectedness, and returns the vertices
+    of the Triangles in that isocontour.
+
+    This object simply returns the vertices of all the triangles
+    calculated by the marching cubes algorithm; for more complex
+    operations, such as identifying connected sets of cells above a given
+    threshold, see the extract_connected_sets function.  This is more
+    useful for calculating, for instance, total isocontour area, or
+    visualizing in an external program (such as `MeshLab
+    <http://meshlab.sf.net>`_.)  The object has the properties .vertices
+    and will sample values if a field is requested.  The values are
+    interpolated to the center of a given face.
+    
+    Parameters
+    ----------
+    data_source : AMR3DDataObject
+        This is the object which will used as a source
+    surface_field : string
+        Any field that can be obtained in a data object.  This is the field
+        which will be isocontoured.
+    field_value : float
+        The value at which the isocontour should be calculated.
+
+    References
+    ----------
+
+    .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+    Examples
+    --------
+    This will create a data object, find a nice value in the center, and
+    output the vertices to "triangles.obj" after rescaling them.
+
+    >>> sp = pf.h.sphere("max", (10, "kpc")
+    >>> surf = pf.h.surface(sp, "Density", 5e-27)
+    >>> print surf["Temperature"]
+    >>> print surf.vertices
+    >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
+    ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
+    >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+    """
     _type_name = "surface"
     _con_args = ("data_source", "surface_field", "field_value")
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
-        r"""This surface object identifies isocontours on a cell-by-cell basis,
-        with no consideration of global connectedness, and returns the vertices
-        of the Triangles in that isocontour.
-
-        This object simply returns the vertices of all the triangles
-        calculated by the marching cubes algorithm; for more complex
-        operations, such as identifying connected sets of cells above a given
-        threshold, see the extract_connected_sets function.  This is more
-        useful for calculating, for instance, total isocontour area, or
-        visualizing in an external program (such as `MeshLab
-        <http://meshlab.sf.net>`_.)  The object has the properties .vertices
-        and will sample values if a field is requested.  The values are
-        interpolated to the center of a given face.
-        
-        Parameters
-        ----------
-        data_source : AMR3DDataObject
-            This is the object which will used as a source
-        surface_field : string
-            Any field that can be obtained in a data object.  This is the field
-            which will be isocontoured.
-        field_value : float
-            The value at which the isocontour should be calculated.
-
-        References
-        ----------
-
-        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
-
-        Examples
-        --------
-        This will create a data object, find a nice value in the center, and
-        output the vertices to "triangles.obj" after rescaling them.
-
-        >>> sp = pf.h.sphere("max", (10, "kpc")
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
-        >>> print surf["Temperature"]
-        >>> print surf.vertices
-        >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
-        ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
-        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
-        """
         ParallelAnalysisInterface.__init__(self)
         self.data_source = data_source
         self.surface_field = surface_field
