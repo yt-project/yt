@@ -1357,10 +1357,26 @@ class OffAxisProjectionPlot(PWViewerMPL):
         the image centers on the location of the maximum density
         cell.  If set to 'c' or 'center', the plot is centered on
         the middle of the domain.
-    width : A tuple or a float
-        A tuple containing the width of image and the string key of
-        the unit: (width, 'unit').  If set to a float, code units
-        are assumed
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable 
+         x and y widths.  They are:
+         
+         ==================================     =======================
+         format                                 example                
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+         
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs 
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window 
+         that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along 
+         the y axis.  In the other two examples, code units are assumed, for example
+         (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3 
+         in code units.  If units are provided the resulting plot axis labels will
+         use the supplied units.
     depth : A tuple or a float
         A tuple containing the depth to project thourhg and the string
         key of the unit: (width, 'unit').  If set to a float, code units
