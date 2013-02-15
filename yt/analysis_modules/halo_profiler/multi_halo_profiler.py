@@ -427,6 +427,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Paramters
         ---------
+
         filename : str
             If set, a file will be written with all of the filtered halos
             and the quantities returned by the filter functions.
@@ -453,6 +454,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Examples
         --------
+
         >>> hp.make_profiles(filename="FilteredQuantities.out",
                  prefilters=["halo['mass'] > 1e13"])
 
@@ -702,7 +704,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         calculations and saves the output to disk.
 
         Parameters
-        ---------
+        ----------
+
         axes : array_like
             A list of the axes to project along, using the usual 0,1,2
             convention. Default=[0,1,2]
@@ -728,6 +731,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Examples
         --------
+
         >>> hp.make_projections(axes=[0, 1, 2], save_cube=True,
             save_images=True, halo_list="filtered")
 
@@ -871,7 +875,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         to the provided analysis function.
 
         Parameters
-        ---------
+        ----------
+
         analysis_function : function
             A function taking two arguments, the halo dictionary, and a
             sphere object.
@@ -897,6 +902,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Examples
         --------
+
         >>> hp.analyze_halo_spheres(my_analysis, halo_list="filtered",
                                     analysis_output_dir='special_analysis')
 

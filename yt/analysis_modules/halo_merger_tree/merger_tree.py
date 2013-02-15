@@ -130,7 +130,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     documentation for details.
     
     Parameters
-    ---------
+    ----------
+    
     restart_files : List of strings
         A list containing the paths to the forward time-ordered set of
         data snapshots.
@@ -158,7 +159,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         at the cost of doubling the disk space used by the file.
         Default = True.
 
-    Examples:
+    Examples
+    --------
+
     >>> rf = ['/scratch/user/sim1/DD0000/data0000',
     ... '/scratch/user/sim1/DD0001/data0001',
     ... '/scratch/user/sim1/DD0002/data0002']
@@ -783,7 +786,8 @@ class MergerTreeConnect(DatabaseFunctions):
         r"""Returns the GlobalHaloID for the given halo.
         
         Parameters
-        ---------
+        ----------
+
         SnapHaloID : Integer
             The index label for the halo of interest, equivalent to
             the first column of the halo finder text output file.
@@ -794,6 +798,7 @@ class MergerTreeConnect(DatabaseFunctions):
         
         Examples
         --------
+
         >>> this_halo = mtc.get_GlobalHaloID(0, 0.)
         """
         string = "SELECT GlobalHaloID,SnapZ FROM Halos WHERE SnapHaloID = %d;" \
@@ -937,7 +942,8 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
     format.
     
     Parameters
-    ---------
+    ----------
+
     halos : Integer or list of integers
         If current_time below is not specified or is None, this is an integer
         or list of integers with the GlobalHaloIDs of the halos to be
@@ -966,6 +972,7 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
     
     Examples
     --------
+
     >>> MergerTreeDotOutput(halos=182842, database='/home/user/sim1-halos.db',
     ... dotfile = 'halo-182842.gv')
     """

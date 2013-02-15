@@ -282,10 +282,8 @@ class LightRay(CosmologySplice):
                                       'args': VirialFilter,
                                       'kwargs': {'overdensity_field': 'ActualOverdensity',
                                                  'virial_overdensity': 200,
-                                                 'virial_filters': \
-                                                     [['TotalMassMsun','>=','1e14']],
-                                                 'virial_quantities': \
-                                                     ['TotalMassMsun','RadiusMpc']}})
+                                                 'virial_filters': [['TotalMassMsun','>=','1e14']],
+                                                 'virial_quantities': ['TotalMassMsun','RadiusMpc']}})
         # Make the profiles.
         halo_profiler_actions.append({'function': make_profiles,
                                       'args': None,
@@ -310,7 +308,7 @@ class LightRay(CosmologySplice):
                                                    'RadiusMpc_100'],
                               halo_profiler_parameters=halo_profiler_parameters,
                               get_los_velocity=True)
-
+        
         """
 
         if halo_profiler_parameters is None:
