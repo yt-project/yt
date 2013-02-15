@@ -121,7 +121,10 @@ class ObsoleteDataException(YTException):
           os.path.join(os.environ["YT_DEST"], "data", "xray_emissivity.h5")
           
 class EmissivityIntegrator(object):
-    r"""Initialize an EmissivityIntegrator object.
+    r"""Class for making X-ray emissivity fields with hdf5 data tables 
+    from Cloudy.
+    
+    Initialize an EmissivityIntegrator object.
 
     Keyword Parameters
     ------------------
