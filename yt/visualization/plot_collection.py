@@ -74,47 +74,48 @@ class ImageCollection(object):
         self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
+    r"""The primary interface for creating plots.
+
+    The PlotCollection object was created to ease the creation of multiple
+    slices, projections and so forth made from a single parameter file.
+    The concept is that when the width on one image changes, it should
+    change on all the others.  The PlotCollection can create all plot types
+    available in yt.
+
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The parameter file from which all the plots will be created.
+    center : array_like, optional
+        The 'center' supplied to plots like sphere plots, slices, and so
+        on.  Should be 3 elements.  Defaults to the point of maximum
+        density.
+    Long_variable_name : {'hi', 'ho'}, optional
+        Choices in brackets, default first when optional.
+
+    Notes
+    -----
+    This class is the primary entry point to creating plots, but it is not
+    the only entry point.  Additionally, creating a PlotCollection should
+    be a "cheap" operation.
+
+    You may iterate over the plots in the PlotCollection, via something
+    like:
+
+    >>> pc = PlotCollection(pf)
+    >>> for p in pc: print p
+
+    Examples
+    --------
+
+    >>> pc = PlotCollection(pf, center=[0.5, 0.5, 0.5])
+    >>> pc.add_slice("Density", 'x')
+    >>> pc.save()
+
+    """
+
     __id_counter = 0
     def __init__(self, pf, center=None):
-        r"""The primary interface for creating plots.
-
-        The PlotCollection object was created to ease the creation of multiple
-        slices, projections and so forth made from a single parameter file.
-        The concept is that when the width on one image changes, it should
-        change on all the others.  The PlotCollection can create all plot types
-        available in yt.
-
-        Parameters
-        ----------
-        pf : `StaticOutput`
-            The parameter file from which all the plots will be created.
-        center : array_like, optional
-            The 'center' supplied to plots like sphere plots, slices, and so
-            on.  Should be 3 elements.  Defaults to the point of maximum
-            density.
-        Long_variable_name : {'hi', 'ho'}, optional
-            Choices in brackets, default first when optional.
-
-        Notes
-        -----
-        This class is the primary entry point to creating plots, but it is not
-        the only entry point.  Additionally, creating a PlotCollection should
-        be a "cheap" operation.
-
-        You may iterate over the plots in the PlotCollection, via something
-        like:
-
-        >>> pc = PlotCollection(pf)
-        >>> for p in pc: print p
-
-        Examples
-        --------
-
-        >>> pc = PlotCollection(pf, center=[0.5, 0.5, 0.5])
-        >>> pc.add_slice("Density", 'x')
-        >>> pc.save()
-
-        """
         self.plots = []
         self.pf = pf
         if center == None:
