@@ -36,14 +36,14 @@ from yt.utilities.physical_constants import \
 speed_of_light_kms = speed_of_light_cgs * km_per_cm
 
 class AbsorptionSpectrum(object):
-    def __init__(self, lambda_min, lambda_max, n_lambda):
-        """
-        Create an absorption spectrum object.
-        :param lambda_min (float): lower wavelength bound in angstroms.
-        :param lambda_max (float): upper wavelength bound in angstroms.
-        :param n_lambda (float): number of wavelength bins.
-        """
+    """
+    Create an absorption spectrum object.
+    :param lambda_min (float): lower wavelength bound in angstroms.
+    :param lambda_max (float): upper wavelength bound in angstroms.
+    :param n_lambda (float): number of wavelength bins.
+    """
 
+    def __init__(self, lambda_min, lambda_max, n_lambda):
         self.n_lambda = n_lambda
         self.tau_field = None
         self.flux_field = None
