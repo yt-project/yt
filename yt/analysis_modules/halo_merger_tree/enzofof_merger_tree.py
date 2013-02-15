@@ -153,6 +153,8 @@ class HaloCatalog(object):
         """
         hp = []
         for line in open("%s_%05i.txt" % (filename_prefix, self.output_id)):
+            if line.startswith("# RED"):
+                self.redshift = float(line.split("=")[1])
             if line.strip() == "": continue # empty
             if line[0] == "#": continue # comment
             x,y,z = [float(f) for f in line.split()[7:10]] # COM x,y,z
@@ -252,7 +254,7 @@ class EnzoFOFMergerTree(object):
         ----------
         zrange : tuple
             This is the redshift range (min, max) to calculate the
-            merger tree.
+            merger tree. E.g. (0, 2) for z=2 to z=0
         cycle_range : tuple, optional
             This is the cycle number range (min, max) to calculate the
             merger tree.  If both zrange and cycle_number given,
@@ -283,18 +285,43 @@ class EnzoFOFMergerTree(object):
         self.relationships = {}
         self.redshifts = {}
         self.external_FOF = external_FOF
-        self.find_outputs(zrange, cycle_range, output)
         if load_saved:
             self.load_tree(save_filename)
+            # make merger tree work within specified cycle/z limits
+            # on preloaded halos
+            if zrange is not None:
+                self.select_redshifts(zrange)
             if cycle_range is not None:
-                # actually make merger tree work within specified cycle limits
-                self.redshifts = {}
-                for i in range(cycle_range[0],cycle_range[1]+1):
-                    self.redshifts[i] = 0.0 # don't have redshift info
+                self.select_cycles(cycle_range)
         else:
+            self.find_outputs(zrange, cycle_range, output)
             self.run_merger_tree(output)
             self.save_tree(save_filename)
         
+    def select_cycles(self, cycle_range):
+        """
+        Takes an existing tree and pares it to only include a subset of
+        cycles.  Useful in paring a loaded tree. 
+        """
+        # N.B. Does not delete info from self.relationships to save space
+        # just removes it from redshift dict for indexing
+        for cycle in self.redshifts.keys():
+            if cycle <= cycle_range[0] and cycle >= cycle_range[1]:
+                del self.redshifts[cycle]
+
+    def select_redshifts(self, zrange):
+        """
+        Takes an existing tree and pares it to only include a subset of
+        redshifts.  Useful in paring a loaded tree. 
+        """
+        # N.B. Does not delete info from self.relationships to save space
+        # just removes it from redshift dict for indexing
+        for redshift in self.redshifts.values():
+            if redshift <= zrange[0] and redshift >= zrange[1]:
+                # some reverse lookup magic--assumes unique cycle/z pairs
+                cycle = [key for key,value in mt.redshifts.items() \
+                         if value == redshift][0]
+                del self.redshifts[cycle]
 
     def save_tree(self, filename):
         cPickle.dump((self.redshifts, self.relationships),
@@ -671,7 +698,6 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
     Examples
     --------
     ts = TimeSeriesData.from_filenames("DD????/DD????")
-    if not os.path.isdir('FOF'): os.mkdir('FOF')
     for pf in ts:
         halo_list = FOFHaloFinder(pf)
         i = int(pf.basename[2:])

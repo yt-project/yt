@@ -1059,7 +1059,7 @@ class HaloList(object):
 
     _fields = ["particle_position_%s" % ax for ax in 'xyz']
 
-    def __init__(self, data_source, dm_only=True):
+    def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -1074,6 +1074,7 @@ class HaloList(object):
         mylog.info("Parsing outputs")
         self._parse_output()
         mylog.debug("Finished. (%s)", len(self))
+        self.redshift = redshift
 
     def __obtain_particles(self):
         if self.dm_only:
@@ -1257,6 +1258,7 @@ class HaloList(object):
         else:
             f = open(filename, "w")
         f.write("# HALOS FOUND WITH %s\n" % (self._name))
+        f.write("# REDSHIFT OF OUTPUT = %f\n" % (self.redshift))
 
         if not ellipsoid_data:
             f.write("\t".join(["# Group","Mass","# part","max dens"
@@ -1502,10 +1504,10 @@ class FOFHaloList(HaloList):
     _name = "FOF"
     _halo_class = FOFHalo
 
-    def __init__(self, data_source, link=0.2, dm_only=True):
+    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1):
         self.link = link
         mylog.info("Initializing FOF")
-        HaloList.__init__(self, data_source, dm_only)
+        HaloList.__init__(self, data_source, dm_only, redshift=redshift)
 
     def _run_finder(self):
         self.tags = \
@@ -2584,6 +2586,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.period = pf.domain_right_edge - pf.domain_left_edge
         self.pf = pf
         self.hierarchy = pf.h
+        self.redshift = pf.current_redshift
         self._data_source = pf.h.all_data()
         GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
             padding)
@@ -2618,7 +2621,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         #self._reposition_particles((LE, RE))
         # here is where the FOF halo finder is run
         mylog.info("Using a linking length of %0.3e", linking_length)
-        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only)
+        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
+                             redshift=self.redshift)
         self._parse_halolist(1.)
         self._join_halolists()
 
