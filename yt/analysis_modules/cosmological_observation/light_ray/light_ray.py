@@ -270,44 +270,42 @@ class LightRay(CosmologySplice):
         Examples
         --------
 
-        from yt.mods import *
-        from yt.analysis_modules.halo_profiler.api import *
-        from yt.analysis_modules.cosmological_analysis.light_ray.api import LightRay
-
-        halo_profiler_kwargs = {'halo_list_file': 'HopAnalysis.out'}
-
-        halo_profiler_actions = []
-        # Add a virial filter.
-        halo_profiler_actions.append({'function': add_halo_filter,
-                                      'args': VirialFilter,
-                                      'kwargs': {'overdensity_field': 'ActualOverdensity',
-                                                 'virial_overdensity': 200,
-                                                 'virial_filters': [['TotalMassMsun','>=','1e14']],
-                                                 'virial_quantities': ['TotalMassMsun','RadiusMpc']}})
-        # Make the profiles.
-        halo_profiler_actions.append({'function': make_profiles,
-                                      'args': None,
-                                      'kwargs': {'filename': 'VirializedHalos.out'}})
-
-        halo_list = 'filtered'
-
-        halo_profiler_parameters = dict(halo_profiler_kwargs=halo_profiler_kwargs,
-                                        halo_profiler_actions=halo_profiler_actions,
-                                        halo_list=halo_list)
-
-        my_ray = LightRay('simulation.par', 'Enzo', 0., 0.1,
-                          use_minimum_datasets=True,
-                          time_data=False)
-
-        my_ray.make_light_ray(seed=12345,
-                              solution_filename='solution.txt',
-                              data_filename='my_ray.h5',
-                              fields=['Temperature', 'Density'],
-                              get_nearest_halo=True,
-                              nearest_halo_fields=['TotalMassMsun_100',
-                                                   'RadiusMpc_100'],
-                              halo_profiler_parameters=halo_profiler_parameters,
-                              get_los_velocity=True)
+        >>> from yt.mods import *
+        >>> from yt.analysis_modules.halo_profiler.api import *
+        >>> from yt.analysis_modules.cosmological_analysis.light_ray.api import LightRay
+        >>> halo_profiler_kwargs = {'halo_list_file': 'HopAnalysis.out'}
+        >>> halo_profiler_actions = []
+        >>> # Add a virial filter.
+        >>> halo_profiler_actions.append({'function': add_halo_filter,
+        ...                           'args': VirialFilter,
+        ...                           'kwargs': {'overdensity_field': 'ActualOverdensity',
+        ...                                      'virial_overdensity': 200,
+        ...                                      'virial_filters': [['TotalMassMsun','>=','1e14']],
+        ...                                      'virial_quantities': ['TotalMassMsun','RadiusMpc']}})
+        ...
+        >>> # Make the profiles.
+        >>> halo_profiler_actions.append({'function': make_profiles,
+        ...                           'args': None,
+        ...                           'kwargs': {'filename': 'VirializedHalos.out'}})
+        ...
+        >>> halo_list = 'filtered'
+        >>> halo_profiler_parameters = dict(halo_profiler_kwargs=halo_profiler_kwargs,
+        ...                             halo_profiler_actions=halo_profiler_actions,
+        ...                             halo_list=halo_list)
+        ...
+        >>> my_ray = LightRay('simulation.par', 'Enzo', 0., 0.1,
+        ...                use_minimum_datasets=True,
+        ...                time_data=False)
+        ...
+        >>> my_ray.make_light_ray(seed=12345,
+        ...                   solution_filename='solution.txt',
+        ...                   data_filename='my_ray.h5',
+        ...                   fields=['Temperature', 'Density'],
+        ...                   get_nearest_halo=True,
+        ...                   nearest_halo_fields=['TotalMassMsun_100',
+        ...                                        'RadiusMpc_100'],
+        ...                   halo_profiler_parameters=halo_profiler_parameters,
+        ...                   get_los_velocity=True)
         
         """
 
