@@ -486,7 +486,7 @@ class EnzoFOFMergerTree(object):
         r"""Prints the merger tree to stdout.
         """
         for lvl in sorted(self.levels, reverse=True):
-            if lvl not in self.redshifts.keys(): continue
+            if lvl not in self.redshifts: continue
             print "========== Cycle %5.5d (z=%f) ==========" % \
                   (lvl, self.redshifts[lvl])
             for br in self.levels[lvl]:
@@ -522,7 +522,7 @@ class EnzoFOFMergerTree(object):
         fraction[0] = 1.
 
         for i, lvl in enumerate(sorted(self.levels, reverse=True)):
-            if lvl not in self.redshifts.keys(): continue
+            if lvl not in self.redshifts: continue
             print "========== Cycle %5.5d (z=%f) ==========" % \
                   (lvl, self.redshifts[lvl])
             cycle[i] = lvl 
