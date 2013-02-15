@@ -104,8 +104,8 @@ class ChomboHierarchy(AMRHierarchy):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.hierarchy = os.path.abspath(self.hierarchy_filename)
+        self.hierarchy_filename = os.path.abspath(
+            self.parameter_file.parameter_filename)
         self.directory = pf.fullpath
         self._fhandle = h5py.File(self.hierarchy_filename, 'r')
 
@@ -223,6 +223,15 @@ class ChomboStaticOutput(StaticOutput):
         self.cosmological_simulation = False
         fileh.close()
 
+        # These are parameters that I very much wish to get rid of.
+        self.parameters["HydroMethod"] = 'chombo' # always PPM DE
+        self.parameters["DualEnergyFormalism"] = 0 
+        self.parameters["EOSType"] = -1 # default
+
+        if self.fparameters.has_key("mu"):
+            self.parameters["mu"] = self.fparameters["mu"]
+
+
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
@@ -277,6 +286,7 @@ class ChomboStaticOutput(StaticOutput):
             fileh = h5py.File(self.parameter_filename,'r')
             self.refine_by = fileh['/level_0'].attrs['ref_ratio']
             fileh.close()
+        self.periodicity = (True, True, True)
 
     def _parse_pluto_file(self, ini_filename):
         """
