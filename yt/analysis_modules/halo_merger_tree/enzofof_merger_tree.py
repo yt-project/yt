@@ -28,6 +28,7 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+# plot_halo_evolution() gives a good full example of how to use the framework
 
 # First pass at a simplified merger tree
 #
@@ -44,7 +45,6 @@ License:
 # 8. Parentage is described by a fraction of particles that pass from one to
 #    the other; we have both descendent fractions and ancestory fractions. 
 
-# plot_halo_evolution gives a good full example of how to use the framework
 
 import numpy as np
 import h5py
@@ -282,7 +282,7 @@ class EnzoFOFMergerTree(object):
     
     Examples
     --------
-    mt = EnzoFOFMergerTree((0.0, 6.0))
+    mt = EnzoFOFMergerTree()    # by default it grabs every DD in FOF dir
     mt.build_tree(0)  # Create tree for halo 0
     mt.print_tree()
     mt.write_dot()
@@ -509,7 +509,7 @@ class EnzoFOFMergerTree(object):
         if halo in f:
             del f["halo%05d" % halo_id]
         g = f.create_group("halo%05d" % halo_id)
-        size = len(self.redshifts.keys())
+        size = len(self.redshifts)
         cycle = np.zeros(size)
         redshift = np.zeros(size)
         halo_id = np.zeros(size)
@@ -520,6 +520,15 @@ class EnzoFOFMergerTree(object):
         fraction[0] = 1.
 
         for i, lvl in enumerate(sorted(self.levels, reverse=True)):
+            if len(self.levels[lvl]) == 0:  # lineage for this halo ends
+                cycle = cycle[:i]           # so truncate arrays, and break
+                redshift = redshift[:i]     # Not big enough.
+                halo_id = halo_id[:i]
+                fraction = fraction[:i]
+                mass = mass[:i]
+                densest_point = densest_point[:,:i]
+                COM = COM[:,:i]
+                break   
             if lvl not in self.redshifts: continue
             mylog.info("========== Cycle %5.5d (z=%f) ==========" % \
                   (lvl, self.redshifts[lvl]))
@@ -531,9 +540,9 @@ class EnzoFOFMergerTree(object):
             mylog.info("-> Most massive progenitor == Halo %d" % (br.progenitor))
             halo_id[i] = br.halo_id
 
-            if len(br.children) == 0:           # lineage for this halo ends
-                cycle = cycle[:i+1]             # so truncate arrays, and break
-                redshift = redshift[:i+1]
+            if len(br.children) == 0:     # lineage for this halo ends 
+                cycle = cycle[:i+1]       # (no children)
+                redshift = redshift[:i+1] # so truncate arrays, and break
                 halo_id = halo_id[:i+1]
                 fraction = fraction[:i+1]
                 mass = mass[:i+1]
@@ -730,19 +739,23 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
 
     Examples
     --------
+    # generates mass history plots for the 20 most massive halos at t_fin.
+
     ts = TimeSeriesData.from_filenames("DD????/DD????")
-    for pf in ts:
+
+    # long step--must run FOF on each DD, but saves outputs for later use
+    for pf in ts:   
         halo_list = FOFHaloFinder(pf)
         i = int(pf.basename[2:])
         halo_list.write_out("FOF/groups_%05i.txt" % i)
         halo_list.write_particle_lists("FOF/particles_%05i" % i)
-    mt = EnzoFOFMergerTree(cycle_range=(0,63), external_FOF=False)
+
+    mt = EnzoFOFMergerTree(external_FOF=False)
     for i in range(20):
         mt.build_tree(i)
         mt.save_halo_evolution('halos.h5')
     for i in range(20):
         plot_halo_evolution('halos.h5', i)
-    # generates mass history plots for the 20 most massive halos at t_fin.
     """
     import matplotlib.pyplot as plt
     f = h5py.File("%s/%s" % (FOF_directory, filename), 'r')
