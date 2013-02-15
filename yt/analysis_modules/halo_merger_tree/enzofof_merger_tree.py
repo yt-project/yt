@@ -302,7 +302,7 @@ class EnzoFOFMergerTree(object):
         self.external_FOF = external_FOF
         self.FOF_directory = FOF_directory
         if load_saved:
-            self.load_tree(save_filename)
+            self.load_tree("%s/%s" % (self.FOF_directory, save_filename))
             # make merger tree work within specified cycle/z limits
             # on preloaded halos
             if zrange is not None:
@@ -312,7 +312,7 @@ class EnzoFOFMergerTree(object):
         else:
             self.find_outputs(zrange, cycle_range, output)
             self.run_merger_tree(output)
-            self.save_tree(save_filename)
+            self.save_tree("%s/%s" % (self.FOF_directory, save_filename))
         
     def select_cycles(self, cycle_range):
         """
@@ -504,7 +504,7 @@ class EnzoFOFMergerTree(object):
         progenitor to have given it the bulk of its particles.
         It stores info from the FOF_groups file: location, mass, id, etc.
         """
-        f = h5py.File(filename, 'a')
+        f = h5py.File("%s/%s" % (self.FOF_directory, filename), 'a')
         cycle_fin = self.redshifts.keys()[-1]
         halo_id = self.levels[cycle_fin][0].halo_id
         halo = "halo%05d" % halo_id
@@ -708,7 +708,7 @@ def grab_FOF_halo_info_internal(filename, halo_id):
             return ar[1], ar[4:7], ar[7:13]  # mass, xyz_dens, xyzvxvyvz_COM
 
 def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass',
-                        x_log=False, y_log=True):
+                        x_log=False, y_log=True, FOF_directory='FOF'):
     """
     Once you have generated a file using the 
     EnzoFOFMergerTree.save_halo_evolution function, this is a simple way of 
@@ -727,6 +727,8 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
             COM_x, COM_y, COM_z, COM_vx, COM_vy, COM_vz
     x_log, y_log : bool, optional
         Do you want the x(y)-axis to be in log or linear?
+    FOF_directory : str, optional
+        Directory where FOF files (and hdf file) are located
 
     Examples
     --------
@@ -746,7 +748,7 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
     """
     import yt.visualization._mpl_imports as mpl
     import matplotlib.pyplot as plt
-    f = h5py.File(filename, 'r')
+    f = h5py.File("%s/%s" % (FOF_directory, filename), 'r')
     basename = os.path.splitext(filename)[0]
     halo = "halo%05d" % halo_id
     basename = basename + "_" + halo
