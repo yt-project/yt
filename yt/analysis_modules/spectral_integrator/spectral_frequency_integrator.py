@@ -41,13 +41,13 @@ from yt.utilities.linear_interpolators import \
 xray_data_version = 1
     
 class SpectralFrequencyIntegrator(object):
+    """
+    From a table, interpolate over field_names to get resultant luminosity.
+    Table must be of the style such that it is ordered by
+    ``[field_names[0], field_names[1], ev]``
+    """
     def __init__(self, table, field_names,
                  bounds, ev_bounds):
-        """
-        From a table, interpolate over field_names to get resultant luminosity.
-        Table must be of the style such that it is ordered by
-        ``[field_names[0], field_names[1], ev]``
-        """
         self.table = table
         self.field_names = field_names
 
@@ -121,22 +121,19 @@ class ObsoleteDataException(YTException):
           os.path.join(os.environ["YT_DEST"], "data", "xray_emissivity.h5")
           
 class EmissivityIntegrator(object):
-    r"""Class for making X-ray emissivity fields with hdf5 data tables 
-    from Cloudy.
+    r"""Initialize an EmissivityIntegrator object.
+
+    Keyword Parameters
+    ------------------
+    filename: string
+        Path to data file containing emissivity values.  If None,
+        a file called xray_emissivity.h5 is used.  This file contains 
+        emissivity tables for primordial elements and for metals at 
+        solar metallicity for the energy range 0.1 to 100 keV.
+        Default: None.
+        
     """
     def __init__(self, filename=None):
-        r"""Initialize an EmissivityIntegrator object.
-
-        Keyword Parameters
-        ------------------
-        filename: string
-            Path to data file containing emissivity values.  If None,
-            a file called xray_emissivity.h5 is used.  This file contains 
-            emissivity tables for primordial elements and for metals at 
-            solar metallicity for the energy range 0.1 to 100 keV.
-            Default: None.
-            
-        """
 
         default_filename = False
         if filename is None:
