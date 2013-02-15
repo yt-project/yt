@@ -110,23 +110,27 @@ class HaloProfiler(ParallelAnalysisInterface):
         on the maximum density.
         If recenter is given as a string, one of the existing recentering
         functions will be used:
-            Min_Dark_Matter_Density : location of minimum dark matter density
-            Max_Dark_Matter_Density : location of maximum dark matter density
-            CoM_Dark_Matter_Density : dark matter center of mass
-            Min_Gas_Density : location of minimum gas density
-            Max_Gas_Density : location of maximum gas density
-            CoM_Gas_Density : gas center of mass
-            Min_Total_Density : location of minimum total density
-            Max_Total_Density : location of maximum total density
-            CoM_Total_Density : total center of mass
-            Min_Temperature : location of minimum temperature
-            Max_Temperature : location of maximum temperature
+
+            * Min_Dark_Matter_Density : location of minimum dark matter density
+            * Max_Dark_Matter_Density : location of maximum dark matter density
+            * CoM_Dark_Matter_Density : dark matter center of mass
+            * Min_Gas_Density : location of minimum gas density
+            * Max_Gas_Density : location of maximum gas density
+            * CoM_Gas_Density : gas center of mass
+            * Min_Total_Density : location of minimum total density
+            * Max_Total_Density : location of maximum total density
+            * CoM_Total_Density : total center of mass
+            * Min_Temperature : location of minimum temperature
+            * Max_Temperature : location of maximum temperature
+
         Alternately, a function can be supplied for custom recentering.
-        The function should take only one argument, a sphere object.
-            Example function:
-                def my_center_of_mass(data):
+        The function should take only one argument, a sphere object.  Example
+        function::
+            
+               def my_center_of_mass(data):
                    my_x, my_y, my_z = data.quantities['CenterOfMass']()
                    return (my_x, my_y, my_z)
+            
         Default: None.
     halo_radius : float
         If no halo radii are provided in the halo list file, this
@@ -139,14 +143,12 @@ class HaloProfiler(ParallelAnalysisInterface):
         The number of bins in the radial profiles.  Default: 50.
     profile_output_dir : str
         The subdirectory, inside the data directory, in which radial profile
-        output files will be created.
-        The directory will be created if it does not exist.
-        Default: "radial_profiles".
+        output files will be created.  The directory will be created if it does
+        not exist.  Default: "radial_profiles".
     projection_output_dir : str
         The subdirectory, inside the data directory, in which projection
-        output files will be created.
-        The directory will be created if it does not exist.
-        Default: "projections".
+        output files will be created.  The directory will be created if it does
+        not exist.  Default: "projections".
     projection_width : float
         The width of halo projections.  Default: 8.0.
     projection_width_units : string
@@ -157,12 +159,14 @@ class HaloProfiler(ParallelAnalysisInterface):
     velocity_center  : array_like
         The method in which the halo bulk velocity is calculated (used for
         calculation of radial and tangential velocities.  Valid options are:
+
             * ["bulk", "halo"] (Default): the velocity provided in
               the halo list
             * ["bulk", "sphere"]: the bulk velocity of the sphere
               centered on the halo center.
             * ["max", field]: the velocity of the cell that is the
               location of the maximum of the field specified.
+
     filter_quantities : array_like
         Quantities from the original halo list file to be written out in the
         filtered list file.  Default: ['id','center'].
@@ -174,6 +178,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
     Examples
     --------
+
     >>> from yt.analysis_modules.halo_profiler.api import *
     >>> hp = HaloProfiler("RedshiftOutput0005/RD0005")
 
@@ -880,10 +885,12 @@ class HaloProfiler(ParallelAnalysisInterface):
         analysis_function : function
             A function taking two arguments, the halo dictionary, and a
             sphere object.
-            Example function to calculate total mass of halo:
+            Example function to calculate total mass of halo::
+
                 def my_analysis(halo, sphere):
                     total_mass = sphere.quantities['TotalMass']()
                     print total_mass
+            
         halo_list : {'filtered', 'all'}
             Which set of halos to make profiles of, either ones passed by the
             halo filters (if enabled/added), or all halos.
