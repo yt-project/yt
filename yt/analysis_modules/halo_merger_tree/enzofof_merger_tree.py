@@ -272,6 +272,11 @@ class EnzoFOFMergerTree(object):
         mt.build_tree(0)  # Create tree for halo 0
         mt.print_tree()
         mt.write_dot()
+
+        See Also
+        --------
+        plot_halo_evolution()
+
         """
         self.relationships = {}
         self.redshifts = {}
@@ -279,9 +284,15 @@ class EnzoFOFMergerTree(object):
         self.find_outputs(zrange, cycle_range, output)
         if load_saved:
             self.load_tree(save_filename)
+            if cycle_range is not None:
+                # actually make merger tree work within specified cycle limits
+                self.redshifts = {}
+                for i in range(cycle_range[0],cycle_range[1]+1):
+                    self.redshifts[i] = 0.0 # don't have redshift info
         else:
             self.run_merger_tree(output)
             self.save_tree(save_filename)
+        
 
     def save_tree(self, filename):
         cPickle.dump((self.redshifts, self.relationships),
@@ -421,6 +432,7 @@ class EnzoFOFMergerTree(object):
         r"""Prints the merger tree to stdout.
         """
         for lvl in sorted(self.levels, reverse=True):
+            if lvl not in self.redshifts.keys(): continue
             print "========== Cycle %5.5d (z=%f) ==========" % \
                   (lvl, self.redshifts[lvl])
             for br in self.levels[lvl]:
@@ -434,26 +446,29 @@ class EnzoFOFMergerTree(object):
     def save_halo_evolution(self, filename):
         """
         Saves as an HDF5 file the relevant details about a halo
-        over the course of its evolution (location, mass, id, etc.)
+        over the course of its evolution following the most massive
+        progenitor to have given it the bulk of its particles.
+        It stores info from the FOF_groups file: location, mass, id, etc.
         """
         f = h5py.File(filename, 'a')
-        cycle_fin = self.levels.keys()[0]
+        cycle_fin = self.redshifts.keys()[-1]
         halo_id = self.levels[cycle_fin][0].halo_id
         halo = "halo%05d" % halo_id
         if halo in f:
             del f["halo%05d" % halo_id]
         g = f.create_group("halo%05d" % halo_id)
-        size = len(self.levels.keys())
-        cycle = np.empty(size)
-        redshift = np.empty(size)
-        halo_id = np.empty(size)
-        fraction = np.empty(size)
-        mass = np.empty(size)
-        densest_point = np.empty((3,size))
-        COM = np.empty((6,size))
+        size = len(self.redshifts.keys())
+        cycle = np.zeros(size)
+        redshift = np.zeros(size)
+        halo_id = np.zeros(size)
+        fraction = np.zeros(size)
+        mass = np.zeros(size)
+        densest_point = np.zeros((3,size))
+        COM = np.zeros((6,size))
         fraction[0] = 1.
 
         for i, lvl in enumerate(sorted(self.levels, reverse=True)):
+            if lvl not in self.redshifts.keys(): continue
             print "========== Cycle %5.5d (z=%f) ==========" % \
                   (lvl, self.redshifts[lvl])
             cycle[i] = lvl 
@@ -463,13 +478,25 @@ class EnzoFOFMergerTree(object):
             print "Parent halo = %d" % br.halo_id
             print "--> Most massive progenitor == Halo %d" % (br.progenitor)
             halo_id[i] = br.halo_id
+
+            if len(br.children) == 0:           # lineage for this halo ends
+                cycle = cycle[:i+1]             # so truncate arrays, and break
+                redshift = redshift[:i+1]
+                halo_id = halo_id[:i+1]
+                fraction = fraction[:i+1]
+                mass = mass[:i+1]
+                densest_point = densest_point[:,:i+1]
+                COM = COM[:,:i+1]
+                break   
+
             if i < size-1:
-                fraction[i+1] = br.children[1]  
+                fraction[i+1] = br.children[0][1]  
 
             # open up FOF file to parse for details
             filename = "FOF/groups_%05d.txt" % lvl
             mass[i], densest_point[:,i], COM[:,i] = grab_FOF_halo_info_internal(filename, br.halo_id)
 
+        # save the arrays in the hdf5 file
         g.create_dataset("cycle", data=cycle)
         g.create_dataset("redshift", data=redshift)
         g.create_dataset("halo_id", data=halo_id)
@@ -617,3 +644,87 @@ def grab_FOF_halo_info_internal(filename, halo_id):
         if int(line.split()[0]) == halo_id:
             ar = np.array(line.split()).astype('float64')
             return ar[1], ar[4:7], ar[7:13]  # mass, xyz_dens, xyzvxvyvz_COM
+
+def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass',
+                        x_log=False, y_log=True):
+    """
+    Once you have generated a file using the 
+    EnzoFOFMergerTree.save_halo_evolution function, this is a simple way of 
+    plotting the evolution in the quantities of that halo over its lifetime.
+
+    Parameters
+    ----------
+    filename : str
+        The filename to which you saved the hdf5 data from save_halo_evolution
+    halo_id : int
+        The halo in 'filename' that you want to follow
+    x_quantity, y_quantity : str, optional
+        The quantity that you want to plot as the x_coord (or y_coords).
+        Valid options are:
+            cycle, mass, fraction, halo_id, redshift, dense_x, dense_y, dense_z
+            COM_x, COM_y, COM_z, COM_vx, COM_vy, COM_vz
+    x_log, y_log : bool, optional
+        Do you want the x(y)-axis to be in log or linear?
+
+    Examples
+    --------
+    files = glob.glob("DD????/DD????")
+    files.sort()
+    ts = TimeSeriesData.from_filenames(files)
+    if not os.path.isdir('FOF'): os.mkdir('FOF')
+    for pf in ts:
+        halo_list = FOFHaloFinder(pf)
+        i = int(pf.basename[2:])
+        halo_list.write_out("FOF/groups_%05i.txt" % i)
+        halo_list.write_particle_lists("FOF/particles_%05i" % i)
+    mt = EnzoFOFMergerTree(cycle_range=(0,63), external_FOF=False)
+    for i in range(20):
+        mt.build_tree(i)
+        mt.save_halo_evolution('halos.h5')
+    for i in range(20):
+        plot_halo_evolution('halos.h5', i)
+    # generates mass history plots for the 20 most massive halos at t_fin.
+    """
+    import yt.visualization._mpl_imports as mpl
+    import matplotlib.pyplot as plt
+    f = h5py.File(filename, 'r')
+    basename = os.path.splitext(filename)[0]
+    halo = "halo%05d" % halo_id
+    basename = basename + "_" + halo
+    g = f[halo]
+    values = list(g)
+    index_dict = {'x' : 0, 'y' : 1, 'z' : 2, 'vx' : 3, 'vy' : 4, 'vz' : 5}
+    coords = {}
+    fields = {}
+    for i, quantity in enumerate((x_quantity, y_quantity)):
+        field = quantity
+        if quantity.startswith('COM'):
+            index = index_dict[quantity.split('_')[-1]]
+            quantity = ('COM')
+        if quantity.startswith('dense'):
+            index = index_dict[quantity.split('_')[-1]]
+            quantity = ('densest_point')
+        if quantity not in values:
+            exit('%s not in list of values in %s for halo %d' % \
+                 (quantity, filename, halo_id))
+        if not field == quantity:
+            coords[i] = g[quantity][index,:]
+        else:
+            coords[i] = g[quantity]
+        if len(coords[i]) == 1: 
+            # ("Only 1 value for Halo %d.  Ignoring." % halo_id)
+            return
+        fields[i] = field
+
+    ax = plt.axes()
+    ax.plot(coords[0], coords[1])
+    ax.set_title(basename)
+    ax.set_xlabel(fields[0])
+    ax.set_ylabel(fields[1])
+    if x_log:
+        ax.set_xscale("log")
+    if y_log:
+        ax.set_yscale("log")
+    ofn = "%s_%s_%s.png" % (basename, fields[0], fields[1])
+    plt.savefig(ofn)
+    plt.clf()
