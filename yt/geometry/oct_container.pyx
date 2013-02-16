@@ -873,7 +873,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return local_filled
 
 
-    @cython.boundscheck(False)
+    @cython.boundscheck(True)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level_from_grid(self, int domain, int level, dest_fields, 
@@ -893,7 +893,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int i, j, k, ii
         cdef int local_pos, local_filled
         cdef np.float64_t val
-        cdef np.float64_t ox,oy,oz
+        cdef np.int64_t ox,oy,oz
         for key in dest_fields:
             local_filled = 0
             dest = dest_fields[key]
@@ -906,9 +906,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
-                            ox = o.pos[0]*2 + i
-                            oy = o.pos[1]*2 + j
-                            oz = o.pos[2]*2 + k
+                            ox = (o.pos[0] << 1) + i
+                            oy = (o.pos[1] << 1) + j
+                            oz = (o.pos[2] << 1) + k
                             dest[local_filled + offset] = source[ox,oy,oz]
                             local_filled += 1
         return local_filled

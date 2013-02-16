@@ -467,8 +467,8 @@ class ARTDomainSubset(object):
         source= {}
         for i,field in enumerate(fields):
             if level==0:
-                temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
-                                  order='C').T
+                temp1 = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
+                                  order='F')
             else:
                 temp = np.reshape(data[i,:],(no,8),order='C')
             temp = temp.astype('float64')
