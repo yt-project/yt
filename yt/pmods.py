@@ -17,343 +17,381 @@
 #####
 
 
-# This code is derived from knee.py, which was included in the Python
-# 2.6 distribution.
-#
-# The modifications to this code are copyright (c) 2011, Lawrence
-# Livermore National Security, LLC. Produced at the Lawrence Livermore
-# National Laboratory. Written by Tim Kadich and Asher Langton
-# <langton2@llnl.gov>. Released as LLNL-CODE-522751 under the name
-# SmartImport.py, version 1.0. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#
-# - Redistributions of source code must retain the above copyright
-# notice, this list of conditions and the disclaimer below.
-#
-# - Redistributions in binary form must reproduce the above copyright
-#   notice, this list of conditions and the disclaimer (as noted below)
-#   in the documentation and/or other materials provided with the
-#   distribution.
-#
-# - Neither the name of the LLNS/LLNL nor the names of its contributors
-#   may be used to endorse or promote products derived from this
-#   software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LAWRENCE
-# LIVERMORE NATIONAL SECURITY, LLC, THE U.S. DEPARTMENT OF ENERGY OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# Additional BSD Notice
-#
-# 1. This notice is required to be provided under our contract with the
-# U.S. Department of Energy (DOE). This work was produced at Lawrence
-# Livermore National Laboratory under Contract No. DE-AC52-07NA27344
-# with the DOE.
-#
-# 2. Neither the United States Government nor Lawrence Livermore
-# National Security, LLC nor any of their employees, makes any warranty,
-# express or implied, or assumes any liability or responsibility for the
-# accuracy, completeness, or usefulness of any information, apparatus,
-# product, or process disclosed, or represents that its use would not
-# infringe privately-owned rights.
-#
-# 3. Also, reference herein to any specific commercial products,
-# process, or services by trade name, trademark, manufacturer or
-# otherwise does not necessarily constitute or imply its endorsement,
-# recommendation, or favoring by the United States Government or
-# Lawrence Livermore National Security, LLC. The views and opinions of
-# authors expressed herein do not necessarily state or reflect those of
-# the United States Government or Lawrence Livermore National Security,
-# LLC, and shall not be used for advertising or product endorsement
-# purposes.
+"""This is an initial implementation of the finder/loader discussed at:
+http://mail.scipy.org/pipermail/numpy-discussion/2012-March/061160.html
 
-"""MPI_Import defines an mpi-aware import hook. The standard use of
-this module is as follows:
+This is intended to take the place of MPI_Import.py. This version has
+only been tested minimally, and is being made available primarily for
+testing and preliminary benchmarking.
 
-   from MPI_Import import mpi_import
-   with mpi_import():
-      import foo
-      import bar
+Known issues:
+- Modules loaded via the Windows registry may be incorrectly hidden by
+  a module of the same name in sys.path.
+- If a file is added to a directory on sys.path, it won't be cached, so
+  there may be precedence issues. If a file disappears or its permissions
+  change, the import will fail.
 
-Within the with block, the standard import statement is replaced by an
-MPI-aware import statement. The rank 0 process finds the location of
-each module to import, broadcasts the location, then all of the
-processes load that module.
+Update (3/16/12): I've merged in a new version, simple_finder, described
+below.
 
-One CRITICAL detail: any code inside the mpi_import block must be
-executed exactly the same on all of the MPI ranks. For example,
-consider this:
+To use the finder, start a script off with the following:
 
-def foo():
-   import mpi
-   if mpi.rank == 0:
-      bar = someFunction()
-   bar = mpi.bcast(bar,root=0)
+import sys
+from cached_import import finder
+sys.meta_path.append(finder())
 
-def someFunction():
-   import os
-   return os.name
+There are also variants of the finder that use MPI. The rank 0 process
+builds the cache and then broadcasts it. For these, replace finder
+with either pympi_finder or mpi4py_finder.
 
-If foo() is called during the import process, then things may go very
-wrong. If the os module hasn't been loaded, then the rank 0 process
-will find os and broadcast its location. Since there's no
-corresponding bcast for rank > 0, the other processes will receive
-that broadcast instead of the broadcast for bar, resulting in
-undefined behavior. Similarly, if rank >0 process encounters an import
-that rank 0 does not encounter, that process will either hang waiting
-for the bcast, or it will receive an out-of-order bcast.
+This finder works by building a cache mapping module names to
+locations. The expensive parts of this process are the calls that
+result in a stat. For that reason, we don't, by default, check whether
+a module file is readable.
 
-The import hook provides a way to test whether we're using this
-importer, which can be used to disable rank-asymmetric behavior in a
-module import:
-
-import __builtin__
-hasattr(__builtin__.__import__,"mpi_import")
-
-This evaluates to True only when we're in an mpi_import() context
-manager.
-
-There are some situations where rank-dependent code may be necessary.
-One such example is pyMPI's synchronizeQueuedOutput function, which
-tends to cause deadlocks when it is executed inside an mpi_imported
-module. In that case, we provide a hook to execute a function after
-the mpi_import hook has been replaced by the standard import hook.
-Here is an example showing the use of this feature:
-
-# encapsulate the rank-asymmetric code in a function
-def f():
-    if mpi.rank == 0:
-        doOneThing()
-    else:
-        doSomethingElse()
-
-# Either importer is None (standard import) or it's a reference to
-# the mpi_import object that owns the current importer.
-import __builtin__
-importer = getattr(__builtin__.__import__,"mpi_import",None)
-if importer:
-    importer.callAfterImport(f)
-else:
-    # If we're using the standard import, then we'll execute the
-    # code in f immediately
-    f()
-
-WARNING: the callAfterImport feature is not intended for casual use.
-Usually it will be sufficient (and preferable) to either remove the
-rank-asymmetric code or explicitly move it outside of the 'with
-mpi_import' block. callAfterImport is provided for the (hopefully
-rare!) cases where this does not suffice.
-
-
-Some implementation details:
-
--This code is based on knee.py, which is an example of a pure Python
- hierarchical import that was included with Python 2.6 distributions.
-
--Python PEP 302 defines another way to override import by using finder
- and loader objects, which behave similarly to the imp.find_module and
- imp.load_module functions in __import_module__ below. Unfortunately,
- the implementation of PEP 302 is such that the path for the module
- has already been found by the time that the "finder" object is
- constructed, so it's not suitable for our purposes.
-
--This module uses pyMPI. It was originally designed with mpi4py, and
- switching back to mpi4py requires only minor modifications. To
- quickly substitute mpi4py for pyMPI, the 'import mpi' line below can
- be replaced with the following wrapper:
-
-from mpi4py import MPI
-class mpi(object):
-    rank = MPI.COMM_WORLD.Get_rank()
-    @staticmethod
-    def bcast(obj=None,root=0):
-        return MPI.COMM_WORLD.bcast(obj,root)
-
--An alternate version of this module had rank 0 perform all of the
- lookups, and then broadcast the locations all-at-once when that
- process reached the end of the context manager. This was somewhat
- faster than the current implementation, but was prone to deadlock
- when loading modules containing MPI synchronization points.
-
--The 'level' parameter to the import hook is not handled correctly; we
- treat it as if it were -1 (try relative and absolute imports). For
- more information about the level parameter, run 'help(__import__)'.
+Since calls like os.isfile are expensive, I've added an alternate
+version called simple_finder. Instead of figuring out where all of the
+modules in sys.path are located, we just cache the contents of
+directories on sys.path and use the standard probing algorithm for the
+imports. This is much cheaper at startup and easier to maintain. It
+appears to be a bit faster than the MPI-enabled finders, though that
+will depend on the number of modules in sys.path as well as the number
+of modules actually imported.
 """
 
-import sys, imp, __builtin__,types
-from mpi4py import MPI
-class mpi(object):
-    rank = MPI.COMM_WORLD.Get_rank()
-    @staticmethod
-    def bcast(obj=None,root=0):
-        return MPI.COMM_WORLD.bcast(obj,root)
+import sys,os,imp
 
-class mpi_import(object):
-    def __enter__(self):
-        imp.acquire_lock()
-        __import_hook__.mpi_import = self
-        self.__funcs = []
-        self.original_import = __builtin__.__import__
-        __builtin__.__import__ = __import_hook__
+class finder(object):
+    def __init__(self,skip_checks=True,build=True):
+        """Build a finder object.
 
-    def __exit__(self,type,value,traceback):
-        __builtin__.__import__ = self.original_import
-        __import_hook__.mpi_import = None
-        imp.release_lock()
-        for f in self.__funcs:
-            f()
+        Arguments:
+        - skip_checks: Don't test whether modules are readable while building
+                       the cache. This improves performace, but can cause an
+                       unreadable file that looks like a Python module to
+                       shadow a readable module with the same name later
+                       in sys.path.
+        -build: if set, build the cache now. This is used in the mpi4py_finder
+                and pympi_finder extensions
+        """
+        # Store some suffix and module description information
+        t = imp.get_suffixes()
+        self.skip_checks = skip_checks
+        self._suffixes = [x[0] for x in t] # in order of precedence
+        self._rsuffixes = self._suffixes[::-1] # and in reverse order
+        self._suffix_tuples = dict((x[0],tuple(x)) for x in t)
 
-    def callAfterImport(self,f):
-        "Add f to the list of functions to call on exit"
-        if type(f) != types.FunctionType:
-            raise TypeError("Argument must be a function!")
-        self.__funcs.append(f)
+        # We store the value of sys.path in _syspath so we can keep track
+        # of changes. _cache is a dictionary mapping module names to tuples
+        # containing the information needed to load the module (path and
+        # module description).
+        if build:
+            self._syspath = list(sys.path)
+            self._build_cache()
+        else: # For some subclasses
+            self._syspath = []
+            self._cache = {}
 
+    def _build_cache(self):
+        """Traverse sys.path, building (or re-building) the cache."""
+        import os
+        self._cache = {}
+        for d in self._syspath:
+            self._process_dir(os.path.realpath(d))
 
-# The remaining code is for internal use only. Do not explicitly call
-# call any of the following functions.
+    def find_module(self,fullname,path=None):
+        """Return self if 'fullname' is in sys.path (and isn't a builtin or
+        frozen module)."""
+        # First, make sure our cache is up-to-date. (We could combine
+        # the append/prepend cases and more generally handle the case where
+        # self._syspath is a sublist of the new sys.path, but is that worth
+        # the effort? It's only beneficial if we encounter code where sys.path
+        # is both prepended to and appended to, and there isn't an import
+        # statement in between.
+        if sys.path != self._syspath:
+            stored_length = len(self._syspath)
+            real_length = len(sys.path)
+            rebuild = False
+            # If sys.path isn't bigger, we need to rebuild the cache
+            # but not before we update self._syspath.
+            if real_length <= stored_length:
+                rebuild = True
+            # Some directories were prepended to the path, so add them.
+            elif self._syspath == sys.path[-stored_length:]:
+                for d in sys.path[real_length-stored_length-1::-1]:
+                    self._process_dir(os.path.realpath(d),prepend=True)
+            # Directories appended to the path.
+            elif self._syspath == sys.path[:len(self._syspath)]:
+                for d in sys.path[stored_length-real_length:]:
+                    self._process_dir(os.path.realpath(d))
+            # Path otherwise modified, so we need to rebuild the cache.
+            else:
+                rebuild = True
 
-# Replacement for __import__(). Taken from knee.py; unmodified except for the
-# (unused) level parameter.
-def __import_hook__(name, globals=None, locals=None, fromlist=None, level=-1):
-    # TODO: handle level parameter correctly. For now, we'll ignore
-    # it and try both absolute and relative imports.
-    parent = __determine_parent__(globals)
-    q, tail = __find_head_package__(parent, name)
-    m = __load_tail__(q, tail)
-    if not fromlist:
-        return q
-    if hasattr(m, "__path__"):
-        __ensure_fromlist__(m, fromlist)
-    return m
-
-# __import_module__ is the only part of knee.py with non-trivial changes.
-# The MPI rank 0 process handles the lookup and broadcasts the location to
-# the others. This must be called synchronously, at least in the case that
-# 'fqname' is not already in sys.modules.
-def __import_module__(partname, fqname, parent):
-    fqname = fqname.rstrip(".")
-    try:
-        return sys.modules[fqname]
-    except KeyError:
-        pass
-    fp = None         # module's file
-    pathname = None   # module's location
-    stuff = None      # tuple of (suffix,mode,type) for the module
-    ierror = False    # are we propagating an import error from rank 0?
-
-    # Start with the lookup on rank 0. The other processes will be waiting
-    # on a broadcast, so we need to send one even if we're bailing out due
-    # to an import error.
-    if mpi.rank == 0:
-        try:
-            fp, pathname, stuff = imp.find_module(partname,
-                                                  parent and parent.__path__)
-        except ImportError:
-            ierror = True
-            return None
-        finally:
-            pathname,stuff,ierror = mpi.bcast((pathname,stuff,ierror))
-    else:
-        pathname,stuff,ierror = mpi.bcast((pathname,stuff,ierror))
-        if ierror:
-            return None
-        # If imp.find_module returned an open file to rank 0, then we should
-        # open the corresponding file for this process too.
-        if stuff and stuff[1]:
-            fp = open(pathname,stuff[1])
-
-    try:
-        m = imp.load_module(fqname, fp, pathname, stuff)
-    finally:
-        if fp: fp.close()
-    if parent:
-        setattr(parent, partname, m)
-    return m
-
-
-# The remaining functions are taken unmodified (except for the names)
-# from knee.py.
-def __determine_parent__(globals):
-    if not globals or  not globals.has_key("__name__"):
+            # Now update self._syspath
+            self._syspath = list(sys.path)
+            if rebuild:
+                self._build_cache()
+            
+        # Don't override builtin/frozen modules. TODO: Windows registry?
+        if (fullname not in sys.builtin_module_names and
+            not imp.is_frozen(fullname) and
+            fullname in self._cache):
+            #print "__IMPORTING ",fullname
+            return self
         return None
-    pname = globals['__name__']
-    if globals.has_key("__path__"):
-        parent = sys.modules[pname]
-        assert globals is parent.__dict__
-        return parent
-    if '.' in pname:
-        i = pname.rfind('.')
-        pname = pname[:i]
-        parent = sys.modules[pname]
-        assert parent.__name__ == pname
-        return parent
-    return None
 
-def __find_head_package__(parent, name):
-    if '.' in name:
-        i = name.find('.')
-        head = name[:i]
-        tail = name[i+1:]
-    else:
-        head = name
-        tail = ""
-    if parent:
-        qname = "%s.%s" % (parent.__name__, head)
-    else:
-        qname = head
-    q = __import_module__(head, qname, parent)
-    if q: return q, tail
-    if parent:
-        qname = head
-        parent = None
-        q = __import_module__(head, qname, parent)
-        if q: return q, tail
-    raise ImportError, "No module named " + qname
+    def load_module(self,fullname):
+        """Load the module fullname using cached path."""
+        if fullname in self._cache:
+            if fullname in sys.modules:
+                return sys.modules[fullname]
+            pathname,desc = self._cache[fullname]
+            #print "__LOADING ",fullname,pathname
+            if os.path.isfile(pathname):
+                # (If we're loading a PY_SOURCE file, the interpreter will
+                # automatically check for a compiled (.py[c|o]) file.)
+                with open(pathname,desc[1]) as f:
+                    mod = imp.load_module(fullname,f,pathname,desc)
+            # Not a file, so it's a package directory
+            else:
+                mod = imp.load_module(fullname,None,pathname,desc)
+            mod.__loader__ = self
+            return mod
+        raise ImportError("This shouldn't happen!")
 
-def __load_tail__(q, tail):
-    m = q
-    while tail:
-        i = tail.find('.')
-        if i < 0: i = len(tail)
-        head, tail = tail[:i], tail[i+1:]
-        mname = "%s.%s" % (m.__name__, head)
-        m = __import_module__(head, mname, m)
-        if not m:
-            raise ImportError, "No module named " + mname
-    return m
 
-def __ensure_fromlist__(m, fromlist, recursive=0):
-    for sub in fromlist:
-        if sub == "*":
-            if not recursive:
-                try:
-                    all = m.__all__
-                except AttributeError:
-                    pass
-                else:
-                    __ensure_fromlist__(m, all, 1)
-            continue
-        if sub != "*" and not hasattr(m, sub):
-            subname = "%s.%s" % (m.__name__, sub)
-            submod = __import_module__(sub, subname, m)
-            if not submod:
-                raise ImportError, "No module named " + subname
+    # Build up a dict of modules (including package directories) found in a
+    # directory. If this directory has been prepended to the path, we need to
+    # overwrite any conflicting entries in the cache. To make sure precedence
+    # is correct, we'll reverse the list of suffixes when we're prepending.
+    #
+    # Rather than add a lot of checks here to make sure we don't stomp on a
+    # builtin module, we'll just reject these in find_module
+    def _process_dir(self,dir,parent=None,prepend=False,visited=None):
+        """Process a directory dir, looking for valid modules.
+
+        Arguments:
+        dir -- (an absolute, real path to a directory)
+        parent -- parent module, in the case where dir is a package directory
+        prepend -- True if dir has just been prepended to sys.path. In that
+                   case, we'll replace existing cached entries with the same
+                   module name.
+        visited -- list of the real paths of visited directories. Used to
+                   prevent infinite recursion in the case of symlink cycles
+                   in package subdirectories.
+        """
+        import stat
+        
+        # Avoid symlink cycles in a package.
+        if not visited:
+            visited = [dir]
+        elif dir not in visited:
+            visited.append(dir)
+        else:
+            return
+
+        # All files and subdirs. Store the name and the path.
+        try:
+            contents = dict((x,os.path.join(dir,x))
+                            for x in os.listdir(dir))
+        # Unreadable directory, so skip
+        except OSError:
+            return
+
+        # If this is a possible package directory with no __init__.py, bail
+        # out. If __init__.py is there, we need to see if there's an exising
+        # module by that name. 
+        if parent:
+            if "__init__.py" not in contents:
+                return
+            if not (self.skip_checks or
+                    os.access(os.path.join(dir,"__init__.py"),os.R_OK)):
+                return
+            if parent in self._cache and not prepend:
+                return
+            # Okay, this is a valid, non-duplicate module.
+            self._cache[parent] = (dir,('','',imp.PKG_DIRECTORY))
+            
+        # Split contents into files & subdirs (only stat each one once)
+        files = {}
+        subdirs = {}
+        for entry in contents:
+            try:
+                mode = os.stat(contents[entry]).st_mode
+            except OSError:
+                continue # couldn't read!
+            if stat.S_ISDIR(mode) and (self.skip_checks or
+                                       os.access(contents[entry],os.R_OK)):
+                subdirs[entry] = contents[entry]
+            elif stat.S_ISREG(mode) and (self.skip_checks or
+                                         os.access(contents[entry],os.R_OK)):
+                files[entry] = contents[entry]
+
+        # Package directories have the highest precedence. But when prepend is
+        # True, we need to reverse the order here. We'll do this with these
+        # nested functions.
+        def process_subdirs():
+            for d in subdirs:
+                fqname = parent+"."+d if parent else d # fully qualified name
+                self._process_dir(os.path.join(dir,d),fqname,prepend,visited)
+
+        def process_files():
+            ordered_suffixes = self._rsuffixes if prepend else self._suffixes
+            for s in ordered_suffixes:
+                l = len(s)
+                for f in files:
+                    # Check for matching suffix.
+                    if f[-l:] == s:
+                        fqname = parent+"."+f[:-l] if parent else f[:-l]
+                        if fqname not in self._cache or prepend:
+                                self._cache[fqname] = (files[f],
+                                                       self._suffix_tuples[s])
+
+        if prepend:
+            process_files()
+            process_subdirs()
+        else:
+            process_subdirs()
+            process_files()
+
+                                
+"""Finder that lets one MPI process do all of the initial caching.
+"""
+class pympi_finder(finder):        
+    def __init__(self,skip_checks=True):
+        import mpi
+        if mpi.rank == 0:
+            finder.__init__(self,skip_checks)
+        else:
+            finder.__init__(self,skip_checks,False)
+        self._syspath,self._cache = mpi.bcast((self._syspath,self._cache))
+
+"""Finder that lets one MPI process do all of the initial caching.
+"""
+class mpi4py_finder(finder):        
+    def __init__(self,skip_checks=True):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        if rank == 0:
+            finder.__init__(self,skip_checks)
+        else:
+            finder.__init__(self,skip_checks,False)
+        self._syspath,self._cache = comm.bcast((self._syspath,self._cache))
+
+"""
+Alternate version of cached_import. Instead of caching locations,
+just cache directory contents. Then mimic the standard import probing
+algorithm.
+
+This has not been thoroughly tested!
+"""
+
+class simple_finder(object):    
+    def __init__(self):
+        # _contents is a representation of the files located in
+        # sys.path (including, in the case of module packages, any
+        # subdirectories that are encountered in the import process).
+        # For each string in sys.path or subdirectory visited,
+        # _contents contains a dict mapping the filenames in the
+        # directory to full paths. If the string doesn't represent a
+        # valid directory, then the dict is empty.
+        self._contents = {}
+        for d in sys.path:
+            self._process_dir(d)
+
+    # Search for a module 'name' in the cached directory listing for 'path'
+    def _search(self,name,path):
+        # If we haven't cached the directory, do so now.
+        if path not in self._contents:
+            self._process_dir(path)
+        listing = self._contents[path]
+        # First check for a package directory.
+        try:
+            if (name in listing and
+                os.path.isdir(listing[name]) and
+                os.path.isfile(os.path.join(listing[name],
+                                            "__init__.py"))):
+                return listing[name],('','',imp.PKG_DIRECTORY)
+        except OSError:
+            pass
+        # Now check probe for name.so, namemodule.so, name.py, etc.
+        for suffix in imp.get_suffixes():
+            s = name+suffix[0]
+            if (s in listing and
+                os.path.isfile(listing[s]) and
+                os.access(listing[s],os.R_OK)):
+                return listing[s],suffix
+        return None,None
+    
+    # Don't use this directly. We need more state than the load_module
+    # signature allows, so we'll return a loader object for any module
+    # that we have found.
+    class _loader(object):
+        def __init__(self,fullname,path,desc,finder):
+            self._fullname = fullname
+            self._path = path
+            self._desc = desc
+            self._finder = finder
+
+        def load_module(self,fullname):
+            """Load the module fullname using cached path."""
+            if fullname != self._fullname:
+                raise ImportError 
+            if os.path.isfile(self._path): # check desc instead?
+                with open(self._path,self._desc[1]) as f:
+                    mod = imp.load_module(fullname,f,self._path,self._desc)
+            # Not a file, so it's a package directory
+            else:
+                mod = imp.load_module(fullname,None,self._path,self._desc)
+            mod.__loader__ = self._finder
+            return mod
+
+    # "Loader" for modules that have already been imported.
+    class _null_loader(object):
+        def load_module(self,fullname):
+            return sys.modules[fullname]
+
+    def find_module(self,fullname,path=None):
+        """Return self if 'fullname' is in sys.path (and isn't a builtin or
+        frozen module)."""
+        if fullname in sys.modules:
+            return simple_finder._null_loader()
+        # Don't override builtin/frozen modules. TODO: Windows registry?
+        if (fullname not in sys.builtin_module_names and
+            not imp.is_frozen(fullname)):
+            if path:
+                iterpath = path
+                name = fullname.split('.')[-1]
+            else:
+                iterpath = sys.path
+                name = fullname
+            for dir in iterpath:
+                loadpath,desc = self._search(name,dir)
+                if loadpath:
+                    break
+            #print "__IMPORTING ",fullname
+            if loadpath:
+                return simple_finder._loader(fullname,loadpath,desc,self)
+        return None
+
+    def _process_dir(self,dir):
+        """
+        Arguments:
+        dir -- 
+        """
+        # All files and subdirs. Store the name and the path.
+        try:
+            contents = dict((x,os.path.join(dir,x))
+                            for x in os.listdir(dir))
+        # Unreadable directory, so skip
+        except OSError:
+            contents = {}
+
+        self._contents[dir] = contents
 
 # Now we import all the yt.mods items.
-with mpi_import():
-    if MPI.COMM_WORLD.rank == 0: print "Beginning parallel import block."
-    from yt.mods import *
-    if MPI.COMM_WORLD.rank == 0: print "Ending parallel import block."
+import sys
+sys.meta_path.append(mpi4py_finder())
+from yt.mods import *
