@@ -467,13 +467,18 @@ class ARTDomainSubset(object):
         source= {}
         for i,field in enumerate(fields):
             if level==0:
-                temp = np.reshape(data[i,:],(no,8),order='C')
+                temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
+                                  order='C').T
             else:
                 temp = np.reshape(data[i,:],(no,8),order='C')
             temp = temp.astype('float64')
             source[field] = temp
-        level_offset += oct_handler.fill_level(self.domain.domain_id, 
-                               level, dest, source, self.mask, level_offset)
+        if level==0:
+            level_offset += oct_handler.fill_level_from_grid(self.domain.domain_id, 
+                                   level, dest, source, self.mask, level_offset)
+        else:
+            level_offset += oct_handler.fill_level(self.domain.domain_id, 
+                                   level, dest, source, self.mask, level_offset)
         return dest
 
 class ARTDomainFile(object):
