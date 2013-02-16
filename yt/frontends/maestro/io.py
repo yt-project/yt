@@ -42,7 +42,7 @@ class IOHandlerNative(BaseIOHandler):
     def modify(self, field):
         return field.swapaxes(0,2)
 
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
 
@@ -120,13 +120,4 @@ class IOHandlerNative(BaseIOHandler):
 
         inFile.close()
         return field
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        """wishful thinking?
-        """
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        #sl = tuple(reversed(sl))
-        return self._read_data_set(grid,field)[sl]
-
 

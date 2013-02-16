@@ -54,6 +54,8 @@ from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
+from yt.utilities.io_handler import \
+    io_registry
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -104,16 +106,15 @@ class ChomboHierarchy(AMRHierarchy):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.hierarchy = os.path.abspath(self.hierarchy_filename)
+        self.hierarchy_filename = os.path.abspath(
+            self.parameter_file.parameter_filename)
         self.directory = pf.fullpath
-        self._fhandle = h5py.File(self.hierarchy_filename, 'r')
+        self._handle = pf._handle
 
-        self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._fhandle.keys()[1:]
+        self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
+        self._levels = self._handle.keys()[1:]
         AMRHierarchy.__init__(self,pf,data_style)
         self._read_particles()
-        self._fhandle.close()
 
     def _read_particles(self):
         self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
@@ -144,9 +145,9 @@ class ChomboHierarchy(AMRHierarchy):
                     self.grids[ind].NumberOfParticles += 1
 
     def _detect_fields(self):
-        ncomp = int(self._fhandle['/'].attrs['num_components'])
-        self.field_list = [c[1] for c in self._fhandle['/'].attrs.items()[-ncomp:]]
-
+        ncomp = int(self._handle['/'].attrs['num_components'])
+        self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
+          
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -155,10 +156,10 @@ class ChomboHierarchy(AMRHierarchy):
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
-            self.num_grids += self._fhandle[lev]['Processors'].len()
+            self.num_grids += self._handle[lev]['Processors'].len()
 
     def _parse_hierarchy(self):
-        f = self._fhandle # shortcut
+        f = self._handle # shortcut
 
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
@@ -207,6 +208,9 @@ class ChomboHierarchy(AMRHierarchy):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.parameter_file)
+
 class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
@@ -214,13 +218,21 @@ class ChomboStaticOutput(StaticOutput):
 
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
-        fileh = h5py.File(filename,'r')
-        self.current_time = fileh.attrs['time']
+        self._handle = h5py.File(filename,'r')
+        self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
-        fileh.close()
+        self.cosmological_simulation = False
+
+        # These are parameters that I very much wish to get rid of.
+        self.parameters["HydroMethod"] = 'chombo' # always PPM DE
+        self.parameters["DualEnergyFormalism"] = 0 
+        self.parameters["EOSType"] = -1 # default
+
+    def __del__(self):
+        self._handle.close()
 
     def _set_units(self):
         """
@@ -273,9 +285,8 @@ class ChomboStaticOutput(StaticOutput):
             self.domain_right_edge = self.__calc_right_edge()
             self.domain_dimensions = self.__calc_domain_dimensions()
             self.dimensionality = 3
-            fileh = h5py.File(self.parameter_filename,'r')
-            self.refine_by = fileh['/level_0'].attrs['ref_ratio']
-            fileh.close()
+            self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
+        self.periodicity = (True, True, True)
 
     def _parse_pluto_file(self, ini_filename):
         """
@@ -306,24 +317,21 @@ class ChomboStaticOutput(StaticOutput):
                         self.parameters[paramName] = t
 
     def __calc_left_edge(self):
-        fileh = h5py.File(self.parameter_filename,'r')
+        fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
         LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        fileh.close()
         return LE
 
     def __calc_right_edge(self):
-        fileh = h5py.File(self.parameter_filename,'r')
+        fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
         RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
-        fileh.close()
         return RE
 
     def __calc_domain_dimensions(self):
-        fileh = h5py.File(self.parameter_filename,'r')
+        fileh = self._handle
         L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
         R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
-        fileh.close()
         return R_index - L_index
 
     @classmethod

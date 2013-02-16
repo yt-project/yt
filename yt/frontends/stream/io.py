@@ -40,15 +40,13 @@ class IOHandlerStream(BaseIOHandler):
         self.fields = stream_handler.fields
         BaseIOHandler.__init__(self)
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         # This is where we implement processor-locking
         #if grid.id not in self.grids_in_memory:
         #    mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
         #    raise KeyError
-        tr = self.fields[grid.id][field]
+        tr = self.fields[grid.id][field].copy()
         # If it's particles, we copy.
-        if len(tr.shape) == 1: return tr.copy()
-        # New in-place unit conversion breaks if we don't copy first
         return tr
 
     def modify(self, field):
@@ -56,14 +54,6 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_field_names(self, grid):
         return self.fields[grid.id].keys()
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        sl = tuple(sl)
-        tr = self.fields[grid.id][field][sl]
-        # In-place unit conversion requires we return a copy
-        return tr.copy()
 
     @property
     def _read_exception(self):

@@ -31,31 +31,31 @@ from yt.funcs import *
 from yt.utilities.physical_constants import *
 
 class TransferFunction(object):
+    r"""A transfer function governs the transmission of emission and
+    absorption through a volume.
+
+    Transfer functions are defined by boundaries, bins, and the value that
+    governs transmission through that bin.  This is scaled between 0 and 1.
+    When integrating through a volume. the value through a given cell is
+    defined by the value calculated in the transfer function.
+
+    Parameters
+    ----------
+    x_bounds : tuple of floats
+        The min and max for the transfer function.  Values below or above
+        these values are discarded.
+    nbins : int
+        How many bins to calculate; in betwee, linear interpolation is
+        used, so low values are typically fine.
+
+    Notes
+    -----
+    Typically, raw transfer functions are not generated unless particular
+    and specific control over the integration is desired.  Usually either
+    color transfer functions, where the color values are calculated from
+    color tables, or multivariate transfer functions are used.
+    """
     def __init__(self, x_bounds, nbins=256):
-        r"""A transfer function governs the transmission of emission and
-        absorption through a volume.
-
-        Transfer functions are defined by boundaries, bins, and the value that
-        governs transmission through that bin.  This is scaled between 0 and 1.
-        When integrating through a volume. the value through a given cell is
-        defined by the value calculated in the transfer function.
-
-        Parameters
-        ----------
-        x_bounds : tuple of floats
-            The min and max for the transfer function.  Values below or above
-            these values are discarded.
-        nbins : int
-            How many bins to calculate; in betwee, linear interpolation is
-            used, so low values are typically fine.
-
-        Notes
-        -----
-        Typically, raw transfer functions are not generated unless particular
-        and specific control over the integration is desired.  Usually either
-        color transfer functions, where the color values are calculated from
-        color tables, or multivariate transfer functions are used.
-        """
         self.pass_through = 0
         self.nbins = nbins
         self.x_bounds = x_bounds
@@ -227,17 +227,17 @@ class TransferFunction(object):
         self.y[:]=0.0
 
 class MultiVariateTransferFunction(object):
-    def __init__(self):
-        r"""This object constructs a set of field tables that allow for
-        multiple field variables to control the integration through a volme.
+    r"""This object constructs a set of field tables that allow for
+    multiple field variables to control the integration through a volme.
 
-        The integration through a volume typically only utilizes a single field
-        variable (for instance, Density) to set up and control the values
-        returned at the end of the integration.  For things like isocontours,
-        this is fine.  However, more complicated schema are possible by using
-        this object.  For instance, density-weighted emission that produces
-        colors based on the temperature of the fluid.
-        """
+    The integration through a volume typically only utilizes a single field
+    variable (for instance, Density) to set up and control the values
+    returned at the end of the integration.  For things like isocontours,
+    this is fine.  However, more complicated schema are possible by using
+    this object.  For instance, density-weighted emission that produces
+    colors based on the temperature of the fluid.
+    """
+    def __init__(self):
         self.n_field_tables = 0
         self.tables = [] # Tables are interpolation tables
         self.field_ids = [0] * 6 # This correlates fields with tables
@@ -333,27 +333,27 @@ class MultiVariateTransferFunction(object):
             self.field_table_ids[c] = table_id
 
 class ColorTransferFunction(MultiVariateTransferFunction):
+    r"""A complete set of transfer functions for standard color-mapping.
+
+    This is the best and easiest way to set up volume rendering.  It
+    creates field tables for all three colors, their alphas, and has
+    support for sampling color maps and adding independent color values at
+    all locations.  It will correctly set up the
+    `MultiVariateTransferFunction`.
+
+    Parameters
+    ----------
+    x_bounds : tuple of floats
+        The min and max for the transfer function.  Values below or above
+        these values are discarded.
+    nbins : int
+        How many bins to calculate; in betwee, linear interpolation is
+        used, so low values are typically fine.
+    grey_opacity : bool
+        Should opacity be calculated on a channel-by-channel basis, or
+        overall?  Useful for opaque renderings.
+    """
     def __init__(self, x_bounds, nbins=256, grey_opacity = False):
-        r"""A complete set of transfer functions for standard color-mapping.
-
-        This is the best and easiest way to set up volume rendering.  It
-        creates field tables for all three colors, their alphas, and has
-        support for sampling color maps and adding independent color values at
-        all locations.  It will correctly set up the
-        `MultiVariateTransferFunction`.
-
-        Parameters
-        ----------
-        x_bounds : tuple of floats
-            The min and max for the transfer function.  Values below or above
-            these values are discarded.
-        nbins : int
-            How many bins to calculate; in betwee, linear interpolation is
-            used, so low values are typically fine.
-        grey_opacity : bool
-            Should opacity be calculated on a channel-by-channel basis, or
-            overall?  Useful for opaque renderings.
-        """
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
         self.nbins = nbins
@@ -728,29 +728,29 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
+    r"""A transfer function that defines a simple projection.
+
+    To generate an interpolated, off-axis projection through a dataset,
+    this transfer function should be used.  It will create a very simple
+    table that merely sums along each ray.  Note that the end product will
+    need to be scaled by the total width through which the rays were cast,
+    a piece of information inacessible to the transfer function.
+
+    Parameters
+    ----------
+    x_bounds : tuple of floats, optional
+        If any of your values lie outside this range, they will be
+        truncated.
+    n_fields : int, optional
+        How many fields we're going to project and pass through
+
+    Notes
+    -----
+    When you use this transfer function, you may need to explicitly disable
+    logging of fields.
+
+    """
     def __init__(self, x_bounds = (-1e60, 1e60), n_fields = 1):
-        r"""A transfer function that defines a simple projection.
-
-        To generate an interpolated, off-axis projection through a dataset,
-        this transfer function should be used.  It will create a very simple
-        table that merely sums along each ray.  Note that the end product will
-        need to be scaled by the total width through which the rays were cast,
-        a piece of information inacessible to the transfer function.
-
-        Parameters
-        ----------
-        x_bounds : tuple of floats, optional
-            If any of your values lie outside this range, they will be
-            truncated.
-        n_fields : int, optional
-            How many fields we're going to project and pass through
-
-        Notes
-        -----
-        When you use this transfer function, you may need to explicitly disable
-        logging of fields.
-
-        """
         if n_fields > 3:
             raise NotImplementedError
         MultiVariateTransferFunction.__init__(self)
@@ -765,21 +765,21 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
         self.link_channels(n_fields, [3,4,5]) # this will remove absorption
 
 class PlanckTransferFunction(MultiVariateTransferFunction):
+    """
+    This sets up a planck function for multivariate emission and
+    absorption.  We assume that the emission is black body, which is then
+    convolved with appropriate Johnson filters for *red*, *green* and
+    *blue*.  *T_bounds* and *rho_bounds* define the limits of tabulated
+    emission and absorption functions.  *anorm* is a "fudge factor" that
+    defines the somewhat arbitrary normalization to the scattering
+    approximation: because everything is done largely unit-free, and is
+    really not terribly accurate anyway, feel free to adjust this to change
+    the relative amount of reddenning.  Maybe in some future version this
+    will be unitful.
+    """
     def __init__(self, T_bounds, rho_bounds, nbins=256,
                  red='R', green='V', blue='B',
                  anorm = 1e6):
-        """
-        This sets up a planck function for multivariate emission and
-        absorption.  We assume that the emission is black body, which is then
-        convolved with appropriate Johnson filters for *red*, *green* and
-        *blue*.  *T_bounds* and *rho_bounds* define the limits of tabulated
-        emission and absorption functions.  *anorm* is a "fudge factor" that
-        defines the somewhat arbitrary normalization to the scattering
-        approximation: because everything is done largely unit-free, and is
-        really not terribly accurate anyway, feel free to adjust this to change
-        the relative amount of reddenning.  Maybe in some future version this
-        will be unitful.
-        """
         MultiVariateTransferFunction.__init__(self)
         mscat = -1
         from UBVRI import johnson_filters

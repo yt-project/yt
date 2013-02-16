@@ -172,7 +172,7 @@ def expand_keywords(keywords, full=False):
     keyword arguments and all of the values for these arguments that you
     want to test.
 
-    It will return a list of **kwargs dicts containing combinations of
+    It will return a list of kwargs dicts containing combinations of
     the various kwarg values you passed it.  These can then be passed
     to the appropriate function in nosetests. 
 

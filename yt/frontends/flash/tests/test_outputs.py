@@ -37,16 +37,18 @@ sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_pf(sloshing)
 def test_sloshing():
     pf = data_dir_load(sloshing)
-    yield assert_equal, str(pf), ""
-    for test in small_patch_amr(m7, _fields):
+    yield assert_equal, str(pf), "sloshing_low_res_hdf5_plt_cnt_0300"
+    for test in small_patch_amr(sloshing, _fields):
         yield test
+
+_fields_2d = ("Temperature", "Density")
 
 wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 @requires_pf(wt)
 def test_wind_tunnel():
     pf = data_dir_load(wt)
     yield assert_equal, str(pf), "windtunnel_4lev_hdf5_plt_cnt_0030"
-    for test in small_patch_amr(wt, _fields):
+    for test in small_patch_amr(wt, _fields_2d):
         yield test
 
 gcm = "GalaxyClusterMerger/fiducial_1to10_b0.273d_hdf5_plt_cnt_0245.gz"

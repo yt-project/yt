@@ -81,6 +81,10 @@ class StaticOutput(object):
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
+        self.backup_filename = self.parameter_filename + '_backup.gdf'
+        self.read_from_backup = False
+        if os.path.exists(self.backup_filename):
+            self.read_from_backup = True
         if len(self.directory) == 0:
             self.directory = "."
 

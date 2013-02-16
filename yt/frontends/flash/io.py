@@ -53,7 +53,7 @@ class IOHandlerFLASH(BaseIOHandler):
             count_list, conv_factors):
         pass
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         f = self._handle
         f_part = self._particle_handle
         if field in self._particle_fields:
@@ -65,11 +65,3 @@ class IOHandlerFLASH(BaseIOHandler):
         else:
             tr = f["/%s" % field][grid.id - grid._id_offset,:,:,:].transpose()
         return tr.astype("float64")
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        f = self._handle
-        tr = f["/%s" % field][grid.id - grid._id_offset].transpose()[sl]
-        return tr.astype("float64")
-
