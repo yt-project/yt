@@ -74,9 +74,7 @@ class ImageCollection(object):
         self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
-    r"""The primary interface for creating plots.
-
-    The PlotCollection object was created to ease the creation of multiple
+    r"""The PlotCollection object was created to ease the creation of multiple
     slices, projections and so forth made from a single parameter file.
     The concept is that when the width on one image changes, it should
     change on all the others.  The PlotCollection can create all plot types
