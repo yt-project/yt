@@ -133,13 +133,88 @@ class ImageArray(np.ndarray):
             d.attrs.create(k, v)
         f.close()
 
-    def write_png(self, filename, clip_ratio=None):
+    def rescale(self, cmax=None, amax=None, inline=True):
+        r"""Rescales the image to be in [0,1] range.
+
+        Parameters
+        ----------
+        cmax: float, optional
+            Normalization value to use for rgb channels. Defaults to None,
+            corresponding to using the maximum value in the rgb channels.
+        amax: float, optional
+            Normalization value to use for alpha channel. Defaults to None,
+            corresponding to using the maximum value in the alpha channel.
+        inline: boolean, optional
+            Specifies whether or not the rescaling is done inline. If false,
+            a new copy of the ImageArray will be created, returned. 
+            Default:True.
+
+        Returns
+        -------
+        out: ImageArray
+            The rescaled ImageArray, clipped to the [0,1] range.
+
+        Notes
+        -----
+        This requires that the shape of the ImageArray to have a length of 3,
+        and for the third dimension to be >= 3.  If the third dimension has
+        a shape of 4, the alpha channel will also be rescaled.
+       
+        Examples
+        -------- 
+        >>> im = np.zeros([64,128,4])
+        >>> for i in xrange(im.shape[0]):
+        >>>     for k in xrange(im.shape[2]):
+        >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+
+        >>> im_arr.write_png('original.png')
+        >>> im_arr.rescale()
+        >>> im_arr.write_png('normalized.png')
+
+        """
+ 
+        assert(len(self.shape) == 3)
+        assert(self.shape[2] >= 3)
+        if inline:
+            out = self
+        else:
+            out = self.copy()
+        if cmax is None: 
+            cmax = self[:,:,:3].sum(axis=2).max()
+        if amax is None:
+            amax = self[:,:,3].max()
+
+        np.multiply(self[:,:,:3], 1./cmax, out[:,:,:3])
+
+        if self.shape[2] == 4:
+            np.multiply(self[:,:,3], 1./amax, out[:,:,3])
+        
+        np.clip(out, 0.0, 1.0, out)
+        return out
+
+    def write_png(self, filename, clip_ratio=None, background='black',
+                 rescale=True):
         r"""Writes ImageArray to png file.
 
         Parameters
         ----------
         filename: string
             Note filename not be modified.
+        clip_ratio: float, optional
+            Image will be clipped before saving to the standard deviation
+            of the image multiplied by this value.  Useful for enhancing 
+            images. Default: None
+        background: 
+            This can be used to set a background color for the image, and can
+            take several types of values:
+                'white': white background, opaque
+                'black': black background, opaque
+                None: transparent background
+                4-element array [r,g,b,a]: arbitrary rgba setting.
+            Default: 'black'
+        rescale: boolean, optional
+            If True, will write out a rescaled image (without modifying the
+            original image). Default: True
        
         Examples
         --------
@@ -157,14 +232,36 @@ class ImageArray(np.ndarray):
         >>> im_arr.write_png('test_ImageArray.png')
 
         """
+        if background == None:
+            background = (0., 0., 0., 0.)
+        elif background == 'white':
+            background = (1., 1., 1., 1.)
+        elif background == 'black':
+            background = (0., 0., 0., 1.)
+
+        if rescale:
+            scaled = self.rescale(inline=False)
+        else:
+            scaled = self
+
+        # Alpha blending to background
+        if self.shape[2] == 4:
+            out = np.zeros_like(self)
+            out[:,:,3] = scaled[:,:,3] + background[3]*(1.0-scaled[:,:,3]) 
+            for i in range(3):
+                out[:,:,i] = scaled[:,:,i]*scaled[:,:,3] + \
+                        background[i]*background[3]*(1.0-scaled[:,:,3])
+        else:
+            out = scaled
+
         if filename[-4:] != '.png': 
             filename += '.png'
 
         if clip_ratio is not None:
-            return write_bitmap(self.swapaxes(0, 1), filename,
-                                clip_ratio * self.std())
+            return write_bitmap(out.swapaxes(0, 1), filename,
+                                clip_ratio * out.std())
         else:
-            return write_bitmap(self.swapaxes(0, 1), filename)
+            return write_bitmap(out.swapaxes(0, 1), filename)
 
     def write_image(self, filename, color_bounds=None, channel=None,  cmap_name="algae", func=lambda x: x):
         r"""Writes a single channel of the ImageArray to a png file.
