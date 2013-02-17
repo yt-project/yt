@@ -873,7 +873,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return local_filled
 
 
-    @cython.boundscheck(True)
+    @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level_from_grid(self, int domain, int level, dest_fields, 
