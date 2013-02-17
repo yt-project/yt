@@ -873,6 +873,48 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return local_filled
 
 
+
+cdef class ARTOctreeContainer(RAMSESOctreeContainer):
+
+    @cython.boundscheck(True)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_level(self, int domain, int level, dest_fields, source_fields,
+                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset,
+                   np.int64_t subchunk_offset, np.int64_t subchunk_max):
+        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef OctAllocationContainer *dom = self.domains[domain - 1]
+        cdef Oct *o
+        cdef int n
+        cdef int i, j, k, ii
+        cdef int local_pos, local_filled
+        cdef np.float64_t val
+        cdef np.int64_t index
+        for key in dest_fields:
+            local_filled = 0
+            dest = dest_fields[key]
+            source = source_fields[key]
+            for n in range(dom.n):
+                o = &dom.my_octs[n]
+                index = o.ind-subchunk_offset
+                if o.level != level: continue
+                if index < 0: continue
+                if index >= subchunk_max: 
+                    #if we hit the end of the array,
+                    #immeditely discontinue
+                    return local_filled
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            ii = ((k*2)+j)*2+i
+                            if mask[o.local_ind, ii] == 0: continue
+                            dest[local_filled + offset] = \
+                                source[index,ii]
+                            local_filled += 1
+        return local_filled
+
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
