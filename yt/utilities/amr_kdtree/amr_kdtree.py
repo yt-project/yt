@@ -35,12 +35,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface \
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
 
-import pdb
-
-def my_break():
-    my_debug = False 
-    if my_debug: pdb.set_trace()
-
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],
                   [-1,  1, -1], [-1,  1,  0], [-1,  1,  1],
