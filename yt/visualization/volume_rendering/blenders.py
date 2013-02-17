@@ -11,3 +11,17 @@ def enhance(im, stdval=6.0, just_alpha=True):
             del nz
     np.clip(im, 0.0, 1.0, im)
 
+def enhance_rgba(im, stdval=6.0):
+    nzc = im[:,:,:3][im[:,:,:3]>0.0]
+    cmax = nzc.mean()+stdval*np.std(nzc)
+
+    nza = im[:,:,3][im[:,:,3]>0.0]
+    if len(nza) == 0:
+        im[:,:,3]=1.0
+        amax = 1.0
+    else:
+        amax = nza.mean()+stdval*np.std(nza)
+
+    im.rescale(amax=amax, cmax=cmax, inline=True)
+    np.clip(im, 0.0, 1.0, im)
+

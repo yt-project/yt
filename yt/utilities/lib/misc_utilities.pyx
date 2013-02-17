@@ -155,6 +155,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
                 for i in range(3):
                     image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+                if image.shape[2] == 4:
+                    image[x0,y0,3] = (1.-alpha[3])*image[x0,y0,3] + alpha[3]
             if (x0 == x1 and y0 == y1):
                 break
             e2 = 2*err

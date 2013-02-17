@@ -49,7 +49,7 @@ from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, parallel_objects
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from .blenders import  enhance
+from .blenders import  enhance_rgba
 from numpy import pi
 
 def get_corners(le, re):
@@ -317,7 +317,7 @@ class Camera(ParallelAnalysisInterface):
         # Must normalize the image
         ma = im.max()
         if ma > 0.0: 
-            enhance(im)
+            enhance_rgba(im)
        
         lines(im, px, py, colors, 24)
 
@@ -391,7 +391,7 @@ class Camera(ParallelAnalysisInterface):
 
         ma = im.max()
         if ma > 0.0: 
-            enhance(im)
+            enhance_rgba(im)
         self.draw_box(im, self.pf.domain_left_edge, self.pf.domain_right_edge,
                         color=np.array([1.0,1.0,1.0,alpha]))
 
@@ -529,6 +529,8 @@ class Camera(ParallelAnalysisInterface):
     def finalize_image(self, image):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
         return image
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -598,12 +600,13 @@ class Camera(ParallelAnalysisInterface):
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
-    def save_image(self, fn, clip_ratio, image, transparent=False):
-        if self.comm.rank is 0 and fn is not None:
+    def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
+        if self.comm.rank == 0 and fn is not None:
             if transparent:
-                image.write_png(fn, clip_ratio=clip_ratio)
+                image.write_png(fn, clip_ratio=clip_ratio, rescale=False)
             else:
-                image[:,:,:3].write_png(fn, clip_ratio=clip_ratio)
+                image.write_png(fn, clip_ratio=clip_ratio, rescale=False,
+                                background='black')
 
     def initialize_source(self):
         return self.volume.initialize_source()
@@ -619,7 +622,7 @@ class Camera(ParallelAnalysisInterface):
         return info_dict
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0):
+                 num_threads = 0, transparent=False):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -640,6 +643,9 @@ class Camera(ParallelAnalysisInterface):
             If supplied, will use 'num_threads' number of OpenMP threads during
             the rendering.  Defaults to 0, which uses the environment variable
             OMP_NUM_THREADS.
+        transparent: bool, optional
+            Optionally saves out the 4-channel rgba image, which can appear 
+            empty if the alpha channel is low everywhere. Default: False
 
         Returns
         -------
@@ -655,7 +661,7 @@ class Camera(ParallelAnalysisInterface):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
-        self.save_image(fn, clip_ratio, image)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio)
         return image
 
     def show(self, clip_ratio = None):
@@ -1191,11 +1197,11 @@ class HEALpixCamera(Camera):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
-        self.save_image(fn, clim, image, label = label)
+        self.save_image(image, fn=fn, clim=clim, label = label)
         return image
 
-    def save_image(self, fn, clim, image, label = None):
-        if self.comm.rank is 0 and fn is not None:
+    def save_image(self, image, fn=None, clim=None, label = None):
+        if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
@@ -1509,7 +1515,7 @@ class MosaicCamera(Camera):
             sto.id = self.imj*self.nimx + self.imi
             sto.result = image
         image = self.reduce_images(my_storage)
-        self.save_image(fn, clip_ratio, image)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio)
         return image
 
     def reduce_images(self,im_dict):
@@ -2165,12 +2171,12 @@ class ProjectionCamera(Camera):
         image = self.finalize_image(sampler.aimage)
         return image
 
-    def save_image(self, fn, clip_ratio, image):
+    def save_image(self, image, fn=None, clip_ratio=None):
         if self.pf.field_info[self.field].take_log:
             im = np.log10(image)
         else:
             im = image
-        if self.comm.rank is 0 and fn is not None:
+        if self.comm.rank == 0 and fn is not None:
             if clip_ratio is not None:
                 write_image(im, fn)
             else:
@@ -2197,7 +2203,7 @@ class ProjectionCamera(Camera):
                                         image, sampler),
                            info=self.get_information())
 
-        self.save_image(fn, clip_ratio, image)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio)
 
         return image
     snapshot.__doc__ = Camera.snapshot.__doc__
