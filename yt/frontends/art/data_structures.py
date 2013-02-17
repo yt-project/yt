@@ -463,14 +463,13 @@ class ARTDomainSubset(object):
             def subchunk(count,size):
                 for i in range(0,count,size):
                     yield i,i+min(size,count-i)
-            for noct_range in subchunk(no,long(2e5)):
+            for noct_range in subchunk(no,long(1e5)):
                 source = _read_child_level(content,self.domain.level_child_offsets,
                                          self.domain.level_offsets,
                                          self.domain.level_count,level,fields,
                                          self.domain.pf.domain_dimensions,
                                          self.domain.pf.parameters['ncell0'],
                                          noct_range = noct_range)
-                print noct_range
                 nocts_filling = noct_range[1]-noct_range[0]
                 level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                     level, dest, source, self.mask, level_offset,
