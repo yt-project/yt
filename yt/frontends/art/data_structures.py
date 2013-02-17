@@ -75,7 +75,6 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
-
 class ARTGeometryHandler(OctreeGeometryHandler):
     def __init__(self,pf,data_style="art"):
         """
@@ -455,30 +454,23 @@ class ARTDomainSubset(object):
         offset = self.domain.level_offsets
         no = self.domain.level_count[level]
         if level==0:
+            source= {}
             data = _read_root_level(content,self.domain.level_child_offsets,
                                    self.domain.level_count)
-            data = data[field_idxs,:]
+            for i in field_idxs:
+                temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
+                                  order='F').astype('float64')
+                source[field] = temp
+            level_offset += oct_handler.fill_level_from_grid(self.domain.domain_id, 
+                                   level, dest, source, self.mask, level_offset)
         else:
-            data = _read_child_level(content,self.domain.level_child_offsets,
+            source = _read_child_level(content,self.domain.level_child_offsets,
                                      self.domain.level_offsets,
                                      self.domain.level_count,level,fields,
                                      self.domain.pf.domain_dimensions,
                                      self.domain.pf.parameters['ncell0'])
-        source= {}
-        for i,field in enumerate(fields):
-            if level==0:
-                temp1 = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
-                                  order='F')
-            else:
-                temp = np.reshape(data[i,:],(no,8),order='C')
-            temp = temp.astype('float64')
-            source[field] = temp
-        if level==0:
-            level_offset += oct_handler.fill_level_from_grid(self.domain.domain_id, 
-                                   level, dest, source, self.mask, level_offset)
-        else:
             level_offset += oct_handler.fill_level(self.domain.domain_id, 
-                                   level, dest, source, self.mask, level_offset)
+                                level, dest, source, self.mask, level_offset)
         return dest
 
 class ARTDomainFile(object):
