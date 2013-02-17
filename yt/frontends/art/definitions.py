@@ -49,22 +49,21 @@ for field in fluid_fields:
 hydro_struct += ('pad2','>i'),
 
 particle_fields= [
-    'particle_age',
+    'particle_mass', #stars have variable mass
     'particle_index',
-    'particle_mass',
-    'particle_mass_initial',
-    'particle_creation_time',
-    'particle_metallicity1',
-    'particle_metallicity2',
-    'particle_metallicity',
+    'particle_type',
     'particle_position_x',
     'particle_position_y',
     'particle_position_z',
     'particle_velocity_x',
     'particle_velocity_y',
-    'particle_velocity_z',
-    'particle_type',
-    'particle_index'
+    'particle_velocity_z'
+    'particle_age', #this and below are stellar only fields
+    'particle_mass_initial',
+    'particle_creation_time',
+    'particle_metallicity1',
+    'particle_metallicity2',
+    'particle_metallicity',
 ]
 
 particle_star_fields = [
