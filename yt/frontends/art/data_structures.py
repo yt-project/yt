@@ -104,12 +104,12 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                 yield i,i+min(size,count-i)
 
         self.domains = []
-        root = ARTDomainFile(self.parameter_file,1,nv,0,None)
+        root = ARTDomainFile(self.parameter_file,1,nv,0)
         count = root.level_count
         counts = root._level_count
         self.domains += root,
         for did,l in enumerate(range(1,self.pf.max_level)):
-            self.domains += ARTDomainFile(self.parameter_file,did+1,
+            self.domains += ARTDomainFile(self.parameter_file,did+2,
                                           nv,l),
 
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
