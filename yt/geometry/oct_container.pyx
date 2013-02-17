@@ -843,18 +843,17 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         level_counts[o.level] += 1
         return coords
 
-    @cython.boundscheck(True)
+    @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
-                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset,
-                   int skip_start=0, int skip_end=np.iinfo(np.int32()).max):
+                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
         cdef Oct *o
         cdef int n
-        cdef int i, j, k, ii, index
+        cdef int i, j, k, ii
         cdef int local_pos, local_filled
         cdef np.float64_t val
         for key in dest_fields:
@@ -864,15 +863,12 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             for n in range(dom.n):
                 o = &dom.my_octs[n]
                 if o.level != level: continue
-                index = o.ind - skip_start
-                if index < 0: continue
-                if index >= skip_end: continue
                 for i in range(2):
                     for j in range(2):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
-                            dest[local_filled + offset] = source[index, ii]
+                            dest[local_filled + offset] = source[o.ind, ii]
                             local_filled += 1
         return local_filled
 
