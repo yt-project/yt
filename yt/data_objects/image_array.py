@@ -218,18 +218,18 @@ class ImageArray(np.ndarray):
        
         Examples
         --------
-        
-        >>> im = np.zeros([64,128,3])
+        >>> im = np.zeros([64,128,4])
         >>> for i in xrange(im.shape[0]):
         >>>     for k in xrange(im.shape[2]):
-        >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+        >>>         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
 
-        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-        >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
-        >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
-
-        >>> im_arr = ImageArray(im, info=myinfo)
-        >>> im_arr.write_png('test_ImageArray.png')
+        >>> im_arr = ImageArray(im)
+        >>> im_arr.write_png('standard.png')
+        >>> im_arr.write_png('non-scaled.png', rescale=False)
+        >>> im_arr.write_png('black_bg.png', background='black')
+        >>> im_arr.write_png('white_bg.png', background='white')
+        >>> im_arr.write_png('green_bg.png', background=[0,1,0,1])
+        >>> im_arr.write_png('transparent_bg.png', background=None)
 
         """
         if background == None:
