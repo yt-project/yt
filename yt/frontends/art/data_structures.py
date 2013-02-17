@@ -136,8 +136,9 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             #and build a subset=mask of domains 
             subsets = []
             for d,c in zip(self.domains,counts):
-                if c>0:
-                    subsets += ARTDomainSubset(d,mask,c,d.domain_level),
+                nocts = d.level_count[d.domain_level]
+                if c<1: continue
+                subsets += ARTDomainSubset(d,mask,c,d.domain_level),
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
             dobj.shape = (dobj.size,)
