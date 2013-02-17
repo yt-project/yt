@@ -216,11 +216,11 @@ class FromListParticleGenerator(ParticleGenerator) :
         y = data.pop("particle_position_y")
         z = data.pop("particle_position_z")
 
-        xcond = np.logical_or(x <= pf.domain_left_edge[0],
+        xcond = np.logical_or(x < pf.domain_left_edge[0],
                               x >= pf.domain_right_edge[0])
-        ycond = np.logical_or(y <= pf.domain_left_edge[1],
+        ycond = np.logical_or(y < pf.domain_left_edge[1],
                               y >= pf.domain_right_edge[1])
-        zcond = np.logical_or(z <= pf.domain_left_edge[2],
+        zcond = np.logical_or(z < pf.domain_left_edge[2],
                               z >= pf.domain_right_edge[2])
         cond = np.logical_or(xcond, ycond)
         cond = np.logical_or(zcond, cond)
@@ -272,11 +272,11 @@ class LatticeParticleGenerator(ParticleGenerator) :
         ymax = particles_right_edge[1]
         zmax = particles_right_edge[2]
 
-        xcond = (xmin <= pf.domain_left_edge[0]) or \
+        xcond = (xmin < pf.domain_left_edge[0]) or \
                 (xmax >= pf.domain_right_edge[0])
-        ycond = (ymin <= pf.domain_left_edge[1]) or \
+        ycond = (ymin < pf.domain_left_edge[1]) or \
                 (ymax >= pf.domain_right_edge[1])
-        zcond = (zmin <= pf.domain_left_edge[2]) or \
+        zcond = (zmin < pf.domain_left_edge[2]) or \
                 (zmax >= pf.domain_right_edge[2])
         cond = xcond or ycond or zcond
 
