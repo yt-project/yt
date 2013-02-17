@@ -90,6 +90,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.max_level = pf.max_level
         self.float_type = np.float64
+        self.subchunk_size = long(2e5) #maximum # of octs per chunk
         super(ARTGeometryHandler,self).__init__(pf,data_style)
 
     def _initialize_oct_handler(self):
@@ -136,9 +137,21 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             #For all domains, figure out how many counts we have 
             #and build a subset=mask of domains 
             subsets = []
+            def subchunk(count,size):
+                for i in range(0,count,size):
+                    yield i,i+min(size,count-i)
             for d,c in zip(self.domains,counts):
-                if c>0:
+                nocts = d.level_count[d.domain_level]
+                if c<1: continue
+                if d.domain_level > 0:
+                    for noct_range in subchunk(nocts,self.subchunk_size):
+                        subsets += ARTDomainSubset(d,mask,c,d.domain_level,
+                                                   noct_range=noct_range),
+                        mylog.debug("Creating subset of octs %i - %i",
+                                    noct_range[0],noct_range[1])
+                else:
                     subsets += ARTDomainSubset(d,mask,c,d.domain_level),
+
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
             dobj.shape = (dobj.size,)
@@ -399,7 +412,8 @@ class ARTStaticOutput(StaticOutput):
         return False
 
 class ARTDomainSubset(object):
-    def __init__(self, domain, mask, cell_count,domain_level):
+    def __init__(self, domain, mask, cell_count,domain_level,
+                 noct_range=None):
         self.mask = mask
         self.domain = domain
         self.oct_handler = domain.pf.h.oct_handler
@@ -411,6 +425,7 @@ class ARTDomainSubset(object):
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
+        self.noct_range = noct_range
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -455,24 +470,20 @@ class ARTDomainSubset(object):
         offset = self.domain.level_offsets
         no = self.domain.level_count[level]
         if level==0:
+            source= {}
             data = _read_root_level(content,self.domain.level_child_offsets,
                                    self.domain.level_count)
-            data = data[field_idxs,:]
+            for i in field_idxs:
+                temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
+                                  order='F').astype('float64')
+                source[field] = temp
         else:
-            data = _read_child_level(content,self.domain.level_child_offsets,
+            source = _read_child_level(content,self.domain.level_child_offsets,
                                      self.domain.level_offsets,
                                      self.domain.level_count,level,fields,
                                      self.domain.pf.domain_dimensions,
-                                     self.domain.pf.parameters['ncell0'])
-        source= {}
-        for i,field in enumerate(fields):
-            if level==0:
-                temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
-                                  order='F')
-            else:
-                temp = np.reshape(data[i,:],(no,8),order='C')
-            temp = temp.astype('float64')
-            source[field] = temp
+                                     self.domain.pf.parameters['ncell0'],
+                                     noct_range=self.noct_range)
         if level==0:
             level_offset += oct_handler.fill_level_from_grid(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)

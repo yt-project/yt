@@ -250,30 +250,43 @@ nchem=8+2
 dtyp = np.dtype(">i4,>i8,>i8"+",>%sf4"%(nchem)+ \
                 ",>%sf4"%(2)+",>i4")
 def _read_child_level(f,level_child_offsets,level_oct_offsets,level_info,level,
-                      fields,domain_dimensions,ncell0,nhydro_vars=10,nchild=8):
+                      fields,domain_dimensions,ncell0,nhydro_vars=10,nchild=8,
+                      noct_range=None):
     #emulate the fortran code for reading cell data
     #read ( 19 ) idc, iOctCh(idc), (hvar(i,idc),i=1,nhvar), 
     #    &                 (var(i,idc), i=2,3)
     #contiguous 8-cell sections are for the same oct;
     #ie, we don't write out just the 0 cells, then the 1 cells
+    #optionally, we only read noct_range to save memory
     left_index, fl, octs, nocts,root_level = _read_art_level_info(f, 
         level_oct_offsets,level, coarse_grid=domain_dimensions[0])
-    nocts = level_info[level]
-    ncells = nocts*8
-    f.seek(level_child_offsets[level])
-    arr = np.fromfile(f,dtype=hydro_struct,count=ncells)
-    assert np.all(arr['pad1']==arr['pad2']) #pads must be equal
-    #idc = np.argsort(arr['idc']) #correct fortran indices
-    #translate idc into icell, and then to iOct
-    icell = (arr['idc'] >> 3) << 3
-    iocts = (icell-ncell0)/nchild #without a F correction, theres a +1
-    #assert that the children are read in the same order as the octs
-    assert np.all(octs==iocts[::nchild]) 
-    if len(fields)>1:
-        vars = np.concatenate((arr[field] for field in fields))
+    if noct_range is None:
+        nocts = level_info[level]
+        ncells = nocts*8
+        f.seek(level_child_offsets[level])
+        arr = np.fromfile(f,dtype=hydro_struct,count=ncells)
+        assert np.all(arr['pad1']==arr['pad2']) #pads must be equal
+        #idc = np.argsort(arr['idc']) #correct fortran indices
+        #translate idc into icell, and then to iOct
+        icell = (arr['idc'] >> 3) << 3
+        iocts = (icell-ncell0)/nchild #without a F correction, theres a +1
+        #assert that the children are read in the same order as the octs
+        assert np.all(octs==iocts[::nchild]) 
     else:
-        vars = arr[fields[0]].reshape((1,arr.shape[0]))
-    return vars
+        start,end = noct_range
+        nocts = min(end-start,level_info[level])
+        end = start + nocts
+        ncells = nocts*8
+        skip = np.dtype(hydro_struct).itemsize*start
+        f.seek(level_child_offsets[level]+skip)
+        arr = np.fromfile(f,dtype=hydro_struct,count=ncells)
+        assert np.all(arr['pad1']==arr['pad2']) #pads must be equal
+    source = {}
+    for field in fields:
+        sh = (nocts,8)
+        source[field] = np.reshape(arr[field],sh,order='C').astype('float64')
+    return source
+
 
 def _read_root_level(f,level_offsets,level_info,nhydro_vars=10):
     nocts = level_info[0]
