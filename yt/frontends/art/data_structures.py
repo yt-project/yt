@@ -39,7 +39,7 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
       StaticOutput
 from yt.geometry.oct_container import \
-    RAMSESOctreeContainer
+    ARTOctreeContainer
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import \
@@ -77,11 +77,6 @@ from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
 class ARTGeometryHandler(OctreeGeometryHandler):
     def __init__(self,pf,data_style="art"):
-        """
-        Life is made simpler because we only have one AMR file
-        and one domain. However, we are matching to the RAMSES
-        multi-domain architecture.
-        """
         self.fluid_field_list = fluid_fields
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
@@ -101,7 +96,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                         for i,l in enumerate(range(self.pf.max_level))]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
-        self.oct_handler = RAMSESOctreeContainer(
+        self.oct_handler = ARTOctreeContainer(
             self.parameter_file.domain_dimensions/2, #dd is # of root cells
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
@@ -465,13 +460,21 @@ class ARTDomainSubset(object):
             level_offset += oct_handler.fill_level_from_grid(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)
         else:
-            source = _read_child_level(content,self.domain.level_child_offsets,
-                                     self.domain.level_offsets,
-                                     self.domain.level_count,level,fields,
-                                     self.domain.pf.domain_dimensions,
-                                     self.domain.pf.parameters['ncell0'])
-            level_offset += oct_handler.fill_level(self.domain.domain_id, 
-                                level, dest, source, self.mask, level_offset)
+            def subchunk(count,size):
+                for i in range(0,count,size):
+                    yield i,i+min(size,count-i)
+            for noct_range in subchunk(no,long(2e5)):
+                source = _read_child_level(content,self.domain.level_child_offsets,
+                                         self.domain.level_offsets,
+                                         self.domain.level_count,level,fields,
+                                         self.domain.pf.domain_dimensions,
+                                         self.domain.pf.parameters['ncell0'],
+                                         noct_range = noct_range)
+                print noct_range
+                nocts_filling = noct_range[1]-noct_range[0]
+                level_offset += oct_handler.fill_level(self.domain.domain_id, 
+                                    level, dest, source, self.mask, level_offset,
+                                    noct_range[0],nocts_filling-1)
         return dest
 
 class ARTDomainFile(object):
