@@ -108,13 +108,9 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         count = root.level_count
         counts = root._level_count
         self.domains += root,
-        i=2
         for did,l in enumerate(range(1,self.pf.max_level)):
-            count = counts[l]
-            for cpu,noct_range in enumerate(subchunk(count,self.subchunk_size)):
-                self.domains += ARTDomainFile(self.parameter_file,i,
-                                              nv,l,noct_range),
-                i +=1
+            self.domains += ARTDomainFile(self.parameter_file,did+1,
+                                          nv,l),
 
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
@@ -428,7 +424,6 @@ class ARTDomainSubset(object):
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
-        self.noct_range = domain.noct_range
 
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -487,8 +482,7 @@ class ARTDomainSubset(object):
                                      self.domain.level_offsets,
                                      self.domain.level_count,level,fields,
                                      self.domain.pf.domain_dimensions,
-                                     self.domain.pf.parameters['ncell0'],
-                                     noct_range=self.noct_range)
+                                     self.domain.pf.parameters['ncell0'])
             level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                 level, dest, source, self.mask, level_offset)
         return dest
@@ -503,7 +497,7 @@ class ARTDomainFile(object):
     _last_mask = None
     _last_seletor_id = None
 
-    def __init__(self,pf,domain_id,nvar,level,noct_range=None,cpu=0):
+    def __init__(self,pf,domain_id,nvar,level):
         self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
@@ -511,8 +505,6 @@ class ARTDomainFile(object):
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
-        self.noct_range = noct_range
-        self.cpu = cpu #this is where we do our subchunking
 
 
     @property
@@ -596,17 +588,9 @@ class ARTDomainFile(object):
             float_center = float_left_edge + 0.5*1.0/octs_side
             #all floatin unitary positions should fit inside the domain
             assert np.all(float_center<1.0)
-            if self.noct_range is None:
-                nocts_check = oct_handler.add(self.domain_id,level, nocts, 
-                                              float_left_edge, self.domain_id)
-                assert(nocts_check == nocts)
-            else:
-                s,e= self.noct_range[0],self.noct_range[1]
-                nocts_check = oct_handler.add(self.domain_id,level, e-s,
-                                              float_left_edge[s:e],
-                                              self.domain_id)
-                assert(nocts_check == e-s)
-                nocts = e-s
+            nocts_check = oct_handler.add(self.domain_id,level, nocts, 
+                                          float_left_edge, self.domain_id)
+            assert(nocts_check == nocts)
             mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                         nocts, level,oct_handler.nocts)
 
