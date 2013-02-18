@@ -35,6 +35,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 import yt.utilities.lib as amr_utils
+from yt.frontends.art.definitions import *
 
 KnownARTFields = FieldInfoContainer()
 add_art_field = KnownARTFields.add_field
@@ -45,16 +46,15 @@ add_field = ARTFieldInfo.add_field
 import numpy as np
 
 #these are just the hydro fields
-known_art_fields = [ 'Density','TotalEnergy',
-                     'XMomentumDensity','YMomentumDensity','ZMomentumDensity',
-                     'Pressure','Gamma','GasEnergy',
-                     'MetalDensitySNII', 'MetalDensitySNIa',
-                     'PotentialNew','PotentialOld']
-
 #Add the fields, then later we'll individually defined units and names
-for f in known_art_fields:
+for f in fluid_fields:
     add_art_field(f, function=NullFunc, take_log=True,
               validators = [ValidateDataField(f)])
+
+for f in particle_fields:
+    add_art_field(f, function=NullFunc, take_log=True,
+              validators = [ValidateDataField(f)],
+              particle_type = True)
 
 #Hydro Fields that are verified to be OK unit-wise:
 #Density

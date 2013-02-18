@@ -70,21 +70,21 @@ class IOHandlerART(BaseIOHandler):
         pos,vel = read_particles(file_particle,pf.parameters['Nrow'],
                                  total=np,dd=pf.domain_dimensions)
         pos,vel = pos.astype('float64'), vel.astype('float64')
-        import pdb; pdb.set_trace()
         mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
         size = mask.sum()
-        if not any(('position' in f for f in fields)):
+        if not any(('position' in f for f in fields[0])):
             del pos
-        if not any(('velocity' in f for f in fields)):
+        if not any(('velocity' in f for f in fields[0])):
             del vel
         stara,starb = ls[-2],ls[-1]
         tr = {}
-        for field in fields:
-            for ax in 'xyz':
+        for field in fields[0]:
+            import pdb; pdb.set_trace()
+            for i,ax in enumerate('xyz'):
                 if field.startswith("particle_position_%s"%ax):
-                    tr[field]=pos[:,ax][mask]
+                    tr[field]=pos[:,i][mask]
                 if field.startswith("particle_velocity_%s"%ax):
-                    tr[field]=vel[:,ax][mask]
+                    tr[field]=vel[:,i][mask]
             if field == "particle_mass":
                 a=0
                 data = np.zeros(np,dtype='float64')
