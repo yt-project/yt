@@ -198,8 +198,9 @@ class ObjectFindingMixin(object) :
         """
         Gets back all the grids between a left edge and right edge
         """
-        grid_i = np.where((np.all(self.grid_right_edge > left_edge, axis=1)
-                         & np.all(self.grid_left_edge < right_edge, axis=1)) == True)
+        dx = self.get_smallest_dx() * 0.5
+        grid_i = np.where((np.all(self.grid_right_edge > (left_edge + dx), axis=1)
+                         & np.all(self.grid_left_edge < (right_edge - dx), axis=1)) == True)
         return self.grids[grid_i], grid_i
 
     def get_periodic_box_grids(self, left_edge, right_edge):
