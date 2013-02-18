@@ -117,16 +117,16 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def lines(np.ndarray[np.float64_t, ndim=3] image, 
+def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.int64_t, ndim=1] xs,
           np.ndarray[np.int64_t, ndim=1] ys,
           np.ndarray[np.float64_t, ndim=2] colors,
           int points_per_color=1):
-    
+
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[3], nalpha 
+    cdef np.float64_t alpha[3], nalpha
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
@@ -139,7 +139,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
         for i in range(3):
             alpha[i] = colors[j/points_per_color,3]*colors[j/points_per_color,i]
         nalpha = 1.0-colors[j/points_per_color,3]
-        if x0 < x1: 
+        if x0 < x1:
             sx = 1
         else:
             sx = -1
@@ -147,7 +147,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             sy = 1
         else:
             sy = -1
-        while(1): 
+        while(1):
             if (x0 < 0 and sx == -1): break
             elif (x0 >= nx and sx == 1): break
             elif (y0 < 0 and sy == -1): break
@@ -164,13 +164,13 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if e2 < dx :
                 err = err + dx
                 y0 += sy
-    return 
+    return
 
 def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
         np.ndarray[np.float64_t, ndim=2] R):
     cdef int nx = vecs.shape[0]
     cdef int ny = vecs.shape[1]
-    rotated = np.empty((nx,ny,3),dtype='float64') 
+    rotated = np.empty((nx,ny,3),dtype='float64')
     for i in range(nx):
         for j in range(ny):
             for k in range(3):
@@ -216,18 +216,19 @@ def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
                         np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_index = 0):
+                        int min_index = 0,
+                        np.float64_t dx = 0.0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
-    cdef int inside 
+    cdef int inside
     for i in range(nx):
         if i < min_index or levels[i,0] != level:
             mask[i] = 0
             continue
         inside = 1
         for n in range(3):
-            if left_edge[n] >= right_edges[i,n] or \
-               right_edge[n] <= left_edges[i,n]:
+            if left_edge[n] >= (right_edges[i,n] - dx) or \
+               right_edge[n] <= (left_edges[i,n] + dx):
                 inside = 0
                 break
         if inside == 1: mask[i] = 1
@@ -244,17 +245,18 @@ def get_box_grids_below_level(
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
                         np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_level = 0):
+                        int min_level = 0,
+                        np.float64_t dx = 0.0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
-    cdef int inside 
+    cdef int inside
     for i in range(nx):
         mask[i] = 0
         if levels[i,0] <= level and levels[i,0] >= min_level:
             inside = 1
             for n in range(3):
-                if left_edge[n] >= right_edges[i,n] or \
-                   right_edge[n] <= left_edges[i,n]:
+                if left_edge[n] >= (right_edges[i,n] - dx) or \
+                   right_edge[n] <= (left_edges[i,n] + dx):
                     inside = 0
                     break
             if inside == 1: mask[i] = 1
