@@ -61,7 +61,6 @@ from .io import _read_root_level
 from .io import _count_art_octs
 from .io import b2t
 
-
 import yt.frontends.ramses._ramses_reader as _ramses_reader
 
 from .fields import ARTFieldInfo, KnownARTFields

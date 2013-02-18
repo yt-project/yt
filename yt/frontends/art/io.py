@@ -60,36 +60,40 @@ class IOHandlerART(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        size = 0
+        #ignore chunking; we have no particle chunk system
         masks = {}
-        for chunk in chunks:
-            for subset in chunk.objs:
-                # We read the whole thing, then feed it back to the selector
-                offsets = []
-                f = open(subset.domain.part_fn, "rb")
-                foffsets = subset.domain.particle_field_offsets
-                selection = {}
-                for ax in 'xyz':
-                    field = "particle_position_%s" % ax
-                    f.seek(foffsets[field])
-                    selection[ax] = fpu.read_vector(f, 'd')
-                mask = selector.select_points(selection['x'],
-                            selection['y'], selection['z'])
-                if mask is None: continue
-                size += mask.sum()
-                masks[id(subset)] = mask
-        # Now our second pass
+        pf = chunks[0].objs[0].domain.pf
+        ws,ls = pf.parameters["wspecies"],pf.parameters["lspecies"]
+        file_particle = pf.file_particle_data
+        file_stars = pf.file_particle_stars
+        pos,vel = read_particles(file_particle)
+        del vel
+        mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
+        if mask is None: continue
+        size = mask.sum()
+        if not any(('position' in f for f in fields)):
+            del pos
+        if not any(('velocity' in f for f in fields)):
+            del vel
         tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
-        for chunk in chunks:
-            for subset in chunk.objs:
-                f = open(subset.domain.part_fn, "rb")
-                mask = masks.pop(id(subset), None)
-                if mask is None: continue
-                for ftype, fname in fields:
-                    offsets.append((foffsets[fname], (ftype,fname)))
-                for offset, field in sorted(offsets):
-                    f.seek(offset)
-                    tr[field] = fpu.read_vector(f, 'd')[mask]
+        for field in fields:
+            for ax in 'xyz':
+                if field.startswith("particle_position_%s"%ax):
+                    tr[field]=pos[:,ax][mask]
+                if field.startswith("particle_velocity_%s"%ax):
+                    tr[field]=vel[:,ax][mask]
+            if field == "particle_mass":
+                #replace the stellar masses
+                tr[field]=1.0
+            elif field == "particle_index":
+                tr[field]=1.0
+            elif field == "particle_type":
+                tr[field]=1.0
+            elif field in particle_star_fields:
+                tr[field]=1.0
+            else:
+                raise 
+            tr[field] = fpu.read_vector(f, 'd')[mask]
         return tr
 
 
