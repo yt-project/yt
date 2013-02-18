@@ -315,11 +315,12 @@ class Camera(ParallelAnalysisInterface):
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
         
         # Must normalize the image
-        ma = im.max()
-        if ma > 0.0: 
-            enhance_rgba(im)
+        nim = im.rescale(inline=False)
+        enhance_rgba(nim)
+        nim.add_background_color('black', inline=True)
        
-        lines(im, px, py, colors, 24)
+        lines(nim, px, py, colors, 24)
+        return nim
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -388,12 +389,14 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_domain_boundary.png')
 
         """
-
-        ma = im.max()
-        if ma > 0.0: 
-            enhance_rgba(im)
-        self.draw_box(im, self.pf.domain_left_edge, self.pf.domain_right_edge,
+        # Must normalize the image
+        nim = im.rescale(inline=False)
+        enhance_rgba(nim)
+        nim.add_background_color('black', inline=True)
+ 
+        self.draw_box(nim, self.pf.domain_left_edge, self.pf.domain_right_edge,
                         color=np.array([1.0,1.0,1.0,alpha]))
+        return nim
 
     def draw_box(self, im, le, re, color=None):
         r"""Draws a box on an existing volume rendering.

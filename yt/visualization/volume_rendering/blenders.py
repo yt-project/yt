@@ -13,14 +13,15 @@ def enhance(im, stdval=6.0, just_alpha=True):
 
 def enhance_rgba(im, stdval=6.0):
     nzc = im[:,:,:3][im[:,:,:3]>0.0]
-    cmax = im[:,:,:3].sum(axis=2).max()
+    cmax = nzc.mean()+stdval*nzc.std()
+
 
     nza = im[:,:,3][im[:,:,3]>0.0]
     if len(nza) == 0:
         im[:,:,3]=1.0
         amax = 1.0
     else:
-        amax = nza.mean()+stdval*np.std(nza)
+        amax = nza.mean()+stdval*nza.std()
 
     im.rescale(amax=amax, cmax=cmax, inline=True)
     np.clip(im, 0.0, 1.0, im)
