@@ -72,19 +72,20 @@ class IOHandlerART(BaseIOHandler):
         pos,vel = pos.astype('float64'), vel.astype('float64')
         mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
         size = mask.sum()
-        if not any(('position' in f for f in fields[0])):
+        if not any(('position' in n for t,n in fields)):
             del pos
-        if not any(('velocity' in f for f in fields[0])):
+        if not any(('velocity' in n for t,n in fields)):
             del vel
         stara,starb = ls[-2],ls[-1]
         tr = {}
-        for field in fields[0]:
+        for field in fields:
+            ftype,fname = field
             for i,ax in enumerate('xyz'):
-                if field.startswith("particle_position_%s"%ax):
+                if fname.startswith("particle_position_%s"%ax):
                     tr[field]=pos[:,i][mask]
-                if field.startswith("particle_velocity_%s"%ax):
+                if fname.startswith("particle_velocity_%s"%ax):
                     tr[field]=vel[:,i][mask]
-            if field == "particle_mass":
+            if fname == "particle_mass":
                 a=0
                 data = np.zeros(np,dtype='float64')
                 for b,m in zip(ls,ws):
@@ -92,19 +93,19 @@ class IOHandlerART(BaseIOHandler):
                     a=b
                 tr[field]=data[mask]
                 #the stellar masses will be updated later
-            elif field == "particle_index":
-                tr[field]=np.arange(np)[mask]
-            elif field == "particle_type":
+            elif fname == "particle_index":
+                tr[field]=np.arange(np)[mask].astype('int64')
+            elif fname == "particle_type":
                 a=0
                 data = np.zeros(np,dtype='int64')
                 for b,m in zip(ls,ws):
                     data[a:b]=(np.ones(size,dtype='int64')*i)
                     a=b
                 tr[field]=data[mask]
-            if field in particle_star_fields:
+            if fname in particle_star_fields:
                 #we possibly update and change the masses here
                 #all other fields are read in and changed once
-                temp= read_star_field(file_stars,field=field)
+                temp= read_star_field(file_stars,field=fname)
                 data = np.zeros(np,dtype="float64")
                 data[stara:starb] = temp
                 del temp
