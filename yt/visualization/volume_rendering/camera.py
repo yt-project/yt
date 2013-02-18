@@ -533,7 +533,7 @@ class Camera(ParallelAnalysisInterface):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
-            np.multiply(image[:,:,:3], image[:,:,:3].max(), image[:,:,:3])
+            np.multiply(image[:,:,:3], 1./image[:,:,:3].max(), image[:,:,:3])
             image[:,:,3]=image[:,:,:3].sum(axis=2)
         return image
 
