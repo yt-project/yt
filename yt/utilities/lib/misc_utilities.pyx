@@ -126,19 +126,24 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[3], nalpha 
+    cdef np.float64_t alpha[4]
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
+    cdef int has_alpha = (image.shape[-1] == 4)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
         err = dx - dy
-        for i in range(3):
-            alpha[i] = colors[j/points_per_color,3]*colors[j/points_per_color,i]
-        nalpha = 1.0-colors[j/points_per_color,3]
+        if has_alpha:
+            for i in range(4):
+                alpha[i] = colors[j/points_per_color,i]
+        else:
+            for i in range(3):
+                alpha[i] = colors[j/points_per_color,3]*\
+                        colors[j/points_per_color,i]
         if x0 < x1: 
             sx = 1
         else:
@@ -153,10 +158,13 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             elif (y0 < 0 and sy == -1): break
             elif (y0 >= nx and sy == 1): break
             if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
-                for i in range(3):
-                    image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
-                if image.shape[2] == 4:
-                    image[x0,y0,3] = (1.-alpha[3])*image[x0,y0,3] + alpha[3]
+                if has_alpha:
+                    for i in range(4):
+                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+                else:
+                    for i in range(3):
+                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+
             if (x0 == x1 and y0 == y1):
                 break
             e2 = 2*err
