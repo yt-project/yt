@@ -603,9 +603,9 @@ class Camera(ParallelAnalysisInterface):
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
         if self.comm.rank == 0 and fn is not None:
             if transparent:
-                image.write_png(fn, clip_ratio=clip_ratio, rescale=False)
+                image.write_png(fn, clip_ratio=clip_ratio, rescale=True)
             else:
-                image.write_png(fn, clip_ratio=clip_ratio, rescale=False,
+                image.write_png(fn, clip_ratio=clip_ratio, rescale=True,
                                 background='black')
 
     def initialize_source(self):
