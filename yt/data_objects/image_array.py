@@ -181,13 +181,14 @@ class ImageArray(np.ndarray):
             out = self.copy()
         if cmax is None: 
             cmax = self[:,:,:3].sum(axis=2).max()
-        if amax is None:
-            amax = self[:,:,3].max()
 
         np.multiply(self[:,:,:3], 1./cmax, out[:,:,:3])
 
         if self.shape[2] == 4:
-            np.multiply(self[:,:,3], 1./amax, out[:,:,3])
+            if amax is None:
+                amax = self[:,:,3].max()
+            if amax > 0.0:
+                np.multiply(self[:,:,3], 1./amax, out[:,:,3])
         
         np.clip(out, 0.0, 1.0, out)
         return out
@@ -258,8 +259,10 @@ class ImageArray(np.ndarray):
             filename += '.png'
 
         if clip_ratio is not None:
+            nz = out[:,:,:3][out[:,:,:3].nonzero()]
             return write_bitmap(out.swapaxes(0, 1), filename,
-                                clip_ratio * out.std())
+                                nz.mean() + \
+                                clip_ratio * nz.std())
         else:
             return write_bitmap(out.swapaxes(0, 1), filename)
 
