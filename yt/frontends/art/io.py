@@ -62,21 +62,22 @@ class IOHandlerART(BaseIOHandler):
     def _read_particle_selection(self, chunks, selector, fields):
         #ignore chunking; we have no particle chunk system
         masks = {}
-        pf = chunks[0].objs[0].domain.pf
+        pf = (chunks.next()).objs[0].domain.pf
         ws,ls = pf.parameters["wspecies"],pf.parameters["lspecies"]
+        np = ls[-1]
         file_particle = pf.file_particle_data
         file_stars = pf.file_particle_stars
-        pos,vel = read_particles(file_particle)
-        del vel
+        pos,vel = read_particles(file_particle,pf.parameters['Nrow'],
+                                 total=np,dd=pf.domain_dimensions)
+        pos,vel = pos.astype('float64'), vel.astype('float64')
+        import pdb; pdb.set_trace()
         mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
-        if mask is None: continue
         size = mask.sum()
         if not any(('position' in f for f in fields)):
             del pos
         if not any(('velocity' in f for f in fields)):
             del vel
         stara,starb = ls[-2],ls[-1]
-        np = ls[-1]
         tr = {}
         for field in fields:
             for ax in 'xyz':
@@ -220,7 +221,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     return le,fl,iocts,nLevel,root_level
 
 
-def read_particles(file,Nrow):
+def read_particles(file,Nrow,total=None,dd=1.0):
     words = 6 # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4 # for file_particle_data; not always true?
     np_per_page = Nrow**2 # defined in ART a_setup.h
@@ -229,7 +230,10 @@ def read_particles(file,Nrow):
     f = np.fromfile(file, dtype='>f4').astype('float32') # direct access
     pages = np.vsplit(np.reshape(f, (num_pages, words, np_per_page)), num_pages)
     data = np.squeeze(np.dstack(pages)).T # x,y,z,vx,vy,vz
-    return data[:,0:3],data[:,3:]
+    if total is None:
+        return data[:,0:3]/dd,data[:,3:]
+    else:
+        return data[:total,0:3]/dd,data[:total,3:]
 
 def read_star_field(file,field=None):
     data = {}
