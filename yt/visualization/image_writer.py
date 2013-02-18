@@ -120,14 +120,16 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
-    already uint8, it will be scaled and converted.  If it is not four channel, a
-    fourth alpha channel will be added and set to fully opaque.  The resultant
-    image will be directly written to `filename` as a PNG with no colormap
-    applied.  `max_val` is a value used if the array is passed in as anything
-    other than uint8; it will be the value used for scaling and clipping when the
-    array is converted.  Additionally, the minimum is assumed to be zero; this
-    makes it primarily suited for the results of volume rendered images, rather
-    than misaligned projections.
+    already uint8, it will be scaled and converted.  If it is four channel,
+    only the first three channels will be scaled, while the fourth channel is
+    assumed to be in the range of [0,1]. If it is not four channel, a fourth
+    alpha channel will be added and set to fully opaque.  The resultant image
+    will be directly written to `filename` as a PNG with no colormap applied.
+    `max_val` is a value used if the array is passed in as anything other than
+    uint8; it will be the value used for scaling and clipping in the first
+    three channels when the array is converted.  Additionally, the minimum is
+    assumed to be zero; this makes it primarily suited for the results of
+    volume rendered images, rather than misaligned projections.
 
     Parameters
     ----------
@@ -148,8 +150,8 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         if bitmap_array.shape[-1] == 3:
             alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
         else:
-            alpha_channel = 255*bitmap_array[:,:,3].astype('uint8')
-            alpha_channel.shape=s1, s2, 1
+            alpha_channel = (255*bitmap_array[:,:,3]).astype('uint8')
+            alpha_channel.shape = s1, s2, 1
         if max_val is None: max_val = bitmap_array[:,:,:3].max()
         bitmap_array = np.clip(bitmap_array[:,:,:3] / max_val, 0.0, 1.0) * 255
         bitmap_array = np.concatenate([bitmap_array.astype('uint8'),
