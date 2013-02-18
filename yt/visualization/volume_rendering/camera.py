@@ -530,7 +530,8 @@ class Camera(ParallelAnalysisInterface):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
-            image[:,:,3]=1.0
+            np.multiply(image[:,:,:3], image[:,:,:3].max(), image[:,:,:3])
+            image[:,:,3]=image[:,:,:3].sum(axis=2)
         return image
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -661,7 +662,8 @@ class Camera(ParallelAnalysisInterface):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
-        self.save_image(image, fn=fn, clip_ratio=clip_ratio)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio, 
+                       transparent=transparent)
         return image
 
     def show(self, clip_ratio = None):

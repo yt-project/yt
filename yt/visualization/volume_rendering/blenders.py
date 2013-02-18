@@ -13,7 +13,7 @@ def enhance(im, stdval=6.0, just_alpha=True):
 
 def enhance_rgba(im, stdval=6.0):
     nzc = im[:,:,:3][im[:,:,:3]>0.0]
-    cmax = nzc.mean()+stdval*np.std(nzc)
+    cmax = im[:,:,:3].sum(axis=2).max()
 
     nza = im[:,:,3][im[:,:,3]>0.0]
     if len(nza) == 0:
