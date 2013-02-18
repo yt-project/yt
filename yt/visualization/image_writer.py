@@ -141,16 +141,19 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
     """
-    if bitmap_array.dtype != np.uint8:
-        if max_val is None: max_val = bitmap_array.max()
-        bitmap_array = np.clip(bitmap_array / max_val, 0.0, 1.0) * 255
-        bitmap_array = bitmap_array.astype("uint8")
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
         raise RuntimeError
-    if bitmap_array.shape[-1] == 3:
+    if bitmap_array.dtype != np.uint8:
         s1, s2 = bitmap_array.shape[:2]
-        alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
-        bitmap_array = np.concatenate([bitmap_array, alpha_channel], axis=-1)
+        if bitmap_array.shape[-1] == 3:
+            alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
+        else:
+            alpha_channel = 255*bitmap_array[:,:,3].astype('uint8')
+            alpha_channel.shape=s1, s2, 1
+        if max_val is None: max_val = bitmap_array[:,:,:3].max()
+        bitmap_array = np.clip(bitmap_array[:,:,:3] / max_val, 0.0, 1.0) * 255
+        bitmap_array = np.concatenate([bitmap_array.astype('uint8'),
+                                       alpha_channel], axis=-1)
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
