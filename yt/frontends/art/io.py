@@ -79,7 +79,6 @@ class IOHandlerART(BaseIOHandler):
         stara,starb = ls[-2],ls[-1]
         tr = {}
         for field in fields[0]:
-            import pdb; pdb.set_trace()
             for i,ax in enumerate('xyz'):
                 if field.startswith("particle_position_%s"%ax):
                     tr[field]=pos[:,i][mask]
