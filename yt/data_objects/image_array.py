@@ -133,6 +133,68 @@ class ImageArray(np.ndarray):
             d.attrs.create(k, v)
         f.close()
 
+    def add_background_color(self, background='black', inline=True):
+        r"""Adds a background color to a 4-channel ImageArray
+
+        This adds a background color to a 4-channel ImageArray, by default
+        doing so inline.  The ImageArray must already be normalized to the
+        [0,1] range.
+
+        Parameters
+        ----------
+        background: 
+            This can be used to set a background color for the image, and can
+            take several types of values:
+                'white': white background, opaque
+                'black': black background, opaque
+                None: transparent background
+                4-element array [r,g,b,a]: arbitrary rgba setting.
+            Default: 'black'
+        inline: boolean, optional
+            If True, original ImageArray is modified. If False, a copy is first
+            created, then modified. Default: True
+
+        Returns
+        -------
+        out: ImageArray
+            The modified ImageArray with a background color added.
+       
+        Examples
+        --------
+        >>> im = np.zeros([64,128,4])
+        >>> for i in xrange(im.shape[0]):
+        >>>     for k in xrange(im.shape[2]):
+        >>>         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+
+        >>> im_arr = ImageArray(im)
+        >>> im_arr.rescale()
+        >>> new_im = im_arr.add_background_color([1.,0.,0.,1.], inline=False)
+        >>> new_im.write_png('red_bg.png')
+        >>> im_arr.add_background_color('black')
+        >>> im_arr.write_png('black_bg.png')
+        """
+        assert(self.shape[-1] == 4)
+        
+        if background == None:
+            background = (0., 0., 0., 0.)
+        elif background == 'white':
+            background = (1., 1., 1., 1.)
+        elif background == 'black':
+            background = (0., 0., 0., 1.)
+
+        # Alpha blending to background
+        if inline:
+            out = self
+        else:
+            out = self.copy()
+
+        for i in range(3):
+            out[:,:,i] = self[:,:,i]*self[:,:,3] + \
+                    background[i]*background[3]*(1.0-self[:,:,3])
+        out[:,:,3] = self[:,:,3] + background[3]*(1.0-self[:,:,3]) 
+        return out 
+
+
     def rescale(self, cmax=None, amax=None, inline=True):
         r"""Rescales the image to be in [0,1] range.
 
@@ -172,7 +234,6 @@ class ImageArray(np.ndarray):
         >>> im_arr.write_png('normalized.png')
 
         """
- 
         assert(len(self.shape) == 3)
         assert(self.shape[2] >= 3)
         if inline:
@@ -233,25 +294,13 @@ class ImageArray(np.ndarray):
         >>> im_arr.write_png('transparent_bg.png', background=None)
 
         """
-        if background == None:
-            background = (0., 0., 0., 0.)
-        elif background == 'white':
-            background = (1., 1., 1., 1.)
-        elif background == 'black':
-            background = (0., 0., 0., 1.)
-
         if rescale:
             scaled = self.rescale(inline=False)
         else:
             scaled = self
 
-        # Alpha blending to background
-        if self.shape[2] == 4:
-            out = np.zeros_like(self)
-            out[:,:,3] = scaled[:,:,3] + background[3]*(1.0-scaled[:,:,3]) 
-            for i in range(3):
-                out[:,:,i] = scaled[:,:,i]*scaled[:,:,3] + \
-                        background[i]*background[3]*(1.0-scaled[:,:,3])
+        if self.shape[-1] == 4:
+            out = scaled.add_background_color(background, inline=False)
         else:
             out = scaled
 
@@ -369,3 +418,28 @@ if __name__ == "__main__":
     im_arr = ImageArray(im, info=myinfo)
     im_arr.save('test_2d_ImageArray')
 
+    im = np.zeros([64,128,4])
+    for i in xrange(im.shape[0]):
+        for k in xrange(im.shape[2]):
+            im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+
+    im_arr = ImageArray(im)
+    im_arr.write_png('standard.png')
+    im_arr.write_png('non-scaled.png', rescale=False)
+    im_arr.write_png('black_bg.png', background='black')
+    im_arr.write_png('white_bg.png', background='white')
+    im_arr.write_png('green_bg.png', background=[0.,1.,0.,1.])
+    im_arr.write_png('transparent_bg.png', background=None)
+
+    im = np.zeros([64,128,4])
+    for i in xrange(im.shape[0]):
+        for k in xrange(im.shape[2]):
+            im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+
+    im_arr = ImageArray(im)
+    im_arr.rescale()
+    new_im = im_arr.add_background_color([1.,0.,0.,1.], inline=False)
+    new_im.write_png('red_bg.png')
+    im_arr.add_background_color('black')
+    im_arr.write_png('black_bg2.png')
+ 
