@@ -75,7 +75,9 @@ class IOHandlerART(BaseIOHandler):
             del pos
         if not any(('velocity' in f for f in fields)):
             del vel
-        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
+        stara,starb = ls[-2],ls[-1]
+        np = ls[-1]
+        tr = {}
         for field in fields:
             for ax in 'xyz':
                 if field.startswith("particle_position_%s"%ax):
@@ -83,17 +85,30 @@ class IOHandlerART(BaseIOHandler):
                 if field.startswith("particle_velocity_%s"%ax):
                     tr[field]=vel[:,ax][mask]
             if field == "particle_mass":
-                #replace the stellar masses
-                tr[field]=1.0
+                a=0
+                data = np.zeros(np,dtype='float64')
+                for b,m in zip(ls,ws):
+                    data[a:b]=(np.ones(size,dtype='float64')*m)
+                    a=b
+                tr[field]=data[mask]
+                #the stellar masses will be updated later
             elif field == "particle_index":
-                tr[field]=1.0
+                tr[field]=np.arange(np)[mask]
             elif field == "particle_type":
-                tr[field]=1.0
-            elif field in particle_star_fields:
-                tr[field]=1.0
-            else:
-                raise 
-            tr[field] = fpu.read_vector(f, 'd')[mask]
+                a=0
+                data = np.zeros(np,dtype='int64')
+                for b,m in zip(ls,ws):
+                    data[a:b]=(np.ones(size,dtype='int64')*i)
+                    a=b
+                tr[field]=data[mask]
+            if field in particle_star_fields:
+                #we possibly update and change the masses here
+                #all other fields are read in and changed once
+                temp= read_star_field(file_stars,field=field)
+                data = np.zeros(np,dtype="float64")
+                data[stara:starb] = temp
+                del temp
+                tr[field]=data[mask]
         return tr
 
 
@@ -224,7 +239,7 @@ def read_star_field(file,field=None):
                 data[field] = read_vector(fh,'f','>')
             else:
                 skip(fh,endian='>')
-    return data.pop(field),data
+    return data.pop(field)
 
 def _read_child_mask_level(f, level_child_offsets,level,nLevel,nhydro_vars):
     f.seek(level_child_offsets[level])
