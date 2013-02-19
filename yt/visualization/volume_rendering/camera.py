@@ -267,7 +267,8 @@ class Camera(ParallelAnalysisInterface):
         px = (res[1]*(dy/self.width[1])).astype('int')
         return px, py, dz
 
-    def draw_grids(self, im, alpha=0.3, cmap='algae'):
+    def draw_grids(self, im, alpha=0.3, cmap='algae', min_level=None, 
+                   max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
         By mapping grid level to a color, drawes edges of grids on 
@@ -284,6 +285,9 @@ class Camera(ParallelAnalysisInterface):
             Default : 0.3
         cmap : string, optional
             Colormap to be used mapping grid levels to colors.
+        min_level, max_level : int, optional
+            Optional parameters to specify the min and max level grid boxess 
+            to overplot on the image.  
         
         Returns
         -------
@@ -298,6 +302,16 @@ class Camera(ParallelAnalysisInterface):
         """
         corners = self.pf.h.grid_corners
         levels = self.pf.h.grid_levels[:,0]
+
+        if max_level is not None:
+            subset = levels <= max_level
+            levels = levels[subset]
+            corners = corners[:,:,subset]
+        if min_level is not None:
+            subset = levels >= min_level
+            levels = levels[subset]
+            corners = corners[:,:,subset]
+            
         colors = apply_colormap(levels*1.0,
                                 color_bounds=[0,self.pf.h.max_level],
                                 cmap_name=cmap)[0,:,:]*1.0/255.
