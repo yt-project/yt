@@ -57,7 +57,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     # don't forget to close the file.
     f.close()
 
-def save_field(pf, field_name):
+def save_field(pf, field_name, data=None):
     """
     Write a single field associated with the parameter file pf to the
     backup file.
@@ -85,12 +85,12 @@ def save_field(pf, field_name):
                        particle_type_name="dark_matter")
 
     # now save the field
-    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter")
+    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter", data)
 
     # don't forget to close the file.
     f.close()
         
-def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
+def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, data=None):
 
     # add field info to field_types group
     g = fhandle["field_types"]
@@ -131,7 +131,10 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
         if field_obj.particle_type:  # particle data
             pt_group[field_name] = grid.get_data(field_name)
         else:  # a field
-            grid_group[field_name] = grid.get_data(field_name)
+            if data != None:
+                grid_group[field_name] = data[str(grid.id)]
+            else:
+                grid_group[field_name] = grid.get_data(field_name)
 
 def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
                    particle_type_name="dark_matter"):
