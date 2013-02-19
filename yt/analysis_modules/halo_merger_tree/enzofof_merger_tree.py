@@ -810,6 +810,6 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
         ax.set_xscale("log")
     if y_log:
         ax.set_yscale("log")
-    ofn = "%s_%s_%s.png" % (basename, fields[0], fields[1])
+    ofn = "%s/%s_%s_%s.png" % (FOF_directory, basename, fields[0], fields[1])
     plt.savefig(ofn)
     plt.clf()
