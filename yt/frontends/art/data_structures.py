@@ -472,7 +472,7 @@ class ARTDomainSubset(object):
                 nocts_filling = noct_range[1]-noct_range[0]
                 level_offset += oct_handler.fill_level(self.domain.domain_id, 
                                     level, dest, source, self.mask, level_offset,
-                                    noct_range[0],nocts_filling-1)
+                                    noct_range[0],nocts_filling)
         return dest
 
 class ARTDomainFile(object):
