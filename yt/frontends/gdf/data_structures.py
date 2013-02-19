@@ -140,8 +140,6 @@ class GDFHierarchy(AMRHierarchy):
             g._prepare_grid()
             g._setup_dx()
 
-        dx = 0.5 * self.get_smallest_dx()
-
         for gi, g in enumerate(self.grids):
             g.Children = self._get_grid_children(g)
             for g1 in g.Children:
@@ -150,7 +148,7 @@ class GDFHierarchy(AMRHierarchy):
                                 self.grid_right_edge[gi,:],
                                 self.grid_levels[gi],
                                 self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask, dx=dx)
+                                self.grid_levels, mask)
             m = mask.astype("bool")
             m[gi] = False
             siblings = self.grids[gi:][m[gi:]]

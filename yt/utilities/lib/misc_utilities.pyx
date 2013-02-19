@@ -216,19 +216,19 @@ def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
                         np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_index = 0,
-                        np.float64_t dx = 0.0):
+                        int min_index = 0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
     cdef int inside
+    cdef np.float64_t eps = np.finfo(np.float64).eps
     for i in range(nx):
         if i < min_index or levels[i,0] != level:
             mask[i] = 0
             continue
         inside = 1
         for n in range(3):
-            if left_edge[n] >= (right_edges[i,n] - dx) or \
-               right_edge[n] <= (left_edges[i,n] + dx):
+            if (right_edges[i,n] - left_edge[n]) <= eps or \
+               (right_edge[n] - left_edges[i,n]) <= eps:
                 inside = 0
                 break
         if inside == 1: mask[i] = 1
@@ -245,18 +245,18 @@ def get_box_grids_below_level(
                         np.ndarray[np.float64_t, ndim=2] right_edges,
                         np.ndarray[np.int32_t, ndim=2] levels,
                         np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_level = 0,
-                        np.float64_t dx = 0.0):
+                        int min_level = 0):
     cdef int i, n
     cdef int nx = left_edges.shape[0]
     cdef int inside
+    cdef np.float64_t eps = np.finfo(np.float64).eps
     for i in range(nx):
         mask[i] = 0
         if levels[i,0] <= level and levels[i,0] >= min_level:
             inside = 1
             for n in range(3):
-                if left_edge[n] >= (right_edges[i,n] - dx) or \
-                   right_edge[n] <= (left_edges[i,n] + dx):
+                if (right_edges[i,n] - left_edge[n]) <= eps or \
+                   (right_edge[n] - left_edges[i,n]) <= eps:
                     inside = 0
                     break
             if inside == 1: mask[i] = 1
