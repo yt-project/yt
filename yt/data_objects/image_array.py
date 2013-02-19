@@ -71,12 +71,12 @@ class ImageArray(np.ndarray):
 
     >>> im = np.zeros([64,128,3])
     >>> for i in xrange(im.shape[0]):
-    >>>     for k in xrange(im.shape[2]):
-    >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+    ...     for k in xrange(im.shape[2]):
+    ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
     >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-    >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
-    >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
+    ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+    ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
     >>> im_arr = ImageArray(im, info=myinfo)
     >>> im_arr.save('test_ImageArray')
@@ -112,12 +112,12 @@ class ImageArray(np.ndarray):
         -------- 
         >>> im = np.zeros([64,128,3])
         >>> for i in xrange(im.shape[0]):
-        >>>     for k in xrange(im.shape[2]):
-        >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+        ...     for k in xrange(im.shape[2]):
+        ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
         >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-        >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
-        >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
+        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_hdf5('test_ImageArray.h5')
@@ -145,10 +145,12 @@ class ImageArray(np.ndarray):
         background: 
             This can be used to set a background color for the image, and can
             take several types of values:
-                'white': white background, opaque
-                'black': black background, opaque
-                None: transparent background
-                4-element array [r,g,b,a]: arbitrary rgba setting.
+
+               * ``white``: white background, opaque
+               * ``black``: black background, opaque
+               * ``None``: transparent background
+               * 4-element array [r,g,b,a]: arbitrary rgba setting.
+
             Default: 'black'
         inline: boolean, optional
             If True, original ImageArray is modified. If False, a copy is first
@@ -163,8 +165,8 @@ class ImageArray(np.ndarray):
         --------
         >>> im = np.zeros([64,128,4])
         >>> for i in xrange(im.shape[0]):
-        >>>     for k in xrange(im.shape[2]):
-        >>>         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+        ...     for k in xrange(im.shape[2]):
+        ...         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
 
         >>> im_arr = ImageArray(im)
         >>> im_arr.rescale()
@@ -226,8 +228,8 @@ class ImageArray(np.ndarray):
         -------- 
         >>> im = np.zeros([64,128,4])
         >>> for i in xrange(im.shape[0]):
-        >>>     for k in xrange(im.shape[2]):
-        >>>         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+        ...     for k in xrange(im.shape[2]):
+        ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
         >>> im_arr.write_png('original.png')
         >>> im_arr.rescale()
@@ -269,10 +271,12 @@ class ImageArray(np.ndarray):
         background: 
             This can be used to set a background color for the image, and can
             take several types of values:
-                'white': white background, opaque
-                'black': black background, opaque
-                None: transparent background
-                4-element array [r,g,b,a]: arbitrary rgba setting.
+
+               * ``white``: white background, opaque
+               * ``black``: black background, opaque
+               * ``None``: transparent background
+               * 4-element array [r,g,b,a]: arbitrary rgba setting.
+
             Default: 'black'
         rescale: boolean, optional
             If True, will write out a rescaled image (without modifying the
@@ -282,8 +286,8 @@ class ImageArray(np.ndarray):
         --------
         >>> im = np.zeros([64,128,4])
         >>> for i in xrange(im.shape[0]):
-        >>>     for k in xrange(im.shape[2]):
-        >>>         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+        ...     for k in xrange(im.shape[2]):
+        ...         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
 
         >>> im_arr = ImageArray(im)
         >>> im_arr.write_png('standard.png')
@@ -346,11 +350,11 @@ class ImageArray(np.ndarray):
         
         >>> im = np.zeros([64,128])
         >>> for i in xrange(im.shape[0]):
-        >>>     im[i,:] = np.linspace(0.,0.3*k, im.shape[1])
+        ...     im[i,:] = np.linspace(0.,0.3*k, im.shape[1])
 
         >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-        >>>     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
-        >>>     'width':0.245, 'units':'cm', 'type':'rendering'}
+        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_image('test_ImageArray.png')

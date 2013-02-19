@@ -28,6 +28,7 @@ import numpy as np
 from yt.funcs import *
 import _colormap_data as cmd
 import yt.utilities.lib as au
+import __builtin__
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -438,7 +439,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
 
 def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
-
     """
     This will export a FITS image of a floating point array. The output filename is
     *filename_prefix*. If clobber is set to True, this will overwrite any existing
@@ -502,4 +502,32 @@ def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=Fals
         clob = ""
         if (clobber) : clob="-f"
         system("gzip "+clob+" %s.fits" % (filename_prefix))
+
+def display_in_notebook(image, max_val=None):
+    """
+    A helper function to display images in an IPython notebook
     
+    Must be run from within an IPython notebook, or else it will raise
+    a YTNotInsideNotebook exception.
+        
+    Parameters
+    ----------
+    image : array_like
+        This is an (unscaled) array of floating point values, shape (N,N,3) or
+        (N,N,4) to display in the notebook. The first three channels will be
+        scaled automatically.  
+    max_val : float, optional
+        The upper limit to clip values of the image.  Only applies to the first
+        three channels.
+    """
+ 
+    if "__IPYTHON__" in dir(__builtin__):
+        from IPython.core.displaypub import publish_display_data
+        data = write_bitmap(image, None, max_val=max_val)
+        publish_display_data(
+            'yt.visualization.image_writer.display_in_notebook',
+            {'image/png' : data}
+        )
+    else:
+        raise YTNotInsideNotebook
+
