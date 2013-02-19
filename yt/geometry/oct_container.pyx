@@ -3,6 +3,8 @@ Oct container
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
+Author: Christopher Moody <chris.e.moody@gmail.com>
+Affiliation: UC Santa Cruz
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
@@ -81,13 +83,14 @@ cdef void free_octs(
 #   * Only allocate octs that reside on >= domain
 #   * For all octs, insert into tree, which may require traversing existing
 #     octs
-#   * Note that this doesn ot allow OctAllocationContainer to exactly be a
+#   * Note that this does not allow OctAllocationContainer to exactly be a
 #     chunk, but it is close.  For IO chunking, we can theoretically examine
 #     those octs that live inside a given allocator.
 
 cdef class OctreeContainer:
 
     def __init__(self, oct_domain_dimensions, domain_left_edge, domain_right_edge):
+        # This will just initialize the root mesh octs
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
@@ -118,6 +121,9 @@ cdef class OctreeContainer:
         free(self.root_mesh)
 
     def __iter__(self):
+        #Get the next oct, will traverse domains
+        #Note that oct containers can be sorted 
+        #so that consecutive octs are on the same domain
         cdef OctAllocationContainer *cur = self.cont
         cdef Oct *this
         cdef int i
@@ -137,6 +143,8 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef Oct *get(self, ppos):
+        #Given a floating point position, retrieve the most
+        #refined oct at that time
         cdef np.int64_t ind[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef Oct *cur
@@ -185,6 +193,9 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void neighbors(self, Oct* o, Oct* neighbors[27]):
+        #Get 3x3x3 neighbors, although the 1,1,1 oct is the
+        #central one. 
+        #Return an array of Octs
         cdef np.int64_t curopos[3]
         cdef np.int64_t curnpos[3]
         cdef np.int64_t npos[3]
@@ -875,13 +886,15 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
-
+    #this class is specifically for the NMSU ART
     @cython.boundscheck(True)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level(self, int domain, int level, dest_fields, source_fields,
                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset,
                    np.int64_t subchunk_offset, np.int64_t subchunk_max):
+        #Only minorly different from the RAMSES version
+        #The source array is in chunks, just stop when we hit the end
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
@@ -922,11 +935,12 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
                              source_fields, 
                              np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                              int offset):
-        #precisely like fill level, but instead of assuming that the source
+        #Fill  level, but instead of assuming that the source
         #order is that of the oct order, we look up the oct position
         #and fill its children from the the source field
-        #as a result, source is 3D field with 8 times as many
+        #As a result, source is 3D grid with 8 times as many
         #elements as the number of octs on this level in this domain
+        #and with the shape of an equal-sided cube
         cdef np.ndarray[np.float64_t, ndim=3] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
@@ -957,6 +971,9 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
 
 
 cdef int compare_octs(void *vo1, void *vo2) nogil:
+    #This only compares if the octs live on the
+    #domain, not if they are actually equal
+    #Used to sort octs into consecutive domains
     cdef Oct *o1 = (<Oct**> vo1)[0]
     cdef Oct *o2 = (<Oct**> vo2)[0]
     if o1.domain < o2.domain: return -1
@@ -967,11 +984,16 @@ cdef int compare_octs(void *vo1, void *vo2) nogil:
     elif o1.domain > o2.domain: return 1
 
 cdef class ParticleOctreeContainer(OctreeContainer):
+    #Each ParticleArrays contains an Oct
+    #a reference to the next ParticleArrays
+    #its index and the number of particles 
     cdef ParticleArrays *first_sd
     cdef ParticleArrays *last_sd
     cdef Oct** oct_list
-    cdef np.int64_t *dom_offsets
+    #The starting oct index of each domain
+    cdef np.int64_t *dom_offsets 
     cdef public int max_level
+    #How many particles do we keep befor refining
     cdef public int n_ref
 
     def allocate_root(self):
@@ -989,6 +1011,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     self.root_mesh[i][j][k] = cur
 
     def __dealloc__(self):
+        #Call the freemem ops on every ocy
+        #of the root mesh recursively
         cdef i, j, k
         for i in range(self.nn[0]):
             for j in range(self.nn[1]):
@@ -998,6 +1022,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         free(self.dom_offsets)
 
     cdef void visit_free(self, Oct *o):
+        #Free the memory for this oct recursively
         cdef int i, j, k
         for i in range(2):
             for j in range(2):
@@ -1017,6 +1042,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def icoords(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
+        #Return the integer positions of the cells
+        #Limited to this domain and within the mask
+        #Positions are binary; aside from the root mesh
+        #to each digit we just add a << 1 and a 0 or 1 
+        #for each child recursively
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
         cdef int oi, i, ci, ii
@@ -1041,6 +1071,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def ires(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
+        #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.empty(cell_count, dtype="int64")
         cdef int oi, i, ci
@@ -1060,6 +1091,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def fcoords(self, int domain_id,
                 np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                 np.int64_t cell_count):
+        #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="float64")
         cdef int oi, i, ci
@@ -1102,6 +1134,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         pass
 
     def finalize(self):
+        #This will sort the octs in the oct list
+        #so that domains appear consecutively
+        #And then find the oct index/offset for
+        #every domain
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0
@@ -1131,6 +1167,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.dom_offsets[cur_dom + 2] = self.nocts
 
     cdef Oct* allocate_oct(self):
+        #Allocate the memory, set to NULL or -1
+        #We reserve space for n_ref particles, but keep
+        #track of how many are used with np initially 0
         self.nocts += 1
         cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
         cdef ParticleArrays *sd = <ParticleArrays*> \
@@ -1162,6 +1201,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         return my_oct
 
     def linearly_count(self):
+        #Without visiting oct and cells
+        #jump from particle arrays to the next one
+        #counting the total # of particles en route
         cdef np.int64_t total = 0
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
@@ -1190,6 +1232,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         return level_count
 
     def add(self, np.ndarray[np.float64_t, ndim=2] pos, np.int64_t domain_id):
+        #Add this particle to the root oct
+        #Then if that oct has children, add it to them recursively
+        #If the child needs to be refined because of max particles, do so
         cdef int no = pos.shape[0]
         cdef int p, i, level
         cdef np.float64_t dds[3], cp[3], pp[3]
@@ -1200,6 +1245,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for p in range(no):
             level = 0
             for i in range(3):
+                #PP Calculate the unitary position, 
+                #DDS Domain dimensions
+                #IND Corresponding integer index on the root octs
+                #CP Center  point of that oct
                 pp[i] = pos[p, i]
                 dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
@@ -1232,6 +1281,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             cur.sd.np += 1
 
     cdef int _check_refine(self, Oct *cur, np.float64_t cp[3], int domain_id):
+        #Answers: should we refine this oct?
+        #False if refined, 
+        #False if not refined, but doesn't need refinement
+        #True if particles need refinement, 
+        #True if not in domain
         if cur.children[0][0][0] != NULL:
             return 0
         elif cur.sd.np >= self.n_ref:
@@ -1241,6 +1295,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         return 0
 
     cdef void refine_oct(self, Oct *o, np.float64_t pos[3]):
+        #Allocate and initialize child octs
+        #Attach particles to child octs
+        #Remove particles from this oct entirely
         cdef int i, j, k, m, ind[3]
         cdef Oct *noct
         for i in range(2):
@@ -1272,6 +1329,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         free(o.sd.pos)
 
     def recursively_count(self):
+        #Visit every cell, accumulate the # of cells per level
         cdef int i, j, k
         cdef np.int64_t counts[128]
         for i in range(128): counts[i] = 0
@@ -1297,6 +1355,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         return
 
     def domain_identify(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        #Return an array of length # of domains
+        #Every element is True if there is at least one
+        #fully refined *cell* in that domain that isn't masked out
         cdef int i, oi, m
         cdef Oct *o
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] dmask
@@ -1317,6 +1378,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def count_neighbor_particles(self, ppos):
+        #How many particles are in my neighborhood
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]
         self.neighbors(main, neighbors)
@@ -1332,6 +1394,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.cdivision(True)
     def count_cells(self, SelectorObject selector,
               np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        #Count how many cells per level there are
         cdef int i, j, k, oi
         # pos here is CELL center, not OCT center.
         cdef np.float64_t pos[3]
