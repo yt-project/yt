@@ -165,9 +165,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         matter particles present in the simulation. This can save analysis
         time if this is indeed the case. Default: ``False``.
     hires_dm_mass : float
-        If supplied, use only the highest resolution dark matter particles,
-        with a mass less than (1.1*hires_dm_mass). This is useful for
-        multi-dm-mass simulations. Default: ``None``.
+        If supplied, use only the highest resolution dark matter
+        particles, with a mass less than (1.1*hires_dm_mass), in units
+        of ParticleMassMsun. This is useful for multi-dm-mass
+        simulations. Note that this will only give sensible results for
+        halos that are not "polluted" by lower resolution
+        particles. Default: ``None``.
         
     Returns
     -------
