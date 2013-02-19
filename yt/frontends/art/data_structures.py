@@ -452,7 +452,7 @@ class ARTDomainSubset(object):
             source= {}
             data = _read_root_level(content,self.domain.level_child_offsets,
                                    self.domain.level_count)
-            for i in field_idxs:
+            for field,i in zip(fields,field_idxs):
                 temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
                                   order='F').astype('float64')
                 source[field] = temp
