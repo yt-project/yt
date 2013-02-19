@@ -300,7 +300,7 @@ def _read_child_level(f,level_child_offsets,level_oct_offsets,level_info,level,
         nocts = min(end-start,level_info[level])
         end = start + nocts
         ncells = nocts*8
-        skip = np.dtype(hydro_struct).itemsize*start
+        skip = np.dtype(hydro_struct).itemsize*start*8
         f.seek(level_child_offsets[level]+skip)
         arr = np.fromfile(f,dtype=hydro_struct,count=ncells)
         assert np.all(arr['pad1']==arr['pad2']) #pads must be equal
