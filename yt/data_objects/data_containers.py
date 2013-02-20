@@ -2068,6 +2068,7 @@ class AMRProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        self.proj_style = "integrate"
         self.weight_field = weight_field
         self._field_cuts = field_cuts
         self.serialize = serialize
