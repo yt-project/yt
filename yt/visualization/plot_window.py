@@ -453,6 +453,9 @@ class PlotWindow(object):
         else:
             set_axes_unit = False
 
+        if isinstance(width, (int, long, float)):
+            width = (width, unit)
+
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
