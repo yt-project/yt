@@ -177,6 +177,8 @@ class FixedResolutionBuffer(object):
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
         
+        # Try to determine the units of the data
+        units = None
         if self.data_source._type_name in ("slice", "cutting"):
             units = info['units']
         elif self.data_source._type_name in ("proj", "overlap_proj"):
