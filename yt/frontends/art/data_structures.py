@@ -374,7 +374,7 @@ class ARTStaticOutput(StaticOutput):
         self.omega_matter = amr_header_vals['Om0']
         self.hubble_constant = amr_header_vals['hubble']
         self.min_level = amr_header_vals['min_level']
-        self.max_level = amr_header_vals['max_level']
+        self.max_level = min(self.limit_level,amr_header_vals['max_level'])
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
 
