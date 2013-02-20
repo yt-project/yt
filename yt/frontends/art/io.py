@@ -207,18 +207,22 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128,
     #le = le/2**(root_level-1-level)-1
     
     #try to find the root_level first
+    def cfc(root_level,level,le):
+        d_x= 1.0/(2.0**(root_level-level+1))
+        fc = (d_x * le) - 2**(level-1)
+        return fc
     if root_level is None:
         root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
         root_level = root_level.astype('int64')
         for i in range(10):
-            d_x= 1.0/(2.0**(root_level+1))
-            fc = (d_x * le) - 1
+            fc = cfc(root_level,level,le)
             go = np.diff(np.unique(fc)).min()<1.1
             if go: break
             root_level+=1
     else:
-        d_x= 1.0/(2.0**(root_level+1))
-        fc = (d_x * le) - 1
+        fc = cfc(root_level,level,le)
+    unitary_center = fc/( coarse_grid*2.0**(level-1))
+    assert np.all(unitary_center<1.0)
     
     #again emulate the fortran code
     #This is all for calculating child oct locations
@@ -255,7 +259,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128,
     #iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
     
     f.seek(pos)
-    return fc,fl,iocts,nLevel,root_level
+    return unitary_center,fl,iocts,nLevel,root_level
 
 
 def read_particles(file,Nrow,total=None,dd=1.0):

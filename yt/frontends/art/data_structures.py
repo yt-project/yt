@@ -353,6 +353,7 @@ class ARTStaticOutput(StaticOutput):
                 coarse_grid=self.domain_dimensions[0])
             del float_center, fl, iocts, nocts
             self.root_level = root_level
+            mylog.info("Using root level of %02i",self.root_level)
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
@@ -581,7 +582,7 @@ class ARTDomainFile(object):
             mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                         root_octs_side**3, 0,oct_handler.nocts)
         else:
-            float_center, fl, iocts, nocts,root_level = _read_art_level_info(f,
+            unitary_center, fl, iocts, nocts,root_level = _read_art_level_info(f,
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0],
                 root_level=self.pf.root_level)
@@ -590,9 +591,8 @@ class ARTDomainFile(object):
             #float_left_edge = left_index.astype("float64") / octs_side
             #float_center = float_left_edge + 0.5*1.0/octs_side
             #all floatin unitary positions should fit inside the domain
-            assert np.all(float_center<1.0)
             nocts_check = oct_handler.add(self.domain_id,level, nocts, 
-                                          float_center, self.domain_id)
+                                          unitary_center, self.domain_id)
             assert(nocts_check == nocts)
             mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                         nocts, level,oct_handler.nocts)
