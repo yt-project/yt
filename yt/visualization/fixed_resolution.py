@@ -179,7 +179,7 @@ class FixedResolutionBuffer(object):
         
         if self.data_source._type_name in ("slice", "cutting"):
             units = info['units']
-        elif self.data_source._type_name == "proj":
+        elif self.data_source._type_name in ("proj", "overlap_proj"):
             if (self.data_source.weight_field is not None or
                 self.data_source.proj_style == "mip"):
                 units = info['units']
