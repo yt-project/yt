@@ -384,12 +384,15 @@ class ARTStaticOutput(StaticOutput):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        fn = ("%s" % (os.path.basename(args[0])))
         f = ("%s" % args[0])
         prefix, suffix = filename_pattern['amr'].split('%s')
-        if fn.endswith(suffix) and fn.startswith(prefix) and\
-                os.path.exists(f): 
+        import pdb; pdb.set_trace()
+        with open(f,'rb') as fh:
+            try:
+                amr_header_vals = read_attrs(fh,amr_header_struct,'>')
                 return True
+            except:
+                return False
         return False
 
 class ARTDomainSubset(object):
