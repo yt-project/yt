@@ -386,7 +386,6 @@ class ARTStaticOutput(StaticOutput):
         """
         f = ("%s" % args[0])
         prefix, suffix = filename_pattern['amr'].split('%s')
-        import pdb; pdb.set_trace()
         with open(f,'rb') as fh:
             try:
                 amr_header_vals = read_attrs(fh,amr_header_struct,'>')
