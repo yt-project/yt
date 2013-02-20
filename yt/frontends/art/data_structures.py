@@ -349,9 +349,10 @@ class ARTStaticOutput(StaticOutput):
             self.parameters['ncell0'] = self.parameters['ng']**3
             #estimate the root level
             float_center, fl, iocts, nocts,root_level = _read_art_level_info(f,
-                self._level_oct_offsets,level,
-                coarse_grid=self.pf.domain_dimensions[0],
-                root_level=self.root_level)
+                [0,self.child_grid_offset],1,
+                coarse_grid=self.domain_dimensions[0])
+            del float_center, fl, iocts, nocts
+            self.root_level = root_level
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
@@ -583,7 +584,7 @@ class ARTDomainFile(object):
             float_center, fl, iocts, nocts,root_level = _read_art_level_info(f,
                 self._level_oct_offsets,level,
                 coarse_grid=self.pf.domain_dimensions[0],
-                root_level=self.root_level)
+                root_level=self.pf.root_level)
             #at least one of the indices should be odd
             #assert np.sum(left_index[:,0]%2==1)>0
             #float_left_edge = left_index.astype("float64") / octs_side

@@ -211,11 +211,14 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128,
         root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
         root_level = root_level.astype('int64')
         for i in range(10):
-            d_x= 1.0/(2.0**(root_level))
-            fc = (d_x * le) -1
+            d_x= 1.0/(2.0**(root_level+1))
+            fc = (d_x * le) - 1
             go = np.diff(np.unique(fc)).min()<1.1
             if go: break
             root_level+=1
+    else:
+        d_x= 1.0/(2.0**(root_level+1))
+        fc = (d_x * le) - 1
     
     #again emulate the fortran code
     #This is all for calculating child oct locations
