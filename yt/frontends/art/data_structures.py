@@ -166,7 +166,8 @@ class ARTStaticOutput(StaticOutput):
     def __init__(self,filename,data_style='art',
                  fields = None, storage_filename = None,
                  skip_particles=False,skip_stars=False,
-                 limit_level=None,spread_age=True):
+                 limit_level=None,spread_age=True,
+                 force_max_level=None):
         if fields is None:
             fields = fluid_fields
         filename = os.path.abspath(filename)
@@ -178,6 +179,7 @@ class ARTStaticOutput(StaticOutput):
         self.skip_stars = skip_stars
         self.limit_level = limit_level
         self.max_level = limit_level
+        self.force_max_level = force_max_level
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3,dtype='float')
         self.domain_right_edge = np.zeros(3,dtype='float')+1.0
@@ -345,6 +347,11 @@ class ARTStaticOutput(StaticOutput):
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
             self.parameters['ncell0'] = self.parameters['ng']**3
+            #estimate the root level
+            float_center, fl, iocts, nocts,root_level = _read_art_level_info(f,
+                self._level_oct_offsets,level,
+                coarse_grid=self.pf.domain_dimensions[0],
+                root_level=self.root_level)
         #read the particle header
         if not self.skip_particles and self.file_particle_header:
             with open(self.file_particle_header,"rb") as fh:
@@ -374,9 +381,14 @@ class ARTStaticOutput(StaticOutput):
         self.omega_matter = amr_header_vals['Om0']
         self.hubble_constant = amr_header_vals['hubble']
         self.min_level = amr_header_vals['min_level']
-        self.max_level = min(self.limit_level,amr_header_vals['max_level'])
+        self.max_level = amr_header_vals['max_level']
+        if self.limit_level is not None:
+            self.max_level = min(self.limit_level,amr_header_vals['max_level'])
+        if self.force_max_level is not None:
+            self.max_level = self.force_max_level
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
+        mylog.info("Max level is %02i",self.max_level)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -456,7 +468,7 @@ class ARTDomainSubset(object):
                                    self.domain.level_count)
             for field,i in zip(fields,field_idxs):
                 temp = np.reshape(data[i,:],self.domain.pf.domain_dimensions,
-                                  order='F').astype('float64')
+                                  order='F').astype('float64').T
                 source[field] = temp
             level_offset += oct_handler.fill_level_from_grid(self.domain.domain_id, 
                                    level, dest, source, self.mask, level_offset)
@@ -568,18 +580,18 @@ class ARTDomainFile(object):
             mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                         root_octs_side**3, 0,oct_handler.nocts)
         else:
-            left_index, fl, iocts, nocts,root_level = _read_art_level_info(f, 
+            float_center, fl, iocts, nocts,root_level = _read_art_level_info(f,
                 self._level_oct_offsets,level,
-                coarse_grid=self.pf.domain_dimensions[0])
-            left_index/=2
+                coarse_grid=self.pf.domain_dimensions[0],
+                root_level=self.root_level)
             #at least one of the indices should be odd
             #assert np.sum(left_index[:,0]%2==1)>0
-            float_left_edge = left_index.astype("float64") / octs_side
-            float_center = float_left_edge + 0.5*1.0/octs_side
+            #float_left_edge = left_index.astype("float64") / octs_side
+            #float_center = float_left_edge + 0.5*1.0/octs_side
             #all floatin unitary positions should fit inside the domain
             assert np.all(float_center<1.0)
             nocts_check = oct_handler.add(self.domain_id,level, nocts, 
-                                          float_left_edge, self.domain_id)
+                                          float_center, self.domain_id)
             assert(nocts_check == nocts)
             mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                         nocts, level,oct_handler.nocts)

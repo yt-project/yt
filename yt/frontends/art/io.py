@@ -152,7 +152,8 @@ def _count_art_octs(f, offset,
     f.seek(offset)
     return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
 
-def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
+def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128,
+                         ncell0=None,root_level=None):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
     #Get the info for this level, skip the rest
@@ -179,7 +180,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
         iocts[idxa:idxb] = data[:,-3] 
         idxa=idxa+this_chunk
     del data
-
+    
     #emulate fortran code
     #     do ic1 = 1 , nLevel
     #       read(19) (iOctPs(i,iOct),i=1,3),(iOctNb(i,iOct),i=1,6),
@@ -194,31 +195,64 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128):
     iocts[1:]=iocts[:-1] #shift
     iocts = iocts[:nLevel] #chop off the last, unused, index
     iocts[0]=iOct #starting value
-
+    
     #now correct iocts for fortran indices start @ 1
     iocts = iocts-1
-
+    
     assert np.unique(iocts).shape[0] == nLevel
     
     #left edges are expressed as if they were on 
     #level 15, so no matter what level max(le)=2**15 
     #correct to the yt convention
     #le = le/2**(root_level-1-level)-1
-
+    
     #try to find the root_level first
-    root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
-    root_level = root_level.astype('int64')
+    if root_level is None:
+        root_level=np.floor(np.log2(le.max()*1.0/coarse_grid))
+        root_level = root_level.astype('int64')
+        for i in range(10):
+            d_x= 1.0/(2.0**(root_level))
+            fc = (d_x * le) -1
+            go = np.diff(np.unique(fc)).min()<1.1
+            if go: break
+            root_level+=1
+    
+    #again emulate the fortran code
+    #This is all for calculating child oct locations
+    #iC_ = iC + nbshift
+    #iO = ishft ( iC_ , - ndim )
+    #id = ishft ( 1, MaxLevel - iOctLv(iO) )   
+    #j  = iC_ + 1 - ishft( iO , ndim )
+    #Posx   = d_x * (iOctPs(1,iO) + sign ( id , idelta(j,1) ))
+    #Posy   = d_x * (iOctPs(2,iO) + sign ( id , idelta(j,2) ))
+    #Posz   = d_x * (iOctPs(3,iO) + sign ( id , idelta(j,3) )) 
+    #idelta = [[-1,  1, -1,  1, -1,  1, -1,  1],
+              #[-1, -1,  1,  1, -1, -1,  1,  1],
+              #[-1, -1, -1, -1,  1,  1,  1,  1]]
+    #idelta = np.array(idelta)
+    #if ncell0 is None:
+        #ncell0 = coarse_grid**3
+    #nchild = 8
+    #ndim = 3
+    #nshift = nchild -1
+    #nbshift = nshift - ncell0
+    #iC = iocts #+ nbshift
+    #iO = iC >> ndim #possibly >>
+    #id = 1 << (root_level - level)
+    #j = iC + 1 - ( iO << 3)
+    #delta = np.abs(id)*idelta[:,j-1]
 
+    
     #try without the -1
-    le = le/2**(root_level+1-level)-1
-
+    #le = le/2**(root_level+1-level)
+    
     #now read the hvars and vars arrays
     #we are looking for iOctCh
     #we record if iOctCh is >0, in which it is subdivided
     #iOctCh  = np.zeros((nLevel+1,8),dtype='bool')
     
     f.seek(pos)
-    return le,fl,iocts,nLevel,root_level
+    return fc,fl,iocts,nLevel,root_level
 
 
 def read_particles(file,Nrow,total=None,dd=1.0):
