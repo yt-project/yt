@@ -248,6 +248,9 @@ class PlotWindow(object):
     antialias : boolean
         This can be true or false.  It determines whether or not sub-pixel
         rendering is used during data deposition.
+    window_size : float
+        The size of the window on the longest axis (in units of inches) at
+        a DPI of 100, including the margins but not the colorbar.
 
     """
     _plot_valid = False
