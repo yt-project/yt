@@ -256,7 +256,8 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
-                 periodic=True, origin='center-window', oblique=False, fontsize=15):
+                 periodic=True, origin='center-window', oblique=False, fontsize=15,
+                 window_size=10.0):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf) 
@@ -268,6 +269,7 @@ class PlotWindow(object):
         self.oblique = oblique
         self.data_source = data_source
         self.buff_size = buff_size
+        self.window_size = window_size
         self.antialias = antialias
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
@@ -522,6 +524,17 @@ class PlotWindow(object):
     @invalidate_plot
     def set_vector_info(self, skip, scale = 1):
         self._vector_info = (skip, scale)
+
+    @invalidate_data
+    def set_buff_size(self, size):
+        if iterable(size):
+            self.buff_size = size
+        else:
+            self.buff_size = (size, size)
+            
+    @invalidate_plot
+    def set_window_size(self, size):
+        self.window_size = float(size)
 
     @invalidate_data
     def refresh(self):
@@ -860,12 +873,11 @@ class PWViewerMPL(PWViewer):
             
             # This sets the size of the figure, and defaults to making one of the dimensions smaller.
             # This should protect against giant images in the case of a very large aspect ratio.
-            norm_size = 10.0
             cbar_frac = 0.0
             if plot_aspect > 1.0:
-                size = (norm_size*(1.+cbar_frac), norm_size/plot_aspect)
+                size = (self.window_size*(1.+cbar_frac), self.window_size/plot_aspect)
             else:
-                size = (plot_aspect*norm_size*(1.+cbar_frac), norm_size)
+                size = (plot_aspect*self.window_size*(1.+cbar_frac), self.window_size)
 
             # Correct the aspect ratio in case unit_x and unit_y are different
             aspect = self.pf[unit_x]/self.pf[unit_y]
@@ -874,7 +886,7 @@ class PWViewerMPL(PWViewer):
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
                                           self._colormaps[f], extent, aspect, 
-                                          zlim, size)
+                                          zlim, size, self.fontsize)
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
@@ -1135,7 +1147,7 @@ class SlicePlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis], center=center, fields=fields, **field_parameters)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1251,7 +1263,7 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,
                          center=center, **field_parameters)
-        PWViewerMPL.__init__(self,proj,bounds,origin=origin)
+        PWViewerMPL.__init__(self,proj,bounds,origin=origin,fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1310,7 +1322,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector, **field_parameters)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
+        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,
+                             oblique=True,fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
@@ -1416,7 +1429,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
                                                        le=le, re=re, north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,OffAxisProj,bounds,origin='center-window',periodic=False,oblique=True)
+        PWViewerMPL.__init__(self,OffAxisProj,bounds,origin='center-window',periodic=False,
+                             oblique=True,fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 _metadata_template = """
@@ -1591,8 +1605,8 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size):
-        fsize, axrect, caxrect = self._get_best_layout(size)
+    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size, fontsize):
+        fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
@@ -1604,17 +1618,18 @@ class WindowPlotMPL(ImagePlotMPL):
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
 
-    def _get_best_layout(self, size):
+    def _get_best_layout(self, size, fontsize=15):
         aspect = 1.0*size[0]/size[1]
+        fontscale = fontsize / 15.0
 
         # add room for a colorbar
-        cbar_inches = 0.7
+        cbar_inches = fontscale*0.7
         newsize = [size[0] + cbar_inches, size[1]]
         
         # add buffers for text, and a bit of whitespace on top
-        text_buffx = 1.0/(newsize[0])
-        text_bottomy = 0.7/size[1]
-        text_topy = 0.3/size[1]
+        text_buffx = fontscale * 1.0/(newsize[0])
+        text_bottomy = fontscale * 0.7/size[1]
+        text_topy = fontscale * 0.3/size[1]
 
         # calculate how much room the colorbar takes
         cbar_frac = cbar_inches/newsize[0] 
