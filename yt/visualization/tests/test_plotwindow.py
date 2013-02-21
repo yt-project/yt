@@ -92,17 +92,17 @@ def test_setwidth():
 
     slc.set_width(((15,'kpc'),(10,'kpc'))) 
 
-    assert_rel_equal([slc.xlim, slc.ylim, slc.width], \
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
         [(-7.5/pf['kpc'], 7.5/pf['kpc']),
          (-5/pf['kpc'], 5/pf['kpc']),
-         (15/pf['kpc'], 10/pf['kpc'])], 15)
+         (15/pf['kpc'], 10/pf['kpc'])], 15
 
     slc.set_width(((15,'kpc'),(10000,'pc')))
 
-    assert_rel_equal([slc.xlim, slc.ylim, slc.width], \
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
         [(-7.5/pf['kpc'], 7.5/pf['kpc']),
          (-5/pf['kpc'], 5/pf['kpc']),
-         (15/pf['kpc'], 10/pf['kpc'])], 15)
+         (15/pf['kpc'], 10/pf['kpc'])], 15
 
 def test_save():
     """Main test suite for PlotWindow."""
