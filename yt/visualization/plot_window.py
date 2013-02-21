@@ -164,8 +164,8 @@ def StandardWidth(axis, width, depth, pf):
     elif iterable(width): 
         if isinstance(width[1], str):
             width = (width, width)
-        elif isinstance(width[1], tuple):
-            pass
+        elif isinstance(width[1], (long, int, float)):
+            width = ((width[0], '1'), (width[1], '1'))
     else:
         width = ((width, '1'), (width, '1'))
     if depth is not None:
