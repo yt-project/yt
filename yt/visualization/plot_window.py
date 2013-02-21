@@ -249,8 +249,8 @@ class PlotWindow(object):
         This can be true or false.  It determines whether or not sub-pixel
         rendering is used during data deposition.
     window_size : float
-        The size of the window on the longest axis (in units of inches) at
-        a DPI of 100, including the margins but not the colorbar.
+        The size of the window on the longest axis (in units of inches),
+        including the margins but not the colorbar.
 
     """
     _plot_valid = False
@@ -530,6 +530,14 @@ class PlotWindow(object):
 
     @invalidate_data
     def set_buff_size(self, size):
+        """Sets a new buffer size for the fixed resolution buffer
+
+        parameters
+        ----------
+        size : int or two element sequence of ints
+            The number of data elements in the buffer on the x and y axes.
+            If a scalar is provided,  then the buffer is assumed to be square.
+        """
         if iterable(size):
             self.buff_size = size
         else:
@@ -537,6 +545,14 @@ class PlotWindow(object):
             
     @invalidate_plot
     def set_window_size(self, size):
+        """Sets a new window size for the plot
+
+        parameters
+        ----------
+        size : float
+            The size of the window on the longest axis (in units of inches),
+            including the margins but not the colorbar.
+        """
         self.window_size = float(size)
 
     @invalidate_data
