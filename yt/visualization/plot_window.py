@@ -221,7 +221,6 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
                   -width[2][0]/pf[units[2]]/2, width[2][0]/pf[units[2]]/2)
     return (bounds, center, units)
 
-
 class PlotWindow(object):
     r"""
     A ploting mechanism based around the concept of a window into a
@@ -981,6 +980,9 @@ class PWViewerMPL(PWViewer):
             See the matplotlib documentation for more details.
             http://matplotlib.org/api/font_manager_api.html
 
+        Caveats
+        -------
+        Axis labels written in mathtext only obey the `size` keyword. 
 
         """
         if font_dict is None:
