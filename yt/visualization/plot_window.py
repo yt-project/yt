@@ -261,7 +261,7 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
-                 periodic=True, origin='center-window', oblique=False, fontsize=15,
+                 periodic=True, origin='center-window', oblique=False, fontsize=18,
                  window_size=10.0, serif=True):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
@@ -1177,7 +1177,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=15, serif=True, field_parameters=None):
+                 origin='center-window', fontsize=18, serif=True, field_parameters=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(pf) 
         self.ts = ts
@@ -1294,7 +1294,7 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window', fontsize=15, 
+                 weight_field=None, max_level=None, origin='center-window', fontsize=18, 
                  serif=True, field_parameters=None):
         ts = self._initialize_dataset(pf) 
         self.ts = ts
@@ -1359,7 +1359,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     _frb_generator = ObliqueFixedResolutionBuffer
 
     def __init__(self, pf, normal, fields, center='c', width=None, 
-                 axes_unit=None, north_vector=None, fontsize=15,
+                 axes_unit=None, north_vector=None, fontsize=18,
                  serif=True, field_parameters=None):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf)
         if axes_unit is None and units != ('1', '1'):
@@ -1468,7 +1468,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=None, 
                  depth=(1, '1'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
-                 le=None, re=None, interpolated=False, fontsize=15, serif=True):
+                 le=None, re=None, interpolated=False, fontsize=18, serif=True):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
         if axes_unit is None and units != ('1', '1', '1'):
             axes_unit = units[:2]
@@ -1668,9 +1668,9 @@ class WindowPlotMPL(ImagePlotMPL):
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
 
-    def _get_best_layout(self, size, fontsize=15):
+    def _get_best_layout(self, size, fontsize=18):
         aspect = 1.0*size[0]/size[1]
-        fontscale = fontsize / 15.0
+        fontscale = fontsize / 18.0
 
         # add room for a colorbar
         cbar_inches = fontscale*0.7
