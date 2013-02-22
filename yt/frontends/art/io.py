@@ -64,11 +64,11 @@ class IOHandlerART(BaseIOHandler):
         masks = {}
         pf = (chunks.next()).objs[0].domain.pf
         ws,ls = pf.parameters["wspecies"],pf.parameters["lspecies"]
-        np = ls[-1]
+        npa = ls[-1]
         file_particle = pf.file_particle_data
         file_stars = pf.file_particle_stars
         pos,vel = read_particles(file_particle,pf.parameters['Nrow'],
-                                 total=np,dd=pf.domain_dimensions)
+                                 total=npa,dd=pf.domain_dimensions)
         pos,vel = pos.astype('float64'), vel.astype('float64')
         mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
         size = mask.sum()
@@ -87,17 +87,17 @@ class IOHandlerART(BaseIOHandler):
                     tr[field]=vel[:,i][mask]
             if fname == "particle_mass":
                 a=0
-                data = np.zeros(np,dtype='float64')
+                data = np.zeros(npa,dtype='float64')
                 for b,m in zip(ls,ws):
                     data[a:b]=(np.ones(size,dtype='float64')*m)
                     a=b
                 tr[field]=data[mask]
                 #the stellar masses will be updated later
             elif fname == "particle_index":
-                tr[field]=np.arange(np)[mask].astype('int64')
+                tr[field]=np.arange(npa)[mask].astype('int64')
             elif fname == "particle_type":
                 a=0
-                data = np.zeros(np,dtype='int64')
+                data = np.zeros(npa,dtype='int64')
                 for b,m in zip(ls,ws):
                     data[a:b]=(np.ones(size,dtype='int64')*i)
                     a=b
@@ -106,7 +106,7 @@ class IOHandlerART(BaseIOHandler):
                 #we possibly update and change the masses here
                 #all other fields are read in and changed once
                 temp= read_star_field(file_stars,field=fname)
-                data = np.zeros(np,dtype="float64")
+                data = np.zeros(npa,dtype="float64")
                 data[stara:starb] = temp
                 del temp
                 tr[field]=data[mask]
