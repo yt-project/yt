@@ -461,6 +461,7 @@ class GridPropertiesMixin(object):
     def __get_grid_levels(self):
         if self.__grid_levels == None:
             self.__grid_levels = np.array([g.Level for g in self._grids])
+            self.__grid_levels.shape = (self.__grid_levels.size, 1)
         return self.__grid_levels
 
     def __del_grid_levels(self):
@@ -473,7 +474,6 @@ class GridPropertiesMixin(object):
     __grid_levels = None
     grid_levels = property(__get_grid_levels, __set_grid_levels,
                              __del_grid_levels)
-
 
     def __get_grid_dimensions(self):
         if self.__grid_dimensions == None:
