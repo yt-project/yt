@@ -32,6 +32,7 @@ import types
 import __builtin__
 
 from matplotlib.mathtext import MathTextParser
+from matplotlib.font_manager import FontProperties
 from distutils import version
 from functools import wraps
 
@@ -220,10 +221,9 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
                   -width[2][0]/pf[units[2]]/2, width[2][0]/pf[units[2]]/2)
     return (bounds, center, units)
 
+
 class PlotWindow(object):
     r"""
-    PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
-    
     A ploting mechanism based around the concept of a window into a
     data source. It can have arbitrary fields, each of which will be
     centered on the same viewpoint, but will have individual zlimits. 
@@ -251,6 +251,8 @@ class PlotWindow(object):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
+    fontsize : int
+        The font size of tick and axes labels in points.
 
     """
     _plot_valid = False
@@ -260,7 +262,7 @@ class PlotWindow(object):
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
                  periodic=True, origin='center-window', oblique=False, fontsize=15,
-                 window_size=10.0):
+                 window_size=10.0, serif=True):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf) 
@@ -277,8 +279,11 @@ class PlotWindow(object):
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         self.fontsize = fontsize
+        self.serif = serif
+        self.font_properties = None
         if self.data_source.center is not None and oblique == False:
-            center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
+            center = [self.data_source.center[i] for i in range(len(self.data_source.center)) 
+                      if i != self.data_source.axis]
             self.set_center(center)
         self._initfinished = True
 
@@ -802,7 +807,14 @@ class PWViewerMPL(PWViewer):
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         PWViewer.__init__(self, *args, **kwargs)
-        
+        if self.serif:
+            family='serif'
+        else:
+            family='sans-serif'
+        self.font_properties = \
+            FontProperties(family=family, size=self.fontsize)
+
+
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
@@ -922,10 +934,17 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{'+axis_labels[axis_index][i]+
                           axes_unit_labels[i] + r'}$' for i in (0,1)]
 
-            self.plots[f].axes.set_xlabel(labels[0],fontsize=self.fontsize)
-            self.plots[f].axes.set_ylabel(labels[1],fontsize=self.fontsize)
+            if self.font_properties is None:
+                fp = FontProperties()
+            else:
+                fp = self.font_properties
+            
+            self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
+            self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
 
-            self.plots[f].axes.tick_params(labelsize=self.fontsize)
+            for label in (self.plots[f].axes.get_xticklabels() + 
+                          self.plots[f].axes.get_yticklabels()):
+                label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
 
@@ -935,9 +954,10 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
                 
-            self.plots[f].cb.set_label(colorbar_label, fontsize=self.fontsize)
+            self.plots[f].cb.set_label(colorbar_label, fontproperties=fp)
 
-            self.plots[f].cb.ax.tick_params(labelsize=self.fontsize)
+            for label in self.plots[f].cb.ax.get_yticklabels():
+                label.set_fontproperties(fp)
 
             self.run_callbacks(f)
 
@@ -1137,7 +1157,9 @@ class SlicePlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
+         The size of the fonts for the axis, colorbar, and tick labels
+    serif : boolean
+         Determines whether ticks labels are drawn using a serif or sans-serif font.
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived fields.
          
@@ -1155,7 +1177,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=15, field_parameters=None):
+                 origin='center-window', fontsize=15, serif=True, field_parameters=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(pf) 
         self.ts = ts
@@ -1166,7 +1188,7 @@ class SlicePlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis], center=center, fields=fields, **field_parameters)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin, fontsize=fontsize, serif=serif)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1253,6 +1275,8 @@ class ProjectionPlot(PWViewerMPL):
          The maximum level to project to.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
+    serif : boolean
+         Determines whether ticks labels are drawn using a serif or sans-serif font.
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived fields.
 
@@ -1271,7 +1295,7 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window', fontsize=15, 
-                 field_parameters=None):
+                 serif=True, field_parameters=None):
         ts = self._initialize_dataset(pf) 
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1280,9 +1304,10 @@ class ProjectionPlot(PWViewerMPL):
         if axes_unit is None  and units != ('1', '1'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
-        proj = pf.h.proj(axis,fields,weight_field=weight_field,max_level=max_level,
+        proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
                          center=center, **field_parameters)
-        PWViewerMPL.__init__(self,proj,bounds,origin=origin,fontsize=fontsize)
+        PWViewerMPL.__init__(self, proj, bounds, origin=origin, fontsize=fontsize,
+                             serif=serif)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1324,6 +1349,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
+    serif : boolean
+         Determines whether ticks labels are drawn using a serif or sans-serif font.
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived fields.
     """
@@ -1333,7 +1360,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     def __init__(self, pf, normal, fields, center='c', width=None, 
                  axes_unit=None, north_vector=None, fontsize=15,
-                 field_parameters=None):
+                 serif=True, field_parameters=None):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
@@ -1341,8 +1368,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector, **field_parameters)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,
-                             oblique=True,fontsize=fontsize)
+        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window', periodic=False,
+                             oblique=True, fontsize=fontsize, serif=serif)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
@@ -1429,6 +1456,10 @@ class OffAxisProjectionPlot(PWViewerMPL):
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
         set, an arbitrary grid-aligned north-vector is chosen.
+    fontsize : integer
+         The size of the fonts for the axis, colorbar, and tick labels.
+    serif : boolean
+         Determines whether ticks labels are drawn using a serif or sans-serif font.
 
     """
     _plot_type = 'OffAxisProjection'
@@ -1437,7 +1468,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=None, 
                  depth=(1, '1'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
-                 le=None, re=None, interpolated=False, fontsize=15):
+                 le=None, re=None, interpolated=False, fontsize=15, serif=True):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
         if axes_unit is None and units != ('1', '1', '1'):
             axes_unit = units[:2]
@@ -1448,8 +1479,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
                                                        le=le, re=re, north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,OffAxisProj,bounds,origin='center-window',periodic=False,
-                             oblique=True,fontsize=fontsize)
+        PWViewerMPL.__init__(self, OffAxisProj, bounds, origin='center-window', periodic=False,
+                             oblique=True, fontsize=fontsize, serif=True)
         self.set_axes_unit(axes_unit)
 
 _metadata_template = """
