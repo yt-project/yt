@@ -808,7 +808,7 @@ class PWViewerMPL(PWViewer):
         PWViewer.__init__(self, *args, **kwargs)
         fname = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self.font_properties = \
-            self.set_font({size:self.fontsize, fname:fname})
+            self.set_font({'size':self.fontsize, 'fname':fname})
 
     def _setup_origin(self):
         origin = self.origin
@@ -970,7 +970,7 @@ class PWViewerMPL(PWViewer):
                 del self._frb[key]
 
     @invalidate_plot
-    def set_font(self, font_dict=None)
+    def set_font(self, font_dict=None):
         """set the font and font properties
 
         Parameters
