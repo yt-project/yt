@@ -491,6 +491,19 @@ class GridPropertiesMixin(object):
     grid_dimensions = property(__get_grid_dimensions, __set_grid_dimensions,
                              __del_grid_dimensions)
 
+    @property
+    def grid_corners(self):
+        return np.array([
+          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
+        ], dtype='float64')
+
 
 class AMR1DData(AMRData, GridPropertiesMixin):
     _spatial = False
@@ -2068,6 +2081,7 @@ class AMRProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        self.proj_style = "integrate"
         self.weight_field = weight_field
         self._field_cuts = field_cuts
         self.serialize = serialize
