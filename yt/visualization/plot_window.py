@@ -799,7 +799,10 @@ class PWViewerMPL(PWViewer):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
-        font_size = kwargs.pop("fontsize")
+        try:
+            font_size = kwargs.pop("fontsize")
+        except KeyError:
+            font_size = 18
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=font_size, fname=font_path)
         PWViewer.__init__(self, *args, **kwargs)
