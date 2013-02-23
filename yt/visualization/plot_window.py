@@ -274,7 +274,6 @@ class PlotWindow(object):
         self.antialias = antialias
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        self.serif = True
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) 
                       if i != self.data_source.axis]
