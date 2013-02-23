@@ -973,17 +973,26 @@ class PWViewerMPL(PWViewer):
     def set_font(self, font_dict=None):
         """set the font and font properties
 
-        Parameters
-        ----------
-        font_dict : dict
-            A dict of keyword parameters to be passed to matplotlib's font manager.
-            See the matplotlib documentation for more details.
-            http://matplotlib.org/api/font_manager_api.html
+        Parameters 
+        ---------- 
+        font_dict : dict 
+        A dict of keyword parameters to be passed to 
+        matplotlib.font_manager.FontProperties.  See the matplotlib font 
+        manager documentation for more details.
+        http://matplotlib.org/api/font_manager_api.html
 
         Caveats
         -------
-        Axis labels written in mathtext only obey the `size` keyword. 
+        Mathtext axis labels will only obey the `size` keyword. 
 
+        Examples
+        --------
+        This sets the font to be 24-pt, sans-serif, italic, and bold-face.
+
+        >>> slc = SlicePlot(pf, 'x', 'Density')
+        >>> slc.set_font({'family':'sans-serf', 'style':'italic',
+                          'weight':'bold', 'size':24})
+        
         """
         if font_dict is None:
             font_dict = {}
