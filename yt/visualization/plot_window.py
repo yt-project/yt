@@ -1176,7 +1176,7 @@ class SlicePlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels
+         The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived fields.
          
