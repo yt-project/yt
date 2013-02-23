@@ -116,11 +116,11 @@ star_struct = [
         ('>d',('tdum','adum')),
         ('>i','nstars'),
         ('>d',('ws_old','ws_oldi')),
-        ('>f','mass'),
-        ('>f','imass'),
-        ('>f','tbirth'),
-        ('>f','metallicity1'),
-        ('>f','metallicity2')
+        ('>f','particle_mass'),
+        ('>f','particle_mass_initial'),
+        ('>f','particle_creation_time'),
+        ('>f','particle_metallicity1'),
+        ('>f','particle_metallicity2')
         ]
 
 star_name_map = {

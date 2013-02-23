@@ -89,7 +89,7 @@ class IOHandlerART(BaseIOHandler):
                 a=0
                 data = np.zeros(npa,dtype='float64')
                 for b,m in zip(ls,ws):
-                    data[a:b]=(np.ones(size,dtype='float64')*m)
+                    data[a:b]=(np.ones(b-a,dtype='float64')*m)
                     a=b
                 tr[field]=data[mask]
                 #the stellar masses will be updated later
@@ -99,14 +99,16 @@ class IOHandlerART(BaseIOHandler):
                 a=0
                 data = np.zeros(npa,dtype='int64')
                 for b,m in zip(ls,ws):
-                    data[a:b]=(np.ones(size,dtype='int64')*i)
+                    data[a:b]=(np.ones(b-a,dtype='int64')*i)
                     a=b
                 tr[field]=data[mask]
             if fname in particle_star_fields:
                 #we possibly update and change the masses here
                 #all other fields are read in and changed once
+                if starb-stara==0: continue
+                import pdb; pdb.set_trace()
                 temp= read_star_field(file_stars,field=fname)
-                data = np.zeros(npa,dtype="float64")
+                data = np.zeros(starb-stara,dtype="float64")
                 data[stara:starb] = temp
                 del temp
                 tr[field]=data[mask]
