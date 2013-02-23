@@ -250,8 +250,6 @@ class PlotWindow(object):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
-    fontsize : int
-        The font size of tick and axes labels in points.
 
     """
     _plot_valid = False
@@ -260,8 +258,7 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
-                 periodic=True, origin='center-window', oblique=False, fontsize=18,
-                 window_size=10.0):
+                 periodic=True, origin='center-window', oblique=False, window_size=10.0):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf) 
@@ -277,9 +274,7 @@ class PlotWindow(object):
         self.antialias = antialias
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        self.fontsize = fontsize
         self.serif = True
-        self._font_properties = None
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center)) 
                       if i != self.data_source.axis]
@@ -805,11 +800,11 @@ class PWViewerMPL(PWViewer):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
+        font_size = kwargs.pop("fontsize")
+        font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
+        self._font_properties = FontProperties(size=font_size, fname=font_path)
         PWViewer.__init__(self, *args, **kwargs)
-        fname = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
-        self.font_properties = \
-            self.set_font({'size':self.fontsize, 'fname':fname})
-
+        
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
@@ -910,9 +905,14 @@ class PWViewerMPL(PWViewer):
             
             image = self._frb[f]
 
+            if self._font_properties is None:
+                fp = FontProperties()
+            else:
+                fp = self._font_properties
+
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
                                           self._colormaps[f], extent, aspect, 
-                                          zlim, size, self.fontsize)
+                                          zlim, size, fp.get_size())
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
@@ -929,11 +929,6 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{'+axis_labels[axis_index][i]+
                           axes_unit_labels[i] + r'}$' for i in (0,1)]
 
-            if self._font_properties is None:
-                fp = FontProperties()
-            else:
-                fp = self._font_properties
-            
             self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
 
