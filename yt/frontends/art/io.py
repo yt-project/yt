@@ -106,9 +106,8 @@ class IOHandlerART(BaseIOHandler):
                 #we possibly update and change the masses here
                 #all other fields are read in and changed once
                 if starb-stara==0: continue
-                import pdb; pdb.set_trace()
                 temp= read_star_field(file_stars,field=fname)
-                data = np.zeros(starb-stara,dtype="float64")
+                data = np.zeros(npa,dtype="float64")
                 data[stara:starb] = temp
                 del temp
                 tr[field]=data[mask]
@@ -282,8 +281,9 @@ def read_star_field(file,field=None):
     data = {}
     with open(file,'rb') as fh:
         for dtype, variables in star_struct:
-            if field in variables or dtype=='>d' or dtype=='>d':
-                data[field] = read_vector(fh,'f','>')
+            found = field in variables or field==variables
+            if found:
+                data[field] = read_vector(fh,dtype[1],dtype[0])
             else:
                 skip(fh,endian='>')
     return data.pop(field)
