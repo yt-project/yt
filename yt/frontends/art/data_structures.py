@@ -293,6 +293,9 @@ class ARTStaticOutput(StaticOutput):
         cf["Potential"] = 1.0
         cf["Entropy"] = S_0
         cf["Temperature"] = tr
+        cf["Time"] = 1.0 
+        cf["particle_mass"] = cf['Mass']
+        cf["particle_mass_initial"] = cf['Mass']
         self.cosmological_simulation = True
         self.conversion_factors = cf
         
@@ -315,6 +318,7 @@ class ARTStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters.update(constants)
+        self.parameters['Time'] = 1.0
         #read the amr header
         with open(self.file_amr,'rb') as f:
             amr_header_vals = read_attrs(f,amr_header_struct,'>')

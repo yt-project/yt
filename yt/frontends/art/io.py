@@ -98,7 +98,7 @@ class IOHandlerART(BaseIOHandler):
             elif fname == "particle_type":
                 a=0
                 data = np.zeros(npa,dtype='int64')
-                for b,m in zip(ls,ws):
+                for i,(b,m) in enumerate(zip(ls,ws)):
                     data[a:b]=(np.ones(b-a,dtype='int64')*i)
                     a=b
                 tr[field]=data[mask]
