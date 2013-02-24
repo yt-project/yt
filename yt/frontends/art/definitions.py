@@ -57,7 +57,7 @@ particle_fields= [
     'particle_position_z',
     'particle_velocity_x',
     'particle_velocity_y',
-    'particle_velocity_z'
+    'particle_velocity_z',
     'particle_age', #this and below are stellar only fields
     'particle_mass_initial',
     'particle_creation_time',

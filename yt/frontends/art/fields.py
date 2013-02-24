@@ -56,6 +56,16 @@ for f in particle_fields:
               validators = [ValidateDataField(f)],
               particle_type = True)
 
+add_art_field("particle_mass",function=NullFunc,take_log=True,
+            validators=[ValidateDataField(f)],
+            particle_type = True,
+            convert_function= lambda x: x.convert("particle_mass"))
+
+add_art_field("particle_mass_initial",function=NullFunc,take_log=True,
+            validators=[ValidateDataField(f)],
+            particle_type = True,
+            convert_function= lambda x: x.convert("particle_mass"))
+
 #Hydro Fields that are verified to be OK unit-wise:
 #Density
 #Temperature
