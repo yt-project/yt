@@ -369,6 +369,7 @@ class ARTStaticOutput(StaticOutput):
             self.parameters['wspecies'] = wspecies[:n]
             self.parameters['lspecies'] = lspecies[:n]
             ls_nonzero = np.diff(lspecies)[:n-1]
+            self.star_type = len(ls_nonzero)
             mylog.info("Discovered %i species of particles",len(ls_nonzero))
             mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
                 *ls_nonzero)
