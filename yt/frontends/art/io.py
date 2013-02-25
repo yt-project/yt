@@ -70,6 +70,7 @@ class IOHandlerART(BaseIOHandler):
         pos,vel = read_particles(file_particle,pf.parameters['Nrow'],
                                  total=npa,dd=pf.domain_dimensions)
         pos,vel = pos.astype('float64'), vel.astype('float64')
+        pos -= 1.0/pf.domain_dimensions[0]
         mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
         size = mask.sum()
         if not any(('position' in n for t,n in fields)):
