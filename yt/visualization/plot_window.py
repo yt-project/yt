@@ -799,10 +799,7 @@ class PWViewerMPL(PWViewer):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
-        try:
-            font_size = kwargs.pop("fontsize")
-        except KeyError:
-            font_size = 18
+        font_size = kwargs.pop("fontsize", 18)
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=font_size, fname=font_path)
         PWViewer.__init__(self, *args, **kwargs)
@@ -907,10 +904,7 @@ class PWViewerMPL(PWViewer):
             
             image = self._frb[f]
 
-            if self._font_properties is None:
-                fp = FontProperties()
-            else:
-                fp = self._font_properties
+            fp = self._font_propertiets
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
                                           self._colormaps[f], extent, aspect, 
@@ -987,7 +981,7 @@ class PWViewerMPL(PWViewer):
         This sets the font to be 24-pt, sans-serif, italic, and bold-face.
 
         >>> slc = SlicePlot(pf, 'x', 'Density')
-        >>> slc.set_font({'family':'sans-serf', 'style':'italic',
+        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
                           'weight':'bold', 'size':24})
         
         """
