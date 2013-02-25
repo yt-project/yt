@@ -904,7 +904,7 @@ class PWViewerMPL(PWViewer):
             
             image = self._frb[f]
 
-            fp = self._font_propertiets
+            fp = self._font_properties
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
                                           self._colormaps[f], extent, aspect, 
