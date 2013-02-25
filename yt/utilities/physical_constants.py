@@ -41,6 +41,7 @@ mpc_per_au    = 4.84813682e-12
 mpc_per_rsun  = 2.253962e-14
 mpc_per_miles = 5.21552871e-20
 mpc_per_cm    = 3.24077929e-25
+kpc_per_cm    = mpc_per_cm / mpc_per_kpc
 km_per_pc     = 1.3806504e13
 km_per_m      = 1e-3
 km_per_cm     = 1e-5
@@ -54,9 +55,11 @@ au_per_mpc    = 1.0 / mpc_per_au
 rsun_per_mpc  = 1.0 / mpc_per_rsun
 miles_per_mpc = 1.0 / mpc_per_miles
 cm_per_mpc    = 1.0 / mpc_per_cm
+cm_per_kpc    = 1.0 / kpc_per_cm
 cm_per_km     = 1.0 / km_per_cm
 pc_per_km     = 1.0 / km_per_pc
 cm_per_pc     = 1.0 / pc_per_cm
+
 # time
 sec_per_Gyr  = 31.5576e15
 sec_per_Myr  = 31.5576e12
@@ -64,6 +67,12 @@ sec_per_year = 31.5576e6   # "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU
 sec_per_day  = 86400.0
 sec_per_hr   = 3600.0
 day_per_year = 365.25
+
+# temperature / energy
+erg_per_eV = 1.602176487e-12 # http://goldbook.iupac.org/E02014.html
+erg_per_keV = erg_per_eV * 1.0e3
+K_per_keV = erg_per_keV / boltzmann_constant_cgs
+keV_per_K = 1.0 / K_per_keV
 
 #Short cuts
 G = gravitational_constant_cgs
