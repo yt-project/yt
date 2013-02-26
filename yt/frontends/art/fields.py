@@ -178,23 +178,14 @@ KnownARTFields["PotentialOld"]._convert_function=_convertPotentialOld
 ####### Derived fields
 
 def _temperature(field, data):
-    dg = data["GasEnergy"] #.astype('float64')
-    dg /= data.pf.conversion_factors["GasEnergy"]
-    dd = data["Density"] #.astype('float64')
-    dd /= data.pf.conversion_factors["Density"]
-    tr = dg/dd*data.pf.conversion_factors['tr']
-    #ghost cells have zero density?
-    tr[np.isnan(tr)] = 0.0
-    #dd[di] = -1.0
-    #if data.id==460:
-    #tr[di] = -1.0 #replace the zero-density points with zero temp
-    #print tr.min()
-    #assert np.all(np.isfinite(tr))
+    tr  = data["GasEnergy"]/data["Density"]
+    tr /= data.pf.conversion_factors["GasEnergy"]
+    tr *= data.pf.conversion_factors["Density"]
+    tr *= data.pf.conversion_factors['tr']
     return tr
+
 def _converttemperature(data):
-    #x = data.pf.conversion_factors["Temperature"]
-    x = 1.0
-    return x
+    return 1.0
 add_field("Temperature", function=_temperature, units = r"\mathrm{K}",take_log=True)
 ARTFieldInfo["Temperature"]._units = r"\mathrm{K}"
 ARTFieldInfo["Temperature"]._projected_units = r"\mathrm{K}"

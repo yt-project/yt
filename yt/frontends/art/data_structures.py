@@ -465,7 +465,7 @@ class ARTDomainSubset(object):
         filled = pos = level_offset = 0
         field_idxs = [all_fields.index(f) for f in fields]
         for field in fields:
-            dest[field] = np.zeros(self.cell_count, 'float64')
+            dest[field] = np.zeros(self.cell_count, 'float64')-1.
         level = self.domain_level
         offset = self.domain.level_offsets
         no = self.domain.level_count[level]
@@ -483,7 +483,7 @@ class ARTDomainSubset(object):
             def subchunk(count,size):
                 for i in range(0,count,size):
                     yield i,i+min(size,count-i)
-            for noct_range in subchunk(no,long(1e5)):
+            for noct_range in subchunk(no,long(1e8)):
                 source = _read_child_level(content,self.domain.level_child_offsets,
                                          self.domain.level_offsets,
                                          self.domain.level_count,level,fields,
