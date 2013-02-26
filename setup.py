@@ -23,7 +23,7 @@ class BuildForthon(Command):
     """Command for building Forthon modules"""
 
     description = "Build Forthon modules"
-    user_options = tuple()
+    user_options = []
 
     def initialize_options(self):
 
