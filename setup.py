@@ -10,8 +10,8 @@ import distribute_setup
 distribute_setup.use_setuptools()
 
 from distutils.command.build_py import build_py
-from numpy.distutils.command import build as np_build
 from numpy.distutils.misc_util import appendpath
+from numpy.distutils.command import install_data as np_install_data
 from numpy.distutils import log
 from distutils import version
 
@@ -176,11 +176,18 @@ def get_mercurial_changeset_id(target_dir):
     return changeset
 
 
-class my_build(np_build.build):
+class my_build_src(build_src.build_src):
     def run(self):
         self.run_command("build_forthon")
-        np_build.build.run(self)
+        build_src.build_src.run(self)
 
+
+class my_install_data(np_install_data.install_data):
+    def run(self):
+        self.distribution.data_files.append(
+            ('yt/utilities/kdtree', ['yt/utilities/kdtree/fKDpy.so'])
+        )
+        np_install_data.install_data.run(self)
 
 class my_build_py(build_py):
     def run(self):
@@ -193,7 +200,6 @@ class my_build_py(build_py):
             with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
                 fobj.write("hg_version = '%s'\n" % changeset)
 
-            self.run_command("build_forthon")
             build_py.run(self)
 
 
@@ -253,7 +259,7 @@ def setup_package():
         zip_safe=False,
         data_files=REASON_FILES,
         cmdclass={'build_py': my_build_py, 'build_forthon': BuildForthon,
-                  'build': my_build},
+                  'build_src': my_build_src, 'install_data': my_install_data},
     )
     return
 
