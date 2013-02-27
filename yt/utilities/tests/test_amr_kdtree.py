@@ -28,6 +28,7 @@ from yt.utilities.amr_kdtree.amr_kdtools import kd_node_check, depth_traverse
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
+from yt.testing import assert_equal
 import numpy as np
 
 def test_amr_kdtree():
@@ -40,7 +41,7 @@ def test_amr_kdtree():
  
     kd = AMRKDTree(pf)
 
-    assert(1.0 == kd.count_volume()) 
+    yield assert_equal, kd.count_volume(), 1.0
     
 def test_amr_kdtree_coverage():
     domain_dims = (32, 32, 32)
@@ -64,8 +65,7 @@ def test_amr_kdtree_coverage():
         li = np.rint((node.left_edge-gle)/dds).astype('int32')
         ri = np.rint((node.right_edge-gle)/dds).astype('int32')
         dims = (ri - li).astype('int32')
-        assert(np.all(grid.LeftEdge <= node.left_edge))
-        assert(np.all(grid.RightEdge >= node.right_edge))
-        assert(np.all(dims > 0))
-
+        yield assert_equal, np.all(grid.LeftEdge <= node.left_edge), True
+        yield assert_equal, np.all(grid.RightEdge >= node.right_edge), True
+        yield assert_equal, np.all(dims > 0), True
 
