@@ -837,11 +837,6 @@ MY_PWD=`pwd`
 cd $YT_DIR
 ( ${HG_EXEC} pull 2>1 && ${HG_EXEC} up -C 2>1 ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
 
-echo "Building Fortran kD-tree module."
-cd yt/utilities/kdtree
-( make 2>&1 ) 1>> ${LOG_FILE}
-cd ../../..
-
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
