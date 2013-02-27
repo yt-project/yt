@@ -69,7 +69,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         self._detect_fields()
 
         mylog.debug("Detecting fields in backup.")
-        self._detect_backup_fields()
+        self._detect_fields_backup()
 
         mylog.debug("Adding unknown detected fields")
         self._setup_unknown_fields()
