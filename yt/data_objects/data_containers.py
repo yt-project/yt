@@ -178,7 +178,7 @@ class FakeGridForParticles(object):
         self.child_mask = 1
         self.ActiveDimensions = self.field_data['x'].shape
         self.DW = grid.pf.domain_right_edge - grid.pf.domain_left_edge
-        
+
     def __getitem__(self, field):
         if field not in self.field_data.keys():
             if field == "RadiusCode":
@@ -543,7 +543,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             # generated it above.  This way, fields that are grabbed from the
             # grids are sorted properly.
             self[field] = self[field][self._sortkey]
-       
+
 class AMROrthoRayBase(AMR1DData):
     """
     This is an orthogonal ray cast through the entire domain, at a specific
@@ -686,9 +686,9 @@ class AMRRayBase(AMR1DData):
             vs = self._get_line_at_coord(RE[:,i], i)
             p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
                     & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
-        p = p | ( np.all( LE <= self.start_point, axis=1 ) 
+        p = p | ( np.all( LE <= self.start_point, axis=1 )
                 & np.all( RE >= self.start_point, axis=1 ) )
-        p = p | ( np.all( LE <= self.end_point,   axis=1 ) 
+        p = p | ( np.all( LE <= self.end_point,   axis=1 )
                 & np.all( RE >= self.end_point,   axis=1 ) )
         self._grids = self.hierarchy.grids[p]
 
@@ -708,7 +708,7 @@ class AMRRayBase(AMR1DData):
         if not iterable(gf):
             gf = gf * np.ones(grid.child_mask.shape)
         return gf[mask]
-        
+
     @cache_mask
     def _get_cut_mask(self, grid):
         mask = np.zeros(grid.ActiveDimensions, dtype='int')
@@ -751,11 +751,11 @@ class AMRStreamlineBase(AMR1DData):
     --------
 
     >>> from yt.visualization.api import Streamlines
-    >>> streamlines = Streamlines(pf, [0.5]*3) 
+    >>> streamlines = Streamlines(pf, [0.5]*3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
     >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-    
+
     """
     _type_name = "streamline"
     _con_args = ('positions')
@@ -788,16 +788,16 @@ class AMRStreamlineBase(AMR1DData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         # No child masking here; it happens inside the mask cut
-        mask = self._get_cut_mask(grid) 
+        mask = self._get_cut_mask(grid)
         if field == 'dts': return self._dts[grid.id]
         if field == 't': return self._ts[grid.id]
         return grid[field].flat[mask]
-        
+
     @cache_mask
     def _get_cut_mask(self, grid):
         #pdb.set_trace()
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
-                         np.all(self.positions <= grid.RightEdge, axis=1) 
+                         np.all(self.positions <= grid.RightEdge, axis=1)
         pids = np.where(points_in_grid)[0]
         mask = np.zeros(points_in_grid.sum(), dtype='int')
         dts = np.zeros(points_in_grid.sum(), dtype='float64')
@@ -832,7 +832,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         AMRData.__init__(self, pf, fields, **kwargs)
         self.field = ensure_list(fields)[0]
         self.set_field_parameter("axis",axis)
-        
+
     def _convert_field_name(self, field):
         return field
 
@@ -851,7 +851,6 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(fields)
-        temp_data = {}
         for field in fields_to_get:
             if self.field_data.has_key(field): continue
             if field not in self.hierarchy.field_list:
@@ -861,18 +860,13 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             # we're going to have to set the same thing several times
             data = [self._get_data_from_grid(grid, field)
                     for grid in self._get_grids()]
-            if len(data) == 0: data = np.array([])
-            else: data = np.concatenate(data)
-            temp_data[field] = data
+            if len(data) == 0:
+                data = np.array([])
+            else:
+                data = np.concatenate(data)
             # Now the next field can use this field
-            self[field] = temp_data[field] 
-        # We finalize
-        if temp_data != {}:
-            temp_data = self.comm.par_combine_object(temp_data,
-                    datatype='dict', op='cat')
-        # And set, for the next group
-        for field in temp_data.keys():
-            self[field] = temp_data[field]
+            self[field] = self.comm.par_combine_object(data, op='cat',
+                                                       datatype='array')
 
     def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
         axis = self.axis
@@ -887,7 +881,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
         return pw
@@ -993,7 +987,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for field in fields:
             #mylog.debug("Trying to obtain %s from node %s",
                 #self._convert_field_name(field), node_name)
-            fdata=self.hierarchy.get_data(node_name, 
+            fdata=self.hierarchy.get_data(node_name,
                 self._convert_field_name(field))
             if fdata is not None:
                 #mylog.debug("Got %s from node %s", field, node_name)
@@ -1151,7 +1145,7 @@ class AMRSliceBase(AMR2DData):
         t = points * ind[cm] * dx + (grid.LeftEdge[xaxis] + 0.5 * dx)
         # calculate ypoints array
         ind = cmI[1, :].ravel()   # yind
-        del cmI   # no longer needed 
+        del cmI   # no longer needed
         t = np.vstack( (t, points * ind[cm] * dy + \
                 (grid.LeftEdge[yaxis] + 0.5 * dy))
             )
@@ -1210,7 +1204,7 @@ class AMRSliceBase(AMR2DData):
     def hub_upload(self):
         self._mrep.upload()
 
-    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None,
                origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -1490,7 +1484,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         self.dims = dims
         self.dds = self.width / self.dims
         self.bounds = np.array([0.0,1.0,0.0,1.0])
-        
+
         self.set_field_parameter('center', center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -1576,7 +1570,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
             # Mark these pixels to speed things up
             self._pixelmask[pointI] = 0
-            
+
             return
         else:
             raise SyntaxError("Making a fixed resolution slice with "
@@ -1664,7 +1658,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
-        
+
 class AMRQuadTreeProjBase(AMR2DData):
     """
     This is a data object corresponding to a line integral through the
@@ -1822,7 +1816,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             convs[:] = 1.0
         return dls, convs
 
-    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None,
                origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -1863,7 +1857,7 @@ class AMRQuadTreeProjBase(AMR2DData):
                                  if g.Level == level],
                               self.get_dependencies(fields), self.hierarchy.io)
             self._add_level_to_tree(tree, level, fields)
-            mylog.debug("End of projecting level level %s, memory usage %0.3e", 
+            mylog.debug("End of projecting level level %s, memory usage %0.3e",
                         level, get_memory_usage()/1024.)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
@@ -1955,7 +1949,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
         to_add = np.array([d[used_points].ravel() for d in full_proj], order='F')
-        tree.add_array_to_tree(grid.Level, xpoints, ypoints, 
+        tree.add_array_to_tree(grid.Level, xpoints, ypoints,
                     to_add, weight_proj[used_points].ravel())
 
     def _add_level_to_tree(self, tree, level, fields):
@@ -2296,7 +2290,7 @@ class AMRProjBase(AMR2DData):
                 del self.__retval_coords[grid.id]
                 del self.__retval_fields[grid.id]
                 del self.__overlap_masks[grid.id]
-            mylog.debug("End of projecting level level %s, memory usage %0.3e", 
+            mylog.debug("End of projecting level level %s, memory usage %0.3e",
                         level, get_memory_usage()/1024.)
         coord_data = np.concatenate(coord_data, axis=1)
         field_data = np.concatenate(field_data, axis=1)
@@ -2327,7 +2321,7 @@ class AMRProjBase(AMR2DData):
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass
 
-    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None,
                origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -2535,7 +2529,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         FillBuffer(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields, 
+            c_fields, g_fields,
             self.ActiveDimensions, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, dls[grid.Level],
             self.axis)
@@ -2696,9 +2690,9 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.  It is very useful for applying 
+        fly with a set of field_cuts.  It is very useful for applying
         conditions to the fields in your data object.
-        
+
         Examples
         --------
         To find the total mass of gas above 10^6 K in your volume:
@@ -2739,7 +2733,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         useful for calculating, for instance, total isocontour area, or
         visualizing in an external program (such as `MeshLab
         <http://meshlab.sf.net>`_.)
-        
+
         Parameters
         ----------
         field : string
@@ -2853,7 +2847,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field : string
@@ -2910,7 +2904,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
                      [field_x, field_y, field_z]]
         return march_cubes_grid_flux(value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
@@ -3003,7 +2997,7 @@ class ExtractedRegionBase(AMR3DData):
     ----------------
     force_refresh : bool
        Force a refresh of the data. Defaults to True.
-    
+
     Examples
     --------
     """
@@ -3243,7 +3237,7 @@ class AMRInclinedBox(AMR3DData):
         if self._grids is not None: return
         GLE = self.pf.h.grid_left_edge
         GRE = self.pf.h.grid_right_edge
-        goodI = find_grids_in_inclined_box(self.box_vectors, self.center, 
+        goodI = find_grids_in_inclined_box(self.box_vectors, self.center,
                                            GLE, GRE)
         cgrids = self.pf.h.grids[goodI.astype('bool')]
        # find_grids_in_inclined_box seems to be broken.
@@ -3251,13 +3245,13 @@ class AMRInclinedBox(AMR3DData):
         grids = []
         for i,grid in enumerate(cgrids):
             v = grid_points_in_volume(self.box_lengths, self.origin,
-                                      self._rot_mat, grid.LeftEdge, 
+                                      self._rot_mat, grid.LeftEdge,
                                       grid.RightEdge, grid.dds,
                                       grid.child_mask, 1)
             if v: grids.append(grid)
         self._grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self._grids[gi] = g
-            
+
 
     def _is_fully_enclosed(self, grid):
         # This should be written at some point.
@@ -3270,10 +3264,10 @@ class AMRInclinedBox(AMR3DData):
             return True
         pm = np.zeros(grid.ActiveDimensions, dtype='int32')
         grid_points_in_volume(self.box_lengths, self.origin,
-                              self._rot_mat, grid.LeftEdge, 
+                              self._rot_mat, grid.LeftEdge,
                               grid.RightEdge, grid.dds, pm, 0)
         return pm
-        
+
 
 class AMRRegionBase(AMR3DData):
     """A 3D region of data with an arbitrary center.
@@ -3409,9 +3403,9 @@ class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
     _dx_pad = 0.0
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        AMRPeriodicRegionBase.__init__(self, center, left_edge, right_edge, 
+        AMRPeriodicRegionBase.__init__(self, center, left_edge, right_edge,
                                        fields = None, pf = None, **kwargs)
-    
+
 
 class AMRGridCollectionBase(AMR3DData):
     """
@@ -3578,7 +3572,7 @@ class AMREllipsoidBase(AMR3DData):
         self._C = C
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
-        
+
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = np.arctan(e0[1] / e0[0])
         # rotate e0 by -t1
@@ -3588,7 +3582,7 @@ class AMREllipsoidBase(AMR3DData):
         t2 = np.arctan(-r1[2] / r1[0])
         """
         calculate the original e1
-        given the tilt about the x axis when e0 was aligned 
+        given the tilt about the x axis when e0 was aligned
         to x after t1, t2 rotations about z, y
         """
         RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
@@ -3612,7 +3606,7 @@ class AMREllipsoidBase(AMR3DData):
         self._refresh_data()
 
         """
-        Having another function find_ellipsoid_grids is too much work, 
+        Having another function find_ellipsoid_grids is too much work,
         can just use the sphere one and forget about checking orientation
         but feed in the A parameter for radius
         """
@@ -3700,7 +3694,7 @@ class AMREllipsoidBase(AMR3DData):
 class AMRCoveringGridBase(AMR3DData):
     """A 3D region with all data extracted to a single, specified
     resolution.
-    
+
     Parameters
     ----------
     level : int
@@ -3798,7 +3792,7 @@ class AMRCoveringGridBase(AMR3DData):
             n_bad = np.where(self[obtain_fields[0]]==-999)[0].size
             mylog.error("Covering problem: %s cells are uncovered", n_bad)
             raise KeyError(n_bad)
-            
+
     def _generate_field(self, field):
         if self.pf.field_info.has_key(field):
             # First we check the validator; this might even raise!
@@ -3826,13 +3820,13 @@ class AMRCoveringGridBase(AMR3DData):
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
-        g_fields = [gf.astype("float64") 
+        g_fields = [gf.astype("float64")
                     if gf.dtype != "float64"
                     else gf for gf in (grid[field] for field in fields)]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields, 
+            c_fields, g_fields,
             self.ActiveDimensions, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, ll, 0)
         return count
@@ -3848,7 +3842,7 @@ class AMRCoveringGridBase(AMR3DData):
         c_fields = [self[field] for field in fields]
         FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields, 
+            c_fields, g_fields,
             self.ActiveDimensions, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, ll, 1)
 
@@ -3869,7 +3863,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     fill the region to level 1, replacing any cells actually
     covered by level 1 data, and then recursively repeating this
     process until it reaches the specified `level`.
-    
+
     Parameters
     ----------
     level : int
@@ -3989,7 +3983,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     def _refine(self, dlevel, fields):
         rf = float(self.pf.refine_by**dlevel)
 
-        input_left = (self._old_global_startindex + 0.5) * rf 
+        input_left = (self._old_global_startindex + 0.5) * rf
         dx = np.fromiter((self['cd%s' % ax] for ax in 'xyz'), count=3, dtype='float64')
         output_dims = np.rint((self.ActiveDimensions*self.dds)/dx+0.5).astype('int32') + 2
         self._cur_dims = output_dims
@@ -4003,13 +3997,13 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 
     @restore_field_information_state
     def _get_data_from_grid(self, grid, fields):
-        g_fields = [gf.astype("float64") 
+        g_fields = [gf.astype("float64")
                     if gf.dtype != "float64"
                     else gf for gf in (grid[field] for field in fields)]
         c_fields = [self.field_data[field] for field in fields]
         count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
-            c_fields, g_fields, 
+            c_fields, g_fields,
             self._cur_dims, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, 1, 0)
         return count
@@ -4021,14 +4015,14 @@ class AMRBooleanRegionBase(AMR3DData):
     """
     This will build a hybrid region based on the boolean logic
     of the regions.
-    
+
     Parameters
     ----------
     regions : list
         A list of region objects and strings describing the boolean logic
         to use when building the hybrid region. The boolean logic can be
         nested using parentheses.
-    
+
     Examples
     --------
     >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
@@ -4053,7 +4047,7 @@ class AMRBooleanRegionBase(AMR3DData):
         self._get_all_regions()
         self._make_overlaps()
         self._get_list_of_grids()
-    
+
     def _get_all_regions(self):
         # Before anything, we simply find out which regions are involved in all
         # of this process, uniquely.
@@ -4063,7 +4057,7 @@ class AMRBooleanRegionBase(AMR3DData):
             # So cut_masks don't get messed up.
             item._boolean_touched = True
         self._all_regions = np.unique(self._all_regions)
-    
+
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
@@ -4097,7 +4091,7 @@ class AMRBooleanRegionBase(AMR3DData):
                     continue
             pbar.update(i)
         pbar.finish()
-    
+
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.pf)
@@ -4110,7 +4104,7 @@ class AMRBooleanRegionBase(AMR3DData):
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
-    
+
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)
 
@@ -4197,7 +4191,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
     <http://meshlab.sf.net>`_.)  The object has the properties .vertices
     and will sample values if a field is requested.  The values are
     interpolated to the center of a given face.
-    
+
     Parameters
     ----------
     data_source : AMR3DDataObject
@@ -4272,7 +4266,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                 self[fields] = samples
             elif sample_type == "vertex":
                 self.vertex_samples[fields] = samples
-        
+
 
     @restore_grid_state
     def _extract_isocontours_from_grid(self, grid, field, value,
@@ -4309,7 +4303,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field_x : string
@@ -4356,7 +4350,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         return flux
 
     @restore_grid_state
-    def _calculate_flux_in_grid(self, grid, 
+    def _calculate_flux_in_grid(self, grid,
                     field_x, field_y, field_z, fluxing_field = None):
         mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(self.surface_field)
@@ -4364,7 +4358,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
                      [field_x, field_y, field_z]]
         return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
@@ -4482,7 +4476,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             w = bounds[i][1] - bounds[i][0]
             np.divide(tmp, w, tmp)
             np.subtract(tmp, 0.5, tmp) # Center at origin.
-            v[ax][:] = tmp 
+            v[ax][:] = tmp
         f.write("end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
