@@ -191,13 +191,13 @@ class YTDataContainer(object):
         """
         Returns a single field.  Will add if necessary.
         """
-        if key not in self.field_data:
-            if key in self._container_fields:
-                self.field_data[key] = self._generate_container_field(key)
-                return self.field_data[key]
-            else:
-                self.get_data(key)
         f = self._determine_fields(key)[0]
+        if f not in self.field_data:
+            if f in self._container_fields:
+                self.field_data[f] = self._generate_container_field(f)
+                return self.field_data[f]
+            else:
+                self.get_data(f)
         return self.field_data[f]
 
     def __setitem__(self, key, val):
