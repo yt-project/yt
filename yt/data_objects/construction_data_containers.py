@@ -394,6 +394,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'ActiveDimensions')
+    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
     _base_grid = None
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, 
@@ -452,6 +453,33 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                         self.global_startindex, chunk.icoords, chunk.ires)
         for name, v in zip(fields, output_fields):
             self[name] = v
+
+    def _generate_container_field(self, field):
+        rv = np.ones(self.ActiveDimensions, dtype="float64")
+        if field == "dx":
+            np.multiply(rv, self.dds[0], rv)
+        elif field == "dy":
+            np.multiply(rv, self.dds[1], rv)
+        elif field == "dz":
+            np.multiply(rv, self.dds[2], rv)
+        elif field == "x":
+            x = np.mgrid[self.left_edge[0] + 0.5*self.dds[0]:
+                         self.right_edge[0] - 0.5*self.dds[0]:
+                         self.ActiveDimensions[0] * 1j]
+            np.multiply(rv, x[:,None,None], rv)
+        elif field == "y":
+            y = np.mgrid[self.left_edge[1] + 0.5*self.dds[1]:
+                         self.right_edge[1] - 0.5*self.dds[1]:
+                         self.ActiveDimensions[1] * 1j]
+            np.multiply(rv, y[None,:,None], rv)
+        elif field == "z":
+            z = np.mgrid[self.left_edge[2] + 0.5*self.dds[2]:
+                         self.right_edge[2] - 0.5*self.dds[2]:
+                         self.ActiveDimensions[2] * 1j]
+            np.multiply(rv, z[None,None,:], rv)
+        else:
+            raise KeyError(field)
+        return rv
 
 class LevelState(object):
     current_dx = None

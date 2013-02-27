@@ -40,7 +40,6 @@ CartesianFieldInfo = FieldInfoContainer()
 CartesianFieldInfo.name = id(CartesianFieldInfo)
 add_cart_field = CartesianFieldInfo.add_field
 
-
 def _dx(field, data):
     return data.pf.domain_width[0] * data.fwidth[:,0]
 add_cart_field('dx', function=_dx, display_field=False)
