@@ -424,7 +424,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return self._fcoords
         ind = 0
         for obj in self.objs:
-            c = obj.fcoords(self.dobj)
+            c = obj.select_fcoords(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
@@ -439,7 +439,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return self._icoords
         ind = 0
         for obj in self.objs:
-            c = obj.icoords(self.dobj)
+            c = obj.select_icoords(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
@@ -454,7 +454,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return self._fwidth
         ind = 0
         for obj in self.objs:
-            c = obj.fwidth(self.dobj)
+            c = obj.select_fwidth(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
@@ -469,7 +469,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return self._ires
         ind = 0
         for obj in self.objs:
-            c = obj.ires(self.dobj)
+            c = obj.select_ires(self.dobj)
             if c.shape == 0: continue
             ci[ind:ind+c.size] = c
             ind += c.size

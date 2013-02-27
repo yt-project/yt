@@ -18,7 +18,7 @@ def test_cutting_plane():
         center = [0.5,0.5,0.5]
         normal = [1,1,1]
         fns = []
-        cut = pf.h.cutting(normal, center, ["Ones", "Density"])
+        cut = pf.h.cutting(normal, center)
         yield assert_equal, cut["Ones"].sum(), cut["Ones"].size
         yield assert_equal, cut["Ones"].min(), 1.0
         yield assert_equal, cut["Ones"].max(), 1.0

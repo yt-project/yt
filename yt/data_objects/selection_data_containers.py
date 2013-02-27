@@ -490,12 +490,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         normal = self.normal
         center = self.center
-        if fields == None:
-            if self.fields == None:
-                raise SyntaxError("The fields keyword argument must be set")
-        else:
-            self.fields = ensure_list(fields)
- 
         from yt.visualization.plot_window import \
             GetObliqueWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
