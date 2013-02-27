@@ -2173,19 +2173,15 @@ class ProjectionCamera(Camera):
                     np.minimum(mi, this_point, mi)
                     np.maximum(ma, this_point, ma)
         # Now we have a bounding box.
-        grids = pf.h.region(self.center, mi, ma)._grids
+        source = pf.h.region(self.center, mi, ma)
 
-        pb = get_pbar("Sampling ", len(grids))
-        for i,grid in enumerate(grids):
-            data = [(grid[field] * grid.child_mask).astype("float64")
-                    for field in fields]
+        for i, (grid, mask) in enumerate(source.blocks):
+            data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id, data,
                 grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
             grid.clear_data()
             sampler(pg, num_threads = num_threads)
-            pb.update(i)
-        pb.finish()
 
         image = self.finalize_image(sampler.aimage)
         return image

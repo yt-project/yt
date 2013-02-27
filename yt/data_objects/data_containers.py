@@ -406,6 +406,14 @@ class YTDataContainer(object):
             explicit_fields.append((ftype, fname))
         return explicit_fields
 
+    @property
+    def blocks(self):
+        for io_chunk in self.chunks([], "io"):
+            for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
+                mask = self._current_chunk.objs[0].select(self.selector)
+                if mask is None: continue
+                yield self._current_chunk.objs[0], mask
+
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields

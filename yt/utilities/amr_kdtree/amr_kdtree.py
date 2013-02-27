@@ -69,10 +69,10 @@ class Tree(object):
         self.trunk = Node(None, None, None,
                 left, right, None, 1)
         if grids is None:
-            self.grids = pf.h.region((left+right)/2., left, right)._grids
+            source = pf.h.region((left+right)/2., left, right)
         else:
             self.grids = grids
-        self.build(grids)
+        self.build([g for g, mask in source.blocks])
 
     def add_grids(self, grids):
         lvl_range = range(self.min_level, self.max_level+1)
