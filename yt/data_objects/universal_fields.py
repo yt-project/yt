@@ -795,16 +795,17 @@ def get_radius(data, field_prefix):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
     radius = np.zeros(data[field_prefix+"x"].shape, dtype='float64')
-    r = radius
+    r = radius.copy()
     if any(data.pf.periodicity):
-        rdw = radius
+        rdw = radius.copy()
     for i, ax in enumerate('xyz'):
         np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
-        np.abs(r, r)
         if data.pf.periodicity[i] == True:
             np.subtract(DW[i], r, rdw)
+            np.abs(r, r)
             np.minimum(r, rdw, r)
         np.power(r, 2.0, r)
+        np.add(radius, r, radius)
     np.sqrt(radius, radius)
     return radius
 
