@@ -16,6 +16,7 @@ from numpy.distutils import log
 from distutils import version
 
 from distutils.core import Command
+from distutils.spawn import find_executable
 
 
 class BuildForthon(Command):
@@ -40,11 +41,19 @@ class BuildForthon(Command):
     def run(self):
 
         """runner"""
+        Forthon_exe = find_executable("Forthon")
+        gfortran_exe = find_executable("gfortran")
+
+        if None in (Forthon_exe, gfortran_exe):
+            sys.stderr.write(
+                "fKDpy.so won't be built due to missing Forthon/gfortran\n"
+            )
+            return
 
         cwd = os.getcwd()
         os.chdir(os.path.join(cwd, 'yt/utilities/kdtree'))
-        cmd = ["Forthon", "-F", "gfortran", "--compile_first", "fKD_source",
-               "--no2underscores", "--fopt", "'-O3'", "fKD",
+        cmd = [Forthon_exe, "-F", "gfortran", "--compile_first",
+               "fKD_source", "--no2underscores", "--fopt", "'-O3'", "fKD",
                "fKD_source.f90"]
         subprocess.check_call(cmd, shell=False)
         shutil.move(glob.glob('build/lib*/fKDpy.so')[0], os.getcwd())
