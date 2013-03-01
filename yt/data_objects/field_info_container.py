@@ -505,3 +505,4 @@ class ValidateGridType(FieldValidator):
         if isinstance(data, FieldDetector): return True
         if getattr(data, "_type_name", None) == 'grid': return True
         raise NeedsOriginalGrid()
+
