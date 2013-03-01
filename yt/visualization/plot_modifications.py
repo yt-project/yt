@@ -356,7 +356,7 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.grid_left_edge
         GRE = plot.data.grid_right_edge
-        grid_levels = plot.data.grid_levels
+        grid_levels = plot.data.grid_levels[:,0]
         min_level = self.min_level
         max_level = self.max_level
         if min_level is None:
