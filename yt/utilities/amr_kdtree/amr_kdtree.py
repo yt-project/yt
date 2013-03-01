@@ -353,7 +353,8 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         if (in_grid != True).sum()>0:
             grids[in_grid != True] = \
-                [self.pf.h.grids[self.locate_brick(new_positions[i]).grid] 
+                [self.pf.h.grids[self.locate_brick(new_positions[i]).grid -
+                                 self._id_offset]
                  for i in get_them]
             cis[in_grid != True] = \
                 [(new_positions[i]-grids[i].LeftEdge)/
@@ -390,7 +391,8 @@ class AMRKDTree(ParallelAnalysisInterface):
         
         """
         position = np.array(position)
-        grid = self.pf.h.grids[self.locate_brick(position).grid]
+        grid = self.pf.h.grids[self.locate_brick(position).grid -
+                               self._id_offset]
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)
 
