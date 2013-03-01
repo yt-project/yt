@@ -644,8 +644,8 @@ class PWViewer(PlotWindow):
             the new maximum of the colormap scale. If 'max', will
             set to the maximum value in the current view.
 
-        Keyword Parameters
-        ------------------
+        Other Parameters
+        ----------------
         dyanmic_range : float (default: None)
             The dynamic range of the image.
             If zmin == None, will set zmin = zmax / dynamic_range
@@ -972,8 +972,8 @@ class PWViewerMPL(PWViewer):
         manager documentation for more details.
         http://matplotlib.org/api/font_manager_api.html
 
-        Caveats
-        -------
+        Notes
+        -----
         Mathtext axis labels will only obey the `size` keyword. 
 
         Examples

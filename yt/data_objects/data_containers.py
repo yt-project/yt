@@ -3875,10 +3875,11 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     fields : array_like, optional
         A list of fields that you'd like pre-generated for your object
 
-    Example
-    -------
-    cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                              dims=[128, 128, 128])
+    Examples
+    --------
+
+    >>> cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+    ...                          dims=[128, 128, 128])
     """
     _type_name = "smoothed_covering_grid"
     def __init__(self, *args, **kwargs):
