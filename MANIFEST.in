@@ -1,10 +1,3 @@
 include distribute_setup.py README* CREDITS FUNDING LICENSE.txt
-include yt/utilities/kdtree/LICENSE
-include yt/utilities/kdtree/Makefile
-include yt/utilities/kdtree/api.py
-include yt/utilities/kdtree/fKD.f90
-include yt/utilities/kdtree/fKD.v
-include yt/utilities/kdtree/fKD_source.f90
-include yt/utilities/kdtree/kdtree2-README
 recursive-include yt/gui/reason/html *.html *.png *.ico *.js
 recursive-include yt *.pyx *.pxd *.hh *.h README*
