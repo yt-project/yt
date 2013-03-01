@@ -233,7 +233,7 @@ def _ThermalEnergy(fields, data) :
         mu = data.get_field_parameter("mu")
     else:
         mu = 0.6
-    return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf["Gamma"] - 1.0)
+    return kboltz*data["NumberDensity"]*data["Temperature"] / (data.pf["Gamma"] - 1.0)
     
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{g}")
@@ -299,4 +299,34 @@ def _DivB(fields, data):
 add_field("DivB", function=_DivB, take_log=False,
           units=r"\rm{Gauss}\/\rm{cm}^{-1}")
 
+def _ConvertNumberDensity(data):
+    return 1.0/mh
 
+def _NumberDensity(field, data):
+    field_data = np.zeros(data["Density"].shape,
+                         dtype = data["Density"].dtype)
+    try:
+        mu = data.pf.parameters["eos_singleSpeciesA"]
+    except:
+        if data.has_field_parameter("mu"):
+            mu = data.get_field_parameter("mu")
+        else:
+            mu = 0.6
+        field_data += data["Density"] / mu
+    return field_data
+add_field("NumberDensity", units=r"\rm{cm}^{-3}",
+          function=_NumberDensity,
+          convert_function=_ConvertNumberDensity)
+
+def _H_NumberDensity(field, data):
+    field_data = np.zeros(data["Density"].shape,
+                          dtype=data["Density"].dtype)
+    if data.has_field_parameter("muh"):
+        muh = data.get_field_parameter("muh")
+    else:
+        muh = 0.75
+    field_data += data["Density"] / muh
+    return field_data
+add_field("H_NumberDensity", units=r"\rm{cm}^{-3}",
+          function=_H_NumberDensity,
+          convert_function=_ConvertNumberDensity)

@@ -36,34 +36,34 @@ YEAR = 3.155693e7 # sec / year
 LIGHT = 2.997925e10 # cm / s
 
 class StarFormationRate(object):
+    r"""Calculates the star formation rate for a given population of
+    star particles.
+    
+    Parameters
+    ----------
+    pf : EnzoStaticOutput object
+    data_source : AMRRegion object, optional
+        The region from which stars are extracted for analysis. If this
+        is not supplied, the next three must be, otherwise the next
+        three do not need to be specified.
+    star_mass : Ordered array or list of floats
+        The mass of the stars to be analyzed in units of Msun.
+    star_creation_time : Ordered array or list of floats
+        The creation time for the stars in code units.
+    volume : Float
+        The volume of the region for the specified list of stars.
+    bins : Integer
+        The number of time bins used for binning the stars. Default = 300.
+    
+    Examples
+    --------
+    
+    >>> pf = load("RedshiftOutput0000")
+    >>> sp = pf.h.sphere([0.5,0.5,0.5], [.1])
+    >>> sfr = StarFormationRate(pf, sp)
+    """
     def __init__(self, pf, data_source=None, star_mass=None,
             star_creation_time=None, volume=None, bins=300):
-        r"""Calculates the star formation rate for a given population of
-        star particles.
-        
-        Parameters
-        ----------
-        pf : EnzoStaticOutput object
-        data_source : AMRRegion object, optional
-            The region from which stars are extracted for analysis. If this
-            is not supplied, the next three must be, otherwise the next
-            three do not need to be specified.
-        star_mass : Ordered array or list of floats
-            The mass of the stars to be analyzed in units of Msun.
-        star_creation_time : Ordered array or list of floats
-            The creation time for the stars in code units.
-        volume : Float
-            The volume of the region for the specified list of stars.
-        bins : Integer
-            The number of time bins used for binning the stars. Default = 300.
-        
-        Examples
-        --------
-        
-        >>> pf = load("RedshiftOutput0000")
-        >>> sp = pf.h.sphere([0.5,0.5,0.5], [.1])
-        >>> sfr = StarFormationRate(pf, sp)
-        """
         self._pf = pf
         self._data_source = data_source
         self.star_mass = np.array(star_mass)
@@ -246,26 +246,26 @@ for faster memory access.
 """
 
 class SpectrumBuilder(object):
+    r"""Initialize the data to build a summed flux spectrum for a
+    collection of stars using the models of Bruzual & Charlot (2003).
+    This function loads the necessary data tables into memory and
+    must be called before analyzing any star particles.
+    
+    Parameters
+    ----------
+    pf : EnzoStaticOutput object
+    bcdir : String
+        Path to directory containing Bruzual & Charlot h5 fit files.
+    model : String
+        Choice of Initial Metalicity Function model, 'chabrier' or
+        'salpeter'. Default = 'chabrier'.
+    
+    Examples
+    --------
+    >>> pf = load("RedshiftOutput0000")
+    >>> spec = SpectrumBuilder(pf, "/home/user/bc/", model="salpeter")
+    """
     def __init__(self, pf, bcdir="", model="chabrier", time_now=None):
-        r"""Initialize the data to build a summed flux spectrum for a
-        collection of stars using the models of Bruzual & Charlot (2003).
-        This function loads the necessary data tables into memory and
-        must be called before analyzing any star particles.
-        
-        Parameters
-        ----------
-        pf : EnzoStaticOutput object
-        bcdir : String
-            Path to directory containing Bruzual & Charlot h5 fit files.
-        model : String
-            Choice of Initial Metalicity Function model, 'chabrier' or
-            'salpeter'. Default = 'chabrier'.
-        
-        Examples
-        --------
-        >>> pf = load("RedshiftOutput0000")
-        >>> spec = SpectrumBuilder(pf, "/home/user/bc/", model="salpeter")
-        """
         self._pf = pf
         self.bcdir = bcdir
         

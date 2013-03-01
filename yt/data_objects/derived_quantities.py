@@ -204,6 +204,29 @@ def _combWeightedAverageQuantity(data, field, weight):
 add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
 
+def _WeightedVariance(data, field, weight):
+    """
+    This function returns the variance of a field.
+
+    :param field: The target field
+    :param weight: The field to weight by
+
+    Returns the weighted variance and the weighted mean.
+    """
+    my_weight = data[weight].sum()
+    if my_weight == 0:
+        return 0.0, 0.0, 0.0
+    my_mean = (data[field] * data[weight]).sum() / my_weight
+    my_var2 = (data[weight] * (data[field] - my_mean)**2).sum() / my_weight
+    return my_weight, my_mean, my_var2
+def _combWeightedVariance(data, my_weight, my_mean, my_var2):
+    all_weight = my_weight.sum()
+    all_mean = (my_weight * my_mean).sum() / all_weight
+    return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
+                    all_weight), all_mean]
+add_quantity("WeightedVariance", function=_WeightedVariance,
+             combine_function=_combWeightedVariance, n_ret=3)
+
 def _BulkVelocity(data):
     """
     This function returns the mass-weighted average velocity in the object.
@@ -366,7 +389,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     # in code.
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
     # Check for periodicity of the clump.
-    two_root = 2. / np.array(data.pf.domain_dimensions)
+    two_root = 2. * np.array(data.pf.domain_width) / np.array(data.pf.domain_dimensions)
     domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
     periodic = np.array([0., 0., 0.])
     for i,dim in enumerate(["x", "y", "z"]):
@@ -409,7 +432,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # Calculate the binding energy using the treecode method.
         # Faster but less accurate.
         # The octree doesn't like uneven root grids, so we will make it cubical.
-        root_dx = 1./np.array(data.pf.domain_dimensions).astype('float64')
+        root_dx = (data.pf.domain_width/np.array(data.pf.domain_dimensions)).astype('float64')
         left = min([np.amin(local_data['x']), np.amin(local_data['y']),
             np.amin(local_data['z'])])
         right = max([np.amax(local_data['x']), np.amax(local_data['y']),
@@ -420,8 +443,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # edges for making indexes.
         cover_min = cover_min - cover_min % root_dx
         cover_max = cover_max - cover_max % root_dx
-        cover_imin = (cover_min * np.array(data.pf.domain_dimensions)).astype('int64')
-        cover_imax = (cover_max * np.array(data.pf.domain_dimensions) + 1).astype('int64')
+        cover_imin = (cover_min / root_dx).astype('int64')
+        cover_imax = (cover_max / root_dx + 1).astype('int64')
         cover_ActiveDimensions = cover_imax - cover_imin
         # Create the octree with these dimensions.
         # One value (mass) with incremental=True.
@@ -433,7 +456,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         dyes = np.unique(data['dy']) # so these will all have the same
         dzes = np.unique(data['dz']) # order.
         # We only need one dim to figure out levels, we'll use x.
-        dx = 1./data.pf.domain_dimensions[0]
+        dx = data.pf.domain_width[0]/data.pf.domain_dimensions[0]
         levels = (np.log(dx / dxes) / np.log(data.pf.refine_by)).astype('int')
         lsort = levels.argsort()
         levels = levels[lsort]

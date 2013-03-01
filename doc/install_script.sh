@@ -7,10 +7,8 @@
 # There are a few options, but you only need to set *one* of them.  And
 # that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
 # installation you can set HDF5_DIR, or if you want to use some other
-# subversion checkout of YT, you can set YT_DIR, too.  (It'll already
+# subversion checkout of yt, you can set YT_DIR, too.  (It'll already
 # check the current directory and one up.
-#
-# NOTE: If you have trouble with wxPython, set INST_WXPYTHON=0 .
 #
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
@@ -19,11 +17,16 @@ DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
 
+if [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+then
+    DEST_DIR=${YT_DEST}
+fi
+
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
 #HDF5_DIR=
 
-# If you need to supply arguments to the NumPy build, supply them here
+# If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
 #NUMPY_ARGS="--fcompiler=gnu95"
 # If you absolutely can't get the fortran to work, try this:
@@ -44,8 +47,9 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
+INST_SCIPY=0    # Install scipy?
 
-# If you've got YT some other place, set this to point to it.
+# If you've got yt some other place, set this to point to it.
 YT_DIR=""
 
 # If you need to pass anything to matplotlib, do so here.
@@ -155,18 +159,6 @@ function host_specific
         echo "   $ module swap PE-pgi PE-gnu"
         echo
     fi
-    if [ "${MYHOSTLONG%%ranger}" != "${MYHOSTLONG}" ]
-    then
-        echo "Looks like you're on Ranger."
-        echo
-        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
-        echo "These commands should take care of that for you:"
-        echo
-        echo "   $ module unload mvapich2"
-        echo "   $ module swap pgi gcc"
-        echo "   $ module load mvapich2"
-        echo
-    fi
     if [ "${MYHOST##steele}" != "${MYHOST}" ]
     then
         echo "Looks like you're on Steele."
@@ -184,30 +176,80 @@ function host_specific
         echo
         echo "NOTE: you must have the Xcode command line tools installed."
         echo
-        echo "OS X 10.5: download Xcode 3.0 from the mac developer tools"
-        echo "website"
+	echo "The instructions for obtaining these tools varies according"
+	echo "to your exact OS version.  On older versions of OS X, you"
+	echo "must register for an account on the apple developer tools"
+	echo "website: https://developer.apple.com/downloads to obtain the"
+	echo "download link."
+	echo 
+	echo "We have gathered some additional instructions for each"
+	echo "version of OS X below. If you have trouble installing yt"
+	echo "after following these instructions, don't hesitate to contact"
+	echo "the yt user's e-mail list."
+	echo
+	echo "You can see which version of OSX you are running by clicking"
+	echo "'About This Mac' in the apple menu on the left hand side of"
+	echo "menu bar.  We're assuming that you've installed all operating"
+	echo "system updates; if you have an older version, we suggest"
+	echo "running software update and installing all available updates."
+	echo 
+        echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the" 
+	echo "Apple developer tools website."
         echo
-        echo "OS X 10.6: download Xcode 3.2 from the mac developer tools"
-        echo "website"
+        echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
+	echo "developer tools website.  You can either download the"
+	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+	echo "Software Update to update to XCode 3.2.6 or" 
+	echo "alternatively, you can download the Xcode 3.2.6/iOS SDK" 
+	echo "bundle (4.1 GB)."
         echo
-        echo "OS X 10.7: download Xcode 4.0 from the mac app store or"
-        echo "alternatively download the Xcode command line tools from"
-        echo "the mac developer tools website"
+        echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
+	echo "(search for Xcode)."
+        echo "Alternatively, download the Xcode command line tools from"
+        echo "the Apple developer tools website."
         echo
-        echo "NOTE: You may have problems if you are running OSX 10.6 (Snow"
-        echo "Leopard) or newer.  If you do, please set the following"
-        echo "environment variables, remove any broken installation tree, and"
-        echo "re-run this script verbatim."
+	echo "OS X 10.8.2: download Xcode 4.6 from the mac app store."
+	echo "(search for Xcode)."
+	echo "Additionally, you will have to manually install the Xcode"
+	echo "command line tools, see:" 
+	echo "http://stackoverflow.com/questions/9353444"
+	echo "Alternatively, download the Xcode command line tools from"
+	echo "the Apple developer tools website."
+	echo
+        echo "NOTE: It's possible that the installation will fail, if so," 
+	echo "please set the following environment variables, remove any" 
+	echo "broken installation tree, and re-run this script verbatim."
         echo
         echo "$ export CC=gcc-4.2"
         echo "$ export CXX=g++-4.2"
-        echo
+	echo
         OSX_VERSION=`sw_vers -productVersion`
         if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
             MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
         fi
+    fi
+    if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
+    then
+        echo "Looks like you're on an OpenSUSE-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * devel_C_C++"
+        echo "  * libopenssl-devel"
+        echo "  * libuuid-devel"
+        echo "  * zip"
+        echo "  * gcc-c++"
+        echo
+        echo "You can accomplish this by executing:"
+        echo
+        echo "$ sudo zypper install -t pattern devel_C_C++"
+        echo "$ sudo zypper install gcc-c++ libopenssl-devel libuuid-devel zip"
+        echo
+        echo "I am also setting special configure arguments to Python to"
+        echo "specify control lib/lib64 issues."
+        PYCONF_ARGS="--libdir=${DEST_DIR}/lib"
     fi
     if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
     then
@@ -240,6 +282,20 @@ function host_specific
         echo " to avoid conflicts with other command-line programs "
         echo " (like eog and evince, for example)."
     fi
+    if [ $INST_SCIPY -eq 1 ]
+    then
+	echo
+	echo "Looks like you've requested that the install script build SciPy."
+	echo
+	echo "If the SciPy build fails, please uncomment one of the the lines"
+	echo "at the top of the install script that sets NUMPY_ARGS, delete"
+	echo "any broken installation tree, and re-run the install script"
+	echo "verbatim."
+	echo
+	echo "If that doesn't work, don't hesitate to ask for help on the yt"
+	echo "user's mailing list."
+	echo
+    fi
     if [ ! -z "${CFLAGS}" ]
     then
         echo "******************************************"
@@ -258,9 +314,9 @@ echo
 echo
 echo "========================================================================"
 echo
-echo "Hi there!  This is the YT installation script.  We're going to download"
+echo "Hi there!  This is the yt installation script.  We're going to download"
 echo "some stuff and install it to create a self-contained, isolated"
-echo "environment for YT to run within."
+echo "environment for yt to run within."
 echo
 echo "Inside the installation script you can set a few variables.  Here's what"
 echo "they're currently set to -- you can hit Ctrl-C and edit the values in "
@@ -297,6 +353,10 @@ echo "be checking out Enzo"
 printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
 echo "be installing PyX"
+
+printf "%-15s = %s so I " "INST_SCIPY" "${INST_SCIPY}"
+get_willwont ${INST_SCIPY}
+echo "be installing scipy"
 
 printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
 get_willwont ${INST_0MQ}
@@ -437,7 +497,7 @@ echo 'b3290c498191684781ca5286ab454eb1bd045e8d894f5b86fb86beb88f174e22ac3ab008fb
 echo 'c68a425bacaa7441037910b9166f25b89e1387776a7749a5350793f89b1690350df5f018060c31d03686e7c3ed2aa848bd2b945c96350dc3b6322e087934783a  hdf5-1.8.9.tar.gz' > hdf5-1.8.9.tar.gz.sha512
 echo 'dbefad00fa34f4f21dca0f1e92e95bd55f1f4478fa0095dcf015b4d06f0c823ff11755cd777e507efaf1c9098b74af18f613ec9000e5c3a5cc1c7554fb5aefb8  libpng-1.5.12.tar.gz' > libpng-1.5.12.tar.gz.sha512
 echo '5b1a0fb52dcb21ca5f0ab71c8a49550e1e8cf633552ec6598dc43f0b32c03422bf5af65b30118c163231ecdddfd40846909336f16da318959106076e80a3fad0  matplotlib-1.2.0.tar.gz' > matplotlib-1.2.0.tar.gz.sha512
-echo '52d1127de2208aaae693d16fef10ffc9b8663081bece83b7597d65706e9568af3b9e56bd211878774e1ebed92e21365ee9c49602a0ff5e48f89f12244d79c161  mercurial-2.4.tar.gz' > mercurial-2.4.tar.gz.sha512
+echo '91693ca5f34934956a7c2c98bb69a5648b2a5660afd2ecf4a05035c5420450d42c194eeef0606d7683e267e4eaaaab414df23f30b34c88219bdd5c1a0f1f66ed  mercurial-2.5.1.tar.gz' > mercurial-2.5.1.tar.gz.sha512
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
 echo '5ad681f99e75849a5ca6f439c7a19bb51abc73d121b50f4f8e4c0da42891950f30407f761a53f0fe51b370b1dbd4c4f5a480557cb2444c8c7c7d5412b328a474  sqlite-autoconf-3070500.tar.gz' > sqlite-autoconf-3070500.tar.gz.sha512
 echo 'edae735960279d92acf58e1f4095c6392a7c2059b8f1d2c46648fc608a0fb06b392db2d073f4973f5762c034ea66596e769b95b3d26ad963a086b9b2d09825f2  zlib-1.2.3.tar.bz2' > zlib-1.2.3.tar.bz2.sha512
@@ -450,6 +510,9 @@ echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065
 echo '73de2c99406a38f85273931597525cec4ebef55b93712adca3b0bfea8ca3fc99446e5d6495817e9ad55cf4d48feb7fb49734675c4cc8938db8d4a5225d30eca7  python-hglib-0.2.tar.gz' > python-hglib-0.2.tar.gz.sha512
 echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
 echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
+echo 'd4fdd62f2db5285cd133649bd1bfa5175cb9da8304323abd74e0ef1207d55e6152f0f944da1da75f73e9dafb0f3bb14efba3c0526c732c348a653e0bd223ccfa  scipy-0.11.0.tar.gz' > scipy-0.11.0.tar.gz.sha512
+echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
+echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.3.tar.bz2 
@@ -461,10 +524,13 @@ echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a
 [ $INST_0MQ -eq 1 ] && get_ytproject zeromq-2.2.0.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject pyzmq-2.1.11.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject tornado-2.2.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject scipy-0.11.0.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject lapack-3.4.2.tar.gz
 get_ytproject Python-2.7.3.tgz
 get_ytproject numpy-1.6.1.tar.gz
 get_ytproject matplotlib-1.2.0.tar.gz
-get_ytproject mercurial-2.4.tar.gz
+get_ytproject mercurial-2.5.1.tar.gz
 get_ytproject ipython-0.13.1.tar.gz
 get_ytproject h5py-2.1.0.tar.gz
 get_ytproject Cython-0.17.1.tar.gz
@@ -591,10 +657,10 @@ fi
 
 if [ ! -e Python-2.7.3/done ]
 then
-    echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
+    echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
     [ ! -e Python-2.7.3 ] && tar xfz Python-2.7.3.tgz
     cd Python-2.7.3
-    ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -609,7 +675,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-2.4
+    do_setup_py mercurial-2.5.1
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -656,7 +722,40 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
+if [ $INST_SCIPY -eq 0 ]
+then
+    do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
+else
+    if [ ! -e scipy-0.11.0/done ]
+    then
+	if [ ! -e BLAS/done ]
+	then
+	    tar xfz blas.tar.gz
+	    echo "Building BLAS"
+	    cd BLAS
+	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
+	    ar r libfblas.a *.o 1>> ${LOG_FILE}
+	    ranlib libfblas.a 1>> ${LOG_FILE}
+	    rm -rf *.o
+	    touch done
+	    cd ..
+	fi
+	if [ ! -e lapack-3.4.2/done ]
+	then
+	    tar xfz lapack-3.4.2.tar.gz
+	    echo "Building LAPACK"
+	    cd lapack-3.4.2/
+	    cp INSTALL/make.inc.gfortran make.inc
+	    make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
+	    touch done
+	    cd ..
+	fi
+    fi
+    export BLAS=$PWD/BLAS/libfblas.a
+    export LAPACK=$PWD/lapack-3.4.2/liblapack.a    
+    do_setup_py numpy-1.6.1 ${NUMPY_ARGS}
+    do_setup_py scipy-0.11.0 ${NUMPY_ARGS}
+fi
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -846,3 +945,6 @@ function print_afterword
 
 print_afterword
 print_afterword >> ${LOG_FILE}
+
+echo "yt dependencies were last updated on" > ${DEST_DIR}/.yt_update
+date >> ${DEST_DIR}/.yt_update

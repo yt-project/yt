@@ -354,6 +354,7 @@ class RAMSESStaticOutput(StaticOutput):
         # distinguish them.
         mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
         self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
