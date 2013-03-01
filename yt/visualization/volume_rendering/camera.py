@@ -232,16 +232,22 @@ class Camera(ParallelAnalysisInterface):
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
         self.tree_type = tree_type
+        if le is None: le = self.pf.domain_left_edge
+        self.le = np.array(le)
+        if re is None: re = self.pf.domain_right_edge
+        self.re = np.array(re)
         if volume is None:
             if self.use_kd:
                 volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost,
-                                   log_fields = log_fields, le=le, re=re)
+                                   log_fields = log_fields, le=self.le, re=self.re)
             else:
                 volume = HomogenizedVolume(fields, pf = self.pf,
                                            log_fields = log_fields)
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume        
+        self.center = (self.re + self.le) / 2.0
+        self.region = self.pf.h.region(self.center, self.le, self.re)
 
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
@@ -300,8 +306,8 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        corners = self.pf.h.grid_corners
-        levels = self.pf.h.grid_levels[:,0]
+        corners = self.region.grid_corners
+        levels = self.region.grid_levels[:,0]
 
         if max_level is not None:
             subset = levels <= max_level

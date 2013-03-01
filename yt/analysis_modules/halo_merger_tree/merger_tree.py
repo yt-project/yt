@@ -758,17 +758,19 @@ class MergerTreeConnect(DatabaseFunctions):
     
     def query(self, string):
         r"""Performs a query of the database and returns the results as a list
-        of tuple(s), even if the result is singular.
+        of tuples, even if the result is singular.
         
         Parameters
         ----------
-        string : String
+        
+        string : str
             The SQL query of the database.
         
         Examples
-        -------
+        --------
+
         >>> results = mtc.query("SELECT GlobalHaloID from Halos where SnapHaloID = 0 and \
-        ... SnapZ = 0;")
+        ...    SnapZ = 0;")
         """
         # Query the database and return a list of tuples.
         if string is None:

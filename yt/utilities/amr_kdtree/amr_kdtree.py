@@ -29,7 +29,7 @@ import h5py
 from amr_kdtools import Node, Split, kd_is_leaf, kd_sum_volume, kd_node_check, \
         depth_traverse, viewpoint_traverse, add_grids, \
         receive_and_reduce, send_to_parent, scatter_image, find_node, \
-        depth_first_touch
+        depth_first_touch, add_grid
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
 from yt.utilities.lib.grid_traversal import PartitionedGrid
@@ -78,18 +78,27 @@ class Tree(object):
         lvl_range = range(self.min_level, self.max_level+1)
         if grids is None:
             level_iter = self.pf.hierarchy.get_levels()
+            grids_added = 0
             while True:
                 try:
                     grids = level_iter.next()
                 except:
                     break
-                if grids[0].Level not in lvl_range: continue
-                gmask = np.array([g in self.grids for g in grids])
-                gles =  np.array([g.LeftEdge for g in grids])[gmask]
-                gres =  np.array([g.RightEdge for g in grids])[gmask]
-                gids = np.array([g.id for g in grids])[gmask]
-                add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
-                del gles, gres, gids, grids
+                if grids[0].Level not in lvl_range:
+                    continue
+                if grids_added < self.comm_size:
+                    gmask = np.array([g in self.grids for g in grids])
+                    gles = np.array([g.LeftEdge for g in grids])[gmask]
+                    gres = np.array([g.RightEdge for g in grids])[gmask]
+                    gids = np.array([g.id for g in grids])[gmask]
+                    add_grids(self.trunk, gles, gres, gids, self.comm_rank,
+                              self.comm_size)
+                    grids_added += grids.size
+                    del gles, gres, gids, grids
+                else:
+                    grids_added += grids.size
+                    [add_grid(self.trunk, g.LeftEdge, g.RightEdge, g.id,
+                              self.comm_rank, self.comm_size) for g in grids]
         else:
             gles = np.array([g.LeftEdge for g in grids])
             gres = np.array([g.RightEdge for g in grids])
@@ -123,15 +132,16 @@ class Tree(object):
         mylog.debug('AMRKDTree volume = %e' % vol)
         kd_node_check(self.trunk)
 
-    def sum_cells(self):
+    def sum_cells(self, all_cells=False):
         cells = 0
         for node in depth_traverse(self):
             if node.grid is None:
                 continue
+            if not all_cells and not kd_is_leaf(node):
+                continue
             grid = self.pf.h.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            gre = grid.RightEdge
             li = np.rint((node.left_edge-gle)/dds).astype('int32')
             ri = np.rint((node.right_edge-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
