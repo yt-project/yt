@@ -41,11 +41,11 @@ fluid_fields = [
 ]
 
 particle_fields= [
-#    'particle_age',
+    'particle_age',
     'particle_index',
     'particle_mass',
     'particle_mass_initial',
-    'particle_creation_time',
+    'creation_time',
     'particle_metallicity1',
     'particle_metallicity2',
     'particle_metallicity',
@@ -54,17 +54,21 @@ particle_fields= [
     'particle_position_z',
     'particle_velocity_x',
     'particle_velocity_y',
-    'particle_velocity_z',
+    'particle_velocity_z'
 ]
 
 particle_star_fields = [
     'particle_age',
     'particle_mass',
     'particle_mass_initial',
-    'particle_creation_time',
+    'creation_time',
     'particle_metallicity1',
     'particle_metallicity2',
     'particle_metallicity',
+]
+
+codetime_fields = [
+    'creation_time'
 ]
 
 
@@ -87,8 +91,12 @@ yt_to_art = {
     'particle_velocity_x': 'VELOCITY_X',
     'particle_velocity_y': 'VELOCITY_Y',
     'particle_velocity_z': 'VELOCITY_Z',
-    'particle_mass': 'particle_species_mass',
-    'particle_index': 'particle_index'
+    'particle_mass': 'MASS',
+    'particle_index': 'particle_index',
+    'creation_time': 'BIRTH_TIME' ,
+    'particle_initial_mass': 'INITIAL_MASS', 
+    'particle_metallicity1': 'METALLICITY_SNIa',
+    'particle_metallicity2': 'METALLICITY_SNII'
 }
 
 class ARTIOconstants():

@@ -34,6 +34,7 @@ from _artio_caller import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
+from .definitions import codetime_fields
 #######
 
 ###############################
@@ -62,6 +63,8 @@ import yt.utilities.fortran_utils as fpu
 
 from yt.geometry.oct_container import \
     ARTIOOctreeContainer
+
+from io import b2t
 
 class ARTIODomainFile(object):
 
@@ -119,7 +122,19 @@ class ARTIODomainSubset(object):
         ncum_masked_level[0] = 0
         self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
         print 'cumulative masked level counts',self.ncum_masked_level
+
+        nsampleb2t=20
+        samplemax = -np.log10(10) #tl=-10
+        samplemin = -np.log10(0.0001) #tl=-0.0001)
+        print 'interpolating time grid accurate to <10% after 0.5Gyr for 20 n=',nsampleb2t
+        self.xb2t = np.linspace(-1,4,nsampleb2t) # must be increasing for interpolation
+        self.yb2t = b2t(-10**-self.xb2t,n=nsampleb2t)*1e9*24*3600
         
+    def interpb2t(self, x): 
+        xp = -np.log10(-x)
+        tr = np.interp(xp,self.xb2t, self.yb2t)
+        return tr 
+
     def icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.masked_cell_count,
@@ -186,6 +201,14 @@ class ARTIODomainSubset(object):
         masked_particles = {}
         assert ( art_fields != None )
 	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, art_fields )
+
+        #convert time variables from code units
+        for fieldtype, fieldname in fields :
+            if fieldname in codetime_fields : 
+                print 'convert time variables from code units'
+                masked_particles[yt_to_art[fieldname]] = \
+                    self.interpb2t(masked_particles[yt_to_art[fieldname]])
+                print 'convert time variables from code units'
 
 	# dhr - make sure these are shallow copies
         tr = {}
@@ -331,6 +354,13 @@ class ARTIOStaticOutput(StaticOutput):
         self.conversion_factors['particle_mass'] = self.parameters['unit_m']
         self.conversion_factors['particle_creation_time'] =  self.parameters['unit_t']
         self.conversion_factors['particle_mass_msun'] = self.parameters['unit_m']/constants.Msun
+
+        #for mult_halo_profiler.py:
+        self.parameters['TopGridDimensions'] = [128,128,128]
+        self.parameters['RefineBy'] = 2
+        self.parameters['DomainLeftEdge'] = [0,0,0]
+        self.parameters['DomainRightEdge'] =  [128,128,128]
+        self.parameters['TopGridRank'] = 3 #number of dimensions
        
     def _parse_parameter_file(self):
         # hard-coded -- not provided by headers 
@@ -364,6 +394,7 @@ class ARTIOStaticOutput(StaticOutput):
             self.current_redshift = 1.0/self._handle.parameters["abox"][0] - 1.0
 
             self.parameters["initial_redshift"] = 1.0/self._handle.parameters["auni_init"][0] - 1.0
+            self.parameters["CosmologyInitialRedshift"] =  self.parameters["initial_redshift"] #for sfr
         else :
             self.cosmological_simulation = False
  

@@ -31,6 +31,7 @@ from yt.funcs import *
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
+import sys
 
 YEAR = 3.155693e7 # sec / year
 LIGHT = 2.997925e10 # cm / s
@@ -96,8 +97,10 @@ class StarFormationRate(object):
             self._pf.current_redshift) # seconds
         # Build the distribution.
         self.build_dist()
+        sys.exit(1)
         # Attach some convenience arrays.
         self.attach_arrays()
+        print 'snl $################## sfr_spectrum#'
 
     def build_dist(self):
         """
@@ -111,6 +114,7 @@ class StarFormationRate(object):
         elif self.mode == 'provided':
             ct_stars = self.star_creation_time
             mass_stars = self.star_mass
+        print 'snl sfr_spectrum', ct_stars
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
@@ -155,6 +159,7 @@ class StarFormationRate(object):
         for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
             self.time.append(time * tc / YEAR)
             self.lookback_time.append((self.time_now - time * tc)/YEAR)
+            print 'snl timtime', time, tc
             self.redshift.append(self.cosm.ComputeRedshiftFromTime(time * tc))
             self.Msol_yr.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i] * tc / YEAR))

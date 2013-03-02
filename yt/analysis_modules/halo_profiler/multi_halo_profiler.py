@@ -522,6 +522,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 profiledHalo = self._get_halo_profile(halo, profile_filename,
                                                       virial_filter=virial_filter)
 
+                print 'made it here!!!!!!!!!!!!!!!!!!!!!!!!!!!', filter_result, len(self.profile_fields), profiledHalo
                 if profiledHalo is None:
                     continue
 
@@ -535,10 +536,14 @@ class HaloProfiler(ParallelAnalysisInterface):
                     if filterQuantities is not None:
                         haloQuantities.update(filterQuantities)
 
+            print 'made it here!!!!!!!!!!!!!!!!!!!!!!!!!!!', filter_result, len(self.profile_fields)
             if filter_result:
                 for quantity in self.filter_quantities:
                     if halo.has_key(quantity): haloQuantities[quantity] = halo[quantity]
+                    print quantity
 
+                print profile_filename
+                print 'made it here!!!!!!!!!!!!!!!!!!!!!!!!!!!'
                 only_on_root(self.filtered_halos.append, haloQuantities)
 
             # If we've gotten this far down, this halo is good and we want
@@ -574,20 +579,24 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Make profile if necessary.
         newProfile = profile is None
         if newProfile:
+            print 'here1!!!!!!!!!'
 
             r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
                 mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
 
+            print 'here2!!!!!!!!!'
             # get a sphere object to profile
             sphere = self._get_halo_sphere(halo)
             if sphere is None: return None
 
+            print 'here3!!!!!!!!!'
             try:
                 profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                                 r_min, halo['r_max'],
                                                 log_space=True, end_collect=True)
+
             except EmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
@@ -603,6 +612,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         if virial_filter:
             self._add_actual_overdensity(profile)
 
+        print 'here4!!!!!!!!!'
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
             if os.path.exists(filename): os.remove(filename)
@@ -633,6 +643,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         """
 
         sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+        if sphere._grids == None: 
+            sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+            return sphere
         if len(sphere._grids) == 0: return None
         new_sphere = False
 
@@ -760,6 +773,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             proj_level = self.pf.h.max_level
         else:
             proj_level = int(self.project_at_level)
+        print self.pf.parameters.keys() # ['DomainLeftEdge'][w]
         proj_dx = self.pf.units[self.projection_width_units] / \
             self.pf.parameters['TopGridDimensions'][0] / \
             (self.pf.parameters['RefineBy']**proj_level)
@@ -794,12 +808,13 @@ class HaloProfiler(ParallelAnalysisInterface):
                     (rightEdge[w] > self.pf.parameters['DomainRightEdge'][w])):
                     need_per = True
                     break
-
+                
+            need_per = False
             if need_per:
                 region = self.pf.h.periodic_region(halo['center'], leftEdge, rightEdge)
             else:
                 region = self.pf.h.region(halo['center'], leftEdge, rightEdge)
-
+            
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
             for w in axes:
@@ -813,8 +828,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                 for hp in self.projection_fields:
                     projections.append(self.pf.h.proj(hp['field'], w,
                                                       weight_field=hp['weight_field'],
-                                                      source=region, center=halo['center'],
-                                                      serialize=False))
+                                                      center=halo['center']))
+                                                      
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
@@ -1132,7 +1147,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         hop_results.write_out(hop_file)
 
         del hop_results
-        self.pf.h.clear_all_data()
+        print 'snl in multi_halo_profiler.py: no hierarchy method to clear oct data currently'  #snl cannot clear_all_data
+        #self.pf.h.clear_all_data()
 
     @parallel_root_only
     def _write_filtered_halo_list(self, filename, format="%s"):

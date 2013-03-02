@@ -243,12 +243,15 @@ add_field("ParticleMassMsun",
           function=ParticleMassMsun,
           units=r"\rm{M\odot}",particle_type=True)
 
-def _creation_time(field,data):
-    pa = data["particle_age"]
-    tr = np.zeros(pa.shape,dtype='float')-1.0
-    tr[pa>0] = pa[pa>0]
+add_artio_field("creation_time", function=NullFunc, particle_type=True)
+from io import b2t
+def _particle_age(field,data):
+    pa = data['creation_time']
+#    tr = np.zeros(pa.shape,dtype='float')-1.0
+#    tr[pa>0] = pa[pa>0]
+    tr = pa
     return tr
-add_field("creation_time",function=_creation_time,units=r"\rm{s}",particle_type=True)
+add_field("particle_age",function=_particle_age,units=r"\rm{s}",particle_type=True)
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')

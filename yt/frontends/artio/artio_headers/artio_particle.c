@@ -759,11 +759,10 @@ int artio_particle_read_particle(artio_fileset *handle, int64_t * pid, int *subs
 		double * primary_variables, float * secondary_variables) {
 	int ret;
 	artio_particle_file *phandle;
-
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
-
+        
 	if (handle->open_mode != ARTIO_FILESET_READ || 
 			!(handle->open_type & ARTIO_OPEN_PARTICLES) ||
 			handle->particle == NULL ) {

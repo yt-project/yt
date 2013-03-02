@@ -102,6 +102,7 @@ cdef check_artio_status(int status, char *fname="[unknown]"):
         print 'failure with status', status, 'in function',fname,'from caller', callername, nline 
         sys.exit(1)
 
+
 cdef class artio_fileset :
     cdef public object parameters 
     cdef ARTIOOctreeContainer oct_handler
@@ -372,27 +373,15 @@ cdef class artio_fileset :
         if len(accessed_species) != 1 : 
             print 'multiple particle species access needs serious thought'
             sys.exit(1)
-            
+ 
+        print 'fields in var_fill:', fields
         # setup the range for all reads:
         status = artio_particle_cache_sfc_range( self.particle_handle, 
                                                  self.sfc_min, self.sfc_max )
         check_artio_status(status)
 	
-        # mask ####################
-        # mask[spec][particle] fields are irrelevant for masking 
-        # -- masking only cares abount position
-        num_acc_species = len(accessed_species)
-        mask = <int**>malloc(sizeof(int*)*num_acc_species)
-        if not mask :
-            raise MemoryError
-        for aspec in range(num_acc_species) :
-             mask[aspec] = <int*>malloc(
-                 self.parameters['particle_species_num'][aspec] 
-                 * sizeof(int))
-             if not mask[aspec] :
-                 raise MemoryError
- 
         # particle species ##########        
+        num_acc_species = len(accessed_species)
         num_species = self.parameters['num_particle_species'][0]
         labels_species = self.parameters['particle_species_labels']
 
@@ -418,6 +407,21 @@ cdef class artio_fileset :
                     print iacctoispec[i]
                     print 'some accessed species indices point to the same ispec; exitting'
                     sys.exit(1)
+
+        # mask ####################
+        # mask[spec][particle] fields are irrelevant for masking 
+        # -- masking only cares abount position
+        mask = <int**>malloc(sizeof(int*)*num_acc_species)
+        if not mask :
+            raise MemoryError
+        for aspec in range(num_acc_species) :
+            ispec=iacctoispec[aspec]
+            mask[aspec] = <int*>malloc(
+                 self.parameters['particle_species_num'][ispec] 
+                 * sizeof(int))
+            if not mask[aspec] :
+                 raise MemoryError
+ 
             
         # particle field labels and order ##########        
         labels_primary={}
@@ -442,7 +446,7 @@ cdef class artio_fileset :
                 labels_secondary[ispec] = []
 
             if labels_species[ispec] == 'N-BODY' :
-                labels_static[ispec] = ["particle_species_mass"]
+                labels_static[ispec] = ["MASS"]
             else : 
                 labels_static[ispec] = [] 
             labels_static[ispec].append("particle_index") 
@@ -454,18 +458,21 @@ cdef class artio_fileset :
                 elif f in labels_secondary[ispec]:
                     howtoread[ispec,i]= 'secondary'
                     fieldtoindex[ispec][i] = labels_secondary[ispec].index(f)
+                        
                 elif f in labels_static[ispec]:
                     #each new N-BODY spec adds one to the static mass location
-                    if labels_species[ispec] == 'N-BODY' and f == 'particle_species_mass' :
+                    if labels_species[ispec] == 'N-BODY' and f == 'MASS' :
                         howtoread[ispec,i]= 'staticNBODY'
                         fieldtoindex[ispec][i] = countnbody
-                        countnbody += 1 #particle_mass happens once per N-BODY species
+                        countnbody += 1 #MASS happens once per N-BODY species
                         print 'count the nbody species',countnbody
                     else :
                         howtoread[ispec,i]= 'staticINDEX'
                 else : 
                     howtoread[ispec,i]= 'empty'
                     fieldtoindex[ispec][i] = 9999999
+                    
+                print 'ispec', ispec,'field',f, 'howtoread', howtoread[ispec,i] 
             #fix pos_index
             pos_index[ispec] = <int*>malloc(3*sizeof(int))
             pos_index[ispec][0] = labels_primary[ispec].index('POSITION_X')
@@ -505,24 +512,30 @@ cdef class artio_fileset :
                 status = artio_particle_read_species_begin(
                     self.particle_handle, ispec)
                 check_artio_status(status)
+#                if num_particles_per_species[ispec]  >0 :
+#                    print "masking root cell of np=",num_particles_per_species[ispec] 
+
                 for particle in range( num_particles_per_species[ispec] ) :
-                    # print 'snl in caller: aspec count_mask count',aspec,ispec, count_mask[aspec], ipspec[aspec]
+#                    print 'snl in caller: aspec count_mask count',aspec,ispec, count_mask[aspec], ipspec[aspec] #, sizeof(primary_variables[aspec]), sizeof(secondary_variables[aspec])
                     status = artio_particle_read_particle(
                         self.particle_handle,
                         pid, subspecies, primary_variables[aspec],
                         secondary_variables[aspec])
                     check_artio_status(status)
+#                    print 'snl in caller2: aspec count_mask count',aspec,ispec, count_mask[aspec], ipspec[aspec]
                     pos[0] = primary_variables[aspec][pos_index[aspec][0]]
                     pos[1] = primary_variables[aspec][pos_index[aspec][1]]
                     pos[2] = primary_variables[aspec][pos_index[aspec][2]]
                     mask[aspec][ipspec[aspec]] = selector.select_cell(pos, dds, eterm)
                     count_mask[aspec] += mask[aspec][count_mask[aspec]]
                     ipspec[aspec] += 1
+#                    print 'ipspec',ipspec[aspec], pos[1], pos[0], pos[2], \
+#                        secondary_variables[aspec][0]
                 status = artio_particle_read_species_end( self.particle_handle )
                 check_artio_status(status)
             status = artio_particle_read_root_cell_end( self.particle_handle )
             check_artio_status(status)
-        print 'finished masking'
+        print 'done masking'
 	##########################################################
 
         cdef np.float32_t **fpoint
@@ -545,24 +558,26 @@ cdef class artio_fileset :
                 status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
                     num_particles_per_species )
                 check_artio_status(status)	
-
+                
                 for aspec in range(num_acc_species) :
                     ispec = iacctoispec[aspec]
                     status = artio_particle_read_species_begin(self.particle_handle, ispec);
                     check_artio_status(status)
                     for particle in range( num_particles_per_species[ispec] ) :
-
+                        
                         status = artio_particle_read_particle(self.particle_handle,
                                         pid, subspecies, primary_variables[aspec],
                                         secondary_variables[aspec])
                         check_artio_status(status)
-
-                        ########## snl this is not right because of primary overflow
+                        
                         if mask[aspec][ipspec[aspec]] == 1 :
                              for i in range(nf):
+                                 
+                                 if not (howtoread[ispec,i] == 'empty') : 
+                                     assert(fieldtoindex[ispec][i]<100)
                                  if   howtoread[ispec,i] == 'primary' : 
                                      fpoint[i][ipall] = primary_variables[aspec][fieldtoindex[ispec][i]]
-                                 elif howtoread[ispec,i] == 'secondary' : 
+                                 elif howtoread[ispec,i] == 'secondary' :
                                      fpoint[i][ipall] = secondary_variables[aspec][fieldtoindex[ispec][i]]
                                  elif howtoread[ispec,i] == 'staticNBODY' : 
                                      fpoint[i][ipall] = self.parameters["particle_species_mass"][fieldtoindex[ispec][i]]
@@ -576,25 +591,25 @@ cdef class artio_fileset :
                                      sys.exit(1)
                                  # print 'reading into fpoint', ipall,fpoint[i][ipall], fields[i]
                              ipall += 1
-                        ########## snl this is not right because of primary overflow
                         ipspec[aspec] += 1
-
+                        
                     status = artio_particle_read_species_end( self.particle_handle )
                     check_artio_status(status)
-
+                    
                 status = artio_particle_read_root_cell_end( self.particle_handle )
                 check_artio_status(status)
+ 
 
         free(subspecies)
         free(pid)
-        free(mask)
-        free(pos_index)
         free(num_particles_per_species)
         free(iacctoispec)
+        free(mask)
+        free(fieldtoindex)
+        free(pos_index)
         free(primary_variables)
         free(secondary_variables)
         free(fpoint)
-        free(fieldtoindex)
 
         print 'done filling particle variables', ipall
 
