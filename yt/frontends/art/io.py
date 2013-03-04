@@ -111,6 +111,11 @@ class IOHandlerART(BaseIOHandler):
                 temp= read_star_field(file_stars,field=fname)
                 if fname == "particle_creation_time":
                     if self.interp_tb is None:
+                        self.tdum,self.adum = read_star_field(file_stars,
+                                                              field="tdum")
+                        tdiff = b2t(tdum)-pf.current_time/(3.15569e7*1e9)
+                        #timestamp of file should match amr timestamp
+                        assert np.abs(tdiff) < 1e-4
                         self.interp_tb,self.interp_ages = b2t(temp)
                     temp = np.interp(temp,self.interp_tb,self.interp_ages)
                     temp *= 1.0e9*365*24*3600
