@@ -37,6 +37,7 @@ from yt.frontends.art.definitions import *
 
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
+    interp_tb = None
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -108,6 +109,11 @@ class IOHandlerART(BaseIOHandler):
                 #all other fields are read in and changed once
                 if starb-stara==0: continue
                 temp= read_star_field(file_stars,field=fname)
+                if fname == "particle_creation_time":
+                    if self.interp_tb is None:
+                        self.interp_tb,self.interp_ages = b2t(temp)
+                    temp = np.interp(temp,self.interp_tb,self.interp_ages)
+                    temp *= 1.0e9*365*24*3600
                 data = np.zeros(npa,dtype="float64")
                 data[stara:starb] = temp
                 del temp
@@ -433,9 +439,7 @@ def b2t(tb,n = 1e2,logger=None,**kwargs):
         ages += a2t(b2a(tbi)),
         if logger: logger(i)
     ages = np.array(ages)
-    fb2t = np.interp(tb,tbs,ages)
-    #fb2t = interp1d(tbs,ages)
-    return fb2t
+    return tbs,ages
 
 def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
     #stars are formed in lumps; spread out the ages linearly

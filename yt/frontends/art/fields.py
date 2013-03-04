@@ -243,3 +243,9 @@ ARTFieldInfo["Metal_Density"]._projected_units = r""
 
 
 #Particle fields
+
+def _particle_age(field,data):
+    tr = data["particle_creation_time"]
+    return data.pf.current_time - tr
+add_field("particle_age",function=_particle_age,units=r"\mathrm{s}",
+          take_log=True,particle_type=True)

@@ -58,7 +58,6 @@ particle_fields= [
     'particle_velocity_x',
     'particle_velocity_y',
     'particle_velocity_z',
-    'particle_age', #this and below are stellar only fields
     'particle_mass_initial',
     'particle_creation_time',
     'particle_metallicity1',
@@ -67,7 +66,6 @@ particle_fields= [
 ]
 
 particle_star_fields = [
-    'particle_age',
     'particle_mass',
     'particle_mass_initial',
     'particle_creation_time',
@@ -126,7 +124,7 @@ star_struct = [
 star_name_map = {
         'particle_mass':'mass',
         'particle_mass_initial':'imass',
-        'particle_age':'tbirth',
+        'particle_creation_time':'tbirth',
         'particle_metallicity1':'metallicity1',
         'particle_metallicity2':'metallicity2',
         'particle_metallicity':'metallicity',
