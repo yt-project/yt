@@ -113,7 +113,7 @@ class IOHandlerART(BaseIOHandler):
                     if self.interp_tb is None:
                         self.tdum,self.adum = read_star_field(file_stars,
                                                               field="tdum")
-                        tdiff = b2t(tdum)-pf.current_time/(3.15569e7*1e9)
+                        tdiff = b2t(self.tdum)-pf.current_time/(3.15569e7*1e9)
                         #timestamp of file should match amr timestamp
                         assert np.abs(tdiff) < 1e-4
                         self.interp_tb,self.interp_ages = b2t(temp)
