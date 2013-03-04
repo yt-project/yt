@@ -40,65 +40,65 @@ from collections import defaultdict
 sep = 12
 
 class TwoPointFunctions(ParallelAnalysisInterface):
+    r""" Initialize a two point functions object.
+    
+    Parameters
+    ----------
+    total_values : Integer
+        How many total (global) pair calculations to run for each of the
+        functions specified. Default: 1000000.
+    comm_size : Integer
+        How entries are sent during communication. Default: 10000.
+    length_type : String
+        Controls the even spacing of the rulers lengths in
+        logarithmic or linear space, set by "log" or "lin", respectively.
+        Default: "lin".
+    length_number : Integer
+        Sets how many lengths to create, evenly spaced by the above
+        parameter. Default: 10.
+    length_range : Float
+        A min/max pair for the range of values to search the over
+        the simulational volume. Default: [sqrt(3)dx, 1/2*shortest box edge],
+        where dx is the smallest grid cell size.
+    vol_ratio : Integer
+        How to multiply-assign subvolumes to the parallel
+        tasks. This number must be an integer factor of the total number of tasks or
+        very bad things will happen. The default value of 1 will assign one task
+        to each subvolume, and there will be an equal number of subvolumes as tasks.
+        A value of 2 will assign two tasks to each subvolume and there will be
+        one-half as many subvolumes as tasks.
+        A value equal to the number of parallel tasks will result in each task
+        owning a complete copy of all the fields data, meaning each task will be
+        operating on the identical full volume.
+        Setting it to -1 will automatically adjust it such that each task
+        owns the entire volume. Default = 1.
+    salt : Integer
+        A number that will be added to the random number generator
+        seed. Use this if a different random series of numbers is desired when
+        keeping everything else constant from this set: (MPI task count, 
+        number of ruler lengths, ruler min/max, number of functions,
+        number of point pairs per ruler length). Default = 0.
+    theta : Float
+        For random pairs of points, the second point is found by traversing
+        a distance along a ray set by the angle (phi, theta) from the first
+        point. To keep this angle constant, set ``theta`` to a value in the
+        range [0, pi]. Default = None, which will randomize theta for
+        every pair of points.
+    phi : Float
+        Similar to theta above, but the range of values is [0, 2*pi).
+        Default = None, which will randomize phi for every pair of points.
+    
+    Examples
+    --------
+    >>> tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity"],
+    ... total_values=1e5, comm_size=10000, 
+    ... length_number=10, length_range=[1./128, .5],
+    ... length_type="log")
+    """
     def __init__(self, pf, fields, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
             length_number=10, length_range=None, vol_ratio = 1,
             salt=0, theta=None, phi=None):
-        r""" Initialize a two point functions object.
-        
-        Parameters
-        ----------
-        total_values : Integer
-            How many total (global) pair calculations to run for each of the
-            functions specified. Default: 1000000.
-        comm_size : Integer
-            How entries are sent during communication. Default: 10000.
-        length_type : String
-            Controls the even spacing of the rulers lengths in
-            logarithmic or linear space, set by "log" or "lin", respectively.
-            Default: "lin".
-        length_number : Integer
-            Sets how many lengths to create, evenly spaced by the above
-            parameter. Default: 10.
-        length_range : Float
-            A min/max pair for the range of values to search the over
-            the simulational volume. Default: [sqrt(3)dx, 1/2*shortest box edge],
-            where dx is the smallest grid cell size.
-        vol_ratio : Integer
-            How to multiply-assign subvolumes to the parallel
-            tasks. This number must be an integer factor of the total number of tasks or
-            very bad things will happen. The default value of 1 will assign one task
-            to each subvolume, and there will be an equal number of subvolumes as tasks.
-            A value of 2 will assign two tasks to each subvolume and there will be
-            one-half as many subvolumes as tasks.
-            A value equal to the number of parallel tasks will result in each task
-            owning a complete copy of all the fields data, meaning each task will be
-            operating on the identical full volume.
-            Setting it to -1 will automatically adjust it such that each task
-            owns the entire volume. Default = 1.
-        salt : Integer
-            A number that will be added to the random number generator
-            seed. Use this if a different random series of numbers is desired when
-            keeping everything else constant from this set: (MPI task count, 
-            number of ruler lengths, ruler min/max, number of functions,
-            number of point pairs per ruler length). Default = 0.
-        theta : Float
-            For random pairs of points, the second point is found by traversing
-            a distance along a ray set by the angle (phi, theta) from the first
-            point. To keep this angle constant, set ``theta`` to a value in the
-            range [0, pi]. Default = None, which will randomize theta for
-            every pair of points.
-        phi : Float
-            Similar to theta above, but the range of values is [0, 2*pi).
-            Default = None, which will randomize phi for every pair of points.
-        
-        Examples
-        --------
-        >>> tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity"],
-        ... total_values=1e5, comm_size=10000, 
-        ... length_number=10, length_range=[1./128, .5],
-        ... length_type="log")
-        """
         ParallelAnalysisInterface.__init__(self)
         try:
             fKD

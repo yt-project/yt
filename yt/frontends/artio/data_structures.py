@@ -120,17 +120,17 @@ class ARTIODomainSubset(object):
         self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
         print 'cumulative masked level counts',self.ncum_masked_level
         
-    def icoords(self, dobj):
+    def select_icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.masked_cell_count,
                                         self.ncum_masked_level.copy())
 
-    def fcoords(self, dobj):
+    def select_fcoords(self, dobj):
         return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
                                         self.masked_cell_count,
                                         self.ncum_masked_level.copy())
 
-    def fwidth(self, dobj):
+    def select_fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
         # snl FIX: please don't hardcode this here 
 #        DRE = self.oct_handler.parameter_file.domain_right_edge 
@@ -147,7 +147,7 @@ class ARTIODomainSubset(object):
             widths[:,i] = base_dx[i] / dds
         return widths
 
-    def ires(self, dobj):
+    def select_ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
                                      self.masked_cell_count,
                                      self.ncum_masked_level.copy())

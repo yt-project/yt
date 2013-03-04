@@ -361,12 +361,14 @@ class ParticleTrajectoryCollection(object) :
         field individually
 
         Parameters
-        ---------
+        ----------
+
         filename : string
             The output filename for the HDF5 file
 
         Examples
         --------
+
         >>> from yt.mods import *
         >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
         >>> trajs.write_out_h5("orbit_trajectories")                

@@ -427,22 +427,22 @@ class ARTDomainSubset(object):
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
 
-    def icoords(self, dobj):
+    def select_icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.cell_count,
                                         self.level_counts.copy())
 
-    def fcoords(self, dobj):
+    def select_fcoords(self, dobj):
         return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
                                         self.cell_count,
                                         self.level_counts.copy())
 
-    def ires(self, dobj):
+    def select_ires(self, dobj):
         return self.oct_handler.ires(self.domain.domain_id, self.mask,
                                      self.cell_count,
                                      self.level_counts.copy())
 
-    def fwidth(self, dobj):
+    def select_fwidth(self, dobj):
         base_dx = 1.0/self.domain.pf.domain_dimensions
         widths = np.empty((self.cell_count, 3), dtype="float64")
         dds = (2**self.ires(dobj))

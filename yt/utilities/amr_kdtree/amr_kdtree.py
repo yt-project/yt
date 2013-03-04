@@ -35,12 +35,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface \
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
 
-import pdb
-
-def my_break():
-    my_debug = False 
-    if my_debug: pdb.set_trace()
-
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],
                   [-1,  1, -1], [-1,  1,  0], [-1,  1,  1],
@@ -75,13 +69,12 @@ class Tree(object):
         self.trunk = Node(None, None, None,
                 left, right, None, 1)
         if grids is None:
-            self.grids = pf.h.region((left+right)/2., left, right)._grids
+            source = pf.h.region((left+right)/2., left, right)
         else:
             self.grids = grids
-        self.build(grids)
+        self.build([g for g, mask in source.blocks])
 
     def add_grids(self, grids):
-        my_break() 
         lvl_range = range(self.min_level, self.max_level+1)
         if grids is None:
             level_iter = self.pf.hierarchy.get_levels()
@@ -95,7 +88,6 @@ class Tree(object):
                 gles =  np.array([g.LeftEdge for g in grids])[gmask]
                 gres =  np.array([g.RightEdge for g in grids])[gmask]
                 gids = np.array([g.id for g in grids])[gmask]
-                my_break()
                 add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
                 del gles, gres, gids, grids
         else:

@@ -191,13 +191,13 @@ class YTDataContainer(object):
         """
         Returns a single field.  Will add if necessary.
         """
-        if key not in self.field_data:
-            if key in self._container_fields:
-                self.field_data[key] = self._generate_container_field(key)
-                return self.field_data[key]
-            else:
-                self.get_data(key)
         f = self._determine_fields(key)[0]
+        if f not in self.field_data:
+            if f in self._container_fields:
+                self.field_data[f] = self._generate_container_field(f)
+                return self.field_data[f]
+            else:
+                self.get_data(f)
         return self.field_data[f]
 
     def __setitem__(self, key, val):
@@ -406,6 +406,14 @@ class YTDataContainer(object):
             explicit_fields.append((ftype, fname))
         return explicit_fields
 
+    @property
+    def blocks(self):
+        for io_chunk in self.chunks([], "io"):
+            for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
+                mask = self._current_chunk.objs[0].select(self.selector)
+                if mask is None: continue
+                yield self._current_chunk.objs[0], mask
+
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
@@ -552,16 +560,12 @@ class YTSelectionContainer1D(YTSelectionContainer):
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
-    """ 
-    Class to represent a set of :class:`YTDataContainer` that's 2-D in nature, and
-    thus does not have as many actions as the 3-D data types.
+    """
+    Prepares the YTSelectionContainer2D, normal to *axis*.  If *axis* is 4, we are not
+    aligned with any axis.
     """
     _spatial = False
     def __init__(self, axis, pf, field_parameters):
-        """
-        Prepares the YTSelectionContainer2D, normal to *axis*.  If *axis* is 4, we are not
-        aligned with any axis.
-        """
         ParallelAnalysisInterface.__init__(self)
         self.axis = axis
         super(YTSelectionContainer2D, self).__init__(
@@ -598,6 +602,10 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
         Parameters
         ----------
+        width : width specifier
+            This can either be a floating point value, in the native domain
+            units of the simulation, or a tuple of the (value, unit) style.
+            This will be the width of the FRB.
         height : height specifier
             This will be the physical height of the FRB, by default it is equal
             to width.  Note that this will not make any corrections to
@@ -605,8 +613,6 @@ class YTSelectionContainer2D(YTSelectionContainer):
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.  If iterable, this
             will be the width then the height.
-        height : height specifier
-            This will be the height of the FRB, by default it is equal to width.
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
@@ -654,19 +660,15 @@ class YTSelectionContainer2D(YTSelectionContainer):
         return frb
 
 class YTSelectionContainer3D(YTSelectionContainer):
+    """
+    Returns an instance of YTSelectionContainer3D, or prepares one.  Usually only
+    used as a base class.  Note that *center* is supplied, but only used
+    for fields and quantities that require it.
+    """
     _key_fields = ['x','y','z','dx','dy','dz']
-    """
-    Class describing a cluster of data points, not necessarily sharing any
-    particular attribute.
-    """
     _spatial = False
     _num_ghost_zones = 0
     def __init__(self, center, pf = None, field_parameters = None):
-        """
-        Returns an instance of YTSelectionContainer3D, or prepares one.  Usually only
-        used as a base class.  Note that *center* is supplied, but only used
-        for fields and quantities that require it.
-        """
         ParallelAnalysisInterface.__init__(self)
         super(YTSelectionContainer3D, self).__init__(pf, field_parameters)
         self._set_center(center)
@@ -974,38 +976,34 @@ def _reconstruct_object(*args, **kwargs):
 
 
 class YTSelectedIndicesBase(YTSelectionContainer3D):
-    """
-    ExtractedRegions are arbitrarily defined containers of data, useful
-    for things like selection along a baryon field.
+    """An arbitrarily defined data container that allows for selection
+    of all data meeting certain criteria.
+
+    In order to create an arbitrarily selected set of data, the
+    ExtractedRegion takes a `base_region` and a set of `indices`
+    and creates a region within the `base_region` consisting of
+    all data indexed by the `indices`. Note that `indices` must be
+    precomputed. This does not work well for parallelized
+    operations.
+
+    Parameters
+    ----------
+    base_region : yt data source
+        A previously selected data source.
+    indices : array_like
+        An array of indices
+
+    Other Parameters
+    ----------------
+    force_refresh : bool
+       Force a refresh of the data. Defaults to True.
+
+    Examples
+    --------
     """
     _type_name = "extracted_region"
     _con_args = ('_base_region', '_indices')
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
-        """An arbitrarily defined data container that allows for selection
-        of all data meeting certain criteria.
-
-        In order to create an arbitrarily selected set of data, the
-        ExtractedRegion takes a `base_region` and a set of `indices`
-        and creates a region within the `base_region` consisting of
-        all data indexed by the `indices`. Note that `indices` must be
-        precomputed. This does not work well for parallelized
-        operations.
-
-        Parameters
-        ----------
-        base_region : yt data source
-            A previously selected data source.
-        indices : array_like
-            An array of indices
-
-        Other Parameters
-        ----------------
-        force_refresh : bool
-           Force a refresh of the data. Defaults to True.
-
-        Examples
-        --------
-        """
         cen = kwargs.pop("center", None)
         if cen is None: cen = base_region.get_field_parameter("center")
         YTSelectionContainer3D.__init__(self, center=cen,
@@ -1145,34 +1143,30 @@ class YTValueCutExtractionBase(YTSelectionContainer3D):
 
 class YTBooleanRegionBase(YTSelectionContainer3D):
     """
-    A hybrid region built by boolean comparison between
-    existing regions.
+    This will build a hybrid region based on the boolean logic
+    of the regions.
+    
+    Parameters
+    ----------
+    regions : list
+        A list of region objects and strings describing the boolean logic
+        to use when building the hybrid region. The boolean logic can be
+        nested using parentheses.
+    
+    Examples
+    --------
+    >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
+        [0.6, 0.6, 0.6])
+    >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
+        [0.55, 0.55, 0.55])
+    >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
+    >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
+    >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
+        sp1, ")"])
     """
     _type_name = "boolean"
     _con_args = ("regions")
     def __init__(self, regions, fields = None, pf = None, **kwargs):
-        """
-        This will build a hybrid region based on the boolean logic
-        of the regions.
-
-        Parameters
-        ----------
-        regions : list
-            A list of region objects and strings describing the boolean logic
-            to use when building the hybrid region. The boolean logic can be
-            nested using parentheses.
-
-        Examples
-        --------
-        >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
-            [0.6, 0.6, 0.6])
-        >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
-            [0.55, 0.55, 0.55])
-        >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
-        >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
-        >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
-            sp1, ")"])
-        """
         # Center is meaningless, but we'll define it all the same.
         YTSelectionContainer3D.__init__(self, [0.5]*3, fields, pf, **kwargs)
         self.regions = regions
@@ -1183,7 +1177,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         self._get_all_regions()
         self._make_overlaps()
         self._get_list_of_grids()
-
+    
     def _get_all_regions(self):
         # Before anything, we simply find out which regions are involved in all
         # of this process, uniquely.
@@ -1193,7 +1187,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             # So cut_masks don't get messed up.
             item._boolean_touched = True
         self._all_regions = np.unique(self._all_regions)
-
+    
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
@@ -1227,7 +1221,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                     continue
             pbar.update(i)
         pbar.finish()
-
+    
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.pf)
@@ -1240,7 +1234,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
-
+    
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)
 
@@ -1251,8 +1245,8 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid, field=None):
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles,)) \
-             and grid.id in self._cut_masks:
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
+                and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.
         return self._get_level_mask(self.regions, grid)
@@ -1286,10 +1280,10 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                         break
                 level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
                     grid), grid.ActiveDimensions))
+                end += 1
             elif isinstance(item.data, AMRData):
                 level_masks.append(force_array(item.data._get_cut_mask(grid),
                     grid.ActiveDimensions))
-                end += 1
             else:
                 mylog.error("Item in the boolean construction unidentified.")
         # Now we do the logic on our level_mask.

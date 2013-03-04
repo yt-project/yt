@@ -142,18 +142,30 @@ class Halo(object):
         if self.CoM is not None:
             return self.CoM
         pm = self["ParticleMassMsun"]
-        cx = self["particle_position_x"]
-        cy = self["particle_position_y"]
-        cz = self["particle_position_z"]
-        if isinstance(self, FOFHalo):
-            c_vec = np.array([cx[0], cy[0], cz[0]]) - self.pf.domain_center
-        else:
-            c_vec = self.maximum_density_location() - self.pf.domain_center
-        cx = (cx - c_vec[0])
-        cy = (cy - c_vec[1])
-        cz = (cz - c_vec[2])
-        com = np.array([v - np.floor(v) for v in [cx, cy, cz]])
-        return (com * pm).sum(axis=1) / pm.sum() + c_vec
+        c = {}
+        c[0] = self["particle_position_x"]
+        c[1] = self["particle_position_y"]
+        c[2] = self["particle_position_z"]
+        c_vec = np.zeros(3)
+        com = []
+        for i in range(3):
+            # A halo is likely periodic around a boundary if the distance 
+            # between the max and min particle
+            # positions are larger than half the box. 
+            # So skip the rest if the converse is true.
+            # Note we might make a change here when periodicity-handling is
+            # fully implemented.
+            if (c[i].max() - c[i].min()) < (self.pf.domain_width[i] / 2.):
+                com.append(c[i])
+                continue
+            # Now we want to flip around only those close to the left boundary.
+            d_left = c[i] - self.pf.domain_left_edge[i]
+            sel = (d_left <= (self.pf.domain_width[i]/2))
+            c[i][sel] += self.pf.domain_width[i]
+            com.append(c[i])
+        com = np.array(com)
+        c = (com * pm).sum(axis=1) / pm.sum()
+        return c%self.pf.domain_width
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to
@@ -809,7 +821,6 @@ class LoadedHalo(Halo):
     _radjust = 1.05
 
     def __init__(self, pf, id, size=None, CoM=None,
-
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
         e1_vec=None, tilt=None, supp=None):
@@ -843,6 +854,10 @@ class LoadedHalo(Halo):
             self.supp = {}
         else:
             self.supp = supp
+        self._saved_fields = {}
+        self._ds_sort = None
+        self._particle_mask = None
+
 
     def __getitem__(self, key):
         # This function will try to get particle data in one of three ways,
@@ -1059,6 +1074,7 @@ class HaloList(object):
         mylog.info("Parsing outputs")
         self._parse_output()
         mylog.debug("Finished. (%s)", len(self))
+        self.redshift = redshift
 
     def __obtain_particles(self):
         if self.dm_only:
@@ -1074,8 +1090,7 @@ class HaloList(object):
             else:
                 self.particle_fields[field] = \
                     self._data_source[field][ii].astype('float64')
-            print 'snl in halo_objects field',self._fields, 'had to remove delete field'
-            #del self._data_source[field]
+            del self._data_source[field]
         self._base_indices = np.arange(tot_part)[ii]
         gc.collect()
 
@@ -1243,6 +1258,7 @@ class HaloList(object):
         else:
             f = open(filename, "w")
         f.write("# HALOS FOUND WITH %s\n" % (self._name))
+        f.write("# REDSHIFT OF OUTPUT = %f\n" % (self.redshift))
 
         if not ellipsoid_data:
             f.write("\t".join(["# Group","Mass","# part","max dens"
@@ -1439,18 +1455,17 @@ class RockstarHaloList(HaloList):
         pass
 
 class HOPHaloList(HaloList):
-
+    """
+    Run hop on *data_source* with a given density *threshold*.  If
+    *dm_only* is set, only run it on the dark matter particles, otherwise
+    on all particles.  Returns an iterable collection of *HopGroup* items.
+    """
     _name = "HOP"
     _halo_class = HOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["ParticleMassMsun"]
 
     def __init__(self, data_source, threshold=160.0, dm_only=True):
-        """
-        Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
-        """
         self.threshold = threshold
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
@@ -1488,10 +1503,10 @@ class FOFHaloList(HaloList):
     _name = "FOF"
     _halo_class = FOFHalo
 
-    def __init__(self, data_source, link=0.2, dm_only=True):
+    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1):
         self.link = link
         mylog.info("Initializing FOF")
-        HaloList.__init__(self, data_source, dm_only)
+        HaloList.__init__(self, data_source, dm_only, redshift=redshift)
 
     def _run_finder(self):
         self.tags = \
@@ -1639,6 +1654,11 @@ class TextHaloList(HaloList):
 
 
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
+    """
+    Run hop on *data_source* with a given density *threshold*.  If
+    *dm_only* is set, only run it on the dark matter particles, otherwise
+    on all particles.  Returns an iterable collection of *HopGroup* items.
+    """
     _name = "parallelHOP"
     _halo_class = parallelHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
@@ -1647,11 +1667,6 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
         period, threshold=160.0, dm_only=True, rearrange=True, premerge=True,
         tree='F'):
-        """
-        Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
-        """
         ParallelAnalysisInterface.__init__(self)
         self.threshold = threshold
         self.num_neighbors = num_neighbors
@@ -1993,6 +2008,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
+        # if path denoted in filename, assure path exists
+        if len(filename.split('/')) > 1:
+            mkdir_rec('/'.join(filename.split('/')[:-1]))
+
         f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f, ellipsoid_data)
 
@@ -2012,6 +2031,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
+        # if path denoted in prefix, assure path exists
+        if len(prefix.split('/')) > 1:
+            mkdir_rec('/'.join(prefix.split('/')[:-1]))
+
         f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
@@ -2035,6 +2058,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
+        # if path denoted in prefix, assure path exists
+        if len(prefix.split('/')) > 1:
+            mkdir_rec('/'.join(prefix.split('/')[:-1]))
+
         fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -2068,94 +2095,98 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.dump("MyHalos")
         """
+        # if path denoted in basename, assure path exists
+        if len(basename.split('/')) > 1:
+            mkdir_rec('/'.join(basename.split('/')[:-1]))
+
         self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)
 
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
+    r"""Parallel HOP halo finder.
+
+    Halos are built by:
+    1. Calculating a density for each particle based on a smoothing kernel.
+    2. Recursively linking particles to other particles from lower density
+    particles to higher.
+    3. Geometrically proximate chains are identified and
+    4. merged into final halos following merging rules.
+
+    Lower thresholds generally produce more halos, and the largest halos
+    become larger. Also, halos become more filamentary and over-connected.
+
+    This is very similar to HOP, but it does not produce precisely the
+    same halos due to unavoidable numerical differences.
+
+    Skory et al. "Parallel HOP: A Scalable Halo Finder for Massive
+    Cosmological Data Sets." arXiv (2010) 1001.3411
+
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The parameter file on which halo finding will be conducted.
+    threshold : float
+        The density threshold used when building halos. Default = 160.0.
+    dm_only : bool
+        If True, only dark matter particles are used when building halos.
+        Default = False.
+    resize : bool
+        Turns load-balancing on or off. Default = True.
+    kdtree : string
+        Chooses which kD Tree to use. The Fortran one (kdtree = 'F') is
+        faster, but uses more memory. The Cython one (kdtree = 'C') is
+        slower but is more memory efficient.
+        Default = 'F'
+    rearrange : bool
+        Turns on faster nearest neighbor searches at the cost of increased
+        memory usage.
+        This option only applies when using the Fortran tree.
+        Default = True.
+    fancy_padding : bool
+        True calculates padding independently for each face of each
+        subvolume. Default = True.
+    safety : float
+        Due to variances in inter-particle spacing in the volume, the
+        padding may need to be increased above the raw calculation.
+        This number is multiplied to the calculated padding, and values
+        >1 increase the padding. Default = 1.5.
+    premerge : bool
+        True merges chains in two steps (rather than one with False), which
+        can speed up halo finding by 25% or more. However, True can result
+        in small (<<1%) variations in the final halo masses when compared
+        to False. Default = True.
+    sample : float
+        The fraction of the full dataset on which load-balancing is
+        performed. Default = 0.03.
+    total_mass : float
+        If HOP is run on the same dataset mulitple times, the total mass
+        of particles in Msun units in the full volume can be supplied here
+        to save time.
+        This must correspond to the particles being operated on, meaning
+        if stars are included in the halo finding, they must be included
+        in this mass as well, and visa-versa.
+        If halo finding on a subvolume, this still corresponds with the
+        mass in the entire volume.
+        Default = None, which means the total mass is automatically
+        calculated.
+    num_particles : integer
+        The total number of particles in the volume, in the same fashion
+        as `total_mass` is calculated. Specifying this turns off
+        fancy_padding.
+        Default = None, which means the number of particles is
+        automatically calculated.
+
+    Examples
+    -------
+    >>> pf = load("RedshiftOutput0000")
+    >>> halos = parallelHF(pf)
+    """
     def __init__(self, pf, subvolume=None, threshold=160, dm_only=True, \
         resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03, \
         total_mass=None, num_particles=None, tree='F'):
-        r"""Parallel HOP halo finder.
-
-        Halos are built by:
-        1. Calculating a density for each particle based on a smoothing kernel.
-        2. Recursively linking particles to other particles from lower density
-        particles to higher.
-        3. Geometrically proximate chains are identified and
-        4. merged into final halos following merging rules.
-
-        Lower thresholds generally produce more halos, and the largest halos
-        become larger. Also, halos become more filamentary and over-connected.
-
-        This is very similar to HOP, but it does not produce precisely the
-        same halos due to unavoidable numerical differences.
-
-        Skory et al. "Parallel HOP: A Scalable Halo Finder for Massive
-        Cosmological Data Sets." arXiv (2010) 1001.3411
-
-        Parameters
-        ----------
-        pf : `StaticOutput`
-            The parameter file on which halo finding will be conducted.
-        threshold : float
-            The density threshold used when building halos. Default = 160.0.
-        dm_only : bool
-            If True, only dark matter particles are used when building halos.
-            Default = False.
-        resize : bool
-            Turns load-balancing on or off. Default = True.
-        kdtree : string
-            Chooses which kD Tree to use. The Fortran one (kdtree = 'F') is
-            faster, but uses more memory. The Cython one (kdtree = 'C') is
-            slower but is more memory efficient.
-            Default = 'F'
-        rearrange : bool
-            Turns on faster nearest neighbor searches at the cost of increased
-            memory usage.
-            This option only applies when using the Fortran tree.
-            Default = True.
-        fancy_padding : bool
-            True calculates padding independently for each face of each
-            subvolume. Default = True.
-        safety : float
-            Due to variances in inter-particle spacing in the volume, the
-            padding may need to be increased above the raw calculation.
-            This number is multiplied to the calculated padding, and values
-            >1 increase the padding. Default = 1.5.
-        premerge : bool
-            True merges chains in two steps (rather than one with False), which
-            can speed up halo finding by 25% or more. However, True can result
-            in small (<<1%) variations in the final halo masses when compared
-            to False. Default = True.
-        sample : float
-            The fraction of the full dataset on which load-balancing is
-            performed. Default = 0.03.
-        total_mass : float
-            If HOP is run on the same dataset mulitple times, the total mass
-            of particles in Msun units in the full volume can be supplied here
-            to save time.
-            This must correspond to the particles being operated on, meaning
-            if stars are included in the halo finding, they must be included
-            in this mass as well, and visa-versa.
-            If halo finding on a subvolume, this still corresponds with the
-            mass in the entire volume.
-            Default = None, which means the total mass is automatically
-            calculated.
-        num_particles : integer
-            The total number of particles in the volume, in the same fashion
-            as `total_mass` is calculated. Specifying this turns off
-            fancy_padding.
-            Default = None, which means the number of particles is
-            automatically calculated.
-
-        Examples
-        -------
-        >>> pf = load("RedshiftOutput0000")
-        >>> halos = parallelHF(pf)
-        """
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
@@ -2402,58 +2433,58 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
+    r"""HOP halo finder.
+
+    Halos are built by:
+    1. Calculating a density for each particle based on a smoothing kernel.
+    2. Recursively linking particles to other particles from lower density
+    particles to higher.
+    3. Geometrically proximate chains are identified and
+    4. merged into final halos following merging rules.
+
+    Lower thresholds generally produce more halos, and the largest halos
+    become larger. Also, halos become more filamentary and over-connected.
+
+    Eisenstein and Hut. "HOP: A New Group-Finding Algorithm for N-Body
+    Simulations." ApJ (1998) vol. 498 pp. 137-142
+
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The parameter file on which halo finding will be conducted.
+    subvolume : `yt.data_objects.api.AMRData`, optional
+        A region over which HOP will be run, which can be used to run HOP
+        on a subvolume of the full volume. Default = None, which defaults
+        to the full volume automatically.
+    threshold : float
+        The density threshold used when building halos. Default = 160.0.
+    dm_only : bool
+        If True, only dark matter particles are used when building halos.
+        Default = False.
+    padding : float
+        When run in parallel, the finder needs to surround each subvolume
+        with duplicated particles for halo finidng to work. This number
+        must be no smaller than the radius of the largest halo in the box
+        in code units. Default = 0.02.
+    total_mass : float
+        If HOP is run on the same dataset mulitple times, the total mass
+        of particles in Msun units in the full volume can be supplied here
+        to save time.
+        This must correspond to the particles being operated on, meaning
+        if stars are included in the halo finding, they must be included
+        in this mass as well, and visa-versa.
+        If halo finding on a subvolume, this still corresponds with the
+        mass in the entire volume.
+        Default = None, which means the total mass is automatically
+        calculated.
+
+    Examples
+    --------
+    >>> pf = load("RedshiftOutput0000")
+    >>> halos = HaloFinder(pf)
+    """
     def __init__(self, pf, subvolume=None, threshold=160, dm_only=True,
             padding=0.02, total_mass=None):
-        r"""HOP halo finder.
-
-        Halos are built by:
-        1. Calculating a density for each particle based on a smoothing kernel.
-        2. Recursively linking particles to other particles from lower density
-        particles to higher.
-        3. Geometrically proximate chains are identified and
-        4. merged into final halos following merging rules.
-
-        Lower thresholds generally produce more halos, and the largest halos
-        become larger. Also, halos become more filamentary and over-connected.
-
-        Eisenstein and Hut. "HOP: A New Group-Finding Algorithm for N-Body
-        Simulations." ApJ (1998) vol. 498 pp. 137-142
-
-        Parameters
-        ----------
-        pf : `StaticOutput`
-            The parameter file on which halo finding will be conducted.
-        subvolume : `yt.data_objects.api.YTDataContainer`, optional
-            A region over which HOP will be run, which can be used to run HOP
-            on a subvolume of the full volume. Default = None, which defaults
-            to the full volume automatically.
-        threshold : float
-            The density threshold used when building halos. Default = 160.0.
-        dm_only : bool
-            If True, only dark matter particles are used when building halos.
-            Default = False.
-        padding : float
-            When run in parallel, the finder needs to surround each subvolume
-            with duplicated particles for halo finidng to work. This number
-            must be no smaller than the radius of the largest halo in the box
-            in code units. Default = 0.02.
-        total_mass : float
-            If HOP is run on the same dataset mulitple times, the total mass
-            of particles in Msun units in the full volume can be supplied here
-            to save time.
-            This must correspond to the particles being operated on, meaning
-            if stars are included in the halo finding, they must be included
-            in this mass as well, and visa-versa.
-            If halo finding on a subvolume, this still corresponds with the
-            mass in the entire volume.
-            Default = None, which means the total mass is automatically
-            calculated.
-
-        Examples
-        --------
-        >>> pf = load("RedshiftOutput0000")
-        >>> halos = HaloFinder(pf)
-        """
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
@@ -2507,53 +2538,54 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
 
 
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
+    r"""Friends-of-friends halo finder.
+
+    Halos are found by linking together all pairs of particles closer than
+    some distance from each other. Particles may have multiple links,
+    and halos are found by recursively linking together all such pairs.
+
+    Larger linking lengths produce more halos, and the largest halos
+    become larger. Also, halos become more filamentary and over-connected.
+
+    Davis et al. "The evolution of large-scale structure in a universe
+    dominated by cold dark matter." ApJ (1985) vol. 292 pp. 371-394
+
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The parameter file on which halo finding will be conducted.
+    subvolume : `yt.data_objects.api.AMRData`, optional
+        A region over which HOP will be run, which can be used to run HOP
+        on a subvolume of the full volume. Default = None, which defaults
+        to the full volume automatically.
+    link : float
+        If positive, the interparticle distance (compared to the overall
+        average) used to build the halos. If negative, this is taken to be
+        the *actual* linking length, and no other calculations will be
+        applied.  Default = 0.2.
+    dm_only : bool
+        If True, only dark matter particles are used when building halos.
+        Default = False.
+    padding : float
+        When run in parallel, the finder needs to surround each subvolume
+        with duplicated particles for halo finidng to work. This number
+        must be no smaller than the radius of the largest halo in the box
+        in code units. Default = 0.02.
+
+    Examples
+    --------
+    >>> pf = load("RedshiftOutput0000")
+    >>> halos = FOFHaloFinder(pf)
+    """
     def __init__(self, pf, subvolume=None, link=0.2, dm_only=True,
         padding=0.02):
-        r"""Friends-of-friends halo finder.
-
-        Halos are found by linking together all pairs of particles closer than
-        some distance from each other. Particles may have multiple links,
-        and halos are found by recursively linking together all such pairs.
-
-        Larger linking lengths produce more halos, and the largest halos
-        become larger. Also, halos become more filamentary and over-connected.
-
-        Davis et al. "The evolution of large-scale structure in a universe
-        dominated by cold dark matter." ApJ (1985) vol. 292 pp. 371-394
-
-        Parameters
-        ----------
-        pf : `StaticOutput`
-            The parameter file on which halo finding will be conducted.
-        subvolume : `yt.data_objects.api.YTDataContainer`, optional
-            A region over which HOP will be run, which can be used to run HOP
-            on a subvolume of the full volume. Default = None, which defaults
-            to the full volume automatically.
-        link : float
-            If positive, the interparticle distance (compared to the overall
-            average) used to build the halos. If negative, this is taken to be
-            the *actual* linking length, and no other calculations will be
-            applied.  Default = 0.2.
-        dm_only : bool
-            If True, only dark matter particles are used when building halos.
-            Default = False.
-        padding : float
-            When run in parallel, the finder needs to surround each subvolume
-            with duplicated particles for halo finidng to work. This number
-            must be no smaller than the radius of the largest halo in the box
-            in code units. Default = 0.02.
-
-        Examples
-        --------
-        >>> pf = load("RedshiftOutput0000")
-        >>> halos = FOFHaloFinder(pf)
-        """
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
         self.period = pf.domain_right_edge - pf.domain_left_edge
         self.pf = pf
         self.hierarchy = pf.h
+        self.redshift = pf.current_redshift
         self._data_source = pf.h.all_data()
         GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
             padding)
@@ -2588,7 +2620,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         #self._reposition_particles((LE, RE))
         # here is where the FOF halo finder is run
         mylog.info("Using a linking length of %0.3e", linking_length)
-        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only)
+        FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
+                             redshift=self.redshift)
         self._parse_halolist(1.)
         self._join_halolists()
 
@@ -2596,84 +2629,84 @@ HaloFinder = HOPHaloFinder
 
 
 class LoadHaloes(GenericHaloFinder, LoadedHaloList):
+    r"""Load the full halo data into memory.
+
+    This function takes the output of `GenericHaloFinder.dump` and
+    re-establishes the list of halos in memory. This enables the full set
+    of halo analysis features without running the halo finder again. To
+    be precise, the particle data for each halo is only read in when
+    necessary, so examining a single halo will not require as much memory
+    as is required for halo finding.
+
+    Parameters
+    ----------
+    basename : String
+        The base name of the files that will be read in. This should match
+        what was used when `GenericHaloFinder.dump` was called. Default =
+        "HopAnalysis".
+
+    Examples
+    --------
+    >>> pf = load("data0005")
+    >>> halos = LoadHaloes(pf, "HopAnalysis")
+    """
     def __init__(self, pf, basename):
-        r"""Load the full halo data into memory.
-
-        This function takes the output of `GenericHaloFinder.dump` and
-        re-establishes the list of halos in memory. This enables the full set
-        of halo analysis features without running the halo finder again. To
-        be precise, the particle data for each halo is only read in when
-        necessary, so examining a single halo will not require as much memory
-        as is required for halo finding.
-
-        Parameters
-        ----------
-        basename : String
-            The base name of the files that will be read in. This should match
-            what was used when `GenericHaloFinder.dump` was called. Default =
-            "HopAnalysis".
-
-        Examples
-        --------
-        >>> pf = load("data0005")
-        >>> halos = LoadHaloes(pf, "HopAnalysis")
-        """
         self.basename = basename
         LoadedHaloList.__init__(self, pf, self.basename)
 
 class LoadTextHaloes(GenericHaloFinder, TextHaloList):
+    r"""Load a text file of halos.
+    
+    Like LoadHaloes, but when all that is available is a plain
+    text file. This assumes the text file has the 3-positions of halos
+    along with a radius. The halo objects created are spheres.
+
+    Parameters
+    ----------
+    fname : String
+        The name of the text file to read in.
+    
+    columns : dict
+        A dict listing the column name : column number pairs for data
+        in the text file. It is zero-based (like Python).
+        An example is {'x':0, 'y':1, 'z':2, 'r':3, 'm':4}.
+        Any column name outside of ['x', 'y', 'z', 'r'] will be attached
+        to each halo object in the supplementary dict 'supp'. See
+        example.
+    
+    comment : String
+        If the first character of a line is equal to this, the line is
+        skipped. Default = "#".
+
+    Examples
+    --------
+    >>> pf = load("data0005")
+    >>> halos = LoadTextHaloes(pf, "list.txt",
+        {'x':0, 'y':1, 'z':2, 'r':3, 'm':4},
+        comment = ";")
+    >>> halos[0].supp['m']
+        3.28392048e14
+    """
     def __init__(self, pf, filename, columns, comment = "#"):
-        r"""Load a text file of halos.
-        
-        Like LoadHaloes, but when all that is available is a plain
-        text file. This assumes the text file has the 3-positions of halos
-        along with a radius. The halo objects created are spheres.
-
-        Parameters
-        ----------
-        fname : String
-            The name of the text file to read in.
-        
-        columns : dict
-            A dict listing the column name : column number pairs for data
-            in the text file. It is zero-based (like Python).
-            An example is {'x':0, 'y':1, 'z':2, 'r':3, 'm':4}.
-            Any column name outside of ['x', 'y', 'z', 'r'] will be attached
-            to each halo object in the supplementary dict 'supp'. See
-            example.
-        
-        comment : String
-            If the first character of a line is equal to this, the line is
-            skipped. Default = "#".
-
-        Examples
-        --------
-        >>> pf = load("data0005")
-        >>> halos = LoadTextHaloes(pf, "list.txt",
-            {'x':0, 'y':1, 'z':2, 'r':3, 'm':4},
-            comment = ";")
-        >>> halos[0].supp['m']
-            3.28392048e14
-        """
         TextHaloList.__init__(self, pf, filename, columns, comment)
 
 LoadTextHalos = LoadTextHaloes
 
 class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
+    r"""Load Rockstar halos off disk from Rockstar-output format.
+
+    Parameters
+    ----------
+    fname : String
+        The name of the Rockstar file to read in. Default = 
+        "rockstar_halos/out_0.list'.
+
+    Examples
+    --------
+    >>> pf = load("data0005")
+    >>> halos = LoadRockstarHalos(pf, "other_name.out")
+    """
     def __init__(self, pf, filename = None):
-        r"""Load Rockstar halos off disk from Rockstar-output format.
-
-        Parameters
-        ----------
-        fname : String
-            The name of the Rockstar file to read in. Default = 
-            "rockstar_halos/out_0.list'.
-
-        Examples
-        --------
-        >>> pf = load("data0005")
-        >>> halos = LoadRockstarHalos(pf, "other_name.out")
-        """
         if filename is None:
             filename = 'rockstar_halos/out_0.list'
         RockstarHaloList.__init__(self, pf, filename)
