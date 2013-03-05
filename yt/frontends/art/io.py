@@ -446,28 +446,3 @@ def b2t(tb,n = 1e2,logger=None,**kwargs):
     ages = np.array(ages)
     return tbs,ages
 
-def spread_ages(ages,logger=None,spread=1.0e7*365*24*3600):
-    #stars are formed in lumps; spread out the ages linearly
-    da= np.diff(ages)
-    assert np.all(da<=0)
-    #ages should always be decreasing, and ordered so
-    agesd = np.zeros(ages.shape)
-    idx, = np.where(da<0)
-    idx+=1 #mark the right edges
-    #spread this age evenly out to the next age
-    lidx=0
-    lage=0
-    for i in idx:
-        n = i-lidx #n stars affected
-        rage = ages[i]
-        lage = max(rage-spread,0.0)
-        agesd[lidx:i]=np.linspace(lage,rage,n)
-        lidx=i
-        #lage=rage
-        if logger: logger(i)
-    #we didn't get the last iter
-    n = agesd.shape[0]-lidx
-    rage = ages[-1]
-    lage = max(rage-spread,0.0)
-    agesd[lidx:]=np.linspace(lage,rage,n)
-    return agesd
