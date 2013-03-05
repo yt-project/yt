@@ -430,8 +430,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         After all the calls to `add_profile`, this will trigger the actual
         calculations and output the profiles to disk.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
 
         filename : str
             If set, a file will be written with all of the filtered halos

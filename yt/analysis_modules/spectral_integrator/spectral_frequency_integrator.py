@@ -60,9 +60,9 @@ class EmissivityIntegrator(object):
     
     Initialize an EmissivityIntegrator object.
 
-    Keyword Parameters
-    ------------------
-    filename: string
+    Parameters
+    ----------
+    filename: string, default None
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 
         emissivity tables for primordial elements and for metals at 
@@ -146,8 +146,8 @@ def add_xray_emissivity_field(e_min, e_max, filename=None,
     e_min: float
         the maximum energy in keV for the energy band.
 
-    Keyword Parameters
-    ------------------
+    Other Parameters
+    ----------------
     filename: string
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 
@@ -220,8 +220,8 @@ def add_xray_luminosity_field(e_min, e_max, filename=None,
     e_min: float
         the maximum energy in keV for the energy band.
 
-    Keyword Parameters
-    ------------------
+    Other Parameters
+    ----------------
     filename: string
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 
@@ -277,8 +277,8 @@ def add_xray_photon_emissivity_field(e_min, e_max, filename=None,
     e_min: float
         the maximum energy in keV for the energy band.
 
-    Keyword Parameters
-    ------------------
+    Other Parameters
+    ----------------
     filename: string
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 
