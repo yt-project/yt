@@ -108,7 +108,7 @@ class Camera(ParallelAnalysisInterface):
     use_kd: bool, optional
         Specifies whether or not to use a kd-Tree framework for
         the Homogenized Volume and ray-casting.  Default to True.
-    l_max: int, optional
+    max_level: int, optional
         Specifies the maximum level to be rendered.  Also
         specifies the maximum level used in the kd-Tree
         construction.  Defaults to None (all levels), and only
@@ -121,42 +121,6 @@ class Camera(ParallelAnalysisInterface):
         accuracy/smoothness in resulting image.  The effects are
         less notable when the transfer function is smooth and
         broad. Default: True
-    tree_type: string, optional
-        Specifies the type of kd-Tree to be constructed/cast.
-        There are three options, the default being 'domain'. Only
-        affects parallel rendering.  'domain' is suggested.
-
-        'domain' - Tree construction/casting is load balanced by
-        splitting up the domain into the first N subtrees among N
-        processors (N must be a power of 2).  Casting then
-        proceeds with each processor rendering their subvolume,
-        and final image is composited on the root processor.  The
-        kd-Tree is never combined, reducing communication and
-        memory overhead. The viewpoint can be changed without
-        communication or re-partitioning of the data, making it
-        ideal for rotations/spins.
-
-        'breadth' - kd-Tree is first constructed as in 'domain',
-        but then combined among all the subtrees.  Rendering is
-        then split among N processors (again a power of 2), based
-        on the N most expensive branches of the tree.  As in
-        'domain', viewpoint can be changed without re-partitioning
-        or communication.
-
-        'depth' - kd-Tree is first constructed as in 'domain', but
-        then combined among all subtrees.  Rendering is then load
-        balanced in a back-to-front manner, splitting up the cost
-        as evenly as possible.  If the viewpoint changes,
-        additional data might have to be partitioned.  Is also
-        prone to longer data IO times.  If all the data can fit in
-        memory on each cpu, this can be the fastest option for
-        multiple ray casts on the same dataset.
-    le: array_like, optional
-        Specifies the left edge of the volume to be rendered.
-        Currently only works with use_kd=True.
-    re: array_like, optional
-        Specifies the right edge of the volume to be rendered.
-        Currently only works with use_kd=True.
 
     Examples
     --------
@@ -197,11 +161,10 @@ class Camera(ParallelAnalysisInterface):
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
                  volume = None, fields = None,
-                 log_fields = None,
                  sub_samples = 5, pf = None,
-                 use_kd=True, l_max=None, no_ghost=True,
-                 tree_type='domain',
-                 le=None, re=None, use_light=False):
+                 min_level=None, max_level=None, no_ghost=True,
+                 source=None,
+                 use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         if not iterable(resolution):
@@ -220,27 +183,21 @@ class Camera(ParallelAnalysisInterface):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
-        self.log_fields = log_fields
-        if self.log_fields is None:
-            self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
-        self.use_kd = use_kd
-        self.l_max = l_max
+        self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
-        self.tree_type = tree_type
+
+        if source is None:
+            source = self.pf.h.all_data()
+        self.source = source
+
         if volume is None:
-            if self.use_kd:
-                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost,
-                                   log_fields = log_fields, le=le, re=re)
-            else:
-                volume = HomogenizedVolume(fields, pf = self.pf,
-                                           log_fields = log_fields)
-        else:
-            self.use_kd = isinstance(volume, AMRKDTree)
+            volume = AMRKDTree(self.pf, min_level=min_level, 
+                               max_level=max_level, source=self.source)
         self.volume = volume        
 
     def _setup_box_properties(self, width, center, unit_vectors):
@@ -627,7 +584,8 @@ class Camera(ParallelAnalysisInterface):
                                 background='black')
 
     def initialize_source(self):
-        return self.volume.initialize_source()
+        return self.volume.initialize_source(self.fields, self.log_fields,
+                                             self.no_ghost)
 
     def get_information(self):
         info_dict = {'fields':self.fields,

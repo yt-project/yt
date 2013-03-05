@@ -207,10 +207,10 @@ def kd_node_check(node):
         return kd_node_check(node.left)+kd_node_check(node.right)
 
 def kd_is_leaf(node):
-    has_l_child = node.left is None
-    has_r_child = node.right is None
-    assert has_l_child == has_r_child
-    return has_l_child
+    no_l_child = node.left is None
+    no_r_child = node.right is None
+    assert no_l_child == no_r_child
+    return no_l_child
 
 def step_depth(current, previous):
     '''
