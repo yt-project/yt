@@ -40,6 +40,11 @@ from yt.utilities.definitions import \
     y_dict, y_names, \
     axis_names, \
     axis_labels
+from yt.utilities.physical_constants import \
+    sec_per_Gyr, sec_per_Myr, \
+    sec_per_kyr, sec_per_year, \
+    sec_per_day, sec_per_hr
+
 import _MPL
 
 callback_registry = {}
@@ -1204,15 +1209,18 @@ class TimestampCallback(PlotCallback):
           'min': 60.0,
           'minute': 60.0,
           'minutes': 60.0,
-          'h': 3600.0,
-          'hour': 3600.0,
-          'hours': 3600.0,
-          'd': 86400.0,
-          'day': 86400.0,
-          'days': 86400.0,
-          'y': 86400.0*365.25,
-          'year': 86400.0*365.25,
-          'years': 86400.0*365.25,
+          'h': sec_per_hr,
+          'hour': sec_per_hr,
+          'hours': sec_per_hr,
+          'd': sec_per_day,
+          'day': sec_per_day,
+          'days': sec_per_day,
+          'y': sec_per_year,
+          'year': sec_per_year,
+          'years': sec_per_year,
+          'kyr': sec_per_kyr,
+          'myr': sec_per_Myr,
+          'gyr': sec_per_Gyr,
           'ev': 1e-9 * 7.6e-8 / 6.03,
           'kev': 1e-12 * 7.6e-8 / 6.03,
           'mev': 1e-15 * 7.6e-8 / 6.03,
@@ -1230,13 +1238,14 @@ class TimestampCallback(PlotCallback):
             self.bbox_dict = bbox_dict
         else:
             self.bbox_dict = self._bbox_dict
-        self.kwargs = {'color': 'w'}
+        self.kwargs = {'color': 'k'}
         self.kwargs.update(kwargs)
 
     def __call__(self, plot):
         if self.units is None:
             t = plot.data.pf.current_time * plot.data.pf['Time']
-            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
+            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's', 
+                          'hour', 'day', 'year', 'kyr', 'myr', 'gyr']
             self.units = 's'
             for k in scale_keys:
                 if t < self._time_conv[k]:

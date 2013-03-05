@@ -63,6 +63,7 @@ cm_per_pc     = 1.0 / pc_per_cm
 # time
 sec_per_Gyr  = 31.5576e15
 sec_per_Myr  = 31.5576e12
+sec_per_kyr  = 31.5576e9
 sec_per_year = 31.5576e6   # "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
 sec_per_day  = 86400.0
 sec_per_hr   = 3600.0
