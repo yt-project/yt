@@ -70,6 +70,13 @@ def test_dimensionless():
     assert u1.cgs_value == 1
     assert u1.dimensions == 1
 
+    u2 = Unit("")
+
+    assert u2.is_dimensionless
+    assert u2.expr == 1
+    assert u2.cgs_value == 1
+    assert u2.dimensions == 1
+
 #
 # Start init tests
 #
