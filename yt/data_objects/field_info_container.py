@@ -33,6 +33,7 @@ import itertools
 import numpy as np
 
 from yt.funcs import *
+from yt.utilities.units import Unit
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -196,7 +197,7 @@ class FieldDetector(defaultdict):
                 lambda: np.ones((nd, nd, nd), dtype='float64')
                 + 1e-4*np.random.random((nd, nd, nd)))
         else:
-            defaultdict.__init__(self, 
+            defaultdict.__init__(self,
                 lambda: np.ones((nd * nd * nd), dtype='float64')
                 + 1e-4*np.random.random((nd * nd * nd)))
 
@@ -237,20 +238,27 @@ class FieldDetector(defaultdict):
             return np.random.random(3) * 1e-2
         else:
             return 0.0
+
     _num_ghost_zones = 0
     id = 1
-    def has_field_parameter(self, param): return True
-    def convert(self, item): return 1
+
+    def has_field_parameter(self, param):
+        return True
+
+    def convert(self, item):
+        return 1
+
+
+class FieldUnitsError(Exception):
+    pass
 
 class DerivedField(object):
-    def __init__(self, name, function,
-                 convert_function = None,
-                 particle_convert_function = None,
-                 units = "", projected_units = "",
-                 take_log = True, validators = None,
-                 particle_type = False, vector_field=False,
-                 display_field = True, not_in_all=False,
-                 display_name = None, projection_conversion = "cm"):
+    def __init__(self, name, function, convert_function=None,
+                 particle_convert_function=None, units=None,
+                 projected_units=None, take_log=True, validators=None,
+                 particle_type=False, vector_field=False, display_field=True,
+                 not_in_all=False, display_name=None,
+                 projection_conversion="cm"):
         """
         This is the base class used to describe a cell-by-cell derived field.
 
@@ -270,26 +278,46 @@ class DerivedField(object):
         :param display_name: a name used in the plots
         :param projection_conversion: which unit should we multiply by in a
                                       projection?
+
         """
         self.name = name
+        self.take_log = take_log
+        self.display_name = display_name
+        self.not_in_all = not_in_all
+        self.display_field = display_field
+        self.particle_type = particle_type
+        self.vector_field = vector_field
+
         self._function = function
+        if not convert_function:
+            convert_function = lambda a: 1.0
+        self._convert_function = convert_function
+        self.particle_convert_function = particle_convert_function
+        self.projection_conversion = projection_conversion
+
         if validators:
             self.validators = ensure_list(validators)
         else:
             self.validators = []
-        self.take_log = take_log
-        self._units = units
-        self._projected_units = projected_units
-        if not convert_function:
-            convert_function = lambda a: 1.0
-        self._convert_function = convert_function
-        self._particle_convert_function = particle_convert_function
-        self.particle_type = particle_type
-        self.vector_field = vector_field
-        self.projection_conversion = projection_conversion
-        self.display_field = display_field
-        self.display_name = display_name
-        self.not_in_all = not_in_all
+
+        # handle units
+        if units is None:
+            self.units = Unit()
+        elif isinstance(units, str):
+            self.units = Unit(units)
+        elif isinstance(units, Unit):
+            self.units = units
+        else:
+            raise FieldUnitsException("Bad units type. Please provide a Unit object or a string.")
+
+        if projected_units is None:
+            self.projected_units = Unit
+        elif isinstance(projected_units, str):
+            self.projected_units = Unit(projected_units)
+        elif isinstance(projected_units, Unit):
+            self.projected_units = projected_units
+        else:
+            raise FieldUnitsException("Bad projected_units type. Please provide a Unit object or a string.")
 
     def check_available(self, data):
         """
@@ -311,16 +339,6 @@ class DerivedField(object):
         else:
             e[self.name]
         return e
-
-    def get_units(self):
-        """ Return a string describing the units. """
-        return self._units
-
-    def get_projected_units(self):
-        """
-        Return a string describing the units if the field has been projected.
-        """
-        return self._projected_units
 
     def __call__(self, data):
         """ Return the value of the field in a given *data* object. """
@@ -344,11 +362,21 @@ class DerivedField(object):
         Return a data label for the given field, inluding units.
         """
         name = self.name
-        if self.display_name is not None: name = self.display_name
+        if self.display_name is not None:
+            name = self.display_name
+
+        # Start with the field name
         data_label = r"$\rm{%s}" % name
-        if projected: units = self.get_projected_units()
-        else: units = self.get_units()
-        if units != "": data_label += r"\/\/ (%s)" % (units)
+
+        # Grab the correct units
+        if projected:
+            units = self.projected_units
+        else:
+            units = self.units
+        # Add unit label
+        if not units.is_dimensionless:
+            data_label += r"\/\/ (%s)" % (units)
+
         data_label += r"$"
         return data_label
 

@@ -1,4 +1,4 @@
-""" 
+"""
 Geometry container base class.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -126,8 +126,8 @@ class GeometryHandler(ParallelAnalysisInterface):
                 # will allow the same field detection mechanism to work for 1D, 2D
                 # and 3D fields.
                 self.pf.field_info.add_field(
-                        field, NullFunc, particle_type = particle_type,
-                        convert_function=cf, take_log=False, units=r"Unknown")
+                        field, NullFunc, particle_type=particle_type,
+                        convert_function=cf, take_log=False)
             else:
                 mylog.debug("Adding known field %s to list of fields", field)
                 self.parameter_file.field_info[field] = known_fields[field]
