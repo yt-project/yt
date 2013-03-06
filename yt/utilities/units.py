@@ -74,6 +74,9 @@ unit_symbols_dict = {
     "J": (1.0e7, energy),
     "Hz": (1.0, rate),
 
+    # dimensionless
+    "h": (1.0, 1.0),
+
     # times
     "min": (60.0, time),
     "hr":  (3600.0, time),
@@ -163,6 +166,10 @@ class Unit(Expr):
         """
         # if we have a string, parse into an expression
         if isinstance(unit_expr, str):
+            if not unit_expr:
+                # Bug catch...
+                # if unit_expr is an empty string, parse_expr fails hard...
+                unit_expr = "1"
             unit_expr = parse_expr(unit_expr)
 
         if not isinstance(unit_expr, Expr):
@@ -288,6 +295,9 @@ class Unit(Expr):
              self.dimensions.expand().as_coeff_exponent(time)[1],
              self.dimensions.expand().as_coeff_exponent(temperature)[1])
         return Unit(cgs_units_string, 1, self.dimensions)
+
+    def get_conversion_factor(self, other_units):
+        return get_conversion_factor(self, other_units)
 
 
 def make_symbols_positive(expr):
