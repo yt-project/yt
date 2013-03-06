@@ -4374,6 +4374,159 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
 
+    def export_obj(self, filename, transparency = None, dist_fac = None,
+                   color_field = None, color_map = "algae", 
+                   color_log = True, plot_index = None):
+        r"""This exports the surface to the OBJ format, suitable for visualization
+        in many different programs (e.g., Blender).
+
+        Parameters
+        ----------
+        filename : string
+            The file this will be exported to.  This cannot be a file-like object.
+            Note - there are no file extentions included - both obj & mtl files 
+            are created.
+        transparency : list floats
+            This gives the transparency of the output surface plot.  If multiple 
+            surface plots, this will be a list.  Values from 0.0 (invisible) to 
+            1.0 (opaque).
+        dist_fac : float
+            Divide the axes distances by this amount.
+        color_field : string
+            Should a field be sample and colormapped?
+        color_map : string
+            Which color map should be applied?
+        color_log : bool
+            Should the color field be logged before being mapped?
+        plot_index : integer
+            Index of plot for multiple plots.  If none, then only 1 plot.
+
+        Examples
+        --------
+
+        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> trans = [1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+
+        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> for i, r in enumerate(rhos):
+        >>>     surf = pf.h.surface(dd,'Density',r)
+        >>>     surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf, 
+        >>>                     plot_index = i)
+        """
+        if transparency is None:
+            transparency = 1.0
+        if self.vertices is None:
+            self.get_data(color_field,"face")
+        elif color_field is not None:
+            if color_field not in self.field_data:
+                self[color_field]
+        #only_on_root(self._export_obj, "%s %12.12e, %12.12e %s %s %r %d" 
+        #             %(filename, transparency, dist_fac, color_field, 
+        #               color_map, color_log, plot_index))
+        if MPI.COMM_WORLD.rank == 0:  # this works, 2 seperate calls, in for loops
+            self._export_obj(filename, transparency, dist_fac, color_field, 
+                             color_map, color_log, plot_index)
+
+    def _color_samples_obj(self, cs, color_log, color_map, arr): # this now holds for obj files
+            if color_log: cs = np.log10(cs)
+            mi, ma = cs.min(), cs.max()
+            cs = (cs - mi) / (ma - mi)
+            # to get color indicies for OBJ formatting
+            from yt.visualization._colormap_data import color_map_luts
+            lut = color_map_luts[color_map]
+            x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
+            arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
+
+    @parallel_root_only
+    def _export_obj(self, filename, transparency, dist_fac = None, 
+                    color_field = None, color_map = "algae", color_log = True, 
+                    plot_index = None):
+        if plot_index is None:
+            plot_index = 0
+        if isinstance(filename, file):
+            fobj = filename + '.obj'
+            fmtl = filename + '.mtl'
+        else:
+            if plot_index == 0:
+                fobj = open(filename + '.obj', "w")
+                fmtl = open(filename + '.mtl', 'w')
+                cc = 1
+            else:
+                # read in last vertex
+                linesave = ''
+                for line in fileinput.input(filename + '.obj'):
+                    if line[0] == 'f':
+                        linesave = line
+                p = [m.start() for m in finditer(' ', linesave)]
+                cc = int(linesave[p[len(p)-1]:])+1
+                fobj = open(filename + '.obj', "a")
+                fmtl = open(filename + '.mtl', 'a')
+        ftype = [("cind", "uint8")]
+        vtype = [("x","float"),("y","float"), ("z","float")]
+        if plot_index == 0:
+            fobj.write("# yt OBJ file\n")
+            fobj.write("# www.yt-project.com\n")
+            fobj.write("mtllib " + filename + '.mtl\n\n')  # use this material file for the faces
+            fmtl.write("# yt MLT file\n")
+            fmtl.write("# www.yt-project.com\n\n")
+        from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
+        lut = color_map_luts[color_map]
+        #(0) formulate vertices
+        nv = self.vertices.shape[1] # number of groups of vertices
+        f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
+        v = np.empty(nv, dtype=vtype) # stores vertices
+        if color_field is not None:
+            cs = self[color_field]
+        else:
+            cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        self._color_samples_obj(cs, color_log, color_map, f) # map color values to color scheme
+        if dist_fac is None: # then normalize by bounds
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+            for i, ax in enumerate("xyz"):
+                # Do the bounds first since we cast to f32
+                tmp = self.vertices[i,:]
+                np.subtract(tmp, bounds[i][0], tmp)
+                w = bounds[i][1] - bounds[i][0]
+                np.divide(tmp, w, tmp)
+                np.subtract(tmp, 0.5, tmp) # Center at origin.
+                v[ax][:] = tmp   
+        else:
+            for i, ax in enumerate("xyz"):
+                tmp = self.vertices[i,:]
+                np.divide(tmp, dist_fac, tmp)
+                v[ax][:] = tmp
+        #(1) write all colors per surface to mtl file
+        for i in range(0,lut[0].shape[0]): 
+            omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
+            fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
+            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
+            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
+            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
+            fmtl.write("d %.6f\n" %(transparency))  # transparency
+            fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
+            fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
+        #(2) write vertices
+        for i in range(0,self.vertices.shape[1]):
+            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
+        fobj.write("#done defining vertices\n\n")
+        #(3) define faces and materials for each face
+        for i in range(0,self.triangles.shape[0]):
+            omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
+            fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
+            fobj.write("f " + str(cc) + ' ' + str(cc+1) + ' ' + str(cc+2) + '\n\n') # vertices to color
+            cc = cc+3
+        fmtl.close()
+        fobj.close()
+
+
     def export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
         r"""This exports the surface to the PLY format, suitable for visualization
