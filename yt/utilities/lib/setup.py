@@ -129,9 +129,7 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/freetype_includes.h"])
     config.add_extension("geometry_utils", 
                 ["yt/utilities/lib/geometry_utils.pyx"],
-               extra_compile_args=['-fopenmp'],
-               extra_link_args=['-fopenmp'],
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Interpolators", 
                 ["yt/utilities/lib/Interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -197,8 +195,6 @@ def configuration(parent_package='',top_path=None):
                  glob.glob("yt/utilities/lib/healpix_*.c"), 
                include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
-               extra_compile_args=['-fopenmp'],
-               extra_link_args=['-fopenmp'],
                depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
                           "yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",

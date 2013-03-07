@@ -2,7 +2,7 @@
 import os, re
 from distutils import version
 from yt.mods import *
-from yt.data_objects.data_containers import AMRData
+from yt.data_objects.data_containers import YTDataContainer
 namespace = locals().copy()
 namespace.pop("__builtins__", None)
 
@@ -116,7 +116,7 @@ def yt_fieldname_completer(self, event):
         except:
             raise IPython.ipapi.TryNext 
         
-    if isinstance(obj, (AMRData, ) ):
+    if isinstance(obj, (YTDataContainer, ) ):
         #print "COMPLETING ON THIS THING"
         all_fields = [f for f in sorted(
                 obj.pf.h.field_list + obj.pf.h.derived_field_list)]

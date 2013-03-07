@@ -69,15 +69,14 @@ add_field("dz", function=dz)
 
 def _convertDensity(data):
     return data.convert("Density")
-KnownRAMSESFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
-KnownRAMSESFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+KnownRAMSESFields["Density"]._units = "g / cm**3"
 KnownRAMSESFields["Density"]._convert_function=_convertDensity
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = KnownRAMSESFields["%s-velocity" % ax]
-    f._units = r"\rm{cm}/\rm{s}"
+    f._units = "cm / s"
     f._convert_function = _convertVelocity
     f.take_log = False
 

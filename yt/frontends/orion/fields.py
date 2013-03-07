@@ -48,24 +48,23 @@ add_field = OrionFieldInfo.add_field
 
 add_orion_field("density", function=NullFunc, take_log=True,
                 validators = [ValidateDataField("density")],
-                units=r"\rm{g}/\rm{cm}^3")
-KnownOrionFields["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+                units="g/cm**3")
 
 add_orion_field("eden", function=NullFunc, take_log=True,
                 validators = [ValidateDataField("eden")],
-                units=r"\rm{erg}/\rm{cm}^3")
+                units="erg/cm**3")
 
 add_orion_field("xmom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("xmom")],
-                units=r"\rm{g}/\rm{cm^2\ s}")
+                units="g/cm**2/s")
 
 add_orion_field("ymom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("ymom")],
-                units=r"\rm{gm}/\rm{cm^2\ s}")
+                units="g/cm**2/s")
 
 add_orion_field("zmom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("zmom")],
-                units=r"\rm{g}/\rm{cm^2\ s}")
+                units="g/cm**2/s}")
 
 translation_dict = {"x-velocity": "xvel",
                     "y-velocity": "yvel",
@@ -93,7 +92,7 @@ def _xVelocity(field, data):
     """
     return data["xmom"]/data["density"]
 add_orion_field("x-velocity",function=_xVelocity, take_log=False,
-                units=r'\rm{cm}/\rm{s}')
+                units='cm/s')
 
 def _yVelocity(field,data):
     """generate y-velocity from y-momentum and density
@@ -104,7 +103,7 @@ def _yVelocity(field,data):
     #except KeyError:
     return data["ymom"]/data["density"]
 add_orion_field("y-velocity",function=_yVelocity, take_log=False,
-                units=r'\rm{cm}/\rm{s}')
+                units='cm/s')
 
 def _zVelocity(field,data):
     """generate z-velocity from z-momentum and density
@@ -112,7 +111,7 @@ def _zVelocity(field,data):
     """
     return data["zmom"]/data["density"]
 add_orion_field("z-velocity",function=_zVelocity, take_log=False,
-                units=r'\rm{cm}/\rm{s}')
+                units='cm/s')
 
 def _ThermalEnergy(field, data):
     """generate thermal (gas energy). Dual Energy Formalism was
@@ -127,7 +126,7 @@ def _ThermalEnergy(field, data):
         + data["y-velocity"]**2.0
         + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
-                units=r"\rm{ergs}/\rm{cm^3}")
+                units=r"ergs/cm**3")
 
 def _Pressure(field,data):
     """M{(Gamma-1.0)*e, where e is thermal energy density
@@ -138,7 +137,7 @@ add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Temperature(field,data):
     return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
-add_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
+add_field("Temperature",function=_Temperature,units="K",take_log=False)
 
 # particle fields
 
