@@ -90,18 +90,18 @@ default_unit_symbol_LUT = {
     "Zsun": (1.0, dimensionless, r"Z_{\odot}"),
 
     # astro distances
-    "AU": (1.49598e13, length),
-    "ly": (9.46053e17, length),
-    "pc": (3.08568e18, length),
+    "AU": (1.49598e13, length, r"\rm{AU}"),
+    "ly": (9.46053e17, length, r"\rm{ly}"),
+    "pc": (3.08568e18, length, r"\rm{pc}"),
 
     # other astro
-    "H_0": (2.3e-18, rate),  # check cf
+    "H_0": (2.3e-18, rate, r"H_0"),  # check cf
 
     # other energy units
-    "eV": (1.6021766e-12, energy),
+    "eV": (1.6021766e-12, energy, r"\rm{eV}"),
 
     # electric stuff
-    "gauss": (1.0, magnetic_field),
+    "gauss": (1.0, magnetic_field, r"\rm{G}"),
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
@@ -136,8 +136,11 @@ class UnitSymbolRegistry:
             self.lookup_dict.update(default_symbol_lookup_dict)
 
 
+
+
 class UnitParseError(Exception):
     pass
+
 class UnitOperationError(Exception):
     pass
 
@@ -395,9 +398,9 @@ def get_unit_data_from_expr(unit_expr):
 def lookup_unit_symbol(symbol_str):
     """ Searches for the unit data typle corresponding to the given symbol. """
 
-    if symbol_str in unit_symbols_dict:
+    if symbol_str in default_unit_symbols_LUT:
         # lookup successful, return the tuple directly
-        return unit_symbols_dict[symbol_str]
+        return default_unit_symbols_LUT[symbol_str]
 
     # could still be a known symbol with a prefix
     possible_prefix = symbol_str[0]
@@ -405,9 +408,9 @@ def lookup_unit_symbol(symbol_str):
         # the first character could be a prefix, check the rest of the symbol
         symbol_wo_prefix = symbol_str[1:]
 
-        if symbol_wo_prefix in unit_symbols_dict:
+        if symbol_wo_prefix in default_unit_symbols_LUT:
             # lookup successful, it's a symbol with a prefix
-            unit_data = unit_symbols_dict[symbol_wo_prefix]
+            unit_data = default_unit_symbols_LUT[symbol_wo_prefix]
             prefix_value = unit_prefixes[possible_prefix]
 
             # don't forget to account for the prefix value!
