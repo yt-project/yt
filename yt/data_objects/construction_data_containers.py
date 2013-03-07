@@ -653,7 +653,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         center = data_source.get_field_parameter("center")
         super(YTSurfaceBase, self).__init__(center = center, pf =
                     data_source.pf )
-        self._grids = self.data_source._grids.copy()
 
     def get_data(self, fields = None, sample_type = "face"):
         if isinstance(fields, list) and len(fields) > 1:

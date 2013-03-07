@@ -161,6 +161,7 @@ class Camera(ParallelAnalysisInterface):
                  resolution, transfer_function,
                  north_vector = None, steady_north=False,
                  volume = None, fields = None,
+                 log_fields = None,
                  sub_samples = 5, pf = None,
                  min_level=None, max_level=None, no_ghost=True,
                  source=None,
@@ -183,7 +184,9 @@ class Camera(ParallelAnalysisInterface):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
-        self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
+        self.log_fields = log_fields
+        if self.log_fields is None:
+            self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None

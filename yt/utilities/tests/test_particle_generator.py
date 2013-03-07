@@ -105,5 +105,5 @@ def test_particle_generator() :
     yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
 
 if __name__=="__main__":
-    for i in test_particle_generator():
+    for n, i in enumerate(test_particle_generator()):
         i[0](*i[1:])
