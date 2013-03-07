@@ -353,7 +353,6 @@ class GeometryHandler(ParallelAnalysisInterface):
                     self._chunk_io(dobj), selector,
                     fields_to_read)
         for field in fields_to_read:
-            import pdb; pdb.set_trace()
             ftype, fname = field
             finfo = self.pf._get_field_info(*field)
             conv_factor = finfo._convert_function(self)
