@@ -126,7 +126,7 @@ add_field("ThermalEnergy", function=_ThermalEnergy,
 def _Pressure(field, data):
     """
     M{(Gamma-1.0)*e, where e is thermal energy density
-    
+
     NB: this will need to be modified for radiation
 
     """

@@ -61,47 +61,50 @@ magnetic_field = electric_field
 # cgs, the dimensionality, and
 default_unit_symbol_LUT = {
     # base
-    "g":  (1.0, mass, r"\rm{g}"),
+    "g":  (1.0, mass),
     #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
-    "s":  (1.0, time, r"\rm{s}"),
-    "K":  (1.0, temperature, r"\rm{K}"),
+    "s":  (1.0, time),
+    "K":  (1.0, temperature),
 
     # other cgs
-    "dyne": (1.0, force, r"\rm{dyne}"),
-    "erg":  (1.0, energy, r"\rm{erg}"),
-    "esu":  (1.0, charge, r"\rm{esu}"),
+    "dyne": (1.0, force),
+    "erg":  (1.0, energy),
+    "esu":  (1.0, charge),
 
     # some SI
-    "m": (1.0e2, length, r"\rm{m}"),
-    "J": (1.0e7, energy, r"\rm{J}"),
-    "Hz": (1.0, rate, r"\rm{Hz}"),
+    "m": (1.0e2, length),
+    "J": (1.0e7, energy),
+    "Hz": (1.0, rate),
+
+    # dimensionless stuff
+    "h": (1.0, dimensionless),
 
     # times
-    "min": (60.0, time, r"\rm{min}"),
-    "hr":  (3600.0, time, r"\rm{hr}"),
-    "day": (86400.0, time, r"\rm{day}"),
-    "yr":  (31536000.0, time, r"\rm{yr}"),
+    "min": (60.0, time),
+    "hr":  (3600.0, time),
+    "day": (86400.0, time),
+    "yr":  (31536000.0, time),
 
     # Solar units
-    "Msun": (1.98892e33, mass, r"M_{\odot}"),
-    "Rsun": (6.96e10, length, r"R_{\odot}"),
-    "Lsun": (3.9e33, power, r"L_{\odot}"),
-    "Tsun": (5870.0, temperature, r"T_{\odot}"),
-    "Zsun": (1.0, dimensionless, r"Z_{\odot}"),
+    "Msun": (1.98892e33, mass),
+    "Rsun": (6.96e10, length),
+    "Lsun": (3.9e33, power),
+    "Tsun": (5870.0, temperature),
+    "Zsun": (1.0, dimensionless),
 
     # astro distances
-    "AU": (1.49598e13, length, r"\rm{AU}"),
-    "ly": (9.46053e17, length, r"\rm{ly}"),
-    "pc": (3.08568e18, length, r"\rm{pc}"),
+    "AU": (1.49598e13, length),
+    "ly": (9.46053e17, length),
+    "pc": (3.08568e18, length),
 
     # other astro
-    "H_0": (2.3e-18, rate, r"H_0"),  # check cf
+    "H_0": (2.3e-18, rate),  # check cf
 
     # other energy units
-    "eV": (1.6021766e-12, energy, r"\rm{eV}"),
+    "eV": (1.6021766e-12, energy),
 
     # electric stuff
-    "gauss": (1.0, magnetic_field, r"\rm{G}"),
+    "gauss": (1.0, magnetic_field),
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.

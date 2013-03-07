@@ -39,12 +39,12 @@ NyxFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = NyxFieldInfo.add_field
 
 KnownNyxFields = FieldInfoContainer()
-add_nyx_field = KnownNyxFields.add_field 
+add_nyx_field = KnownNyxFields.add_field
 
 # Density
 add_nyx_field("density", function=lambda a, b: None, take_log=True,
           validators=[ValidateDataField("density")],
-          units=r"\rm{g} / \rm{cm}^3",
+          units="g/cm**3",
           projected_units =r"\rm{g} / \rm{cm}^2")
 KnownNyxFields["density"]._projected_units =r"\rm{g} / \rm{cm}^2"
 
@@ -61,7 +61,7 @@ add_field("ParticleMassMsun", function=_particle_mass_m_sun,
           validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
           particle_type=True, convert_function=_convertParticleMassMsun,
           take_log=True, units=r"\rm{M_{\odot}}")
-          
+
 add_nyx_field("Dark_Matter_Density", function=TranslationFunc("particle_mass_density"),
           take_log=True,
           units=r"\rm{g} / \rm{cm}^3",particle_type=True,
