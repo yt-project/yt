@@ -36,6 +36,9 @@ import exceptions
 import itertools
 import shelve
 import cStringIO
+from mpi4py import MPI
+import fileinput
+from re import finditer
 
 from yt.funcs import *
 from yt.config import ytcfg
