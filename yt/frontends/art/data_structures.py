@@ -167,13 +167,17 @@ class ARTStaticOutput(StaticOutput):
                  fields = None, storage_filename = None,
                  skip_particles=False,skip_stars=False,
                  limit_level=None,spread_age=True,
-                 force_max_level=None):
+                 force_max_level=None,file_particle_header=None,
+                 file_particle_data=None,file_particle_stars=None):
         if fields is None:
             fields = fluid_fields
         filename = os.path.abspath(filename)
         self._fields_in_file = fields
         self._find_files(filename)
         self.file_amr = filename
+        self.file_particle_header = file_particle_header
+        self.file_particle_data = file_particle_data
+        self.file_particle_stars = file_particle_stars
         self.parameter_filename = filename
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
