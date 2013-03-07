@@ -398,9 +398,9 @@ def get_unit_data_from_expr(unit_expr):
 def lookup_unit_symbol(symbol_str):
     """ Searches for the unit data typle corresponding to the given symbol. """
 
-    if symbol_str in default_unit_symbols_LUT:
+    if symbol_str in default_unit_symbol_LUT:
         # lookup successful, return the tuple directly
-        return default_unit_symbols_LUT[symbol_str]
+        return default_unit_symbol_LUT[symbol_str]
 
     # could still be a known symbol with a prefix
     possible_prefix = symbol_str[0]
@@ -408,9 +408,9 @@ def lookup_unit_symbol(symbol_str):
         # the first character could be a prefix, check the rest of the symbol
         symbol_wo_prefix = symbol_str[1:]
 
-        if symbol_wo_prefix in default_unit_symbols_LUT:
+        if symbol_wo_prefix in default_unit_symbol_LUT:
             # lookup successful, it's a symbol with a prefix
-            unit_data = default_unit_symbols_LUT[symbol_wo_prefix]
+            unit_data = default_unit_symbol_LUT[symbol_wo_prefix]
             prefix_value = unit_prefixes[possible_prefix]
 
             # don't forget to account for the prefix value!
