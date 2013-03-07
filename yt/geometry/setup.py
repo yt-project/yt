@@ -16,8 +16,8 @@ def configuration(parent_package='',top_path=None):
                          "yt/geometry/selection_routines.pxd"])
     config.add_extension("selection_routines", 
                 ["yt/geometry/selection_routines.pyx"],
-                extra_compile_args=['-fopenmp'],
-                extra_link_args=['-fopenmp'],
+                #extra_compile_args=['-fopenmp'],
+                #extra_link_args=['-fopenmp'],
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
