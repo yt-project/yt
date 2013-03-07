@@ -94,11 +94,11 @@ for species in _speciesList:
              function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species),
              display_name="Comoving\/%s\/Density" % species)
-    add_field("%s_Mass" % species, units=r"\rm{g}", 
+    add_field("%s_Mass" % species, units="g", 
               function=_SpeciesMass, 
               validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
-    add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
+    add_field("%s_MassMsun" % species, units="Msun", 
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
               validators=ValidateDataField("%s_Density" % species),
@@ -113,7 +113,7 @@ def _Metallicity(field, data):
     return data["Metal_Fraction"]
 def _ConvertMetallicity(data):
     return 49.0196 # 1 / 0.0204
-add_field("Metallicity", units=r"Z_{\rm{\odot}}",
+add_field("Metallicity", units="Zsun",
           function=_Metallicity,
           convert_function=_ConvertMetallicity,
           validators=ValidateDataField("Metal_Density"),
@@ -121,13 +121,13 @@ add_field("Metallicity", units=r"Z_{\rm{\odot}}",
 
 def _Metallicity3(field, data):
     return data["SN_Colour"]/data["Density"]
-add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
+add_field("Metallicity3", units="Zsun",
           function=_Metallicity3,
           convert_function=_ConvertMetallicity,
           validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
 
-add_enzo_field("Cooling_Time", units=r"\rm{s}",
+add_enzo_field("Cooling_Time", units="s",
                function=NullFunc,
                validators=ValidateDataField("Cooling_Time"),
                projection_conversion="1")
@@ -144,14 +144,14 @@ def _ThermalEnergy(field, data):
                  + data["y-velocity"]**2.0
                  + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
-          units=r"\rm{ergs}/\rm{g}")
+          units="erg / g")
 
 def _KineticEnergy(field, data):
     return 0.5*data["Density"] * ( data["x-velocity"]**2.0
                                    + data["y-velocity"]**2.0
                                    + data["z-velocity"]**2.0 )
 add_field("KineticEnergy",function=_KineticEnergy,
-          units = r"\rm{ergs}/\rm{cm^3}")
+          units="erg / cm**3")
 # This next section is the energy field section
 # Note that we have aliases that manually unconvert themselves.
 # This is because numerous code branches use Gas_Energy or GasEnergy
@@ -164,35 +164,35 @@ def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
 
 add_enzo_field("GasEnergy", function=NullFunc,
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 add_enzo_field("Gas_Energy", function=NullFunc,
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 
 def _Gas_Energy(field, data):
     return data["GasEnergy"] / _convertEnergy(data)
 add_field("Gas_Energy", function=_Gas_Energy,
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 
 # We set up fields for both TotalEnergy and Total_Energy in the known fields
 # lists.  Note that this does not mean these will be the used definitions.
 add_enzo_field("TotalEnergy", function=NullFunc,
           display_name = "$\rm{Total}\/\rm{Energy}$",
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 add_enzo_field("Total_Energy", function=NullFunc,
           display_name = "$\rm{Total}\/\rm{Energy}$",
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 
 def _Total_Energy(field, data):
     return data["TotalEnergy"] / _convertEnergy(data)
 add_field("Total_Energy", function=_Total_Energy,
           display_name = "$\rm{Total}\/\rm{Energy}$",
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 
 def _TotalEnergy(field, data):
     return data["Total_Energy"] / _convertEnergy(data)
 add_field("TotalEnergy", function=_TotalEnergy,
           display_name = "$\rm{Total}\/\rm{Energy}$",
-          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+          units="erg / g", convert_function=_convertEnergy)
 
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
@@ -222,7 +222,7 @@ def _NumberDensity(field, data):
         fieldData += data["DII_Density"] / 2.0
         fieldData += data["HDI_Density"] / 3.0
     return fieldData
-add_field("NumberDensity", units=r"\rm{cm}^{-3}",
+add_field("NumberDensity", units="cm**-3",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
 
@@ -242,7 +242,7 @@ def _H_NumberDensity(field, data):
     if data.pf.parameters["MultiSpecies"] > 2:
         field_data += data["HDI_Density"] / 2.0
     return field_data
-add_field("H_NumberDensity", units=r"\rm{cm}^{-3}",
+add_field("H_NumberDensity", units="cm**-3",
           function=_H_NumberDensity,
           convert_function=_ConvertNumberDensity)
 
@@ -269,7 +269,7 @@ for field in _default_fields:
     dn = field.replace("_","\/")
     add_enzo_field(field, function=NullFunc, take_log=True,
               display_name = dn,
-              validators=[ValidateDataField(field)], units=r"Unknown")
+              validators=[ValidateDataField(field)], units="")
 KnownEnzoFields["x-velocity"].projection_conversion='1'
 KnownEnzoFields["y-velocity"].projection_conversion='1'
 KnownEnzoFields["z-velocity"].projection_conversion='1'
@@ -279,7 +279,7 @@ def _convertBfield(data):
 for field in ['Bx','By','Bz']:
     f = KnownEnzoFields[field]
     f._convert_function=_convertBfield
-    f._units=r"\rm{Gauss}"
+    f._units = "gauss"
     f.take_log=False
 
 def _convertRadiation(data):
@@ -287,11 +287,11 @@ def _convertRadiation(data):
 for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
     f = KnownEnzoFields[field]
     f._convert_function = _convertRadiation
-    f._units=r"\rm{s}^{-1}"
+    f._units = "s**-1"
     f.take_log=True
 
 KnownEnzoFields["PhotoGamma"]._convert_function = _convertRadiation
-KnownEnzoFields["PhotoGamma"]._units = r"\rm{eV} \rm{s}^{-1}"
+KnownEnzoFields["PhotoGamma"]._units = "eV / s"
 KnownEnzoFields["PhotoGamma"].take_log = True
 
 def _convertRadiationAccel(data):
@@ -299,7 +299,7 @@ def _convertRadiationAccel(data):
 for dim in range(1,4):
     f = KnownEnzoFields["RadAccel%d" % dim]
     f._convert_function = _convertRadiationAccel
-    f._units=r"\rm{cm}\/\rm{s}^{-2}"
+    f._units = "cm / s**2"
     f.take_log=False
 def _RadiationAccelerationMagnitude(field, data):
     return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
@@ -307,7 +307,7 @@ def _RadiationAccelerationMagnitude(field, data):
 add_field("RadiationAcceleration", 
           function=_RadiationAccelerationMagnitude,
           validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
-          display_name="Radiation\/Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
+          display_name="Radiation\/Acceleration", units="cm / s**2")
 
 # Now we override
 
@@ -315,8 +315,7 @@ def _convertDensity(data):
     return data.convert("Density")
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
         ["SN_Colour"]:
-    KnownEnzoFields[field]._units = r"\rm{g}/\rm{cm}^3"
-    KnownEnzoFields[field]._projected_units = r"\rm{g}/\rm{cm}^2"
+    KnownEnzoFields[field]._units = "g / cm**3"
     KnownEnzoFields[field]._convert_function=_convertDensity
 
 add_enzo_field("Dark_Matter_Density", function=NullFunc,
@@ -330,22 +329,22 @@ def _Dark_Matter_Mass(field, data):
     return data['Dark_Matter_Density'] * data["CellVolume"]
 add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
           validators=ValidateDataField("Dark_Matter_Density"),
-          display_name="Dark\/Matter\/Mass", units=r"\rm{g}")
+          display_name="Dark\/Matter\/Mass", units="g")
 add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           convert_function=_convertCellMassMsun,
           validators=ValidateDataField("Dark_Matter_Density"),
-          display_name="Dark\/Matter\/Mass", units=r"M_{\odot}")
+          display_name="Dark\/Matter\/Mass", units="Msun")
 
-KnownEnzoFields["Temperature"]._units = r"\rm{K}"
-KnownEnzoFields["Temperature"].units = r"K"
-KnownEnzoFields["Dust_Temperature"]._units = r"\rm{K}"
-KnownEnzoFields["Dust_Temperature"].units = r"K"
+KnownEnzoFields["Temperature"]._units = "K"
+KnownEnzoFields["Temperature"].units = "K"
+KnownEnzoFields["Dust_Temperature"]._units = "K"
+KnownEnzoFields["Dust_Temperature"].units = "K"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = KnownEnzoFields["%s-velocity" % ax]
-    f._units = r"\rm{cm}/\rm{s}"
+    f._units = "cm / s"
     f._convert_function = _convertVelocity
     f.take_log = False
 
@@ -471,7 +470,7 @@ add_field('star_dynamical_time', function=_star_field,
 
 def _StarMetallicity(field, data):
     return data['star_metallicity_fraction']
-add_field('StarMetallicity', units=r"Z_{\rm{\odot}}",
+add_field('StarMetallicity', units="Zsun",
           function=_StarMetallicity,
           convert_function=_ConvertMetallicity,
           projection_conversion="1")
@@ -480,14 +479,14 @@ def _StarCreationTime(field, data):
     return data['star_creation_time']
 def _ConvertEnzoTimeYears(data):
     return data.pf.time_units['years']
-add_field('StarCreationTimeYears', units=r"\rm{yr}",
+add_field('StarCreationTimeYears', units="yr",
           function=_StarCreationTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
 
 def _StarDynamicalTime(field, data):
     return data['star_dynamical_time']
-add_field('StarDynamicalTimeYears', units=r"\rm{yr}",
+add_field('StarDynamicalTimeYears', units="yr",
           function=_StarDynamicalTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
@@ -499,7 +498,7 @@ def _StarAge(field, data):
         data.pf.current_time - \
         data['StarCreationTimeYears'][with_stars]
     return star_age
-add_field('StarAgeYears', units=r"\rm{yr}",
+add_field('StarAgeYears', units="yr",
           function=_StarAge,
           projection_conversion="1")
 
@@ -514,7 +513,7 @@ def _Bmag(field, data):
     """
     return np.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
 
-add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units=r"\rm{Gauss}")
+add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units="gauss")
 
 # Particle functions
 
@@ -598,12 +597,12 @@ def _ConvertCellAreaMpc(data):
     return data.convert("mpc")**2.0
 def _ConvertCellAreaCGS(data):
     return data.convert("cm")**2.0
-add_enzo_2d_field("CellAreaCode", units=r"\rm{BoxArea}^2",
+add_enzo_2d_field("CellAreaCode", units="",
           function=_CellArea)
-add_enzo_2d_field("CellAreaMpc", units=r"\rm{Mpc}^2",
+add_enzo_2d_field("CellAreaMpc", units="Mpc**2",
           function=_CellArea,
           convert_function=_ConvertCellAreaMpc)
-add_enzo_2d_field("CellArea", units=r"\rm{cm}^2",
+add_enzo_2d_field("CellArea", units="cm**2",
           function=_CellArea,
           convert_function=_ConvertCellAreaCGS)
 
@@ -629,12 +628,12 @@ def _ConvertCellLengthMpc(data):
     return data.convert("mpc")
 def _ConvertCellLengthCGS(data):
     return data.convert("cm")
-add_enzo_1d_field("CellLengthCode", units=r"\rm{BoxArea}^2",
+add_enzo_1d_field("CellLengthCode", units="",
           function=_CellLength)
-add_enzo_1d_field("CellLengthMpc", units=r"\rm{Mpc}^2",
+add_enzo_1d_field("CellLengthMpc", units="Mpc",
           function=_CellLength,
           convert_function=_ConvertCellLengthMpc)
-add_enzo_1d_field("CellLength", units=r"\rm{cm}^2",
+add_enzo_1d_field("CellLength", units="cm",
           function=_CellLength,
           convert_function=_ConvertCellLengthCGS)
 
