@@ -1165,7 +1165,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         sp1, ")"])
     """
     _type_name = "boolean"
-    _con_args = ("regions")
+    _con_args = ("regions",)
     def __init__(self, regions, fields = None, pf = None, **kwargs):
         # Center is meaningless, but we'll define it all the same.
         YTSelectionContainer3D.__init__(self, [0.5]*3, fields, pf, **kwargs)

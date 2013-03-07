@@ -194,8 +194,8 @@ def expand_keywords(keywords, full=False):
     Returns
     -------
     array of dicts
-        An array of **kwargs dictionaries to be individually passed to
-        the appropriate function matching these kwargs.
+        An array of dictionaries to be individually passed to the appropriate
+        function matching these kwargs.
 
     Examples
     --------

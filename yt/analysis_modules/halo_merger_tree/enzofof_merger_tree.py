@@ -454,8 +454,8 @@ class EnzoFOFMergerTree(object):
         halonum : int
             Halo number at the last output to trace.
 
-        Output
-        ------
+        Returns
+        -------
         output : dict
             Dictionary of redshifts, cycle numbers, and halo numbers
             of the most massive progenitor.  keys = {redshift, cycle,

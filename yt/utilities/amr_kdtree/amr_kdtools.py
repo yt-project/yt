@@ -57,6 +57,49 @@ def should_i_build(node, rank, size):
     else:
         return False
 
+
+def add_grid(node, gle, gre, gid, rank, size):
+    if not should_i_build(node, rank, size):
+        return
+
+    if kd_is_leaf(node):
+        insert_grid(node, gle, gre, gid, rank, size)
+    else:
+        less_id = gle[node.split.dim] < node.split.pos
+        if less_id:
+            add_grid(node.left, gle, gre,
+                     gid, rank, size)
+
+        greater_id = gre[node.split.dim] > node.split.pos
+        if greater_id:
+            add_grid(node.right, gle, gre,
+                     gid, rank, size)
+
+
+def insert_grid(node, gle, gre, grid_id, rank, size):
+    if not should_i_build(node, rank, size):
+        return
+
+    # If we should continue to split based on parallelism, do so!
+    if should_i_split(node, rank, size):
+        geo_split(node, gle, gre, grid_id, rank, size)
+        return
+
+    if np.all(gle <= node.left_edge) and \
+            np.all(gre >= node.right_edge):
+        node.grid = grid_id
+        assert(node.grid is not None)
+        return
+
+    # Split the grid
+    check = split_grid(node, gle, gre, grid_id, rank, size)
+    # If check is -1, then we have found a place where there are no choices.
+    # Exit out and set the node to None.
+    if check == -1:
+        node.grid = None
+    return
+
+
 def add_grids(node, gles, gres, gids, rank, size):
     if not should_i_build(node, rank, size):
         return
@@ -74,8 +117,35 @@ def add_grids(node, gles, gres, gids, rank, size):
             add_grids(node.right, gles[greater_ids], gres[greater_ids],
                       gids[greater_ids], rank, size)
 
+
 def should_i_split(node, rank, size):
     return node.id < size
+
+
+def geo_split_grid(node, gle, gre, grid_id, rank, size):
+    big_dim = np.argmax(gre-gle)
+    new_pos = (gre[big_dim] + gle[big_dim])/2.
+    old_gre = gre.copy()
+    new_gle = gle.copy()
+    new_gle[big_dim] = new_pos
+    gre[big_dim] = new_pos
+
+    split = Split(big_dim, new_pos)
+
+    # Create a Split
+    divide(node, split)
+
+    # Populate Left Node
+    #print 'Inserting left node', node.left_edge, node.right_edge
+    insert_grid(node.left, gle, gre,
+                grid_id, rank, size)
+
+    # Populate Right Node
+    #print 'Inserting right node', node.left_edge, node.right_edge
+    insert_grid(node.right, new_gle, old_gre,
+                grid_id, rank, size)
+    return
+
 
 def geo_split(node, gles, gres, grid_ids, rank, size):
     big_dim = np.argmax(gres[0]-gles[0])
@@ -127,6 +197,39 @@ def insert_grids(node, gles, gres, grid_ids, rank, size):
     if check == -1:
         node.grid = None
     return
+
+def split_grid(node, gle, gre, grid_id, rank, size):
+    # Find a Split
+    data = np.array([(gle[:], gre[:])],  copy=False)
+    best_dim, split_pos, less_id, greater_id = \
+        kdtree_get_choices(data, node.left_edge, node.right_edge)
+
+    # If best_dim is -1, then we have found a place where there are no choices.
+    # Exit out and set the node to None.
+    if best_dim == -1:
+        return -1
+
+    split = Split(best_dim, split_pos)
+
+    del data, best_dim, split_pos
+
+    # Create a Split
+    divide(node, split)
+
+    # Populate Left Node
+    #print 'Inserting left node', node.left_edge, node.right_edge
+    if less_id:
+        insert_grid(node.left, gle, gre,
+                     grid_id, rank, size)
+
+    # Populate Right Node
+    #print 'Inserting right node', node.left_edge, node.right_edge
+    if greater_id:
+        insert_grid(node.right, gle, gre,
+                     grid_id, rank, size)
+
+    return
+
 
 def split_grids(node, gles, gres, grid_ids, rank, size):
     # Find a Split

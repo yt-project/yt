@@ -32,6 +32,7 @@ import types
 import __builtin__
 
 from matplotlib.mathtext import MathTextParser
+from matplotlib.font_manager import FontProperties
 from distutils import version
 from functools import wraps
 
@@ -222,8 +223,6 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
 
 class PlotWindow(object):
     r"""
-    PlotWindow(data_source, bounds, buff_size=(800,800), antialias = True)
-    
     A ploting mechanism based around the concept of a window into a
     data source. It can have arbitrary fields, each of which will be
     centered on the same viewpoint, but will have individual zlimits. 
@@ -248,6 +247,9 @@ class PlotWindow(object):
     antialias : boolean
         This can be true or false.  It determines whether or not sub-pixel
         rendering is used during data deposition.
+    window_size : float
+        The size of the window on the longest axis (in units of inches),
+        including the margins but not the colorbar.
 
     """
     _plot_valid = False
@@ -256,7 +258,7 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True, 
-                 periodic=True, origin='center-window', oblique=False, fontsize=15):
+                 periodic=True, origin='center-window', oblique=False, window_size=10.0):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf) 
@@ -268,12 +270,13 @@ class PlotWindow(object):
         self.oblique = oblique
         self.data_source = data_source
         self.buff_size = buff_size
+        self.window_size = window_size
         self.antialias = antialias
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        self.fontsize = fontsize
         if self.data_source.center is not None and oblique == False:
-            center = [self.data_source.center[i] for i in range(len(self.data_source.center)) if i != self.data_source.axis]
+            center = [self.data_source.center[i] for i in range(len(self.data_source.center)) 
+                      if i != self.data_source.axis]
             self.set_center(center)
         self._initfinished = True
 
@@ -524,6 +527,33 @@ class PlotWindow(object):
         self._vector_info = (skip, scale)
 
     @invalidate_data
+    def set_buff_size(self, size):
+        """Sets a new buffer size for the fixed resolution buffer
+
+        parameters
+        ----------
+        size : int or two element sequence of ints
+            The number of data elements in the buffer on the x and y axes.
+            If a scalar is provided,  then the buffer is assumed to be square.
+        """
+        if iterable(size):
+            self.buff_size = size
+        else:
+            self.buff_size = (size, size)
+            
+    @invalidate_plot
+    def set_window_size(self, size):
+        """Sets a new window size for the plot
+
+        parameters
+        ----------
+        size : float
+            The size of the window on the longest axis (in units of inches),
+            including the margins but not the colorbar.
+        """
+        self.window_size = float(size)
+
+    @invalidate_data
     def refresh(self):
         # invalidate_data will take care of everything
         pass
@@ -615,8 +645,8 @@ class PWViewer(PlotWindow):
             the new maximum of the colormap scale. If 'max', will
             set to the maximum value in the current view.
 
-        Keyword Parameters
-        ------------------
+        Other Parameters
+        ----------------
         dyanmic_range : float (default: None)
             The dynamic range of the image.
             If zmin == None, will set zmin = zmax / dynamic_range
@@ -772,6 +802,9 @@ class PWViewerMPL(PWViewer):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
+        font_size = kwargs.pop("fontsize", 18)
+        font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
+        self._font_properties = FontProperties(size=font_size, fname=font_path)
         PWViewer.__init__(self, *args, **kwargs)
         
     def _setup_origin(self):
@@ -863,21 +896,22 @@ class PWViewerMPL(PWViewer):
             
             # This sets the size of the figure, and defaults to making one of the dimensions smaller.
             # This should protect against giant images in the case of a very large aspect ratio.
-            norm_size = 10.0
             cbar_frac = 0.0
             if plot_aspect > 1.0:
-                size = (norm_size*(1.+cbar_frac), norm_size/plot_aspect)
+                size = (self.window_size*(1.+cbar_frac), self.window_size/plot_aspect)
             else:
-                size = (plot_aspect*norm_size*(1.+cbar_frac), norm_size)
+                size = (plot_aspect*self.window_size*(1.+cbar_frac), self.window_size)
 
             # Correct the aspect ratio in case unit_x and unit_y are different
             aspect = self.pf[unit_x]/self.pf[unit_y]
             
             image = self._frb[f]
 
+            fp = self._font_properties
+
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name, 
                                           self._colormaps[f], extent, aspect, 
-                                          zlim, size)
+                                          zlim, size, fp.get_size())
 
             self.plots[f].cb = self.plots[f].figure.colorbar(
                 self.plots[f].image, cax = self.plots[f].cax)
@@ -894,10 +928,12 @@ class PWViewerMPL(PWViewer):
                 labels = [r'$\rm{'+axis_labels[axis_index][i]+
                           axes_unit_labels[i] + r'}$' for i in (0,1)]
 
-            self.plots[f].axes.set_xlabel(labels[0],fontsize=self.fontsize)
-            self.plots[f].axes.set_ylabel(labels[1],fontsize=self.fontsize)
+            self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
+            self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
 
-            self.plots[f].axes.tick_params(labelsize=self.fontsize)
+            for label in (self.plots[f].axes.get_xticklabels() + 
+                          self.plots[f].axes.get_yticklabels()):
+                label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
 
@@ -907,9 +943,10 @@ class PWViewerMPL(PWViewer):
             except ParseFatalException, err:
                 raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
                 
-            self.plots[f].cb.set_label(colorbar_label, fontsize=self.fontsize)
+            self.plots[f].cb.set_label(colorbar_label, fontproperties=fp)
 
-            self.plots[f].cb.ax.tick_params(labelsize=self.fontsize)
+            for label in self.plots[f].cb.ax.get_yticklabels():
+                label.set_fontproperties(fp)
 
             self.run_callbacks(f)
 
@@ -927,6 +964,36 @@ class PWViewerMPL(PWViewer):
                 del self._frb[key]
 
     @invalidate_plot
+    def set_font(self, font_dict=None):
+        """set the font and font properties
+
+        Parameters 
+        ---------- 
+        font_dict : dict 
+        A dict of keyword parameters to be passed to 
+        matplotlib.font_manager.FontProperties.  See the matplotlib font 
+        manager documentation for more details.
+        http://matplotlib.org/api/font_manager_api.html
+
+        Notes
+        -----
+        Mathtext axis labels will only obey the `size` keyword. 
+
+        Examples
+        --------
+        This sets the font to be 24-pt, sans-serif, italic, and bold-face.
+
+        >>> slc = SlicePlot(pf, 'x', 'Density')
+        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
+                          'weight':'bold', 'size':24})
+        
+        """
+        if font_dict is None:
+            font_dict = {}
+        self._font_properties = \
+            FontProperties(**font_dict)
+
+    @invalidate_plot
     def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
 
@@ -942,7 +1009,7 @@ class PWViewerMPL(PWViewer):
         if field == 'all':
             fields = self.plots.keys()
         else:
-            fields = self.data_source._determine_fields([field])
+            fields = [field]
 
         for field in fields:
             self._colorbar_valid = False
@@ -996,12 +1063,12 @@ class PWViewerMPL(PWViewer):
                 n = "%s_%s_%s" % (name, type, k)
             if weight:
                 n += "_%s" % (weight)
-            names.append(v.save(n, mpl_kwargs))
+            names.append(v.save(n,mpl_kwargs))
         return names
 
     def _send_zmq(self):
         try:
-            # pre-IPython v0.14
+            # pre-IPython v0.14        
             from IPython.zmq.pylab.backend_inline import send_figure as display
         except ImportError:
             # IPython v0.14+ 
@@ -1137,7 +1204,7 @@ class SlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=15, field_parameters=None):
+                 origin='center-window', fontsize=18, field_parameters=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(pf) 
         self.ts = ts
@@ -1150,7 +1217,8 @@ class SlicePlot(PWViewerMPL):
         slc = pf.h.slice(axis, center[axis],
             field_parameters = field_parameters)
         slc.get_data(fields)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin,
+                             fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1254,7 +1322,7 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window', fontsize=15, 
+                 weight_field=None, max_level=None, origin='center-window', fontsize=18, 
                  field_parameters=None):
         ts = self._initialize_dataset(pf) 
         self.ts = ts
@@ -1266,7 +1334,8 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
                          center=center, field_parameters = field_parameters)
-        PWViewerMPL.__init__(self,proj,bounds,origin=origin)
+        PWViewerMPL.__init__(self,proj,bounds,origin=origin,
+                             fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1311,11 +1380,12 @@ class OffAxisSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived fields.
     """
+
     _plot_type = 'OffAxisSlice'
     _frb_generator = ObliqueFixedResolutionBuffer
 
     def __init__(self, pf, normal, fields, center='c', width=None, 
-                 axes_unit=None, north_vector=None, fontsize=15,
+                 axes_unit=None, north_vector=None, fontsize=18,
                  field_parameters=None):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf)
         if axes_unit is None and units != ('1', '1'):
@@ -1326,7 +1396,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True)
+        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True,
+                             fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
@@ -1413,6 +1484,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
         set, an arbitrary grid-aligned north-vector is chosen.
+    fontsize : integer
+         The size of the fonts for the axis, colorbar, and tick labels.
 
     """
     _plot_type = 'OffAxisProjection'
@@ -1421,7 +1494,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=None, 
                  depth=(1, '1'), axes_unit=None, weight_field=None, 
                  max_level=None, north_vector=None, volume=None, no_ghost=False, 
-                 le=None, re=None, interpolated=False, fontsize=15):
+                 le=None, re=None, interpolated=False, fontsize=18):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
         if axes_unit is None and units != ('1', '1', '1'):
             axes_unit = units[:2]
@@ -1432,7 +1505,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
                                                        le=le, re=re, north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,OffAxisProj,bounds,origin='center-window',periodic=False,oblique=True)
+        PWViewerMPL.__init__(self, OffAxisProj, bounds, origin='center-window', periodic=False,
+                             oblique=True, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 _metadata_template = """
@@ -1609,8 +1683,8 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size):
-        fsize, axrect, caxrect = self._get_best_layout(size)
+    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size, fontsize):
+        fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
@@ -1622,17 +1696,18 @@ class WindowPlotMPL(ImagePlotMPL):
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
 
-    def _get_best_layout(self, size):
+    def _get_best_layout(self, size, fontsize=18):
         aspect = 1.0*size[0]/size[1]
+        fontscale = fontsize / 18.0
 
         # add room for a colorbar
-        cbar_inches = 0.7
+        cbar_inches = fontscale*0.7
         newsize = [size[0] + cbar_inches, size[1]]
         
         # add buffers for text, and a bit of whitespace on top
-        text_buffx = 1.0/(newsize[0])
-        text_bottomy = 0.7/size[1]
-        text_topy = 0.3/size[1]
+        text_buffx = fontscale * 1.0/(newsize[0])
+        text_bottomy = fontscale * 0.7/size[1]
+        text_topy = fontscale * 0.3/size[1]
 
         # calculate how much room the colorbar takes
         cbar_frac = cbar_inches/newsize[0] 

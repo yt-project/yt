@@ -41,6 +41,11 @@ from yt.utilities.definitions import \
     y_dict, y_names, \
     axis_names, \
     axis_labels
+from yt.utilities.physical_constants import \
+    sec_per_Gyr, sec_per_Myr, \
+    sec_per_kyr, sec_per_year, \
+    sec_per_day, sec_per_hr
+
 import _MPL
 
 callback_registry = {}
@@ -357,23 +362,30 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.pf.h.grid_left_edge
         GRE = plot.data.pf.h.grid_right_edge
+        grid_levels = plot.data.pf.h.grid_levels[:,0]
+        min_level = self.min_level
+        max_level = self.min_level
+        if min_level is None:
+            min_level = 0
+        if max_level is None
+            max_level = plot.data.pf.h.max_level
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
-            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx + xx0
-            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy + yy0
-            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx + xx0
-            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            left_edge_x = (GLE[:,px_index]+pxo-x0)*dx + xx0
+            left_edge_y = (GLE[:,py_index]+pyo-y0)*dy + yy0
+            right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
+            right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
+                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
+                       ( grid_levels >= min_level) & \
+                       ( grid_levels <= max_level)
+            if visible.nonzero()[0].size == 0: continue
             verts = np.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-            visible =  (right_edge_px - left_edge_px > self.min_pix) & \
-                       (right_edge_px - left_edge_px > self.min_pix)
+                [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
+                 (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
-            if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
-            verts[:,:,0]= (xx1-xx0)*(verts[:,:,0]/width) + xx0
-            verts[:,:,1]= (yy1-yy0)*(verts[:,:,1]/height) + yy0
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
                 edgecolors=edgecolors)
@@ -666,20 +678,19 @@ class ClumpContourCallback(PlotCallback):
         DomainRight = plot.data.pf.domain_right_edge
         DomainLeft = plot.data.pf.domain_left_edge
         DomainWidth = DomainRight - DomainLeft
-        
+
         nx, ny = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.debug("Pixelizing contour %s", i)
 
-
             xf_copy = clump[xf].copy()
             yf_copy = clump[yf].copy()
-            
-            temp = _MPL.Pixelize(xf_copy, yf_copy, 
-                                 clump['dx']/2.0,
-                                 clump['dy']/2.0,
-                                 clump['dx']*0.0+i+1, # inits inside Pixelize
+
+            temp = _MPL.Pixelize(xf_copy, yf_copy,
+                                 clump[dxf]/2.0,
+                                 clump[dyf]/2.0,
+                                 clump[dxf]*0.0+i+1, # inits inside Pixelize
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
@@ -1198,15 +1209,18 @@ class TimestampCallback(PlotCallback):
           'min': 60.0,
           'minute': 60.0,
           'minutes': 60.0,
-          'h': 3600.0,
-          'hour': 3600.0,
-          'hours': 3600.0,
-          'd': 86400.0,
-          'day': 86400.0,
-          'days': 86400.0,
-          'y': 86400.0*365.25,
-          'year': 86400.0*365.25,
-          'years': 86400.0*365.25,
+          'h': sec_per_hr,
+          'hour': sec_per_hr,
+          'hours': sec_per_hr,
+          'd': sec_per_day,
+          'day': sec_per_day,
+          'days': sec_per_day,
+          'y': sec_per_year,
+          'year': sec_per_year,
+          'years': sec_per_year,
+          'kyr': sec_per_kyr,
+          'myr': sec_per_Myr,
+          'gyr': sec_per_Gyr,
           'ev': 1e-9 * 7.6e-8 / 6.03,
           'kev': 1e-12 * 7.6e-8 / 6.03,
           'mev': 1e-15 * 7.6e-8 / 6.03,
@@ -1224,13 +1238,14 @@ class TimestampCallback(PlotCallback):
             self.bbox_dict = bbox_dict
         else:
             self.bbox_dict = self._bbox_dict
-        self.kwargs = {'color': 'w'}
+        self.kwargs = {'color': 'k'}
         self.kwargs.update(kwargs)
 
     def __call__(self, plot):
         if self.units is None:
             t = plot.data.pf.current_time * plot.data.pf['Time']
-            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's']
+            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's', 
+                          'hour', 'day', 'year', 'kyr', 'myr', 'gyr']
             self.units = 's'
             for k in scale_keys:
                 if t < self._time_conv[k]:
@@ -1270,7 +1285,7 @@ class MaterialBoundaryCallback(ContourCallback):
     def __init__(self, field='targ', ncont=1, factor=4, clim=(0.9, 1.0), **kwargs):
         plot_args = {'colors': 'w'}
         plot_args.update(kwargs)
-        super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont, 
+        super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont,
                                                        factor=factor, clim=clim,
                                                        plot_args=plot_args)
 
