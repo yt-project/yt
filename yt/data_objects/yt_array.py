@@ -239,7 +239,7 @@ class YTArray(np.ndarray):
         different units, we always use the units on the left.
 
         """
-        if isinstance(right_object, Quantity):  # make sure it's a quantity before we check units attribute
+        if isinstance(right_object, YTArray):  # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(right_object.units):
                 raise Exception("You cannot add these quantities because their dimensions do not match. `%s - %s` is ill-defined" % (self.units, right_object.units))
         else:  
