@@ -48,97 +48,107 @@ add_field = OrionFieldInfo.add_field
 
 add_orion_field("density", function=NullFunc, take_log=True,
                 validators = [ValidateDataField("density")],
-                units=r"\rm{g}/\rm{cm}^3")
-KnownOrionFields["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+                units="g/cm**3")
 
 add_orion_field("eden", function=NullFunc, take_log=True,
                 validators = [ValidateDataField("eden")],
-                units=r"\rm{erg}/\rm{cm}^3")
+                units="erg/cm**3")
 
 add_orion_field("xmom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("xmom")],
-                units=r"\rm{g}/\rm{cm^2\ s}")
+                units="g/cm**2/s")
 
 add_orion_field("ymom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("ymom")],
-                units=r"\rm{gm}/\rm{cm^2\ s}")
+                units="g/cm**2/s")
 
 add_orion_field("zmom", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("zmom")],
-                units=r"\rm{g}/\rm{cm^2\ s}")
+                units="g/cm**2/s")
 
-translation_dict = {"x-velocity": "xvel",
-                    "y-velocity": "yvel",
-                    "z-velocity": "zvel",
-                    "Density": "density",
-                    "TotalEnergy": "eden",
-                    "Temperature": "temperature",
-                    "x-momentum": "xmom",
-                    "y-momentum": "ymom",
-                    "z-momentum": "zmom"
-                   }
+translation_dict = {
+    "x-velocity": "xvel",
+    "y-velocity": "yvel",
+    "z-velocity": "zvel",
+    "Density": "density",
+    "TotalEnergy": "eden",
+    "Temperature": "temperature",
+    "x-momentum": "xmom",
+    "y-momentum": "ymom",
+    "z-momentum": "zmom"
+}
 
 for f,v in translation_dict.items():
     if v not in KnownOrionFields:
         add_orion_field(v, function=NullFunc, take_log=False,
-                  validators = [ValidateDataField(v)])
+                        validators=[ValidateDataField(v)])
     ff = KnownOrionFields[v]
     add_field(f, TranslationFunc(v),
               take_log=KnownOrionFields[v].take_log,
-              units = ff._units, display_name=f)
+              units=ff.units, display_name=f)
 
 def _xVelocity(field, data):
-    """generate x-velocity from x-momentum and density
-    
     """
-    return data["xmom"]/data["density"]
-add_orion_field("x-velocity",function=_xVelocity, take_log=False,
-                units=r'\rm{cm}/\rm{s}')
+    generate x-velocity from x-momentum and density
+
+    """
+    return data["xmom"] / data["density"]
+
+add_orion_field("x-velocity", function=_xVelocity, take_log=False,
+                units="cm/s")
 
 def _yVelocity(field,data):
-    """generate y-velocity from y-momentum and density
+    """
+    generate y-velocity from y-momentum and density
 
     """
     #try:
     #    return data["xvel"]
     #except KeyError:
-    return data["ymom"]/data["density"]
-add_orion_field("y-velocity",function=_yVelocity, take_log=False,
-                units=r'\rm{cm}/\rm{s}')
+    return data["ymom"] / data["density"]
+
+add_orion_field("y-velocity", function=_yVelocity, take_log=False,
+                units="cm/s")
 
 def _zVelocity(field,data):
-    """generate z-velocity from z-momentum and density
-    
     """
-    return data["zmom"]/data["density"]
-add_orion_field("z-velocity",function=_zVelocity, take_log=False,
-                units=r'\rm{cm}/\rm{s}')
+    generate z-velocity from z-momentum and density
+
+    """
+    return data["zmom"] / data["density"]
+
+add_orion_field("z-velocity", function=_zVelocity, take_log=False,
+                units="cm/s")
 
 def _ThermalEnergy(field, data):
-    """generate thermal (gas energy). Dual Energy Formalism was
-        implemented by Stella, but this isn't how it's called, so I'll
-        leave that commented out for now.
+    """
+    generate thermal (gas energy). Dual Energy Formalism was implemented by
+    Stella, but this isn't how it's called, so I'll leave that commented out
+    for now.
     """
     #if data.pf["DualEnergyFormalism"]:
     #    return data["GasEnergy"]
     #else:
-    return data["TotalEnergy"] - 0.5 * data["density"] * (
-        data["x-velocity"]**2.0
-        + data["y-velocity"]**2.0
-        + data["z-velocity"]**2.0 )
-add_field("ThermalEnergy", function=_ThermalEnergy,
-                units=r"\rm{ergs}/\rm{cm^3}")
+    return ( data["TotalEnergy"]
+             - 0.5 * data["density"] * (   data["x-velocity"]**2
+                                         + data["y-velocity"]**2
+                                         + data["z-velocity"]**2 ) )
+
+add_field("ThermalEnergy", function=_ThermalEnergy, units="erg/cm**3")
 
 def _Pressure(field,data):
     """M{(Gamma-1.0)*e, where e is thermal energy density
        NB: this will need to be modified for radiation
     """
-    return (data.pf.gamma - 1.0)*data["ThermalEnergy"]
-add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
+    return (data.pf["Gamma"] - 1.0)*data["ThermalEnergy"]
+
+add_field("Pressure", function=_Pressure, units="dyne/cm**2")
 
 def _Temperature(field,data):
-    return (data.pf.gamma-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
-add_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
+    return ( (data.pf["Gamma"]-1.0) * data.pf["mu"] * mh *
+             data["ThermalEnergy"] / (kboltz * data["Density"]) )
+
+add_field("Temperature", function=_Temperature, units="K", take_log=False)
 
 # particle fields
 
@@ -152,7 +162,7 @@ def particle_func(p_field, dtype='float64'):
 
     return _Particles
 
-_particle_field_list = ["mass", 
+_particle_field_list = ["mass",
                         "position_x",
                         "position_y",
                         "position_z",
@@ -172,5 +182,5 @@ _particle_field_list = ["mass",
 for pf in _particle_field_list:
     pfunc = particle_func("particle_%s" % (pf))
     add_field("particle_%s" % pf, function=pfunc,
-              validators = [ValidateSpatial(0)],
+              validators=[ValidateSpatial(0)],
               particle_type=True)
