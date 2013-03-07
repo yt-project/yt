@@ -367,7 +367,7 @@ class GridBoundaryCallback(PlotCallback):
         max_level = self.min_level
         if min_level is None:
             min_level = 0
-        if max_level is None
+        if max_level is None:
             max_level = plot.data.pf.h.max_level
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
