@@ -303,8 +303,6 @@ class ARTStaticOutput(StaticOutput):
         self.cosmological_simulation = True
         self.conversion_factors = cf
         
-        for particle_field in particle_fields:
-            self.conversion_factors[particle_field] =  1.0
         for ax in 'xyz':
             self.conversion_factors["%s-velocity" % ax] = 1.0
         for unit in sec_conversion.keys():

@@ -124,6 +124,7 @@ class IOHandlerART(BaseIOHandler):
                 if field not in tr.keys():
                     tr[field] = np.zeros(npa,dtype='f8')
                 tr[field][stara:starb] = temp
+                print "masses in io.py: ", tr[field]
                 del temp
             tr[field]=tr[field][mask]
         return tr
