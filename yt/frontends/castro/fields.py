@@ -121,7 +121,7 @@ def _ThermalEnergy(field, data):
         + data["z-velocity"]**2.0 )
 
 add_field("ThermalEnergy", function=_ThermalEnergy,
-          units="ergs/cm**3")
+          units="erg/cm**3")
 
 def _Pressure(field, data):
     """
