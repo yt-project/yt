@@ -607,10 +607,9 @@ class NyxStaticOutput(StaticOutput):
                 self.use_particles = boxlib_bool_to_int(vals[0])
             elif param.startswith("nyx.lo_bc"):
                 self.periodicity = ensure_tuple([i == 0 for i in vals])
-            elif param.startswith("materials.gamma"):
-                self.gamma = float(vals)
-
+            
         # aliases we need
+        self.gamma = self.parameters["Gamma"]
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
