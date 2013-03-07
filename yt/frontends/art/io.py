@@ -84,17 +84,17 @@ class IOHandlerART(BaseIOHandler):
             ftype,fname = field
             for i,ax in enumerate('xyz'):
                 if fname.startswith("particle_position_%s"%ax):
-                    tr[field]=pos[:,i][mask]
+                    tr[field]=pos[:,i]
                 if fname.startswith("particle_velocity_%s"%ax):
-                    tr[field]=vel[:,i][mask]
+                    tr[field]=vel[:,i]
             if fname == "particle_mass":
                 a=0
                 data = np.zeros(npa,dtype='float64')
                 for b,m in zip(ls,ws):
                     data[a:b]=(np.ones(b-a,dtype='float64')*m)
                     a=b
-                tr[field]=data[mask]
                 #the stellar masses will be updated later
+                tr[field] = data
             elif fname == "particle_index":
                 tr[field]=np.arange(npa)[mask].astype('int64')
             elif fname == "particle_type":
@@ -103,7 +103,7 @@ class IOHandlerART(BaseIOHandler):
                 for i,(b,m) in enumerate(zip(ls,ws)):
                     data[a:b]=(np.ones(b-a,dtype='int64')*i)
                     a=b
-                tr[field]=data[mask]
+                tr[field] = data
             if fname in particle_star_fields:
                 #we possibly update and change the masses here
                 #all other fields are read in and changed once
@@ -121,10 +121,11 @@ class IOHandlerART(BaseIOHandler):
                         self.interp_tb,self.interp_ages = b2t(temp)
                     temp = np.interp(temp,self.interp_tb,self.interp_ages)
                     temp *= 1.0e9*365*24*3600
-                data = np.zeros(npa,dtype="float64")
-                data[stara:starb] = temp
+                if field not in tr.keys():
+                    tr[field] = np.zeros(npa,dtype='f8')
+                tr[field][stara:starb] = temp
                 del temp
-                tr[field]=data[mask]
+            tr[field]=tr[field][mask]
         return tr
 
 
