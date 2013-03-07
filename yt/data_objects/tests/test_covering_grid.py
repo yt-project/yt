@@ -35,9 +35,9 @@ def test_smoothed_covering_grid():
             dn = pf.refine_by**level 
             cg = pf.h.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
                     dn * pf.domain_dimensions)
-            assert_equal( cg["Ones"].max(), 1.0)
-            assert_equal( cg["Ones"].min(), 1.0)
-            assert_equal( cg["CellVolume"].sum(), pf.domain_width.prod())
+            yield assert_equal, cg["Ones"].max(), 1.0
+            yield assert_equal, cg["Ones"].min(), 1.0
+            yield assert_equal, cg["CellVolume"].sum(), pf.domain_width.prod()
             for g in pf.h.grids:
                 if level != g.Level: continue
                 di = g.get_global_startindex()
