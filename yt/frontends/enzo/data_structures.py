@@ -837,6 +837,7 @@ class EnzoStaticOutput(StaticOutput):
             self.periodicity += (False, False)
 
         self.current_time = self.parameters["InitialTime"]
+        self.gamma = self.parameters["Gamma"]
         # To be enabled when we can break old pickles:
         #if "MetaDataSimulationUUID" in self.parameters:
         #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
