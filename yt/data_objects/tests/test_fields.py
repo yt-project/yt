@@ -26,11 +26,11 @@ _base_fields = ["Density", "x-velocity", "y-velocity", "z-velocity"]
 def realistic_pf(fields, nprocs):
     pf = fake_random_pf(16, fields = fields, nprocs = nprocs)
     pf.parameters["HydroMethod"] = "streaming"
-    pf.parameters["Gamma"] = 5.0/3.0
     pf.parameters["EOSType"] = 1.0
     pf.parameters["EOSSoundSpeed"] = 1.0
     pf.conversion_factors["Time"] = 1.0
     pf.conversion_factors.update( dict((f, 1.0) for f in fields) )
+    pf.gamma = 5.0/3.0
     pf.current_redshift = 0.0001
     pf.hubble_constant = 0.7
     for unit in mpc_conversion:

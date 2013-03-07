@@ -297,7 +297,10 @@ class ChomboStaticOutput(StaticOutput):
                 paramName = pluto2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
-                    self.parameters[paramName] = t[0]
+                    if paramName == "GAMMA":
+                        self.gamma = t[0]
+                    else:
+                        self.parameters[paramName] = t[0]
                 else:
                     if paramName == "RefineBy":
                         self.parameters[paramName] = t[0]

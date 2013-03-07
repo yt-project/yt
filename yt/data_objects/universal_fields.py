@@ -105,7 +105,7 @@ def _SoundSpeed(field, data):
     if data.pf["EOSType"] == 1:
         return np.ones(data["Density"].shape, dtype='float64') * \
                 data.pf["EOSSoundSpeed"]
-    return ( data.pf["Gamma"]*data["Pressure"] / \
+    return ( data.pf.gamma*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
 add_field("SoundSpeed", function=_SoundSpeed,
           units=r"\rm{cm}/\rm{s}")
@@ -165,7 +165,7 @@ add_field("TangentialOverVelocityMagnitude",
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
-    return (data.pf["Gamma"] - 1.0) * \
+    return (data.pf.gamma - 1.0) * \
            data["Density"] * data["ThermalEnergy"]
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
@@ -175,7 +175,7 @@ def _Entropy(field, data):
     else :
         mw = mh
     return kboltz * data["Temperature"] / \
-           ((data["Density"]/mw)**(data.pf["Gamma"] - 1.0))
+           ((data["Density"]/mw)**(data.pf.gamma - 1.0))
 add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
 

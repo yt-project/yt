@@ -239,6 +239,7 @@ class GDFStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
+        self.gamma = 5./3.
         self.parameters['Time'] = 1.0 # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
         self._handle.close()

@@ -551,6 +551,8 @@ class OrionStaticOutput(StaticOutput):
                     np.array([float(i) for i in vals.split()])
             elif param.startswith("Prob.lo_bc"):
                 self.periodicity = ensure_tuple([i == 0 for i in vals])
+            elif param.startswith("materials.gamma"):
+                self.gamma = float(vals)
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]

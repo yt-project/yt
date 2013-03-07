@@ -140,13 +140,13 @@ def _pressure(field, data):
     when radiation is accounted for.
 
     """
-    return (data.pf["Gamma"] - 1.0) * data["ThermalEnergy"]
+    return (data.pf.gamma - 1.0) * data["ThermalEnergy"]
 add_field("Pressure", function=_pressure,
           units=r"\rm{M_{\odot}} (\rm{km} / \rm{s})^2 / \rm{Mpc}^3")
 
 # Gas temperature
 def _temperature(field, data):
-    return ((data.pf["Gamma"] - 1.0) * data.pf["mu"] * mh *
+    return ((data.pf.gamma - 1.0) * data.pf["mu"] * mh *
             data["ThermalEnergy"] / (kboltz * data["Density"]))
 add_field("Temperature", function=_temperature, take_log=False,
           units=r"\rm{Kelvin}")

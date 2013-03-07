@@ -455,7 +455,7 @@ class FLASHStaticOutput(StaticOutput):
 
         # Try to determine Gamma
         try:
-            self.parameters["Gamma"] = self.parameters["gamma"]
+            self.gamma = self.parameters["gamma"]
         except:
             mylog.warning("Cannot find Gamma")
             pass

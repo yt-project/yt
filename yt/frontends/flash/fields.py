@@ -281,14 +281,14 @@ def _ThermalEnergy(fields, data) :
     except:
         pass
     try:
-        return data["Pressure"] / (data.pf["Gamma"] - 1.0) / data["Density"]
+        return data["Pressure"] / (data.pf.gamma - 1.0) / data["Density"]
     except:
         pass
     if data.has_field_parameter("mu") :
         mu = data.get_field_parameter("mu")
     else:
         mu = 0.6
-    return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf["Gamma"] - 1.0)
+    return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf.gamma - 1.0)
     
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{g}")

@@ -219,6 +219,7 @@ class OWLSStaticOutput(StaticOutput):
         self.omega_lambda = hvals["OmegaLambda"]
         self.omega_matter = hvals["Omega0"]
         self.hubble_constant = hvals["HubbleParam"]
+        self.gamma = 5./3.
         self.parameters = hvals
 
         prefix = self.parameter_filename.split(".", 1)[0]

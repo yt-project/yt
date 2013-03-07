@@ -133,11 +133,11 @@ def _Pressure(field,data):
     """M{(Gamma-1.0)*e, where e is thermal energy density
        NB: this will need to be modified for radiation
     """
-    return (data.pf["Gamma"] - 1.0)*data["ThermalEnergy"]
+    return (data.pf.gamma - 1.0)*data["ThermalEnergy"]
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Temperature(field,data):
-    return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
+    return (data.pf.gamma-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["Density"])
 add_field("Temperature",function=_Temperature,units=r"\rm{Kelvin}",take_log=False)
 
 # particle fields

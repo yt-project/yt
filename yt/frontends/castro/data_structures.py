@@ -583,7 +583,10 @@ class CastroStaticOutput(StaticOutput):
             self._parse_fparameter_file()
             for param in self.fparameters:
                 if castro2enzoDict.has_key(param):
-                    self.parameters[castro2enzoDict[param]] = self.fparameters[param]
+                    if param == 'materials.gamma':
+                        self.gamma = self.fparameters[param]
+                    else:
+                        self.parameters[castro2enzoDict[param]] = self.fparameters[param]
 
         # Let's read the file
         self.unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
