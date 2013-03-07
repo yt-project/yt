@@ -59,26 +59,23 @@ add_field = CastroFieldInfo.add_field
 
 # Start adding fields
 add_castro_field("density", function=NullFunc, take_log=True,
-                 units=r"\rm{g}/\rm{cm}^3")
-
-# fix projected units
-KnownCastroFields["density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+                 units="g/cm**3")
 
 add_castro_field("eden", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("eden")],
-                 units=r"\rm{erg}/\rm{cm}^3")
+                 units="erg/cm**3")
 
 add_castro_field("xmom", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("xmom")],
-                 units=r"\rm{g}/\rm{cm^2\ s}")
+                 units="g/cm**2/s")
 
 add_castro_field("ymom", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("ymom")],
-                 units=r"\rm{gm}/\rm{cm^2\ s}")
+                 units="g/cm**2/s")
 
 add_castro_field("zmom", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("zmom")],
-                 units=r"\rm{g}/\rm{cm^2\ s}")
+                 units="g/cm**2/s")
 
 # Now populate derived fields
 for mine, theirs in translation_dict.items():
@@ -92,21 +89,21 @@ def _xVelocity(field, data):
     return data["xmom"] / data["density"]
 
 add_field("x-velocity", function=_xVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
+          units='cm/s')
 
 def _yVelocity(field, data):
     """ Generate y-velocity from y-momentum and density. """
     return data["ymom"] / data["density"]
 
 add_field("y-velocity", function=_yVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
+          units='cm/s')
 
 def _zVelocity(field, data):
     """ Generate z-velocity from z-momentum and density. """
     return data["zmom"] / data["density"]
 
 add_field("z-velocity", function=_zVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
+          units='cm/s')
 
 def _ThermalEnergy(field, data):
     """
@@ -124,7 +121,7 @@ def _ThermalEnergy(field, data):
         + data["z-velocity"]**2.0 )
 
 add_field("ThermalEnergy", function=_ThermalEnergy,
-          units=r"\rm{ergs}/\rm{cm^3}")
+          units="ergs/cm**3")
 
 def _Pressure(field, data):
     """
@@ -135,13 +132,13 @@ def _Pressure(field, data):
     """
     return (data.pf["Gamma"] - 1.0) * data["ThermalEnergy"]
 
-add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
+add_field("Pressure", function=_Pressure, units="dyne/cm**2")
 
 def _Temperature(field, data):
     return ((data.pf["Gamma"] - 1.0) * data.pf["mu"] * mh *
             data["ThermalEnergy"] / (kboltz * data["Density"]))
 
-add_field("Temperature", function=_Temperature, units=r"\rm{Kelvin}",
+add_field("Temperature", function=_Temperature, units="K",
           take_log=False)
 
 def _convertParticleMassMsun(data):
