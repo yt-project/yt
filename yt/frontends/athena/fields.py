@@ -55,30 +55,24 @@ add_field = AthenaFieldInfo.add_field
 KnownAthenaFields = FieldInfoContainer()
 add_athena_field = KnownAthenaFields.add_field
 
-add_athena_field("density", function=NullFunc, take_log=False,
-          units=r"",
-          projected_units =r"")
+add_athena_field("density", function=NullFunc, take_log=False)
 
-add_athena_field("pressure", function=NullFunc, take_log=False,
-          units=r"")
+add_athena_field("pressure", function=NullFunc, take_log=False)
 
-add_athena_field("velocity_x", function=NullFunc, take_log=False,
-          units=r"")
+add_athena_field("velocity_x", function=NullFunc, take_log=False)
 
-add_athena_field("velocity_y", function=NullFunc, take_log=False,
-          units=r"")
+add_athena_field("velocity_y", function=NullFunc, take_log=False)
 
-add_athena_field("velocity_z", function=NullFunc, take_log=False,
-          units=r"")
+add_athena_field("velocity_z", function=NullFunc, take_log=False)
 
 add_athena_field("cell_centered_B_x", function=NullFunc, take_log=False,
-          units=r"", display_name=r"$\rm{cell\/centered\/B_x}$")
+                 display_name=r"$\rm{cell\/centered\/B_x}$")
 
 add_athena_field("cell_centered_B_y", function=NullFunc, take_log=False,
-          units=r"", display_name=r"$\rm{cell\/centered\/B_y}$")
+                 display_name=r"$\rm{cell\/centered\/B_y}$")
 
 add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
-          units=r"", display_name=r"$\rm{cell\/centered\/B_z}$")
+                 display_name=r"$\rm{cell\/centered\/B_z}$")
 
 for f,v in log_translation_dict.items():
     add_field(f, TranslationFunc(v), take_log=True)
@@ -93,23 +87,23 @@ def _Temperature(fields, data):
         mu = 0.6
     return mu*mh*data["Pressure"]/data["Density"]/kboltz
 add_field("Temperature", function=_Temperature, take_log=False,
-          units=r"\rm{K}")
+          units="K")
 
 def _Bx(fields, data):
     factor = np.sqrt(4.*np.pi)
     return data['cell_centered_B_x']*factor
 add_field("Bx", function=_Bx, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_x")
+          units="gauss", display_name=r"B_x")
 
 def _By(fields, data):
     factor = np.sqrt(4.*np.pi)
     return data['cell_centered_B_y']*factor
 add_field("By", function=_By, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_y")
+          units="gauss", display_name=r"B_y")
 
 def _Bz(fields, data):
     factor = np.sqrt(4.*np.pi)
     return data['cell_centered_B_z']*factor
 add_field("Bz", function=_Bz, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_z")
+          units="gauss", display_name=r"B_z")
 
