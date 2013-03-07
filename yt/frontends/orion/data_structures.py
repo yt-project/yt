@@ -542,7 +542,6 @@ class OrionStaticOutput(StaticOutput):
                         self.parameters[paramName] = t[0]
                     else:
                         self.parameters[paramName] = t
-                
             elif param.startswith("geometry.prob_hi"):
                 self.domain_right_edge = \
                     np.array([float(i) for i in vals.split()])
@@ -550,10 +549,9 @@ class OrionStaticOutput(StaticOutput):
                 self.domain_left_edge = \
                     np.array([float(i) for i in vals.split()])
             elif param.startswith("Prob.lo_bc"):
-                self.periodicity = ensure_tuple([i == 0 for i in vals])
-            elif param.startswith("materials.gamma"):
-                self.gamma = float(vals)
-
+                self.periodicity = ensure_tuple([i == 0 for i in vals.split()])
+        
+        self.gamma = self.parameters["Gamma"]
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = np.array(self.parameters["TopGridDimensions"],dtype='int32')
