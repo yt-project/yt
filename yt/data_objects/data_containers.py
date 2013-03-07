@@ -38,6 +38,7 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.definitions import  x_dict, y_dict
@@ -193,12 +194,14 @@ class YTDataContainer(object):
         """
         if key not in self.field_data:
             if key in self._container_fields:
-                self.field_data[key] = self._generate_container_field(key)
+                self.field_data[key] = \
+                    YTArray(self._generate_container_field(key), input_units='1')
                 return self.field_data[key]
             else:
                 self.get_data(key)
         f = self._determine_fields(key)[0]
-        return self.field_data[f]
+        fi = self.pf._get_field_info(*f)
+        return YTArray(self.field_data[f], input_units=fi._units)
 
     def __setitem__(self, key, val):
         """

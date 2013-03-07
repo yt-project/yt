@@ -47,9 +47,6 @@ class YTArray(np.ndarray):
         if input_units is None:
             # Nothing provided. Make dimensionless...
             units = Unit()
-        else if isinstance(input_units, Unit):
-            # input_units is already a Unit, but let's be safe and make a copy.
-            units = copy.copy(input_units)
         else:
             # units kwarg set, but it's not a Unit object.
             # don't handle all the cases here, let the Unit class handle if
@@ -68,6 +65,18 @@ class YTArray(np.ndarray):
         if obj is None:
             return
         self.units = getattr(obj, 'units', None)
+
+    def __repr__(self):
+        """
+
+        """
+        return super(YTArray, self).__repr__()+' '+self.units.__repr__()
+
+    def __str__(self):
+        """
+
+        """
+        return super(YTArray, self).__str__()+' '+self.units.__str__()
 
     #
     # Start unit conversion methods
