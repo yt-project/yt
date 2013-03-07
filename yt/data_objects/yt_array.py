@@ -1,12 +1,12 @@
 """
-YTArray class
+YTArray class.
 
-Authors: Casey W. Stark <caseywstark@gmail.com>
+Author: Casey W. Stark <caseywstark@gmail.com>
 Affiliation: UC Berkeley
 
 Homepage: http://yt-project.org/
 License:
-    Copyright (C) 2013 Casey W. Stark.  All Rights Reserved.
+  Copyright (C) 2013 Casey W. Stark.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -22,6 +22,7 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 
 import copy
@@ -209,12 +210,12 @@ class YTArray(np.ndarray):
 
     def __radd__(self, left_object):
         """
-        Add this quantity to the object on the left of the `+` operator. Must
-        check for the correct (same dimension) units. If the quantities have
-        different units, we always use the units on the left.
+        Add this ytarray to the object on the left of the `+` operator. Must
+        check for the correct (same dimension) units.
 
         """
-        if isinstance(left_object, Quantity):  # make sure it's a quantity before we check units attribute
+        if isinstance(left_object, YTArray):
+            # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(left_object.units):
                 raise Exception("You cannot add these quantities because their dimensions do not match. `%s + %s` is ill-defined" % (left_object.units, self.units))
         else:  # the only way this works is with a float so...
@@ -460,6 +461,3 @@ class YTArray(np.ndarray):
         if self.data > right_object.get_data_in(self.units):
             return True
         return False
-
-
-
