@@ -4381,7 +4381,10 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                    color_field = None, color_map = "algae", 
                    color_log = True, plot_index = None):
         r"""This exports the surface to the OBJ format, suitable for visualization
-        in many different programs (e.g., Blender).
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
+        and an .mtl file, both with the general 'filename' as a prefix.  
+        The .obj file points to the .mtl file in its header, so if you move the 2 
+        files, make sure you change the .obj header to account for this.
 
         Parameters
         ----------
