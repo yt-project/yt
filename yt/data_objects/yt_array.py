@@ -282,7 +282,6 @@ class YTArray(np.ndarray):
 
         """
         if isinstance(right_object, YTArray):
-            print "new units: ", (self.units * right_object.units)
             return YTArray(super(YTArray, self).__mul__(right_object),
                            input_units=(self.units * right_object.units))
 
