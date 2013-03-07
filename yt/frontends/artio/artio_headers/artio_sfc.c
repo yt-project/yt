@@ -1,8 +1,9 @@
+#include "artio.h"
+#include "artio_internal.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "artio_internal.h"
 
 #define rollLeft(x,y,mask) ((x<<y) | (x>>(nDim-y))) & mask
 #define rollRight(x,y,mask) ((x>>y) | (x<<(nDim-y))) & mask

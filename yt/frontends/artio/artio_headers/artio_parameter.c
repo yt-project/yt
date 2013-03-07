@@ -5,13 +5,13 @@
  *      Author: Yongen Yu
  */
 
+#include "artio.h"
+#include "artio_internal.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
-#include "artio.h"
-#include "artio_internal.h"
 
 size_t artio_type_size(int type) {
 	size_t t_len=0;
@@ -19,21 +19,21 @@ size_t artio_type_size(int type) {
 	switch (type) {
 		case ARTIO_TYPE_STRING:
 		case ARTIO_TYPE_CHAR:
-			t_len = 1;
+			t_len = sizeof(char);
 			break;
-	case ARTIO_TYPE_INT:
+		case ARTIO_TYPE_INT:
 			t_len = sizeof(int32_t);
 			break;
-	case ARTIO_TYPE_FLOAT:
+		case ARTIO_TYPE_FLOAT:
 			t_len = sizeof(float);
 			break;
-	case ARTIO_TYPE_DOUBLE:
+		case ARTIO_TYPE_DOUBLE:
 			t_len = sizeof(double);
 			break;
-	case ARTIO_TYPE_LONG:
+		case ARTIO_TYPE_LONG:
 			t_len = sizeof(int64_t);
 			break;
-	default:
+		default:
 			t_len = (size_t)-1;
 			break;
 	}
@@ -184,7 +184,8 @@ parameter *artio_parameter_list_search(parameter_list * parameters, const char *
 
 int artio_parameter_list_insert(parameter_list * parameters, const char * key, 
 		int length, void *value, int type) {
-	int key_len, val_len = 0;
+	int key_len;
+	size_t val_len = 0;
 	parameter * item;
 
 	if ( length <= 0 ) {
@@ -243,6 +244,33 @@ int artio_parameter_list_unpack(parameter_list *parameters,
 		} else {
 			t_len = artio_type_size(type);
 			memcpy(value, item->value, item->val_length * t_len);
+		}
+	} else {
+		return ARTIO_ERR_PARAM_NOT_FOUND;
+	}
+
+	return ARTIO_SUCCESS;
+}
+
+int artio_parameter_list_unpack_index(parameter_list *parameters, 
+        const char *key, int index,
+		void *value, int type) {
+	size_t t_len;
+	parameter *item;
+
+	if ( index < 0 ) {
+		return ARTIO_ERR_INVALID_INDEX;
+	}
+
+	item = artio_parameter_list_search(parameters, key);
+	if (item != NULL) {
+		if (index >= item->val_length ) {
+			return ARTIO_ERR_PARAM_LENGTH_MISMATCH;
+		} else if ( type != item->type ) {
+			return ARTIO_ERR_PARAM_TYPE_MISMATCH;
+		} else {
+			t_len = artio_type_size(type);
+			memcpy(value, item->value+index*t_len, t_len);
 		}
 	} else {
 		return ARTIO_ERR_PARAM_NOT_FOUND;
@@ -363,6 +391,12 @@ int artio_parameter_get_int_array(artio_fileset *handle, const char * key, int l
 			value, ARTIO_TYPE_INT);
 }
 
+int artio_parameter_get_int_array_index( artio_fileset *handle, const char *key, int index,
+		int32_t * value ) {
+	return artio_parameter_list_unpack_index(handle->parameters, key, 
+			index, value, ARTIO_TYPE_INT );
+}
+
 int artio_parameter_set_float(artio_fileset *handle, const char * key, float value) {
 	float tmp = value;
 	return artio_parameter_set_float_array(handle, key, 1, &tmp);
@@ -381,6 +415,12 @@ int artio_parameter_set_float_array(artio_fileset *handle, const char * key,
 int artio_parameter_get_float_array(artio_fileset *handle, const char * key,
 		int length, float * value) {
 	return artio_parameter_list_unpack(handle->parameters, key, length, 
+			value, ARTIO_TYPE_FLOAT);
+}
+
+int artio_parameter_get_float_array_index(artio_fileset *handle, const char * key,
+		int index, float * value) {
+	return artio_parameter_list_unpack_index(handle->parameters, key, index, 
 			value, ARTIO_TYPE_FLOAT);
 }
 
@@ -405,6 +445,12 @@ int artio_parameter_get_double_array(artio_fileset *handle, const char * key,
 			value, ARTIO_TYPE_DOUBLE);
 }
 
+int artio_parameter_get_double_array_index(artio_fileset *handle, const char * key,
+		int index, double * value) {
+	return artio_parameter_list_unpack_index(handle->parameters, key, index, 
+			value, ARTIO_TYPE_DOUBLE);
+}
+
 int artio_parameter_set_long(artio_fileset *handle, const char * key, int64_t value) {
 	int64_t tmp = value;
 	return artio_parameter_set_long_array(handle, key, 1, &tmp);
@@ -426,6 +472,12 @@ int artio_parameter_get_long_array(artio_fileset *handle, const char * key,
 			value, ARTIO_TYPE_LONG);
 }
 
+int artio_parameter_get_long_array_index(artio_fileset *handle, const char * key,
+        int index, int64_t * value) {
+    return artio_parameter_list_unpack_index(handle->parameters, key, index, 
+            value, ARTIO_TYPE_LONG);
+}
+
 int artio_parameter_set_string(artio_fileset *handle, const char *key, char *value) {
 	return artio_parameter_set_string_array(handle, key, 1, &value);
 }
@@ -433,13 +485,17 @@ int artio_parameter_set_string(artio_fileset *handle, const char *key, char *val
 int artio_parameter_set_string_array(artio_fileset *handle, const char *key,
 		int length, char **value) {
 	int i;
-	int loc_length;
+	int len, loc_length;
 	char *loc_value;
 	char *p;
 	int ret;
 
 	for (i = 0, loc_length = 0; i < length; i++) {
-		loc_length += strlen(value[i]) + 1;
+		len = strlen(value[i]) + 1;
+		if ( len > ARTIO_MAX_STRING_LENGTH ) {
+			return ARTIO_ERR_STRING_LENGTH;
+		} 
+		loc_length += len;
 	}
 
 	loc_value = (char *)malloc(loc_length * sizeof(char));
@@ -459,12 +515,39 @@ int artio_parameter_set_string_array(artio_fileset *handle, const char *key,
 	return ret;
 }
 
-int artio_parameter_get_string(artio_fileset *handle, const char *key, char *value, int max_length) {
-	return artio_parameter_get_string_array(handle, key, 1, &value, max_length);
+int artio_parameter_get_string(artio_fileset *handle, const char *key, char *value ) {
+	return artio_parameter_get_string_array(handle, key, 1, &value );
+}
+
+int artio_parameter_get_string_array_index( artio_fileset *handle, const char *key,
+		int index, char *value ) {
+	int count;
+	char *p;
+	parameter *item = artio_parameter_list_search(handle->parameters, key);
+
+	if ( item != NULL ) {
+		count = 0;
+		p = item->value;
+		while ( count < index && p < item->value + item->val_length) {
+			p += strlen(p) + 1;
+			count++;
+		}
+
+		if ( count != index ) {
+			return ARTIO_ERR_INVALID_INDEX;
+		}
+
+		strncpy(value, p, ARTIO_MAX_STRING_LENGTH-1);
+		value[ARTIO_MAX_STRING_LENGTH-1] = 0;
+	} else {
+		return ARTIO_ERR_PARAM_NOT_FOUND;
+    }
+
+	return ARTIO_SUCCESS;
 }
 
 int artio_parameter_get_string_array(artio_fileset *handle, const char *key,
-		int length, char **value, int max_length) {
+		int length, char **value ) {
 	int i;
 	char *p;
 	int count;
@@ -485,8 +568,8 @@ int artio_parameter_get_string_array(artio_fileset *handle, const char *key,
 		}
 
 		for (i = 0, p = item->value; i < length; i++) {
-			strncpy(value[i], p, max_length-1);
-			value[i][max_length-1] = 0;
+			strncpy(value[i], p, ARTIO_MAX_STRING_LENGTH-1);
+			value[i][ARTIO_MAX_STRING_LENGTH-1] = 0;
 			p += strlen(p) + 1;
 		}
 	} else {

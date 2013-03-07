@@ -6,10 +6,19 @@
  *  Modified: Jun 6, 2010 - Doug Rudd
  *            Nov 18, 2010 - Doug Rudd
  *            Nov 14, 2012 - Doug Rudd
+ *            Feb 7, 2013 - Doug Rudd - Version 1.0
+ *            March 3, 2013 - Doug Rudd - Version 1.1 (inc. selectors)
  */
 
 #ifndef __ARTIO_H__
 #define __ARTIO_H__
+
+#define ARTIO_MAJOR_VERSION     1
+#define ARTIO_MINOR_VERSION     1
+
+#ifdef ARTIO_MPI
+#include <mpi.h>
+#endif
 
 #include <stdint.h>
 #ifndef int64_t
@@ -47,11 +56,15 @@ typedef __int64 int64_t;
 #define ARTIO_SUCCESS                       0
 
 #define ARTIO_ERR_PARAM_NOT_FOUND           1
-#define ARTIO_ERR_PARAM_INVALID_LENGTH      2
-#define ARTIO_ERR_PARAM_TYPE_MISMATCH       3
-#define ARTIO_ERR_PARAM_LENGTH_MISMATCH     4
-#define ARTIO_ERR_PARAM_LENGTH_INVALID      5
-#define ARTIO_ERR_PARAM_DUPLICATE           6
+#define ARTIO_PARAMETER_EXHAUSTED			2
+#define ARTIO_ERR_PARAM_INVALID_LENGTH      3 
+#define ARTIO_ERR_PARAM_TYPE_MISMATCH       4
+#define ARTIO_ERR_PARAM_LENGTH_MISMATCH     5
+#define ARTIO_ERR_PARAM_LENGTH_INVALID      6
+#define ARTIO_ERR_PARAM_DUPLICATE           7
+#define ARTIO_ERR_PARAM_CORRUPTED           8
+#define ARTIO_ERR_PARAM_CORRUPTED_MAGIC     9
+#define ARTIO_ERR_STRING_LENGTH             10
 
 #define ARTIO_ERR_INVALID_FILESET_MODE      100
 #define	ARTIO_ERR_INVALID_FILE_NUMBER       101
@@ -69,24 +82,30 @@ typedef __int64 int64_t;
 #define ARTIO_ERR_INVALID_OCT_REFINED       113
 #define ARTIO_ERR_INVALID_HANDLE            114
 #define ARTIO_ERR_INVALID_CELL_TYPES        115
+#define ARTIO_ERR_INVALID_BUFFER_SIZE		116
+#define ARTIO_ERR_INVALID_INDEX				117
 
 #define ARTIO_ERR_DATA_EXISTS               200
 #define ARTIO_ERR_INSUFFICIENT_DATA         201
 #define ARTIO_ERR_FILE_CREATE               202
-#define ARTIO_ERR_PARTICLE_FILE_NOT_FOUND   203
+#define ARTIO_ERR_GRID_DATA_NOT_FOUND       203
 #define ARTIO_ERR_GRID_FILE_NOT_FOUND       204
+#define ARTIO_ERR_PARTICLE_DATA_NOT_FOUND   205
+#define ARTIO_ERR_PARTICLE_FILE_NOT_FOUND   206
+#define ARTIO_ERR_IO_OVERFLOW               207
+#define ARTIO_ERR_IO_WRITE                  208
+#define ARTIO_ERR_IO_READ                   209
+#define ARTIO_ERR_BUFFER_EXISTS             210
 
-#define ARTIO_ERR_PARAM_CORRUPTED           207
-#define ARTIO_ERR_PARAM_CORRUPTED_MAGIC     208
+#define ARTIO_SELECTION_EXHAUSTED           300
+#define ARTIO_ERR_INVALID_SELECTION         301
+#define ARTIO_ERR_INVALID_COORDINATES       302
 
-#define ARTIO_ERR_64_TO_32_BIT_TRUNCATION   209
-#define ARTIO_ERR_MEMORY_ALLOCATION         210
+#define ARTIO_ERR_MEMORY_ALLOCATION         400
 
-#define ARTIO_PARAMETER_EXHAUSTED           300
+#define ARTIO_ERR_VERSION_MISMATCH			500
 
 #ifdef ARTIO_MPI
-#include <mpi.h>
-
 typedef struct {
     MPI_Comm comm;
 } artio_context;
@@ -96,7 +115,10 @@ typedef struct {
 } artio_context;
 #endif
 
+#define ARTIO_MAX_STRING_LENGTH				256
+
 typedef struct artio_fileset_struct artio_fileset;
+typedef struct artio_selection_struct artio_selection;
 
 extern const artio_context *artio_context_global;
 
@@ -125,6 +147,9 @@ artio_fileset *artio_fileset_create(char * file_prefix,
  */
 int artio_fileset_close(artio_fileset *handle);
 
+int artio_fileset_has_grid( artio_fileset *handle );
+int artio_fileset_has_particles( artio_fileset *handle );
+
 /* public parameter interface */
 int artio_parameter_iterate( artio_fileset *handle, char *key, int *type, int *length );
 int artio_parameter_get_array_length(artio_fileset *handle, const char * key, int *length);
@@ -136,14 +161,18 @@ int artio_parameter_set_int_array(artio_fileset *handle, const char * key, int l
 		int32_t *values);
 int artio_parameter_get_int_array(artio_fileset *handle, const char * key, int length,
 		int32_t *values);
+int artio_parameter_get_int_array_index(artio_fileset *handle, const char * key, 
+		int index, int32_t *values);
 
 int artio_parameter_set_string(artio_fileset *handle, const char * key, char * value);
-int artio_parameter_get_string(artio_fileset *handle, const char * key, char * value, int max_length);
+int artio_parameter_get_string(artio_fileset *handle, const char * key, char * value );
 
 int artio_parameter_set_string_array(artio_fileset *handle, const char * key,
 		int length, char ** values);
 int artio_parameter_get_string_array(artio_fileset *handle, const char * key,
-		int length, char ** values, int max_length);
+		int length, char ** values );
+int artio_parameter_get_string_array_index(artio_fileset *handle, const char * key,
+		int index, char * values );
 
 int artio_parameter_set_float(artio_fileset *handle, const char * key, float value);
 int artio_parameter_get_float(artio_fileset *handle, const char * key, float * value);
@@ -152,6 +181,8 @@ int artio_parameter_set_float_array(artio_fileset *handle, const char * key,
 		int length, float *values);
 int artio_parameter_get_float_array(artio_fileset *handle, const char * key,
 		int length, float * values);
+int artio_parameter_get_float_array_index(artio_fileset *handle, const char * key,
+		int index, float * values);
 
 int artio_parameter_set_double(artio_fileset *handle, const char * key, double value);
 int  artio_parameter_get_double(artio_fileset *handle, const char * key, double * value);
@@ -160,6 +191,8 @@ int artio_parameter_set_double_array(artio_fileset *handle, const char * key,
 		int length, double * values);
 int artio_parameter_get_double_array(artio_fileset *handle, const char * key,
         int length, double *values);
+int artio_parameter_get_double_array_index(artio_fileset *handle, const char * key,
+		int index, double *values);
 
 int artio_parameter_set_long(artio_fileset *handle, const char * key, int64_t value);
 int artio_parameter_get_long(artio_fileset *handle, const char * key, int64_t *value);
@@ -168,10 +201,12 @@ int artio_parameter_set_long_array(artio_fileset *handle, const char * key,
         int length, int64_t *values);
 int artio_parameter_get_long_array(artio_fileset *handle, const char * key,
         int length, int64_t *values);
+int artio_parameter_get_long_array_index(artio_fileset *handle, const char * key,
+		int index, int64_t *values);
 
 /* public grid interface */
-typedef void (* GridCallBack)( int64_t sfc_index, int level,
-		double *pos, float * variables, int *refined );
+typedef void (* artio_grid_callback)( int64_t sfc_index, int level,
+		double *pos, float * variables, int *refined, void *params );
 
 /*
  * Description:	Add a grid component to a fileset open for writing
@@ -280,16 +315,31 @@ int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
  *  sfc2			the end sfc index
  *  max_level_to_read		max level to read for each oct tree
  *  option			1. refined nodes; 2 leaf nodes; 3 all nodes
- *  callback			callback function
+ *  callback        callback function
+ *  params          a pointer to user-defined data passed to the callback
  */
-int artio_grid_read_sfc_range(artio_fileset *handle, int64_t sfc1, int64_t sfc2, 
+int artio_grid_read_sfc_range_levels(artio_fileset *handle, 
+		int64_t sfc1, int64_t sfc2, 
 		int min_level_to_read, int max_level_to_read, 
-		int options, GridCallBack callback);
+		int options, artio_grid_callback callback,
+		void *params );
 
+int artio_grid_read_sfc_range(artio_fileset *handle,
+        int64_t sfc1, int64_t sfc2, int options,
+        artio_grid_callback callback,
+		void *params );
 
-typedef void (* ParticleCallBack)(int64_t sfc_index,
-		int species, int subspecies, int64_t pid, 
-		double *primary_variables, float *secondary_variables );
+int artio_grid_read_selection(artio_fileset *handle,
+		artio_selection *selection, int options,
+		artio_grid_callback callback,
+		void *params );
+
+int artio_grid_read_selection_levels( artio_fileset *handle,
+		artio_selection *selection, 
+		int min_level_to_read, int max_level_to_read,
+		int options,
+		artio_grid_callback callback,
+		void *params );
 
 /**
  *  header			head file name
@@ -384,6 +434,11 @@ int artio_particle_read_particle(artio_fileset *handle, int64_t *pid, int *subsp
 			double *primary_variables, float *secondary_variables);
 
 int artio_particle_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int64_t sfc_end);
+int artio_particle_clear_sfc_cache(artio_fileset *handle );                                                          
+
+typedef void (* artio_particle_callback)(int64_t sfc_index,
+		int species, int subspecies, int64_t pid, 
+		double *primary_variables, float *secondary_variables, void *params );
 
 /*
  * Description: Read a segment of particles
@@ -391,13 +446,40 @@ int artio_particle_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int
  *  handle			file pointer
  *  sfc1			the start sfc index
  *  sfc2			the end sfc index
- *  start_species		the first particle species to read
- *  end_species			the last particle species to read
- *  callback			callback function
+ *  start_species   the first particle species to read
+ *  end_species     the last particle species to read
+ *  callback        callback function
+ *  params          user defined data passed to the callback function
  */
 int artio_particle_read_sfc_range(artio_fileset *handle, 
 		int64_t sfc1, int64_t sfc2, 
-		int start_species, int end_species,
-		ParticleCallBack callback);
+		artio_particle_callback callback,
+		void *params);
+
+int artio_particle_read_sfc_range_species( artio_fileset *handle, 
+        int64_t sfc1, int64_t sfc2, 
+        int start_species, int end_species,
+        artio_particle_callback callback,
+		void *params);
+
+int artio_particle_read_selection(artio_fileset *handle,
+        artio_selection *selection, artio_particle_callback callback,
+		void *params );
+
+int artio_particle_read_selection_species( artio_fileset *handle,
+        artio_selection *selection, int start_species, int end_species,
+        artio_particle_callback callback,
+		void *params );
+
+artio_selection *artio_selection_allocate( artio_fileset *handle );
+artio_selection *artio_select_volume( artio_fileset *handle, double lpos[3], double rpos[3] );
+artio_selection *artio_select_cube( artio_fileset *handle, double center[3], double size );
+int artio_selection_add_root_cell( artio_selection *selection, int coords[3] );                   
+int artio_selection_destroy( artio_selection *selection );
+void artio_selection_print( artio_selection *selection );
+int artio_selection_iterator( artio_selection *selection,
+         int64_t max_range_size, int64_t *start, int64_t *end );
+int artio_selection_iterator_reset( artio_selection *selection );
+int64_t artio_selection_size( artio_selection *selection );
 
 #endif /* __ARTIO_H__ */

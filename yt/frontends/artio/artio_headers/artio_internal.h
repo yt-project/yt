@@ -9,11 +9,21 @@
 #ifndef __ARTIO_INTERNAL_H__
 #define __ARTIO_INTERNAL_H__
 
+#ifdef ARTIO_MPI
+#include <mpi.h>
+#endif
+
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
 
-#include "artio.h"
 #include "artio_endian.h"
+
+#ifndef ARTIO_DEFAULT_BUFFER_SIZE
+#define ARTIO_DEFAULT_BUFFER_SIZE	65536
+#endif
+
+extern int artio_fh_buffer_size;
 
 #define nDim			3
 
@@ -24,14 +34,23 @@
 #define MAX(x,y)        (((x) > (y)) ? (x): (y))
 #endif
 
-#ifdef ARTIO_MPI
-#include <mpi.h>
+/* limit individual writes to 32-bit safe quantity */
+#define ARTIO_IO_MAX	(1<<30)
+
+#ifdef INT64_MAX
+#define ARTIO_INT64_MAX	INT64_MAX
+#else
+#define ARTIO_INT64_MAX 0x7fffffffffffffffLL
 #endif
 
 typedef struct ARTIO_FH artio_fh;
 
 typedef struct artio_particle_file_struct {
 	artio_fh **ffh;
+
+	void *buffer;
+	int buffer_size;
+
 	int num_particle_files;
 	int64_t *file_sfc_index;
 	int64_t cache_sfc_begin;
@@ -51,6 +70,10 @@ typedef struct artio_particle_file_struct {
 
 typedef struct artio_grid_file_struct {
 	artio_fh **ffh;
+
+	void *buffer;
+	int buffer_size;
+
 	int num_grid_variables;
 	int num_grid_files;
 	int64_t *file_sfc_index;
@@ -109,10 +132,20 @@ struct artio_fileset_struct {
 	int64_t num_root_cells;
 	int sfc_type;
 	int nBitsPerDim;
+	int num_grid;
 	
 	parameter_list *parameters;
 	artio_grid_file *grid;
 	artio_particle_file *particle;
+};
+
+struct artio_selection_struct {
+    int64_t *list;
+    int size;
+    int num_ranges; 
+	int cursor;
+	int64_t subcycle;
+	artio_fileset *fileset;
 };
 
 #define ARTIO_FILESET_READ      0
@@ -120,16 +153,17 @@ struct artio_fileset_struct {
 
 #define ARTIO_MODE_READ         1
 #define ARTIO_MODE_WRITE        2
-#define ARTIO_MODE_DIRECT       4
-#define ARTIO_MODE_ACCESS       8
-#define ARTIO_MODE_ENDIAN_SWAP 16
+#define ARTIO_MODE_ACCESS       4
+#define ARTIO_MODE_ENDIAN_SWAP  8
 
 #define ARTIO_SEEK_SET          0
 #define ARTIO_SEEK_CUR          1
 #define ARTIO_SEEK_END			2
 
 artio_fh *artio_file_fopen( char * filename, int amode, const artio_context *context );
-int artio_file_fwrite(artio_fh *handle, void *buf, int64_t count, int type );
+int artio_file_attach_buffer( artio_fh *handle, void *buf, int buf_size );
+int artio_file_detach_buffer( artio_fh *handle );
+int artio_file_fwrite(artio_fh *handle, const void *buf, int64_t count, int type );
 int artio_file_ftell( artio_fh *handle, int64_t *offset );
 int artio_file_fflush(artio_fh *handle);
 int artio_file_fseek(artio_fh *ffh, int64_t offset, int whence);

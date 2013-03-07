@@ -38,6 +38,8 @@ cdef extern from "artio.h":
     cdef int ARTIO_TYPE_DOUBLE "ARTIO_TYPE_DOUBLE"
     cdef int ARTIO_TYPE_LONG "ARTIO_TYPE_LONG"
 
+    cdef int ARTIO_MAX_STRING_LENGTH "ARTIO_MAX_STRING_LENGTH"
+
     cdef int ARTIO_PARAMETER_EXHAUSTED "ARTIO_PARAMETER_EXHAUSTED"
 
     # grid read options
@@ -64,7 +66,7 @@ cdef extern from "artio.h":
     int artio_parameter_get_float_array(artio_fileset_handle *handle, char * key, int length, float *values)
     int artio_parameter_get_long_array(artio_fileset_handle *handle, char * key, int length, int64_t *values)
     int artio_parameter_get_double_array(artio_fileset_handle *handle, char * key, int length, double *values)
-    int artio_parameter_get_string_array(artio_fileset_handle *handle, char * key, int length, char **values, int max_length)
+    int artio_parameter_get_string_array(artio_fileset_handle *handle, char * key, int length, char **values )
 
     int artio_grid_cache_sfc_range(artio_fileset_handle *handle, int64_t start, int64_t end)
     int artio_grid_clear_sfc_cache( artio_fileset_handle *handle ) 
@@ -177,8 +179,8 @@ cdef class artio_fileset :
             if type == ARTIO_TYPE_STRING :
                 char_values = <char **>malloc(length*sizeof(char *))
                 for i in range(length) :
-                    char_values[i] = <char *>malloc( 128*sizeof(char) )
-                artio_parameter_get_string_array( self.handle, key, length, char_values, 128 ) 
+                    char_values[i] = <char *>malloc( ARTIO_MAX_STRING_LENGTH*sizeof(char) )
+                artio_parameter_get_string_array( self.handle, key, length, char_values ) 
                 parameter = [ char_values[i] for i in range(length) ]
                 for i in range(length) :
                     free(char_values[i])

@@ -5,24 +5,36 @@
  *  Author: Yongen Yu
  */
 
+#include "artio.h"
+#include "artio_internal.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
 
-#include "artio.h"
-#include "artio_internal.h"
-
 artio_fileset *artio_fileset_allocate( char *file_prefix, int mode,
 		const artio_context *context );
 void artio_fileset_destroy( artio_fileset *handle );
+
+int artio_fh_buffer_size = ARTIO_DEFAULT_BUFFER_SIZE;
+
+int artio_set_buffer_size( int buffer_size ) {
+	if ( buffer_size < 0 ) {
+		return ARTIO_ERR_INVALID_BUFFER_SIZE;
+	}
+
+	artio_fh_buffer_size = buffer_size;
+	return ARTIO_SUCCESS;
+}
 
 artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_context *context) {
 	artio_fh *head_fh;
 	char filename[256];
 	int ret;
 	int64_t tmp;
+	int artio_major, artio_minor;
 
 	artio_fileset *handle = 
 		artio_fileset_allocate( file_prefix, ARTIO_FILESET_READ, context );
@@ -33,7 +45,7 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 	/* open header file */
 	sprintf(filename, "%s.art", handle->file_prefix);
 	head_fh = artio_file_fopen(filename, 
-			ARTIO_MODE_READ | ARTIO_MODE_ACCESS | ARTIO_MODE_DIRECT, context);
+			ARTIO_MODE_READ | ARTIO_MODE_ACCESS, context);
 
 	if ( head_fh == NULL ) {
 		artio_fileset_destroy(handle);
@@ -48,6 +60,23 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 
 	artio_file_fclose(head_fh);
 
+	/* check versions */
+	if ( artio_parameter_get_int(handle, "ARTIO_MAJOR_VERSION", &artio_major ) == 
+			ARTIO_ERR_PARAM_NOT_FOUND ) {
+		/* version pre 1.0 */
+		artio_major = 0;
+		artio_minor = 9;
+	} else {
+		artio_parameter_get_int(handle, "ARTIO_MINOR_VERSION", &artio_minor );
+	}
+
+	if ( artio_major > ARTIO_MAJOR_VERSION ) {
+		fprintf(stderr,"ERROR: artio file version newer than library (%u.%u vs %u.%u).\n",
+			artio_major, artio_minor, ARTIO_MAJOR_VERSION, ARTIO_MINOR_VERSION );
+		artio_fileset_destroy(handle);
+		return NULL;
+	}
+	
 	artio_parameter_get_long(handle, "num_root_cells", &handle->num_root_cells);
 	
 	if ( artio_parameter_get_int(handle, "sfc_type", &handle->sfc_type ) != ARTIO_SUCCESS ) {
@@ -60,6 +89,7 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 		handle->nBitsPerDim++;
 		tmp >>= 3;
 	}
+	handle->num_grid = 1<<handle->nBitsPerDim;
 
 	/* default to accessing all sfc indices */
 	handle->proc_sfc_begin = 0;
@@ -114,6 +144,9 @@ artio_fileset *artio_fileset_create(char * file_prefix, int64_t root_cells,
 
 	artio_parameter_set_long(handle, "num_root_cells", root_cells);
 
+	artio_parameter_set_int(handle, "ARTIO_MAJOR_VERSION", ARTIO_MAJOR_VERSION );
+	artio_parameter_set_int(handle, "ARTIO_MINOR_VERSION", ARTIO_MINOR_VERSION );
+
 	return handle;
 }
 
@@ -138,8 +171,7 @@ int artio_fileset_close(artio_fileset *handle) {
 
 		sprintf(header_filename, "%s.art", handle->file_prefix);
 		head_fh = artio_file_fopen(header_filename, 
-				ARTIO_MODE_WRITE | ARTIO_MODE_DIRECT |
-					   ((handle->rank == 0) ? ARTIO_MODE_ACCESS : 0), 
+				ARTIO_MODE_WRITE | ((handle->rank == 0) ? ARTIO_MODE_ACCESS : 0), 
 				handle->context);
 
 		if (head_fh == NULL) {
@@ -219,4 +251,18 @@ void artio_fileset_destroy( artio_fileset *handle ) {
 	artio_parameter_list_free(handle->parameters);
 
 	free(handle);
+}
+
+int artio_fileset_has_grid( artio_fileset *handle ) {
+	int num_grid_files = 0;
+	return ( handle->grid != NULL ||
+		( artio_parameter_get_int( handle, "num_grid_files", &num_grid_files ) == ARTIO_SUCCESS &&
+		  num_grid_files > 0 ) );
+}
+
+int artio_fileset_has_particles( artio_fileset *handle ) {
+	int num_particle_files = 0;
+	return ( handle->particle != NULL ||
+			( artio_parameter_get_int( handle, "num_particle_files", &num_particle_files ) == ARTIO_SUCCESS &&
+			  num_particle_files > 0 ) );
 }
