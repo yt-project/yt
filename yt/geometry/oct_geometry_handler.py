@@ -58,3 +58,27 @@ class OctreeGeometryHandler(GeometryHandler):
 
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
+
+    def find_max(self, field, finest_levels = 3):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if (field, finest_levels) in self._max_locations:
+            return self._max_locations[(field, finest_levels)]
+        mv, pos = self.find_max_cell_location(field, finest_levels)
+        self._max_locations[(field, finest_levels)] = (mv, pos)
+        return mv, pos
+
+    def find_max_cell_location(self, field, finest_levels = 3):
+        source = self.all_data()
+        if finest_levels is not False:
+            source.min_level = self.max_level - finest_levels
+        mylog.debug("Searching for maximum value of %s", field)
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        self.pf.parameters["Max%sValue" % (field)] = max_val
+        self.pf.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        return max_val, np.array((mx,my,mz), dtype='float64')
+

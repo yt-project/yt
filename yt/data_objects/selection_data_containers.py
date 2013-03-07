@@ -50,42 +50,42 @@ from yt.utilities.minimal_representation import \
 from yt.utilities.math_utils import get_rotation_matrix
 
 class YTOrthoRayBase(YTSelectionContainer1D):
+    """
+    This is an orthogonal ray cast through the entire domain, at a specific
+    coordinate.
+
+    This object is typically accessed through the `ortho_ray` object that
+    hangs off of hierarchy objects.  The resulting arrays have their
+    dimensionality reduced to one, and an ordered list of points at an
+    (x,y) tuple along `axis` are available.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+    coords : tuple of floats
+        The (plane_x, plane_y) coordinates at which to cast the ray.  Note
+        that this is in the plane coordinates: so if you are casting along
+        x, this will be (y,z).  If you are casting along y, this will be
+        (x,z).  If you are casting along z, this will be (x,y).
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
+    >>> print oray["Density"]
+    """
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, pf=None, field_parameters=None):
-        """ 
-        This is an orthogonal ray cast through the entire domain, at a specific
-        coordinate.
-
-        This object is typically accessed through the `ortho_ray` object that
-        hangs off of hierarchy objects.  The resulting arrays have their
-        dimensionality reduced to one, and an ordered list of points at an
-        (x,y) tuple along `axis` are available.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
-        coords : tuple of floats
-            The (plane_x, plane_y) coordinates at which to cast the ray.  Note
-            that this is in the plane coordinates: so if you are casting along
-            x, this will be (y,z).  If you are casting along y, this will be
-            (x,z).  If you are casting along z, this will be (x,y).
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        field_parameters : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
-        >>> print oray["Density"]
-        """
         super(YTOrthoRayBase, self).__init__(pf, field_parameters)
         self.axis = axis
         self.px_ax = x_dict[self.axis]
@@ -100,41 +100,41 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         return (self.px, self.py)
 
 class YTRayBase(YTSelectionContainer1D):
+    """
+    This is an arbitrarily-aligned ray cast through the entire domain, at a
+    specific coordinate.
+
+    This object is typically accessed through the `ray` object that hangs
+    off of hierarchy objects.  The resulting arrays have their
+    dimensionality reduced to one, and an ordered list of points at an
+    (x,y) tuple along `axis` are available, as is the `t` field, which
+    corresponds to a unitless measurement along the ray from start to
+    end.
+
+    Parameters
+    ----------
+    start_point : array-like set of 3 floats
+        The place where the ray starts.
+    end_point : array-like set of 3 floats
+        The place where the ray ends.
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> print ray["Density"], ray["t"], ray["dts"]
+    """
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, pf=None, field_parameters=None):
-        """ 
-        This is an arbitrarily-aligned ray cast through the entire domain, at a
-        specific coordinate.
-
-        This object is typically accessed through the `ray` object that hangs
-        off of hierarchy objects.  The resulting arrays have their
-        dimensionality reduced to one, and an ordered list of points at an
-        (x,y) tuple along `axis` are available, as is the `t` field, which
-        corresponds to a unitless measurement along the ray from start to
-        end.
-
-        Parameters
-        ----------
-        start_point : array-like set of 3 floats
-            The place where the ray starts.
-        end_point : array-like set of 3 floats
-            The place where the ray ends.
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        field_parameters : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
-        >>> print ray["Density"], ray["t"], ray["dts"]
-        """
         super(YTRayBase, self).__init__(pf, field_parameters)
         self.start_point = np.array(start_point, dtype='float64')
         self.end_point = np.array(end_point, dtype='float64')
@@ -199,6 +199,44 @@ class YTRayBase(YTSelectionContainer1D):
 
 
 class YTSliceBase(YTSelectionContainer2D):
+    """
+    This is a data object corresponding to a slice through the simulation
+    domain.
+
+    This object is typically accessed through the `slice` object that hangs
+    off of hierarchy objects.  AMRSlice is an orthogonal slice through the
+    data, taking all the points at the finest resolution available and then
+    indexing them.  It is more appropriately thought of as a slice
+    'operator' than an object, however, as its field and coordinate can
+    both change.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    coord : float
+        The coordinate along the axis at which to slice.  This is in
+        "domain" coordinates.
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> slice = pf.h.slice(0, 0.25)
+    >>> print slice["Density"]
+    """
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
@@ -206,38 +244,6 @@ class YTSliceBase(YTSelectionContainer2D):
 
     def __init__(self, axis, coord, center=None, pf=None,
                  field_parameters = None):
-        """
-        This is a data object corresponding to a slice through the simulation
-        domain.
-
-        This object is typically accessed through the `slice` object that hangs
-        off of hierarchy objects.  AMRSlice is an orthogonal slice through the
-        data, taking all the points at the finest resolution available and then
-        indexing them.  It is more appropriately thought of as a slice
-        'operator' than an object, however, as its field and coordinate can
-        both change.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        coord : float
-            The coordinate along the axis at which to slice.  This is in
-            "domain" coordinates.
-        center : array_like, optional
-            The 'center' supplied to fields that use it.  Note that this does
-            not have to have `coord` as one value.  Strictly optional.
-        field_parameters : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> slice = pf.h.slice(0, 0.25)
-        >>> print slice["Density"]
-        """
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self._set_center(center)
         self.coord = coord
@@ -307,6 +313,49 @@ class YTSliceBase(YTSelectionContainer2D):
         return pw
 
 class YTCuttingPlaneBase(YTSelectionContainer2D):
+    """
+    This is a data object corresponding to an oblique slice through the
+    simulation domain.
+
+    This object is typically accessed through the `cutting` object
+    that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
+    plane through the data, defined by a normal vector and a coordinate.
+    It attempts to guess an 'up' vector, which cannot be overridden, and
+    then it pixelizes the appropriate data onto the plane without
+    interpolation.
+
+    Parameters
+    ----------
+    normal : array_like
+        The vector that defines the desired plane.  For instance, the
+        angular momentum of a sphere.
+    center : array_like, optional
+        The center of the cutting plane.
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Notes
+    -----
+
+    This data object in particular can be somewhat expensive to create.
+    It's also important to note that unlike the other 2D data objects, this
+    oject provides px, py, pz, as some cells may have a height from the
+    plane.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
+    >>> print cp["Density"]
+    """
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = YTSelectionContainer2D._key_fields + ['pz','pdz']
@@ -316,46 +365,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
 
     def __init__(self, normal, center, pf = None,
                  north_vector = None, field_parameters = None):
-        """
-        This is a data object corresponding to an oblique slice through the
-        simulation domain.
-
-        This object is typically accessed through the `cutting` object
-        that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
-        plane through the data, defined by a normal vector and a coordinate.
-        It attempts to guess an 'up' vector, which cannot be overridden, and
-        then it pixelizes the appropriate data onto the plane without
-        interpolation.
-
-        Parameters
-        ----------
-        normal : array_like
-            The vector that defines the desired plane.  For instance, the
-            angular momentum of a sphere.
-        center : array_like, optional
-            The center of the cutting plane.
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        field_parameters : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Notes
-        -----
-
-        This data object in particular can be somewhat expensive to create.
-        It's also important to note that unlike the other 2D data objects, this
-        oject provides px, py, pz, as some cells may have a height from the
-        plane.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
-        >>> print cp["Density"]
-        """
         YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
         self._set_center(center)
         self.set_field_parameter('center',center)
@@ -481,15 +490,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         normal = self.normal
         center = self.center
-        if fields == None:
-            if self.fields == None:
-                raise SyntaxError("The fields keyword argument must be set")
-        else:
-            self.fields = ensure_list(fields)
         from yt.visualization.plot_window import \
-            GetOffAxisBoundsAndCenter, PWViewerMPL
+            GetObliqueWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        (bounds, center_rot) = GetOffAxisBoundsAndCenter(normal, center, width, self.pf)
+        (bounds, center_rot, units) = GetObliqueWindowParameters(normal, center, width, self.pf)
+        if axes_unit is None and units != ('1', '1'):
+            axes_units = units
         pw = PWViewerMPL(self, bounds, origin='center-window', periodic=False, oblique=True,
                          frb_generator=ObliqueFixedResolutionBuffer, plot_type='OffAxisSlice')
         pw.set_axes_unit(axes_unit)
@@ -550,23 +556,16 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
 
 class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
     """
-    YTFixedResCuttingPlaneBase is an oblique plane through the data,
-    defined by a normal vector and a coordinate.  It trilinearly
-    interpolates the data to a fixed resolution slice.  It differs from
-    the other data objects as it doesn't save the grid data, only the
-    interpolated data.
+    The fixed resolution Cutting Plane slices at an oblique angle,
+    where we use the *normal* vector at the *center* to define the
+    viewing plane.  The plane is *width* units wide.  The 'up'
+    direction is guessed at automatically if not given.
     """
     _top_node = "/FixedResCuttingPlanes"
     _type_name = "fixed_res_cutting"
     _con_args = ('normal', 'center', 'width', 'dims')
     def __init__(self, normal, center, width, dims, pf = None,
                  node_name = None, field_parameters = None):
-        """
-        The fixed resolution Cutting Plane slices at an oblique angle,
-        where we use the *normal* vector at the *center* to define the
-        viewing plane.  The plane is *width* units wide.  The 'up'
-        direction is guessed at automatically if not given.
-        """
         #
         # Taken from Cutting Plane
         #
@@ -739,17 +738,14 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
 
 class YTDiskBase(YTSelectionContainer3D):
     """
-    We can define a cylinder (or disk) to act as a data object.
+    By providing a *center*, a *normal*, a *radius* and a *height* we
+    can define a cylinder of any proportion.  Only cells whose centers are
+    within the cylinder will be selected.
     """
     _type_name = "disk"
     _con_args = ('center', '_norm_vec', '_radius', '_height')
     def __init__(self, center, normal, radius, height, fields=None,
                  pf=None, **kwargs):
-        """
-        By providing a *center*, a *normal*, a *radius* and a *height* we
-        can define a cylinder of any proportion.  Only cells whose centers are
-        within the cylinder will be selected.
-        """
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
@@ -800,18 +796,18 @@ class YTDiskBase(YTSelectionContainer3D):
 
 
 class YTInclinedBoxBase(YTSelectionContainer3D):
+    """
+    A rectangular prism with arbitrary alignment to the computational
+    domain.  *origin* is the origin of the box, while *box_vectors* is an
+    array of ordering [ax, ijk] that describes the three vectors that
+    describe the box.  No checks are done to ensure that the box satisfies
+    a right-hand rule, but if it doesn't, behavior is undefined.
+    """
     _type_name="inclined_box"
     _con_args = ('origin','box_vectors')
 
     def __init__(self, origin, box_vectors, fields=None,
                  pf=None, **kwargs):
-        """
-        A rectangular prism with arbitrary alignment to the computational
-        domain.  *origin* is the origin of the box, while *box_vectors* is an
-        array of ordering [ax, ijk] that describes the three vectors that
-        describe the box.  No checks are done to ensure that the box satisfies
-        a right-hand rule, but if it doesn't, behavior is undefined.
-        """
         self.origin = np.array(origin)
         self.box_vectors = np.array(box_vectors, dtype='float64')
         self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
@@ -866,47 +862,40 @@ class YTInclinedBoxBase(YTSelectionContainer3D):
 
 
 class YTRegionBase(YTSelectionContainer3D):
-    """
-    AMRRegions are rectangular prisms of data.
+    """A 3D region of data with an arbitrary center.
+
+    Takes an array of three *left_edge* coordinates, three
+    *right_edge* coordinates, and a *center* that can be anywhere
+    in the domain. If the selected region extends past the edges
+    of the domain, no data will be found there, though the
+    object's `left_edge` or `right_edge` are not modified.
+
+    Parameters
+    ----------
+    center : array_like
+        The center of the region
+    left_edge : array_like
+        The left edge of the region
+    right_edge : array_like
+        The right edge of the region
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
     _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
-        """A 3D region of data with an arbitrary center.
-
-        Takes an array of three *left_edge* coordinates, three
-        *right_edge* coordinates, and a *center* that can be anywhere
-        in the domain. If the selected region extends past the edges
-        of the domain, no data will be found there, though the
-        object's `left_edge` or `right_edge` are not modified.
-
-        Parameters
-        ----------
-        center : array_like
-            The center of the region
-        left_edge : array_like
-            The left edge of the region
-        right_edge : array_like
-            The right edge of the region
-        """
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
         self.right_edge = right_edge
 
 class YTDataCollectionBase(YTSelectionContainer3D):
     """
-    An arbitrary selection of chunks of data, within which we accept all
-    points.
+    By selecting an arbitrary *object_list*, we can act on those grids.
+    Child cells are not returned.
     """
     _type_name = "data_collection"
     _con_args = ("obj_list",)
     def __init__(self, center, obj_list, pf = None, field_parameters = None):
-        """
-        By selecting an arbitrary *object_list*, we can act on those grids.
-        Child cells are not returned.
-        """
         YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
@@ -914,26 +903,24 @@ class YTDataCollectionBase(YTSelectionContainer3D):
 
 class YTSphereBase(YTSelectionContainer3D):
     """
-    A sphere of points
+    A sphere f points defined by a *center* and a *radius*.
+
+    Parameters
+    ----------
+    center : array_like
+        The center of the sphere.
+    radius : float
+        The radius of the sphere.
+
+    Examples
+    --------
+    >>> pf = load("DD0010/moving7_0010")
+    >>> c = [0.5,0.5,0.5]
+    >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, pf = None, field_parameters = None):
-        """A sphere f points defined by a *center* and a *radius*.
-
-        Parameters
-        ----------
-        center : array_like
-            The center of the sphere.
-        radius : float
-            The radius of the sphere.
-
-        Examples
-        --------
-        >>> pf = load("DD0010/moving7_0010")
-        >>> c = [0.5,0.5,0.5]
-        >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
-        """
         super(YTSphereBase, self).__init__(center, pf, field_parameters)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.pf)
@@ -945,41 +932,38 @@ class YTSphereBase(YTSelectionContainer3D):
 
 class YTEllipsoidBase(YTSelectionContainer3D):
     """
-    We can define an ellipsoid to act as a data object.
+    By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
+    can define a ellipsoid of any proportion.  Only cells whose
+    centers are within the ellipsoid will be selected.
+
+    Parameters
+    ----------
+    center : array_like
+        The center of the ellipsoid.
+    A : float
+        The magnitude of the largest semi-major axis of the ellipsoid.
+    B : float
+        The magnitude of the medium semi-major axis of the ellipsoid.
+    C : float
+        The magnitude of the smallest semi-major axis of the ellipsoid.
+    e0 : array_like (automatically normalized)
+        the direction of the largest semi-major axis of the ellipsoid
+    tilt : float
+        After the rotation about the z-axis to allign e0 to x in the x-y
+        plane, and then rotating about the y-axis to align e0 completely
+        to the x-axis, tilt is the angle in radians remaining to
+        rotate about the x-axis to align both e1 to the y-axis and e2 to
+        the z-axis.
+    Examples
+    --------
+    >>> pf = load("DD####/DD####")
+    >>> c = [0.5,0.5,0.5]
+    >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
                  pf=None, field_parameters = None):
-        """
-        By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
-        can define a ellipsoid of any proportion.  Only cells whose
-        centers are within the ellipsoid will be selected.
-
-        Parameters
-        ----------
-        center : array_like
-            The center of the ellipsoid.
-        A : float
-            The magnitude of the largest semi-major axis of the ellipsoid.
-        B : float
-            The magnitude of the medium semi-major axis of the ellipsoid.
-        C : float
-            The magnitude of the smallest semi-major axis of the ellipsoid.
-        e0 : array_like (automatically normalized)
-            the direction of the largest semi-major axis of the ellipsoid
-        tilt : float
-            After the rotation about the z-axis to allign e0 to x in the x-y
-            plane, and then rotating about the y-axis to align e0 completely
-            to the x-axis, tilt is the angle in radians remaining to
-            rotate about the x-axis to align both e1 to the y-axis and e2 to
-            the z-axis.
-        Examples
-        --------
-        >>> pf = load("DD####/DD####")
-        >>> c = [0.5,0.5,0.5]
-        >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
-        """
         YTSelectionContainer3D.__init__(self, np.array(center), pf,
                                         field_parameters)
         # make sure the magnitudes of semi-major axes are in order

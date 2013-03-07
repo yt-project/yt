@@ -603,6 +603,21 @@ def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
 
+def mkdir_rec(path):
+    """
+    Recursive mkdir, so that if you mkdir two levels deep and the first 
+    one doesn't exist, it creates the first, and then any subsequent dirs.
+
+    Examples
+    --------
+    mkdir_rec("a/b/c")
+    """
+    dir_list = path.split("/")
+    basedir = "."
+    for dir in dir_list:
+        basedir = "%s/%s" % (basedir, dir)
+        if not os.path.isdir(basedir): os.mkdir(basedir)
+
 # This is a modification of:
 # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
 def list_chunks(l, n):

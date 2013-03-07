@@ -5,11 +5,10 @@ from yt.funcs import *
 
 class ParticleGenerator(object) :
 
-    default_fields = ("particle_position_x",
+    default_fields = ["particle_position_x",
                       "particle_position_y",
-                      "particle_position_z",
-                      "particle_index")
-
+                      "particle_position_z"]
+    
     def __init__(self, pf, num_particles, field_list) :
         """
         Base class for generating particle fields which may be applied to
@@ -21,20 +20,21 @@ class ParticleGenerator(object) :
         self.pf = pf
         self.num_particles = num_particles
         self.field_list = field_list
-            
+        self.field_list.append("particle_index")
+        
         try :
             self.posx_index = self.field_list.index(self.default_fields[0])
             self.posy_index = self.field_list.index(self.default_fields[1])
             self.posz_index = self.field_list.index(self.default_fields[2])
-            self.index_index = self.field_list.index(self.default_fields[3])
         except :
             raise KeyError("Field list must contain the following fields: " +
                            "\'particle_position_x\', \'particle_position_y\'" +
-                           ", \'particle_position_z\', \'particle_index\' ")
-
+                           ", \'particle_position_z\' ")
+        self.index_index = self.field_list.index("particle_index")
+        
         self.num_grids = self.pf.h.num_grids
         self.NumberOfParticles = np.zeros((self.num_grids), dtype='int64')
-        self.ParticleIndices = np.zeros(self.num_grids + 1, dtype='int64')
+        self.ParticleGridIndices = np.zeros(self.num_grids + 1, dtype='int64')
         
         self.num_fields = len(self.field_list)
         
@@ -78,8 +78,8 @@ class ParticleGenerator(object) :
         Return a dict containing all of the particle fields in the specified grid.
         """
         ind = grid.id-grid._id_offset
-        start = self.ParticleIndices[ind]
-        end = self.ParticleIndices[ind+1]
+        start = self.ParticleGridIndices[ind]
+        end = self.ParticleGridIndices[ind+1]
         return dict([(field, self.particles[start:end,self.field_list.index(field)])
                      for field in self.field_list])
     
@@ -97,9 +97,9 @@ class ParticleGenerator(object) :
                                              minlength=self.num_grids)
         if self.num_grids > 1 :
             np.add.accumulate(self.NumberOfParticles.squeeze(),
-                              out=self.ParticleIndices[1:])
+                              out=self.ParticleGridIndices[1:])
         else :
-            self.ParticleIndices[1] = self.NumberOfParticles.squeeze()
+            self.ParticleGridIndices[1] = self.NumberOfParticles.squeeze()
         if setup_fields is not None:
             for key, value in setup_fields.items():
                 if key not in self.default_fields:
@@ -130,13 +130,12 @@ class ParticleGenerator(object) :
         for i, grid in enumerate(self.pf.h.grids) :
             pbar.update(i)
             if self.NumberOfParticles[i] > 0:
-                start = self.ParticleIndices[i]
-                end = self.ParticleIndices[i+1]
+                start = self.ParticleGridIndices[i]
+                end = self.ParticleGridIndices[i+1]
                 # Note we add one ghost zone to the grid!
                 cube = grid.retrieve_ghost_zones(1, mapping_dict.keys())
                 le = np.array(grid.LeftEdge).astype(np.float64)
                 dims = np.array(grid.ActiveDimensions).astype(np.int32)
-                dx = just_one(grid['dx'])
                 for gfield, pfield in mapping_dict.items() :
                     field_index = self.field_list.index(pfield)
                     CICSample_3(self.particles[start:end,self.posx_index],
@@ -144,7 +143,8 @@ class ParticleGenerator(object) :
                                 self.particles[start:end,self.posz_index],
                                 self.particles[start:end,field_index],
                                 np.int64(self.NumberOfParticles[i]),
-                                cube[gfield], le, dims, dx)
+                                cube[gfield], le, dims,
+                                np.float64(grid['dx']))
         pbar.finish()
 
     def apply_to_stream(self, clobber=False) :
@@ -257,7 +257,7 @@ class LatticeParticleGenerator(ParticleGenerator) :
         >>> le = np.array([0.25,0.25,0.25])
         >>> re = np.array([0.75,0.75,0.75])
         >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z","particle_index",
+        >>>           "particle_position_z",
         >>>           "particle_density","particle_temperature"]
         >>> particles = LatticeParticleGenerator(pf, dims, le, re, fields)
         """
@@ -321,7 +321,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
         >>> sphere = pf.h.sphere(pf.domain_center, 0.5)
         >>> num_p = 100000
         >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z","particle_index",
+        >>>           "particle_position_z",
         >>>           "particle_density","particle_temperature"]
         >>> particles = WithDensityParticleGenerator(pf, sphere, num_particles,
         >>>                                          fields, density_field='Dark_Matter_Density')

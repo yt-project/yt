@@ -10,6 +10,8 @@ Affiliation: UC San Diego
 Author: Anthony Scopatz <scopatz@gmail.com>
 Affiliation: The University of Chicago
 Homepage: http://yt-project.org/
+Author: Nathan Goldbaum <goldbaum@ucolick.org>
+Affiliation: UC Santa Cruz
 License:
   Copyright (C) 2008-2012 Matthew Turk, JS Oishi, Stephen Skory, Anthony Scopatz.  
   All Rights Reserved.
@@ -93,21 +95,21 @@ class PlotCallback(object):
 
 
 class VelocityCallback(PlotCallback):
+    """
+    annotate_velocity(factor=16, scale=None, scale_units=None, normalize=False):
+    
+    Adds a 'quiver' plot of velocity to the plot, skipping all but
+    every *factor* datapoint. *scale* is the data units per arrow
+    length unit using *scale_units* (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is
+    True, the velocity fields will be scaled by their local
+    (in-plane) length, allowing morphological features to be more
+    clearly seen for fields with substantial variation in field
+    strength (normalize is not implemented and thus ignored for
+    Cutting Planes).
+    """
     _type_name = "velocity"
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
-        """
-        annotate_velocity(factor=16, scale=None, scale_units=None, normalize=False):
-        
-        Adds a 'quiver' plot of velocity to the plot, skipping all but
-        every *factor* datapoint. *scale* is the data units per arrow
-        length unit using *scale_units* (see
-        matplotlib.axes.Axes.quiver for more info). if *normalize* is
-        True, the velocity fields will be scaled by their local
-        (in-plane) length, allowing morphological features to be more
-        clearly seen for fields with substantial variation in field
-        strength (normalize is not implemented and thus ignored for
-        Cutting Planes).
-        """
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
@@ -127,19 +129,19 @@ class VelocityCallback(PlotCallback):
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
+    """
+    annotate_magnetic_field(factor=16, scale=None, scale_units=None, normalize=False):
+
+    Adds a 'quiver' plot of magnetic field to the plot, skipping all but
+    every *factor* datapoint. *scale* is the data units per arrow
+    length unit using *scale_units* (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is
+    True, the magnetic fields will be scaled by their local
+    (in-plane) length, allowing morphological features to be more
+    clearly seen for fields with substantial variation in field strength.
+    """
     _type_name = "magnetic_field"
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
-        """
-        annotate_magnetic_field(factor=16, scale=None, scale_units=None, normalize=False):
-
-        Adds a 'quiver' plot of magnetic field to the plot, skipping all but
-        every *factor* datapoint. *scale* is the data units per arrow
-        length unit using *scale_units* (see
-        matplotlib.axes.Axes.quiver for more info). if *normalize* is
-        True, the magnetic fields will be scaled by their local
-        (in-plane) length, allowing morphological features to be more
-        clearly seen for fields with substantial variation in field strength.
-        """
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
@@ -159,16 +161,16 @@ class MagFieldCallback(PlotCallback):
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
+    """
+    annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+
+    Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
+    from the associated data, skipping every *factor* datapoints
+    *scale* is the data units per arrow length unit using *scale_units* 
+    (see matplotlib.axes.Axes.quiver for more info)
+    """
     _type_name = "quiver"
     def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False):
-        """
-        annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
-
-        Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
-        from the associated data, skipping every *factor* datapoints
-        *scale* is the data units per arrow length unit using *scale_units* 
-        (see matplotlib.axes.Axes.quiver for more info)
-        """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -212,18 +214,18 @@ class QuiverCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ContourCallback(PlotCallback):
+    """
+    annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
+                     plot_args = None):
+
+    Add contours in *field* to the plot.  *ncont* governs the number of
+    contours generated, *factor* governs the number of points used in the
+    interpolation, *take_log* governs how it is contoured and *clim* gives
+    the (upper, lower) limits for contouring.
+    """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args = None, label = False, label_args = None):
-        """
-        annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
-                         plot_args = None):
-
-        Add contours in *field* to the plot.  *ncont* governs the number of
-        contours generated, *factor* governs the number of points used in the
-        interpolation, *take_log* governs how it is contoured and *clim* gives
-        the (upper, lower) limits for contouring.
-        """
         PlotCallback.__init__(self)
         self.ncont = ncont
         self.field = field
@@ -254,43 +256,51 @@ class ContourCallback(PlotCallback):
         dx = (xx1 - xx0) / (x1-x0)
         dy = (yy1 - yy0) / (y1-y0)
 
-        #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
-        #Now makes a copy of the position fields "px" and "py" and adds the
-        #appropriate shift to the coppied field.  
-
-        #set the cumulative arrays for the periodic shifting.
-        AllX = np.zeros(plot.data["px"].size, dtype='bool')
-        AllY = np.zeros(plot.data["py"].size, dtype='bool')
-        XShifted = plot.data["px"].copy()
-        YShifted = plot.data["py"].copy()
-        dom_x, dom_y = plot._period
-        for shift in np.mgrid[-1:1:3j]:
-            xlim = ((plot.data["px"] + shift*dom_x >= x0)
-                 &  (plot.data["px"] + shift*dom_x <= x1))
-            ylim = ((plot.data["py"] + shift*dom_y >= y0)
-                 &  (plot.data["py"] + shift*dom_y <= y1))
-            XShifted[xlim] += shift * dom_x
-            YShifted[ylim] += shift * dom_y
-            AllX |= xlim
-            AllY |= ylim
-        # At this point XShifted and YShifted are the shifted arrays of
-        # position data in data coordinates
-        wI = (AllX & AllY)
-
         # We want xi, yi in plot coordinates
-        xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),\
+        xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),
                           yy0:yy1:numPoints_y/(self.factor*1j)]
 
-        # This converts XShifted and YShifted into plot coordinates
-        x = (XShifted[wI]-x0)*dx + xx0
-        y = (YShifted[wI]-y0)*dy + yy0
-        z = plot.data[self.field][wI]
-        if plot.pf.field_info[self.field].take_log: z=np.log10(z)
+        if plot._type_name in ['CuttingPlane','Projection','Slice']:
+            if plot._type_name == 'CuttingPlane':
+                x = plot.data["px"]*dx
+                y = plot.data["py"]*dy
+                z = plot.data[self.field]
+            elif plot._type_name in ['Projection','Slice']:
+                #Makes a copy of the position fields "px" and "py" and adds the
+                #appropriate shift to the copied field.  
 
-        # Both the input and output from the triangulator are in plot
-        # coordinates
-        zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
+                AllX = np.zeros(plot.data["px"].size, dtype='bool')
+                AllY = np.zeros(plot.data["py"].size, dtype='bool')
+                XShifted = plot.data["px"].copy()
+                YShifted = plot.data["py"].copy()
+                dom_x, dom_y = plot._period
+                for shift in np.mgrid[-1:1:3j]:
+                    xlim = ((plot.data["px"] + shift*dom_x >= x0) &
+                            (plot.data["px"] + shift*dom_x <= x1))
+                    ylim = ((plot.data["py"] + shift*dom_y >= y0) &
+                            (plot.data["py"] + shift*dom_y <= y1))
+                    XShifted[xlim] += shift * dom_x
+                    YShifted[ylim] += shift * dom_y
+                    AllX |= xlim
+                    AllY |= ylim
+            
+                # At this point XShifted and YShifted are the shifted arrays of
+                # position data in data coordinates
+                wI = (AllX & AllY)
+
+                # This converts XShifted and YShifted into plot coordinates
+                x = (XShifted[wI]-x0)*dx + xx0
+                y = (YShifted[wI]-y0)*dy + yy0
+                z = plot.data[self.field][wI]
         
+            # Both the input and output from the triangulator are in plot
+            # coordinates
+            zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
+        elif plot._type_name == 'OffAxisProjection':
+            zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
+        
+        if plot.pf.field_info[self.field].take_log: zi=np.log10(zi)
+
         if plot.pf.field_info[self.field].take_log and self.clim is not None: 
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
@@ -307,19 +317,19 @@ class ContourCallback(PlotCallback):
         
 
 class GridBoundaryCallback(PlotCallback):
+    """
+    annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
+
+    Adds grid boundaries to a plot, optionally with *alpha*-blending.
+    Cuttoff for display is at *min_pix* wide.
+    *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
+    Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *min_level* 
+    is specified, only draw grids at or above min_level.  If *max_level* is specified, only 
+    draw grids at or below max_level.
+    """
     _type_name = "grids"
     def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
                  min_level=None, max_level=None):
-        """
-        annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
-
-        Adds grid boundaries to a plot, optionally with *alpha*-blending.
-        Cuttoff for display is at *min_pix* wide.
-        *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
-        Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *min_level* 
-        is specified, only draw grids at or above min_level.  If *max_level* is specified, only 
-        draw grids at or below max_level.
-        """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -381,17 +391,17 @@ class GridBoundaryCallback(PlotCallback):
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
+    """
+    annotate_streamlines(field_x, field_y, factor = 16,
+                         density = 1, plot_args=None):
+
+    Add streamlines to any plot, using the *field_x* and *field_y*
+    from the associated data, skipping every *factor* datapoints like
+    'quiver'. *density* is the index of the amount of the streamlines.
+    """
     _type_name = "streamlines"
     def __init__(self, field_x, field_y, factor = 16,
                  density = 1, plot_args=None):
-        """
-        annotate_streamlines(field_x, field_y, factor = 16,
-                             density = 1, plot_args=None):
-
-        Add streamlines to any plot, using the *field_x* and *field_y*
-        from the associated data, skipping every *factor* datapoints like
-        'quiver'. *density* is the index of the amount of the streamlines.
-        """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -415,16 +425,16 @@ class StreamlineCallback(PlotCallback):
                              plot.data['pdy'],
                              plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                             (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                             (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
-                          np.linspace(yy0,yy1,ny,endpoint=True))
+               np.linspace(yy0,yy1,ny,endpoint=True))
         plot._axes.streamplot(X,Y, pixX, pixY, density = self.dens,
                               **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -432,11 +442,11 @@ class StreamlineCallback(PlotCallback):
         plot._axes.hold(False)
 
 class LabelCallback(PlotCallback):
+    """
+    This adds a label to the plot.
+    """
     _type_name = "axis_label"
     def __init__(self, label):
-        """
-        This adds a label to the plot.
-        """
         PlotCallback.__init__(self)
         self.label = label
 
@@ -459,12 +469,12 @@ def get_smallest_appropriate_unit(v, pf):
     return good_u
 
 class UnitBoundaryCallback(PlotCallback):
+    """
+    Add on a plot indicating where *factor*s of *unit* are shown.
+    Optionally *text_annotate* on the *text_which*-indexed box on display.
+    """
     _type_name = "units"
     def __init__(self, unit = "au", factor=4, text_annotate=True, text_which=-2):
-        """
-        Add on a plot indicating where *factor*s of *unit* are shown.
-        Optionally *text_annotate* on the *text_which*-indexed box on display.
-        """
         PlotCallback.__init__(self)
         self.unit = unit
         self.factor = factor
@@ -519,13 +529,13 @@ class UnitBoundaryCallback(PlotCallback):
         plot._axes.hold(False)
 
 class LinePlotCallback(PlotCallback):
+    """
+    annotate_line(x, y, plot_args = None)
+
+    Over plot *x* and *y* with *plot_args* fed into the plot.
+    """
     _type_name = "line"
     def __init__(self, x, y, plot_args = None):
-        """
-        annotate_line(x, y, plot_args = None)
-
-        Over plot *x* and *y* with *plot_args* fed into the plot.
-        """
         PlotCallback.__init__(self)
         self.x = x
         self.y = y
@@ -538,15 +548,14 @@ class LinePlotCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ImageLineCallback(LinePlotCallback):
+    """
+    annotate_image_line(p1, p2, data_coords=False, plot_args = None)
+
+    Plot from *p1* to *p2* (image plane coordinates)
+    with *plot_args* fed into the plot.
+    """
     _type_name = "image_line"
-
     def __init__(self, p1, p2, data_coords=False, plot_args = None):
-        """
-        annotate_image_line(p1, p2, data_coords=False, plot_args = None)
-
-        Plot from *p1* to *p2* (image plane coordinates)
-        with *plot_args* fed into the plot.
-        """
         PlotCallback.__init__(self)
         self.p1 = p1
         self.p2 = p2
@@ -581,14 +590,14 @@ class ImageLineCallback(LinePlotCallback):
         plot._axes.hold(False)
 
 class CuttingQuiverCallback(PlotCallback):
+    """
+    annotate_cquiver(field_x, field_y, factor)
+
+    Get a quiver plot on top of a cutting plane, using *field_x* and
+    *field_y*, skipping every *factor* datapoint in the discretization.
+    """
     _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
-        """
-        annotate_cquiver(field_x, field_y, factor)
-
-        Get a quiver plot on top of a cutting plane, using *field_x* and
-        *field_y*, skipping every *factor* datapoint in the discretization.
-        """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -625,13 +634,13 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ClumpContourCallback(PlotCallback):
+    """
+    annotate_clumps(clumps, plot_args = None)
+
+    Take a list of *clumps* and plot them as a set of contours.
+    """
     _type_name = "clumps"
     def __init__(self, clumps, plot_args = None):
-        """
-        annotate_clumps(clumps, plot_args = None)
-
-        Take a list of *clumps* and plot them as a set of contours.
-        """
         self.clumps = clumps
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
@@ -679,14 +688,14 @@ class ClumpContourCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
+    """
+    annotate_arrow(pos, code_size, plot_args = None)
+
+    This adds an arrow pointing at *pos* with size *code_size* in code
+    units.  *plot_args* is a dict fed to matplotlib with arrow properties.
+    """
     _type_name = "arrow"
     def __init__(self, pos, code_size, plot_args = None):
-        """
-        annotate_arrow(pos, code_size, plot_args = None)
-
-        This adds an arrow pointing at *pos* with size *code_size* in code
-        units.  *plot_args* is a dict fed to matplotlib with arrow properties.
-        """
         self.pos = pos
         if not iterable(code_size):
             code_size = (code_size, code_size)
@@ -707,14 +716,14 @@ class ArrowCallback(PlotCallback):
         plot._axes.add_patch(arrow)
 
 class PointAnnotateCallback(PlotCallback):
+    """
+    annotate_point(pos, text, text_args = None)
+
+    This adds *text* at position *pos*, where *pos* is in code-space.
+    *text_args* is a dict fed to the text placement code.
+    """
     _type_name = "point"
     def __init__(self, pos, text, text_args = None):
-        """
-        annotate_point(pos, text, text_args = None)
-
-        This adds *text* at position *pos*, where *pos* is in code-space.
-        *text_args* is a dict fed to the text placement code.
-        """
         self.pos = pos
         self.text = text
         if text_args is None: text_args = {}
@@ -731,14 +740,14 @@ class PointAnnotateCallback(PlotCallback):
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
+    """
+    annotate_marker(pos, marker='x', plot_args=None)
+
+    Adds text *marker* at *pos* in code units.  *plot_args* is a dict
+    that will be forwarded to the plot command.
+    """
     _type_name = "marker"
     def __init__(self, pos, marker='x', plot_args=None):
-        """
-        annotate_marker(pos, marker='x', plot_args=None)
-
-        Adds text *marker* at *pos* in code-arguments.  *plot_args* is a dict
-        that will be forwarded to the plot command.
-        """
         self.pos = pos
         self.marker = marker
         if plot_args is None: plot_args = {}
@@ -747,10 +756,10 @@ class MarkerAnnotateCallback(PlotCallback):
     def __call__(self, plot):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        if np.array(self.pos).shape == (3,):
+        if len(self.pos) == 3:
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
-        elif np.array(self.pos).shape == (2,):
+        elif len(self.pos) == 2:
             pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
@@ -760,17 +769,17 @@ class MarkerAnnotateCallback(PlotCallback):
         plot._axes.hold(False)
 
 class SphereCallback(PlotCallback):
+    """
+    annotate_sphere(center, radius, circle_args = None,
+                    text = None, text_args = None)
+    
+    A sphere centered at *center* in code units with radius *radius* in
+    code units will be created, with optional *circle_args*, *text*, and
+    *text_args*.
+    """
     _type_name = "sphere"
     def __init__(self, center, radius, circle_args = None,
                  text = None, text_args = None):
-        """
-        annotate_sphere(center, radius, circle_args = None,
-                        text = None, text_args = None)
-        
-        A sphere centered at *center* in code units with radius *radius* in
-        code units will be created, with optional *circle_args*, *text*, and
-        *text_args*.
-        """
         self.center = center
         self.radius = radius
         if circle_args is None: circle_args = {}
@@ -785,7 +794,10 @@ class SphereCallback(PlotCallback):
         
         radius = self.radius * self.pixel_scale(plot)[0]
 
-        (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+        if plot.data.axis == 4:
+            (xi, yi) = (0, 1)
+        else:
+            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
 
         (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
         
@@ -796,20 +808,20 @@ class SphereCallback(PlotCallback):
                             **self.text_args)
 
 class HopCircleCallback(PlotCallback):
+    """
+    annotate_hop_circles(hop_output, max_number=None,
+                         annotate=False, min_size=20, max_size=10000000,
+                         font_size=8, print_halo_size=False,
+                         print_halo_mass=False, width=None)
+
+    Accepts a :class:`yt.HopList` *hop_output* and plots up to
+    *max_number* (None for unlimited) halos as circles.
+    """
     _type_name = "hop_circles"
     def __init__(self, hop_output, max_number=None,
                  annotate=False, min_size=20, max_size=10000000,
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False, width=None):
-        """
-        annotate_hop_circles(hop_output, max_number=None,
-                             annotate=False, min_size=20, max_size=10000000,
-                             font_size=8, print_halo_size=False,
-                             print_halo_mass=False, width=None)
-
-        Accepts a :class:`yt.HopList` *hop_output* and plots up to
-        *max_number* (None for unlimited) halos as circles.
-        """
         self.hop_output = hop_output
         self.max_number = max_number
         self.annotate = annotate
@@ -854,18 +866,18 @@ class HopCircleCallback(PlotCallback):
                     fontsize=self.font_size, color=color)
 
 class HopParticleCallback(PlotCallback):
+    """
+    annotate_hop_particles(hop_output, max_number, p_size=1.0,
+                           min_size=20, alpha=0.2):
+
+    Adds particle positions for the members of each halo as identified
+    by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
+    larger than *min_size* are plotted with *p_size* pixels per particle; 
+    *alpha* determines the opacity of each particle.
+    """
     _type_name = "hop_particles"
     def __init__(self, hop_output, max_number=None, p_size=1.0,
                 min_size=20, alpha=0.2):
-        """
-        annotate_hop_particles(hop_output, max_number, p_size=1.0,
-                               min_size=20, alpha=0.2):
-
-        Adds particle positions for the members of each halo as identified
-        by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
-        larger than *min_size* are plotted with *p_size* pixels per particle; 
-        *alpha* determines the opacity of each particle.
-        """
         self.hop_output = hop_output
         self.p_size = p_size
         self.max_number = max_number
@@ -904,12 +916,12 @@ class HopParticleCallback(PlotCallback):
 
 
 class CoordAxesCallback(PlotCallback):
+    """
+    Creates x and y axes for a VMPlot. In the future, it will
+    attempt to guess the proper units to use.
+    """
     _type_name = "coord_axes"
     def __init__(self,unit=None,coords=False):
-        """
-        Creates x and y axes for a VMPlot. In the future, it will
-        attempt to guess the proper units to use.
-        """
         PlotCallback.__init__(self)
         self.unit = unit
         self.coords = coords
@@ -971,15 +983,15 @@ class CoordAxesCallback(PlotCallback):
         plot._figure.subplots_adjust(left=0.1,right=0.8)
 
 class TextLabelCallback(PlotCallback):
+    """
+    annotate_text(pos, text, data_coords=False, text_args = None)
+
+    Accepts a position in (0..1, 0..1) of the image, some text and
+    optionally some text arguments. If data_coords is True,
+    position will be in code units instead of image coordinates.
+    """
     _type_name = "text"
     def __init__(self, pos, text, data_coords=False, text_args = None):
-        """
-        annotate_text(pos, text, data_coords=False, text_args = None)
-
-        Accepts a position in (0..1, 0..1) of the image, some text and
-        optionally some text arguments. If data_coords is True,
-        position will be in code units instead of image coordinates.
-        """
         self.pos = pos
         self.text = text
         self.data_coords = data_coords
@@ -1001,25 +1013,25 @@ class TextLabelCallback(PlotCallback):
         plot._axes.text(x, y, self.text, **kwargs)
 
 class ParticleCallback(PlotCallback):
+    """
+    annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
+                       ptype=None, stars_only=False, dm_only=False,
+                       minimum_mass=None, alpha=1.0)
+
+    Adds particle positions, based on a thick slab along *axis* with a
+    *width* along the line of sight.  *p_size* controls the number of
+    pixels per particle, and *col* governs the color.  *ptype* will
+    restrict plotted particles to only those that are of a given type.
+    *minimum_mass* will require that the particles be of a given mass,
+    calculated via ParticleMassMsun, to be plotted. *alpha* determines
+    each particle's opacity.
+    """
     _type_name = "particles"
     region = None
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
                  ptype=None, stars_only=False, dm_only=False,
                  minimum_mass=None, alpha=1.0):
-        """
-        annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
-                           ptype=None, stars_only=False, dm_only=False,
-                           minimum_mass=None, alpha=1.0)
-
-        Adds particle positions, based on a thick slab along *axis* with a
-        *width* along the line of sight.  *p_size* controls the number of
-        pixels per particle, and *col* governs the color.  *ptype* will
-        restrict plotted particles to only those that are of a given type.
-        *minimum_mass* will require that the particles be of a given mass,
-        calculated via ParticleMassMsun, to be plotted. *alpha* determines
-        each particle's opacity.
-        """
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -1085,13 +1097,13 @@ class ParticleCallback(PlotCallback):
         return self.region
 
 class TitleCallback(PlotCallback):
+    """
+    annotate_title(title)
+
+    Accepts a *title* and adds it to the plot
+    """
     _type_name = "title"
     def __init__(self, title):
-        """
-        annotate_title(title)
-
-        Accepts a *title* and adds it to the plot
-        """
         PlotCallback.__init__(self)
         self.title = title
 
@@ -1099,16 +1111,16 @@ class TitleCallback(PlotCallback):
         plot._axes.set_title(self.title)
 
 class FlashRayDataCallback(PlotCallback):
+    """ 
+    annotate_flash_ray_data(cmap_name='bone', sample=None)
+
+    Adds ray trace data to the plot.  *cmap_name* is the name of the color map 
+    ('bone', 'jet', 'hot', etc).  *sample* dictates the amount of down sampling 
+    to do to prevent all of the rays from being  plotted.  This may be None 
+    (plot all rays, default), an integer (step size), or a slice object.
+    """
     _type_name = "flash_ray_data"
     def __init__(self, cmap_name='bone', sample=None):
-        """ 
-        annotate_flash_ray_data(cmap_name='bone', sample=None)
-
-        Adds ray trace data to the plot.  *cmap_name* is the name of the color map 
-        ('bone', 'jet', 'hot', etc).  *sample* dictates the amount of down sampling 
-        to do to prevent all of the rays from being  plotted.  This may be None 
-        (plot all rays, default), an integer (step size), or a slice object.
-        """
         self.cmap_name = cmap_name
         self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
 
@@ -1136,6 +1148,22 @@ class FlashRayDataCallback(PlotCallback):
 
 
 class TimestampCallback(PlotCallback):
+    """ 
+    annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
+                       normalized=False, bbox_dict=None)
+
+    Adds the current time to the plot at point given by *x* and *y*.  If *units* 
+    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
+    *units* is None, it will attempt to figure out the correct value by which to 
+    scale.  The *format* keyword is a template string that will be evaluated and 
+    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted 
+    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right) 
+    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict* 
+    is an optional dict of arguments for the bbox that frames the timestamp, see 
+    matplotlib's text annotation guide for more details. All other *kwargs* will 
+    be passed to the text() method on the plot axes.  See matplotlib's text() 
+    functions for more information.
+    """
     _type_name = "timestamp"
     _time_conv = {
           'as': 1e-18,
@@ -1187,22 +1215,6 @@ class TimestampCallback(PlotCallback):
 
     def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
                  bbox_dict=None, **kwargs):
-        """ 
-        annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
-                           normalized=False, bbox_dict=None)
-
-        Adds the current time to the plot at point given by *x* and *y*.  If *units* 
-        is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
-        *units* is None, it will attempt to figure out the correct value by which to 
-        scale.  The *format* keyword is a template string that will be evaluated and 
-        displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted 
-        as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right) 
-        otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict* 
-        is an optional dict of arguments for the bbox that frames the timestamp, see 
-        matplotlib's text annotation guide for more details. All other *kwargs* will 
-        be passed to the text() method on the plot axes.  See matplotlib's text() 
-        functions for more information.
-        """
         self.x = x
         self.y = y
         self.format = format
@@ -1240,22 +1252,22 @@ class TimestampCallback(PlotCallback):
 
 
 class MaterialBoundaryCallback(ContourCallback):
+    """ 
+    annotate_material_boundary(self, field='targ', ncont=1, factor=4, 
+                               clim=(0.9, 1.0), **kwargs):
+
+    Add the limiting contours of *field* to the plot.  Nominally, *field* is 
+    the target material but may be any other field present in the hierarchy.
+    The number of contours generated is given by *ncount*, *factor* governs 
+    the number of points used in the interpolation, and *clim* gives the 
+    (upper, lower) limits for contouring.  For this to truly be the boundary
+    *clim* should be close to the edge.  For example the default is (0.9, 1.0)
+    for 'targ' which is defined on the range [0.0, 1.0].  All other *kwargs* 
+    will be passed to the contour() method on the plot axes.  See matplotlib
+    for more information.
+    """
     _type_name = "material_boundary"
     def __init__(self, field='targ', ncont=1, factor=4, clim=(0.9, 1.0), **kwargs):
-        """ 
-        annotate_material_boundary(self, field='targ', ncont=1, factor=4, 
-                                   clim=(0.9, 1.0), **kwargs):
-
-        Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-        the target material but may be any other field present in the hierarchy.
-        The number of contours generated is given by *ncount*, *factor* governs 
-        the number of points used in the interpolation, and *clim* gives the 
-        (upper, lower) limits for contouring.  For this to truly be the boundary
-        *clim* should be close to the edge.  For example the default is (0.9, 1.0)
-        for 'targ' which is defined on the range [0.0, 1.0].  All other *kwargs* 
-        will be passed to the contour() method on the plot axes.  See matplotlib
-        for more information.
-        """
         plot_args = {'colors': 'w'}
         plot_args.update(kwargs)
         super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont, 

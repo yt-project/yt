@@ -28,6 +28,7 @@ import numpy as np
 from yt.funcs import *
 import _colormap_data as cmd
 import yt.utilities.lib as au
+import __builtin__
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -120,14 +121,16 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
-    already uint8, it will be scaled and converted.  If it is not four channel, a
-    fourth alpha channel will be added and set to fully opaque.  The resultant
-    image will be directly written to `filename` as a PNG with no colormap
-    applied.  `max_val` is a value used if the array is passed in as anything
-    other than uint8; it will be the value used for scaling and clipping when the
-    array is converted.  Additionally, the minimum is assumed to be zero; this
-    makes it primarily suited for the results of volume rendered images, rather
-    than misaligned projections.
+    already uint8, it will be scaled and converted.  If it is four channel,
+    only the first three channels will be scaled, while the fourth channel is
+    assumed to be in the range of [0,1]. If it is not four channel, a fourth
+    alpha channel will be added and set to fully opaque.  The resultant image
+    will be directly written to `filename` as a PNG with no colormap applied.
+    `max_val` is a value used if the array is passed in as anything other than
+    uint8; it will be the value used for scaling and clipping in the first
+    three channels when the array is converted.  Additionally, the minimum is
+    assumed to be zero; this makes it primarily suited for the results of
+    volume rendered images, rather than misaligned projections.
 
     Parameters
     ----------
@@ -141,16 +144,19 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
     """
-    if bitmap_array.dtype != np.uint8:
-        if max_val is None: max_val = bitmap_array.max()
-        bitmap_array = np.clip(bitmap_array / max_val, 0.0, 1.0) * 255
-        bitmap_array = bitmap_array.astype("uint8")
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
         raise RuntimeError
-    if bitmap_array.shape[-1] == 3:
+    if bitmap_array.dtype != np.uint8:
         s1, s2 = bitmap_array.shape[:2]
-        alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
-        bitmap_array = np.concatenate([bitmap_array, alpha_channel], axis=-1)
+        if bitmap_array.shape[-1] == 3:
+            alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
+        else:
+            alpha_channel = (255*bitmap_array[:,:,3]).astype('uint8')
+            alpha_channel.shape = s1, s2, 1
+        if max_val is None: max_val = bitmap_array[:,:,:3].max()
+        bitmap_array = np.clip(bitmap_array[:,:,:3] / max_val, 0.0, 1.0) * 255
+        bitmap_array = np.concatenate([bitmap_array.astype('uint8'),
+                                       alpha_channel], axis=-1)
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
@@ -433,7 +439,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
 
 def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
-
     """
     This will export a FITS image of a floating point array. The output filename is
     *filename_prefix*. If clobber is set to True, this will overwrite any existing
@@ -497,4 +502,32 @@ def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=Fals
         clob = ""
         if (clobber) : clob="-f"
         system("gzip "+clob+" %s.fits" % (filename_prefix))
+
+def display_in_notebook(image, max_val=None):
+    """
+    A helper function to display images in an IPython notebook
     
+    Must be run from within an IPython notebook, or else it will raise
+    a YTNotInsideNotebook exception.
+        
+    Parameters
+    ----------
+    image : array_like
+        This is an (unscaled) array of floating point values, shape (N,N,3) or
+        (N,N,4) to display in the notebook. The first three channels will be
+        scaled automatically.  
+    max_val : float, optional
+        The upper limit to clip values of the image.  Only applies to the first
+        three channels.
+    """
+ 
+    if "__IPYTHON__" in dir(__builtin__):
+        from IPython.core.displaypub import publish_display_data
+        data = write_bitmap(image, None, max_val=max_val)
+        publish_display_data(
+            'yt.visualization.image_writer.display_in_notebook',
+            {'image/png' : data}
+        )
+    else:
+        raise YTNotInsideNotebook
+
