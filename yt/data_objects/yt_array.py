@@ -292,13 +292,15 @@ class YTArray(np.ndarray):
         The unit objects handle being multiplied by each other.
 
         """
-        if isinstance(right_object, Quantity):
-            return Quantity(self.data * right_object.data,
-                            self.units * right_object.units)
+        if isinstance(right_object, YTArray):
+            print "new units: ", (self.units * right_object.units)
+            return YTArray(super(YTArray, self).__mul__(right_object),
+                           input_units=(self.units * right_object.units))
 
         # `right_object` is not a Quantity object, so try to use it as
         # dimensionless data.
-        return Quantity(self.data * right_object, self.units)
+        return YTArray(super(YTArray, self).__mul__(right_object), 
+                       input_units=self.units)
 
     def __rmul__(self, left_object):
         """
