@@ -137,6 +137,6 @@ add_field("pressure", function=_pressure, units="Msun*(km/s)**2/Mpc**3")
 
 # Gas temperature
 def _temperature(field, data):
-    return (gamma - 1.0) * data.pf["mu"] * mh *
-            data["thermal_energy"] / (kboltz * data["density"]))
+    return ( (gamma - 1.0) * data.pf["mu"] * mh *
+             data["thermal_energy"] / (kboltz * data["density"]) )
 add_field("temperature", function=_temperature, take_log=False, units="K")
