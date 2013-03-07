@@ -660,7 +660,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         elif isinstance(fields, list):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
-        pb = get_pbar("Extracting (sampling: %s)" % fields,
+        pb = get_pbar("Extracting (sampling: %s)" % (fields,),
                       len(list(self._get_grid_objs())))
         verts = []
         samples = []
