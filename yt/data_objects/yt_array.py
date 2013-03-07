@@ -47,9 +47,6 @@ class YTArray(np.ndarray):
         if input_units is None:
             # Nothing provided. Make dimensionless...
             units = Unit()
-        else if isinstance(input_units, Unit):
-            # input_units is already a Unit, but let's be safe and make a copy.
-            units = copy.copy(input_units)
         else:
             # units kwarg set, but it's not a Unit object.
             # don't handle all the cases here, let the Unit class handle if
@@ -68,6 +65,18 @@ class YTArray(np.ndarray):
         if obj is None:
             return
         self.units = getattr(obj, 'units', None)
+
+    def __repr__(self):
+        """
+
+        """
+        return super(YTArray, self).__repr__()+' '+self.units.__repr__()
+
+    def __str__(self):
+        """
+
+        """
+        return super(YTArray, self).__str__()+' '+self.units.__str__()
 
     #
     # Start unit conversion methods
@@ -194,19 +203,16 @@ class YTArray(np.ndarray):
         """
         if isinstance(right_object, YTArray):
             # make sure it's a quantity before we check units attribute
-            if not self.units.has_same_dimensions_as(right_object.units):
+            if not self.units.same_dimensions_as(right_object.units):
                 raise UnitOperationError("You cannot add these quantities because their dimensions do not match. `%s + %s` is ill-defined" % (self.units, right_object.units))
         else:
+            # case of dimensionless self + float
             # the only way this works is with a float so...
             if not self.units.is_dimensionless:
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s + %s` is ill-defined." % (self, right_object))
 
-            # case of dimensionless self + float
-            return Quantity(self.data + right_object, self.units)
-
         # `get_data_in` will not apply the conversion if the units are the same
-        return Quantity(self.data + right_object.get_data_in(self.units),
-                        self.units)
+        return YTArray(super(YTArray, self).__add__(right_object), input_units = right_object.units)
 
     def __radd__(self, left_object):
         """
@@ -219,16 +225,12 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(left_object.units):
                 raise Exception("You cannot add these quantities because their dimensions do not match. `%s + %s` is ill-defined" % (left_object.units, self.units))
         else:  # the only way this works is with a float so...
+            # case of dimensionless float + self
             if not self.units.is_dimensionless:
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s + %s` is ill-defined." % (left_object, self))
 
-            # case of dimensionless float + self
-            return Quantity(left_object + self.data, self.units)
-
         # `get_data_in` will not apply the conversion if the units are the same
-        return Quantity((left_object.data
-                         + self.get_data_in(left_object.units)),
-                        left_object.units)
+        return YTArray(super(YTArray, self).__radd__(left_object), input_units = right_object.units)
 
     def __sub__(self, right_object):
         """
@@ -240,16 +242,15 @@ class YTArray(np.ndarray):
         if isinstance(right_object, Quantity):  # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(right_object.units):
                 raise Exception("You cannot add these quantities because their dimensions do not match. `%s - %s` is ill-defined" % (self.units, right_object.units))
-        else:  # the only way this works is with a float so...
+        else:  
+            # case of dimensionless self + float
+            # the only way this works is with a float so...
             if not self.units.is_dimensionless:
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (self, right_object))
 
-            # case of dimensionless self + float
-            return Quantity(self.data - right_object, self.units)
-
         # `get_data_in` will not apply the conversion if the units are the same
-        return Quantity(self.data - right_object.get_data_in(self.units),
-                        self.units)
+        return YTArray(super(YTArray, self).__sub__(right_object), input_units = right_object.units)
+        
 
     def __rsub__(self, left_object):
         """
@@ -261,21 +262,18 @@ class YTArray(np.ndarray):
         if isinstance(left_object, Quantity):  # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(left_object.units):
                 raise Exception("You cannot add these quantities because their dimensions do not match. `%s - %s` is ill-defined" % (left_object.units, self.units))
-        else:  # the only way this works is with a float so...
+        else:  
+            # case of dimensionless self + float
+            # the only way this works is with a float so...
             if not self.units.is_dimensionless:
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (left_object, self))
 
-            # case of dimensionless float + self
-            return Quantity(left_object - self.data, self.units)
-
         # `get_data_in` will not apply the conversion if the units are the same
-        return Quantity((left_object.data
-                         - self.get_data_in(left_object.units)),
-                        left_object.units)
+        return YTArray(super(YTArray, self).__rsub__(left_object), input_units = left_object.units)
 
     def __neg__(self):
         """ Negate the data. """
-        return Quantity(-self.data, self.units)
+        return YTArray(super(YTArray, self).__neg__(self), input_units = self.units)
 
     def __mul__(self, right_object):
         """
