@@ -39,18 +39,21 @@ NyxFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = NyxFieldInfo.add_field
 
 KnownNyxFields = FieldInfoContainer()
-add_nyx_field = KnownNyxFields.add_field 
+add_nyx_field = KnownNyxFields.add_field
+
+#
+# Constants
+#
+
+# BEWARE hardcoded, uniform gamma value
+nyx_gamma = 5.0 / 3.0
 
 # Density
 add_nyx_field("density", function=lambda a, b: None, take_log=True,
-          validators=[ValidateDataField("density")],
-          units=r"\rm{g} / \rm{cm}^3",
-          projected_units =r"\rm{g} / \rm{cm}^2")
-KnownNyxFields["density"]._projected_units =r"\rm{g} / \rm{cm}^2"
+              validators=[ValidateDataField("density")], units="g/cm**3")
 
 add_field("Density", function=TranslationFunc("density"), take_log=True,
-          units=r"\rm{g} / \rm{cm}^3",
-          projected_units =r"\rm{g} / \rm{cm}^2")
+          units="g/cm**3")
 
 # Particle mass in units of $ M_{\odot}
 def _convertParticleMassMsun(data):
@@ -60,53 +63,42 @@ def _particle_mass_m_sun(field, data):
 add_field("ParticleMassMsun", function=_particle_mass_m_sun,
           validators=[ValidateSpatial(0), ValidateDataField("particle_mass")],
           particle_type=True, convert_function=_convertParticleMassMsun,
-          take_log=True, units=r"\rm{M_{\odot}}")
-          
-add_nyx_field("Dark_Matter_Density", function=TranslationFunc("particle_mass_density"),
-          take_log=True,
-          units=r"\rm{g} / \rm{cm}^3",particle_type=True,
-          projected_units =r"\rm{g} / \rm{cm}^2")
+          take_log=True, units="Msun")
+
+add_nyx_field("Dark_Matter_Density",
+              function=TranslationFunc("particle_mass_density"),
+              take_log=True, particle_type=True, units="g/cm**3")
 
 
-# Energy Density
-# @todo: ``energy_density``
-add_nyx_field("total_energy", function=lambda a, b: None, take_log=True,
-          validators=[ValidateDataField("total_energy")],
-          units=r"\rm{M_{\odot}} (\rm{km} / \rm{s})^2")
+add_nyx_field("energy_density", function=lambda a, b: None, take_log=True,
+              validators=[ValidateDataField("total_energy")],
+              units="Msun * (km / s)**2")
 
-# Momentum in each dimension.
-# @todo: ``momentum_x``
-add_nyx_field("x-momentum", function=lambda a, b: None, take_log=False,
-          validators=[ValidateDataField("x-momentum")],
-          units=r"\rm{M_{\odot}} \rm{km} / \rm{s}")
-add_nyx_field("y-momentum", function=lambda a, b: None, take_log=False,
-          validators=[ValidateDataField("y-momentum")],
-          units=r"\rm{M_{\odot}} \rm{km} / \rm{s}")
-add_nyx_field("z-momentum", function=lambda a, b: None, take_log=False,
-          validators=[ValidateDataField("z-momentum")],
-          units=r"\rm{M_{\odot}} \rm{km} / \rm{s}")
+add_nyx_field("momentum_x", function=lambda a, b: None, take_log=False,
+              validators=[ValidateDataField("x-momentum")], units="Msun*km/s")
+add_nyx_field("momentum_y", function=lambda a, b: None, take_log=False,
+              validators=[ValidateDataField("y-momentum")], units="Msun*km/s")
+add_nyx_field("momentum_z", function=lambda a, b: None, take_log=False,
+              validators=[ValidateDataField("z-momentum")], units="Msun*km/s")
 
 ### Now derived fields
 
 # Velocity fields in each dimension
 # @todo: ``velocity_x``
-def _x_velocity(field, data):
+def _velocity_x(field, data):
     """ Generate x-velocity from x-momentum and density. """
-    return data["x-momentum"] / data["density"]
-add_field("x-velocity", function=_x_velocity, take_log=False,
-          units=r"\rm{km} / \rm{s}")
+    return data["momentum_x"] / data["density"]
+add_field("velocity_x", function=_velocity_x, take_log=False, units="km/s")
 
-def _y_velocity(field, data):
+def _velocity_y(field, data):
     """ Generate y-velocity from y-momentum and density. """
-    return data["y-momentum"] / data["density"]
-add_field("y-velocity", function=_y_velocity, take_log=False,
-          units=r"\rm{km} / \rm{s}")
+    return data["momentum_y"] / data["density"]
+add_field("velocity_y", function=_velocity_y, take_log=False, units="km/s")
 
-def _z_velocity(field, data):
+def _velocity_z(field, data):
     """ Generate z-velocity from z-momentum and density. """
-    return data["z-momentum"] / data["density"]
-add_field("z-velocity", function=_z_velocity, take_log=False,
-          units=r"\rm{km} / \rm{s}")
+    return data["momentum_z"] / data["density"]
+add_field("velocity_z", function=_velocity_z, take_log=False, units="km/s")
 
 # The gas **thermal** energy.
 # @todo: should be called ``gas_energy`` whether it is data or derived
@@ -120,12 +112,11 @@ def _thermal_energy(field, data):
     #if data.pf["DualEnergyFormalism"]:
     #    return data["Gas_Energy"]
     #else:
-    return data["Total_Energy"] - 0.5 * data["density"] * (
-                                          data["x-velocity"]**2.0
-                                        + data["y-velocity"]**2.0
-                                        + data["z-velocity"]**2.0 )
-add_field("ThermalEnergy", function=_thermal_energy,
-          units=r"\rm{M_{\odot}} (\rm{km} / \rm{s})^2")
+    return ( data["total_energy"]
+             - 0.5 * data["density"] * (   data["velocity_x"]**2.0
+                                         + data["velocity_y"]**2.0
+                                         + data["velocity_z"]**2.0 ) )
+add_field("thermal_energy", function=_thermal_energy, units="Msun*(km/s)**2")
 
 # Gas pressure
 # @todo: eventually figure out a way to detect when using radiation and change
@@ -140,14 +131,13 @@ def _pressure(field, data):
     when radiation is accounted for.
 
     """
-    return (data.pf["Gamma"] - 1.0) * data["ThermalEnergy"]
-add_field("Pressure", function=_pressure,
-          units=r"\rm{M_{\odot}} (\rm{km} / \rm{s})^2 / \rm{Mpc}^3")
+    return (nyx_gamma - 1.0) * data["ThermalEnergy"]
+
+add_field("pressure", function=_pressure, units="Msun*(km/s)**2/Mpc**3")
 
 # Gas temperature
 def _temperature(field, data):
-    return ((data.pf["Gamma"] - 1.0) * data.pf["mu"] * mh *
-            data["ThermalEnergy"] / (kboltz * data["Density"]))
-add_field("Temperature", function=_temperature, take_log=False,
-          units=r"\rm{Kelvin}")
+    return (gamma - 1.0) * data.pf["mu"] * mh *
+            data["thermal_energy"] / (kboltz * data["density"]))
+add_field("temperature", function=_temperature, take_log=False, units="K")
 
