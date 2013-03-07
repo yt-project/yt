@@ -6,10 +6,14 @@ hdf5.cfg
 png.cfg
 yt_updater.log
 yt/frontends/ramses/_ramses_reader.cpp
+yt/frontends/sph/smoothing_kernel.c
+yt/geometry/oct_container.c
+yt/geometry/selection_routines.c
 yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
 yt/utilities/libconfig_wrapper.c
 yt/utilities/spatial/ckdtree.c
+yt/utilities/lib/alt_ray_tracers.c
 yt/utilities/lib/CICDeposit.c
 yt/utilities/lib/ContourFinding.c
 yt/utilities/lib/DepthFirstOctree.c
