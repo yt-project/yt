@@ -66,7 +66,7 @@ translation_dict = {"x-velocity": "velx",
                     "z-velocity": "velz",
                     "Density": "dens",
                     "Temperature": "temp",
-                    "Pressure" : "pres", 
+                    "Pressure" : "pres",
                     "Grav_Potential" : "gpot",
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",
@@ -167,13 +167,13 @@ add_flash_field("pres", function=NullFunc, take_log=True,
                 units="erg/cm**3")
 add_flash_field("pion", function=NullFunc, take_log=True,
                 display_name="Ion Pressure",
-                units="J/cm^3")
+                units="J/cm**3")
 add_flash_field("pele", function=NullFunc, take_log=True,
                 display_name="Electron Pressure, P_e",
-                units="J/cm^3")
+                units="J/cm**3")
 add_flash_field("prad", function=NullFunc, take_log=True,
                 display_name="Radiation Pressure",
-                units = "J/cm^3")
+                units = "J/cm**3")
 add_flash_field("eion", function=NullFunc, take_log=True,
                 display_name="Ion Internal Energy",
                 units="J")
@@ -187,9 +187,9 @@ add_flash_field("pden", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pden"),
                 units="g/cm**3")
 add_flash_field("depo", function=NullFunc, take_log=True,
-                units = "ergs/g")
+                units = "erg/g")
 add_flash_field("ye", function=NullFunc, take_log=True,
-                units = "ergs/g")
+                units = "erg/g")
 add_flash_field("magx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("magx"),
                 units = "gauss")
@@ -213,10 +213,10 @@ add_flash_field("gamc", function=NullFunc, take_log=False,
                 display_name="\gamma_c\/\rm{(ratio\/of\/specific\/heats)}")
 add_flash_field("gpot", function=NullFunc, take_log=False,
                 convert_function=_get_convert("gpot"),
-                units="ergs/g")
+                units="erg/g")
 add_flash_field("gpol", function=NullFunc, take_log=False,
                 convert_function=_get_convert("gpol"),
-                units = "ergs/g")
+                units = "erg/g")
 add_flash_field("flam", function=NullFunc, take_log=False,
                 convert_function=_get_convert("flam"))
 add_flash_field("absr", function=NullFunc, take_log=False,
@@ -257,13 +257,12 @@ for f,v in translation_dict.items():
     if f.endswith("_Fraction") :
         dname = "%s\/Fraction" % f.split("_")[0]
     else :
-        dname = f                    
+        dname = f
     ff = KnownFLASHFields[v]
     pfield = f.startswith("particle")
     add_field(f, TranslationFunc(v),
               take_log=KnownFLASHFields[v].take_log,
-              units = ff._units, display_name=dname,
-              projected_units = ff._projected_units,
+              units = ff.units, display_name=dname,
               particle_type = pfield)
 
 def _convertParticleMassMsun(data):
@@ -289,9 +288,9 @@ def _ThermalEnergy(fields, data) :
     else:
         mu = 0.6
     return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf.gamma - 1.0)
-    
+
 add_field("ThermalEnergy", function=_ThermalEnergy,
-          units="ergs/g")
+          units="erg/g")
 
 def _TotalEnergy(fields, data) :
     try:
@@ -308,13 +307,13 @@ def _TotalEnergy(fields, data) :
     return etot
 
 add_field("TotalEnergy", function=_TotalEnergy,
-          units="ergs/g")
+          units="erg/g")
 
 def _GasEnergy(fields, data) :
     return data["ThermalEnergy"]
 
-add_field("GasEnergy", function=_GasEnergy, 
-          units="ergs/g")
+add_field("GasEnergy", function=_GasEnergy,
+          units="erg/g")
 
 # See http://flash.uchicago.edu/pipermail/flash-users/2012-October/001180.html
 # along with the attachment to that e-mail for details
