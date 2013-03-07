@@ -10,16 +10,14 @@ from yt.geometry.selection_routines cimport SelectorObject
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 import  data_structures  
-from yt.geometry.oct_container cimport \
-    OctreeContainer, \
-    ARTIOOctreeContainer, \
-    Oct
 
 cdef extern from "stdlib.h":
     void *alloca(int)
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
+        pass
+    ctypedef struct artio_selection "artio_selection"
         pass
     ctypedef struct artio_context :
         pass
@@ -60,6 +58,14 @@ cdef extern from "artio.h":
     int artio_fileset_open_grid(artio_fileset_handle *handle) 
     int artio_fileset_close_grid(artio_fileset_handle *handle) 
 
+    # selection functions
+    artio_selection *artio_selection_allocate( artio_fileset *handle )
+    int artio_selection_add_root_cell( artio_selection *selection, int coords[3] )
+    int artio_selection_destroy( artio_selection *selection )
+    int artio_selection_iterator( artio_selection *selection,
+            int64_t max_range_size, int64_t *start, int64_t *end )
+    int64_t artio_selection_size( artio_selection *selection )
+
     # parameter functions
     int artio_parameter_iterate( artio_fileset_handle *handle, char *key, int *type, int *length )
     int artio_parameter_get_int_array(artio_fileset_handle *handle, char * key, int length, int32_t *values)
@@ -68,6 +74,7 @@ cdef extern from "artio.h":
     int artio_parameter_get_double_array(artio_fileset_handle *handle, char * key, int length, double *values)
     int artio_parameter_get_string_array(artio_fileset_handle *handle, char * key, int length, char **values )
 
+    # grid functions
     int artio_grid_cache_sfc_range(artio_fileset_handle *handle, int64_t start, int64_t end)
     int artio_grid_clear_sfc_cache( artio_fileset_handle *handle ) 
 
@@ -107,9 +114,7 @@ cdef check_artio_status(int status, char *fname="[unknown]"):
 
 cdef class artio_fileset :
     cdef public object parameters 
-    cdef ARTIOOctreeContainer oct_handler
     cdef artio_fileset_handle *handle
-    cdef artio_fileset_handle *particle_handle
     cdef int64_t num_root_cells
     cdef int64_t sfc_min, sfc_max
     cdef public int num_grid
@@ -118,15 +123,11 @@ cdef class artio_fileset :
     cdef int min_level, max_level
     cdef int num_grid_variables
 
-    cdef int cpu
-    cdef int domain_id
-
     def __init__(self, char *file_prefix) :
         cdef int artio_type = ARTIO_OPEN_HEADER
         cdef int64_t num_root
 
         self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global ) 
-        self.particle_handle = artio_fileset_open( file_prefix, artio_type, artio_context_global )
         self.read_parameters()
         print 'print parameters in caller.pyx',self.parameters
         print 'done reading header parameters'
@@ -139,29 +140,20 @@ cdef class artio_fileset :
             num_root >>= 3
 
         #kln - add particle detection code
-        status = artio_fileset_open_particles( self.particle_handle )
+        status = artio_fileset_open_particles( self.handle )
         check_artio_status(status)
  
         # dhr - add grid detection code 
         status = artio_fileset_open_grid( self.handle )
         check_artio_status(status)
-  
-
-        # grid stuff
-        self.oct_handler=None
 
         self.min_level = 0
         self.max_level = self.parameters['grid_max_level'][0]
 
-        #snl FIX: the sfc values used should come from "subset" and describe the domain for chunking
         # note the root level method may force chunking to be done on 0-level ytocts 
         self.sfc_min = 0
         self.sfc_max = self.parameters['grid_file_sfc_index'][1]-1
         self.num_grid_variables = self.parameters['num_grid_variables'][0]
-
-        # these should be fixed to something meaningful
-        self.cpu = 0
-        self.domain_id = 0
 
     def read_parameters(self) :
         cdef char key[64]
@@ -210,133 +202,6 @@ cdef class artio_fileset :
 
             self.parameters[key] = parameter
 
-    def count_refined_octs(self) :
-        cdef int64_t num_total_octs = 0
-
-        # this only works if this domain includes all cells!
-        if self.parameters.has_key("num_octs_per_level") :
-            return self.parameters["num_octs_per_level"].sum()
-
-        status = artio_grid_count_octs_in_sfc_range( self.handle, 
-                self.sfc_min, self.sfc_max, &num_total_octs )
-        check_artio_status(status) 
-
-        # add octs for root cells
-        num_total_octs += (self.sfc_max-self.sfc_min+1)/8
- 
-        return num_total_octs
-
-    def grid_pos_fill(self, ARTIOOctreeContainer oct_handler) :
-        ''' adds all refined octs and a new array of ghost octs for  
-        the "fully refined octs" at level=-1 in ART or 0 in yt convention 
-        so that root level can consist of children
-        '''
-        cdef int64_t sfc
-        cdef int level, ix, iy, iz
-        cdef int num_oct_levels
-        cdef int *num_octs_per_level
-        cdef double dpos[3]
-        cdef int refined[8]
-        cdef int oct_count
-        cdef int ioct
-
-        cdef Oct **next_level_parents=NULL, **cur_level_parents=NULL, **tmp_parents
-        cdef int num_next_parents, num_cur_parents, tmp_size
-        cdef int next_parents_size, cur_parents_size, cur_parent
-
-        print 'start filling oct positions'
-        self.oct_handler = oct_handler
-        oct_count = 0
-
-        for iz in range(self.num_grid/2) :
-            dpos[2] = iz*2+1
-            for iy in range(self.num_grid/2) :
-                dpos[1] = iy*2+1
-                for ix in range(self.num_grid/2) :
-                    dpos[0]=ix*2+1
-                    oct_handler.add_oct(self.cpu+1, NULL, 0, dpos)
-                    oct_count += 1
-
-        print "done filling root oct positions"
-
-        status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
-        check_artio_status(status) 
-
-        num_octs_per_level = <int *>malloc(self.max_level*sizeof(int))
-        if not num_octs_per_level :
-            raise MemoryError
-        next_level_parents = <Oct **>malloc(sizeof(Oct *))
-        if not next_level_parents :
-            raise MemoryError
-        next_parents_size = 1
-        cur_level_parents = <Oct **>malloc(sizeof(Oct *))
-        if not cur_level_parents :
-            raise MemoryError
-        cur_parents_size = 1
-
-        for sfc in range( self.sfc_min, self.sfc_max+1 ) :
-            status = artio_grid_read_root_cell_begin( self.handle, sfc, 
-                dpos, NULL, &num_oct_levels, num_octs_per_level )
-            check_artio_status(status) 
-
-            next_level_parents[0] = oct_handler.get_root_oct(dpos)
-            num_next_parents = 1
-
-            for level in range(1,num_oct_levels+1) :
-                tmp_parents = cur_level_parents
-                tmp_size = cur_parents_size
-
-                cur_level_parents = next_level_parents
-                cur_parents_size = next_parents_size
-                num_cur_parents = num_next_parents
-
-                cur_parent = 0
-                num_next_parents = 0
-                next_parents_size = tmp_size
-                next_level_parents = tmp_parents
-
-                if level < num_oct_levels and \
-                         next_parents_size < num_octs_per_level[level] :
-                    free(next_level_parents)
-                    next_parents_size = num_octs_per_level[level]
-                    next_level_parents = <Oct **>malloc(next_parents_size*sizeof(Oct *))
-                    if not next_level_parents :
-                        raise MemoryError
-
-                status = artio_grid_read_level_begin( self.handle, level )
-                check_artio_status(status) 
-
-                for ioct in range(num_octs_per_level[level-1]) :
-                    status = artio_grid_read_oct( self.handle, dpos, NULL, refined )
-                    check_artio_status(status) 
-
-                    new_oct = oct_handler.add_oct(self.cpu+1, 
-                            cur_level_parents[cur_parent],
-                            level, dpos)
-                    oct_count += 1
-                    cur_parent += 1
-
-                    if level < num_oct_levels :
-                        for i in range(8) :
-                            if refined[i] :
-                                next_level_parents[num_next_parents] = new_oct
-                                num_next_parents += 1
-
-                status = artio_grid_read_level_end( self.handle )
-                check_artio_status(status) 
-
-            status = artio_grid_read_root_cell_end( self.handle )
-            check_artio_status(status) 
-       
-        status = artio_grid_clear_sfc_cache( self.handle )
-        check_artio_status(status)
-
-        free(num_octs_per_level)
-        free(next_level_parents)
-        free(cur_level_parents)
-
-        print 'done filling oct positions', oct_count
-
 #    @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -378,7 +243,7 @@ cdef class artio_fileset :
  
         print 'fields in var_fill:', fields
         # setup the range for all reads:
-        status = artio_particle_cache_sfc_range( self.particle_handle, 
+        status = artio_particle_cache_sfc_range( self.handle, 
                                                  self.sfc_min, self.sfc_max )
         check_artio_status(status)
 	
@@ -503,7 +368,7 @@ cdef class artio_fileset :
         print "generating mask for particles"
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
             status = artio_particle_read_root_cell_begin( 
-                self.particle_handle, sfc,
+                self.handle, sfc,
                 num_particles_per_species )
             check_artio_status(status)
             # ispec is index out of all specs and aspecs is index out of accessed
@@ -512,7 +377,7 @@ cdef class artio_fileset :
             for aspec in range(num_acc_species ) :
                 ispec = iacctoispec[aspec]
                 status = artio_particle_read_species_begin(
-                    self.particle_handle, ispec)
+                    self.handle, ispec)
                 check_artio_status(status)
 #                if num_particles_per_species[ispec]  >0 :
 #                    print "masking root cell of np=",num_particles_per_species[ispec] 
@@ -520,7 +385,7 @@ cdef class artio_fileset :
                 for particle in range( num_particles_per_species[ispec] ) :
 #                    print 'snl in caller: aspec count_mask count',aspec,ispec, count_mask[aspec], ipspec[aspec] #, sizeof(primary_variables[aspec]), sizeof(secondary_variables[aspec])
                     status = artio_particle_read_particle(
-                        self.particle_handle,
+                        self.handle,
                         pid, subspecies, primary_variables[aspec],
                         secondary_variables[aspec])
                     check_artio_status(status)
@@ -533,9 +398,9 @@ cdef class artio_fileset :
                     ipspec[aspec] += 1
 #                    print 'ipspec',ipspec[aspec], pos[1], pos[0], pos[2], \
 #                        secondary_variables[aspec][0]
-                status = artio_particle_read_species_end( self.particle_handle )
+                status = artio_particle_read_species_end( self.handle )
                 check_artio_status(status)
-            status = artio_particle_read_root_cell_end( self.particle_handle )
+            status = artio_particle_read_root_cell_end( self.handle )
             check_artio_status(status)
         print 'done masking'
 	##########################################################
@@ -557,17 +422,17 @@ cdef class artio_fileset :
              ipspec[aspec] = 0
         ipall = 0
         for sfc in range( self.sfc_min, self.sfc_max+1 ) :
-                status = artio_particle_read_root_cell_begin( self.particle_handle, sfc,
+                status = artio_particle_read_root_cell_begin( self.handle, sfc,
                     num_particles_per_species )
                 check_artio_status(status)	
                 
                 for aspec in range(num_acc_species) :
                     ispec = iacctoispec[aspec]
-                    status = artio_particle_read_species_begin(self.particle_handle, ispec);
+                    status = artio_particle_read_species_begin(self.handle, ispec);
                     check_artio_status(status)
                     for particle in range( num_particles_per_species[ispec] ) :
                         
-                        status = artio_particle_read_particle(self.particle_handle,
+                        status = artio_particle_read_particle(self.handle,
                                         pid, subspecies, primary_variables[aspec],
                                         secondary_variables[aspec])
                         check_artio_status(status)
@@ -595,10 +460,10 @@ cdef class artio_fileset :
                              ipall += 1
                         ipspec[aspec] += 1
                         
-                    status = artio_particle_read_species_end( self.particle_handle )
+                    status = artio_particle_read_species_end( self.handle )
                     check_artio_status(status)
                     
-                status = artio_particle_read_root_cell_end( self.particle_handle )
+                status = artio_particle_read_root_cell_end( self.handle )
                 check_artio_status(status)
  
 
@@ -620,82 +485,95 @@ cdef class artio_fileset :
     #@cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def grid_var_fill(self, source, fields):
+    def read_grid_chunk(self, int64_t sfc_start, int64_t sfc_end, fields):
+        cdef int i
+        cdef int level
         cdef int num_oct_levels
         cdef int *num_octs_per_level
         cdef float *variables
+        cdef int refined[8]
         cdef int status
-        cdef int root_oct, child, order
-        cdef int ix, iy, iz
-        cdef int cx, cy, cz
+        cdef int64_t max_octs
         cdef double dpos[3]
-        cdef np.ndarray[np.float32_t, ndim=1] arr
-        # This relies on the fields being contiguous
-        cdef np.float32_t **fpoint
-        cdef int nf = len(fields)
-        fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*nf)
-        forder = <int*>malloc(sizeof(int)*nf)
-        cdef int i, j, level
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
+        cdef int eterm[3]
+        cdef double delta[8][3] = {
+            { -0.5, -0.5, -0.5 }, {  0.5, -0.5, -0.5 }, 
+            { -0.5,  0.5, -0.5 }, {  0.5,  0.5, -0.5 }, 
+            { -0.5, -0.5,  0.5 }, {  0.5, -0.5,  0.5 },
+            { -0.5,  0.5,  0.5 }, {  0.5,  0.5,  0.5 } }
+        cdef int num_fields  = len(fields)
+        field_order = <int*>malloc(sizeof(int)*num_fields)
 
         # translate fields from ARTIO names to indices
         var_labels = self.parameters['grid_variable_labels']
         for i, f in enumerate(fields):
-            # It might be better to do this check in the Python code
             if f not in var_labels:
                 print "This field is not known to ARTIO:", f
                 raise RuntimeError
-            j = var_labels.index(f)
-            arr = source[f]
-            fpoint[i] = <np.float32_t *>arr.data
-            forder[i] = j
+            field_order[i] = var_labels.index(f)
 
-        status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
-        check_artio_status(status) 
-
+        # dhr - can push these mallocs to the object to save malloc/free
         num_octs_per_level = <int *>malloc(self.max_level*sizeof(int))
         variables = <float *>malloc(8*self.num_grid_variables*sizeof(float))
 
-        count = self.num_root_cells
+        # dhr - cache the entire domain (replace later)
+        status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
+        check_artio_status(status) 
 
-        for sfc in range( self.sfc_min, self.sfc_max+1 ) :
+        # determine max number of cells we could hit (optimize later)
+        status = artio_grid_count_octs_in_sfc_range(artio_fileset *handle, 
+                sfc_start, sfc_end, &max_octs )
+        check_artio_status(status)
+        max_cells = sfc_end-sfc_start+1 + max_octs*8
+
+        # allocate space for _fcoords, _icoords, _fwidth, _ires
+        fcoords = np.empty((max_cells, 3), dtype="float64")
+        ires = np.empty(max_cells, dtype="int64")
+
+        data = {}
+        for f in fields :
+            data[f] = np.empty(max_cells, dtype="float32")
+
+        cells_selected = 0
+        for sfc in range( sfc_min, sfc_max+1 ) :
             status = artio_grid_read_root_cell_begin( self.handle, sfc, 
                     dpos, variables, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
 
-            ix = <int>(dpos[0]-0.5) / 2
-            iy = <int>(dpos[1]-0.5) / 2
-            iz = <int>(dpos[2]-0.5) / 2
-
-            cx = 0 if dpos[0] < (2*ix + 1) else 1
-            cy = 0 if dpos[1] < (2*iy + 1) else 1
-            cz = 0 if dpos[2] < (2*iz + 1) else 1
-            
-            root_oct = ix+(self.num_grid/2)*(iy+(self.num_grid/2)*iz)
-            child = cx+2*(cy+2*cz)
-            order = 8*root_oct + child
-
-            assert( root_oct < self.num_root_cells / 8 )
-            assert( child >= 0 and child < 8 )
-            assert( order >= 0 and order < self.num_root_cells )
-
-            for i in range(nf):
-                fpoint[i][order] = variables[forder[i]]
- 
             for level in range(1,num_oct_levels+1) :
                 status = artio_grid_read_level_begin( self.handle, level )
                 check_artio_status(status) 
 
+                for i in range(3) :
+                    dds[i] = 2.**-level
+
                 for oct in range(num_octs_per_level[level-1]) :
-                    status = artio_grid_read_oct( self.handle, NULL, variables, NULL )
+                    status = artio_grid_read_oct( self.handle, dpos, variables, refined )
                     check_artio_status(status) 
 
                     for child in range(8) :
-                        for i in range(nf):
-                            fpoint[i][count] = variables[self.num_grid_variables*child+forder[i]]
-                        count += 1
- 
+                        if not refined[child] :
+                            for i in range(3) :
+                                pos[i] = dpos[i] + dds[i]*delta[child][i]
+
+                            if selector.check_cell( pos, dds, eterm ) :
+                                for i in range(3) :
+                                    fcoords[count][i] = dpos[i]
+                                ires[count] = level
+                                for i, f in enumerate(fields) :
+                                    data[f][count] = variables[self.num_grid_variables*child+field_order[i]]
+                                count += 1 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
+            else : # root cell is unrefined, add it to the list
+                for i, f in enumerate(fields) :
+                    data[f][count] = variables[field_order[i]]
+                for i in range(3) :
+                    fcoords[count][i] = dpos[i]
+                ires[count] = 0
+                count += 1
 
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status) 
@@ -705,10 +583,31 @@ cdef class artio_fileset :
 
         free(num_octs_per_level) 
         free(variables)
-        free(fpoint)
-        free(forder)
+        free(refined)
+        free(field_order)
 
-        print 'done filling oct variables', count
+        fcoords.resize((count,3))
+        ires.resize(count)
+
+        return (fcoords, ires, data)
+
+    def root_sfc_ranges(self, SelectorObject selector)
+       cdef int max_range_size = 1024
+       cdef int coords[3], sfc_start, sfc_end
+       cdef np.float64 dds[3] = { 1.0, 1.0, 1.0 }
+       cdef artio_selection *selection
+
+       sfc_ranges=[]
+       selection = artio_selection_allocate(self.handle)
+       for coords[0] in range(self.num_grid) :
+           for coords[1] in range(self.num_grid) :
+               for coords[2] in range(self.num_grid) :
+                   if(selector.select_cell(coords, dds, eterm)):
+                       artio_selection_add_root_cell(selection, coords)
+       while( artio_selection_iterator(selection, max_range_size, sfc_start, sfc_end) ):
+           sfc_ranges.append([sfc_start, sfc_end])
+       artio_selection_destroy(selection)
+       return sfc_ranges
 
 ###################################################
 def artio_is_valid( char *file_prefix ) :

@@ -39,21 +39,10 @@ from .definitions import codetime_fields
 
 ###############################
 from yt.funcs import *
-from yt.data_objects.grid_patch import \
-      AMRGridPatch
-from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
-############################
-
-############################
-from yt.utilities.lib import \
-    get_box_grids_level
-from yt.utilities.io_handler import \
-    io_registry
 ############################
 
 from yt.data_objects.field_info_container import \
@@ -61,136 +50,55 @@ from yt.data_objects.field_info_container import \
 
 import yt.utilities.fortran_utils as fpu
 
-from yt.geometry.oct_container import \
-    ARTIOOctreeContainer
-
 from io import b2t
 
-class ARTIODomainFile(object):
+class ARTIOChunk(object) :
 
-    def __init__(self, pf, domain_id):
+    def __init__(self, pf, selector, sfc_start, sfc_end ):
         self.pf = pf
-        self.domain_id = domain_id
-        self._fileset_prefix = pf.parameter_filename[:-4]
-        self.grid_fn = "%s.g%03i" % (pf.parameter_filename[:-4],domain_id)
-	self.part_fn = "%s.p%03i" % (pf.parameter_filename[:-4],domain_id)
-        self._handle = self.pf._handle
-        self.local_oct_count = self._handle.count_refined_octs() 
-        print "Local oct count = ", self.local_oct_count
+        self.selector = selector
+        self.sfc_start = sfc_start
+        self.sfc_end = sfc_end
 
-        self.local_particle_count = 0
-        self.particle_field_offsets = {}                                                      
- 
-    # snl why not in DomainSubset?
-    def _read_grid(self, oct_handler):
-        """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain 
-           are needed - it's position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
-        """
-        self._handle.grid_pos_fill(oct_handler)
- 
-    # snl are these methods used??
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = selector.fill_mask(self)
-        self._last_selector_id = id(selector)
-        return self._last_mask
-
-    def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
-
-class ARTIODomainSubset(object):
-
-    def __init__(self, domain, mask, masked_cell_count):
-        print 'initing domain subset in data_structures.py'
-        self.mask = mask
-        self.domain = domain
-        self.oct_handler = domain.pf.h.oct_handler
-        self.masked_cell_count = masked_cell_count
-        print 'counting levels in data_structures.py'
-        ncum_masked_level = self.oct_handler.count_levels(
-            self.domain.pf.max_level, self.domain.domain_id, mask)
-        print 'compiling level mask in data_structures.py'
-        ncum_masked_level[1:] = ncum_masked_level[:-1]
-        ncum_masked_level[0] = 0
-        self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
-        print 'cumulative masked level counts',self.ncum_masked_level
-
-        nsampleb2t=20
-        samplemax = -np.log10(10) #tl=-10
-        samplemin = -np.log10(0.0001) #tl=-0.0001)
-        print 'interpolating time grid accurate to <10% after 0.5Gyr for 20 n=',nsampleb2t
-        self.xb2t = np.linspace(-1,4,nsampleb2t) # must be increasing for interpolation
-        self.yb2t = b2t(-10**-self.xb2t,n=nsampleb2t)*1e9*24*3600
-        
-    def interpb2t(self, x): 
-        xp = -np.log10(-x)
-        tr = np.interp(xp,self.xb2t, self.yb2t)
-        return tr 
-
+    _icoords = None
     def icoords(self, dobj):
-        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.masked_cell_count,
-                                        self.ncum_masked_level.copy())
+        if self._icords is None :
+            print "Error: ARTIOChunk.icoords called before fill"
+            raise RuntimeError
+        return self._icoords
 
+    _fcoords = None
     def fcoords(self, dobj):
-        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.masked_cell_count,
-                                        self.ncum_masked_level.copy())
+        if self._icoords is None :
+            print "Error: ARTIOChunk.fcoords called before fill"
+            raise RuntimeError
+        return self._fcoords
+
+    _ires = None
+    def ires(self, dobj):
+        if self._icords is None :
+            print "Error: ARTIOChunk.ires called before fill"
+            raise RuntimeError
+        return self._ires
 
     def fwidth(self, dobj):
-        # Recall domain_dimensions is the number of cells, not octs
-        # snl FIX: please don't hardcode this here 
-#        DRE = self.oct_handler.parameter_file.domain_right_edge 
-#        DLE = self.oct_handler.parameter_file.domain_left_edge
-#        nn = self.oct_handler.parameter_file.domain_dimension
-#        for i in range(3):
-#            base_dx = (DRE[i] - DLE[i])/nn[i]
-#        print 'in fwidth in data_structures.py', DRE, DLE, nn
-#        print base_dx
-        base_dx = [1.0,1.0,1.0]
-        widths = np.empty((self.masked_cell_count, 3), dtype="float64")
-        dds = (2**self.ires(dobj))
-        for i in range(3):
-            widths[:,i] = base_dx[i] / dds
-        return widths
+        if self._ires is None :
+            print "Error: ARTIOChunk.fwidth called before fill"
+            raise RuntimeError
+        raise NotImplementedError
 
-    def ires(self, dobj):
-        return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.masked_cell_count,
-                                     self.ncum_masked_level.copy())
+    def icoords(self, dobj):
+        if self._icoords is None :
+            print "Error: ARTIOChunk.icoords called before fill"
+            raise RuntimeError
+        raise NotImplementedError
 
     def fill(self, fields):
-        # translate fields into ARTIO names (this dict should be moved to fields.py)
-
-        tr = {}
-        for fieldtype, fieldname in fields: 
-            tr[fieldname] = np.zeros(self.masked_cell_count, 'float64')
-
-        temp = {}
-        for fieldtype, fieldname in fields:
-            temp[yt_to_art[fieldname]] = np.empty(8*self.domain.local_oct_count, dtype="float32")  
-
-        #buffer variables 
-        self.domain._handle.grid_var_fill(temp, [yt_to_art[f[1]] for f in fields])
-        
-        # dhr - make sure these are shallow copies 
-        temp2 = {}
-        for fieldtype, fieldname in fields :
-            temp2[fieldname] = temp[yt_to_art[fieldname]]
- 
-        #mask unused cells (all at once, not level-by-level)
-        self.oct_handler.fill_mask( self.domain.domain_id,
-                tr, temp2, self.mask, 0 ) 
-        
-        return tr
+        # populate 
+        (self._fcoords,self._ires, data) = \
+                self.pf._handle.read_grid_chunk( self.sfc_min, 
+                    self.sfc_max, self.selector )
+        return data
 
     def fill_particles(self,accessed_species, selector, fields):
         art_fields = []
@@ -200,7 +108,8 @@ class ARTIODomainSubset(object):
 
         masked_particles = {}
         assert ( art_fields != None )
-	self.domain._handle.particle_var_fill(accessed_species, masked_particles, selector, art_fields )
+        self.domain._handle.particle_var_fill(accessed_species, \
+                masked_particles, selector, art_fields )
 
         #convert time variables from code units
         for fieldtype, fieldname in fields :
@@ -210,7 +119,7 @@ class ARTIODomainSubset(object):
                     self.interpb2t(masked_particles[yt_to_art[fieldname]])
                 print 'convert time variables from code units'
 
-	# dhr - make sure these are shallow copies
+        # dhr - make sure these are shallow copies
         tr = {}
         for fieldtype, fieldname in fields :
             tr[fieldname] = masked_particles[yt_to_art[fieldname]]
@@ -252,7 +161,7 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         self.fluid_field_list = fluid_fields
-	self.particle_field_list = particle_fields
+        self.particle_field_list = particle_fields
         self.field_list = self.fluid_field_list + self.particle_field_list
     
     def _setup_classes(self):
