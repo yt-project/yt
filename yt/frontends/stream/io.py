@@ -89,9 +89,9 @@ class IOHandlerStream(BaseIOHandler):
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 size += g.count_particles(selector, 
-                    self.fields[g.id][pfields[0]],
-                    self.fields[g.id][pfields[1]],
-                    self.fields[g.id][pfields[2]])
+                    self.fields[g.id][pfields[0][1]],
+                    self.fields[g.id][pfields[1][1]],
+                    self.fields[g.id][pfields[2][1]])
         for field in fields:
             # TODO: figure out dataset types
             rv[field] = np.empty(size, dtype='float64')
@@ -103,12 +103,12 @@ class IOHandlerStream(BaseIOHandler):
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 mask = g.select_particles(selector,
-                    self.fields[g.id][pfields[0]],
-                    self.fields[g.id][pfields[1]],
-                    self.fields[g.id][pfields[2]])
+                    self.fields[g.id][pfields[0][1]],
+                    self.fields[g.id][pfields[1][1]],
+                    self.fields[g.id][pfields[2][1]])
                 if mask is None: continue
                 for field in set(fields):
-                    gdata = self.fields[g.id][field][mask]
+                    gdata = self.fields[g.id][field[1]][mask]
                     rv[field][ind:ind+gdata.size] = gdata
                 ind += gdata.size
         return rv
