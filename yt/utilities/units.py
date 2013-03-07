@@ -4,8 +4,9 @@ Symbolic unit handling.
 Author: Casey W. Stark <caseywstark@gmail.com>
 Affiliation: UC Berkeley
 
+Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2012 Casey W. Stark.  All Rights Reserved.
+  Copyright (C) 2012, 2013 Casey W. Stark.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -38,6 +39,8 @@ base_dimensions = [mass, length, time, temperature]
 ### Misc. dimensions
 rate = 1 / time
 
+dimensionless = sympify(1)
+
 velocity     = length / time
 acceleration = length / time**2
 jerk         = length / time**3
@@ -54,40 +57,37 @@ charge   = (energy * length)**Rational(1, 2)  # proper 1/2 power
 electric_field = charge / length**2
 magnetic_field = electric_field
 
-# Dictionary that holds information of known unit symbols.
-# The key is the symbol, the value is a tuple with the conversion factor to cgs,
-# and the dimensionality.
-unit_symbols_dict = {
+# The key is the symbol, the value is a tuple with the conversion factor to
+# cgs, the dimensionality, and
+default_unit_symbol_LUT = {
     # base
-    "g":  (1.0, mass),
-    #"cm": (1.0, length),  # duplicate with meter below...
-    "s":  (1.0, time),
-    "K":  (1.0, temperature),
+    "g":  (1.0, mass, r"\rm{g}"),
+    #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
+    "s":  (1.0, time, r"\rm{s}"),
+    "K":  (1.0, temperature, r"\rm{K}"),
 
     # other cgs
-    "dyne": (1.0, force),
-    "erg":  (1.0, energy),
-    "esu":  (1.0, charge),
+    "dyne": (1.0, force, r"\rm{dyne}"),
+    "erg":  (1.0, energy, r"\rm{erg}"),
+    "esu":  (1.0, charge, r"\rm{esu}"),
 
     # some SI
-    "m": (1.0e2, length),
-    "J": (1.0e7, energy),
-    "Hz": (1.0, rate),
-
-    # dimensionless
-    "h": (1.0, 1.0),
+    "m": (1.0e2, length, r"\rm{m}"),
+    "J": (1.0e7, energy, r"\rm{J}"),
+    "Hz": (1.0, rate, r"\rm{Hz}"),
 
     # times
-    "min": (60.0, time),
-    "hr":  (3600.0, time),
-    "day": (86400.0, time),
-    "yr":  (31536000.0, time),
+    "min": (60.0, time, r"\rm{min}"),
+    "hr":  (3600.0, time, r"\rm{hr}"),
+    "day": (86400.0, time, r"\rm{day}"),
+    "yr":  (31536000.0, time, r"\rm{yr}"),
 
     # Solar units
-    "Msun": (1.98892e33, mass),
-    "Rsun": (6.96e10, length),
-    "Lsun": (3.9e33, power),
-    "Tsun": (5870.0, temperature),
+    "Msun": (1.98892e33, mass, r"M_{\odot}"),
+    "Rsun": (6.96e10, length, r"R_{\odot}"),
+    "Lsun": (3.9e33, power, r"L_{\odot}"),
+    "Tsun": (5870.0, temperature, r"T_{\odot}"),
+    "Zsun": (1.0, dimensionless, r"Z_{\odot}"),
 
     # astro distances
     "AU": (1.49598e13, length),
@@ -125,6 +125,15 @@ unit_prefixes = {
     'z': 1e-21,  # zepto
     'y': 1e-24,  # yocto
 }
+
+
+class UnitSymbolRegistry:
+
+    def __init__(self, add_default_symbols=True):
+        self.lookup_dict = {}
+
+        if add_default_symbols:
+            self.lookup_dict.update(default_symbol_lookup_dict)
 
 
 class UnitParseError(Exception):
