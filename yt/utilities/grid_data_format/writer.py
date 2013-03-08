@@ -128,10 +128,11 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
         # add the field data to the grid group
         # Check if this is a real field or particle data.
         field_obj = pf.field_info[field_name]
+        grid.get_data(field_name)
         if field_obj.particle_type:  # particle data
-            pt_group[field_name] = grid.get_data(field_name)
+            pt_group[field_name] = grid[field_name]
         else:  # a field
-            grid_group[field_name] = grid.get_data(field_name)
+            grid_group[field_name] = grid[field_name]
 
 def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
                    particle_type_name="dark_matter"):
