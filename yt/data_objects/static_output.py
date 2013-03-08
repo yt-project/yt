@@ -108,7 +108,7 @@ class StaticOutput(object):
 
         self._parse_parameter_file()
         self._setup_coordinate_handler()
-        self.set_units()
+        self._set_units()
         self._set_derived_attrs()
 
         # Because we need an instantiated class to check the pf's existence in
@@ -121,6 +121,8 @@ class StaticOutput(object):
         self.print_key_parameters()
 
         self.create_field_info()
+
+        self.set_units()
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
@@ -277,10 +279,8 @@ class StaticOutput(object):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.add("h", self.hubble_constant, dimensionless)
 
-        for field in self.field_info.values:
+        for field in self.field_info.values():
             field.units = self.get_unit_from_registry(field._units)
-
-        self._set_units()
 
     def get_unit_from_registry(self, unit_str):
         """
