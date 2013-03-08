@@ -30,7 +30,7 @@ import cStringIO
 from .definitions import yt_to_art, ARTIOconstants,\
    fluid_fields, particle_fields, particle_star_fields
 from _artio_caller import \
-    artio_is_valid, artio_fileset 
+    artio_is_valid, artio_fileset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
@@ -83,7 +83,7 @@ class ARTIOChunk(object) :
             print "Error: ARTIOChunk.icoords called before fill fcoords/level"
             raise RuntimeError
         else : 
-            self._icoords = (int) self._fcoords/self._fwidth
+            self._icoords = (int) (self._fcoords/self.fwidth())
         return self._icoords 
 
     def fill(self, fields):
@@ -179,9 +179,10 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            
-#            root_mask = dobj.selector.select_cells()
-            list_sfc_ranges = root_sfc_ranges(selector)
+            print "Running selector on base grid"
+            list_sfc_ranges = self.pf._handle.root_sfc_ranges(dobj.selector)
+            print list_sfc_ranges
+            print "creating chunks"
             chunks = [ARTIOChunk(d, mask, c)
                        for d, c in zip(self.domains, masked_cell_count) if c > 0]
             dobj._chunk_info = chunks

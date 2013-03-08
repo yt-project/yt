@@ -485,7 +485,7 @@ cdef class artio_fileset :
     #@cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef read_grid_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields):
+    def read_grid_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields):
         cdef int i
         cdef int level
         cdef int num_oct_levels
@@ -587,7 +587,7 @@ cdef class artio_fileset :
 
         return (fcoords, ires, data)
 
-    cdef root_sfc_ranges(self, SelectorObject selector) :
+    def root_sfc_ranges(self, SelectorObject selector) :
         cdef int max_range_size = 1024
         cdef int coords[3]
         cdef int64_t sfc_start, sfc_end
@@ -595,19 +595,26 @@ cdef class artio_fileset :
         cdef np.float64_t dds[3]
         cdef int eterm[3]
         cdef artio_selection *selection
+        cdef int i, j, k
 
         dds[0] = dds[1] = dds[2] = 1.0
 
         sfc_ranges=[]
         selection = artio_selection_allocate(self.handle)
-        for coords[0] in range(self.num_grid) :
+        for i in range(self.num_grid) :
+            # stupid cython
+            coords[0] = i
             pos[0] = coords[0] + 0.5
-            for coords[1] in range(self.num_grid) :
+            for j in range(self.num_grid) :
+                coords[1] = j
                 pos[1] = coords[1] + 0.5
-                for coords[2] in range(self.num_grid) :
+                for k in range(self.num_grid) :
+                    coords[2] = k 
                     pos[2] = coords[2] + 0.5
                     if selector.select_cell(pos, dds, eterm) :
-                        artio_selection_add_root_cell(selection, coords)
+                        print "selected", i, j, k
+                        status = artio_selection_add_root_cell(selection, coords)
+                        check_artio_status(status)
 
         while artio_selection_iterator(selection, max_range_size, 
                 &sfc_start, &sfc_end) == ARTIO_SUCCESS :
