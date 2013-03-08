@@ -31,11 +31,11 @@ from sympy import Symbol
 # base dimensions
 from yt.utilities.units import mass, length, time, temperature
 # functions
-from yt.utilities.units import get_conversion_factor, make_symbols_positive
+from yt.utilities.units import get_conversion_factor
 # classes
 from yt.utilities.units import Unit, UnitParseError
 # objects
-from yt.utilities.units import unit_symbols_dict, unit_prefixes
+from yt.utilities.units import default_unit_symbol_lut, unit_prefixes
 
 
 def test_no_conflicting_symbols():
@@ -43,10 +43,10 @@ def test_no_conflicting_symbols():
     Check unit symbol definitions for conflicts.
 
     """
-    full_set = set(unit_symbols_dict.keys())
+    full_set = set(default_unit_symbol_lut.keys())
 
     # go through all possible prefix combos
-    for symbol in unit_symbols_dict.keys():
+    for symbol in default_unit_symbol_lut.keys():
         for prefix in unit_prefixes.keys():
             new_symbol = "%s%s" % (prefix, symbol)
 
