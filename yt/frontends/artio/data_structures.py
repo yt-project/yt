@@ -75,7 +75,7 @@ class ARTIOChunk(object) :
         if self._ires is None :
             print "Error: ARTIOChunk.fwidth called before fill"
             raise RuntimeError
-        raise NotImplementedError
+        return 2.**-self.ires
 
     def icoords(self, dobj):
         if self._fcoords is None :
