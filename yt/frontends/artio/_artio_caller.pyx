@@ -17,7 +17,7 @@ cdef extern from "stdlib.h":
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
         pass
-    ctypedef struct artio_selection "artio_selection"
+    ctypedef struct artio_selection "artio_selection" :
         pass
     ctypedef struct artio_context :
         pass
@@ -498,11 +498,6 @@ cdef class artio_fileset :
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         cdef int eterm[3]
-        cdef double delta[8][3] = {
-            { -0.5, -0.5, -0.5 }, {  0.5, -0.5, -0.5 }, 
-            { -0.5,  0.5, -0.5 }, {  0.5,  0.5, -0.5 }, 
-            { -0.5, -0.5,  0.5 }, {  0.5, -0.5,  0.5 },
-            { -0.5,  0.5,  0.5 }, {  0.5,  0.5,  0.5 } }
         cdef int num_fields  = len(fields)
         field_order = <int*>malloc(sizeof(int)*num_fields)
 
@@ -556,7 +551,7 @@ cdef class artio_fileset :
                     for child in range(8) :
                         if not refined[child] :
                             for i in range(3) :
-                                pos[i] = dpos[i] + dds[i]*delta[child][i]
+                                pos[i] = dpos[i] + dds[i]*(-0.5 if (child & (1<<i)) else 0.5)
 
                             if selector.check_cell( pos, dds, eterm ) :
                                 for i in range(3) :
