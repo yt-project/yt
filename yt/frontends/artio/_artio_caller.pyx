@@ -503,7 +503,7 @@ cdef class artio_fileset :
         cdef int num_fields  = len(fields)
         field_order = <int*>malloc(sizeof(int)*num_fields)
 
-        print "reading chunk ", sfc_start, sfc_end
+        #print "reading chunk ", sfc_start, sfc_end
 
         # translate fields from ARTIO names to indices
         var_labels = self.parameters['grid_variable_labels']
@@ -542,6 +542,17 @@ cdef class artio_fileset :
                     dpos, variables, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
 
+            if num_oct_levels == 0 :
+                for i in range(num_fields) :
+                    data[i].resize(count+1)
+                    data[i][count] = variables[field_order[i]]
+                fcoords.resize((count+1,3))
+                for i in range(3) :
+                    fcoords[count][i] = dpos[i]
+                ires.resize(count+1)
+                ires[count] = 0
+                count += 1
+    
             for level in range(1,num_oct_levels+1) :
                 status = artio_grid_read_level_begin( self.handle, level )
                 check_artio_status(status) 
@@ -561,7 +572,7 @@ cdef class artio_fileset :
                             if selector.select_cell( pos, dds, eterm ) :
                                 fcoords.resize((count+1, 3))
                                 for i in range(3) :
-                                    fcoords[count][i] = dpos[i]
+                                    fcoords[count][i] = pos[i]
                                 ires.resize(count+1)
                                 ires[count] = level
                                 for i in range(num_fields) :
@@ -570,22 +581,12 @@ cdef class artio_fileset :
                                 count += 1 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
-            else : # root cell is unrefined, add it to the list
-                for i in range(num_fields) :
-                    data[i].resize(count+1)
-                    data[i][count] = variables[field_order[i]]
-                fcoords.resize((count+1,3))
-                for i in range(3) :
-                    fcoords[count][i] = dpos[i]
-                ires.resize(count+1)
-                ires[count] = 0
-                count += 1
 
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status) 
         
-        status = artio_grid_clear_sfc_cache( self.handle )
-        check_artio_status(status)
+        #status = artio_grid_clear_sfc_cache( self.handle )
+        #check_artio_status(status)
 
         free(num_octs_per_level) 
         free(variables)
