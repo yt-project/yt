@@ -87,6 +87,12 @@ from yt.frontends.flash.api import \
 from yt.frontends.tiger.api import \
     TigerStaticOutput, TigerFieldInfo, add_tiger_field
 
+from yt.frontends.artio.api import \
+    ARTIOStaticOutput, ARTIOFieldInfo, add_artio_field
+
+#from yt.frontends.artio2.api import \
+#    Artio2StaticOutput
+
 from yt.frontends.ramses.api import \
     RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
 
@@ -99,8 +105,8 @@ from yt.frontends.gdf.api import \
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
 
-#from yt.frontends.art.api import \
-#    ARTStaticOutput, ARTFieldInfo, add_art_field
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo, add_art_field
 
 #from yt.frontends.maestro.api import \
 #    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field

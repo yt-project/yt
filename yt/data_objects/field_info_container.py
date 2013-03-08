@@ -311,38 +311,86 @@ class FieldDetector(defaultdict):
     def convert(self, item):
         return 1
 
+    @property
+    def fcoords(self):
+        fc = np.array(np.mgrid[0:1:self.nd*1j,
+                               0:1:self.nd*1j,
+                               0:1:self.nd*1j])
+        if self.flat:
+            fc.shape = (self.nd*self.nd*self.nd, 3)
+        else:
+            fc = fc.transpose()
+        return fc
+
+    @property
+    def icoords(self):
+        ic = np.mgrid[0:self.nd-1:self.nd*1j,
+                      0:self.nd-1:self.nd*1j,
+                      0:self.nd-1:self.nd*1j]
+        if self.flat:
+            ic.shape = (self.nd*self.nd*self.nd, 3)
+        else:
+            ic = ic.transpose()
+        return ic
+
+    @property
+    def ires(self):
+        ir = np.ones(self.nd**3, dtype="int64")
+        if not self.flat:
+            ir.shape = (self.nd, self.nd, self.nd)
+        return ir
+
+    @property
+    def fwidth(self):
+        fw = np.ones(self.nd**3, dtype="float64") / self.nd
+        if not self.flat:
+            fw.shape = (self.nd, self.nd, self.nd)
+        return fw
 
 class FieldUnitsError(Exception):
     pass
 
 class DerivedField(object):
+    """
+    This is the base class used to describe a cell-by-cell derived field.
+
+    Parameters
+    ----------
+
+    name : str
+       is the name of the field.
+    function : callable
+       A function handle that defines the field.  Should accept
+       arguments (field, data)
+    convert_function : callable
+       A function that converts to CGS, **only if necessary**
+    units : str
+       A mathtext-formatted string that describes the field
+    projected_units : str
+       If we display a projection, what should the units be?
+    take_log : bool
+       Describes whether the field should be logged
+    validators : list
+       A list of :class:`FieldValidator` objects
+    particle_type : bool
+       Is this a particle (1D) field?
+    vector_field : bool
+       Describes the dimensionality of the field.  Currently unused.
+    display_field : bool
+       Governs its appearance in the dropdowns in Reason
+    not_in_all : bool
+       Used for baryon fields from the data that are not in all the grids
+    display_name : str
+       A name used in the plots
+    projection_conversion : unit
+       which unit should we multiply by in a projection?
+    """
     def __init__(self, name, function, convert_function=None,
                  particle_convert_function=None, units=None,
                  projected_units=None, take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None,
                  projection_conversion="cm"):
-        """
-        This is the base class used to describe a cell-by-cell derived field.
-
-        :param name: is the name of the field.
-        :param function: is a function handle that defines the field
-        :param convert_function: must convert to CGS, if it needs to be done
-        :param units: is a mathtext-formatted string that describes the field
-        :param projected_units: if we display a projection, what should the
-                                units be?
-        :param take_log: describes whether the field should be logged
-        :param validators: is a list of :class:`FieldValidator` objects
-        :param particle_type: is this field based on particles?
-        :param vector_field: describes the dimensionality of the field
-        :param display_field: governs its appearance in the dropdowns in reason
-        :param not_in_all: is used for baryon fields from the data that are not
-                           in all the grids
-        :param display_name: a name used in the plots
-        :param projection_conversion: which unit should we multiply by in a
-                                      projection?
-
-        """
         self.name = name
         self.take_log = take_log
         self.display_name = display_name

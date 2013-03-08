@@ -97,3 +97,37 @@ for f in known_ramses_particle_fields:
         add_ramses_field(f, function=NullFunc, take_log=True,
                   validators = [ValidateDataField(f)],
                   particle_type = True)
+
+def _ParticleMass(field, data):
+    particles = data["particle_mass"].astype('float64') * \
+                just_one(data["CellVolumeCode"].ravel())
+    # Note that we mandate grid-type here, so this is okay
+    return particles
+
+def _convertParticleMass(data):
+    return data.convert("Density")*(data.convert("cm")**3.0)
+def _IOLevelParticleMass(grid):
+    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
+    return cf
+def _convertParticleMassMsun(data):
+    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
+def _IOLevelParticleMassMsun(grid):
+    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
+    return cf
+add_field("ParticleMass",
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleMass,
+          particle_convert_function=_IOLevelParticleMass)
+add_field("ParticleMassMsun",
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_IOLevelParticleMassMsun)
+
+
+def _ParticleMass(field, data):
+    particles = data["particle_mass"].astype('float64') * \
+                just_one(data["CellVolumeCode"].ravel())
+    # Note that we mandate grid-type here, so this is okay
+    return particles

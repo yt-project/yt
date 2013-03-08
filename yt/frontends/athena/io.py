@@ -43,7 +43,7 @@ class IOHandlerAthena(BaseIOHandler):
     def _read_field_names(self,grid):
         pass
 
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
         f = file(grid.filename, 'rb')
         dtype, offsetr = grid.hierarchy._field_map[field]
         grid_ncells = np.prod(grid.ActiveDimensions)
@@ -77,31 +77,8 @@ class IOHandlerAthena(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         if grid.pf.field_ordering == 1:
             sl.reverse()
+        return self._read_data_set(grid, field)[sl]
 
-        f = file(grid.filename, 'rb')
-        dtype, offsetr = grid.hierarchy._field_map[field]
-        grid_ncells = np.prod(grid.ActiveDimensions)
-        grid_dims = grid.ActiveDimensions
-        grid0_ncells = np.prod(grid.hierarchy.grid_dimensions[0,:])
-        read_table_offset = get_read_table_offset(f)
-        if grid_ncells != grid0_ncells:
-            offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
-        if grid_ncells == grid0_ncells:
-            offset = offsetr
-        f.seek(read_table_offset+offset)
-        if dtype == 'scalar':
-            data = np.fromfile(f, dtype='>f4', 
-                    count=grid_ncells).reshape(grid.ActiveDimensions,order='F')[sl].copy()
-        if dtype == 'vector':
-            data = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
-            if '_x' in field:
-                data = data[0::3].reshape(grid.ActiveDimensions,order='F')[sl].copy()
-            elif '_y' in field:
-                data = data[1::3].reshape(grid.ActiveDimensions,order='F')[sl].copy()
-            elif '_z' in field:
-                data = data[2::3].reshape(grid.ActiveDimensions,order='F')[sl].copy()
-        f.close()
-        return data
 
 def get_read_table_offset(f):
     line = f.readline()

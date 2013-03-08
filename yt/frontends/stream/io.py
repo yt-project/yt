@@ -88,10 +88,15 @@ class IOHandlerStream(BaseIOHandler):
         for chunk in chunks:
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
+                gf = self.fields[g.id]
+                # Sometimes the stream operator won't have the 
+                # ("all", "Something") fields, but instead just "Something".
+                pns = []
+                for pn in pfields:
+                    if pn in gf: pns.append(pn)
+                    else: pns.append(pn[1])
                 size += g.count_particles(selector, 
-                    self.fields[g.id][pfields[0]],
-                    self.fields[g.id][pfields[1]],
-                    self.fields[g.id][pfields[2]])
+                    gf[pns[0]], gf[pns[1]], gf[pns[2]])
         for field in fields:
             # TODO: figure out dataset types
             rv[field] = np.empty(size, dtype='float64')
@@ -102,13 +107,20 @@ class IOHandlerStream(BaseIOHandler):
         for chunk in chunks:
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
+                gf = self.fields[g.id]
+                pns = []
+                for pn in pfields:
+                    if pn in gf: pns.append(pn)
+                    else: pns.append(pn[1])
                 mask = g.select_particles(selector,
-                    self.fields[g.id][pfields[0]],
-                    self.fields[g.id][pfields[1]],
-                    self.fields[g.id][pfields[2]])
+                    gf[pns[0]], gf[pns[1]], gf[pns[2]])
                 if mask is None: continue
                 for field in set(fields):
-                    gdata = self.fields[g.id][field][mask]
+                    if field in gf:
+                        fn = field
+                    else:
+                        fn = field[1]
+                    gdata = gf[fn][mask]
                     rv[field][ind:ind+gdata.size] = gdata
                 ind += gdata.size
         return rv

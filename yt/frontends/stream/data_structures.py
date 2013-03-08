@@ -231,6 +231,7 @@ class StreamHierarchy(GridGeometryHandler):
         """
         
         particle_types = set_particle_types(data[0])
+        ftype = "all"
 
         for key in data[0].keys() :
             if key is "number_of_particles": continue
@@ -241,9 +242,12 @@ class StreamHierarchy(GridGeometryHandler):
         for i, grid in enumerate(self.grids) :
             if data[i].has_key("number_of_particles") :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
-            for key in data[i].keys() :
-                if key in grid.keys() : grid.field_data.pop(key, None)
-                self.stream_handler.fields[grid.id][key] = data[i][key]
+            for fname in data[i]:
+                if fname in grid.field_data:
+                    grid.field_data.pop(fname, None)
+                elif (ftype, fname) in grid.field_data:
+                    grid.field_data.pop( ("all", fname) )
+                self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
         self._detect_fields()
         self._setup_unknown_fields()

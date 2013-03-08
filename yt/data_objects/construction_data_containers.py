@@ -42,7 +42,8 @@ from .data_containers import \
 from .field_info_container import \
     NeedsOriginalGrid
 from yt.utilities.lib import \
-    QuadTree, ghost_zone_interpolate, fill_region
+    QuadTree, ghost_zone_interpolate, fill_region, \
+    march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -59,46 +60,46 @@ from .field_info_container import\
     NeedsParameter
 
 class YTStreamlineBase(YTSelectionContainer1D):
+    """
+    This is a streamline, which is a set of points defined as
+    being parallel to some vector field.
+
+    This object is typically accessed through the Streamlines.path
+    function.  The resulting arrays have their dimensionality
+    reduced to one, and an ordered list of points at an (x,y)
+    tuple along `axis` are available, as is the `t` field, which
+    corresponds to a unitless measurement along the ray from start
+    to end.
+
+    Parameters
+    ----------
+    positions : array-like
+        List of streamline positions
+    length : float
+        The magnitude of the distance; dts will be divided by this
+    fields : list of strings, optional
+        If you want the object to pre-retrieve a set of fields, supply them
+        here.  This is not necessary.
+    pf : Parameter file object
+        Passed in to access the hierarchy
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> from yt.visualization.api import Streamlines
+    >>> streamlines = Streamlines(pf, [0.5]*3) 
+    >>> streamlines.integrate_through_volume()
+    >>> stream = streamlines.path(0)
+    >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+    
+    """
     _type_name = "streamline"
     _con_args = ('positions')
     sort_by = 't'
     def __init__(self, positions, length = 1.0, fields=None, pf=None, **kwargs):
-        """
-        This is a streamline, which is a set of points defined as
-        being parallel to some vector field.
-
-        This object is typically accessed through the Streamlines.path
-        function.  The resulting arrays have their dimensionality
-        reduced to one, and an ordered list of points at an (x,y)
-        tuple along `axis` are available, as is the `t` field, which
-        corresponds to a unitless measurement along the ray from start
-        to end.
-
-        Parameters
-        ----------
-        positions : array-like
-            List of streamline positions
-        length : float
-            The magnitude of the distance; dts will be divided by this
-        fields : list of strings, optional
-            If you want the object to pre-retrieve a set of fields, supply them
-            here.  This is not necessary.
-        pf : Parameter file object
-            Passed in to access the hierarchy
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> from yt.visualization.api import Streamlines
-        >>> streamlines = Streamlines(pf, [0.5]*3) 
-        >>> streamlines.integrate_through_volume()
-        >>> stream = streamlines.path(0)
-        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-        
-        """
         YTSelectionContainer1D.__init__(self, pf, fields, **kwargs)
         self.positions = positions
         self.dts = np.empty_like(positions[:,0])
@@ -154,6 +155,68 @@ class YTStreamlineBase(YTSelectionContainer1D):
 
 
 class YTQuadTreeProjBase(YTSelectionContainer2D):
+    """
+    This is a data object corresponding to a line integral through the
+    simulation domain.
+
+    This object is typically accessed through the `proj` object that
+    hangs off of hierarchy objects.  AMRQuadProj is a projection of a
+    `field` along an `axis`.  The field can have an associated
+    `weight_field`, in which case the values are multiplied by a weight
+    before being summed, and then divided by the sum of that weight; the
+    two fundamental modes of operating are direct line integral (no
+    weighting) and average along a line of sight (weighting.)  What makes
+    `proj` different from the standard projection mechanism is that it
+    utilizes a quadtree data structure, rather than the old mechanism for
+    projections.  It will not run in parallel, but serial runs should be
+    substantially faster.  Note also that lines of sight are integrated at
+    every projected finest-level cell.
+
+    Parameters
+    ----------
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    field : string
+        This is the field which will be "projected" along the axis.  If
+        multiple are specified (in a list) they will all be projected in
+        the first pass.
+    weight_field : string
+        If supplied, the field being projected will be multiplied by this
+        weight value before being integrated, and at the conclusion of the
+        projection the resultant values will be divided by the projected
+        `weight_field`.
+    max_level : int
+        If supplied, only cells at or below this level will be projected.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    source : `yt.data_objects.api.AMRData`, optional
+        If specified, this will be the data source used for selecting
+        regions to project.
+    node_name: string, optional
+        The node in the .yt file to find or store this slice at.  Should
+        probably not be used.
+    field_cuts : list of strings, optional
+        If supplied, each of these strings will be evaluated to cut a
+        region of a grid out.  They can be of the form "grid['Temperature']
+        > 100" for instance.
+    preload_style : string
+        Either 'level', 'all', or None (default).  Defines how grids are
+        loaded -- either level by level, or all at once.  Only applicable
+        during parallel runs.
+    serialize : bool, optional
+        Whether we should store this projection in the .yt file or not.
+    kwargs : dict of items
+        Any additional values are passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> pf = load("RedshiftOutput0005")
+    >>> qproj = pf.h.quad_proj(0, "Density")
+    >>> print qproj["Density"]
+    """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
     _con_args = ('axis', 'weight_field')
@@ -161,68 +224,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def __init__(self, field, axis, weight_field = None,
                  center = None, pf = None, data_source=None, 
                  style = "integrate", field_parameters = None):
-        """
-        This is a data object corresponding to a line integral through the
-        simulation domain.
-
-        This object is typically accessed through the `proj` object that
-        hangs off of hierarchy objects.  AMRQuadProj is a projection of a
-        `field` along an `axis`.  The field can have an associated
-        `weight_field`, in which case the values are multiplied by a weight
-        before being summed, and then divided by the sum of that weight; the
-        two fundamental modes of operating are direct line integral (no
-        weighting) and average along a line of sight (weighting.)  What makes
-        `proj` different from the standard projection mechanism is that it
-        utilizes a quadtree data structure, rather than the old mechanism for
-        projections.  It will not run in parallel, but serial runs should be
-        substantially faster.  Note also that lines of sight are integrated at
-        every projected finest-level cell.
-
-        Parameters
-        ----------
-        field : string
-            This is the field which will be "projected" along the axis.  If
-            multiple are specified (in a list) they will all be projected in
-            the first pass.
-        axis : int
-            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        weight_field : string
-            If supplied, the field being projected will be multiplied by this
-            weight value before being integrated, and at the conclusion of the
-            projection the resultant values will be divided by the projected
-            `weight_field`.
-        max_level : int
-            If supplied, only cells at or below this level will be projected.
-        center : array_like, optional
-            The 'center' supplied to fields that use it.  Note that this does
-            not have to have `coord` as one value.  Strictly optional.
-        source : `yt.data_objects.api.YTDataContainer`, optional
-            If specified, this will be the data source used for selecting
-            regions to project.
-        node_name: string, optional
-            The node in the .yt file to find or store this slice at.  Should
-            probably not be used.
-        field_cuts : list of strings, optional
-            If supplied, each of these strings will be evaluated to cut a
-            region of a grid out.  They can be of the form "grid['Temperature']
-            > 100" for instance.
-        preload_style : string
-            Either 'level' (default) or 'all'.  Defines how grids are loaded --
-            either level by level, or all at once.  Only applicable during
-            parallel runs.
-        serialize : bool, optional
-            Whether we should store this projection in the .yt file or not.
-        kwargs : dict of items
-            Any additional values are passed as field parameters that can be
-            accessed by generated fields.
-
-        Examples
-        --------
-
-        >>> pf = load("RedshiftOutput0005")
-        >>> qproj = pf.h.proj("Density", 0)
-        >>> print qproj["Density"]
-        """
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self.proj_style = style
         if style == "mip":
@@ -371,33 +372,33 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         return pw
 
 class YTCoveringGridBase(YTSelectionContainer3D):
+    """A 3D region with all data extracted to a single, specified
+    resolution.
+    
+    Parameters
+    ----------
+    level : int
+        The resolution level data is uniformly gridded at
+    left_edge : array_like
+        The left edge of the region to be extracted
+    dims : array_like
+        Number of cells along each axis of resulting covering_grid
+    fields : array_like, optional
+        A list of fields that you'd like pre-generated for your object
+
+    Examples
+    --------
+    >>> cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+    ...                          dims=[128, 128, 128])
+    """
     _spatial = True
     _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'ActiveDimensions')
+    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
     _base_grid = None
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, 
                  field_parameters = None):
-        """A 3D region with all data extracted to a single, specified
-        resolution.
-
-        Parameters
-        ----------
-        level : int
-            The resolution level data is uniformly gridded at
-        left_edge : array_like
-            The left edge of the region to be extracted
-        dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        fields : array_like, optional
-            A list of fields that you'd like pre-generated for your object
-
-        Examples
-        --------
-        cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  dims=[128, 128, 128])
-
-        """
         if field_parameters is None:
             center = None
         else:
@@ -416,6 +417,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
+
+    @property
+    def shape(self):
+        return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
         self._data_source = self.pf.h.region(
@@ -453,6 +458,33 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         for name, v in zip(fields, output_fields):
             self[name] = v
 
+    def _generate_container_field(self, field):
+        rv = np.ones(self.ActiveDimensions, dtype="float64")
+        if field == "dx":
+            np.multiply(rv, self.dds[0], rv)
+        elif field == "dy":
+            np.multiply(rv, self.dds[1], rv)
+        elif field == "dz":
+            np.multiply(rv, self.dds[2], rv)
+        elif field == "x":
+            x = np.mgrid[self.left_edge[0] + 0.5*self.dds[0]:
+                         self.right_edge[0] - 0.5*self.dds[0]:
+                         self.ActiveDimensions[0] * 1j]
+            np.multiply(rv, x[:,None,None], rv)
+        elif field == "y":
+            y = np.mgrid[self.left_edge[1] + 0.5*self.dds[1]:
+                         self.right_edge[1] - 0.5*self.dds[1]:
+                         self.ActiveDimensions[1] * 1j]
+            np.multiply(rv, y[None,:,None], rv)
+        elif field == "z":
+            z = np.mgrid[self.left_edge[2] + 0.5*self.dds[2]:
+                         self.right_edge[2] - 0.5*self.dds[2]:
+                         self.ActiveDimensions[2] * 1j]
+            np.multiply(rv, z[None,None,:], rv)
+        else:
+            raise KeyError(field)
+        return rv
+
 class LevelState(object):
     current_dx = None
     current_dims = None
@@ -464,35 +496,35 @@ class LevelState(object):
     data_source = None
 
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
+    """A 3D region with all data extracted and interpolated to a
+    single, specified resolution. (Identical to covering_grid,
+    except that it interpolates.)
+
+    Smoothed covering grids start at level 0, interpolating to
+    fill the region to level 1, replacing any cells actually
+    covered by level 1 data, and then recursively repeating this
+    process until it reaches the specified `level`.
+    
+    Parameters
+    ----------
+    level : int
+        The resolution level data is uniformly gridded at
+    left_edge : array_like
+        The left edge of the region to be extracted
+    dims : array_like
+        Number of cells along each axis of resulting covering_grid.
+    fields : array_like, optional
+        A list of fields that you'd like pre-generated for your object
+
+    Example
+    -------
+    cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+                              dims=[128, 128, 128])
+    """
     _type_name = "smoothed_covering_grid"
     filename = None
     @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
-        """A 3D region with all data extracted and interpolated to a
-        single, specified resolution.  (Identical to covering_grid,
-        except that it interpolates.)
-
-        Smoothed covering grids start at level 0, interpolating to
-        fill the region to level 1, replacing any cells actually
-        covered by level 1 data, and then recursively repeating this
-        process until it reaches the specified `level`.
-
-        Parameters
-        ----------
-        level : int
-            The resolution level data is uniformly gridded at
-        left_edge : array_like
-            The left edge of the region to be extracted
-        dims : array_like
-            Number of cells along each axis of resulting covering_grid
-        fields : array_like, optional
-            A list of fields that you'd like pre-generated for your object
-
-        Example
-        -------
-        cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                                  dims=[128, 128, 128])
-        """
         self._base_dx = (
               (self.pf.domain_right_edge - self.pf.domain_left_edge) /
                self.pf.domain_dimensions.astype("float64"))
@@ -571,52 +603,53 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         level_state.fields = new_fields
 
 class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
+    r"""This surface object identifies isocontours on a cell-by-cell basis,
+    with no consideration of global connectedness, and returns the vertices
+    of the Triangles in that isocontour.
+
+    This object simply returns the vertices of all the triangles
+    calculated by the marching cubes algorithm; for more complex
+    operations, such as identifying connected sets of cells above a given
+    threshold, see the extract_connected_sets function.  This is more
+    useful for calculating, for instance, total isocontour area, or
+    visualizing in an external program (such as `MeshLab
+    <http://meshlab.sf.net>`_.)  The object has the properties .vertices
+    and will sample values if a field is requested.  The values are
+    interpolated to the center of a given face.
+    
+    Parameters
+    ----------
+    data_source : AMR3DDataObject
+        This is the object which will used as a source
+    surface_field : string
+        Any field that can be obtained in a data object.  This is the field
+        which will be isocontoured.
+    field_value : float
+        The value at which the isocontour should be calculated.
+
+    References
+    ----------
+
+    .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+
+    Examples
+    --------
+    This will create a data object, find a nice value in the center, and
+    output the vertices to "triangles.obj" after rescaling them.
+
+    >>> sp = pf.h.sphere("max", (10, "kpc")
+    >>> surf = pf.h.surface(sp, "Density", 5e-27)
+    >>> print surf["Temperature"]
+    >>> print surf.vertices
+    >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
+    ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
+    >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+    """
     _type_name = "surface"
     _con_args = ("data_source", "surface_field", "field_value")
+    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
-        r"""This surface object identifies isocontours on a cell-by-cell basis,
-        with no consideration of global connectedness, and returns the vertices
-        of the Triangles in that isocontour.
-
-        This object simply returns the vertices of all the triangles
-        calculated by the marching cubes algorithm; for more complex
-        operations, such as identifying connected sets of cells above a given
-        threshold, see the extract_connected_sets function.  This is more
-        useful for calculating, for instance, total isocontour area, or
-        visualizing in an external program (such as `MeshLab
-        <http://meshlab.sf.net>`_.)  The object has the properties .vertices
-        and will sample values if a field is requested.  The values are
-        interpolated to the center of a given face.
-        
-        Parameters
-        ----------
-        data_source : AMR3DDataObject
-            This is the object which will used as a source
-        surface_field : string
-            Any field that can be obtained in a data object.  This is the field
-            which will be isocontoured.
-        field_value : float
-            The value at which the isocontour should be calculated.
-
-        References
-        ----------
-
-        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
-
-        Examples
-        --------
-        This will create a data object, find a nice value in the center, and
-        output the vertices to "triangles.obj" after rescaling them.
-
-        >>> sp = pf.h.sphere("max", (10, "kpc")
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
-        >>> print surf["Temperature"]
-        >>> print surf.vertices
-        >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
-        ...            sp.center[i] + 5.0/pf['kpc']) for i in range(3)]
-        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
-        """
         ParallelAnalysisInterface.__init__(self)
         self.data_source = data_source
         self.surface_field = surface_field
@@ -625,7 +658,10 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         center = data_source.get_field_parameter("center")
         super(YTSurfaceBase, self).__init__(center = center, pf =
                     data_source.pf )
-        self._grids = self.data_source._grids.copy()
+
+    def _generate_container_field(self, field):
+        self.get_data(field)
+        return self[field]
 
     def get_data(self, fields = None, sample_type = "face"):
         if isinstance(fields, list) and len(fields) > 1:
@@ -634,20 +670,17 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         elif isinstance(fields, list):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
-        pb = get_pbar("Extracting (sampling: %s)" % fields,
-                      len(list(self._get_grid_objs())))
+        mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for i,g in enumerate(self._get_grid_objs()):
-            pb.update(i)
+        for block, mask in parallel_objects(self.data_source.blocks):
             my_verts = self._extract_isocontours_from_grid(
-                            g, self.surface_field, self.field_value,
-                            fields, sample_type)
+                            block, self.surface_field, self.field_value,
+                            mask, fields, sample_type)
             if fields is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
-        pb.finish()
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         self.vertices = verts
@@ -660,11 +693,9 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             elif sample_type == "vertex":
                 self.vertex_samples[fields] = samples
         
-
     def _extract_isocontours_from_grid(self, grid, field, value,
-                                       sample_values = None,
+                                       mask, sample_values = None,
                                        sample_type = "face"):
-        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field, no_ghost = False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
@@ -731,19 +762,15 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
         """
         flux = 0.0
-        pb = get_pbar("Fluxing %s" % fluxing_field,
-                len(list(self._get_grid_objs())))
-        for i, g in enumerate(self._get_grid_objs()):
-            pb.update(i)
-            flux += self._calculate_flux_in_grid(g,
+        mylog.info("Fluxing %s", fluxing_field)
+        for block, mask in parallel_objects(self.data_source.blocks):
+            flux += self._calculate_flux_in_grid(block, mask,
                     field_x, field_y, field_z, fluxing_field)
-        pb.finish()
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
-    def _calculate_flux_in_grid(self, grid, 
+    def _calculate_flux_in_grid(self, grid, mask,
                     field_x, field_y, field_z, fluxing_field = None):
-        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(self.surface_field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
@@ -922,24 +949,22 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         Examples
         --------
 
-        from yt.mods import *
-        pf = load("redshift0058")
-        dd = pf.h.sphere("max", (200, "kpc"))
-        rho = 5e-27
-
-        bounds = [(dd.center[i] - 100.0/pf['kpc'],
-                   dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
-
-        surf = pf.h.surface(dd, "Density", rho)
-
-        rv = surf.export_sketchfab(
-            title = "Testing Upload",
-            description = "A simple test of the uploader",
-            color_field = "Temperature",
-            color_map = "hot",
-            color_log = True,
-            bounds = bounds
-        )
+        >>> from yt.mods import *
+        >>> pf = load("redshift0058")
+        >>> dd = pf.h.sphere("max", (200, "kpc"))
+        >>> rho = 5e-27
+        >>> bounds = [(dd.center[i] - 100.0/pf['kpc'],
+        ...            dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
+        ...
+        >>> surf = pf.h.surface(dd, "Density", rho)
+        >>> rv = surf.export_sketchfab(
+        ...     title = "Testing Upload",
+        ...     description = "A simple test of the uploader",
+        ...     color_field = "Temperature",
+        ...     color_map = "hot",
+        ...     color_log = True,
+        ...     bounds = bounds)
+        ...
         """
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):

@@ -7,8 +7,8 @@
 # There are a few options, but you only need to set *one* of them.  And
 # that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
 # installation you can set HDF5_DIR, or if you want to use some other
-# subversion checkout of YT, you can set YT_DIR, too.  (It'll already
-# check the current directory and one up).
+# subversion checkout of yt, you can set YT_DIR, too.  (It'll already
+# check the current directory and one up.
 #
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
@@ -49,7 +49,7 @@ INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 INST_SCIPY=0    # Install scipy?
 
-# If you've got YT some other place, set this to point to it.
+# If you've got yt some other place, set this to point to it.
 YT_DIR=""
 
 # If you need to pass anything to matplotlib, do so here.
@@ -230,6 +230,27 @@ function host_specific
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
         fi
     fi
+    if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
+    then
+        echo "Looks like you're on an OpenSUSE-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * devel_C_C++"
+        echo "  * libopenssl-devel"
+        echo "  * libuuid-devel"
+        echo "  * zip"
+        echo "  * gcc-c++"
+        echo
+        echo "You can accomplish this by executing:"
+        echo
+        echo "$ sudo zypper install -t pattern devel_C_C++"
+        echo "$ sudo zypper install gcc-c++ libopenssl-devel libuuid-devel zip"
+        echo
+        echo "I am also setting special configure arguments to Python to"
+        echo "specify control lib/lib64 issues."
+        PYCONF_ARGS="--libdir=${DEST_DIR}/lib"
+    fi
     if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
     then
         echo "Looks like you're on an Ubuntu-compatible machine."
@@ -293,9 +314,9 @@ echo
 echo
 echo "========================================================================"
 echo
-echo "Hi there!  This is the YT installation script.  We're going to download"
+echo "Hi there!  This is the yt installation script.  We're going to download"
 echo "some stuff and install it to create a self-contained, isolated"
-echo "environment for YT to run within."
+echo "environment for yt to run within."
 echo
 echo "Inside the installation script you can set a few variables.  Here's what"
 echo "they're currently set to -- you can hit Ctrl-C and edit the values in "
@@ -476,7 +497,7 @@ echo 'b3290c498191684781ca5286ab454eb1bd045e8d894f5b86fb86beb88f174e22ac3ab008fb
 echo 'c68a425bacaa7441037910b9166f25b89e1387776a7749a5350793f89b1690350df5f018060c31d03686e7c3ed2aa848bd2b945c96350dc3b6322e087934783a  hdf5-1.8.9.tar.gz' > hdf5-1.8.9.tar.gz.sha512
 echo 'dbefad00fa34f4f21dca0f1e92e95bd55f1f4478fa0095dcf015b4d06f0c823ff11755cd777e507efaf1c9098b74af18f613ec9000e5c3a5cc1c7554fb5aefb8  libpng-1.5.12.tar.gz' > libpng-1.5.12.tar.gz.sha512
 echo '5b1a0fb52dcb21ca5f0ab71c8a49550e1e8cf633552ec6598dc43f0b32c03422bf5af65b30118c163231ecdddfd40846909336f16da318959106076e80a3fad0  matplotlib-1.2.0.tar.gz' > matplotlib-1.2.0.tar.gz.sha512
-echo '52d1127de2208aaae693d16fef10ffc9b8663081bece83b7597d65706e9568af3b9e56bd211878774e1ebed92e21365ee9c49602a0ff5e48f89f12244d79c161  mercurial-2.4.tar.gz' > mercurial-2.4.tar.gz.sha512
+echo '91693ca5f34934956a7c2c98bb69a5648b2a5660afd2ecf4a05035c5420450d42c194eeef0606d7683e267e4eaaaab414df23f30b34c88219bdd5c1a0f1f66ed  mercurial-2.5.1.tar.gz' > mercurial-2.5.1.tar.gz.sha512
 echo 'de3dd37f753614055dcfed910e9886e03688b8078492df3da94b1ec37be796030be93291cba09e8212fffd3e0a63b086902c3c25a996cf1439e15c5b16e014d9  numpy-1.6.1.tar.gz' > numpy-1.6.1.tar.gz.sha512
 echo '5ad681f99e75849a5ca6f439c7a19bb51abc73d121b50f4f8e4c0da42891950f30407f761a53f0fe51b370b1dbd4c4f5a480557cb2444c8c7c7d5412b328a474  sqlite-autoconf-3070500.tar.gz' > sqlite-autoconf-3070500.tar.gz.sha512
 echo 'edae735960279d92acf58e1f4095c6392a7c2059b8f1d2c46648fc608a0fb06b392db2d073f4973f5762c034ea66596e769b95b3d26ad963a086b9b2d09825f2  zlib-1.2.3.tar.bz2' > zlib-1.2.3.tar.bz2.sha512
@@ -509,7 +530,7 @@ echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef
 get_ytproject Python-2.7.3.tgz
 get_ytproject numpy-1.6.1.tar.gz
 get_ytproject matplotlib-1.2.0.tar.gz
-get_ytproject mercurial-2.4.tar.gz
+get_ytproject mercurial-2.5.1.tar.gz
 get_ytproject ipython-0.13.1.tar.gz
 get_ytproject h5py-2.1.0.tar.gz
 get_ytproject Cython-0.17.1.tar.gz
@@ -636,10 +657,10 @@ fi
 
 if [ ! -e Python-2.7.3/done ]
 then
-    echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
+    echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
     [ ! -e Python-2.7.3 ] && tar xfz Python-2.7.3.tgz
     cd Python-2.7.3
-    ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -654,7 +675,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-2.4
+    do_setup_py mercurial-2.5.1
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -816,16 +837,11 @@ MY_PWD=`pwd`
 cd $YT_DIR
 ( ${HG_EXEC} pull 2>1 && ${HG_EXEC} up -C 2>1 ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
 
-echo "Building Fortran kD-tree module."
-cd yt/utilities/kdtree
-( make 2>&1 ) 1>> ${LOG_FILE}
-cd ../../..
-
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 [ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
-( ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
 
