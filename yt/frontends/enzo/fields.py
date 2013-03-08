@@ -145,12 +145,16 @@ def _ThermalEnergy(field, data):
                  + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units="erg / g")
+add_field("thermal_energy", function=_ThermalEnergy,
+          units="erg / g")
 
 def _KineticEnergy(field, data):
     return 0.5*data["Density"] * ( data["x-velocity"]**2.0
                                    + data["y-velocity"]**2.0
                                    + data["z-velocity"]**2.0 )
-add_field("KineticEnergy",function=_KineticEnergy,
+add_field("KineticEnergy", function=_KineticEnergy,
+          units="erg / cm**3")
+add_field("kinetic_energy", function=_KineticEnergy,
           units="erg / cm**3")
 # This next section is the energy field section
 # Note that we have aliases that manually unconvert themselves.
@@ -170,7 +174,7 @@ add_enzo_field("Gas_Energy", function=NullFunc,
 
 def _Gas_Energy(field, data):
     return data["GasEnergy"] / _convertEnergy(data)
-add_field("Gas_Energy", function=_Gas_Energy,
+add_field("gas_energy", function=_Gas_Energy,
           units="erg / g", convert_function=_convertEnergy)
 
 # We set up fields for both TotalEnergy and Total_Energy in the known fields
@@ -182,15 +186,10 @@ add_enzo_field("Total_Energy", function=NullFunc,
           display_name = "$\rm{Total}\/\rm{Energy}$",
           units="erg / g", convert_function=_convertEnergy)
 
-def _Total_Energy(field, data):
-    return data["TotalEnergy"] / _convertEnergy(data)
-add_field("Total_Energy", function=_Total_Energy,
+add_field("TotalEnergy", function=_TotalEnergy,
           display_name = "$\rm{Total}\/\rm{Energy}$",
           units="erg / g", convert_function=_convertEnergy)
-
-def _TotalEnergy(field, data):
-    return data["Total_Energy"] / _convertEnergy(data)
-add_field("TotalEnergy", function=_TotalEnergy,
+add_field("total_energy", function=_TotalEnergy,
           display_name = "$\rm{Total}\/\rm{Energy}$",
           units="erg / g", convert_function=_convertEnergy)
 
@@ -308,15 +307,21 @@ add_field("RadiationAcceleration",
           function=_RadiationAccelerationMagnitude,
           validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
           display_name="Radiation\/Acceleration", units="cm / s**2")
-
+          
 # Now we override
-
+          
 def _convertDensity(data):
     return data.convert("Density")
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
         ["SN_Colour"]:
     KnownEnzoFields[field]._units = "g / cm**3"
     KnownEnzoFields[field]._convert_function=_convertDensity
+
+def _Density(field, data):
+    return data['Density']
+
+add_field("density", function=_Density, convert_function=_convertDensity
+          validators=[ValidateDataField("Density")], display_name="Density")
 
 add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
@@ -336,9 +341,7 @@ add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           display_name="Dark\/Matter\/Mass", units="Msun")
 
 KnownEnzoFields["Temperature"]._units = "K"
-KnownEnzoFields["Temperature"].units = "K"
 KnownEnzoFields["Dust_Temperature"]._units = "K"
-KnownEnzoFields["Dust_Temperature"].units = "K"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")

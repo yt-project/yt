@@ -29,16 +29,38 @@ import copy
 
 import numpy as np
 
-from yt.utilities.units import Unit
+from numpy import add, subtract, multiply, divide, \
+    negative, absolute, sqrt, square, power, reciprocal
+
+from yt.utilities.units import Unit, dimensionless
 
 class UnitOperationError(Exception):
     pass
+
+def sqrt_unit(unit):
+    return unit**0.5
+
+def multiply_units(unit1, unit2):
+    return unit1 * unit2
+
+def preserve_unit(unit1, unit2):
+    return unit1
+
+def power_unit(unit, power):
+    return unit**power
 
 class YTArray(np.ndarray):
     """
 
     """
+    _ufunc_registry = {sqrt: sqrt_unit, multiply: multiply_units,
+                       add: preserve_unit, subtract: preserve_unit,
+                       power: power_unit}
+
     def __new__(cls, input_array, input_units=None):
+        if isinstance(input_array, YTArray):
+            return input_array
+
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
         obj = np.asarray(input_array).view(cls)
@@ -204,15 +226,18 @@ class YTArray(np.ndarray):
         if isinstance(right_object, YTArray):
             # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(right_object.units):
-                raise UnitOperationError("You cannot add these quantities because their dimensions do not match. `%s + %s` is ill-defined" % (self.units, right_object.units))
+                raise UnitOperationError("You cannot add these quantities because "
+                                         "their dimensions do not match. "
+                                         "`%s + %s` is ill-defined" % (self.units, right_object.units))
         else:
             # case of dimensionless self + float
             # the only way this works is with a float so...
             if not self.units.is_dimensionless:
-                raise Exception("You cannot add a pure number to a dimensional quantity. `%s + %s` is ill-defined." % (self, right_object))
+                raise Exception("You cannot add a pure number to a "
+                                "dimensional quantity. `%s + %s` is ill-defined." % (self, right_object))
 
         # `get_data_in` will not apply the conversion if the units are the same
-        return YTArray(super(YTArray, self).__add__(right_object), input_units = right_object.units)
+        return YTArray(super(YTArray, self).__add__(right_object))
 
     def __radd__(self, left_object):
         """
@@ -230,7 +255,7 @@ class YTArray(np.ndarray):
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s + %s` is ill-defined." % (left_object, self))
 
         # `get_data_in` will not apply the conversion if the units are the same
-        return YTArray(super(YTArray, self).__radd__(left_object), input_units = right_object.units)
+        return YTArray(super(YTArray, self).__radd__(left_object))
 
     def __sub__(self, right_object):
         """
@@ -249,7 +274,7 @@ class YTArray(np.ndarray):
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (self, right_object))
 
         # `get_data_in` will not apply the conversion if the units are the same
-        return YTArray(super(YTArray, self).__sub__(right_object), input_units = right_object.units)
+        return YTArray(super(YTArray, self).__sub__(right_object))
         
 
     def __rsub__(self, left_object):
@@ -269,11 +294,11 @@ class YTArray(np.ndarray):
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (left_object, self))
 
         # `get_data_in` will not apply the conversion if the units are the same
-        return YTArray(super(YTArray, self).__rsub__(left_object), input_units = left_object.units)
+        return YTArray(super(YTArray, self).__rsub__(left_object))
 
     def __neg__(self):
         """ Negate the data. """
-        return YTArray(super(YTArray, self).__neg__(self), input_units = self.units)
+        return YTArray(super(YTArray, self).__neg__(self))
 
     def __mul__(self, right_object):
         """
@@ -282,13 +307,11 @@ class YTArray(np.ndarray):
 
         """
         if isinstance(right_object, YTArray):
-            return YTArray(super(YTArray, self).__mul__(right_object),
-                           input_units=(self.units * right_object.units))
+            return YTArray(super(YTArray, self).__mul__(right_object))
 
         # `right_object` is not a Quantity object, so try to use it as
         # dimensionless data.
-        return YTArray(super(YTArray, self).__mul__(right_object), 
-                       input_units=self.units)
+        return YTArray(super(YTArray, self).__mul__(right_object))
 
     def __rmul__(self, left_object):
         """
@@ -297,13 +320,11 @@ class YTArray(np.ndarray):
 
         """
         if isinstance(left_object, YTArray):
-            return YTArray(super(YTArray, self).__rmul__(left_object),
-                           input_units=(self.units * left_object.units))
+            return YTArray(super(YTArray, self).__rmul__(left_object))
 
         # `left_object` is not a Quantity object, so try to use it as
         # dimensionless data.
-        return YTArray(super(YTArray, self).__rmul__(left_object), 
-                       input_units=self.units)
+        return YTArray(super(YTArray, self).__rmul__(left_object))
 
     def __div__(self, right_object):
         """
@@ -312,13 +333,11 @@ class YTArray(np.ndarray):
 
         """
         if isinstance(right_object, YTArray):
-            return YTArray(super(YTArray, self).__div__(right_object), 
-                           input_units = (self.units / right_object.units))
+            return YTArray(super(YTArray, self).__div__(right_object))
 
         # `right_object` is not a  object, so try to use it as
         # dimensionless data.
-        return YTArray(super(YTArray, self).__div__(right_object),
-                       input_units = self.units)
+        return YTArray(super(YTArray, self).__div__(right_object))
 
     def __rdiv__(self, left_object):
         """
@@ -326,13 +345,12 @@ class YTArray(np.ndarray):
         unit objects handle being divided by each other.
 
         """
-        if isinstance(left_object, Quantity):
-            return Quantity(left_object.data / self.data,
-                            left_object.units / self.units)
+        if isinstance(left_object, YTArray):
+            return YTArray(super(YTArray, self).__rdiv__(left_object))
 
         # `left_object` is not a Quantity object, so try to use it as
         # dimensionless data.
-        return Quantity(left_object / self.data, self.units**(-1))
+        return YTArray(super(YTArray, self).__rdiv__(left_object))
 
     def __pow__(self, power):
         """
@@ -344,25 +362,23 @@ class YTArray(np.ndarray):
             The pow value.
 
         """
-        if isinstance(power, Quantity):
-            if power.units.is_dimensionless:
-                return Quantity(self.data**power.data, self.units**power.data)
-            else:
+        if isinstance(power, YTArray):
+            if not power.units.is_dimensionless:
                 raise Exception("The power argument must be dimensionless. (%s)**(%s) is ill-defined." % (self, power))
 
-        return Quantity(self.data**power, self.units**power)
+        return YTArray(super(YTArray, self).__pow__(power))
 
     def __abs__(self):
         """ Return a Quantity with the abs of the data. """
-        return Quantity(abs(self.data), self.units)
-
+        return YTArray(super(YTArray, self).__abs__())
+                 
     def sqrt(self):
         """
         Return sqrt of this Quantity. This is just a wrapper of Quantity.__pow__
         for numpy.sqrt.
 
         """
-        return self**(1.0/2)
+        return YTArray(super(YTArray, self).sqrt(), input_units = self.units**0.5)
 
     def exp(self):
         """
@@ -373,92 +389,105 @@ class YTArray(np.ndarray):
         if not self.units.is_dimensionless:
             raise Exception("The argument of an exponential must be dimensionless. exp(%s) is ill-defined." % self)
 
-        try:
-            from numpy import exp
-        except ImportError:
-            raise Exception("This method requires the numpy package. Please install it before calling exp(Quantity)")
-
         return exp(self.data)
 
     ### comparison operators
     # @todo: outsource to a single method with an op argument.
     def __lt__(self, right_object):
         """ Test if this is less than the object on the right. """
-        # Check that the other is a Quantity.
-        if not isinstance(right_object, Quantity):
-            raise Exception("You cannot compare a Quantity to a non-Quantity object. %s < %s is ill-defined." % (self, right_object))
-        # Check that the dimensions are the same.
-        if not self.units.same_dimensions_as(right_object.units):
-            raise Exception("You cannot compare quantities of units %s and %s." % (self.units, right_object.units))
+        # Check that the other is a YTArray.
+        if isinstance(right_object, YTArray):
+            if not self.units.same_dimensions_as(right_object.units):
+                raise Exception("The less than operator for quantities "
+                                "with units %s and %s is not well defined." 
+                                % (self.units, right_object.units))
 
-        if self.data < right_object.get_data_in(self.units):
-            return True
-        return False
+            return super(YTArray, self).__lt__(right_object.get_data_in(self.units))
+        return super(YTArray, self).__lt__(right_object)
 
     def __le__(self, right_object):
         """ Test if this is less than or equal to the object on the right. """
-        # Check that the other is a Quantity.
-        if not isinstance(right_object, Quantity):
-            raise Exception("You cannot compare a Quantity to a non-Quantity object. %s <= %s is ill-defined." % (self, right_object))
-        # Check that the dimensions are the same.
-        if not self.units.same_dimensions_as(right_object.units):
-            raise Exception("You cannot compare quantities of units %s and %s." % (self.units, right_object.units))
+        # Check that the other is a YTArray.
+        if isinstance(right_object, Quantity):
+            if not self.units.same_dimensions_as(right_object.units):
+                raise Exception("The less than or equal operator for quantities "
+                                "with units %s and %s is not well defined." 
+                                % (self.units, right_object.units))
 
-        if self.data <= right_object.get_data_in(self.units):
-            return True
-        return False
+            return super(YTArray, self).__le__(right_object.get_data_in(self.units))
+        return super(YTArray, self).__lt__(right_object)
 
     def __eq__(self, right_object):
         """ Test if this is equal to the object on the right. """
-        # Check that the other is a Quantity.
-        if not isinstance(right_object, Quantity):
-            raise Exception("You cannot compare a Quantity to a non-Quantity object. %s == %s is ill-defined." % (self, right_object))
-        # Check that the dimensions are the same.
-        if not self.units.same_dimensions_as(right_object.units):
-            raise Exception("You cannot compare quantities of units %s and %s." % (self.units, right_object.units))
+        # Check that the other is a YTArray.
+        if isinstance(right_object, YTArray):
+            if not self.units.same_dimensions_as(right_object.units):
+                raise Exception("The equality operator for quantities with units" 
+                                "%s and %s is not well defined." 
+                                % (self.units, right_object.units))
 
-        if self.data == right_object.get_data_in(self.units):
-            return True
-        return False
+            return super(YTArray, self).__eq__(right_object.get_data_in(self.units))
+        return super(YTArray, self).__eq__(right_object)
 
     def __ne__(self, right_object):
         """ Test if this is not equal to the object on the right. """
-        # Check that the other is a Quantity.
-        if not isinstance(right_object, Quantity):
-            raise Exception("You cannot compare a Quantity to a non-Quantity object. %s != %s is ill-defined." % (self, right_object))
-        # Check that the dimensions are the same.
-        if not self.units.same_dimensions_as(right_object.units):
-            raise Exception("You cannot compare quantities of units %s and %s." % (self.units, right_object.units))
-
-        if self.data != right_object.get_data_in(self.units):
-            return True
-        return False
+        # Check that the other is a YTArray.
+        if isinstance(right_object, YTArray):
+            if not self.units.same_dimensions_as(right_object.units):
+                raise Exception("The not equal operator for quantities "
+                                "with units %s and %s is not well defined." 
+                                % (self.units, right_object.units))
+            
+            return super(YTArray, self).__ne__(right_object.get_data_in(self.units))
+        return super(YTArray, self).__ne__(right_object)
 
     def __ge__(self, right_object):
         """
         Test if this is greater than or equal to the object on the right.
 
         """
-        # Check that the other is a Quantity.
-        if not isinstance(right_object, Quantity):
-            raise Exception("You cannot compare a Quantity to a non-Quantity object. %s >= %s is ill-defined." % (self, right_object))
-        # Check that the dimensions are the same.
-        if not self.units.same_dimensions_as(right_object.units):
-            raise Exception("You cannot compare quantities of units %s and %s." % (self.units, right_object.units))
+        # Check that the other is a YTArray.
+        if isinstance(right_object, YTArray):
+            if not self.units.same_dimensions_as(right_object.units):
+                raise Exception("The greater than or equal operator for quantities "
+                                "with units %s and %s is not well defined." 
+                                % (self.units, right_object.units))
 
-        if self.data >= right_object.get_data_in(self.units):
-            return True
-        return False
+            return super(YTArray, self).__ge__(right_object.get_data_in(self.units))
+        return super(YTArray, self).__ge__(right_objects)
 
     def __gt__(self, right_object):
         """ Test if this is greater than the object on the right. """
-        # Check that the other is a Quantity.
-        if not isinstance(right_object, Quantity):
-            raise Exception("You cannot compare a Quantity to a non-Quantity object. %s > %s is ill-defined." % (self, right_object))
-        # Check that the dimensions are the same.
-        if not self.units.same_dimensions_as(right_object.units):
-            raise Exception("You cannot compare quantities of units %s and %s." % (self.units, right_object.units))
+        # Check that the other is a YTArray.
+        if isinstance(right_object, YTArray):
+            if not self.units.same_dimensions_as(right_object.units):
+                raise Exception("The greater than operator for quantities "
+                                "with units %s and %s is not well defined." 
+                                % (self.units, right_object.units))
 
-        if self.data > right_object.get_data_in(self.units):
-            return True
-        return False
+            return super(YTArray, self).__gt__(right_object.get_data_in(self.units))
+        return super(YTArray, self).__gt__(right_object)
+
+    def __array_wrap__(self, out_arr, context=None):
+        if context is None:
+            pass
+        elif len(context[1]) == 1:
+            # unary operators
+            out_arr.units = self._ufunc_registry[context[0]](context[1][0].units)
+        elif len(context[1]) == 2:
+            # binary operators
+            try:
+                unit1 = context[1][0].units
+            except AttributeError:
+                unit1 = dimensionless
+            try:
+                unit2 = context[1][1].units
+            except AttributeError:
+                if context[0] is power:
+                    unit2 = context[1][1]
+                else:
+                    unit2 = dimensionless
+            out_arr.units = self._ufunc_registry[context[0]](unit1, unit2)
+        else:
+            raise RuntimeError("Only unary and binary operators are allowed.")
+        return out_arr
