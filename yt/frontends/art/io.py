@@ -128,6 +128,15 @@ class IOHandlerART(BaseIOHandler):
             tr[field]=tr[field][mask]
         return tr
 
+def _determine_field(pf,field):
+    ptfields = ["stars","darkmatter"]
+    ptmax= self.pf.parameters['wspecies'][-1]
+    if type(field) == int:
+        return field
+    if field in ptfields:
+        return field
+    return "all"
+
 
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):
