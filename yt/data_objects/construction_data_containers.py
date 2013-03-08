@@ -660,20 +660,17 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         elif isinstance(fields, list):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
-        pb = get_pbar("Extracting (sampling: %s)" % (fields,),
-                      len(list(self._get_grid_objs())))
+        mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for i,g in enumerate(self._get_grid_objs()):
-            pb.update(i)
+        for block, mask in parallel_objects(self.data_source.blocks):
             my_verts = self._extract_isocontours_from_grid(
-                            g, self.surface_field, self.field_value,
-                            fields, sample_type)
+                            block, self.surface_field, self.field_value,
+                            mask, fields, sample_type)
             if fields is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
-        pb.finish()
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         self.vertices = verts
@@ -688,9 +685,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         
 
     def _extract_isocontours_from_grid(self, grid, field, value,
-                                       sample_values = None,
+                                       mask, sample_values = None,
                                        sample_type = "face"):
-        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field, no_ghost = False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
