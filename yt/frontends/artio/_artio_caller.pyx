@@ -593,7 +593,8 @@ cdef class artio_fileset :
 
     def root_sfc_ranges(self, SelectorObject selector)
        cdef int max_range_size = 1024
-       cdef int coords[3], sfc_start, sfc_end
+       cdef float coords[3]
+       cdef int sfc_start, sfc_end
        cdef np.float64 dds[3] = { 1.0, 1.0, 1.0 }
        cdef artio_selection *selection
 
