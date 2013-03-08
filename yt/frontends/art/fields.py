@@ -281,3 +281,8 @@ def _particle_age_spread(field,data):
 
 add_field("particle_age_spread",function=_particle_age_spread,
           particle_type=True,take_log=True,units=r"\rm{s}")
+
+def _ParticleMassMsun(field,data):
+    return data["particle_mass"]/1.989e33
+add_field("ParticleMassMsun",function=_ParticleMassMsun,particle_type=True,
+          take_log=True,units=r"\rm{Msun}")
