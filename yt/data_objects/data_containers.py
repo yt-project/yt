@@ -208,8 +208,8 @@ class YTDataContainer(object):
         # fi.units is the unit expression string. We depend on the registry
         # hanging off the dataset to define this unit object.
         unit_obj = self.pf.get_unit_from_registry(fi._units)
-
-        return YTArray(self.field_data[f], input_units=unit_obj)
+        self.field_data[f] = YTArray(self.field_data[f], input_units=unit_obj)
+        return self.field_data[f]
 
     def __setitem__(self, key, val):
         """
