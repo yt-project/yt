@@ -77,11 +77,14 @@ class ARTIOChunk(object) :
             raise RuntimeError
         return 2.**-self.ires
 
+    _icoords = None
     def icoords(self, dobj):
-        if self._fcoords is None :
-            print "Error: ARTIOChunk.icoords called before fill"
+        if self._fcoords is None or self._ires is None or self.fwidth is None :
+            print "Error: ARTIOChunk.icoords called before fill fcoords/level"
             raise RuntimeError
-        raise NotImplementedError
+        else : 
+            self._icoords = (int) self._fcoords/self._fwidth
+        return self._icoords 
 
     def fill(self, fields):
         # populate 
