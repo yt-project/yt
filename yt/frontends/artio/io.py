@@ -28,6 +28,7 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+from .definitions import yt_to_art
 import yt.utilities.fortran_utils as fpu
 import cStringIO
 
@@ -49,14 +50,17 @@ class IOHandlerARTIO(BaseIOHandler):
 
     def _read_particle_selection(self, chunks, selector, fields):
         # http://yt-project.org/doc/analyzing/particles.html
-        # ->creation_time >0 used to indicate star particles
-	print "reading particle data"
-        #
-        # FIX need an input for particle type (in fields?)
-#        accessed_species = ['N-BODY','STAR']
-        accessed_species = ['STAR']
-        #
-	print 'io.py particle fields ',fields
+	    print "reading particle data"
+
+        self.particle_types = ['all']
+        for f in fields :
+            if particles_yt_to_art[f[0]] not in self.particle_types :
+                assert (particles_yt_to_art.has_key(f[0])) #particle types must exist in ART
+                self.particle_types.append(particles_yt_to_art[f[0]])
+
+        accessed_species = self.particle_types
+
+    	print 'io.py particle fields ',fields
         sys.exit(1)
         cp = 0
         tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
@@ -64,6 +68,8 @@ class IOHandlerARTIO(BaseIOHandler):
             rv = onechunk.fill_particles( accessed_species, selector, fields)
             #get size and ensure that all fields have the same size (np)
             onechunk_size = 0 
+        #will need to change this to loop over particle type then field name?
+        #b/c stars won't have the size as nobody, for example
             for fieldtype, fieldname in fields:
                 if onechunk_size != 0 and onechunk_size != len(rv[fieldname]) :
                     print 'size varies between fields! exiting'
