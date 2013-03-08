@@ -462,7 +462,7 @@ cdef int march_cubes(
 @cython.cdivision(True)
 def march_cubes_grid(np.float64_t isovalue,
                      np.ndarray[np.float64_t, ndim=3] values,
-                     np.ndarray[np.int32_t, ndim=3] mask,
+                     np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
                      np.ndarray[np.float64_t, ndim=1] left_edge,
                      np.ndarray[np.float64_t, ndim=1] dxs,
                      obj_sample = None, int sample_type = 1):
@@ -565,7 +565,7 @@ def march_cubes_grid_flux(
                      np.ndarray[np.float64_t, ndim=3] v2,
                      np.ndarray[np.float64_t, ndim=3] v3,
                      np.ndarray[np.float64_t, ndim=3] flux_field,
-                     np.ndarray[np.int32_t, ndim=3] mask,
+                     np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
                      np.ndarray[np.float64_t, ndim=1] left_edge,
                      np.ndarray[np.float64_t, ndim=1] dxs):
     cdef int dims[3]

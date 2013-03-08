@@ -535,18 +535,26 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     @property
     def icoords(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.icoords
 
     @property
     def fcoords(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.fcoords
 
     @property
     def ires(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.ires
 
     @property
     def fwidth(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.fwidth
 
 class YTSelectionContainer1D(YTSelectionContainer):
@@ -1165,7 +1173,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         sp1, ")"])
     """
     _type_name = "boolean"
-    _con_args = ("regions")
+    _con_args = ("regions",)
     def __init__(self, regions, fields = None, pf = None, **kwargs):
         # Center is meaningless, but we'll define it all the same.
         YTSelectionContainer3D.__init__(self, [0.5]*3, fields, pf, **kwargs)

@@ -144,7 +144,7 @@ class ParticleGenerator(object) :
                                 self.particles[start:end,field_index],
                                 np.int64(self.NumberOfParticles[i]),
                                 cube[gfield], le, dims,
-                                np.float64(grid['dx']))
+                                grid.dds[0])
         pbar.finish()
 
     def apply_to_stream(self, clobber=False) :

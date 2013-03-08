@@ -289,6 +289,11 @@ class AthenaHierarchy(GridGeometryHandler):
                      self.parameter_file.domain_right_edge)
         self.parameter_file.domain_dimensions = \
                 np.round(self.parameter_file.domain_width/gdds[0]).astype('int')
+
+        # Need to reset the units in the parameter file based on the correct
+        # domain left/right/dimensions.
+        self.parameter_file._set_units()
+
         if self.parameter_file.dimensionality <= 2 :
             self.parameter_file.domain_dimensions[2] = np.int(1)
         if self.parameter_file.dimensionality == 1 :

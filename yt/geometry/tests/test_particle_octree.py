@@ -15,6 +15,7 @@ def test_add_particles_random():
         np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
     for ndom in [1, 2, 4, 8]:
         octree = ParticleOctreeContainer((NDIM, NDIM, NDIM), DLE, DRE)
+        octree.n_ref = 32
         for dom in range(ndom):
             octree.add(pos[dom::ndom,:], dom)
         octree.finalize()

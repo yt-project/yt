@@ -55,7 +55,7 @@ from yt.utilities.physical_constants import \
      G, \
      rho_crit_now, \
      speed_of_light_cgs, \
-     km_per_cm
+     km_per_cm, keV_per_K
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -169,17 +169,24 @@ def _Pressure(field, data):
            data["Density"] * data["ThermalEnergy"]
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
+def _TempkeV(field, data):
+    return data["Temperature"] * keV_per_K
+add_field("TempkeV", function=_TempkeV, units=r"\rm{keV}",
+          display_name="Temperature")
+
 def _Entropy(field, data):
     if data.has_field_parameter("mu"):
         mw = mh*data.get_field_parameter("mu")
     else :
         mw = mh
+    try:
+        gammam1 = data.pf["Gamma"] - 1.0
+    except:
+        gammam1 = 5./3. - 1.0
     return kboltz * data["Temperature"] / \
-           ((data["Density"]/mw)**(data.pf["Gamma"] - 1.0))
+           ((data["Density"]/mw)**gammam1)
 add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
-
-
 
 ### spherical coordinates: r (radius)
 def _sph_r(field, data):
@@ -737,22 +744,28 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 
-def get_radius(positions, data):
-    c = data.get_field_parameter("center")
-    n_tup = tuple([1 for i in range(positions.ndim-1)])
-    center = np.tile(np.reshape(c, (positions.shape[0],)+n_tup),(1,)+positions.shape[1:])
-    periodicity = data.pf.periodicity
-    if any(periodicity):
-        period = data.pf.domain_right_edge - data.pf.domain_left_edge
-        return periodic_dist(positions, center, period, periodicity)
-    else:
-        return euclidean_dist(positions, center)
+def get_radius(data, field_prefix):
+    center = data.get_field_parameter("center")
+    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
+    radius = np.zeros(data[field_prefix+"x"].shape, dtype='float64')
+    r = radius.copy()
+    if any(data.pf.periodicity):
+        rdw = radius.copy()
+    for i, ax in enumerate('xyz'):
+        np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
+        if data.pf.periodicity[i] == True:
+            np.subtract(DW[i], r, rdw)
+            np.abs(r, r)
+            np.minimum(r, rdw, r)
+        np.power(r, 2.0, r)
+        np.add(radius, r, radius)
+    np.sqrt(radius, radius)
+    return radius
+
 def _ParticleRadius(field, data):
-    positions = np.array([data["particle_position_%s" % ax] for ax in 'xyz'])
-    return get_radius(positions, data)
+    return get_radius(data, "particle_position_")
 def _Radius(field, data):
-    positions = np.array([data['x'], data['y'], data['z']])
-    return get_radius(positions, data)
+    return get_radius(data, "")
 
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
