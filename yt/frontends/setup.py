@@ -17,6 +17,8 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("maestro")
     config.add_subpackage("nyx")
     config.add_subpackage("orion")
+    config.add_subpackage("artio")
+#    config.add_subpackage("artio2")
     config.add_subpackage("ramses")
     config.add_subpackage("sph")
     config.add_subpackage("stream")

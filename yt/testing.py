@@ -38,9 +38,9 @@ def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
         # Mask out NaNs
         a1[np.isnan(a1)] = 1.0
         a2[np.isnan(a2)] = 1.0
-    elif np.isnan(a1) and np.isnan(a2):
+    elif np.any(np.isnan(a1)) and np.any(np.isnan(a2)):
         return True
-    return assert_almost_equal(a1/a2, 1.0, decimals, err_msg=err_msg,
+    return assert_almost_equal(np.array(a1)/np.array(a2), 1.0, decimals, err_msg=err_msg,
                                verbose=verbose)
 
 def amrspace(extent, levels=7, cells=8):
@@ -173,7 +173,7 @@ def expand_keywords(keywords, full=False):
     keyword arguments and all of the values for these arguments that you
     want to test.
 
-    It will return a list of **kwargs dicts containing combinations of
+    It will return a list of kwargs dicts containing combinations of
     the various kwarg values you passed it.  These can then be passed
     to the appropriate function in nosetests. 
 
@@ -194,8 +194,8 @@ def expand_keywords(keywords, full=False):
     Returns
     -------
     array of dicts
-        An array of **kwargs dictionaries to be individually passed to
-        the appropriate function matching these kwargs.
+        An array of dictionaries to be individually passed to the appropriate
+        function matching these kwargs.
 
     Examples
     --------

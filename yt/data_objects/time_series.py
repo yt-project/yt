@@ -78,28 +78,28 @@ class TimeSeriesParametersContainer(object):
         raise AttributeError(attr)
 
 class TimeSeriesData(object):
+    r"""The TimeSeriesData object is a container of multiple datasets,
+    allowing easy iteration and computation on them.
+
+    TimeSeriesData objects are designed to provide easy ways to access,
+    analyze, parallelize and visualize multiple datasets sequentially.  This is
+    primarily expressed through iteration, but can also be constructed via
+    analysis tasks (see :ref:`time-series-analysis`).
+
+    The best method to construct TimeSeriesData objects is through 
+    :meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.
+
+
+    Examples
+    --------
+
+    >>> ts = TimeSeriesData.from_filenames(
+            "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+    >>> for pf in ts:
+    ...     SlicePlot(pf, "x", "Density").save()
+
+    """
     def __init__(self, outputs, parallel = True ,**kwargs):
-        r"""The TimeSeriesData object is a container of multiple datasets,
-        allowing easy iteration and computation on them.
-
-        TimeSeriesData objects are designed to provide easy ways to access,
-        analyze, parallelize and visualize multiple datasets sequentially.  This is
-        primarily expressed through iteration, but can also be constructed via
-        analysis tasks (see :ref:`time-series-analysis`).
-
-        The best method to construct TimeSeriesData objects is through 
-        :meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.
-
-
-        Examples
-        --------
-
-        >>> ts = TimeSeriesData.from_filenames(
-                "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
-        >>> for pf in ts:
-        ...     SlicePlot(pf, "x", "Density").save()
-
-        """
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
         self._pre_outputs = outputs[:]

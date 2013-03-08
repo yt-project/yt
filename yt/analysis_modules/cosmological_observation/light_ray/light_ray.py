@@ -40,66 +40,66 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
 class LightRay(CosmologySplice):
+    """
+    Create a LightRay object.  A light ray is much like a light cone,
+    in that it stacks together multiple datasets in order to extend a
+    redshift interval.  Unlike a light cone, which does randomly
+    oriented projections for each dataset, a light ray consists of
+    randomly oriented single rays.  The purpose of these is to create
+    synthetic QSO lines of sight.
+
+    Once the LightRay object is set up, use LightRay.make_light_ray to
+    begin making rays.  Different randomizations can be created with a
+    single object by providing different random seeds to make_light_ray.
+
+    Parameters
+    ----------
+    parameter_filename : string
+        The simulation parameter file.
+    simulation_type : string
+        The simulation type.
+    near_redshift : float
+        The near (lowest) redshift for the light ray.
+    far_redshift : float
+        The far (highest) redshift for the light ray.
+    use_minimum_datasets : bool
+        If True, the minimum number of datasets is used to connect the
+        initial and final redshift.  If false, the light ray solution
+        will contain as many entries as possible within the redshift
+        interval.
+        Default: True.
+    deltaz_min : float
+        Specifies the minimum :math:`\Delta z` between consecutive
+        datasets in the returned list.
+        Default: 0.0.
+    minimum_coherent_box_fraction : float
+        Used with use_minimum_datasets set to False, this parameter
+        specifies the fraction of the total box size to be traversed
+        before rerandomizing the projection axis and center.  This
+        was invented to allow light rays with thin slices to sample
+        coherent large scale structure, but in practice does not work
+        so well.  Try setting this parameter to 1 and see what happens.
+        Default: 0.0.
+    time_data : bool
+        Whether or not to include time outputs when gathering
+        datasets for time series.
+        Default: True.
+    redshift_data : bool
+        Whether or not to include redshift outputs when gathering
+        datasets for time series.
+        Default: True.
+    find_outputs : bool
+        Whether or not to search for parameter files in the current 
+        directory.
+        Default: False.
+
+    """
     def __init__(self, parameter_filename, simulation_type,
                  near_redshift, far_redshift,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
                  find_outputs=False):
-        """
-        Create a LightRay object.  A light ray is much like a light cone,
-        in that it stacks together multiple datasets in order to extend a
-        redshift interval.  Unlike a light cone, which does randomly
-        oriented projections for each dataset, a light ray consists of
-        randomly oriented single rays.  The purpose of these is to create
-        synthetic QSO lines of sight.
-
-        Once the LightRay object is set up, use LightRay.make_light_ray to
-        begin making rays.  Different randomizations can be created with a
-        single object by providing different random seeds to make_light_ray.
-
-        Parameters
-        ----------
-        parameter_filename : string
-            The simulation parameter file.
-        simulation_type : string
-            The simulation type.
-        near_redshift : float
-            The near (lowest) redshift for the light ray.
-        far_redshift : float
-            The far (highest) redshift for the light ray.
-        use_minimum_datasets : bool
-            If True, the minimum number of datasets is used to connect the
-            initial and final redshift.  If false, the light ray solution
-            will contain as many entries as possible within the redshift
-            interval.
-            Default: True.
-        deltaz_min : float
-            Specifies the minimum :math:`\Delta z` between consecutive
-            datasets in the returned list.
-            Default: 0.0.
-        minimum_coherent_box_fraction : float
-            Used with use_minimum_datasets set to False, this parameter
-            specifies the fraction of the total box size to be traversed
-            before rerandomizing the projection axis and center.  This
-            was invented to allow light rays with thin slices to sample
-            coherent large scale structure, but in practice does not work
-            so well.  Try setting this parameter to 1 and see what happens.
-            Default: 0.0.
-        time_data : bool
-            Whether or not to include time outputs when gathering
-            datasets for time series.
-            Default: True.
-        redshift_data : bool
-            Whether or not to include redshift outputs when gathering
-            datasets for time series.
-            Default: True.
-        find_outputs : bool
-            Whether or not to search for parameter files in the current 
-            directory.
-            Default: False.
-
-        """
 
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift
@@ -244,8 +244,9 @@ class LightRay(CosmologySplice):
             If True, use dynamic load balancing to create the projections.
             Default: False.
 
-        Getting the Nearest Galaxies
-        ----------------------------
+        Notes
+        -----
+
         The light ray tool will use the HaloProfiler to calculate the
         distance and mass of the nearest halo to that pixel.  In order
         to do this, a dictionary called halo_profiler_parameters is used
@@ -270,47 +271,43 @@ class LightRay(CosmologySplice):
         Examples
         --------
 
-        from yt.mods import *
-        from yt.analysis_modules.halo_profiler.api import *
-        from yt.analysis_modules.cosmological_analysis.light_ray.api import LightRay
-
-        halo_profiler_kwargs = {'halo_list_file': 'HopAnalysis.out'}
-
-        halo_profiler_actions = []
-        # Add a virial filter.
-        halo_profiler_actions.append({'function': add_halo_filter,
-                                      'args': VirialFilter,
-                                      'kwargs': {'overdensity_field': 'ActualOverdensity',
-                                                 'virial_overdensity': 200,
-                                                 'virial_filters': \
-                                                     [['TotalMassMsun','>=','1e14']],
-                                                 'virial_quantities': \
-                                                     ['TotalMassMsun','RadiusMpc']}})
-        # Make the profiles.
-        halo_profiler_actions.append({'function': make_profiles,
-                                      'args': None,
-                                      'kwargs': {'filename': 'VirializedHalos.out'}})
-
-        halo_list = 'filtered'
-
-        halo_profiler_parameters = dict(halo_profiler_kwargs=halo_profiler_kwargs,
-                                        halo_profiler_actions=halo_profiler_actions,
-                                        halo_list=halo_list)
-
-        my_ray = LightRay('simulation.par', 'Enzo', 0., 0.1,
-                          use_minimum_datasets=True,
-                          time_data=False)
-
-        my_ray.make_light_ray(seed=12345,
-                              solution_filename='solution.txt',
-                              data_filename='my_ray.h5',
-                              fields=['Temperature', 'Density'],
-                              get_nearest_halo=True,
-                              nearest_halo_fields=['TotalMassMsun_100',
-                                                   'RadiusMpc_100'],
-                              halo_profiler_parameters=halo_profiler_parameters,
-                              get_los_velocity=True)
-
+        >>> from yt.mods import *
+        >>> from yt.analysis_modules.halo_profiler.api import *
+        >>> from yt.analysis_modules.cosmological_analysis.light_ray.api import LightRay
+        >>> halo_profiler_kwargs = {'halo_list_file': 'HopAnalysis.out'}
+        >>> halo_profiler_actions = []
+        >>> # Add a virial filter.
+        >>> halo_profiler_actions.append({'function': add_halo_filter,
+        ...                           'args': VirialFilter,
+        ...                           'kwargs': {'overdensity_field': 'ActualOverdensity',
+        ...                                      'virial_overdensity': 200,
+        ...                                      'virial_filters': [['TotalMassMsun','>=','1e14']],
+        ...                                      'virial_quantities': ['TotalMassMsun','RadiusMpc']}})
+        ...
+        >>> # Make the profiles.
+        >>> halo_profiler_actions.append({'function': make_profiles,
+        ...                           'args': None,
+        ...                           'kwargs': {'filename': 'VirializedHalos.out'}})
+        ...
+        >>> halo_list = 'filtered'
+        >>> halo_profiler_parameters = dict(halo_profiler_kwargs=halo_profiler_kwargs,
+        ...                             halo_profiler_actions=halo_profiler_actions,
+        ...                             halo_list=halo_list)
+        ...
+        >>> my_ray = LightRay('simulation.par', 'Enzo', 0., 0.1,
+        ...                use_minimum_datasets=True,
+        ...                time_data=False)
+        ...
+        >>> my_ray.make_light_ray(seed=12345,
+        ...                   solution_filename='solution.txt',
+        ...                   data_filename='my_ray.h5',
+        ...                   fields=['Temperature', 'Density'],
+        ...                   get_nearest_halo=True,
+        ...                   nearest_halo_fields=['TotalMassMsun_100',
+        ...                                        'RadiusMpc_100'],
+        ...                   halo_profiler_parameters=halo_profiler_parameters,
+        ...                   get_los_velocity=True)
+        
         """
 
         if halo_profiler_parameters is None:

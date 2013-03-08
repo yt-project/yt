@@ -39,72 +39,6 @@ from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
 
 xray_data_version = 1
-    
-class SpectralFrequencyIntegrator(object):
-    def __init__(self, table, field_names,
-                 bounds, ev_bounds):
-        """
-        From a table, interpolate over field_names to get resultant luminosity.
-        Table must be of the style such that it is ordered by
-        ``[field_names[0], field_names[1], ev]``
-        """
-        self.table = table
-        self.field_names = field_names
-
-        self.bounds = bounds
-        self.ev_bounds = ev_bounds
-        self.ev_vals = np.logspace(ev_bounds[0], ev_bounds[1], table.shape[-1])
-        
-    def _get_interpolator(self, ev_min, ev_max):
-        """
-        Integrates from ev_min to ev_max and returns an interpolator.
-        """
-        e_is, e_ie = np.digitize([ev_min, ev_max], self.ev_vals)
-        bin_table = np.trapz(self.table[...,e_is-1:e_ie],
-                             2.41799e17*
-            (self.ev_vals[e_is:e_ie+1]-self.ev_vals[e_is-1:e_is]),
-                             axis=-1)
-        bin_table = np.log10(bin_table.clip(1e-80,bin_table.max()))
-        return BilinearFieldInterpolator(
-            bin_table, self.bounds, self.field_names[:],
-            truncate=True)
-
-
-
-    def add_frequency_bin_field(self, ev_min, ev_max):
-        """
-        Add a new field to the FieldInfoContainer, which is an
-        integrated bin from *ev_min* to *ev_max*.
-        
-        Returns the name of the new field.
-        """
-        interp = self._get_interpolator(ev_min, ev_max)
-        name = "XRay_%s_%s" % (ev_min, ev_max)
-        def frequency_bin_field(field, data):
-            dd = {'H_NumberDensity' : np.log10(data["H_NumberDensity"]),
-                  'Temperature'   : np.log10(data["Temperature"])}
-            return 10**interp(dd)
-        add_field(name, function=frequency_bin_field,
-                        projection_conversion="cm",
-                        units=r"\rm{ergs}\ \rm{cm}^{-3}\ \rm{s}^{-1}",
-                        projected_units=r"\rm{ergs}\ \rm{cm}^{-2}\ \rm{s}^{-1}")
-        return name
-
-def create_table_from_textfiles(pattern, rho_spec, e_spec, T_spec):
-    """
-    This accepts a CLOUDY text file of emissivities and constructs an
-    interpolation table for spectral integration.
-    """
-    rho_n_bins, rho_min, rho_max = rho_spec
-    e_n_bins, e_min, e_max = e_spec
-    T_n_bins, T_min, T_max = T_spec
-    # The second one is the fast-varying one
-    rho_is, e_is = np.mgrid[0:rho_n_bins,0:e_n_bins]
-    table = np.zeros((rho_n_bins, T_n_bins, e_n_bins), dtype='float64')
-    mylog.info("Parsing Cloudy files")
-    for i,ri,ei in zip(range(rho_n_bins*e_n_bins), rho_is.ravel(), e_is.ravel()):
-        table[ri,:,ei] = [float(l.split()[-1]) for l in open(pattern%(i+1)) if l[0] != "#"]
-    return table
 
 class EnergyBoundsException(YTException):
     def __init__(self, lower, upper):
@@ -123,20 +57,20 @@ class ObsoleteDataException(YTException):
 class EmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields with hdf5 data tables 
     from Cloudy.
+    
+    Initialize an EmissivityIntegrator object.
+
+    Parameters
+    ----------
+    filename: string, default None
+        Path to data file containing emissivity values.  If None,
+        a file called xray_emissivity.h5 is used.  This file contains 
+        emissivity tables for primordial elements and for metals at 
+        solar metallicity for the energy range 0.1 to 100 keV.
+        Default: None.
+        
     """
     def __init__(self, filename=None):
-        r"""Initialize an EmissivityIntegrator object.
-
-        Keyword Parameters
-        ------------------
-        filename: string
-            Path to data file containing emissivity values.  If None,
-            a file called xray_emissivity.h5 is used.  This file contains 
-            emissivity tables for primordial elements and for metals at 
-            solar metallicity for the energy range 0.1 to 100 keV.
-            Default: None.
-            
-        """
 
         default_filename = False
         if filename is None:
@@ -212,8 +146,8 @@ def add_xray_emissivity_field(e_min, e_max, filename=None,
     e_min: float
         the maximum energy in keV for the energy band.
 
-    Keyword Parameters
-    ------------------
+    Other Parameters
+    ----------------
     filename: string
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 
@@ -286,8 +220,8 @@ def add_xray_luminosity_field(e_min, e_max, filename=None,
     e_min: float
         the maximum energy in keV for the energy band.
 
-    Keyword Parameters
-    ------------------
+    Other Parameters
+    ----------------
     filename: string
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 
@@ -343,8 +277,8 @@ def add_xray_photon_emissivity_field(e_min, e_max, filename=None,
     e_min: float
         the maximum energy in keV for the energy band.
 
-    Keyword Parameters
-    ------------------
+    Other Parameters
+    ----------------
     filename: string
         Path to data file containing emissivity values.  If None,
         a file called xray_emissivity.h5 is used.  This file contains 

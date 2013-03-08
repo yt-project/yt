@@ -26,7 +26,7 @@ import os
 import tempfile
 import shutil
 from yt.testing import \
-    fake_random_pf, assert_equal
+    fake_random_pf, assert_equal, assert_rel_equal
 from yt.mods import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 
@@ -63,8 +63,48 @@ def assert_fname(fname):
 
     return image_type == os.path.splitext(fname)[1]
 
+def test_setwidth():
+    pf = fake_random_pf(64)
+    
+    slc = SlicePlot(pf, 0, 'Density')
 
-def test_plotwindow():
+    yield assert_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)]
+    
+    slc.set_width((0.5,0.8))
+
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)], 15
+
+    slc.set_width(15,'kpc')
+    
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (15/pf['kpc'], 15/pf['kpc'])], 15
+    
+    slc.set_width((15,'kpc'))
+
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (15/pf['kpc'], 15/pf['kpc'])], 15
+
+    slc.set_width(((15,'kpc'),(10,'kpc'))) 
+
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (-5/pf['kpc'], 5/pf['kpc']),
+         (15/pf['kpc'], 10/pf['kpc'])], 15
+
+    slc.set_width(((15,'kpc'),(10000,'pc')))
+
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (-5/pf['kpc'], 5/pf['kpc']),
+         (15/pf['kpc'], 10/pf['kpc'])], 15
+
+def test_save():
     """Main test suite for PlotWindow."""
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
