@@ -1103,7 +1103,7 @@ class ParticleCallback(PlotCallback):
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.pf.h.region(
+        self.region = data.pf.h.periodic_region(
             data.center, LE, RE)
         return self.region
 
