@@ -91,7 +91,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         allocate the requisite memory in the oct tree
         """
         nv = len(self.fluid_field_list)
-        self.domains = [ARTDomainFile(self.parameter_file,i+1,nv,l)
+        self.domains = [ARTDomainFile(self.parameter_file,l+1,nv,l)
                         for l in range(self.pf.max_level)]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)

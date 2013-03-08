@@ -204,13 +204,15 @@ class YTDataContainer(object):
         """
         Sets a field to be some other value.
         """
-        self.field_data[key] = val
+        f = self._determine_fields(key)[0]
+        self.field_data[f] = val
 
     def __delitem__(self, key):
         """
         Deletes a field
         """
-        del self.field_data[key]
+        f = self._determine_fields(key)[0]
+        del self.field_data[f]
 
     def _generate_field(self, field):
         ftype, fname = field
