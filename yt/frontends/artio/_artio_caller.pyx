@@ -65,6 +65,7 @@ cdef extern from "artio.h":
     int artio_selection_iterator( artio_selection *selection,
             int64_t max_range_size, int64_t *start, int64_t *end )
     int64_t artio_selection_size( artio_selection *selection )
+    void artio_selection_print( artio_selection *selection )
 
     # parameter functions
     int artio_parameter_iterate( artio_fileset_handle *handle, char *key, int *type, int *length )
@@ -503,7 +504,7 @@ cdef class artio_fileset :
         cdef int num_fields  = len(fields)
         field_order = <int*>malloc(sizeof(int)*num_fields)
 
-        #print "reading chunk ", sfc_start, sfc_end
+        #print "reading chunk ", sfc_start, sfc_end, sfc_end-sfc_start+1
 
         # translate fields from ARTIO names to indices
         var_labels = self.parameters['grid_variable_labels']
@@ -628,10 +629,13 @@ cdef class artio_fileset :
                         status = artio_selection_add_root_cell(selection, coords)
                         check_artio_status(status)
 
+        print "Selected", artio_selection_size(selection), "root cells"
+ 
         while artio_selection_iterator(selection, max_range_size, 
                 &sfc_start, &sfc_end) == ARTIO_SUCCESS :
             sfc_ranges.append([sfc_start, sfc_end])
 
+        print "in", len(sfc_ranges), "ranges"
         artio_selection_destroy(selection)
         return sfc_ranges
 

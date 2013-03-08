@@ -33,7 +33,7 @@ int artio_selection_iterator( artio_selection *selection,
 	*end = selection->list[2*selection->cursor+1];
 	if ( *end - *start > max_range_size ) {
 		*end = *start + max_range_size;
-		selection->subcycle = *start;
+		selection->subcycle = *end;
 	} else {
 		selection->subcycle = -1;
 		selection->cursor++;
