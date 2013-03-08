@@ -42,7 +42,8 @@ from .data_containers import \
 from .field_info_container import \
     NeedsOriginalGrid
 from yt.utilities.lib import \
-    QuadTree, ghost_zone_interpolate, fill_region
+    QuadTree, ghost_zone_interpolate, fill_region, \
+    march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -417,6 +418,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
 
+    @property
+    def shape(self):
+        return tuple(self.ActiveDimensions.tolist())
+
     def _setup_data_source(self):
         self._data_source = self.pf.h.region(
             self.center, self.left_edge, self.right_edge)
@@ -642,6 +647,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     """
     _type_name = "surface"
     _con_args = ("data_source", "surface_field", "field_value")
+    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
         ParallelAnalysisInterface.__init__(self)
@@ -652,6 +658,10 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         center = data_source.get_field_parameter("center")
         super(YTSurfaceBase, self).__init__(center = center, pf =
                     data_source.pf )
+
+    def _generate_container_field(self, field):
+        self.get_data(field)
+        return self[field]
 
     def get_data(self, fields = None, sample_type = "face"):
         if isinstance(fields, list) and len(fields) > 1:
@@ -683,7 +693,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             elif sample_type == "vertex":
                 self.vertex_samples[fields] = samples
         
-
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        mask, sample_values = None,
                                        sample_type = "face"):
@@ -753,19 +762,15 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
         """
         flux = 0.0
-        pb = get_pbar("Fluxing %s" % fluxing_field,
-                len(list(self._get_grid_objs())))
-        for i, g in enumerate(self._get_grid_objs()):
-            pb.update(i)
-            flux += self._calculate_flux_in_grid(g,
+        mylog.info("Fluxing %s", fluxing_field)
+        for block, mask in parallel_objects(self.data_source.blocks):
+            flux += self._calculate_flux_in_grid(block, mask,
                     field_x, field_y, field_z, fluxing_field)
-        pb.finish()
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
-    def _calculate_flux_in_grid(self, grid, 
+    def _calculate_flux_in_grid(self, grid, mask,
                     field_x, field_y, field_z, fluxing_field = None):
-        mask = self.data_source._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(self.surface_field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
