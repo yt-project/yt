@@ -32,10 +32,7 @@ import numpy as np
 from numpy import add, subtract, multiply, divide, \
     negative, absolute, sqrt, square, power, reciprocal
 
-from yt.utilities.units import Unit, dimensionless
-
-class UnitOperationError(Exception):
-    pass
+from yt.utilities.units import Unit, UnitOperationError, dimensionless
 
 def sqrt_unit(unit):
     return unit**0.5
@@ -115,45 +112,42 @@ class YTArray(np.ndarray):
         is compatible with this quantity. Returns Unit object.
 
         """
+        # let Unit() handle units arg if it's not already a Unit obj.
         if not isinstance(units, Unit):
             units = Unit(units)
 
         if not self.units.same_dimensions_as(units):
-            raise Exception("Cannot convert to units with different dimensionality. Current unit is %s, argument is %s" % (self.units.dimensions, units))
+            raise UnitOperationError("Unit dimensionalities do not match. Tried to convert between %s (dim %s) and %s (dim %s)." % (self.units, self.units.dimensions, units, units.dimensions))
 
         return units
 
-    def convert_to(self, units):
+    def convert_to_units(self, units):
         """
-        Convert the data and units to given unit. This overwrites the ``data``
-        and ``units`` attributes, making no copies, and returns None.
+        Convert the array and units to the given units.
 
         Parameters
         ----------
-        units : Unit object or string
-            The units you want the data in.
+        units : Unit object or str
+            The units you want to convert to.
 
         """
         new_units = self._unit_repr_check_same(units)
-        conversion_factor = get_conversion_factor(self.units, new_units)
-        self.data *= conversion_factor
-        self.units = new_units
+        conversion_factor = self.units.get_conversion_factor(new_units)
 
-        return self
+        self *= conversion_factor
+        self.units = new_units
 
     def convert_to_cgs(self):
         """
-        Convert the data and units to the equivalent cgs units. This overwrites
-        the ``data`` and ``units`` attributes, making no copies, and returns
-        None.
+        Convert the array and units to the equivalent cgs units.
 
         """
-        return self.convert_to(self.units.get_cgs_equivalent())
+        return self.convert_to_units(self.units.get_cgs_equivalent())
 
-    def get_in(self, units):
+    def in_units(self, units):
         """
-        Creates a new Quantity with the data in the supplied units, and returns
-        it. Does not modify this object.
+        Creates a copy of this array with the data in the supplied units, and
+        returns it.
 
         Parameters
         ----------
@@ -162,57 +156,28 @@ class YTArray(np.ndarray):
 
         Returns
         -------
-        Quantity object with converted data and supplied units.
+        YTArray
 
         """
         new_units = self._unit_repr_check_same(units)
-        conversion_factor = get_conversion_factor(self.units, new_units)
+        conversion_factor = self.units.get_conversion_factor(new_units)
 
-        return Quantity(self.data * conversion_factor, new_units)
+        new_array = self * conversion_factor
+        new_array.units = new_units
 
-    def get_in_cgs(self):
+        return new_array
+
+    def in_cgs(self):
         """
-        Creates a new Quantity with the data in the equivalent cgs units, and
-        returns it. Does not modify this object.
+        Creates a copy of this array with the data in the equivalent cgs units,
+        and returns it.
 
         Returns
         -------
         Quantity object with data converted to cgs and cgs units.
 
         """
-        return self.get_in(self.units.get_cgs_equivalent())
-
-    def get_data_in(self, units):
-        """
-        Returns the data, converted to the supplied units.
-
-        Parameters
-        ----------
-        units : Unit object or string
-            The units you want the data in.
-
-        Returns
-        -------
-        ``data`` attribute, multiplied by the conversion factor to the supplied
-        units.
-
-        """
-        new_units = self._unit_repr_check_same(units)
-
-        # don't operate on data if given the same units
-        if self.units == new_units:
-            return self.data
-
-        conversion_factor = get_conversion_factor(self.units, new_units)
-
-        return self.data * conversion_factor
-
-    def get_data_in_cgs(self):
-        """
-        Returns the data, multiplied by the conversion factor to cgs.
-
-        """
-        return self.get_data_in(self.units.get_cgs_equivalent())
+        return self.in_units(self.units.get_cgs_equivalent())
 
     #
     # End unit conversion methods
@@ -228,85 +193,83 @@ class YTArray(np.ndarray):
         check for the correct (same dimension) units.
 
         """
+        # Make sure the other object is a YTArray before we use the `units`
+        # attribute.
         if isinstance(right_object, YTArray):
-            # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(right_object.units):
-                raise UnitOperationError("You cannot add these quantities because "
-                                         "their dimensions do not match. "
-                                         "`%s + %s` is ill-defined" % (self.units, right_object.units))
+                raise UnitOperationError("You cannot add these YTArrays "
+                    "because the unit dimensions do not match. `%s + %s` is "
+                    "ill-defined." % (self.units, right_object.units))
+        # If the other object is not a YTArray, the only valid case is adding
+        # dimensionless things.
         else:
-            # case of dimensionless self + float
-            # the only way this works is with a float so...
             if not self.units.is_dimensionless:
-                raise Exception("You cannot add a pure number to a "
-                                "dimensional quantity. `%s + %s` is ill-defined." % (self, right_object))
+                raise UnitOperationError("You cannot add a pure number to a "
+                    "dimensional YTArray. `%s + %s` is ill-defined."
+                    % (self, right_object))
 
-        # `get_data_in` will not apply the conversion if the units are the same
         return YTArray(super(YTArray, self).__add__(right_object))
 
     def __radd__(self, left_object):
-        """
-        Add this ytarray to the object on the left of the `+` operator. Must
-        check for the correct (same dimension) units.
-
-        """
+        """ See __add__. """
         if isinstance(left_object, YTArray):
-            # make sure it's a quantity before we check units attribute
             if not self.units.same_dimensions_as(left_object.units):
-                raise Exception("You cannot add these quantities because their dimensions do not match. `%s + %s` is ill-defined" % (left_object.units, self.units))
-        else:  # the only way this works is with a float so...
-            # case of dimensionless float + self
+                raise UnitOperationError("You cannot add these YTArrays "
+                    "because the unit dimensions do not match. `%s + %s` is "
+                    "ill-defined." % (left_object.units, self.units))
+        else:
             if not self.units.is_dimensionless:
-                raise Exception("You cannot add a pure number to a dimensional quantity. `%s + %s` is ill-defined." % (left_object, self))
+                raise UnitOperationError("You cannot add a pure number to a "
+                    "dimensional YTArray. `%s + %s` is ill-defined."
+                    % (left_object, self))
 
-        # `get_data_in` will not apply the conversion if the units are the same
         return YTArray(super(YTArray, self).__radd__(left_object))
 
     def __iadd__(self, other):
-        self = self + other
-        return self
+        """ See __add__. """
+        return np.add(self, other, out=self)
 
     def __sub__(self, right_object):
         """
-        Subtract the object on the right of the `-` from this quantity. Must
-        check for the correct (same dimension) units. If the quantities have
-        different units, we always use the units on the left.
+        Subtract the object on the right of the `-` from this ytarray. Must
+        check for the correct (same dimension) units.
 
         """
-        if isinstance(right_object, YTArray):  # make sure it's a quantity before we check units attribute
+        # Make sure the other object is a YTArray before we use the `units`
+        # attribute.
+        if isinstance(right_object, YTArray):
             if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("You cannot add these quantities because their dimensions do not match. `%s - %s` is ill-defined" % (self.units, right_object.units))
+                raise UnitOperationError("You cannot subtract these YTArrays "
+                    "because the unit dimensions do not match. `%s + %s` is "
+                    "ill-defined." % (self.units, right_object.units))
+        # If the other object is not a YTArray, the only valid case is adding
+        # dimensionless things.
         else:
-            # case of dimensionless self + float
-            # the only way this works is with a float so...
             if not self.units.is_dimensionless:
-                raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (self, right_object))
+                raise UnitOperationError("You cannot subtract a pure number "
+                    "from a dimensional YTArray. `%s + %s` is ill-defined."
+                    % (self, right_object))
 
-        # `get_data_in` will not apply the conversion if the units are the same
         return YTArray(super(YTArray, self).__sub__(right_object))
-        
+
     def __rsub__(self, left_object):
-        """
-        Subtract this quantity from the object on the left of the `-` operator.
-        Must check for the correct (same dimension) units. If the quantities
-        have different units, we always use the units on the left.
-
-        """
-        if isinstance(left_object, Quantity):  # make sure it's a quantity before we check units attribute
+        """ See __sub__. """
+        if isinstance(left_object, YTArray):
             if not self.units.same_dimensions_as(left_object.units):
-                raise Exception("You cannot add these quantities because their dimensions do not match. `%s - %s` is ill-defined" % (left_object.units, self.units))
+                raise UnitOperationError("You cannot subtract these YTArrays "
+                    "because the unit dimensions do not match. `%s - %s` is "
+                    "ill-defined." % (left_object.units, self.units))
         else:
-            # case of dimensionless self + float
-            # the only way this works is with a float so...
             if not self.units.is_dimensionless:
-                raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (left_object, self))
+                raise UnitOperationError("You cannot subtract a dimensional "
+                    "from a pure number. `%s - %s` is ill-defined."
+                    % (left_object, self))
 
-        # `get_data_in` will not apply the conversion if the units are the same
         return YTArray(super(YTArray, self).__rsub__(left_object))
 
     def __isub__(self, other):
-        self = self - other
-        return self
+        """ See __sub__. """
+        return np.subtract(self, other, out=self)
 
     def __neg__(self):
         """ Negate the data. """
@@ -314,181 +277,165 @@ class YTArray(np.ndarray):
 
     def __mul__(self, right_object):
         """
-        Multiply this quantity by the object on the right of the `*` operator.
-        The unit objects handle being multiplied by each other.
+        Multiply this YTArray by the object on the right of the `*` operator.
+        The unit objects handle being multiplied.
 
         """
-        if isinstance(right_object, YTArray):
-            return YTArray(super(YTArray, self).__mul__(right_object))
-
-        # `right_object` is not a Quantity object, so try to use it as
-        # dimensionless data.
         return YTArray(super(YTArray, self).__mul__(right_object))
 
     def __rmul__(self, left_object):
-        """
-        Multiply this quantity by the object on the left of the `*` operator.
-        The unit objects handle being multiplied by each other.
-
-        """
-        if isinstance(left_object, YTArray):
-            return YTArray(super(YTArray, self).__rmul__(left_object))
-
-        # `left_object` is not a Quantity object, so try to use it as
-        # dimensionless data.
+        """ See __mul__. """
         return YTArray(super(YTArray, self).__rmul__(left_object))
 
     def __imul__(self, other):
-        self = self * other
-        return self
+        """ See __mul__. """
+        return np.multiply(self, other, out=self)
 
     def __div__(self, right_object):
         """
-        Divide this quantity by the object on the right of the `/` operator. The
-        unit objects handle being divided by each other.
+        Divide this YTArray by the object on the right of the `/` operator.
 
         """
-        if isinstance(right_object, YTArray):
-            return YTArray(super(YTArray, self).__div__(right_object))
-
-        # `right_object` is not a  object, so try to use it as
-        # dimensionless data.
         return YTArray(super(YTArray, self).__div__(right_object))
 
     def __rdiv__(self, left_object):
-        """
-        Divide the object on the left of the `/` operator by this quantity. The
-        unit objects handle being divided by each other.
-
-        """
-        if isinstance(left_object, YTArray):
-            return YTArray(super(YTArray, self).__rdiv__(left_object))
-
-        # `left_object` is not a Quantity object, so try to use it as
-        # dimensionless data.
+        """ See __div__. """
         return YTArray(super(YTArray, self).__rdiv__(left_object))
 
     def __idiv__(self, other):
-        self = self / other
-        return self
+        """ See __div__. """
+        return np.divide(self, other, out=self)
 
     def __pow__(self, power):
         """
-        Raise this quantity to some power.
+        Raise this YTArray to some power.
 
         Parameters
         ----------
-        power : float or dimensionless Quantity object
+        power : float or dimensionless YTArray.
             The pow value.
 
         """
         if isinstance(power, YTArray):
             if not power.units.is_dimensionless:
-                raise Exception("The power argument must be dimensionless. (%s)**(%s) is ill-defined." % (self, power))
+                raise UnitOperationError("The power argument must be "
+                    "dimensionless. (%s)**(%s) is ill-defined." % (self, power))
 
         return YTArray(super(YTArray, self).__pow__(power))
 
     def __abs__(self):
-        """ Return a Quantity with the abs of the data. """
+        """ Return a YTArray with the abs of the data. """
         return YTArray(super(YTArray, self).__abs__())
-                 
+
     def sqrt(self):
         """
-        Return sqrt of this Quantity. This is just a wrapper of Quantity.__pow__
-        for numpy.sqrt.
+        Return sqrt of this YTArray. We take the sqrt for the array and use
+        take the 1/2 power of the units.
 
         """
-        return YTArray(super(YTArray, self).sqrt(), input_units = self.units**0.5)
+        return YTArray(super(YTArray, self).sqrt(),
+                       input_units=self.units**0.5)
 
     def exp(self):
         """
-        Return exp of this Quantity. Ensures that Quantity is dimensionless,
-        like __pow__.
+        Return exp of this YTArray. Checks that the YTArray is dimensionless.
 
         """
         if not self.units.is_dimensionless:
-            raise Exception("The argument of an exponential must be dimensionless. exp(%s) is ill-defined." % self)
+            raise UnitOperationError("The argument of an exponential must be "
+                "dimensionless. exp(%s) is ill-defined." % self)
 
-        return exp(self.data)
+        return YTArray(super(YTArray, self).exp())
 
-    ### comparison operators
+    #
+    # Start comparison operators.
+    #
+
     # @todo: outsource to a single method with an op argument.
-    def __lt__(self, right_object):
+    def __lt__(self, other):
         """ Test if this is less than the object on the right. """
-        # Check that the other is a YTArray.
-        if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("The less than operator for quantities "
-                                "with units %s and %s is not well defined." 
-                                % (self.units, right_object.units))
+        # Check that other is a YTArray.
+        if isinstance(other, YTArray):
+            if not self.units.same_dimensions_as(other.units):
+                raise UnitOperationError("The less than operator for "
+                    "YTArrays with units %s and %s is not well defined."
+                    % (self.units, other.units))
 
-            return super(YTArray, self).__lt__(right_object.get_data_in(self.units))
-        return super(YTArray, self).__lt__(right_object)
+            return super(YTArray, self).__lt__(other.in_units(self.units))
 
-    def __le__(self, right_object):
+        return super(YTArray, self).__lt__(other)
+
+    def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
-        # Check that the other is a YTArray.
-        if isinstance(right_object, Quantity):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("The less than or equal operator for quantities "
-                                "with units %s and %s is not well defined." 
-                                % (self.units, right_object.units))
+        # Check that other is a YTArray.
+        if isinstance(other, YTArray):
+            if not self.units.same_dimensions_as(other.units):
+                raise UnitOperationError("The less than or equal operator for "
+                    "YTArrays with units %s and %s is not well defined."
+                    % (self.units, other.units))
 
-            return super(YTArray, self).__le__(right_object.get_data_in(self.units))
-        return super(YTArray, self).__lt__(right_object)
+            return super(YTArray, self).__le__(right_object.in_units(self.units))
 
-    def __eq__(self, right_object):
+        return super(YTArray, self).__le__(right_object)
+
+    def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
-        # Check that the other is a YTArray.
-        if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("The equality operator for quantities with units" 
-                                "%s and %s is not well defined." 
-                                % (self.units, right_object.units))
+        # Check that other is a YTArray.
+        if isinstance(other, YTArray):
+            if not self.units.same_dimensions_as(other.units):
+                raise UnitOperationError("The equal operator for "
+                    "YTArrays with units %s and %s is not well defined."
+                    % (self.units, other.units))
 
-            return super(YTArray, self).__eq__(right_object.get_data_in(self.units))
-        return super(YTArray, self).__eq__(right_object)
+            return super(YTArray, self).__eq__(other.in_units(self.units))
 
-    def __ne__(self, right_object):
+        return super(YTArray, self).__eq__(other)
+
+    def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
         # Check that the other is a YTArray.
-        if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("The not equal operator for quantities "
-                                "with units %s and %s is not well defined." 
-                                % (self.units, right_object.units))
-            
-            return super(YTArray, self).__ne__(right_object.get_data_in(self.units))
-        return super(YTArray, self).__ne__(right_object)
+        if isinstance(other, YTArray):
+            if not self.units.same_dimensions_as(other.units):
+                raise Exception("The not equal operator for "
+                    "YTArrays with units %s and %s is not well defined."
+                    % (self.units, other.units))
 
-    def __ge__(self, right_object):
-        """
-        Test if this is greater than or equal to the object on the right.
+            return super(YTArray, self).__ne__(other.in_units(self.units))
 
-        """
+        return super(YTArray, self).__ne__(other)
+
+    def __ge__(self, other):
+        """ Test if this is greater than or equal to other. """
         # Check that the other is a YTArray.
         if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("The greater than or equal operator for quantities "
-                                "with units %s and %s is not well defined." 
-                                % (self.units, right_object.units))
+            if not self.units.same_dimensions_as(other.units):
+                raise Exception("The greater than or equal operator for "
+                    "YTArrays with units %s and %s is not well defined."
+                    % (self.units, other.units))
 
-            return super(YTArray, self).__ge__(right_object.get_data_in(self.units))
-        return super(YTArray, self).__ge__(right_objects)
+            return super(YTArray, self).__ge__(other.in_units(self.units))
 
-    def __gt__(self, right_object):
+        return super(YTArray, self).__ge__(other)
+
+    def __gt__(self, other):
         """ Test if this is greater than the object on the right. """
         # Check that the other is a YTArray.
         if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise Exception("The greater than operator for quantities "
-                                "with units %s and %s is not well defined." 
-                                % (self.units, right_object.units))
+            if not self.units.same_dimensions_as(other.units):
+                raise Exception("The greater than operator for "
+                    "YTArrays with units %s and %s is not well defined."
+                    % (self.units, other.units))
 
-            return super(YTArray, self).__gt__(right_object.get_data_in(self.units))
+            return super(YTArray, self).__gt__(other.in_units(self.units))
+
         return super(YTArray, self).__gt__(right_object)
 
+    #
+    # End comparison operators
+    #
+
     def __array_wrap__(self, out_arr, context=None):
+
         if context is None:
             pass
         elif len(context[1]) == 1:
@@ -510,4 +457,5 @@ class YTArray(np.ndarray):
             out_arr.units = self._ufunc_registry[context[0]](unit1, unit2)
         else:
             raise RuntimeError("Only unary and binary operators are allowed.")
+
         return out_arr
