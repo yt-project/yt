@@ -57,6 +57,7 @@ class IOHandlerARTIO(BaseIOHandler):
         accessed_species = ['STAR']
         #
 	print 'io.py particle fields ',fields
+        sys.exit(1)
         cp = 0
         tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         for onechunk in chunks:
