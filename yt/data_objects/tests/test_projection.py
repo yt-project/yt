@@ -19,19 +19,19 @@ def test_projection():
         xi, yi, zi = pf.domain_left_edge + 1.0/(pf.domain_dimensions * 2)
         xf, yf, zf = pf.domain_right_edge - 1.0/(pf.domain_dimensions * 2)
         dd = pf.h.all_data()
-        rho_tot = dd.quantities["TotalQuantity"]("Density")[0]
+        rho_tot = dd.quantities["TotalQuantity"]("density")[0]
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]
         uc = [np.unique(c) for c in coords]
         # Some simple projection tests with single grids
         for ax, an in enumerate("xyz"):
             xax = x_dict[ax]
             yax = y_dict[ax]
-            for wf in ["Density", None]:
+            for wf in ["density", None]:
                 fns = []
-                proj = pf.h.proj(["Ones", "Density"], ax, weight_field = wf)
-                yield assert_equal, proj["Ones"].sum(), proj["Ones"].size
-                yield assert_equal, proj["Ones"].min(), 1.0
-                yield assert_equal, proj["Ones"].max(), 1.0
+                proj = pf.h.proj(["ones", "density"], ax, weight_field = wf)
+                yield assert_equal, proj["ones"].sum(), proj["ones"].size
+                yield assert_equal, proj["ones"].min(), 1.0
+                yield assert_equal, proj["ones"].max(), 1.0
                 yield assert_equal, np.unique(proj["px"]), uc[xax]
                 yield assert_equal, np.unique(proj["py"]), uc[yax]
                 yield assert_equal, np.unique(proj["pdx"]), 1.0/(dims[xax]*2.0)
@@ -39,7 +39,7 @@ def test_projection():
                 pw = proj.to_pw()
                 fns += pw.save()
                 frb = proj.to_frb((1.0,'unitary'), 64)
-                for proj_field in ['Ones', 'Density']:
+                for proj_field in ['ones', 'density']:
                     yield assert_equal, frb[proj_field].info['data_source'], \
                             proj.__str__()
                     yield assert_equal, frb[proj_field].info['axis'], \
@@ -61,8 +61,8 @@ def test_projection():
                 teardown_func(fns)
             # wf == None
             yield assert_equal, wf, None
-            v1 = proj["Density"].sum()
-            v2 = (dd["Density"] * dd["d%s" % an]).sum()
+            v1 = proj["density"].sum()
+            v2 = (dd["density"] * dd["d%s" % an]).sum()
             yield assert_rel_equal, v1, v2, 10
 
 
