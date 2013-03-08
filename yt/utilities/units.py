@@ -115,6 +115,7 @@ default_unit_symbol_lut = {
 
     # Solar units
     "Msun": (1.98892e33, mass),
+    "msun": (1.98892e33, mass),
     "Rsun": (6.96e10, length),
     "Lsun": (3.9e33, power),
     "Tsun": (5870.0, temperature),
@@ -125,14 +126,16 @@ default_unit_symbol_lut = {
     "ly": (9.46053e17, length),
     "pc": (3.08568e18, length),
 
+    # electric stuff
+    "gauss": (1.0, magnetic_field),
+
     # other astro
     "H_0": (2.3e-18, rate),  # check cf
 
-    # other energy units
+    # misc
     "eV": (1.6021766e-12, energy),
+    "amu": (1.6605402e-24, mass),
 
-    # electric stuff
-    "gauss": (1.0, magnetic_field),
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
