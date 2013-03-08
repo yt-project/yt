@@ -49,13 +49,16 @@ def preserve_unit(unit1, unit2):
 def power_unit(unit, power):
     return unit**power
 
+def divide_units(unit1, unit2):
+    return unit1/unit2
+
 class YTArray(np.ndarray):
     """
 
     """
     _ufunc_registry = {sqrt: sqrt_unit, multiply: multiply_units,
                        add: preserve_unit, subtract: preserve_unit,
-                       power: power_unit}
+                       power: power_unit, divide: divide_units}
 
     def __new__(cls, input_array, input_units=None):
         if isinstance(input_array, YTArray):
@@ -257,6 +260,10 @@ class YTArray(np.ndarray):
         # `get_data_in` will not apply the conversion if the units are the same
         return YTArray(super(YTArray, self).__radd__(left_object))
 
+    def __iadd__(self, other):
+        self = self + other
+        return self
+
     def __sub__(self, right_object):
         """
         Subtract the object on the right of the `-` from this quantity. Must
@@ -296,6 +303,10 @@ class YTArray(np.ndarray):
         # `get_data_in` will not apply the conversion if the units are the same
         return YTArray(super(YTArray, self).__rsub__(left_object))
 
+    def __isub__(self, other):
+        self = self - other
+        return self
+
     def __neg__(self):
         """ Negate the data. """
         return YTArray(super(YTArray, self).__neg__(self))
@@ -326,6 +337,10 @@ class YTArray(np.ndarray):
         # dimensionless data.
         return YTArray(super(YTArray, self).__rmul__(left_object))
 
+    def __imul__(self, other):
+        self = self * other
+        return self
+
     def __div__(self, right_object):
         """
         Divide this quantity by the object on the right of the `/` operator. The
@@ -351,6 +366,10 @@ class YTArray(np.ndarray):
         # `left_object` is not a Quantity object, so try to use it as
         # dimensionless data.
         return YTArray(super(YTArray, self).__rdiv__(left_object))
+
+    def __idiv__(self, other):
+        self = self / other
+        return self
 
     def __pow__(self, power):
         """
@@ -479,14 +498,14 @@ class YTArray(np.ndarray):
             try:
                 unit1 = context[1][0].units
             except AttributeError:
-                unit1 = dimensionless
+                unit1 = Unit()
             try:
                 unit2 = context[1][1].units
             except AttributeError:
                 if context[0] is power:
                     unit2 = context[1][1]
                 else:
-                    unit2 = dimensionless
+                    unit2 = Unit()
             out_arr.units = self._ufunc_registry[context[0]](unit1, unit2)
         else:
             raise RuntimeError("Only unary and binary operators are allowed.")

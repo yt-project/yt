@@ -173,7 +173,7 @@ add_enzo_field("Gas_Energy", function=NullFunc,
           units="erg / g", convert_function=_convertEnergy)
 
 def _Gas_Energy(field, data):
-    return data["GasEnergy"] / _convertEnergy(data)
+    return data["GasEnergy"]
 add_field("gas_energy", function=_Gas_Energy,
           units="erg / g", convert_function=_convertEnergy)
 
@@ -186,10 +186,13 @@ add_enzo_field("Total_Energy", function=NullFunc,
           display_name = "$\rm{Total}\/\rm{Energy}$",
           units="erg / g", convert_function=_convertEnergy)
 
-add_field("TotalEnergy", function=_TotalEnergy,
+def _Total_Energy(field, data):
+    return data['TotalEnergy']
+
+add_field("TotalEnergy", function=_Total_Energy,
           display_name = "$\rm{Total}\/\rm{Energy}$",
           units="erg / g", convert_function=_convertEnergy)
-add_field("total_energy", function=_TotalEnergy,
+add_field("total_energy", function=_Total_Energy,
           display_name = "$\rm{Total}\/\rm{Energy}$",
           units="erg / g", convert_function=_convertEnergy)
 
@@ -318,10 +321,12 @@ for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
     KnownEnzoFields[field]._convert_function=_convertDensity
 
 def _Density(field, data):
-    return data['Density']
+    return data["Density"]
 
-add_field("density", function=_Density, convert_function=_convertDensity
-          validators=[ValidateDataField("Density")], display_name="Density")
+add_field("density", function=_Density, validators=ValidateDataField(["Density"]),
+          units="g / cm**3")
+
+EnzoFieldInfo["density"]._units = "g / cm**3"
 
 add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
