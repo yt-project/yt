@@ -373,6 +373,8 @@ class DerivedField(object):
         else:
             raise FieldUnitsError("Cannot handle units '%s' (type %s). Please provide a string or Unit object." % (units, type(units)) )
 
+        self._units = self.units
+
         if projected_units is None:
             self.projected_units = ""
         elif isinstance(projected_units, str):

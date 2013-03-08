@@ -35,6 +35,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.utilities.units import Unit, UnitRegistry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.minimal_representation import \
@@ -103,7 +104,7 @@ class StaticOutput(object):
 
         self._parse_parameter_file()
         self._setup_coordinate_handler()
-        self._set_units()
+        self.set_units()
         self._set_derived_attrs()
 
         # Because we need an instantiated class to check the pf's existence in
@@ -271,6 +272,8 @@ class StaticOutput(object):
            and getattr(self, "cosmological_simulation"):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.add("h", pf.hubble_constant, dimensionless)
+
+        self._set_units()
 
     def get_unit_from_registry(self, unit_str):
         """
