@@ -260,8 +260,34 @@ class StaticOutput(object):
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
+    def set_units(self):
+        """
+        Creates the unit registry for this dataset.
+
+        """
+        self.unit_registry = UnitRegistry()
+
+        if hasattr(self, "cosmological_simulation") \
+           and getattr(self, "cosmological_simulation"):
+            # this dataset is cosmological, so add cosmological units.
+            self.unit_registry.add("h", pf.hubble_constant, dimensionless)
+
+    def get_unit_from_registry(self, unit_str):
+        """
+        Creates a unit object matching the string expression, using this
+        dataset's unit registry.
+
+        Parameters
+        ----------
+        unit_str : str
+            string that we can parse for a sympy Expr.
+
+        """
+        new_unit = Unit(unit_str, registry=self.unit_registry)
+        return new_unit
+
+
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
     return pf
-
