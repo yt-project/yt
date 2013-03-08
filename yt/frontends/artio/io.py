@@ -39,15 +39,13 @@ class IOHandlerARTIO(BaseIOHandler):
         tr = dict((ftuple, np.empty(size, dtype='float64')) for ftuple in fields)
         cp = 0
         for onechunk in chunks:
-            for subset in onechunk.objs:
-                print 'reading from ',fields, subset.domain.grid_fn
-                rv = subset.fill(fields) 
-                for fieldtype, fieldname in fields:
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
-                        fieldname, subset.masked_cell_count, rv[fieldname].min(), 
-                        rv[fieldname].max(), cp, cp+subset.masked_cell_count)
-                    tr[(fieldtype, fieldname)][cp:cp+subset.masked_cell_count] = rv.pop(fieldname)
-                cp += subset.masked_cell_count
+            (rv,onechunk.selected_cell_count) = onechunk.fill(fields)  #change return
+            for fieldtype, fieldname in fields:
+                mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                            fieldname, onechunk.selected_cell_count, rv[fieldname].min(), 
+                            rv[fieldname].max(), cp, cp+onechunk.selected_cell_count)
+                tr[(fieldtype, fieldname)][cp:cp+onechunk.selected_cell_count] = rv.pop(fieldname)
+            cp += onechunk.selected_cell_count
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
@@ -63,21 +61,19 @@ class IOHandlerARTIO(BaseIOHandler):
         cp = 0
         tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         for onechunk in chunks:
-            for subset in onechunk.objs:
-                print 'reading values from', subset.domain.part_fn
-                rv = subset.fill_particles( accessed_species, selector, fields)
-                #get size and ensure that all fields have the same size (np)
-                subset_size = 0 
-                for fieldtype, fieldname in fields:
-                    if subset_size != 0 and subset_size != len(rv[fieldname]) :
-                        print 'size varies between fields! exiting'
-                        sys.exit(1)
-                    subset_size = len(rv[fieldname])
-                cp_newsize = cp+subset_size
-                for fieldtype, fieldname in fields:
-                    tr[(fieldtype,fieldname)].resize(cp_newsize) 
-                    tr[(fieldtype,fieldname)][cp:cp_newsize] = rv.pop(fieldname)
-		cp = cp_newsize
+            rv = onechunk.fill_particles( accessed_species, selector, fields)
+            #get size and ensure that all fields have the same size (np)
+            onechunk_size = 0 
+            for fieldtype, fieldname in fields:
+                if onechunk_size != 0 and onechunk_size != len(rv[fieldname]) :
+                    print 'size varies between fields! exiting'
+                    sys.exit(1)
+                onechunk_size = len(rv[fieldname])
+            cp_newsize = cp+onechunk_size
+            for fieldtype, fieldname in fields:
+                tr[(fieldtype,fieldname)].resize(cp_newsize) 
+                tr[(fieldtype,fieldname)][cp:cp_newsize] = rv.pop(fieldname)
+            cp = cp_newsize
         return tr
 
 #stolen from frontends/art/
