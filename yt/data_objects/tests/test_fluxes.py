@@ -9,7 +9,7 @@ def test_flux_calculation():
     dd = pf.h.all_data()
     surf = pf.h.surface(dd, "x", 0.51)
     yield assert_equal, surf["x"], 0.51
-    flux = surf.calculate_flux("Ones", "Zeros", "Zeros", "Ones")
+    flux = surf.calculate_flux("ones", "Zeros", "Zeros", "ones")
     yield assert_almost_equal, flux, 1.0, 12
 
 def test_sampling():

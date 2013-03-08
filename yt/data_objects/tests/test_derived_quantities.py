@@ -28,7 +28,7 @@ def test_average():
         pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density",))
         ad = pf.h.all_data()
         
-        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "Ones")
+        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "ones")
         yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
 
         my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "CellMass")
@@ -40,7 +40,7 @@ def test_variance():
         pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density", ))
         ad = pf.h.all_data()
         
-        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "Ones")
+        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "ones")
         yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
         yield assert_rel_equal, my_std, ad["Density"].std(), 12
 
