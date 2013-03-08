@@ -35,15 +35,12 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion 
 from .fields import ARTIOFieldInfo, KnownARTIOFields
 from .definitions import codetime_fields
-#######
 
-###############################
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
-############################
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -59,13 +56,6 @@ class ARTIOChunk(object) :
         self.selector = selector
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
-
-    _icoords = None
-    def icoords(self, dobj):
-        if self._icords is None :
-            print "Error: ARTIOChunk.icoords called before fill"
-            raise RuntimeError
-        return self._icoords
 
     _fcoords = None
     def fcoords(self, dobj):
@@ -88,7 +78,7 @@ class ARTIOChunk(object) :
         raise NotImplementedError
 
     def icoords(self, dobj):
-        if self._icoords is None :
+        if self._fcoords is None :
             print "Error: ARTIOChunk.icoords called before fill"
             raise RuntimeError
         raise NotImplementedError
@@ -125,7 +115,7 @@ class ARTIOChunk(object) :
             tr[fieldname] = masked_particles[yt_to_art[fieldname]]
         return tr
 
-class ARTIOGeometryHandler(OctreeGeometryHandler):
+class ARTIOGeometryHandler(GeometryHandler):
 
     def __init__(self, pf, data_style='artio'):
         self.data_style = data_style
@@ -139,25 +129,40 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         self.float_type = np.float64
         super(ARTIOGeometryHandler, self).__init__(pf, data_style)
 
-    def _initialize_oct_handler(self):
-        #domains are the class object ... ncpu == 1 currently 
-        #only one file/"domain" for ART
-        print "Initializing oct container"
-        self.domains = [ARTIODomainFile(self.parameter_file, i + 1)
-                        for i in range(self.parameter_file['ncpu'])]
-        # this allocates space for the oct tree note that 
-        # nn is number of root-level OCTS. These don't exist in memory. 
-        print 'domain_left_edge, domain_right_edge', self.parameter_file.domain_left_edge, self.parameter_file.domain_right_edge
-            
-        self.oct_handler = ARTIOOctreeContainer(
-            self.parameter_file.domain_dimensions/2, 
-            self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge) 
-        mylog.debug("Allocating octs")
-        self.oct_handler.allocate_domains(
-            [dom.local_oct_count for dom in self.domains])
-        for dom in self.domains:
-            dom._read_grid(self.oct_handler)
+    def _setup_geometry(self):
+        mylog.debug("Initializing Geometry Handler empty for now.")
+
+    def get_smallest_dx(self):
+        """
+        Returns (in code units) the smallest cell size in the simulation.
+        """
+        return (self.parameter_file.domain_width /(2**self.max_level))
+    
+    def convert(self, unit):
+        return self.parameter_file.conversion_factors[unit]
+
+    def find_max(self, field, finest_levels = 3):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if (field, finest_levels) in self._max_locations:
+            return self._max_locations[(field, finest_levels)]
+        mv, pos = self.find_max_cell_location(field, finest_levels)
+        self._max_locations[(field, finest_levels)] = (mv, pos)
+        return mv, pos
+
+    def find_max_cell_location(self, field, finest_levels = 3):
+        source = self.all_data()
+        if finest_levels is not False:
+            source.min_level = self.max_level - finest_levels
+        mylog.debug("Searching for maximum value of %s", field)
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
+              max_val, mx, my, mz)
+        self.pf.parameters["Max%sValue" % (field)] = max_val
+        self.pf.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        return max_val, np.array((mx,my,mz), dtype='float64')
 
     def _detect_fields(self):
         self.fluid_field_list = fluid_fields
@@ -171,17 +176,14 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            mask = dobj.selector.select_octs(self.oct_handler)
-            print 'cell count masked in called from data_structures.py'
-            masked_cell_count = self.oct_handler.count_cells(dobj.selector, mask)
-            print 'done cell count masked in called from data_structures.py'
-            print 'calling ARTIODomainSubset from data_structures.py'
-            subsets = [ARTIODomainSubset(d, mask, c)
+            
+#            root_mask = dobj.selector.select_cells()
+            list_sfc_ranges = root_sfc_ranges(selector)
+            chunks = [ARTIOChunk(d, mask, c)
                        for d, c in zip(self.domains, masked_cell_count) if c > 0]
-            print 'done with domain subset'
-            dobj._chunk_info = subsets
-            dobj.size = sum(masked_cell_count)
-            dobj.shape = (dobj.size,)
+            dobj._chunk_info = chunks
+#            dobj.size = sum(masked_cell_count)
+#            dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
         print 'done with base chunk'
 
@@ -196,7 +198,7 @@ class ARTIOGeometryHandler(OctreeGeometryHandler):
         # _current_chunk is made from identify_base_chunk 
         #object = dobj._current_chunk.objs or dobj._current_chunk.${dobj._chunk_info}
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for subset in oobjs:
+        for chunk in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.masked_cell_count)
 
 class ARTIOStaticOutput(StaticOutput):
