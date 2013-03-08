@@ -280,7 +280,7 @@ class StaticOutput(object):
             self.unit_registry.add("h", self.hubble_constant, dimensionless)
 
         for field in self.field_info.values():
-            field.units = self.get_unit_from_registry(field._units)
+            field.unit_obj = self.get_unit_from_registry(field._units)
 
     def get_unit_from_registry(self, unit_str):
         """
