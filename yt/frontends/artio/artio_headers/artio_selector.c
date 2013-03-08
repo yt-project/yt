@@ -66,6 +66,8 @@ artio_selection *artio_selection_allocate( artio_fileset *handle ) {
 			return NULL;
 		}
 	}
+	selection->subcycle = -1;
+	selection->cursor = -1;
 	selection->size = ARTIO_SELECTION_LIST_SIZE;
 	selection->num_ranges = 0;
 	selection->fileset = handle;

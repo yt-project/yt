@@ -34,18 +34,17 @@ import cStringIO
 class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-	print 'reading in fluid data'
-        tr = dict((ftuple, np.empty(size, dtype='float64')) for ftuple in fields)
+    def _read_fluid_selection(self, chunks, selector, fields ):
+    	print 'reading in fluid data'
+        tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         cp = 0
         for onechunk in chunks:
-            (rv,onechunk.selected_cell_count) = onechunk.fill(fields)  #change return
-            for fieldtype, fieldname in fields:
-                mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
-                            fieldname, onechunk.selected_cell_count, rv[fieldname].min(), 
-                            rv[fieldname].max(), cp, cp+onechunk.selected_cell_count)
-                tr[(fieldtype, fieldname)][cp:cp+onechunk.selected_cell_count] = rv.pop(fieldname)
-            cp += onechunk.selected_cell_count
+            for artchunk in onechunk.objs :
+                rv = artchunk.fill(fields)  
+                for f in fields:
+                    tr[f].resize(cp+artchunk.data_size)
+                    tr[f][cp:cp+artchunk.data_size] = rv.pop(f)
+                cp += artchunk.data_size 
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):

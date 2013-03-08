@@ -56,17 +56,18 @@ class ARTIOChunk(object) :
         self.selector = selector
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
+        self.data_size = 0
 
     _fcoords = None
     def fcoords(self, dobj):
-        if self._icoords is None :
+        if self._fcoords is None :
             print "Error: ARTIOChunk.fcoords called before fill"
             raise RuntimeError
         return self._fcoords
 
     _ires = None
     def ires(self, dobj):
-        if self._icords is None :
+        if self._ires is None :
             print "Error: ARTIOChunk.ires called before fill"
             raise RuntimeError
         return self._ires
@@ -75,22 +76,23 @@ class ARTIOChunk(object) :
         if self._ires is None :
             print "Error: ARTIOChunk.fwidth called before fill"
             raise RuntimeError
-        return 2.**-self.ires
+        return np.array([2.**-self._ires,2.**-self._ires,2.**-self._ires]).transpose()
 
-    _icoords = None
     def icoords(self, dobj):
-        if self._fcoords is None or self._ires is None or self.fwidth is None :
+        if self._fcoords is None or self._ires is None :
             print "Error: ARTIOChunk.icoords called before fill fcoords/level"
             raise RuntimeError
-        else : 
-            self._icoords = (int) (self._fcoords/self.fwidth())
-        return self._icoords 
+        return (int) (self._fcoords/2**-self._ires)
 
     def fill(self, fields):
-        # populate 
-        (self._fcoords,self._ires, data) = \
-                self.pf._handle.read_grid_chunk( self.selector,
-                    self.sfc_min, self.sfc_max, fields )
+        art_fields = [yt_to_art[f[1]] for f in fields]
+        (self._fcoords,self._ires, artdata) = \
+                    self.pf._handle.read_grid_chunk( self.selector,
+                    self.sfc_start, self.sfc_end, art_fields )
+        data = {}
+        for i,f in enumerate(fields) :
+            data[f] = artdata[i] 
+        self.data_size = len(self._fcoords)
         return data
 
     def fill_particles(self,accessed_species, selector, fields):
@@ -181,19 +183,23 @@ class ARTIOGeometryHandler(GeometryHandler):
         if getattr(dobj, "_chunk_info", None) is None:
             print "Running selector on base grid"
             list_sfc_ranges = self.pf._handle.root_sfc_ranges(dobj.selector)
-            print list_sfc_ranges
-            print "creating chunks"
-            chunks = [ARTIOChunk(d, mask, c)
-                       for d, c in zip(self.domains, masked_cell_count) if c > 0]
-            dobj._chunk_info = chunks
+            dobj._chunk_info = [ARTIOChunk(self.pf, dobj.selector, start, end)
+                    for (start,end) in list_sfc_ranges]
+            print "done creating ARTIOChunks"
 #            dobj.size = sum(masked_cell_count)
 #            dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
         print 'done with base chunk'
 
+    def _data_size(self, dobj, dobjs) :
+        size = 0
+        for d in dobjs :
+            size += d.data_size
+        return size
+ 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+        yield YTDataChunk(dobj, "all", oobjs, self._data_size )
 
     def _chunk_spatial(self, dobj, ngz):
         raise NotImplementedError
@@ -203,7 +209,27 @@ class ARTIOGeometryHandler(GeometryHandler):
         #object = dobj._current_chunk.objs or dobj._current_chunk.${dobj._chunk_info}
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for chunk in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.masked_cell_count)
+            yield YTDataChunk(dobj, "io", [chunk], self._data_size )
+
+    def _read_fluid_fields(self, fields, dobj, chunk = None):
+        print 'snl in geometry_handler read_fluid_fields'
+        if len(fields) == 0: return {}, []
+        if chunk is None:
+            self._identify_base_chunk(dobj)
+        fields_to_return = {}
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+        fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
+                                                   dobj.selector,
+                                                   fields_to_read)
+        for field in fields_to_read:
+            ftype, fname = field
+            conv_factor = self.pf.field_info[fname]._convert_function(self)
+            np.multiply(fields_to_return[field], conv_factor,
+                        fields_to_return[field])
+        #mylog.debug("Don't know how to read %s", fields_to_generate)
+        return fields_to_return, fields_to_generate
 
 class ARTIOStaticOutput(StaticOutput):
     _handle = None

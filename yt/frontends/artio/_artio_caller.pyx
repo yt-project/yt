@@ -485,7 +485,7 @@ cdef class artio_fileset :
     #@cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def read_grid_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields):
+    def read_grid_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields ):
         cdef int i
         cdef int level
         cdef int num_oct_levels
@@ -499,8 +499,11 @@ cdef class artio_fileset :
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         cdef int eterm[3]
+        cdef int *field_order
         cdef int num_fields  = len(fields)
         field_order = <int*>malloc(sizeof(int)*num_fields)
+
+        print "reading chunk ", sfc_start, sfc_end
 
         # translate fields from ARTIO names to indices
         var_labels = self.parameters['grid_variable_labels']
@@ -519,18 +522,19 @@ cdef class artio_fileset :
         check_artio_status(status) 
 
         # determine max number of cells we could hit (optimize later)
-        status = artio_grid_count_octs_in_sfc_range( self.handle, 
-                sfc_start, sfc_end, &max_octs )
-        check_artio_status(status)
-        max_cells = sfc_end-sfc_start+1 + max_octs*8
+        #status = artio_grid_count_octs_in_sfc_range( self.handle, 
+        #        sfc_start, sfc_end, &max_octs )
+        #check_artio_status(status)
+        #max_cells = sfc_end-sfc_start+1 + max_octs*8
 
         # allocate space for _fcoords, _icoords, _fwidth, _ires
-        fcoords = np.empty((max_cells, 3), dtype="float64")
-        ires = np.empty(max_cells, dtype="int64")
+        #fcoords = np.empty((max_cells, 3), dtype="float64")
+        #ires = np.empty(max_cells, dtype="int64")
+        fcoords = np.empty((0, 3), dtype="float64")
+        ires = np.empty(0, dtype="int64")
 
-        data = {}
-        for f in fields :
-            data[f] = np.empty(max_cells, dtype="float32")
+        #data = [ np.empty(max_cells, dtype="float32") for i in range(num_fields) ]
+        data = [ np.empty(0,dtype="float32") for i in range(num_fields)]
 
         count = 0
         for sfc in range( sfc_start, sfc_end+1 ) :
@@ -555,19 +559,25 @@ cdef class artio_fileset :
                                 pos[i] = dpos[i] + dds[i]*(0.5 if (child & (1<<i)) else -0.5)
 
                             if selector.select_cell( pos, dds, eterm ) :
+                                fcoords.resize((count+1, 3))
                                 for i in range(3) :
                                     fcoords[count][i] = dpos[i]
+                                ires.resize(count+1)
                                 ires[count] = level
-                                for i, f in enumerate(fields) :
-                                    data[f][count] = variables[self.num_grid_variables*child+field_order[i]]
+                                for i in range(num_fields) :
+                                    data[i].resize(count+1)
+                                    data[i][count] = variables[self.num_grid_variables*child+field_order[i]]
                                 count += 1 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
             else : # root cell is unrefined, add it to the list
-                for i, f in enumerate(fields) :
-                    data[f][count] = variables[field_order[i]]
+                for i in range(num_fields) :
+                    data[i].resize(count+1)
+                    data[i][count] = variables[field_order[i]]
+                fcoords.resize((count+1,3))
                 for i in range(3) :
                     fcoords[count][i] = dpos[i]
+                ires.resize(count+1)
                 ires[count] = 0
                 count += 1
 
@@ -579,11 +589,13 @@ cdef class artio_fileset :
 
         free(num_octs_per_level) 
         free(variables)
-        free(refined)
         free(field_order)
 
-        fcoords.resize((count,3))
-        ires.resize(count)
+        #fcoords.resize((count,3))
+        #ires.resize(count)
+        #    
+        #for i in range(num_fields) :
+        #    data[i].resize(count)
 
         return (fcoords, ires, data)
 
@@ -612,7 +624,6 @@ cdef class artio_fileset :
                     coords[2] = k 
                     pos[2] = coords[2] + 0.5
                     if selector.select_cell(pos, dds, eterm) :
-                        print "selected", i, j, k
                         status = artio_selection_add_root_cell(selection, coords)
                         check_artio_status(status)
 
