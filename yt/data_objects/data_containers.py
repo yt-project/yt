@@ -36,7 +36,6 @@ import exceptions
 import itertools
 import shelve
 import cStringIO
-from mpi4py import MPI
 import fileinput
 from re import finditer
 
@@ -4378,13 +4377,17 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         return vv
 
     def export_obj(self, filename, transparency = None, dist_fac = None,
-                   color_field = None, color_map = "algae", 
-                   color_log = True, plot_index = None):
+                   color_field = None, emit_field = None, color_map = "algae", 
+                   color_log = True, emit_log = True, plot_index = None, 
+                   color_field_max = None, color_field_min = None, 
+                   emit_field_max = None, emit_field_min = None):
         r"""This exports the surface to the OBJ format, suitable for visualization
         in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
         and an .mtl file, both with the general 'filename' as a prefix.  
         The .obj file points to the .mtl file in its header, so if you move the 2 
-        files, make sure you change the .obj header to account for this.
+        files, make sure you change the .obj header to account for this. ALSO NOTE: 
+        the emit_field needs to be a combination of the other 2 fields used to 
+        have the emissivity track with the color.
 
         Parameters
         ----------
@@ -4400,12 +4403,25 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             Divide the axes distances by this amount.
         color_field : string
             Should a field be sample and colormapped?
+        emit_field : string
+            Should we track the emissivity of a field?
+              NOTE: this should be a combination of the other 2 fields being used.
         color_map : string
             Which color map should be applied?
         color_log : bool
             Should the color field be logged before being mapped?
+        emit_log : bool
+            Should the emitting field be logged before being mapped?
         plot_index : integer
             Index of plot for multiple plots.  If none, then only 1 plot.
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
+        emit_field_max : float
+            Maximum value of the emitting field across all surfaces.
+        emit_field_min : float
+            Minimum value of the emitting field across all surfaces.
 
         Examples
         --------
@@ -4417,13 +4433,30 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
 
         >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
-        >>>     surf = pf.h.surface(dd,'Density',r)
-        >>>     surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf, 
-        >>>                     plot_index = i)
+        >>>     surf = pf.h.surface(sp,'Density',r)
+        >>>     surf.export_obj("my_galaxy", transparency=trans, 
+        >>>                      color_field='Temperature', dist_fac = distf, 
+        >>>                      plot_index = i, color_field_max = ma, 
+        >>>                      color_field_min = mi)
+
+        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> def _Emissivity(field, data):
+        >>>     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
+        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        >>> for i, r in enumerate(rhos):
+        >>>     surf = pf.h.surface(sp,'Density',r)
+        >>>     surf.export_obj("my_galaxy", transparency=trans, 
+        >>>                      color_field='Temperature', emit_field = 'Emissivity', 
+        >>>                      dist_fac = distf, plot_index = i)
+
         """
         if transparency is None:
             transparency = 1.0
@@ -4432,27 +4465,55 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         elif color_field is not None:
             if color_field not in self.field_data:
                 self[color_field]
-        #only_on_root(self._export_obj, "%s %12.12e, %12.12e %s %s %r %d" 
-        #             %(filename, transparency, dist_fac, color_field, 
-        #               color_map, color_log, plot_index))
-        if MPI.COMM_WORLD.rank == 0:  # this works, 2 seperate calls, in for loops
-            self._export_obj(filename, transparency, dist_fac, color_field, 
-                             color_map, color_log, plot_index)
+        if emit_field is not None:
+            if color_field not in self.field_data:
+                self[emit_field]
+        only_on_root(self._export_obj, filename, transparency, dist_fac, color_field, emit_field, 
+                             color_map, color_log, emit_log, plot_index, color_field_max, 
+                             color_field_min, emit_field_max, emit_field_min)
 
-    def _color_samples_obj(self, cs, color_log, color_map, arr): # this now holds for obj files
+    def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
+                           color_field_max, color_field_min, 
+                           emit_field_max, emit_field_min): # this now holds for obj files
             if color_log: cs = np.log10(cs)
-            mi, ma = cs.min(), cs.max()
+            if emit_log: em = np.log10(em)
+            if color_field_min is None:
+                mi = cs.min()
+            else:
+                mi = color_field_min
+                if color_log: mi = np.log10(mi)
+            if color_field_max is None:
+                ma = cs.max()
+            else:
+                ma = color_field_max
+                if color_log: ma = np.log10(ma)
             cs = (cs - mi) / (ma - mi)
             # to get color indicies for OBJ formatting
             from yt.visualization._colormap_data import color_map_luts
             lut = color_map_luts[color_map]
             x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
             arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
+            # now, get emission
+            if emit_field_min is None:
+                emi = em.min()
+            else:
+                emi = emit_field_min
+                if emit_log: emi = np.log10(emi)
+            if emit_field_max is None:
+                ema = em.max()
+            else:
+                ema = emit_field_max
+                if emit_log: ema = np.log10(ema)
+            em = (em - emi)/(ema - emi)
+            x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
+            arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
 
     @parallel_root_only
     def _export_obj(self, filename, transparency, dist_fac = None, 
-                    color_field = None, color_map = "algae", color_log = True, 
-                    plot_index = None):
+                    color_field = None, emit_field = None, color_map = "algae", 
+                    color_log = True, emit_log = True, plot_index = None, 
+                    color_field_max = None, color_field_min = None, 
+                    emit_field_max = None, emit_field_min = None):
         if plot_index is None:
             plot_index = 0
         if isinstance(filename, file):
@@ -4473,7 +4534,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                 cc = int(linesave[p[len(p)-1]:])+1
                 fobj = open(filename + '.obj', "a")
                 fmtl = open(filename + '.mtl', 'a')
-        ftype = [("cind", "uint8")]
+        ftype = [("cind", "uint8"), ("emit", "float")]
         vtype = [("x","float"),("y","float"), ("z","float")]
         if plot_index == 0:
             fobj.write("# yt OBJ file\n")
@@ -4481,8 +4542,6 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             fobj.write("mtllib " + filename + '.mtl\n\n')  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
             fmtl.write("# www.yt-project.com\n\n")
-        from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
-        lut = color_map_luts[color_map]
         #(0) formulate vertices
         nv = self.vertices.shape[1] # number of groups of vertices
         f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
@@ -4491,7 +4550,17 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             cs = self[color_field]
         else:
             cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
-        self._color_samples_obj(cs, color_log, color_map, f) # map color values to color scheme
+        if emit_field is not None:
+            em = self[emit_field]
+        else:
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
+                                color_field_max, color_field_min, 
+                                emit_field_max, emit_field_min) # map color values to color scheme
+        from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
+        lut = color_map_luts[color_map] # enumerate colors
+        # interpolate emissivity to enumerated colors
+        emiss = np.interp(np.mgrid[0:lut[0].shape[0]],np.mgrid[0:len(cs)],f["emit"][:])
         if dist_fac is None: # then normalize by bounds
             DLE = self.pf.domain_left_edge
             DRE = self.pf.domain_right_edge
@@ -4517,6 +4586,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
             fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
             fmtl.write("d %.6f\n" %(transparency))  # transparency
+            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
             fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
             fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
         #(2) write vertices
