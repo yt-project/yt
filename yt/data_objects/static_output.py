@@ -277,6 +277,9 @@ class StaticOutput(object):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.add("h", self.hubble_constant, dimensionless)
 
+        for field in self.field_info.values:
+            field.units = self.get_unit_from_registry(field._units)
+
         self._set_units()
 
     def get_unit_from_registry(self, unit_str):
