@@ -449,6 +449,12 @@ class DerivedField(object):
         dd['projection_conversion'] = self.projection_conversion
         return dd
 
+    def get_units(self):
+        return "unknown"
+
+    def get_projected_units(self):
+        return "unknown"
+
     def check_available(self, data):
         """
         This raises an exception of the appropriate type if the set of

@@ -31,8 +31,8 @@ def test_average():
         my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "ones")
         yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
 
-        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "CellMass")
-        a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
+        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "cell_mass")
+        a_mean = (ad["Density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
         yield assert_rel_equal, my_mean, a_mean, 12
 
 def test_variance():
@@ -44,9 +44,9 @@ def test_variance():
         yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
         yield assert_rel_equal, my_std, ad["Density"].std(), 12
 
-        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "CellMass")        
-        a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
+        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "cell_mass")        
+        a_mean = (ad["Density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
         yield assert_rel_equal, my_mean, a_mean, 12
-        a_std = np.sqrt((ad["CellMass"] * (ad["Density"] - a_mean)**2).sum() / 
-                        ad["CellMass"].sum())
+        a_std = np.sqrt((ad["cell_mass"] * (ad["Density"] - a_mean)**2).sum() / 
+                        ad["cell_mass"].sum())
         yield assert_rel_equal, my_std, a_std, 12
