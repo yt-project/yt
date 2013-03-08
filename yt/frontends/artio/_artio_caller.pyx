@@ -59,7 +59,7 @@ cdef extern from "artio.h":
     int artio_fileset_close_grid(artio_fileset_handle *handle) 
 
     # selection functions
-    artio_selection *artio_selection_allocate( artio_fileset *handle )
+    artio_selection *artio_selection_allocate( artio_fileset_handle *handle )
     int artio_selection_add_root_cell( artio_selection *selection, int coords[3] )
     int artio_selection_destroy( artio_selection *selection )
     int artio_selection_iterator( artio_selection *selection,
@@ -485,7 +485,7 @@ cdef class artio_fileset :
     #@cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def read_grid_chunk(self, int64_t sfc_start, int64_t sfc_end, fields):
+    cdef read_grid_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields):
         cdef int i
         cdef int level
         cdef int num_oct_levels
@@ -493,6 +493,7 @@ cdef class artio_fileset :
         cdef float *variables
         cdef int refined[8]
         cdef int status
+        cdef int64_t count
         cdef int64_t max_octs
         cdef double dpos[3]
         cdef np.float64_t pos[3]
@@ -518,7 +519,7 @@ cdef class artio_fileset :
         check_artio_status(status) 
 
         # determine max number of cells we could hit (optimize later)
-        status = artio_grid_count_octs_in_sfc_range(artio_fileset *handle, 
+        status = artio_grid_count_octs_in_sfc_range( self.handle, 
                 sfc_start, sfc_end, &max_octs )
         check_artio_status(status)
         max_cells = sfc_end-sfc_start+1 + max_octs*8
@@ -531,8 +532,8 @@ cdef class artio_fileset :
         for f in fields :
             data[f] = np.empty(max_cells, dtype="float32")
 
-        cells_selected = 0
-        for sfc in range( sfc_min, sfc_max+1 ) :
+        count = 0
+        for sfc in range( sfc_start, sfc_end+1 ) :
             status = artio_grid_read_root_cell_begin( self.handle, sfc, 
                     dpos, variables, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
@@ -551,9 +552,9 @@ cdef class artio_fileset :
                     for child in range(8) :
                         if not refined[child] :
                             for i in range(3) :
-                                pos[i] = dpos[i] + dds[i]*(-0.5 if (child & (1<<i)) else 0.5)
+                                pos[i] = dpos[i] + dds[i]*(0.5 if (child & (1<<i)) else -0.5)
 
-                            if selector.check_cell( pos, dds, eterm ) :
+                            if selector.select_cell( pos, dds, eterm ) :
                                 for i in range(3) :
                                     fcoords[count][i] = dpos[i]
                                 ires[count] = level
@@ -586,31 +587,34 @@ cdef class artio_fileset :
 
         return (fcoords, ires, data)
 
-    def root_sfc_ranges(self, SelectorObject selector)
-       cdef int max_range_size = 1024
-       cdef int coords[3], sfc_start, sfc_end
-       cdef float pos[3]
-       cdef np.float64 dds[3]
-       cdef artio_selection *selection
+    cdef root_sfc_ranges(self, SelectorObject selector) :
+        cdef int max_range_size = 1024
+        cdef int coords[3]
+        cdef int64_t sfc_start, sfc_end
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
+        cdef int eterm[3]
+        cdef artio_selection *selection
 
-       dds[0] = 1.0
-       dds[1] = 1.0
-       dds[2] = 1.0
+        dds[0] = dds[1] = dds[2] = 1.0
 
-       sfc_ranges=[]
-       selection = artio_selection_allocate(self.handle)
-       for coords[0] in range(self.num_grid) :
-           for coords[1] in range(self.num_grid) :
-               for coords[2] in range(self.num_grid) :
-                   pos[0] = coords[0]
-                   pos[1] = coords[1]
-                   pos[2] = coords[2]
-                   if(selector.select_cell(pos, dds, eterm)):
-                       artio_selection_add_root_cell(selection, coords)
-       while( artio_selection_iterator(selection, max_range_size, sfc_start, sfc_end) ):
-           sfc_ranges.append([sfc_start, sfc_end])
-       artio_selection_destroy(selection)
-       return sfc_ranges
+        sfc_ranges=[]
+        selection = artio_selection_allocate(self.handle)
+        for coords[0] in range(self.num_grid) :
+            pos[0] = coords[0] + 0.5
+            for coords[1] in range(self.num_grid) :
+                pos[1] = coords[1] + 0.5
+                for coords[2] in range(self.num_grid) :
+                    pos[2] = coords[2] + 0.5
+                    if selector.select_cell(pos, dds, eterm) :
+                        artio_selection_add_root_cell(selection, coords)
+
+        while artio_selection_iterator(selection, max_range_size, 
+                &sfc_start, &sfc_end) == ARTIO_SUCCESS :
+            sfc_ranges.append([sfc_start, sfc_end])
+
+        artio_selection_destroy(selection)
+        return sfc_ranges
 
 ###################################################
 def artio_is_valid( char *file_prefix ) :

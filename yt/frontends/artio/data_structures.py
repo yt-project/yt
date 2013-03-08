@@ -89,8 +89,8 @@ class ARTIOChunk(object) :
     def fill(self, fields):
         # populate 
         (self._fcoords,self._ires, data) = \
-                self.pf._handle.read_grid_chunk( self.sfc_min, 
-                    self.sfc_max, self.selector )
+                self.pf._handle.read_grid_chunk( self.selector,
+                    self.sfc_min, self.sfc_max, fields )
         return data
 
     def fill_particles(self,accessed_species, selector, fields):
