@@ -192,15 +192,16 @@ class YTDataContainer(object):
         """
         Returns a single field.  Will add if necessary.
         """
-        f = self._determine_fields(key)[0]
-        if f not in self.field_data:
-            if f in self._container_fields:
-                self.field_data[f] = \
-                    YTArray(self._generate_container_field(key), input_units='1')
-                return self.field_data[key]
-            else:
-                self.get_data(key)
+        f = self._determine_fields([key])[0]
+        if f in self.field_data:
+            return self.field_data[f]
+        elif f in self._container_fields:
+            self.field_data[f] = \
+                YTArray(self._generate_container_field(f), input_units='1')
+            return self.field_data[f]
 
+        # At this time, we have returned
+        self.get_data(f)
         fi = self.pf._get_field_info(*f)
 
         # @todo: Might find a better way to grab the unit object.

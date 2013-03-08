@@ -19,13 +19,13 @@ def test_cutting_plane():
         normal = [1,1,1]
         fns = []
         cut = pf.h.cutting(normal, center)
-        yield assert_equal, cut["Ones"].sum(), cut["Ones"].size
-        yield assert_equal, cut["Ones"].min(), 1.0
-        yield assert_equal, cut["Ones"].max(), 1.0
+        yield assert_equal, cut["ones"].sum(), cut["ones"].size
+        yield assert_equal, cut["ones"].min(), 1.0
+        yield assert_equal, cut["ones"].max(), 1.0
         pw = cut.to_pw()
         fns += pw.save()
         frb = cut.to_frb((1.0,'unitary'), 64)
-        for cut_field in ['Ones', 'Density']:
+        for cut_field in ['ones', 'density']:
             yield assert_equal, frb[cut_field].info['data_source'], \
                 cut.__str__()
             yield assert_equal, frb[cut_field].info['axis'], \
