@@ -192,11 +192,17 @@ class YTDataContainer(object):
         """
         Returns a single field.  Will add if necessary.
         """
+        if key not in self.field_data:
+            if key in self._container_fields:
                 self.field_data[key] = \
                     YTArray(self._generate_container_field(key), input_units='1')
+                return self.field_data[key]
+            else:
+                self.get_data(key)
 
         f = self._determine_fields(key)[0]
-
+        fi = self.pf._get_field_info(*f)
+        
         # @todo: Might find a better way to grab the unit object.
         # fi.units is the unit expression string. We depend on the registry
         # hanging off the dataset to define this unit object.
