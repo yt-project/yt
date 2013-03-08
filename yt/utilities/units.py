@@ -29,6 +29,9 @@ from sympy import Expr, Mul, Number, Pow, Rational, Symbol
 from sympy import nsimplify, posify, sympify
 from sympy.parsing.sympy_parser import parse_expr
 
+# Define a sympy one object.
+sympy_one = sympify(1)
+
 #
 # Exceptions
 #
@@ -84,7 +87,7 @@ magnetic_field = electric_field
 # conversion factor to cgs and dimensionality.
 #
 
-default_unit_symbol_LUT = {
+default_unit_symbol_lut = {
     # base
     "g":  (1.0, mass),
     #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
@@ -155,13 +158,13 @@ unit_prefixes = {
 }
 
 
-class UnitSymbolRegistry:
+class UnitRegistry:
 
     def __init__(self, add_default_symbols=True):
         self.lut = {}
 
         if add_default_symbols:
-            self.lut.update(default_unit_symbol_LUT)
+            self.lut.update(default_unit_symbol_lut)
 
     def add(symbol, cgs_value, dimensions):
         """
@@ -172,7 +175,7 @@ class UnitSymbolRegistry:
         if not isinstance(cgs_value, float):
             raise UnitParseError("cgs_value must be a float, got a %s." % type(cgs_value))
 
-        validate_dimensions(dimensions)
+        _validate_dimensions(dimensions)
 
         # Add to lut
         self.lut.update( {symbol: (cgs_value, dimensions)} )
@@ -188,46 +191,46 @@ class UnitSymbolRegistry:
         del self.lut[symbol]
 
 
-default_symbol_registry = UnitSymbolRegistry()
-
-
+default_unit_registry = UnitRegistry()
 
 class Unit(Expr):
     """
-    A symbolic unit, using sympy functionality. We only add "dimensions" so that
-    sympy understands relations between different units.
+    A symbolic unit, using sympy functionality. We only add "dimensions" so
+    that sympy understands relations between different units.
 
     """
 
+    # Set some assumptions for sympy.
     is_positive = True    # make sqrt(m**2) --> m
     is_commutative = True
     is_number = False
 
-    __slots__ = ["expr", "cgs_value", "dimensions", "is_atomic"]
+    # Extra attributes
+    __slots__ = ["expr", "is_atomic", "cgs_value", "dimensions", "registry"]
 
     def __new__(cls, unit_expr=sympify(1), cgs_value=None, dimensions=None,
-                **assumptions):
+                registry=None, **assumptions):
         """
-        Create a new unit. May be an atomic unit (like a gram) or a combination
-        of other units (like g / cm**3).
+        Create a new unit. May be an atomic unit (like a gram) or combinations
+        of atomic units (like g / cm**3).
 
         Parameters
         ----------
-        unit_expr : string or sympy.core.expr.Expr
-            The unit symbol expression.
+        unit_expr : Unit object, sympy.core.expr.Expr object, or str
+            The symbolic unit expression.
         cgs_value : float
-            This unit's value in cgs.
+            The unit's value in cgs.
         dimensions : sympy.core.expr.Expr
-            An expression representing the dimensionality of this unit. This
-            should be a product (sympy.core.mul.Mul object) of mass, length,
-            time, and temperature objects to various powers.
+            A sympy expression representing the dimensionality of this unit.
+            It must contain only mass, length, time, and temperature symbols.
+        registry : UnitRegistry object
+            The unit registry we use to interpret unit symbols.
 
         """
         # Simplest case. If user passes a Unit object, just use the expr.
         if isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
-
         # If we have a string, have sympy parse it into an Expr.
         elif isinstance(unit_expr, str):
             if not unit_expr:
@@ -235,15 +238,19 @@ class Unit(Expr):
                 # if unit_expr is an empty string, parse_expr fails hard...
                 unit_expr = "1"
             unit_expr = parse_expr(unit_expr)
-
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or sympy Expr. %s has type %s." % (unit_expr, type(unit_expr)))
+
+        if registry is None:
+            # Caller did not set the registry, so use the default.
+            registry = default_unit_registry
+
         # done with argument checking...
 
         # sympify, make positive symbols, and nsimplify the expr
         unit_expr = sympify(unit_expr)
-        unit_expr = make_symbols_positive(unit_expr)
+        unit_expr = _make_symbols_positive(unit_expr)
         unit_expr = nsimplify(unit_expr)
 
         # see if the unit is atomic.
@@ -251,227 +258,143 @@ class Unit(Expr):
         if isinstance(unit_expr, Symbol):
             is_atomic = True
 
-        # Did the user supply cgs_value and dimensions?
-        if cgs_value and not dimensions or dimensions and not cgs_value:
-            raise Exception("If you provide cgs_vale or dimensions, you must provide both. cgs_value is %s, dimensions is %s." % (cgs_value, dimensions))
+        #
+        # check cgs_value and dimensions
+        #
 
-        if cgs_value and dimensions:
+        if cgs_value is not None and dimensions is not None:
             # check that cgs_value is a float or can be converted to one
             try:
                 cgs_value = float(cgs_value)
             except ValueError:
-                raise UnitParseError("Please provide a float for the cgs_value kwarg. I got '%s'." % cgs_value)
+                raise UnitParseError("Could not use cgs_value as a float. cgs_value is '%s' (type %s)." % (cgs_value, type(cgs_value)) )
+
             # check that dimensions is valid
-            dimensions = validate_dimensions(dimensions)
-            # save the values
-            this_cgs_value, this_dimensions = cgs_value, dimensions
+            _validate_dimensions( sympify(dimensions) )
+        else:
+            # lookup the unit symbols
+            cgs_value, dimensions = _get_unit_data_from_expr(unit_expr,
+                                                             registry.lut)
 
-        else:  # lookup the unit symbols
-            this_cgs_value, this_dimensions = \
-                get_unit_data_from_expr(unit_expr)
+        # Sympy trick to get dimensions powers as Rationals
+        dimensions = nsimplify(dimensions)
 
-        # Trick to get dimensions powers as Rationals
-        this_dimensions = nsimplify(this_dimensions)
-
-        # create obj with superclass construct
+        # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
 
-        # attach attributes to obj
+        # Attach attributes to obj.
         obj.expr = unit_expr
         obj.is_atomic = is_atomic
-        obj.cgs_value = this_cgs_value
-        obj.dimensions = this_dimensions
+        obj.cgs_value = cgs_value
+        obj.dimensions = dimensions
+        obj.registry = registry
 
-        # return `obj` so __init__ can handle it.
+        # Return `obj` so __init__ can handle it.
         return obj
 
-    ### some sympy conventions I guess
+    ### Some sympy conventions
     def __getnewargs__(self):
-        return (self.expr, self.is_atomic, self.cgs_value, self.dimensions)
+        return (self.expr, self.is_atomic, self.cgs_value, self.dimensions,
+                self.registry)
 
     def __hash__(self):
         return super(Unit, self).__hash__()
 
     def _hashable_content(self):
-        return (self.expr, self.is_atomic, self.cgs_value, self.dimensions)
+        return (self.expr, self.is_atomic, self.cgs_value, self.dimensions,
+                self.registry)
     ### end sympy conventions
 
     def __repr__(self):
-        if self.expr == 1:
+        if self.expr == sympy_one:
             return "(dimensionless)"
-        return str(self.expr)
+        # @todo: don't use dunder method?
+        return self.expr.__repr__()
 
     def __str__(self):
-        if self.expr == 1:
+        if self.expr == sympy_one:
             return "(dimensionless)"
-        return str(self.expr)
+        # @todo: don't use dunder method?
+        return self.expr.__str__()
 
     # for sympy.printing
     def _sympystr(self, *args):
         return str(self.expr)
 
-    ### override sympy operations
+    #
+    # Start unit operations
+    #
+
     def __mul__(self, u):
         """ Multiply Unit with u (Unit object). """
         if not isinstance(u, Unit):
-            raise UnitOperationError("Tried to multiply Unit object with '%s'. This behavior is undefined." % u)
+            raise UnitOperationError("Tried to multiply a Unit object with '%s' (type %s). This behavior is undefined." % (u, type(u)) )
 
-        return Unit(self.expr * u.expr, self.cgs_value * u.cgs_value,
-                    self.dimensions * u.dimensions)
+        return Unit(self.expr * u.expr,
+                    cgs_value=(self.cgs_value * u.cgs_value),
+                    dimensions=(self.dimensions * u.dimensions),
+                    registry=self.registry)
 
     def __div__(self, u):
         """ Divide Unit by u (Unit object). """
         if not isinstance(u, Unit):
-            raise UnitOperationError("Tried to divide Unit object by '%s'. This behavior is undefined." % u)
+            raise UnitOperationError("Tried to divide a Unit object by '%s' (type %s). This behavior is undefined." % (u, type(u)) )
 
-        return Unit(self.expr / u.expr, self.cgs_value / u.cgs_value,
-                    self.dimensions / u.dimensions)
+        return Unit(self.expr / u.expr,
+                    cgs_value=(self.cgs_value / u.cgs_value),
+                    dimensions=(self.dimensions / u.dimensions),
+                    registry=self.registry)
 
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
             p = sympify(p)
         except ValueError:
-            raise UnitOperationError("Tried to take Unit object to the power '%s'. I could not cast this to a float." % p)
+            raise UnitOperationError("Tried to take a Unit object to the power '%s' (type %s). Failed to cast it to a float." % (p, type(p)) )
 
-        return Unit(self.expr**p, self.cgs_value**p, self.dimensions**p)
-
-    ### Comparison operators
-    def same_dimensions_as(self, other_unit):
-        """ Test if dimensions are the same. """
-        return (self.dimensions / other_unit.dimensions) == 1
+        return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
+                    dimensions=(self.dimensions**p), registry=self.registry)
 
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
-            raise UnitOperationError("Tried to test equality between Unit object and '%s'. This behavior is undefined." % u)
+            raise UnitOperationError("Tried to test equality between a Unit object and '%s' (type %s). This behavior is undefined." % (u, type(u)) )
 
         return (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
+    #
+    # End unit operations
+    #
+
+    def same_dimensions_as(self, other_unit):
+        """ Test if dimensions are the same. """
+        return (self.dimensions / other_unit.dimensions) == sympy_one
+
     @property
     def is_dimensionless(self):
-        return self.dimensions == 1
+        return self.dimensions == sympy_one
 
+    # @todo: might be a simpler/smarter sympy way to do this...
     def get_cgs_equivalent(self):
-        """ Create and return dimensionally-equivalent cgs units. """
+        """
+        Create and return dimensionally-equivalent cgs units.
+
+        """
         cgs_units_string = "g**(%s) * cm**(%s) * s**(%s) * K**(%s)" % \
             (self.dimensions.expand().as_coeff_exponent(mass)[1],
              self.dimensions.expand().as_coeff_exponent(length)[1],
              self.dimensions.expand().as_coeff_exponent(time)[1],
              self.dimensions.expand().as_coeff_exponent(temperature)[1])
-        return Unit(cgs_units_string, 1, self.dimensions)
+
+        return Unit(cgs_units_string, cgs_value=1.0,
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
 
-
-def make_symbols_positive(expr):
-    """
-    Grabs all symbols from expr, makes new positive symbols with the same names,
-    and substitutes them back into the expression.
-
-    """
-    expr_symbols = expr.atoms(Symbol)  # grab all symbols
-
-    # Replace one at a time
-    for s in expr_symbols:
-        # replace this symbol with a positive version
-        expr = expr.subs(s, Symbol(s.name, positive=True))
-
-    return expr
-
-
-# @todo: simpler method that doesn't use recursion would be better...
-# We could check if dimensions.atoms are all numbers or symbols, but we should
-# check the functions also...
-def validate_dimensions(d):
-    """
-    Make sure that `d` is a valid dimension expression. It must consist of only
-    the base dimension symbols, to powers, multiplied together. If valid, return
-    the simplified expression. If not, raise an Exception.
-
-    """
-    # in the case of a Number of Symbol, we can just return
-    if isinstance(d, Number):
-        return d
-    elif isinstance(d, Symbol):
-        if d in base_dimensions:
-            return d
-        else:
-            raise UnitParseError("dimensionality expression contains an unknown symbol '%s'." % d)
-
-    # validate args of a Pow or Mul separately
-    elif isinstance(d, Pow):
-        return validate_dimensions(d.args[0])**validate_dimensions(d.args[1])
-
-    elif isinstance(d, Mul):
-        total_mul = 1
-        for arg in d.args:
-            total_mul *= validate_dimensions(arg)
-        return total_mul
-
-    # should never get here
-    raise UnitParseError("Bad dimensionality expression '%s'." % d)
-
-
-def get_unit_data_from_expr(unit_expr):
-    """
-    Gets total cgs_value and dimensions from a valid unit expression.
-
-    """
-    # The simplest case first
-    if isinstance(unit_expr, Unit):
-        return (unit_expr.cgs_value, unit_expr.dimensions)
-
-    # Now for the sympy possibilities
-    if isinstance(unit_expr, Symbol):
-        return lookup_unit_symbol(str(unit_expr))
-
-    if isinstance(unit_expr, Number):
-        return (1, 1)
-
-    if isinstance(unit_expr, Pow):
-        unit_data = get_unit_data_from_expr(unit_expr.args[0])
-        power = unit_expr.args[1]
-        return (unit_data[0]**power, unit_data[1]**power)
-
-    if isinstance(unit_expr, Mul):
-        cgs_value = 1
-        dimensions = 1
-        for expr in unit_expr.args:
-            unit_data = get_unit_data_from_expr(expr)
-            cgs_value *= unit_data[0]
-            dimensions *= unit_data[1]
-
-        return (cgs_value, dimensions)
-
-    raise UnitParseError("Cannot parse for unit data from '%s'. Please supply an expression of only Unit, Symbol, Pow, and Mul objects." % str(unit_expr))
-
-
-def lookup_unit_symbol(symbol_str):
-    """ Searches for the unit data typle corresponding to the given symbol. """
-
-    if symbol_str in default_unit_symbol_LUT:
-        # lookup successful, return the tuple directly
-        return default_unit_symbol_LUT[symbol_str]
-
-    # could still be a known symbol with a prefix
-    possible_prefix = symbol_str[0]
-    if possible_prefix in unit_prefixes:
-        # the first character could be a prefix, check the rest of the symbol
-        symbol_wo_prefix = symbol_str[1:]
-
-        if symbol_wo_prefix in default_unit_symbol_LUT:
-            # lookup successful, it's a symbol with a prefix
-            unit_data = default_unit_symbol_LUT[symbol_wo_prefix]
-            prefix_value = unit_prefixes[possible_prefix]
-
-            # don't forget to account for the prefix value!
-            return (unit_data[0] * prefix_value, unit_data[1])
-
-    # no dice
-    raise UnitParseError("Could not find unit symbol '%s'. Please supply the dimensions and cgs value when creating this object." % symbol_str)
-
+#
+# Unit manipulation functions
+#
 
 def get_conversion_factor(old_units, new_units):
     """
@@ -492,10 +415,10 @@ def get_conversion_factor(old_units, new_units):
         `old_units / new_units`
 
     """
-    # Make units out of strings if we need to.
-    if isinstance(old_units, str):
+    # if args are not Unit objects, construct them
+    if not isinstance(old_units, Unit):
         old_units = Unit(old_units)
-    if isinstance(new_units, str):
+    if not isinstance(new_units, Unit):
         new_units = Unit(new_units)
 
     if not old_units.same_dimensions_as(new_units):
@@ -521,3 +444,132 @@ def convert_values(values, old_units, new_units):
 
     """
     return values * get_conversion_factor(old_units, new_units)
+
+
+#
+# Helper functions
+#
+
+def _make_symbols_positive(expr):
+    """
+    Grabs all symbols from expr, makes new positive symbols with the same names,
+    and substitutes them back into the expression.
+
+    """
+    expr_symbols = expr.atoms(Symbol)  # grab all symbols
+
+    # Replace one at a time
+    for s in expr_symbols:
+        # replace this symbol with a positive version
+        expr = expr.subs(s, Symbol(s.name, positive=True))
+
+    return expr
+
+# @todo: simpler method that doesn't use recursion would be better...
+# We could check if dimensions.atoms are all numbers or symbols, but we should
+# check the functions also...
+def _validate_dimensions(d):
+    """
+    Make sure that `d` is a valid dimension expression. It must consist of only
+    the base dimension symbols, to powers, multiplied together. If valid, return
+    the simplified expression. If not, raise an Exception.
+
+    """
+    # in the case of a Number of Symbol, we can just return
+    if isinstance(d, Number):
+        return d
+    elif isinstance(d, Symbol):
+        if d in base_dimensions:
+            return d
+        else:
+            raise UnitParseError("dimensionality expression contains an unknown symbol '%s'." % d)
+
+    # validate args of a Pow or Mul separately
+    elif isinstance(d, Pow):
+        return _validate_dimensions(d.args[0])**_validate_dimensions(d.args[1])
+
+    elif isinstance(d, Mul):
+        total_mul = 1
+        for arg in d.args:
+            total_mul *= _validate_dimensions(arg)
+        return total_mul
+
+    # should never get here
+    raise UnitParseError("Bad dimensionality expression '%s'." % d)
+
+
+def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
+    """
+    Grabs the total cgs_value and dimensions from a valid unit expression.
+
+    Parameters
+    ----------
+    unit_expr: Unit object, or sympy Expr object
+        The expression containing unit symbols.
+    unit_symbol_lut: dict
+        Provides the unit data for each valid unit symbol.
+
+    """
+    # The simplest case first
+    if isinstance(unit_expr, Unit):
+        return (unit_expr.cgs_value, unit_expr.dimensions)
+
+    # Now for the sympy possibilities
+    if isinstance(unit_expr, Symbol):
+        return _lookup_unit_symbol(str(unit_expr), unit_symbol_lut)
+
+    if isinstance(unit_expr, Number):
+        # not sure if this should be (1, 1)...
+        return (float(unit_expr), sympy_one)
+
+    if isinstance(unit_expr, Pow):
+        unit_data = _get_unit_data_from_expr(unit_expr.args[0], unit_symbol_lut)
+        power = unit_expr.args[1]
+        return (unit_data[0]**power, unit_data[1]**power)
+
+    if isinstance(unit_expr, Mul):
+        cgs_value = 1.0
+        dimensions = 1
+        for expr in unit_expr.args:
+            unit_data = _get_unit_data_from_expr(expr, unit_symbol_lut)
+            cgs_value *= unit_data[0]
+            dimensions *= unit_data[1]
+
+        return (cgs_value, dimensions)
+
+    raise UnitParseError("Cannot parse for unit data from '%s'. Please supply an expression of only Unit, Symbol, Pow, and Mul objects." % str(unit_expr))
+
+
+def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
+    """
+    Searches for the unit data typle corresponding to the given symbol.
+
+    Parameters
+    ----------
+    symbol_str : str
+        The unit symbol to look up.
+    unit_symbol_lut : dict
+        Dictionary with symbols as keys and unit data tuples as values.
+
+    """
+
+    if symbol_str in unit_symbol_lut:
+        # lookup successful, return the tuple directly
+        return default_unit_symbol_lut[symbol_str]
+
+    # could still be a known symbol with a prefix
+    possible_prefix = symbol_str[0]
+    if possible_prefix in unit_prefixes:
+        # the first character could be a prefix, check the rest of the symbol
+        symbol_wo_prefix = symbol_str[1:]
+
+        if symbol_wo_prefix in unit_symbol_lut:
+            # lookup successful, it's a symbol with a prefix
+            unit_data = unit_symbol_lut[symbol_wo_prefix]
+            prefix_value = unit_prefixes[possible_prefix]
+
+            # don't forget to account for the prefix value!
+            return (unit_data[0] * prefix_value, unit_data[1])
+
+    # no dice
+    raise UnitParseError("Could not find unit symbol '%s' in the provided symbols. Please define this unit symbol." % symbol_str)

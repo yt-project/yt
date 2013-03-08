@@ -1,4 +1,4 @@
-""" 
+"""
 The base classes for selecting and returning data.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -62,7 +62,7 @@ def force_array(item, shape):
             return np.zeros(shape, dtype='bool')
 
 def restore_field_information_state(func):
-    """ 
+    """
     A decorator that takes a function with the API of (self, grid, field)
     and ensures that after the function is called, the field_parameters will
     be returned to normal.
@@ -76,14 +76,14 @@ def restore_field_information_state(func):
     return save_state
 
 class YTFieldData(dict):
-    """ 
+    """
     A Container object for field data, instead of just having it be a dict.
     """
     pass
-        
+
 
 class YTDataContainer(object):
-    """ 
+    """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
@@ -101,7 +101,7 @@ class YTDataContainer(object):
                 data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, field_parameters):
-        """ 
+        """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
         sets its initial set of fields, and the remainder of the arguments
@@ -199,9 +199,16 @@ class YTDataContainer(object):
                 return self.field_data[key]
             else:
                 self.get_data(key)
+
         f = self._determine_fields(key)[0]
         fi = self.pf._get_field_info(*f)
-        return YTArray(self.field_data[f], input_units=fi._units)
+
+        # @todo: Might find a better way to grab the unit object.
+        # fi.units is the unit expression string. We depend on the registry
+        # hanging off the dataset to define this unit object.
+        unit_obj = self.pf.get_unit_from_registry(fi.units)
+
+        return YTArray(self.field_data[f], input_units=unit_obj)
 
     def __setitem__(self, key, val):
         """
@@ -457,7 +464,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
         return fields_to_get
-    
+
     def get_data(self, fields=None):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -555,7 +562,7 @@ class YTSelectionContainer1D(YTSelectionContainer):
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
-    """ 
+    """
     Class to represent a set of :class:`YTDataContainer` that's 2-D in nature, and
     thus does not have as many actions as the 3-D data types.
     """
@@ -570,7 +577,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         super(YTSelectionContainer2D, self).__init__(
             pf, field_parameters)
         self.set_field_parameter("axis", axis)
-        
+
     def _convert_field_name(self, field):
         return field
 
@@ -584,7 +591,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
         return pw
@@ -626,13 +633,13 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
         """
-        
+
         if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
             (self.pf.geometry == "polar" and self.axis == 2):
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
             frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
-        
+
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
@@ -680,9 +687,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.  It is very useful for applying 
+        fly with a set of field_cuts.  It is very useful for applying
         conditions to the fields in your data object.
-        
+
         Examples
         --------
         To find the total mass of gas above 10^6 K in your volume:
@@ -716,7 +723,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         useful for calculating, for instance, total isocontour area, or
         visualizing in an external program (such as `MeshLab
         <http://meshlab.sf.net>`_.)
-        
+
         Parameters
         ----------
         field : string
@@ -830,7 +837,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field : string
@@ -886,7 +893,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
                      [field_x, field_y, field_z]]
         return march_cubes_grid_flux(value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
