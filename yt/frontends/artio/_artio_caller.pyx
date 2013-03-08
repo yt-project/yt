@@ -593,17 +593,24 @@ cdef class artio_fileset :
 
     def root_sfc_ranges(self, SelectorObject selector)
        cdef int max_range_size = 1024
-       cdef float coords[3]
-       cdef int sfc_start, sfc_end
-       cdef np.float64 dds[3] = { 1.0, 1.0, 1.0 }
+       cdef int coords[3], sfc_start, sfc_end
+       cdef float pos[3]
+       cdef np.float64 dds[3]
        cdef artio_selection *selection
+
+       dds[0] = 1.0
+       dds[1] = 1.0
+       dds[2] = 1.0
 
        sfc_ranges=[]
        selection = artio_selection_allocate(self.handle)
        for coords[0] in range(self.num_grid) :
            for coords[1] in range(self.num_grid) :
                for coords[2] in range(self.num_grid) :
-                   if(selector.select_cell(coords, dds, eterm)):
+                   pos[0] = coords[0]
+                   pos[1] = coords[1]
+                   pos[2] = coords[2]
+                   if(selector.select_cell(pos, dds, eterm)):
                        artio_selection_add_root_cell(selection, coords)
        while( artio_selection_iterator(selection, max_range_size, sfc_start, sfc_end) ):
            sfc_ranges.append([sfc_start, sfc_end])
