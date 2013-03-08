@@ -166,7 +166,7 @@ class UnitRegistry:
         if add_default_symbols:
             self.lut.update(default_unit_symbol_lut)
 
-    def add(symbol, cgs_value, dimensions):
+    def add(self, symbol, cgs_value, dimensions):
         """
         Add a symbol to this registry.
 
@@ -180,7 +180,7 @@ class UnitRegistry:
         # Add to lut
         self.lut.update( {symbol: (cgs_value, dimensions)} )
 
-    def remove(symbol):
+    def remove(self, symbol):
         """
         Remove the entry for the unit matching `symbol`.
 
