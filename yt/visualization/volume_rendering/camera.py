@@ -185,8 +185,10 @@ class Camera(ParallelAnalysisInterface):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         self.log_fields = log_fields
+        dd = pf.h.all_data()
+        efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
+            self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None
@@ -1082,8 +1084,10 @@ class HEALpixCamera(Camera):
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
+        dd = pf.h.all_data()
+        efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.pf.field_info[f].take_log for f in self.fields]
+            self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
@@ -2010,8 +2014,11 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         pb.update(i)
     pb.finish()
     image = sampler.aimage
+    dd = self.pf.h.all_data()
+    field = dd._determine_fields([field])[0]
+    finfo = self.pf._get_field_info(*field)
     if weight is None:
-        dl = radius * pf.units[pf.field_info[field].projection_conversion]
+        dl = radius * pf.units[finfo.projection_conversion]
         image *= dl
     else:
         image[:,:,0] /= image[:,:,1]
@@ -2046,7 +2053,6 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
 class ProjectionCamera(Camera):
     def __init__(self, center, normal_vector, width, resolution,
             field, weight=None, volume=None, no_ghost = False, 
-            le=None, re=None,
             north_vector=None, pf=None, interpolated=False):
 
         if not interpolated:
@@ -2074,7 +2080,7 @@ class ProjectionCamera(Camera):
         Camera.__init__(self, center, normal_vector, width, resolution, None,
                 fields = fields, pf=pf, volume=volume,
                 log_fields=self.log_fields, 
-                le=le, re=re, north_vector=north_vector,
+                north_vector=north_vector,
                 no_ghost=no_ghost)
 
     def get_sampler(self, args):
@@ -2101,8 +2107,11 @@ class ProjectionCamera(Camera):
 
     def finalize_image(self,image):
         pf = self.pf
+        dd = pf.h.all_data()
+        field = dd._determine_fields([self.field])[0]
+        finfo = pf._get_field_info(*field)
         if self.weight is None:
-            dl = self.width[2] * pf.units[pf.field_info[self.field].projection_conversion]
+            dl = self.width[2] * pf.units[finfo.projection_conversion]
             image *= dl
         else:
             image[:,:,0] /= image[:,:,1]
@@ -2148,7 +2157,10 @@ class ProjectionCamera(Camera):
         return image
 
     def save_image(self, image, fn=None, clip_ratio=None):
-        if self.pf.field_info[self.field].take_log:
+        dd = self.pf.h.all_data()
+        field = dd._determine_fields([self.field])[0]
+        finfo = self.pf._get_field_info(*field)
+        if finfo.take_log:
             im = np.log10(image)
         else:
             im = image

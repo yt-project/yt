@@ -1413,6 +1413,8 @@ class OffAxisProjectionDummyDataSource(object):
         self.axis = 4 # always true for oblique data objects
         self.normal_vector = normal_vector
         self.width = width
+        self.dd = pf.h.all_data()
+        fields = self.dd._determine_fields(fields)
         self.fields = fields
         self.interpolated = interpolated
         self.resolution = resolution
@@ -1422,6 +1424,9 @@ class OffAxisProjectionDummyDataSource(object):
         self.le = le
         self.re = re
         self.north_vector = north_vector
+
+    def _determine_fields(self, *args):
+        return self.dd._determine_fields(*args)
 
 class OffAxisProjectionPlot(PWViewerMPL):
     r"""Creates an off axis projection plot from a parameter file
