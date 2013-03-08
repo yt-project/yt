@@ -283,14 +283,8 @@ class YTArray(np.ndarray):
                 raise Exception("You cannot add a pure number to a dimensional quantity. `%s - %s` is ill-defined." % (self, right_object))
 
         # `get_data_in` will not apply the conversion if the units are the same
-<<<<<<< local
         return YTArray(super(YTArray, self).__sub__(right_object))
         
-=======
-        return YTArray(super(YTArray, self).__sub__(right_object), input_units = right_object.units)
-
->>>>>>> other
-
     def __rsub__(self, left_object):
         """
         Subtract this quantity from the object on the left of the `-` operator.
@@ -329,12 +323,7 @@ class YTArray(np.ndarray):
 
         # `right_object` is not a Quantity object, so try to use it as
         # dimensionless data.
-<<<<<<< local
         return YTArray(super(YTArray, self).__mul__(right_object))
-=======
-        return YTArray(super(YTArray, self).__mul__(right_object),
-                       input_units=self.units)
->>>>>>> other
 
     def __rmul__(self, left_object):
         """
