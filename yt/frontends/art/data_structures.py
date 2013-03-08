@@ -229,7 +229,7 @@ class ARTStaticOutput(StaticOutput):
                     setattr(self,"file_"+filetype,None)
 
     def __repr__(self):
-        return self.file_amr.rsplit(".",1)[0]
+        return self.file_amr.split('/')[-1]
 
     def _set_units(self):
         """
@@ -305,6 +305,9 @@ class ARTStaticOutput(StaticOutput):
         
         for ax in 'xyz':
             self.conversion_factors["%s-velocity" % ax] = 1.0
+        for pt in particle_fields:
+            if pt not in self.conversion_factors.keys():
+                self.conversion_factors[pt] = 1.0
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
 
