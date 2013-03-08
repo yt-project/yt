@@ -210,14 +210,13 @@ def _TempkeV(field, data):
 add_field("TempkeV", function=_TempkeV, units=r"\rm{keV}",
           display_name="Temperature")
 
+def _entropy(field, data):
     if data.has_field_parameter("mu"):
         mw = mh * data.get_field_parameter("mu")
     else:
         mw = mh
     return ( kboltz * data["temperature"]
              / ((data["density"] / mw)**(data.pf.gamma - 1.0)) )
-    except:
-        gammam1 = 5./3. - 1.0
 add_field("entropy", units="erg/K", function=_entropy)
 ### spherical coordinates: r (radius)
 def _spherical_r(field, data):

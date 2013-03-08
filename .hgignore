@@ -5,6 +5,7 @@ freetype.cfg
 hdf5.cfg
 png.cfg
 yt_updater.log
+yt/frontends/artio/_artio_caller.c
 yt/frontends/ramses/_ramses_reader.cpp
 yt/frontends/sph/smoothing_kernel.c
 yt/geometry/oct_container.c

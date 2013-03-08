@@ -386,7 +386,12 @@ class DerivedField(object):
     projection_conversion : unit
        which unit should we multiply by in a projection?
     """
-
+    def __init__(self, name, function, convert_function=None,
+                 particle_convert_function=None, units=None,
+                 projected_units=None, take_log=True, validators=None,
+                 particle_type=False, vector_field=False, display_field=True,
+                 not_in_all=False, display_name=None,
+                 projection_conversion="cm"):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
