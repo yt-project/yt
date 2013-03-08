@@ -305,6 +305,42 @@ class FieldDetector(defaultdict):
     def has_field_parameter(self, param): return True
     def convert(self, item): return 1
 
+    @property
+    def fcoords(self):
+        fc = np.array(np.mgrid[0:1:self.nd*1j,
+                               0:1:self.nd*1j,
+                               0:1:self.nd*1j])
+        if self.flat:
+            fc.shape = (self.nd*self.nd*self.nd, 3)
+        else:
+            fc = fc.transpose()
+        return fc
+
+    @property
+    def icoords(self):
+        ic = np.mgrid[0:self.nd-1:self.nd*1j,
+                      0:self.nd-1:self.nd*1j,
+                      0:self.nd-1:self.nd*1j]
+        if self.flat:
+            ic.shape = (self.nd*self.nd*self.nd, 3)
+        else:
+            ic = ic.transpose()
+        return ic
+
+    @property
+    def ires(self):
+        ir = np.ones(self.nd**3, dtype="int64")
+        if not self.flat:
+            ir.shape = (self.nd, self.nd, self.nd)
+        return ir
+
+    @property
+    def fwidth(self):
+        fw = np.ones(self.nd**3, dtype="float64") / self.nd
+        if not self.flat:
+            fw.shape = (self.nd, self.nd, self.nd)
+        return fw
+
 class DerivedField(object):
     """
     This is the base class used to describe a cell-by-cell derived field.

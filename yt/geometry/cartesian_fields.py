@@ -41,26 +41,26 @@ CartesianFieldInfo.name = id(CartesianFieldInfo)
 add_cart_field = CartesianFieldInfo.add_field
 
 def _dx(field, data):
-    return data.pf.domain_width[0] * data.fwidth[:,0]
+    return data.pf.domain_width[0] * data.fwidth[...,0]
 add_cart_field('dx', function=_dx, display_field=False)
 
 def _dy(field, data):
-    return data.pf.domain_width[1] * data.fwidth[:,1]
+    return data.pf.domain_width[1] * data.fwidth[...,1]
 add_cart_field('dy', function=_dy, display_field=False)
 
 def _dz(field, data):
-    return data.pf.domain_width[2] * data.fwidth[:,2]
+    return data.pf.domain_width[2] * data.fwidth[...,2]
 add_cart_field('dz', function=_dz, display_field=False)
 
 def _coordX(field, data):
-    return data.pf.domain_left_edge[0] + data.fcoords[:,0]
+    return data.pf.domain_left_edge[0] + data.fcoords[...,0]
 add_cart_field('x', function=_coordX, display_field=False)
 
 def _coordY(field, data):
-    return data.pf.domain_left_edge[1] + data.fcoords[:,1]
+    return data.pf.domain_left_edge[1] + data.fcoords[...,1]
 add_cart_field('y', function=_coordY, display_field=False)
 
 def _coordZ(field, data):
-    return data.pf.domain_left_edge[2] + data.fcoords[:,2]
+    return data.pf.domain_left_edge[2] + data.fcoords[...,2]
 add_cart_field('z', function=_coordZ, display_field=False)
 

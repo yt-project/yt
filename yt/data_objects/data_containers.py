@@ -535,18 +535,26 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     @property
     def icoords(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.icoords
 
     @property
     def fcoords(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.fcoords
 
     @property
     def ires(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.ires
 
     @property
     def fwidth(self):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
         return self._current_chunk.fwidth
 
 class YTSelectionContainer1D(YTSelectionContainer):
