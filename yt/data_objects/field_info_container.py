@@ -59,7 +59,7 @@ class FieldInfoContainer(dict): # Resistance has utility
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
-        
+
     def add_grad(self, field, **kwargs):
         """
         Creates the partial derivative of a given field. This function will
@@ -68,31 +68,31 @@ class FieldInfoContainer(dict): # Resistance has utility
         """
         sl = slice(2,None,None)
         sr = slice(None,-2,None)
-        
+
         def _gradx(f, data):
             grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
             grad /= 2.0*data["dx"].flat[0]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
-            
+
         def _grady(f, data):
             grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
             grad /= 2.0*data["dy"].flat[0]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
-            
+
         def _gradz(f, data):
             grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
             grad /= 2.0*data["dz"].flat[0]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
-        
+
         d_kwargs = kwargs.copy()
         if "display_name" in kwargs: del d_kwargs["display_name"]
-        
+
         for ax in "xyz":
             if "display_name" in kwargs:
                 disp_name = r"%s\_%s" % (kwargs["display_name"], ax)
@@ -102,7 +102,7 @@ class FieldInfoContainer(dict): # Resistance has utility
             self[name] = DerivedField(name, function=eval('_grad%s' % ax),
                          take_log=False, validators=[ValidateSpatial(1,[field])],
                          display_name = disp_name, **d_kwargs)
-        
+
         def _grad(f, data) :
             a = np.power(data["Grad_%s_x" % field],2)
             b = np.power(data["Grad_%s_y" % field],2)
@@ -113,8 +113,8 @@ class FieldInfoContainer(dict): # Resistance has utility
         if "display_name" in kwargs:
             disp_name = kwargs["display_name"]
         else:
-            disp_name = r"\Vert\nabla %s\Vert" % (field)   
-        name = "Grad_%s" % field           
+            disp_name = r"\Vert\nabla %s\Vert" % (field)
+        name = "Grad_%s" % field
         self[name] = DerivedField(name, function=_grad, take_log=False,
                                   display_name = disp_name, **d_kwargs)
         mylog.info("Added new fields: Grad_%s_x, Grad_%s_y, Grad_%s_z, Grad_%s" \
@@ -365,30 +365,30 @@ class DerivedField(object):
 
         # handle units
         if units is None:
-            self.units = Unit()
+            self.units = ""
         elif isinstance(units, str):
-            self.units = Unit(units)
-        elif isinstance(units, Unit):
             self.units = units
+        elif isinstance(units, Unit):
+            self.units = str(units)
         else:
-            raise FieldUnitsException("Bad units type. Please provide a Unit object or a string.")
+            raise FieldUnitsError("Cannot handle units '%s' (type %s). Please provide a string or Unit object." % (units, type(units)) )
 
         if projected_units is None:
-            self.projected_units = Unit
+            self.projected_units = ""
         elif isinstance(projected_units, str):
-            self.projected_units = Unit(projected_units)
-        elif isinstance(projected_units, Unit):
             self.projected_units = projected_units
+        elif isinstance(projected_units, Unit):
+            self.projected_units = str(projected_units)
         else:
-            raise FieldUnitsException("Bad projected_units type. Please provide a Unit object or a string.")
+            raise FieldUnitsError("Cannot handle projected_units '%s' (type %s). Please provide a string or Unit object." % (projected_units, type(projection_units)) )
 
     def _copy_def(self):
         dd = {}
         dd['name'] = self.name
         dd['convert_function'] = self._convert_function
         dd['particle_convert_function'] = self._particle_convert_function
-        dd['units'] = self._units
-        dd['projected_units'] = self._projected_units,
+        dd['units'] = self.units
+        dd['projected_units'] = self.projected_units,
         dd['take_log'] = self.take_log
         dd['validators'] = self.validators.copy()
         dd['particle_type'] = self.particle_type
