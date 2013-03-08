@@ -92,7 +92,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         """
         nv = len(self.fluid_field_list)
         self.domains = [ARTDomainFile(self.parameter_file,i+1,nv,l)
-                        for i,l in enumerate(range(self.pf.max_level))]
+                        for l in range(self.pf.max_level)]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
         self.oct_handler = ARTOctreeContainer(
