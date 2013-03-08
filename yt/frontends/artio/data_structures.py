@@ -101,23 +101,24 @@ class ARTIOChunk(object) :
             assert (yt_to_art.has_key(f[1])) #fields must exist in ART
             art_fields.append(yt_to_art[f[1]])
 
-        masked_particles = {}
+        selected_particles = {}
         assert ( art_fields != None )
-        self.domain._handle.particle_var_fill(accessed_species, \
-                masked_particles, selector, art_fields )
+        self.pf._handle.particle_var_fill(accessed_species, \
+                selected_particles, selector, art_fields )
 
         #convert time variables from code units
+        #move this 
         for fieldtype, fieldname in fields :
             if fieldname in codetime_fields : 
                 print 'convert time variables from code units'
-                masked_particles[yt_to_art[fieldname]] = \
-                    self.interpb2t(masked_particles[yt_to_art[fieldname]])
+                selected_particles[yt_to_art[fieldname]] = \
+                    self.interpb2t(selected_particles[yt_to_art[fieldname]])
                 print 'convert time variables from code units'
 
         # dhr - make sure these are shallow copies
         tr = {}
         for fieldtype, fieldname in fields :
-            tr[fieldname] = masked_particles[yt_to_art[fieldname]]
+            tr[fieldname] = selected_particles[yt_to_art[fieldname]]
         return tr
 
 class ARTIOGeometryHandler(GeometryHandler):
