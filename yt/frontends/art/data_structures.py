@@ -106,8 +106,15 @@ class ARTGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         self.particle_field_list = particle_fields
-        self.field_list = set(fluid_fields + particle_fields + particle_star_fields)
+        self.field_list = set(fluid_fields + particle_fields + 
+                              particle_star_fields)
         self.field_list = list(self.field_list)
+        #now generate all of the possible particle fields
+        wspecies = self.parameter_file.parameters['wspecies']
+        nspecies  = len(wspecies)
+        self.parameter_file.particle_types = ["all","darkmatter","stars"]
+        for specie in range(nspecies):
+            self.parameter_file.particle_types.append("specie%i"%specie)
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()

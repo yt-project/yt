@@ -34,10 +34,11 @@ import yt.utilities.lib as au
 from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *
+from yt.utilities.physical_constants import sec_per_year
 
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
-    interp_tb = None
+    tb,ages= None,None
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -65,23 +66,26 @@ class IOHandlerART(BaseIOHandler):
         masks = {}
         pf = (chunks.next()).objs[0].domain.pf
         ws,ls = pf.parameters["wspecies"],pf.parameters["lspecies"]
-        npa = ls[-1]
+        sizes = np.diff(np.concatenate(([0],ls)))
+        ptmax= ws[-1]
+        npt = ls[-1]
+        nstars = ls[-1]-ls[-2]
         file_particle = pf.file_particle_data
         file_stars = pf.file_particle_stars
-        pos,vel = read_particles(file_particle,pf.parameters['Nrow'],
-                                 total=npa,dd=pf.domain_dimensions)
-        pos,vel = pos.astype('float64'), vel.astype('float64')
-        pos -= 1.0/pf.domain_dimensions[0]
-        mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
-        size = mask.sum()
-        if not any(('position' in n for t,n in fields)):
-            del pos
-        if not any(('velocity' in n for t,n in fields)):
-            del vel
-        stara,starb = ls[-2],ls[-1]
         tr = {}
+        ftype_old = None
         for field in fields:
             ftype,fname = field
+            pbool, idxa,idxb= _determine_field_size(pf,ftype,ls,ptmax)
+            npa = idxb-idxa
+            if not ftype_old == ftype:
+                pos,vel = read_particles(file_particle,pf.parameters['Nrow'],
+                                         dd=pf.domain_dimensions,
+                                         idxa=idxa,idxb=idxb)
+                pos,vel = pos.astype('float64'), vel.astype('float64')
+                pos -= 1.0/pf.domain_dimensions[0]
+                mask = selector.select_points(pos[:,0],pos[:,1],pos[:,2])
+                size = mask.sum()
             for i,ax in enumerate('xyz'):
                 if fname.startswith("particle_position_%s"%ax):
                     tr[field]=pos[:,i]
@@ -89,54 +93,72 @@ class IOHandlerART(BaseIOHandler):
                     tr[field]=vel[:,i]
             if fname == "particle_mass":
                 a=0
-                data = np.zeros(npa,dtype='float64')
-                for b,m in zip(ls,ws):
-                    data[a:b]=(np.ones(b-a,dtype='float64')*m)
-                    a=b
-                #the stellar masses will be updated later
+                data = np.zeros(npa,dtype='f8')
+                for ptb,size,m in zip(pbool,sizes,ws):
+                    if ptb:
+                        data[a:a+size]=m
+                        a+=size
                 tr[field] = data
             elif fname == "particle_index":
-                tr[field]=np.arange(npa)[mask].astype('int64')
+                tr[field]=np.arange(idxa,idxb).astype('int64')
             elif fname == "particle_type":
                 a=0
-                data = np.zeros(npa,dtype='int64')
-                for i,(b,m) in enumerate(zip(ls,ws)):
-                    data[a:b]=(np.ones(b-a,dtype='int64')*i)
-                    a=b
+                data = np.zeros(npa,dtype='int')
+                for i,(ptb,size) in enumerate(zip(pbool,sizes)):
+                    if ptb:
+                        data[a:a+size]=i
+                        a+=size
                 tr[field] = data
-            if fname in particle_star_fields:
-                #we possibly update and change the masses here
-                #all other fields are read in and changed once
-                if starb-stara==0: continue
-                temp= read_star_field(file_stars,field=fname)
-                if fname == "particle_creation_time":
-                    if self.interp_tb is None:
-                        self.tdum,self.adum = read_star_field(file_stars,
-                                                              field="tdum")
-                        tdiff = b2t(self.tdum)-pf.current_time/(3.15569e7*1e9)
-                        #timestamp of file should match amr timestamp
-                        if np.abs(tdiff) < 1e-4:
-                            mylog.debug("Timestamp mismatch in star "+
-                                         "particle header")
-                        self.interp_tb,self.interp_ages = b2t(temp)
-                    temp = np.interp(temp,self.interp_tb,self.interp_ages)
-                    temp *= 1.0e9*365*24*3600
-                if field not in tr.keys():
-                    tr[field] = np.zeros(npa,dtype='f8')
-                tr[field][stara:starb] = temp
-                del temp
+            if pbool[-1] and fname in particle_star_fields:
+                data = read_star_field(file_stars,field=fname)
+                temp = tr.get(field,np.zeros(npa,'f8'))
+                temp[-nstars:] = data
+                tr[field] = temp
+            if fname == "particle_creation_time":
+                data = tr.get(field,np.zeros(npa,'f8'))
+                self.tb,self.ages,data = interpolate_ages(tr[field][-nstars:],
+                                                          file_stars,
+                                                          self.tb,
+                                                          self.ages,
+                                                          pf.current_time)
+                tr.get(field,np.zeros(npa,'f8'))[-nstars:] = data
+                del data
             tr[field]=tr[field][mask]
+            ftype_old = ftype
         return tr
 
-def _determine_field(pf,field):
-    ptfields = ["stars","darkmatter"]
-    ptmax= self.pf.parameters['wspecies'][-1]
-    if type(field) == int:
-        return field
-    if field in ptfields:
-        return field
-    return "all"
+def _determine_field_size(pf,field,lspecies,ptmax):
+    pbool = np.zeros(len(lspecies),dtype="bool")
+    idxas = np.concatenate(([0,],lspecies[:-1]))
+    idxbs = lspecies
+    if "specie" in field:
+        index = int(field.replace("specie",""))
+        pbool[index] = True
+    elif field == "stars":
+        pbool[-1] = True
+    elif field == "darkmatter":
+        pbool[0:-1]=True
+    else:
+        pbool[:]=True
+    idxa,idxb = idxas[pbool][0],idxbs[pbool][-1]
+    return pbool,idxa,idxb
 
+def interpolate_ages(data,file_stars,interp_tb=None,interp_ages=None,
+                    current_time=None):
+    if interp_tb is None:
+        tdum,adum = read_star_field(file_stars,
+                                              field="tdum")
+        #timestamp of file should match amr timestamp
+        if current_time:
+            tdiff = b2t(tdum)-current_time/(sec_per_year*1e9)
+            if np.abs(tdiff) < 1e-4:
+                mylog.info("Timestamp mismatch in star "+
+                             "particle header")
+        mylog.info("Interpolating ages")
+        interp_tb,interp_ages = b2t(data)
+    temp = np.interp(data,interp_tb,interp_ages)
+    temp *= 1.0e9*sec_per_year
+    return interp_tb,interp_ages, temp
 
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):
@@ -287,7 +309,7 @@ def _read_art_level_info(f, level_oct_offsets,level,coarse_grid=128,
     return unitary_center,fl,iocts,nLevel,root_level
 
 
-def read_particles(file,Nrow,total=None,dd=1.0):
+def read_particles(file,Nrow,dd=1.0,idxa=None,idxb=None):
     words = 6 # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4 # for file_particle_data; not always true?
     np_per_page = Nrow**2 # defined in ART a_setup.h
@@ -296,10 +318,7 @@ def read_particles(file,Nrow,total=None,dd=1.0):
     f = np.fromfile(file, dtype='>f4').astype('float32') # direct access
     pages = np.vsplit(np.reshape(f, (num_pages, words, np_per_page)), num_pages)
     data = np.squeeze(np.dstack(pages)).T # x,y,z,vx,vy,vz
-    if total is None:
-        return data[:,0:3]/dd,data[:,3:]
-    else:
-        return data[:total,0:3]/dd,data[:total,3:]
+    return data[idxa:idxb,0:3]/dd,data[idxa:idxb,3:]
 
 def read_star_field(file,field=None):
     data = {}
