@@ -3,6 +3,8 @@ ART-specific fields
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
+Author: Chris Moody <matthewturk@gmail.com>
+Affiliation: UCSC
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
