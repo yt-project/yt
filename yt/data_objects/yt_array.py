@@ -28,10 +28,13 @@ License:
 import copy
 
 import numpy as np
+import sympy
 
 from numpy import add, subtract, multiply, divide, \
     negative, absolute, sqrt, square, power, reciprocal, ones_like, \
-    isnan, isinf, cos, sin, log10, greater, equal, not_equal
+    isnan, isinf, cos, sin, log10, greater, equal, not_equal, \
+    less_equal, greater_equal, less, \
+    bitwise_or, bitwise_not, bitwise_and
 
 from yt.utilities.units import Unit, UnitOperationError, dimensionless
 
@@ -80,10 +83,28 @@ def log10_unit(unit):
 def greater_unit(unit1, unit2):
     return dimensionless
 
+def less_unit(unit1, unit2):
+    return dimensionless
+
+def greater_equal_unit(unit1, unit2):
+    return dimensionless
+
+def less_equal_unit(unit1, unit2):
+    return dimensionless
+
 def equal_unit(unit1, unit2):
     return dimensionless
 
 def not_equal_unit(unit1, unit2):
+    return dimensionless
+
+def bitwise_and_unit(unit1, unit2):
+    return dimensionless
+
+def bitwise_or_unit(unit1, unit2):
+    return dimensionless
+
+def bitwise_not_unit(unit1, unit2):
     return dimensionless
 
 class YTArray(np.ndarray):
@@ -96,9 +117,12 @@ class YTArray(np.ndarray):
                        square: square_unit, ones_like: ones_like_units,
                        isnan: isnan_unit, isinf: isinf_unit,
                        negative: negative_unit, absolute: absolute_unit,
-                       cos: cos_unit, sin: sin_unit, log10: log10_unit,
-                       greater: greater_unit, equal: equal_unit,
-                       not_equal: not_equal_unit}
+                       cos: cos_unit, sin: sin_unit, log10: log10_unit, equal:
+                       equal_unit, greater: greater_unit, greater_equal:
+                       greater_equal_unit, less: less_unit, less_equal:
+                       less_equal_unit, not_equal: not_equal_unit, bitwise_or:
+                       bitwise_or_unit, bitwise_not: bitwise_not_unit,
+                       bitwise_and: bitwise_and_unit}
 
     def __new__(cls, input_array, input_units=None):
         if isinstance(input_array, YTArray):
@@ -419,7 +443,7 @@ class YTArray(np.ndarray):
 
             return super(YTArray, self).__le__(right_object.in_units(self.units))
 
-        return super(YTArray, self).__le__(right_object)
+        return super(YTArray, self).__le__(other)
 
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
