@@ -30,7 +30,8 @@ import copy
 import numpy as np
 
 from numpy import add, subtract, multiply, divide, \
-    negative, absolute, sqrt, square, power, reciprocal
+    negative, absolute, sqrt, square, power, reciprocal, ones_like, \
+    isnan, isinf, cos, sin, log10, greater, equal, not_equal
 
 from yt.utilities.units import Unit, UnitOperationError, dimensionless
 
@@ -46,8 +47,44 @@ def preserve_unit(unit1, unit2):
 def power_unit(unit, power):
     return unit**power
 
+def square_unit(unit):
+    return unit*unit
+
 def divide_units(unit1, unit2):
     return unit1/unit2
+
+def ones_like_units(unit):
+    return unit
+
+def isnan_unit(unit):
+    return dimensionless
+
+def isinf_unit(unit):
+    return dimensionless
+
+def negative_unit(unit):
+    return unit
+
+def absolute_unit(unit):
+    return unit
+
+def cos_unit(unit):
+    return dimensionless
+
+def sin_unit(unit):
+    return dimensionless
+
+def log10_unit(unit):
+    return sympy.log(unit, 10)
+
+def greater_unit(unit1, unit2):
+    return dimensionless
+
+def equal_unit(unit1, unit2):
+    return dimensionless
+
+def not_equal_unit(unit1, unit2):
+    return dimensionless
 
 class YTArray(np.ndarray):
     """
@@ -55,7 +92,13 @@ class YTArray(np.ndarray):
     """
     _ufunc_registry = {sqrt: sqrt_unit, multiply: multiply_units,
                        add: preserve_unit, subtract: preserve_unit,
-                       power: power_unit, divide: divide_units}
+                       power: power_unit, divide: divide_units,
+                       square: square_unit, ones_like: ones_like_units,
+                       isnan: isnan_unit, isinf: isinf_unit,
+                       negative: negative_unit, absolute: absolute_unit,
+                       cos: cos_unit, sin: sin_unit, log10: log10_unit,
+                       greater: greater_unit, equal: equal_unit,
+                       not_equal: not_equal_unit}
 
     def __new__(cls, input_array, input_units=None):
         if isinstance(input_array, YTArray):
@@ -273,7 +316,7 @@ class YTArray(np.ndarray):
 
     def __neg__(self):
         """ Negate the data. """
-        return YTArray(super(YTArray, self).__neg__(self))
+        return YTArray(super(YTArray, self).__neg__())
 
     def __mul__(self, right_object):
         """
@@ -420,7 +463,7 @@ class YTArray(np.ndarray):
     def __gt__(self, other):
         """ Test if this is greater than the object on the right. """
         # Check that the other is a YTArray.
-        if isinstance(right_object, YTArray):
+        if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
                 raise Exception("The greater than operator for "
                     "YTArrays with units %s and %s is not well defined."
@@ -428,7 +471,7 @@ class YTArray(np.ndarray):
 
             return super(YTArray, self).__gt__(other.in_units(self.units))
 
-        return super(YTArray, self).__gt__(right_object)
+        return super(YTArray, self).__gt__(other)
 
     #
     # End comparison operators
