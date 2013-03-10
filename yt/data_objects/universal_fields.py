@@ -141,6 +141,11 @@ add_field("ones", function=_ones, projection_conversion="unitary",
           display_field=False)
 add_field("cells_per_bin", function=_ones, display_field=False)
 
+def _zeros(field, data):
+    return np.zeros(data.shape, dtype=np.float64)
+
+add_field("zeros", function=_zeros, projection_conversion="unitary",
+          display_field=False)
 
 def _sound_speed(field, data):
     if data.pf["eos_type"] == 1:
