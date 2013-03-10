@@ -184,11 +184,11 @@ class ARTStaticOutput(StaticOutput):
             fields = fluid_fields
         filename = os.path.abspath(filename)
         self._fields_in_file = fields
-        self._find_files(filename)
         self.file_amr = filename
         self.file_particle_header = file_particle_header
         self.file_particle_data = file_particle_data
         self.file_particle_stars = file_particle_stars
+        self._find_files(filename)
         self.parameter_filename = filename
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars

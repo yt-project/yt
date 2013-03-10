@@ -66,8 +66,16 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_selection(self, chunks, selector, fields):
         # ignore chunking; we have no particle chunk system
+        chunk = chunks.next()
+        level = chunk.objs[0].domain.domain_level 
+        # only chunk out particles on level zero
+        if level > 0: 
+            tr = {}
+            for field in fields:
+                tr[field] = np.array([],'f8')
+            return tr
+        pf = chunk.objs[0].domain.pf
         masks = {}
-        pf = (chunks.next()).objs[0].domain.pf
         ws, ls = pf.parameters["wspecies"], pf.parameters["lspecies"]
         sizes = np.diff(np.concatenate(([0], ls)))
         ptmax = ws[-1]
@@ -115,17 +123,19 @@ class IOHandlerART(BaseIOHandler):
             if pbool[-1] and fname in particle_star_fields:
                 data = read_star_field(file_stars, field=fname)
                 temp = tr.get(field, np.zeros(npa, 'f8'))
-                temp[-nstars:] = data
+                if nstars > 0:
+                    temp[-nstars:] = data
                 tr[field] = temp
             if fname == "particle_creation_time":
-                data = tr.get(field, np.zeros(npa, 'f8'))
                 self.tb, self.ages, data = interpolate_ages(
                     tr[field][-nstars:],
                     file_stars,
                     self.tb,
                     self.ages,
                     pf.current_time)
-                tr.get(field, np.zeros(npa, 'f8'))[-nstars:] = data
+                temp = tr.get(field, np.zeros(npa, 'f8'))
+                temp[-nstars:] = data
+                tr[field]=temp
                 del data
             tr[field] = tr[field][mask]
             ftype_old = ftype

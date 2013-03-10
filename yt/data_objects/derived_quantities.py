@@ -684,10 +684,12 @@ def _ParticleDensityCenter(data,nbins=3):
     Find the center of the particle density
     by histogramming the particles iteratively.
     """
-    pos = np.array([data["particle_position_%s"%ax] for ax in "xyz"]).T
-    mas = data["particle_mass"]
+    pos = np.array([data[('all',"particle_position_%s"%ax)] for ax in "xyz"]).T
+    mas = data[('all',"particle_mass")]
     calc_radius= lambda x,y:np.sqrt(np.sum((x-y)**2.0,axis=1))
     density = 0
+    if pos.shape[0]==0:
+        return -1.0,[-1.,-1.,-1.]
     while pos.shape[0] > 1:
         table,bins=np.histogramdd(pos,bins=nbins, weights=mas)
         bin_size = min((np.max(bins,axis=1)-np.min(bins,axis=1))/nbins)
