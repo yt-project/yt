@@ -478,7 +478,6 @@ class YTArray(np.ndarray):
     #
 
     def __array_wrap__(self, out_arr, context=None):
-
         if context is None:
             pass
         elif len(context[1]) == 1:
@@ -500,5 +499,6 @@ class YTArray(np.ndarray):
             out_arr.units = self._ufunc_registry[context[0]](unit1, unit2)
         else:
             raise RuntimeError("Only unary and binary operators are allowed.")
-
-        return out_arr
+        if out_arr.size == 1 and out_arr.size != self.size:
+            return out_arr[0]
+        return super(YTArray, self).__array_wrap__(out_arr, context)
