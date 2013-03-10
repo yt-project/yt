@@ -679,7 +679,7 @@ def _combTotalQuantity(data, n_fields, totals):
 add_quantity("TotalQuantity", function=_TotalQuantity,
                 combine_function=_combTotalQuantity, n_ret=2)
 
-def _ParticleDensityCenter(data,field,nbins=3):
+def _ParticleDensityCenter(data,nbins=3):
     """
     Find the center of the particle density
     by histogramming the particles iteratively.
