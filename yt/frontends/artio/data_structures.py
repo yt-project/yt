@@ -147,11 +147,14 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def find_max_cell_location(self, field, finest_levels = 3):
         source = self.all_data()
+        #print "source: ", type(source)
         if finest_levels is not False:
             source.min_level = self.max_level - finest_levels
         mylog.debug("Searching for maximum value of %s", field)
+        #print type(source.quantities), source.quantities.keys()
         max_val, maxi, mx, my, mz = \
             source.quantities["MaxLocation"](field)
+        #print "after source.quantities"
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
         self.pf.parameters["Max%sValue" % (field)] = max_val
@@ -172,12 +175,11 @@ class ARTIOGeometryHandler(GeometryHandler):
         if getattr(dobj, "_chunk_info", None) is None:
             print "Running selector on base grid"
             list_sfc_ranges = self.pf._handle.root_sfc_ranges(dobj.selector)
+            print "Generating list of chunks"
             dobj._chunk_info = [ARTIOChunk(self.pf, dobj.selector, start, end)
                     for (start,end) in list_sfc_ranges]
             print "done creating ARTIOChunks"
-#            dobj.size = sum(masked_cell_count)
-#            dobj.shape = (dobj.size,)
-        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+        dobj._current_chunk = None
         print 'done with base chunk'
 
     def _data_size(self, dobj, dobjs) :
@@ -286,10 +288,10 @@ class ARTIOStaticOutput(StaticOutput):
         self.conversion_factors['particle_mass_msun'] = self.parameters['unit_m']/constants.Msun
 
         #for mult_halo_profiler.py:
-        self.parameters['TopGridDimensions'] = [128,128,128]
+        self.parameters['TopGridDimensions'] = 3*[self._handle.num_grid]
         self.parameters['RefineBy'] = 2
-        self.parameters['DomainLeftEdge'] = [0,0,0]
-        self.parameters['DomainRightEdge'] =  [128,128,128]
+        self.parameters['DomainLeftEdge'] = 3*[0]
+        self.parameters['DomainRightEdge'] = 3*[self._handle.num_grid]
         self.parameters['TopGridRank'] = 3 #number of dimensions
        
     def _parse_parameter_file(self):
@@ -347,6 +349,7 @@ class ARTIOStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(self, *args, **kwargs) :
         # a valid artio header file starts with a prefix and ends with .art
-        if not args[0].endswith(".art"): return False
+        if not args[0].endswith(".art"): 
+            return False
         return artio_is_valid(args[0][:-4])
 
