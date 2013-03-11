@@ -142,7 +142,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                 nocts = d.level_count[d.domain_level]
                 if c < 1:
                     continue
-                subsets += ARTDomainSubset(d, mask, c, d.domain_level),
+                subset = ARTDomainSubset(d, mask, c, d.domain_level)
+                subsets.append(subset)
             dobj._chunk_info = subsets
             dobj.size = sum(counts)
             dobj.shape = (dobj.size,)
