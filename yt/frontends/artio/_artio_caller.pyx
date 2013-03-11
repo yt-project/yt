@@ -133,7 +133,7 @@ cdef class artio_fileset :
 
         self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global ) 
         self.read_parameters()
-        print 'print parameters in caller.pyx',self.parameters
+        #print 'print parameters in caller.pyx',self.parameters
         print 'done reading header parameters'
 
         self.num_root_cells = self.parameters['num_root_cells'][0]
@@ -333,7 +333,8 @@ cdef class artio_fileset :
 
 
         # cache the range
-        status = artio_particle_cache_sfc_range( self.handle, sfc_start, sfc_end )
+#        status = artio_particle_cache_sfc_range( self.handle, sfc_start, sfc_end )
+        status = artio_grid_cache_sfc_range( self.handle, self.sfc_file_min, self.sfc_file_max )
         check_artio_status(status)
 
         # determine max number of particles we could hit (optimize later)

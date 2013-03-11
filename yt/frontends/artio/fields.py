@@ -40,7 +40,7 @@ KnownARTIOFields = FieldInfoContainer()
 add_artio_field = KnownARTIOFields.add_field
 
 #snl: doug removed RFI, but field name is needed in yt/data_objects/field_info_container.py?
-ARTIOFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI") 
+ARTIOFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo) 
 add_field = ARTIOFieldInfo.add_field
 
 known_artio_fields = ['Density', 'TotalEnergy',
@@ -57,18 +57,29 @@ for f in known_artio_fields:
 add_artio_field("Gamma", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("Gamma")])
 
-def dx(field, data):
-    return data.fwidth[:,0]
-add_field("dx", function=dx)
-
-def dy(field, data):
-    return data.fwidth[:,1]
-add_field("dy", function=dy)
-
-def dz(field, data):
-    return data.fwidth[:,2]
-add_field("dz", function=dz)
-
+#def dx(field, data):
+#    return data.fwidth[:,0]
+#add_field("dx", function=dx)
+#
+#def dy(field, data):
+#    return data.fwidth[:,1]
+#add_field("dy", function=dy)
+#
+#def dz(field, data):
+#    return data.fwidth[:,2]
+#add_field("dz", function=dz)
+#
+#def x(field, data):
+#    return data.fcoords[:,0]
+#add_field("x", function=x)
+#
+#def y(field, data):
+#    return data.fcoords[:,1]
+#add_field("y", function=y)
+#
+#def z(field, data):
+#    return data.fcoords[:,2]
+#add_field("z", function=z)
 
 def _convertDensity(data):
     return data.convert("Density")
