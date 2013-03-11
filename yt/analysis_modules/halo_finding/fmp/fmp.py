@@ -24,6 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as np
+from yt.funcs import *
 from yt.frontends.stream.api import load_uniform_grid
 
 class FindMaxProgenitor:
@@ -75,38 +76,22 @@ class FindMaxProgenitor:
                 dd = pf.h.sphere(c,radius)
                 data = dict(number_of_particles=indices.shape[0])
                 index = dd[(particle_type,'particle_index')]
-                inside = find_index_in_array(index,indices)
+                mylog.info("Collecting particles")
+                inside = np.in1d(indices,index,assume_unique=True)
                 for ax in 'xyz':
                     pos = dd[(particle_type,"particle_position_%s"%ax)][inside]
                     data[('all','particle_position_%s'%ax)]= pos
                 mas = dd[(particle_type,"particle_mass")][inside]
                 data[('all','particle_mass')]= mas
+                mylog.info("Finding center")
                 subselection = load_uniform_grid(data,domain_dimensions,
                                                  sim_unit_to_cm)
                 ss = subselection.h.all_data()
                 v,c = ss.quantities["ParticleDensityCenter"]()
+            mylog.info("Finding central indices")
             sph = pf.h.sphere(c,radius)
             rad = sph["ParticleRadius"]
             idx = sph["particle_index"]
             indices = idx[np.argsort(rad)[:nparticles]]
             centers.append(c)
         return centers
-            
-def chunks(l, n):
-    #http://stackoverflow.com/questions/312443/how-do-you-split-
-    #a-list-into-evenly-sized-chunks-in-python
-    """ Yield successive n-sized chunks from l.
-    """
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
-
-def find_index_in_array(arr1,arr2,size=long(1e6)):
-    #for element in arr2 find corresponding index in arr1
-    #temporary size is arr1.shape x arr2.shape so chunk this out
-    indices = np.array((),'i8')
-    for chunk in chunks(arr1,size):
-        idx = np.where(np.reshape(chunk,(chunk.shape[0],1))==
-                       np.reshape(arr2,(1,arr2.shape[0])))[0]
-        indices = np.concatenate((indices,idx)).astype('i8')
-    return indices
-
