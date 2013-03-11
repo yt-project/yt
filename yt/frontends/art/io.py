@@ -57,7 +57,8 @@ class IOHandlerART(BaseIOHandler):
                 # and pick off the right vectors
                 rv = subset.fill(f, fields)
                 for ft, f in fields:
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                    mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
+                                subset.domain_level,
                                 f, subset.cell_count, rv[f].min(), rv[f].max(),
                                 cp, cp+subset.cell_count)
                     tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
