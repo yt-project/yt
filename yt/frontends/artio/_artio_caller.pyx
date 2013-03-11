@@ -331,7 +331,6 @@ cdef class artio_fileset :
             if (not primary_variables[aspec]) or \
                     (not secondary_variables[aspec]) : raise MemoryError
 
-
         # cache the range
 #        status = artio_particle_cache_sfc_range( self.handle, sfc_start, sfc_end )
         status = artio_grid_cache_sfc_range( self.handle, self.sfc_file_min, self.sfc_file_max )
@@ -340,12 +339,15 @@ cdef class artio_fileset :
         # determine max number of particles we could hit (optimize later)
         max_particles= np.zeros(num_acc_species,dtype="int32")
         for sfc in range( self.sfc_start, self.sfc_end+1 ) :
-                status = artio_particle_read_root_cell_begin( self.handle, sfc,
+            status = artio_particle_read_root_cell_begin( self.handle, sfc,
                     num_particles_per_species )
-                check_artio_status(status)	
-                for aspec in num_acc_species : 
-                    ispec = iacc_to_ispec[aspec]
-                    max_particles[aspec] += num_particles_per_species[ispec] 
+            check_artio_status(status)	
+            for aspec in num_acc_species : 
+                ispec = iacc_to_ispec[aspec]
+                max_particles[aspec] += num_particles_per_species[ispec] 
+            status = artio_particle_read_root_cell_end( self.handle )
+            check_artio_status(status)
+
         # mask begin  ###################
         mask = <int**>malloc(sizeof(int*)*num_acc_species)
         if not mask : raise MemoryError
@@ -358,12 +360,14 @@ cdef class artio_fileset :
             count_mask.append(0)
             ipspec.append(0)
             ispec=iacc_to_ispec[aspec]
+
         print "generating mask for particles"
         for sfc in range( self.sfc_start, self.sfc_end+1 ) :
             status = artio_particle_read_root_cell_begin( 
                 self.handle, sfc,
                 num_particles_per_species )
             check_artio_status(status)
+
             for aspec in range(num_acc_species ) :
                 ispec = iacc_to_ispec[aspec]
                 status = artio_particle_read_species_begin(
@@ -422,6 +426,7 @@ cdef class artio_fileset :
                     how_to_read[ispec,i]= 'empty'
                     field_to_index[ispec][i] = 9999999
                 print 'ispec', ispec,'field',f, 'how_to_read', how_to_read[ispec,i] 
+
         cdef np.float32_t **fpoint
         fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*num_fields)
         if not fpoint : raise MemoryError
