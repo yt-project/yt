@@ -65,82 +65,81 @@ class IOHandlerART(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        # ignore chunking; we have no particle chunk system
-        chunk = chunks.next()
-        level = chunk.objs[0].domain.domain_level 
-        # only chunk out particles on level zero
-        if level > 0: 
-            tr = {}
-            for field in fields:
-                tr[field] = np.array([],'f8')
-            return tr
-        pf = chunk.objs[0].domain.pf
-        masks = {}
-        ws, ls = pf.parameters["wspecies"], pf.parameters["lspecies"]
-        sizes = np.diff(np.concatenate(([0], ls)))
-        ptmax = ws[-1]
-        npt = ls[-1]
-        nstars = ls[-1]-ls[-2]
-        file_particle = pf.file_particle_data
-        file_stars = pf.file_particle_stars
         tr = {}
-        ftype_old = None
-        for field in fields:
-            ftype, fname = field
-            pbool, idxa, idxb = _determine_field_size(pf, ftype, ls, ptmax)
-            npa = idxb-idxa
-            if not ftype_old == ftype:
-                pos, vel = read_particles(file_particle, pf.parameters['Nrow'],
-                                          dd=pf.domain_dimensions,
-                                          idxa=idxa, idxb=idxb)
-                pos, vel = pos.astype('float64'), vel.astype('float64')
-                pos -= 1.0/pf.domain_dimensions[0]
-                mask = selector.select_points(pos[:, 0], pos[:, 1], pos[:, 2])
-                size = mask.sum()
-            for i, ax in enumerate('xyz'):
-                if fname.startswith("particle_position_%s" % ax):
-                    tr[field] = pos[:, i]
-                if fname.startswith("particle_velocity_%s" % ax):
-                    tr[field] = vel[:, i]
-            if fname == "particle_mass":
-                a = 0
-                data = np.zeros(npa, dtype='f8')
-                for ptb, size, m in zip(pbool, sizes, ws):
-                    if ptb:
-                        data[a:a+size] = m
-                        a += size
-                tr[field] = data
-            elif fname == "particle_index":
-                tr[field] = np.arange(idxa, idxb).astype('int64')
-            elif fname == "particle_type":
-                a = 0
-                data = np.zeros(npa, dtype='int')
-                for i, (ptb, size) in enumerate(zip(pbool, sizes)):
-                    if ptb:
-                        data[a:a+size] = i
-                        a += size
-                tr[field] = data
-            if pbool[-1] and fname in particle_star_fields:
-                data = read_star_field(file_stars, field=fname)
-                temp = tr.get(field, np.zeros(npa, 'f8'))
-                if nstars > 0:
+        fields_read = []
+        for chunk in chunks:
+            level = chunk.objs[0].domain.domain_level 
+            pf = chunk.objs[0].domain.pf
+            masks = {}
+            ws, ls = pf.parameters["wspecies"], pf.parameters["lspecies"]
+            sizes = np.diff(np.concatenate(([0], ls)))
+            ptmax = ws[-1]
+            npt = ls[-1]
+            nstars = ls[-1]-ls[-2]
+            file_particle = pf.file_particle_data
+            file_stars = pf.file_particle_stars
+            ftype_old = None
+            for field in fields:
+                if field in fields_read: continue
+                ftype, fname = field
+                pbool, idxa, idxb = _determine_field_size(pf, ftype, ls, ptmax)
+                npa = idxb-idxa
+                if not ftype_old == ftype:
+                    Nrow = pf.parameters["Nrow"]
+                    rp = lambda ax: read_particles(file_particle,Nrow,idxa=idxa,
+                                                   idxb=idxb,field=ax)
+                    x,y,z = (rp(ax) for ax in 'xyz')
+                    dd = pf.domain_dimensions[0]
+                    off = 1.0/dd
+                    x,y,z = (t.astype('f8')/dd - off  for t in (x,y,z))
+                    mask = selector.select_points(x,y,z)
+                    size = mask.sum()
+                for i, ax in enumerate('xyz'):
+                    if fname.startswith("particle_position_%s" % ax):
+                        tr[field] = vars()[ax]
+                    if fname.startswith("particle_velocity_%s" % ax):
+                        tr[field] = rp('v'+ax)
+                if fname == "particle_mass":
+                    a = 0
+                    data = np.zeros(npa, dtype='f8')
+                    for ptb, size, m in zip(pbool, sizes, ws):
+                        if ptb:
+                            data[a:a+size] = m
+                            a += size
+                    tr[field] = data
+                elif fname == "particle_index":
+                    tr[field] = np.arange(idxa, idxb).astype('int64')
+                elif fname == "particle_type":
+                    a = 0
+                    data = np.zeros(npa, dtype='int')
+                    for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+                        if ptb:
+                            data[a:a+size] = i
+                            a += size
+                    tr[field] = data
+                if pbool[-1] and fname in particle_star_fields:
+                    data = read_star_field(file_stars, field=fname)
+                    temp = tr.get(field, np.zeros(npa, 'f8'))
+                    if nstars > 0:
+                        temp[-nstars:] = data
+                    tr[field] = temp
+                if fname == "particle_creation_time":
+                    self.tb, self.ages, data = interpolate_ages(
+                        tr[field][-nstars:],
+                        file_stars,
+                        self.tb,
+                        self.ages,
+                        pf.current_time)
+                    temp = tr.get(field, np.zeros(npa, 'f8'))
                     temp[-nstars:] = data
-                tr[field] = temp
-            if fname == "particle_creation_time":
-                self.tb, self.ages, data = interpolate_ages(
-                    tr[field][-nstars:],
-                    file_stars,
-                    self.tb,
-                    self.ages,
-                    pf.current_time)
-                temp = tr.get(field, np.zeros(npa, 'f8'))
-                temp[-nstars:] = data
-                tr[field]=temp
-                del data
-            tr[field] = tr[field][mask]
-            ftype_old = ftype
+                    tr[field]=temp
+                    del data
+                tr[field] = tr[field][mask]
+                ftype_old = ftype
+                fields_read.append(field)
+        if tr=={}:
+            tr = dict((f,np.array([])) for f in fields)
         return tr
-
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
@@ -324,19 +323,32 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     f.seek(pos)
     return unitary_center, fl, iocts, nLevel, root_level
 
-
-def read_particles(file, Nrow, dd=1.0, idxa=None, idxb=None):
+def read_particles(file,Nrow,idxa=None,idxb=None,field=None):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
     np_per_page = Nrow**2  # defined in ART a_setup.h
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
-
-    f = np.fromfile(file, dtype='>f4').astype('float32')  # direct access
-    pages = np.vsplit(np.reshape(f, (
-        num_pages, words, np_per_page)), num_pages)
-    data = np.squeeze(np.dstack(pages)).T  # x,y,z,vx,vy,vz
-    return data[idxa:idxb, 0:3]/dd, data[idxa:idxb, 3:]
-
+    data = np.array([],'f4')
+    fh = open(file,'r')
+    totalp = idxb-idxa
+    left = totalp
+    for page in range(num_pages):
+        for i,fname in enumerate(['x','y','z','vx','vy','vz']):
+            if i==field or fname==field:
+                if idxa is not None:
+                    fh.seek(real_size*idxa,1)
+                    count = min(np_per_page,left)
+                    temp = np.fromfile(fh,count=count,dtype='>f4')
+                    pageleft = np_per_page-count-idxa
+                    fh.seek(real_size*pageleft,1)
+                    left -= count
+                else:
+                    count = np_per_page
+                    temp = np.fromfile(fh,count=count,dtype='>f4')
+                data = np.concatenate((data,temp))
+            else:
+                fh.seek(4*np_per_page,1)
+    return data
 
 def read_star_field(file, field=None):
     data = {}
