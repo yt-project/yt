@@ -1215,7 +1215,7 @@ class SlicePlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis],
-            field_parameters = field_parameters)
+            field_parameters = field_parameters, center=center)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize)
