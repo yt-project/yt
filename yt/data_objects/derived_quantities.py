@@ -679,13 +679,14 @@ def _combTotalQuantity(data, n_fields, totals):
 add_quantity("TotalQuantity", function=_TotalQuantity,
                 combine_function=_combTotalQuantity, n_ret=2)
 
-def _ParticleDensityCenter(data,nbins=3):
+def _ParticleDensityCenter(data,nbins=3,particle_type="all"):
     """
     Find the center of the particle density
     by histogramming the particles iteratively.
     """
-    pos = np.array([data[('all',"particle_position_%s"%ax)] for ax in "xyz"]).T
-    mas = data[('all',"particle_mass")]
+    pos = [data[(particle_type,"particle_position_%s"%ax)] for ax in "xyz"]
+    pos = np.array(pos).T
+    mas = data[(particle_type,"particle_mass")]
     calc_radius= lambda x,y:np.sqrt(np.sum((x-y)**2.0,axis=1))
     density = 0
     if pos.shape[0]==0:
