@@ -26,8 +26,13 @@ License:
 import numpy as np
 from yt.funcs import *
 from yt.frontends.stream.api import load_uniform_grid
+from yt.utilities.parallel_tools import parallel_analysis_interface
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+     parallel_objects
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface, ProcessorPool, Communicator
 
-class FindMaxProgenitor:
+class FindMaxProgenitor(ParallelAnalysisInterface):
     def __init__(self,ts):
         self.ts = ts
     
@@ -70,14 +75,24 @@ class FindMaxProgenitor:
         if c is None:
             v,c = dd.quantities["ParticleDensityCenter"](particle_type=\
                                                          particle_type)
-        centers = []
-        for pf in self.ts[::-1]:
-            if indices is not None:
+        centers = {}
+        earliest_c = c
+        for pfs_chunk in chunks(self.ts[::-1]):
+            pf = pfs_chunk[0] #first is the latest in time
+            mylog.info("Finding central indices")
+            sph = pf.h.sphere(earliest_c,radius)
+            rad = sph["ParticleRadius"]
+            idx = sph["particle_index"]
+            indices = idx[np.argsort(rad)[:nparticles]]
+            for sto, pf in parallel_objects(pfs_chunk,storage=centers):
                 dd = pf.h.sphere(c,radius)
                 data = dict(number_of_particles=indices.shape[0])
                 index = dd[(particle_type,'particle_index')]
-                mylog.info("Collecting particles")
                 inside = np.in1d(indices,index,assume_unique=True)
+                mylog.info("Collecting particles %1.1e of %1.1e",inside.sum(),
+                           nparticles)
+                if inside.sum()==0:
+                    mylog.warning("Found no matching indices in %s",str(pf)) 
                 for ax in 'xyz':
                     pos = dd[(particle_type,"particle_position_%s"%ax)][inside]
                     data[('all','particle_position_%s'%ax)]= pos
@@ -88,10 +103,17 @@ class FindMaxProgenitor:
                                                  sim_unit_to_cm)
                 ss = subselection.h.all_data()
                 v,c = ss.quantities["ParticleDensityCenter"]()
-            mylog.info("Finding central indices")
-            sph = pf.h.sphere(c,radius)
-            rad = sph["ParticleRadius"]
-            idx = sph["particle_index"]
-            indices = idx[np.argsort(rad)[:nparticles]]
-            centers.append(c)
+                sto.result_id = pf.parameters['aexpn']
+                sto.result = c
+            #last in the chunk is the earliest in time
+            earliest_c = centers[pf_chunk[-1].parameters['aexpn']]
         return centers
+
+def chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    #http://stackoverflow.com/questions/312443/
+    #how-do-you-split-a-list-into-evenly-sized-chunks-in-python
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
