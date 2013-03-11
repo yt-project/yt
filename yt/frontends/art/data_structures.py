@@ -86,6 +86,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.max_level = pf.max_level
         self.float_type = np.float64
         super(ARTGeometryHandler, self).__init__(pf, data_style)
+        pf.domain_width = pf.domain_dimensions.astype('f8')
 
     def _initialize_oct_handler(self):
         """
