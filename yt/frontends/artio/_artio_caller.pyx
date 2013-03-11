@@ -263,7 +263,7 @@ cdef class artio_fileset :
         cdef np.ndarray[np.float32_t, ndim=1] arr
         cdef int **mask
         cdef int *num_particles_per_species 
-        cdef int **pos_index
+        cdef int *pos_index
 
         cdef int *subspecies
         subspecies = <int*>malloc(sizeof(int))
@@ -296,13 +296,12 @@ cdef class artio_fileset :
                     fieldnames[aspec].append(fieldname)
 
         # translate from yt specie index to ART specie index
-        pos_index = <int**>malloc(sizeof(int*)*self.num_species)
+        pos_index = <int*>malloc(sizeof(float)*self.num_species) #dhr - is float the right precision? 
         if not pos_index: raise MemoryError
-        for ispec in range(self.num_species) : 
-            pos_index[ispec] = <int*>malloc(3*sizeof(int))
-            pos_index[ispec][0] = self.fnART_primary[ispec].index('POSITION_X')
-            pos_index[ispec][1] = self.fnART_primary[ispec].index('POSITION_Y')
-            pos_index[ispec][2] = self.fnART_primary[ispec].index('POSITION_Z')
+        for ispec in range(self.num_species) :
+            pos_index[3*ispec+0] = self.fnART_primary[ispec].index('POSITION_X')
+            pos_index[3*ispec+1] = self.fnART_primary[ispec].index('POSITION_Y')
+            pos_index[3*ispec+2] = self.fnART_primary[ispec].index('POSITION_Z')
         iacc_to_ispec = <int*>malloc(sizeof(int)*num_acc_species)
         if not iacc_to_ispec: raise MemoryError
         for aspec, specie in enumerate(accessed_species):
@@ -380,9 +379,9 @@ cdef class artio_fileset :
                         pid, subspecies, primary_variables[aspec],
                         secondary_variables[aspec])
                     check_artio_status(status)
-                    pos[0] = primary_variables[aspec][pos_index[aspec][0]]
-                    pos[1] = primary_variables[aspec][pos_index[aspec][1]]
-                    pos[2] = primary_variables[aspec][pos_index[aspec][2]]
+                    pos[0] = primary_variables[aspec][pos_index[3*aspec+0]]
+                    pos[1] = primary_variables[aspec][pos_index[3*aspec+1]]
+                    pos[2] = primary_variables[aspec][pos_index[3*aspec+2]]
                     mask[aspec][ipspec[aspec]] = selector.select_cell(pos,dds,eterm)
                     count_mask[aspec] += mask[aspec][count_mask[aspec]]
                     ipspec[aspec] += 1
