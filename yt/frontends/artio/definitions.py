@@ -96,13 +96,11 @@ yt_to_art = {
     'creation_time': 'BIRTH_TIME' ,
     'particle_initial_mass': 'INITIAL_MASS', 
     'particle_metallicity1': 'METALLICITY_SNIa',
-    'particle_metallicity2': 'METALLICITY_SNII'
-}
-
-particles_yt_to_art = {
+    'particle_metallicity2': 'METALLICITY_SNII',
     'stars' : 'STAR',
     'nbody' : 'N-BODY'
 }
+
 
 class ARTIOconstants():
     def __init__(self) : 

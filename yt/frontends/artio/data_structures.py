@@ -47,8 +47,6 @@ from yt.data_objects.field_info_container import \
 
 import yt.utilities.fortran_utils as fpu
 
-from io import b2t
-
 class ARTIOChunk(object) :
 
     def __init__(self, pf, selector, sfc_start, sfc_end ):
@@ -95,30 +93,20 @@ class ARTIOChunk(object) :
         self.data_size = len(self._fcoords)
         return data
 
-    def fill_particles(self,accessed_species, selector, fields):
+    def fill_particles(self,accessed_species, fields):
         art_fields = []
         for f in fields :
             assert (yt_to_art.has_key(f[1])) #fields must exist in ART
-            art_fields.append(yt_to_art[f[1]])
+            one_art_field = (yt_to_art[f[0]],yt_to_art[f[1]])
+            art_fields.append(one_art_field)
 
-        selected_particles = {}
         assert ( art_fields != None )
-        self.pf._handle.particle_var_fill(accessed_species, \
-                selected_particles, selector, art_fields )
+        selected_particles = self.pf._handle.particle_var_fill(\
+                self.selector, self.sfc_start, self.sfc_end, accessed_species, art_fields ) 
 
-        #convert time variables from code units
-        #move this 
-        for fieldtype, fieldname in fields :
-            if fieldname in codetime_fields : 
-                print 'convert time variables from code units'
-                selected_particles[yt_to_art[fieldname]] = \
-                    self.interpb2t(selected_particles[yt_to_art[fieldname]])
-                print 'convert time variables from code units'
-
-        # dhr - make sure these are shallow copies
         tr = {}
-        for fieldtype, fieldname in fields :
-            tr[fieldname] = selected_particles[yt_to_art[fieldname]]
+        for i,f in enumerate(fields) :
+            tr[f] = selected_particles[art_fields[i]] 
         return tr
 
 class ARTIOGeometryHandler(GeometryHandler):
