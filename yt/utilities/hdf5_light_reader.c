@@ -1848,12 +1848,39 @@ static PyMethodDef _hdf5LightReaderMethods[] = {
 __declspec(dllexport)
 #endif
 
-void inithdf5_light_reader(void)
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "hdf5_light_reader",           /* m_name */
+        "Light HDF5 reading.\n",
+                             /* m_doc */
+        -1,                  /* m_size */
+        _hdf5LightReaderMethods,    /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+#endif
+
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL NULL
+PyInit_hdf5_light_reader(void)
+#else
+#define _RETVAL 
+inithdf5_light_reader(void)
+#endif
 {
     PyObject *m, *d;
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef); 
+#else
     m = Py_InitModule("hdf5_light_reader", _hdf5LightReaderMethods);
+#endif
     d = PyModule_GetDict(m);
     _hdf5ReadError = PyErr_NewException("hdf5_light_reader.ReadingError", NULL, NULL);
     PyDict_SetItemString(d, "ReadingError", _hdf5ReadError);
     import_array();
+    return _RETVAL;
 }

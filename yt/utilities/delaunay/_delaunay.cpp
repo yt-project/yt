@@ -726,16 +726,44 @@ static PyMethodDef delaunay_methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_delaunay",           /* m_name */
+        "Tools for computing the Delaunay triangulation and some operations on it.\n",
+                             /* m_doc */
+        -1,                  /* m_size */
+        delaunay_methods,    /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+#endif
 
-PyMODINIT_FUNC init_delaunay(void)
+
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL NULL
+PyInit__delaunay(void)
+#else
+#define _RETVAL 
+init_delaunay(void)
+#endif
 {
     PyObject* m;
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef); 
+#else
     m = Py_InitModule3("_delaunay", delaunay_methods, 
         "Tools for computing the Delaunay triangulation and some operations on it.\n"
         );
-    if (m == NULL)
-        return;
+#endif
+    if (m == NULL) {
+        return _RETVAL;
+    }
     import_array();
+    return _RETVAL;
 }
 
 } // extern "C"

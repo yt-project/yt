@@ -440,12 +440,40 @@ static PyMethodDef __MPLMethods[] = {
 __declspec(dllexport)
 #endif
 
-void init_MPL(void)
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_MPL",           /* m_name */
+        "Pixelization routines\n",
+                             /* m_doc */
+        -1,                  /* m_size */
+        __MPLMethods,    /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+#endif
+
+
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL NULL
+PyInit__MPL(void)
+#else
+#define _RETVAL 
+init_MPL(void)
+#endif
 {
     PyObject *m, *d;
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef); 
+#else
     m = Py_InitModule("_MPL", __MPLMethods);
+#endif
     d = PyModule_GetDict(m);
     _pixelizeError = PyErr_NewException("_MPL.error", NULL, NULL);
     PyDict_SetItemString(d, "error", _pixelizeError);
     import_array();
+    return _RETVAL;
 }
