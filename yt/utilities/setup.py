@@ -8,14 +8,14 @@ def check_for_hdf5():
         hdf5_dir = os.environ["HDF5_DIR"]
         hdf5_inc = os.path.join(hdf5_dir, "include")
         hdf5_lib = os.path.join(hdf5_dir, "lib")
-        print "HDF5_LOCATION: HDF5_DIR: %s, %s" % (hdf5_inc, hdf5_lib)
+        print("HDF5_LOCATION: HDF5_DIR: %s, %s" % (hdf5_inc, hdf5_lib))
         return (hdf5_inc, hdf5_lib)
     # Next up, we try hdf5.cfg
     elif os.path.exists("hdf5.cfg"):
         hdf5_dir = open("hdf5.cfg").read().strip()
         hdf5_inc = os.path.join(hdf5_dir, "include")
         hdf5_lib = os.path.join(hdf5_dir, "lib")
-        print "HDF5_LOCATION: hdf5.cfg: %s, %s" % (hdf5_inc, hdf5_lib)
+        print("HDF5_LOCATION: hdf5.cfg: %s, %s" % (hdf5_inc, hdf5_lib))
         return (hdf5_inc, hdf5_lib)
     # Now we see if ctypes can help us:
     try:
@@ -30,15 +30,15 @@ def check_for_hdf5():
                os.path.isfile(os.path.join(hdf5_dir, "include", "hdf5.h")):
                 hdf5_inc = os.path.join(hdf5_dir, "include")
                 hdf5_lib = os.path.join(hdf5_dir, "lib")
-                print "HDF5_LOCATION: HDF5 found in: %s, %s" % (hdf5_inc,
-                    hdf5_lib)
+                print("HDF5_LOCATION: HDF5 found in: %s, %s" % (hdf5_inc,
+                    hdf5_lib))
                 return hdf5_inc, hdf5_lib
     except ImportError:
         pass
-    print "Reading HDF5 location from hdf5.cfg failed."
-    print "Please place the base directory of your"
-    print "HDF5 install in hdf5.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > hdf5.cfg\" )"
+    print("Reading HDF5 location from hdf5.cfg failed.")
+    print("Please place the base directory of your")
+    print("HDF5 install in hdf5.cfg and restart.")
+    print("(ex: \"echo '/usr/local/' > hdf5.cfg\" )")
     sys.exit(1)
 
 

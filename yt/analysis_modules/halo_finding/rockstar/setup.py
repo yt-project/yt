@@ -12,10 +12,10 @@ def configuration(parent_package='',top_path=None):
     try:
         rd = open("rockstar.cfg").read().strip()
     except IOError:
-        print "Reading Rockstar location from rockstar.cfg failed."
-        print "Please place the base directory of your"
-        print "Rockstar install in rockstar.cfg and restart."
-        print "(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )"
+        print("Reading Rockstar location from rockstar.cfg failed.")
+        print("Please place the base directory of your")
+        print("Rockstar install in rockstar.cfg and restart.")
+        print("(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )")
         sys.exit(1)
     config.add_extension("rockstar_interface",
                          "yt/analysis_modules/halo_finding/rockstar/rockstar_interface.pyx",

@@ -8,14 +8,14 @@ def check_for_png():
         png_dir = os.environ["PNG_DIR"]
         png_inc = os.path.join(png_dir, "include")
         png_lib = os.path.join(png_dir, "lib")
-        print "PNG_LOCATION: PNG_DIR: %s, %s" % (png_inc, png_lib)
+        print("PNG_LOCATION: PNG_DIR: %s, %s" % (png_inc, png_lib))
         return (png_inc, png_lib)
     # Next up, we try png.cfg
     elif os.path.exists("png.cfg"):
         png_dir = open("png.cfg").read().strip()
         png_inc = os.path.join(png_dir, "include")
         png_lib = os.path.join(png_dir, "lib")
-        print "PNG_LOCATION: png.cfg: %s, %s" % (png_inc, png_lib)
+        print("PNG_LOCATION: png.cfg: %s, %s" % (png_inc, png_lib))
         return (png_inc, png_lib)
     # Now we see if ctypes can help us:
     try:
@@ -30,7 +30,7 @@ def check_for_png():
                os.path.isfile(os.path.join(png_dir, "include", "png.h")):
                 png_inc = os.path.join(png_dir, "include")
                 png_lib = os.path.join(png_dir, "lib")
-                print "PNG_LOCATION: png found in: %s, %s" % (png_inc, png_lib)
+                print("PNG_LOCATION: png found in: %s, %s" % (png_inc, png_lib))
                 return png_inc, png_lib
     except ImportError:
         pass
@@ -42,11 +42,11 @@ def check_for_png():
                os.path.isfile(os.path.join(png_dir, "include", "png.h")):
                 png_inc = os.path.join(png_dir, "include")
                 png_lib = os.path.join(png_dir, "lib")
-                print "PNG_LOCATION: png found in: %s, %s" % (png_inc, png_lib)
+                print("PNG_LOCATION: png found in: %s, %s" % (png_inc, png_lib))
                 return png_inc, png_lib
-    print "Reading png location from png.cfg failed."
-    print "Please place the base directory of your png install in png.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > png.cfg\" )"
+    print("Reading png location from png.cfg failed.")
+    print("Please place the base directory of your png install in png.cfg and restart.")
+    print("(ex: \"echo '/usr/local/' > png.cfg\" )")
     sys.exit(1)
 
 def check_for_freetype():
@@ -55,14 +55,14 @@ def check_for_freetype():
         freetype_dir = os.environ["FTYPE_DIR"]
         freetype_inc = os.path.join(freetype_dir, "include")
         freetype_lib = os.path.join(freetype_dir, "lib")
-        print "FTYPE_LOCATION: FTYPE_DIR: %s, %s" % (freetype_inc, freetype_lib)
+        print("FTYPE_LOCATION: FTYPE_DIR: %s, %s" % (freetype_inc, freetype_lib))
         return (freetype_inc, freetype_lib)
     # Next up, we try freetype.cfg
     elif os.path.exists("freetype.cfg"):
         freetype_dir = open("freetype.cfg").read().strip()
         freetype_inc = os.path.join(freetype_dir, "include")
         freetype_lib = os.path.join(freetype_dir, "lib")
-        print "FTYPE_LOCATION: freetype.cfg: %s, %s" % (freetype_inc, freetype_lib)
+        print("FTYPE_LOCATION: freetype.cfg: %s, %s" % (freetype_inc, freetype_lib))
         return (freetype_inc, freetype_lib)
     # Now we see if ctypes can help us:
     try:
@@ -77,7 +77,7 @@ def check_for_freetype():
                os.path.isfile(os.path.join(freetype_dir, "include", "ft2build.h")):
                 freetype_inc = os.path.join(freetype_dir, "include")
                 freetype_lib = os.path.join(freetype_dir, "lib")
-                print "FTYPE_LOCATION: freetype found in: %s, %s" % (freetype_inc, freetype_lib)
+                print("FTYPE_LOCATION: freetype found in: %s, %s" % (freetype_inc, freetype_lib))
                 return freetype_inc, freetype_lib
     except ImportError:
         pass
@@ -89,12 +89,12 @@ def check_for_freetype():
                os.path.isfile(os.path.join(freetype_dir, "include", "ft2build.h")):
                 freetype_inc = os.path.join(freetype_dir, "include")
                 freetype_lib = os.path.join(freetype_dir, "lib")
-                print "FTYPE_LOCATION: freetype found in: %s, %s" % (freetype_inc, freetype_lib)
+                print("FTYPE_LOCATION: freetype found in: %s, %s" % (freetype_inc, freetype_lib))
                 return freetype_inc, freetype_lib
-    print "Reading freetype location from freetype.cfg failed."
-    print "Please place the base directory of your freetype install in freetype.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > freetype.cfg\" )"
-    print "You can locate this by looking for the file ft2build.h"
+    print("Reading freetype location from freetype.cfg failed.")
+    print("Please place the base directory of your freetype install in freetype.cfg and restart.")
+    print("(ex: \"echo '/usr/local/' > freetype.cfg\" )")
+    print("You can locate this by looking for the file ft2build.h")
     sys.exit(1)
 
 def configuration(parent_package='',top_path=None):
@@ -212,7 +212,7 @@ def configuration(parent_package='',top_path=None):
         gpd = os.environ["GPERFTOOLS"]
         idir = os.path.join(gpd, "include")
         ldir = os.path.join(gpd, "lib")
-        print "INCLUDE AND LIB DIRS", idir, ldir
+        print("INCLUDE AND LIB DIRS", idir, ldir)
         config.add_extension("perftools_wrap",
                 ["yt/utilities/lib/perftools_wrap.pyx"],
                 libraries=["profiler"],

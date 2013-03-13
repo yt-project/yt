@@ -96,11 +96,11 @@ except ImportError as e:
     needs_cython = True
 
 if needs_cython:
-    print "Cython is a build-time requirement for the source tree of yt."
-    print "Please either install yt from a provided, release tarball,"
-    print "or install Cython (version 0.16 or higher)."
-    print "You may be able to accomplish this by typing:"
-    print "     pip install -U Cython"
+    print("Cython is a build-time requirement for the source tree of yt.")
+    print("Please either install yt from a provided, release tarball,")
+    print("or install Cython (version 0.16 or higher).")
+    print("You may be able to accomplish this by typing:")
+    print("     pip install -U Cython")
     sys.exit(1)
 
 ######
@@ -174,12 +174,12 @@ def get_mercurial_changeset_id(target_dir):
                                      shell=True)
 
     if (get_changeset.stderr.read() != ""):
-        print "Error in obtaining current changeset of the Mercurial repository"
+        print("Error in obtaining current changeset of the Mercurial repository")
         changeset = None
 
-    changeset = get_changeset.stdout.read().strip()
+    changeset = get_changeset.stdout.read().strip().decode("UTF-8")
     if (not re.search("^[0-9a-f]{12}", changeset)):
-        print "Current changeset of the Mercurial repository is malformed"
+        print("Current changeset of the Mercurial repository is malformed")
         changeset = None
 
     return changeset
@@ -265,6 +265,7 @@ def setup_package():
         url="http://yt-project.org/",
         license="GPL-3",
         configuration=configuration,
+        use_2to3=True,
         zip_safe=False,
         data_files=REASON_FILES,
         cmdclass={'build_py': my_build_py, 'build_forthon': BuildForthon,
