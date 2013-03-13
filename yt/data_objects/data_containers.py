@@ -32,7 +32,6 @@ data_object_registry = {}
 import numpy as np
 import math
 import weakref
-import exceptions
 import itertools
 import shelve
 import cStringIO

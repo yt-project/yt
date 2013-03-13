@@ -26,7 +26,6 @@ License:
 from collections import defaultdict
 
 import yt.utilities.lib as au
-import exceptions
 import cPickle
 import os
 import h5py

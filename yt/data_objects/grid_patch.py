@@ -23,7 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import exceptions
 import pdb
 import weakref
 
@@ -144,7 +143,7 @@ class AMRGridPatch(object):
             else:
                 self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def has_key(self, key):
         return (key in self.field_data)
