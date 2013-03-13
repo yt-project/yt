@@ -35,74 +35,74 @@ def _col_dens(field, data):
     return data[field]
 
 class RadialColumnDensity(ParallelAnalysisInterface):
+    r"""
+    Calculate radial column densities in preparation to
+    adding them as a derived field.
+    
+    This class is the first step in calculating a derived radial 
+    column density field.
+    Given a central point, this calculates the column density to all cell
+    centers within the given radius in units of centimeters times
+    the units of the basis field.
+    For example, if the basis field is `NumberDensity`, which has units
+    of 1 / cm^3, the units of the derived field will be 1 / cm^2.
+    Please see the documentation or the example below on how to
+    use this to make the derived field which can be used like any other
+    derived field.
+    
+    This builds a number of spherical 
+    surfaces where the column density is calculated
+    using HEALPix Volume Rendering. The values of the column density at
+    grid points is then linearly interpolated between the two nearest
+    surfaces (one inward, one outward).
+    Please see the HEALPix Volume Rendering documentation for more on
+    that part of this calculation.
+    
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The dataset to operate on.
+    field : string
+        The name of the basis field over which to
+        calculate a column density.
+    center : array_like
+        A list or array giving the location of where to
+        calculate the start of
+        the column density.
+        This will probably be "an object of interest" like
+        a star, black hole, or the center of a galaxy.
+    max_radius : float
+        How far out to calculate the column density, in code units. This
+        value will be automatically reduced if the supplied value would
+        result in calculating column densities outside the volume.
+        Default = 0.5.
+    steps : integer
+        How many surfaces to use. A higher number is more accurate, but
+        takes more resources.
+        Default = 10
+    base : string
+        How to evenly space the surfaces: linearly with "lin" or
+        logarithmically with "log".
+        Default = "lin".
+    Nside : int
+        The resolution of column density calculation as performed by
+        HEALPix. Higher numbers mean higher quality. Max = 8192.
+        Default = 32.
+    ang_divs : imaginary integer
+        This number controls the gridding of the HEALPix projection onto
+        the spherical surfaces. Higher numbers mean higher quality.
+        Default = 800j.
+    
+    Examples
+    --------
+    
+    >>> rcdnumdens = RadialColumnDensity(pf, 'NumberDensity', [0.5, 0.5, 0.5])
+    >>> def _RCDNumberDensity(field, data, rcd = rcdnumdens):
+            return rcd._build_derived_field(data)
+    >>> add_field('RCDNumberDensity', _RCDNumberDensity, units=r'1/\rm{cm}^2')
+    """
     def __init__(self, pf, field, center, max_radius = 0.5, steps = 10,
             base='lin', Nside = 32, ang_divs = 800j):
-        r"""
-        Calculate radial column densities in preparation to
-        adding them as a derived field.
-        
-        This class is the first step in calculating a derived radial 
-        column density field.
-        Given a central point, this calculates the column density to all cell
-        centers within the given radius in units of centimeters times
-        the units of the basis field.
-        For example, if the basis field is `NumberDensity`, which has units
-        of 1 / cm^3, the units of the derived field will be 1 / cm^2.
-        Please see the documentation or the example below on how to
-        use this to make the derived field which can be used like any other
-        derived field.
-        
-        This builds a number of spherical 
-        surfaces where the column density is calculated
-        using HEALPix Volume Rendering. The values of the column density at
-        grid points is then linearly interpolated between the two nearest
-        surfaces (one inward, one outward).
-        Please see the HEALPix Volume Rendering documentation for more on
-        that part of this calculation.
-        
-        Parameters
-        ----------
-        pf : `StaticOutput`
-            The dataset to operate on.
-        field : string
-            The name of the basis field over which to
-            calculate a column density.
-        center : array_like
-            A list or array giving the location of where to
-            calculate the start of
-            the column density.
-            This will probably be "an object of interest" like
-            a star, black hole, or the center of a galaxy.
-        max_radius : float
-            How far out to calculate the column density, in code units. This
-            value will be automatically reduced if the supplied value would
-            result in calculating column densities outside the volume.
-            Default = 0.5.
-        steps : integer
-            How many surfaces to use. A higher number is more accurate, but
-            takes more resources.
-            Default = 10
-        base : string
-            How to evenly space the surfaces: linearly with "lin" or
-            logarithmically with "log".
-            Default = "lin".
-        Nside : int
-            The resolution of column density calculation as performed by
-            HEALPix. Higher numbers mean higher quality. Max = 8192.
-            Default = 32.
-        ang_divs : imaginary integer
-            This number controls the gridding of the HEALPix projection onto
-            the spherical surfaces. Higher numbers mean higher quality.
-            Default = 800j.
-        
-        Examples
-        --------
-        
-        >>> rcdnumdens = RadialColumnDensity(pf, 'NumberDensity', [0.5, 0.5, 0.5])
-        >>> def _RCDNumberDensity(field, data, rcd = rcdnumdens):
-                return rcd._build_derived_field(data)
-        >>> add_field('RCDNumberDensity', _RCDNumberDensity, units=r'1/\rm{cm}^2')
-        """
         ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self.center = np.asarray(center)

@@ -439,14 +439,14 @@ class AMRGridPatch(YTSelectionContainer):
 
         return new_field
 
-    def icoords(self, dobj):
+    def select_icoords(self, dobj):
         mask = self.select(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='int64')
         coords = convert_mask_to_indices(mask, mask.sum())
         coords += self.get_global_startindex()[None, :]
         return coords
 
-    def fcoords(self, dobj):
+    def select_fcoords(self, dobj):
         mask = self.select(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
         coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
@@ -455,7 +455,7 @@ class AMRGridPatch(YTSelectionContainer):
         coords += self.LeftEdge[None, :]
         return coords
 
-    def fwidth(self, dobj):
+    def select_fwidth(self, dobj):
         mask = self.select(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
         coords = np.empty((mask.sum(), 3), dtype='float64')
@@ -463,7 +463,7 @@ class AMRGridPatch(YTSelectionContainer):
             coords[:,axis] = self.dds[axis]
         return coords
 
-    def ires(self, dobj):
+    def select_ires(self, dobj):
         mask = self.select(dobj.selector)
         if mask is None: return np.empty(0, dtype='int64')
         coords = np.empty(mask.sum(), dtype='int64')

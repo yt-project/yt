@@ -31,7 +31,7 @@ from yt.utilities.io_handler import \
 
 class IOHandlerGadget(BaseIOHandler):
     _data_style = 'gadget_infrastructure'
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         data = []
         fh = h5py.File(grid.filename,mode='r')
         for ptype in grid.particle_types:
@@ -50,6 +50,6 @@ class IOHandlerGadget(BaseIOHandler):
 
     def _read_data_slice(self,grid, field, axis, coord):
         #how would we implement axis here?
-        dat = self._read_data_set(grid,field)
+        dat = self._read_data(grid,field)
         return dat[coord]
 

@@ -52,21 +52,21 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     Parameters
     ----------
-    pf      : `StaticOutput`
-                The parameter file to convert.
-    fn      : string
-                The filename of the output FITS file.
-    fc      : array
-                The center of the extraction region
+    pf : `StaticOutput`
+       The parameter file to convert.
+    fn : string
+       The filename of the output FITS file.
+    fc : array
+       The center of the extraction region
     fwidth  : array  
-                Ensure this radius around the center is enclosed
-        Array format is (nx,ny,nz) where each element is floating point
-        in unitary position units where 0 is leftmost edge and 1
-        the rightmost. 
-        
+       Ensure this radius around the center is enclosed
+       Array format is (nx,ny,nz) where each element is floating point
+       in unitary position units where 0 is leftmost edge and 1
+       the rightmost. 
 
     Notes
     -----
+
     Note that the process of generating simulated images from Sunrise will
     require substantial user input; see the Sunrise wiki at
     http://sunrise.googlecode.com/ for more information.

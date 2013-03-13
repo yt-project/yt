@@ -33,12 +33,12 @@ class IOHandlerSkeleton(BaseIOHandler):
     _particle_reader = False
     _data_style = "skeleton"
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         # This must return the array, of size/shape grid.ActiveDimensions, that
         # corresponds to 'field'.
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):
         # If this is not implemented, the IO handler will just slice a
-        # _read_data_set item.
+        # _read_data item.
         pass

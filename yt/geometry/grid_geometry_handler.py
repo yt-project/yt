@@ -98,7 +98,7 @@ class GridGeometryHandler(GeometryHandler):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return self.select_grids(self.grid_levels.max())[0].dds[0]
+        return self.select_grids(self.grid_levels.max())[0].dds[:].min()
 
     def _initialize_level_stats(self):
         # Now some statistics:

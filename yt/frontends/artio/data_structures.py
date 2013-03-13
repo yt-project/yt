@@ -63,24 +63,107 @@ class ARTIOChunk(object) :
             raise RuntimeError
         return self._fcoords
 
+<<<<<<< local
     _ires = None
     def ires(self, dobj):
         if self._ires is None :
             print "Error: ARTIOChunk.ires called before fill"
             raise RuntimeError
         return self._ires
+=======
+        self.local_particle_count = 0
+        self.particle_field_offsets = {}                                                      
+ 
+    # snl why not in DomainSubset?
+    def _read_grid(self, oct_handler):
+        """Open the oct file, read in octs level-by-level.
+           For each oct, only the position, index, level and domain 
+           are needed - it's position in the octree is found automatically.
+           The most important is finding all the information to feed
+           oct_handler.add
+        """
+        self._handle.grid_pos_fill(oct_handler)
+ 
+    # snl are these methods used??
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = selector.fill_mask(self)
+        self._last_selector_id = id(selector)
+        return self._last_mask
 
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
+
+class ARTIODomainSubset(object):
+
+    def __init__(self, domain, mask, masked_cell_count):
+        print 'initing domain subset in data_structures.py'
+        self.mask = mask
+        self.domain = domain
+        self.oct_handler = domain.pf.h.oct_handler
+        self.masked_cell_count = masked_cell_count
+        print 'counting levels in data_structures.py'
+        ncum_masked_level = self.oct_handler.count_levels(
+            self.domain.pf.max_level, self.domain.domain_id, mask)
+        print 'compiling level mask in data_structures.py'
+        ncum_masked_level[1:] = ncum_masked_level[:-1]
+        ncum_masked_level[0] = 0
+        self.ncum_masked_level = np.add.accumulate(ncum_masked_level)
+        print 'cumulative masked level counts',self.ncum_masked_level
+        
+    def select_icoords(self, dobj):
+        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
+                                        self.masked_cell_count,
+                                        self.ncum_masked_level.copy())
+
+    def select_fcoords(self, dobj):
+        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
+                                        self.masked_cell_count,
+                                        self.ncum_masked_level.copy())
+>>>>>>> other
+
+<<<<<<< local
     def fwidth(self, dobj):
         if self._ires is None :
             print "Error: ARTIOChunk.fwidth called before fill"
             raise RuntimeError
         return np.array([2.**-self._ires,2.**-self._ires,2.**-self._ires]).transpose()
+=======
+    def select_fwidth(self, dobj):
+        # Recall domain_dimensions is the number of cells, not octs
+        # snl FIX: please don't hardcode this here 
+#        DRE = self.oct_handler.parameter_file.domain_right_edge 
+#        DLE = self.oct_handler.parameter_file.domain_left_edge
+#        nn = self.oct_handler.parameter_file.domain_dimension
+#        for i in range(3):
+#            base_dx = (DRE[i] - DLE[i])/nn[i]
+#        print 'in fwidth in data_structures.py', DRE, DLE, nn
+#        print base_dx
+        base_dx = [1.0,1.0,1.0]
+        widths = np.empty((self.masked_cell_count, 3), dtype="float64")
+        dds = (2**self.ires(dobj))
+        for i in range(3):
+            widths[:,i] = base_dx[i] / dds
+        return widths
+>>>>>>> other
 
+<<<<<<< local
     def icoords(self, dobj):
         if self._fcoords is None or self._ires is None :
             print "Error: ARTIOChunk.icoords called before fill fcoords/level"
             raise RuntimeError
         return (int) (self._fcoords/2**-self._ires)
+=======
+    def select_ires(self, dobj):
+        return self.oct_handler.ires(self.domain.domain_id, self.mask,
+                                     self.masked_cell_count,
+                                     self.ncum_masked_level.copy())
+>>>>>>> other
 
     def fill(self, fields):
         art_fields = [yt_to_art[f[1]] for f in fields]
