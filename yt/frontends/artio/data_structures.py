@@ -93,21 +93,38 @@ class ARTIOChunk(object) :
         self.data_size = len(self._fcoords)
         return data
 
-    def fill_particles(self,accessed_species, fields):
-        art_fields = []
-        for f in fields :
-            assert (yt_to_art.has_key(f[1])) #fields must exist in ART
-            one_art_field = (yt_to_art[f[0]],yt_to_art[f[1]])
-            art_fields.append(one_art_field)
+    def fill_particles(self, field_data, fields):
+        art_fields = {}
+        for s,f in fields :
+            if not yt_to_art.has_key(f) :
+                print "Unknown field ",f
+                raise RuntimeError
+            af = yt_to_art[f]
+            for i in range(self.pf._handle.num_species) :
+                if s == "all" or self.pf.parameters['particle_species_labels'][i] == yt_to_art[s] :
+                    if self.parameters['num_primary_variables'][i] > 0 and \
+                            af in self.pf.parameters["species_%02u_primary_variable_labels"%(i,)] :
+                        art_fields[(i,af)] = 1
+                    elif self.pf.parameters['num_secondary_variables'][i] > 0 and \
+                            af in self.pf.parameters["species_%02u_secondary_variable_labels"%(i,)] :
+                        art_fields[(i,af)] = 1
 
-        assert ( art_fields != None )
-        selected_particles = self.pf._handle.particle_var_fill(\
-                self.selector, self.sfc_start, self.sfc_end, accessed_species, art_fields ) 
+        species_data, species_counts = self.pf._handle.read_particle_chunk( \
+                self.selector, self.sfc_start, self.sfc_end, art_fields.keys() ) 
 
-        tr = {}
-        for i,f in enumerate(fields) :
-            tr[f] = selected_particles[art_fields[i]] 
-        return tr
+        for s,f in fields :
+            af = yt_to_art[f]
+            np = sum(len(species_data[(i,af)]) for i in range(self.pf.num_species) 
+                if s == "all" or self.pf.parameters['particle_species_labels'][i] == yt_to_art[s] )
+
+            tr = 
+            cp = len(tr)
+            tr.resize( cp + np )
+            for i in range(self.pf.num_species) :
+                if s == "all" or self.pf.parameters['particle_species_labels'][i] == yt_to_art[s] :
+                    np = len(species_data[(i,yt_to_art[f])])
+                    tr[cp:cp+np] = species_data[(i,yt_to_art[f])]
+                    cp += np
 
 class ARTIOGeometryHandler(GeometryHandler):
 
@@ -174,6 +191,7 @@ class ARTIOGeometryHandler(GeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             print "Running selector on base grid"
+            print dobj.selector
             list_sfc_ranges = self.pf._handle.root_sfc_ranges(dobj.selector)
             print "Generating list of chunks"
             dobj._chunk_info = [ARTIOChunk(self.pf, dobj.selector, start, end)

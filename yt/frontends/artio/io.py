@@ -22,15 +22,12 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from collections import defaultdict
 import numpy as np
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from .definitions import yt_to_art
-import yt.utilities.fortran_utils as fpu
-import cStringIO
 
 class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
@@ -49,37 +46,10 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        # http://yt-project.org/doc/analyzing/particles.html
-        print "reading particle data"
-        
-        # get particle types
-        for f in fields :
-            if particles_yt_to_art[f[0]] not in self.particle_types :
-                assert (particles_yt_to_art.has_key(f[0])) #particle types must exist in ART
-                self.particle_types.append(yt_to_art[f[0]])
-        accessed_species = self.particle_types #duplicate fields added in caller
-
-    	print 'io.py particle fields ',fields
-        sys.exit(1)
-        cp = 0
-        tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
+        print 'reading in particle data'
+        # TODO: determine proper datatype for fields
+        tr = dict((ftuple, np.empty(0, dtype='float32')) for ftuple in fields)
         for onechunk in chunks:
-            rv = onechunk.fill_particles( accessed_species, fields)
-
-            # make sure size of all fieldnames within a fieldtype is the same :
-            prev_fieldtype = None
-            prev_fieldname_size  = 0
-            for fieldtype, fieldname in fields:
-                fieldname_size = len(rv[fieldtype,fieldname])
-                if prev_fieldtype == field_type and fieldname_size != prev_fieldname_size :
-                    print 'size varies between fields! exiting'
-                    sys.exit(1)
-                prev_fieldtype = fieldtype
-                prev_fieldname_size = len(rv[fieldtype,fieldname])
-                
-            for f in fields:
-                cp_newsize = cp[f]+len(rv[f])
-                tr[f].resize(cp_newsize) 
-                tr[f][cp[f]:cp_newsize] = rv.pop(f)
-                cp[f] = cp_newsize
+            for artchunk in onechunk.objs :
+                artchunk.fill_particles(tr, fields)
         return tr

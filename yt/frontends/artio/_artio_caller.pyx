@@ -11,9 +11,6 @@ from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 import  data_structures  
 
-cdef extern from "stdlib.h":
-    void *alloca(int)
-
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
         pass
@@ -117,21 +114,32 @@ cdef class artio_fileset :
     cdef public object parameters 
     cdef artio_fileset_handle *handle
 
-    # grid attributes
+    # common attributes
     cdef public int num_grid
     cdef int64_t num_root_cells
-    cdef int min_level, max_level
-    cdef int64_t sfc_file_min, sfc_file_max
-    cdef int num_grid_variables, num_species
-    
-    cdef public object fnART_primary, fnART_secondary, fnART_static
-    cdef public object duplicate_species, labels_species 
+    cdef int64_t sfc_min, sfc_max
 
+    # grid attributes
+    cdef public int min_level, max_level
+    cdef public int num_grid_variables
+    cdef int *num_octs_per_level
+    cdef float *grid_variables
+
+    # particle attributes
+    cdef public int num_species
+    cdef int *particle_pos_index
+    cdef int *num_particles_per_species
+    cdef double *primary_variables
+    cdef float *secondary_variables
+ 
     def __init__(self, char *file_prefix) :
         cdef int artio_type = ARTIO_OPEN_HEADER
         cdef int64_t num_root
 
         self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global ) 
+        if not self.handle :
+            raise RuntimeError
+
         self.read_parameters()
         #print 'print parameters in caller.pyx',self.parameters
         print 'done reading header parameters'
@@ -143,64 +151,58 @@ cdef class artio_fileset :
             self.num_grid <<= 1
             num_root >>= 3
 
+        self.sfc_min = 0
+        self.sfc_max = self.num_root_cells
+
+        # grid detection
         self.min_level = 0
         self.max_level = self.parameters['grid_max_level'][0]
-        self.sfc_file_min = 0
-        self.sfc_file_max = self.parameters['grid_file_sfc_index'][1]-1
         self.num_grid_variables = self.parameters['num_grid_variables'][0]
 
-        # ART fieldnames 
-        self.num_species = self.parameters['num_particle_species'][0]
-        self.labels_species = self.parameters['particle_species_labels']
-        self.fnART_primary={}
-        self.fnART_secondary={}
-        self.fnART_static={}
-        for ispec in range(self.num_species) : 
-            listdict = "species_%02d_primary_variable_labels" % ispec
-            self.fnART_primary[ispec] = self.parameters[listdict]
-            if self.parameters["num_secondary_variables"][ispec] > 0 :
-                listdict = "species_%02d_secondary_variable_labels" % ispec
-                self.fnART_secondary[ispec] = self.parameters[listdict]
-            else : 
-                self.fnART_secondary[ispec] = []
-                
-            # N-BODY species have a static label called N-Body for MASS    
-            if self.labels_species[ispec] == 'N-BODY' :
-                self.fnART_static[ispec] = ["MASS"]
-            else : 
-                self.fnART_static[ispec] = [] 
-            self.fnART_static[ispec].append("particle_index") 
-        prev_specie = '0'
-        self.duplicate_species = {}
-        print self.labels_species  
-        for specie in self.labels_species : 
-            print 'hi',specie
-            if prev_specie == specie : 
-                self.duplicate_species[specie].append(specie)
-            else : 
-                self.duplicate_species[specie] = []
-            prev_specie = specie
+        self.num_octs_per_level = <int *>malloc(self.max_level*sizeof(int))
+        self.grid_variables = <float *>malloc(8*self.num_grid_variables*sizeof(float))
+        if (not self.num_octs_per_level) or (not self.grid_variables) :
+            raise MemoryError
 
-        #kln - add particle detection code
-        status = artio_fileset_open_particles( self.handle )
-        check_artio_status(status)
- 
-        # dhr - add grid detection code 
         status = artio_fileset_open_grid( self.handle )
         check_artio_status(status)
 
-            
-    def all_indices(value, qlist):
-        indices = []
-        idx = -1
-        while True:
-            try:
-                idx = qlist.index(value, idx+1)
-                indices.append(idx)
-            except ValueError:
-                break
-        return indices
+        # particle detection
+        self.num_species = self.parameters['num_particle_species'][0]
+        self.particle_pos_index = <int *>malloc(3*sizeof(int)*self.num_species)
+        if not self.particle_pos_index :
+            raise MemoryError
+        for ispec in range(self.num_species) :
+            labels = self.parameters["species_%02d_primary_variable_labels"% (ispec,)]
+            try :
+                self.particle_pos_index[3*ispec+0] = labels.index('POSITION_X')
+                self.particle_pos_index[3*ispec+1] = labels.index('POSITION_Y')
+                self.particle_pos_index[3*ispec+2] = labels.index('POSITION_Z')
+            except ValueError :
+                print "Unable to locate position information for particle species", ispec
+                raise RuntimeError
 
+        self.num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
+        self.primary_variables = <double *>malloc(sizeof(double)*max(self.parameters['num_primary_variables']))  
+        self.secondary_variables = <float *>malloc(sizeof(float)*max(self.parameters['num_secondary_variables']))  
+        if (not self.num_particles_per_species) or (not self.primary_variables) or (not self.secondary_variables) :
+            raise MemoryError
+
+        status = artio_fileset_open_particles( self.handle )
+        check_artio_status(status)
+   
+    # this should possibly be __dealloc__ 
+    def __del__(self) :
+        if self.num_octs_per_level : free(self.num_octs_per_level)
+        if self.grid_variables : free(self.grid_variables)
+
+        if self.particle_pos_index : free(self.particle_pos_index)
+        if self.num_particles_per_species : free(self.num_particles_per_species)
+        if self.primary_variables : free(self.primary_variables)
+        if self.secondary_variables : free(self.secondary_variables)
+
+        if self.handle : artio_fileset_close(self.handle)
+  
     def read_parameters(self) :
         cdef char key[64]
         cdef int type
@@ -251,452 +253,101 @@ cdef class artio_fileset :
 #    @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def particle_var_fill_mask(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, accessed_species, fields) :
-        # mask should be a function of accessed species 
-        # (and indexed by a count that is species dependent) 
-        # ispec is index out of all specs and aspecs is index out of accessed
-        cdef double **primary_variables
-        cdef float **secondary_variables
-        cdef int **field_to_index
-        cdef int *iacc_to_ispec 
+    def read_particle_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields) :
+        cdef int i
+        cdef double *primary_variables
+        cdef float *secondary_variables
         cdef int status
-        cdef np.ndarray[np.float32_t, ndim=1] arr
-        cdef int **mask
-        cdef int *num_particles_per_species 
-        cdef int *pos_index
-
-        cdef int *subspecies
-        subspecies = <int*>malloc(sizeof(int))
-        cdef int64_t *pid
-        pid = <int64_t *>malloc(sizeof(int64_t))
+        cdef int subspecies
+        cdef int64_t pid
 
         cdef int num_fields = len(fields)
-        cdef int i, j, level
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         cdef int eterm[3]
         for i in range(3) : dds[i] = 0
 
-        selected_particles = {}
+        data = {}
+        selected_primary = self.num_species * []
+        selected_secondary = self.num_species * []
+        selected_mass = {}
+        selected_id = {}
+        accessed_species = np.zeros( self.num_species, dtype="int")
 
-
-        # accessed species includes duplicate naming (e.g. all nbody specs)
-        for aspec, specie in enumerate(accessed_species):
-            if self.duplicate_species[specie] : #not empty list is true
-                accessed_species.insert(aspec+1,self.duplicate_species[specie])
-        # field names + counts as a function of aspec
-        num_acc_species = len(accessed_species)
-        num_fieldnames = np.zeros(num_acc_species,dtype="int32")
-        fieldnames={}
-        for aspec, specie in enumerate(accessed_species):
-            fieldnames[aspec]=[]
-            for fieldtype, fieldname in fields:
-                if specie == fieldtype : 
-                    num_fieldnames[aspec] += 1
-                    fieldnames[aspec].append(fieldname)
-
-        # translate from yt specie index to ART specie index
-        pos_index = <int*>malloc(sizeof(float)*self.num_species) #dhr - is float the right precision? 
-        if not pos_index: raise MemoryError
-        for ispec in range(self.num_species) :
-            pos_index[3*ispec+0] = self.fnART_primary[ispec].index('POSITION_X')
-            pos_index[3*ispec+1] = self.fnART_primary[ispec].index('POSITION_Y')
-            pos_index[3*ispec+2] = self.fnART_primary[ispec].index('POSITION_Z')
-        iacc_to_ispec = <int*>malloc(sizeof(int)*num_acc_species)
-        if not iacc_to_ispec: raise MemoryError
-        for aspec, specie in enumerate(accessed_species):
-            ispec = self.labels_species.index(specie) #find first instance of species
-            iacc_to_ispec[aspec] = ispec
-            # duplicated species are neighbors
-            if aspec > 0 and iacc_to_ispec[aspec] == iacc_to_ispec[aspec-1] : 
-                iacc_to_ispec[aspec] = ispec+1
-        # double check that iacc_to_ispec points to uniq indices
-        for i in range(num_acc_species): 
-            for j in range(i+1,num_acc_species):  
-                if iacc_to_ispec[i]==iacc_to_ispec[j]:
-                    print iacc_to_ispec[i]
-                    print 'some accessed species indices point to the same ispec'
-                    sys.exit(1)
-
-        # allocate io pointers 
-        num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
-        if not num_particles_per_species : raise MemoryError
-        primary_variables = <double **>malloc(sizeof(double**)*num_acc_species)  
-        secondary_variables = <float **>malloc(sizeof(float**)*num_acc_species)  
-        if (not primary_variables) or (not secondary_variables) : raise MemoryError
-        for aspec in range(num_acc_species) : 
-            primary_variables[aspec]   = <double *>malloc(self.parameters['num_primary_variables'][aspec]*sizeof(double))
-            secondary_variables[aspec] = <float *>malloc(self.parameters['num_secondary_variables'][aspec]*sizeof(float))
-            if (not primary_variables[aspec]) or \
-                    (not secondary_variables[aspec]) : raise MemoryError
+        for species,field in fields :
+            if species < 0 or species > self.num_species :
+                print "Error: invalid species provided to read_particle_chunk"
+                raise RuntimeError
+            if field < -1 or field >
+            accessed_species[species] = 1
+            if field == -1 :
+                data[(species,field)] = np.empty(0,dtype="int64")
+                selected_id[species] = (species,field)
+            elif field >= 0 and field < self.parameters['num_primary_variables'][species] :
+                selected_primary[species].append(field)
+                data[(species,field)] = np.empty(0,dtype="float64")
+            elif self.parameters['num_secondary_variables'][species] > 0 and \
+                    field in self.parameters["species_%02u_secondary_variable_labels"%(species,)] :
+                selected_secondary[species].append(self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field))
+                data[(species,field)] = np.empty(0,dtype="float32")
+            else :
+                print "Error: invalid ARTIO field", field, "for species",species,"in read_particle_chunk"
+                #raise RuntimeError
 
         # cache the range
-#        status = artio_particle_cache_sfc_range( self.handle, sfc_start, sfc_end )
-        status = artio_grid_cache_sfc_range( self.handle, self.sfc_file_min, self.sfc_file_max )
+        status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max ) 
         check_artio_status(status)
-
-        # determine max number of particles we could hit (optimize later)
-        max_particles= np.zeros(num_acc_species,dtype="int32")
+	
         for sfc in range( self.sfc_start, self.sfc_end+1 ) :
             status = artio_particle_read_root_cell_begin( self.handle, sfc,
-                    num_particles_per_species )
+                    self.num_particles_per_species )
             check_artio_status(status)	
-            for aspec in num_acc_species : 
-                ispec = iacc_to_ispec[aspec]
-                max_particles[aspec] += num_particles_per_species[ispec] 
-            status = artio_particle_read_root_cell_end( self.handle )
-            check_artio_status(status)
 
-        # mask begin  ###################
-        mask = <int**>malloc(sizeof(int*)*num_acc_species)
-        if not mask : raise MemoryError
-        for aspec in range(num_acc_species) :
-            mask[aspec] = <int*>malloc( sizeof(int)*max_particles[aspec])
-            if not mask[aspec]: raise MemoryError
-        count_mask = []
-        ipspec = []
-        for aspec in range(num_acc_species) :
-            count_mask.append(0)
-            ipspec.append(0)
-            ispec=iacc_to_ispec[aspec]
-
-        print "generating mask for particles"
-        for sfc in range( self.sfc_start, self.sfc_end+1 ) :
-            status = artio_particle_read_root_cell_begin( 
-                self.handle, sfc,
-                num_particles_per_species )
-            check_artio_status(status)
-
-            for aspec in range(num_acc_species ) :
-                ispec = iacc_to_ispec[aspec]
-                status = artio_particle_read_species_begin(
-                    self.handle, ispec)
-                check_artio_status(status)
-
-                for particle in range( num_particles_per_species[ispec] ) :
-                    status = artio_particle_read_particle(
-                        self.handle,
-                        pid, subspecies, primary_variables[aspec],
-                        secondary_variables[aspec])
-                    check_artio_status(status)
-                    pos[0] = primary_variables[aspec][pos_index[3*aspec+0]]
-                    pos[1] = primary_variables[aspec][pos_index[3*aspec+1]]
-                    pos[2] = primary_variables[aspec][pos_index[3*aspec+2]]
-                    mask[aspec][ipspec[aspec]] = selector.select_cell(pos,dds,eterm)
-                    count_mask[aspec] += mask[aspec][count_mask[aspec]]
-                    ipspec[aspec] += 1
-                status = artio_particle_read_species_end( self.handle )
-                check_artio_status(status)
-            status = artio_particle_read_root_cell_end( self.handle )
-            check_artio_status(status)
-        free(pos_index)
-        print 'done masking'
-
-
-	##########################################################
-        # attribute fields to primary/secondary/static/empty
-        # field_to_index, how_to_read, 
-        field_to_index = <int**>malloc(sizeof(int*)*self.num_species)
-        if not field_to_index: raise MemoryError
-        how_to_read = {}
-        for aspec in range(self.num_species) : 
-            field_to_index[aspec] = <int*>malloc(num_fieldnames[aspec]*sizeof(int))
-            if not field_to_index[aspec] : raise MemoryError
-        countnbody = 0 
-        for aspec in range(num_acc_species) : 
-            ispec = iacc_to_ispec[aspec]
-            for i, f in enumerate(fieldnames[aspec]):
-                if   f in self.fnART_primary[ispec]:
-                    how_to_read[ispec,i]= 'primary'
-                    field_to_index[ispec][i] = self.fnART_primary[ispec].index(f)
-                elif f in self.fnART_secondary[ispec]:
-                    how_to_read[ispec,i]= 'secondary'
-                    field_to_index[ispec][i] = self.fnART_secondary[ispec].index(f)
-                elif f in self.fnART_static[ispec]:
-                    # each new N-BODY spec adds one to the static mass location
-                    if self.labels_species[ispec] == 'N-BODY' and f == 'MASS' :
-                        how_to_read[ispec,i]= 'staticNBODY'
-                        field_to_index[ispec][i] = countnbody
-                        countnbody += 1 # MASS happens once per N-BODY species
-                        print 'count the nbody species',countnbody
-                    else :
-                        how_to_read[ispec,i]= 'staticINDEX'
-                else : 
-                    how_to_read[ispec,i]= 'empty'
-                    field_to_index[ispec][i] = 9999999
-                print 'ispec', ispec,'field',f, 'how_to_read', how_to_read[ispec,i] 
-
-        cdef np.float32_t **fpoint
-        fpoint = <np.float32_t**>malloc(sizeof(np.float32_t*)*num_fields)
-        if not fpoint : raise MemoryError
-        
-        for i, f in enumerate(fields):
-            aspec = self.all_indices(accessed_species, f[0]) #duplicate indices
-            num_selected_particles = 0
-            for a in aspec :
-                num_selected_particles += count_mask[a] # deal with duplicates
-
-            selected_particles[f] = np.empty(num_selected_particles,dtype="float32")    
-            arr = selected_particles[f]
-            fpoint[i] = <np.float32_t *>arr.data
-
-	##########################################################
-        # now use mask to read fields
-        print "reading in particle fields"
-        for aspec in range(num_acc_species) :
-             ipspec[aspec] = 0
-        ip_all = 0
-        for sfc in range( self.sfc_start, self.sfc_end+1 ) :
-                status = artio_particle_read_root_cell_begin( self.handle, sfc,
-                    num_particles_per_species )
-                check_artio_status(status)	
-
-                aoffset = np.zeros(num_acc_species,dtype="int32")
-                prev_accessed_species  = None
-                for aspec in range(num_acc_species) :
-                    ispec = iacc_to_ispec[aspec]
-                    if prev_accessed_species != accessed_species[aspec]: #duplicates go to the same fieldtype
-                        aoffset[aspec] = num_fieldnames[aspec]+aoffset[aspec]
+            for ispec in range(self.num_species) : 
+                if accessed_species[ispec] :
                     status = artio_particle_read_species_begin(self.handle, ispec);
                     check_artio_status(status)
-                    
-                    for particle in range( num_particles_per_species[ispec] ) :
-                        
-                        status = artio_particle_read_particle(self.handle,
-                                        pid, subspecies, primary_variables[aspec],
-                                        secondary_variables[aspec])
-                        check_artio_status(status)
-                        
-                        if mask[aspec][ipspec[aspec]] == 1 :
-                             for i in range(num_fieldnames[aspec]):
-                                 j = i + aoffset[aspec]
-                                 if not (how_to_read[ispec,i] == 'empty') : 
-                                     assert(field_to_index[ispec][i]<100)
-                                 if   how_to_read[ispec,i] == 'primary' : 
-                                     fpoint[j][ip_all] = primary_variables[aspec][field_to_index[ispec][i]]
-                                 elif how_to_read[ispec,i] == 'secondary' :
-                                     fpoint[j][ip_all] = secondary_variables[aspec][field_to_index[ispec][i]]
-                                 elif how_to_read[ispec,i] == 'staticNBODY' : 
-                                     fpoint[j][ip_all] = self.parameters["particle_species_mass"][field_to_index[ispec][i]]
-                                 elif how_to_read[ispec,i] == 'staticINDEX' : 
-                                     fpoint[j][ip_all] = ip_all
-                                 elif how_to_read[ispec,i] == 'empty' : 
-                                     fpoint[j][ip_all] = 0
-                                 else : 
-                                     print 'undefined how to read in caller', how_to_read[ispec,i]
-                                     print 'this should be impossible.'
-                                     sys.exit(1)
-                                 # print 'reading into fpoint', ip_all,fpoint[i][ip_all], fields[i]
-                             ip_all += 1
-                        ipspec[aspec] += 1
-                    prev_accessed_species = accessed_species[aspec]
-                    status = artio_particle_read_species_end( self.handle )
-                    check_artio_status(status)
-                    
-                status = artio_particle_read_root_cell_end( self.handle )
-                check_artio_status(status)
  
-
-        free(subspecies)
-        free(pid)
-        free(num_particles_per_species)
-        free(iacc_to_ispec)
-        free(mask)
-        free(field_to_index)
-        free(primary_variables)
-        free(secondary_variables)
-        free(fpoint)
-        print 'done filling particle variables', ip_all
-        return selected_particles
-
-
-#    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def particle_var_fill(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, accessed_species, fields) :
-        # ispec is index out of all specs and aspecs is index out of accessed
-        # fields is art naming for yt fields, BUT if species is duplicated in ART there 
-        #   is only one occurrence of the particle type in fields
-
-        cdef double **primary_variables
-        cdef float **secondary_variables
-        cdef int **field_to_index
-        cdef int *iacc_to_ispec 
-        cdef int status
-        cdef int *num_particles_per_species 
-        cdef int **pos_index
-
-        cdef int *subspecies
-        subspecies = <int*>malloc(sizeof(int))
-        cdef int64_t *pid
-        pid = <int64_t *>malloc(sizeof(int64_t))
-
-        cdef int num_fields = len(fields)
-        cdef int i, j, level
-        cdef np.float64_t pos[3]
-        cdef np.float64_t dds[3]
-        cdef int eterm[3]
-        for i in range(3) : dds[i] = 0
-
-        # accessed species includes duplicate naming (e.g. all nbody specs)
-        for aspec, specie in enumerate(accessed_species):
-            if self.duplicate_species[specie] : #not empty list is true
-                accessed_species.insert(aspec+1,self.duplicate_species[specie])
-        # field names + counts as a function of aspec
-        num_acc_species = len(accessed_species)
-        num_fieldnames = np.zeros(num_acc_species,dtype="int32")
-        fieldnames={}
-        for aspec, specie in enumerate(accessed_species):
-            fieldnames[aspec]=[]
-            for fieldtype, fieldname in fields:
-                if specie == fieldtype : 
-                    num_fieldnames[aspec] += 1
-                    fieldnames[aspec].append(fieldname)
-        data = [ np.empty(0,dtype="float32") for i in range(num_fields)]
-
-        # translate from yt index to ART index
-        pos_index = <int**>malloc(sizeof(int*)*self.num_species)
-        if not pos_index: raise MemoryError
-        for ispec in range(self.num_species) : 
-            pos_index[ispec] = <int*>malloc(3*sizeof(int))
-            pos_index[ispec][0] = self.fnART_primary[ispec].index('POSITION_X')
-            pos_index[ispec][1] = self.fnART_primary[ispec].index('POSITION_Y')
-            pos_index[ispec][2] = self.fnART_primary[ispec].index('POSITION_Z')
-        iacc_to_ispec = <int*>malloc(sizeof(int)*num_acc_species)
-        if not iacc_to_ispec: raise MemoryError
-        for aspec, specie in enumerate(accessed_species):
-            ispec = self.labels_species.index(specie) #find first instance of species
-            iacc_to_ispec[aspec] = ispec
-            if aspec > 0 and iacc_to_ispec[aspec] == iacc_to_ispec[aspec-1] :  # duplicated species are neighbors
-                iacc_to_ispec[aspec] = ispec+1
-        # double check that iacc_to_ispec points to uniq indices
-        for i in range(num_acc_species): 
-            for j in range(i+1,num_acc_species):  
-                if iacc_to_ispec[i]==iacc_to_ispec[j]:
-                    print iacc_to_ispec[i]
-                    print 'some accessed species indices point to the same ispec'
-                    sys.exit(1)
-
-        # allocate io pointers 
-        num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
-        if not num_particles_per_species : raise MemoryError
-        primary_variables = <double **>malloc(sizeof(double**)*num_acc_species)  
-        secondary_variables = <float **>malloc(sizeof(float**)*num_acc_species)  
-        if (not primary_variables) or (not secondary_variables) : raise MemoryError
-        for aspec in range(num_acc_species) : 
-            primary_variables[aspec]   = <double *>malloc(self.parameters['num_primary_variables'][aspec]*sizeof(double))
-            secondary_variables[aspec] = <float *>malloc(self.parameters['num_secondary_variables'][aspec]*sizeof(float))
-            if (not primary_variables[aspec]) or \
-                    (not secondary_variables[aspec]) : raise MemoryError
-
-
-        # cache the range
-        status = artio_particle_cache_sfc_range( self.handle, sfc_start, sfc_end )
-        check_artio_status(status)
-
-	
-	##########################################################
-        # attach fieldnames to primary/secondary/static/empty
-        # assign: field_to_index, how_to_read, 
-        field_to_index = <int**>malloc(sizeof(int*)*self.num_species)
-        if not field_to_index: raise MemoryError
-        how_to_read = {}
-        for aspec in range(self.num_species) : 
-            field_to_index[aspec] = <int*>malloc(num_fieldnames[aspec]*sizeof(int))
-            if not field_to_index[aspec] : raise MemoryError
-        countnbody = 0 
-        for aspec in range(num_acc_species) : 
-            ispec = iacc_to_ispec[aspec]
-            for i, f in enumerate(fieldnames[aspec]):
-                if   f in self.fnART_primary[ispec]:
-                    how_to_read[ispec,i]= 'primary'
-                    field_to_index[ispec][i] = self.fnART_primary[ispec].index(f)
-                elif f in self.fnART_secondary[ispec]:
-                    how_to_read[ispec,i]= 'secondary'
-                    field_to_index[ispec][i] = self.fnART_secondary[ispec].index(f)
-                elif f in self.fnART_static[ispec]:
-                    # each new N-BODY spec adds one to the static mass location
-                    if self.labels_species[ispec] == 'N-BODY' and f == 'MASS' :
-                        how_to_read[ispec,i]= 'staticNBODY'
-                        field_to_index[ispec][i] = countnbody 
-                        countnbody += 1 # MASS happens once per N-BODY species
-                        print 'count the nbody species',countnbody
-                    else :
-                        how_to_read[ispec,i]= 'staticINDEX'
-                else : 
-                    how_to_read[ispec,i]= 'empty'
-                    field_to_index[ispec][i] = 9999999
-                print 'ispec', ispec,'field',f, 'how_to_read', how_to_read[ispec,i] 
-            
-        # now read fields
-        print "reading in particle fields"
-        ip_all = 0
-        for sfc in range( self.sfc_start, self.sfc_end+1 ) :
-                status = artio_particle_read_root_cell_begin( self.handle, sfc,
-                    num_particles_per_species )
-                check_artio_status(status)	
-
-                aoffset = np.zeros(num_acc_species,dtype="int32")
-                prev_accessed_species  = 0
-                for aspec in range(num_acc_species) :
-                    if prev_accessed_species != accessed_species[aspec]:  # duplicates go to the same fieldtype
-                        aoffset[aspec] = num_fieldnames[aspec]+aoffset[aspec]
-
-                    ispec = iacc_to_ispec[aspec]
-                    status = artio_particle_read_species_begin(self.handle, ispec);
-                    check_artio_status(status)
-                    
-                    for particle in range( num_particles_per_species[ispec] ) :
-                        
+                    for particle in range( self.num_particles_per_species[ispec] ) :
                         status = artio_particle_read_particle(self.handle,
-                                        pid, subspecies, primary_variables[aspec],
-                                        secondary_variables[aspec])
+                                &pid, &subspecies, self.primary_variables,
+                                self.secondary_variables)
                         check_artio_status(status)
-                        
-                        pos[0] = primary_variables[aspec][pos_index[aspec][0]]
-                        pos[1] = primary_variables[aspec][pos_index[aspec][1]]
-                        pos[2] = primary_variables[aspec][pos_index[aspec][2]]
+
+                        for i in range(3) :
+                            pos[i] = self.primary_variables[self.particle_position_index[3*ispec+i]] 
+
                         if selector.select_cell(pos,dds,eterm) :
-                             for i in range(num_fieldnames[aspec]):
-                                 j = i + aoffset[aspec]
-                                 data[j].resize(ip_all+1)
-                                 if not (how_to_read[ispec,i] == 'empty') : 
-                                     assert(field_to_index[ispec][i]<100)
-                                 if   how_to_read[ispec,i] == 'primary' : 
-                                     data[j][ip_all] = primary_variables[aspec][field_to_index[ispec][i]]
-                                 elif how_to_read[ispec,i] == 'secondary' :
-                                     data[j][ip_all] = secondary_variables[aspec][field_to_index[ispec][i]]
-                                 elif how_to_read[ispec,i] == 'staticNBODY' : 
-                                     data[j][ip_all] = self.parameters["particle_species_mass"][field_to_index[ispec][i]]
-                                 elif how_to_read[ispec,i] == 'staticINDEX' : 
-                                     data[j][ip_all] = ip_all
-                                 elif how_to_read[ispec,i] == 'empty' : 
-                                     data[j][ip_all] = 0
-                                 else : 
-                                     print 'undefined how to read in caller', how_to_read[ispec,i]
-                                     print 'this should be impossible.'
-                                     sys.exit(1)
-                                 # print 'reading into data', ip_all,data[i][ip_all], fields[i]
-                             ip_all += 1
-                    prev_accessed_species = accessed_species[aspec]
-                    status = artio_particle_read_species_end( self.handle )
-                    check_artio_status(status)
+                            # loop over primary variables
+                            for i,field in selected_primary[ispec] :
+                                count = len(data[field])
+                                data[field].resize(count+1)
+                                data[field][count] = self.primary_variables[i]
+                            
+                            # loop over secondary variables
+                            for i,field in selected_secondary[ispec] :
+                                count = len(data[field])
+                                data[field].resize(count+1)
+                                data[field][count] = self.secondary_variables[i]
+
+                            # add particle id
+                            if selected_id[ispec] :
+                                count = len(data[selected_id[ispec]])
+                                data[selected_id[ispec]].resize(count+1)
+                                data[selected_id[ispec]][count] = pid
+
+                            if selected_mass[ispec] :
+                                count = len(data[selected_mass[ispec]])
+                                data[selected_mass[ispec]].resize(count+1)
+                                data[selected_mass[ispec]][count] = self.particle_species_mass[i]
+                        
+                        status = artio_particle_read_species_end( self.handle )
+                        check_artio_status(status)
                     
                 status = artio_particle_read_root_cell_end( self.handle )
                 check_artio_status(status)
  
-
-        free(subspecies)
-        free(pid)
-        free(num_particles_per_species)
-        free(iacc_to_ispec)
-        free(field_to_index)
-        free(primary_variables)
-        free(secondary_variables)
-        print 'done filling particle variables', ip_all
         return data
-
-
 
     #@cython.boundscheck(False)
     @cython.wraparound(False)
@@ -705,8 +356,6 @@ cdef class artio_fileset :
         cdef int i
         cdef int level
         cdef int num_oct_levels
-        cdef int *num_octs_per_level
-        cdef float *variables
         cdef int refined[8]
         cdef int status
         cdef int64_t count
@@ -729,12 +378,8 @@ cdef class artio_fileset :
                 raise RuntimeError
             field_order[i] = var_labels.index(f)
 
-        # dhr - can push these mallocs to the object to save malloc/free
-        num_octs_per_level = <int *>malloc(self.max_level*sizeof(int))
-        variables = <float *>malloc(8*self.num_grid_variables*sizeof(float))
-
         # dhr - cache the entire domain (replace later)
-        status = artio_grid_cache_sfc_range( self.handle, self.sfc_file_min, self.sfc_file_max )
+        status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
         check_artio_status(status) 
 
         # determine max number of cells we could hit (optimize later)
@@ -755,13 +400,13 @@ cdef class artio_fileset :
         count = 0
         for sfc in range( sfc_start, sfc_end+1 ) :
             status = artio_grid_read_root_cell_begin( self.handle, sfc, 
-                    dpos, variables, &num_oct_levels, num_octs_per_level )
+                    dpos, self.grid_variables, &num_oct_levels, self.num_octs_per_level )
             check_artio_status(status) 
 
             if num_oct_levels == 0 :
                 for i in range(num_fields) :
                     data[i].resize(count+1)
-                    data[i][count] = variables[field_order[i]]
+                    data[i][count] = self.grid_variables[field_order[i]]
                 fcoords.resize((count+1,3))
                 for i in range(3) :
                     fcoords[count][i] = dpos[i]
@@ -776,8 +421,8 @@ cdef class artio_fileset :
                 for i in range(3) :
                     dds[i] = 2.**-level
 
-                for oct in range(num_octs_per_level[level-1]) :
-                    status = artio_grid_read_oct( self.handle, dpos, variables, refined )
+                for oct in range(self.num_octs_per_level[level-1]) :
+                    status = artio_grid_read_oct( self.handle, dpos, self.grid_variables, refined )
                     check_artio_status(status) 
 
                     for child in range(8) :
@@ -793,7 +438,7 @@ cdef class artio_fileset :
                                 ires[count] = level
                                 for i in range(num_fields) :
                                     data[i].resize(count+1)
-                                    data[i][count] = variables[self.num_grid_variables*child+field_order[i]]
+                                    data[i][count] = self.grid_variables[self.num_grid_variables*child+field_order[i]]
                                 count += 1 
                 status = artio_grid_read_level_end( self.handle )
                 check_artio_status(status) 
@@ -801,11 +446,6 @@ cdef class artio_fileset :
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status) 
         
-        #status = artio_grid_clear_sfc_cache( self.handle )
-        #check_artio_status(status)
-
-        free(num_octs_per_level) 
-        free(variables)
         free(field_order)
 
         #fcoords.resize((count,3))
