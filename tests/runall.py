@@ -87,7 +87,7 @@ if __name__ == "__main__":
             keys = set(registry_entries())
             tests_to_run += [t for t in new_tests if t in keys]
         tests = list(set(tests_to_run))
-        print "\n    ".join(tests)
+        print ("\n    ".join(tests))
         sys.exit(0)
 
     # Load the test pf and make sure it's good.
