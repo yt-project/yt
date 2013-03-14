@@ -471,7 +471,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
             thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
         vals = np.array([local_data["CellMass"][sel]], order='F')
-            octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
+        octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
                np.ones_like(thisx).astype('float64'), treecode = 1)
         # Now we calculate the binding energy using a treecode.
         octree.finalize(treecode = 1)
