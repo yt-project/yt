@@ -252,8 +252,6 @@ cdef class artio_fileset :
     @cython.cdivision(True)
     def read_particle_chunk(self, SelectorObject selector, int64_t sfc_start, int64_t sfc_end, fields) :
         cdef int i
-        cdef double *primary_variables
-        cdef float *secondary_variables
         cdef int status
         cdef int subspecies
         cdef int64_t pid
