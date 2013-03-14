@@ -188,9 +188,13 @@ class ARTIOGeometryHandler(GeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             print "Running selector on base grid"
-            if hasattr(dobj,'left_edge') and hasattr(dobj,'right_edge') and \
-                    all(dobj.left_edge == self.pf.domain_left_edge) and \
-                    all(dobj.right_edge == self.pf.domain_right_edge) :
+            try :
+                all_data = all(dobj.left_edge == self.pf.domain_left_edge) and \
+                    all(dobj.right_edge == self.pf.domain_right_edge)
+            except :
+                all_data = False
+
+            if all_data :
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
             else :
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(dobj.selector)
