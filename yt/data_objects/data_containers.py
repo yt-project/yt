@@ -351,7 +351,7 @@ class AMRData(object):
             # First we check the validator
             try:
                 self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
+            except NeedsGridType as ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False

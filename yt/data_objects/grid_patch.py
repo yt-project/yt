@@ -129,7 +129,7 @@ class AMRGridPatch(object):
             # First we check the validator
             try:
                 self.pf.field_info[field].check_available(self)
-            except NeedsGridType, ngt_exception:
+            except NeedsGridType as ngt_exception:
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
