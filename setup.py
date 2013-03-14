@@ -9,7 +9,11 @@ import glob
 import distribute_setup
 distribute_setup.use_setuptools()
 
-from distutils.command.build_py import build_py
+try:
+   from distutils.command.build_py import build_py_2to3 \
+        as build_py
+except ImportError:
+   from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils.command import install_data as np_install_data
 from numpy.distutils import log
@@ -214,7 +218,7 @@ class my_build_py(build_py):
             with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
                 fobj.write("hg_version = '%s'\n" % changeset)
 
-            build_py.run(self)
+        build_py.run(self)
 
 
 def configuration(parent_package='', top_path=None):
