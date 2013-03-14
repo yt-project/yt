@@ -137,7 +137,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return (self.parameter_file.domain_width /(2**self.max_level))
+        return (self.parameter_file.domain_width /(2**self.max_level)).min()
     
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
