@@ -274,7 +274,6 @@ def setup_package():
         url="http://yt-project.org/",
         license="GPL-3",
         configuration=configuration,
-        use_2to3=True,
         zip_safe=False,
         data_files=REASON_FILES,
         cmdclass={'build_py': my_build_py, 'build_forthon': BuildForthon,
