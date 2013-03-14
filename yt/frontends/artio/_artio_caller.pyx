@@ -108,9 +108,7 @@ cdef check_artio_status(int status, char *fname="[unknown]"):
     if status!=ARTIO_SUCCESS :
         callername = sys._getframe().f_code.co_name
         nline = sys._getframe().f_lineno
-        print 'failure with status', status, 'in function',fname,'from caller', callername, nline 
-        sys.exit(1)
-
+        raise RuntimeError('failure with status', status, 'in function',fname,'from caller', callername, nline)
 
 cdef class artio_fileset :
     cdef public object parameters 
@@ -143,8 +141,6 @@ cdef class artio_fileset :
             raise RuntimeError
 
         self.read_parameters()
-        #print 'print parameters in caller.pyx',self.parameters
-        print 'done reading header parameters'
 
         self.num_root_cells = self.parameters['num_root_cells'][0]
         self.num_grid = 1
@@ -181,8 +177,7 @@ cdef class artio_fileset :
                 self.particle_position_index[3*ispec+1] = labels.index('POSITION_Y')
                 self.particle_position_index[3*ispec+2] = labels.index('POSITION_Z')
             except ValueError :
-                print "Unable to locate position information for particle species", ispec
-                raise RuntimeError
+                raise RuntimeError("Unable to locate position information for particle species", ispec )
 
         self.num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
         self.primary_variables = <double *>malloc(sizeof(double)*max(self.parameters['num_primary_variables']))  
@@ -248,7 +243,7 @@ cdef class artio_fileset :
                 parameter = [ double_values[i] for i in range(length) ]
                 free(double_values)
             else :
-                print "ERROR: invalid type!"
+                raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
             self.parameters[key] = parameter
 
@@ -279,8 +274,7 @@ cdef class artio_fileset :
 
         for species,field in fields :
             if species < 0 or species > self.num_species :
-                print "Error: invalid species provided to read_particle_chunk"
-                raise RuntimeError
+                raise RuntimeError("Invalid species provided to read_particle_chunk")
             accessed_species[species] = 1
 
             if self.parameters["num_primary_variables"][species] > 0 and \
@@ -301,8 +295,7 @@ cdef class artio_fileset :
                 selected_species[species] = (species,field)
                 data[(species,field)] = np.empty(0,dtype="int8")
             else :
-                print "Error; invalid field name provided to read_particle_chunk"
-                raise RuntimeError
+                raise RuntimeError("invalid field name provided to read_particle_chunk")
 
         # cache the range
         status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max ) 
@@ -379,14 +372,11 @@ cdef class artio_fileset :
         cdef int num_fields  = len(fields)
         field_order = <int*>malloc(sizeof(int)*num_fields)
 
-        #print "reading chunk ", sfc_start, sfc_end, sfc_end-sfc_start+1
-
         # translate fields from ARTIO names to indices
         var_labels = self.parameters['grid_variable_labels']
         for i, f in enumerate(fields):
             if f not in var_labels:
-                print "This field is not known to ARTIO:", f
-                raise RuntimeError
+                raise RuntimeError("Field",f,"is not known to ARTIO")
             field_order[i] = var_labels.index(f)
 
         # dhr - cache the entire domain (replace later)
@@ -509,13 +499,10 @@ cdef class artio_fileset :
                         status = artio_selection_add_root_cell(selection, coords)
                         check_artio_status(status)
 
-        print "Selected", artio_selection_size(selection), "root cells"
- 
         while artio_selection_iterator(selection, max_range_size, 
                 &sfc_start, &sfc_end) == ARTIO_SUCCESS :
             sfc_ranges.append([sfc_start, sfc_end])
 
-        print "in", len(sfc_ranges), "ranges"
         artio_selection_destroy(selection)
         return sfc_ranges
 

@@ -50,32 +50,36 @@ class ARTIOChunk(object) :
         self.selector = selector
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
-        self.data_size = 0
 
+    _data_size = None
+    @property
+    def data_size(self) :
+        if self._data_size is None :
+            mylog.error("ARTIOChunk.data_size called before fill")
+            raise RuntimeError
+        return self._data_size
+ 
     _fcoords = None
     def select_fcoords(self, dobj):
         if self._fcoords is None :
-            print "Error: ARTIOChunk.fcoords called before fill"
+            mylog.error("ARTIOChunk.fcoords called before fill")
             raise RuntimeError
         return self._fcoords
 
     _ires = None
     def select_ires(self, dobj):
         if self._ires is None :
-            print "Error: ARTIOChunk.ires called before fill"
-            raise RuntimeError
+            raise RuntimeError("ARTIOChunk.select_ires called before fill")
         return self._ires
 
     def select_fwidth(self, dobj):
         if self._ires is None :
-            print "Error: ARTIOChunk.fwidth called before fill"
-            raise RuntimeError
+            raise RuntimeErorr("ARTIOChunk.fwidth called before fill")
         return np.array([2.**-self._ires,2.**-self._ires,2.**-self._ires]).transpose()
 
     def select_icoords(self, dobj):
         if self._fcoords is None or self._ires is None :
-            print "Error: ARTIOChunk.icoords called before fill fcoords/level"
-            raise RuntimeError
+            raise RuntimeError("ARTIOChunk.icoords called before fill fcoords/level")
         return (int) (self._fcoords/2**-self._ires)
 
     def fill(self, fields):
@@ -86,7 +90,7 @@ class ARTIOChunk(object) :
         data = {}
         for i,f in enumerate(fields) :
             data[f] = artdata[i] 
-        self.data_size = len(self._fcoords)
+        self._data_size = len(self._fcoords)
         return data
 
     def fill_particles(self, field_data, fields):
@@ -165,7 +169,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields() 
         self.field_list = self.fluid_field_list + self.particle_field_list
-        print "Detected fields:",self.field_list
+        mylog.debug("Detected fields:",self.field_list)
 
 
     def _detect_fluid_fields(self) :
@@ -187,7 +191,6 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            print "Running selector on base grid"
             try :
                 all_data = all(dobj.left_edge == self.pf.domain_left_edge) and \
                     all(dobj.right_edge == self.pf.domain_right_edge)
@@ -195,15 +198,15 @@ class ARTIOGeometryHandler(GeometryHandler):
                 all_data = False
 
             if all_data :
+                mylog.debug("Selecting entire artio domain")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
             else :
+                mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(dobj.selector)
-            print "Generating list of chunks"
             dobj._chunk_info = [ARTIOChunk(self.pf, dobj.selector, start, end)
                     for (start,end) in list_sfc_ranges]
-            print "done creating ARTIOChunks"
+            mylog.info("Created %d chunks for ARTIO"%(len(list_sfc_ranges),))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
-        print 'done with base chunk'
 
     def _data_size(self, dobj, dobjs) :
         size = 0
@@ -220,13 +223,11 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _chunk_io(self, dobj):
         # _current_chunk is made from identify_base_chunk 
-        #object = dobj._current_chunk.objs or dobj._current_chunk.${dobj._chunk_info}
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for chunk in oobjs:
             yield YTDataChunk(dobj, "io", [chunk], self._data_size )
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
-        #print 'snl in geometry_handler read_fluid_fields'
         if len(fields) == 0: return {}, []
         if chunk is None:
             self._identify_base_chunk(dobj)
@@ -242,7 +243,6 @@ class ARTIOGeometryHandler(GeometryHandler):
             conv_factor = self.pf.field_info[fname]._convert_function(self)
             np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
-        #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
 class ARTIOStaticOutput(StaticOutput):
@@ -299,7 +299,7 @@ class ARTIOStaticOutput(StaticOutput):
         self.conversion_factors["y-velocity"] = self.parameters['unit_v']
         self.conversion_factors["z-velocity"] = self.parameters['unit_v']
         self.conversion_factors["Temperature"] = self.parameters['unit_T']*constants.wmu*(constants.gamma-1) #*cell_gas_internal_energy(cell)/cell_gas_density(cell);
-        print 'note temperature conversion is currently using fixed gamma not variable'
+        mylog.info('note artio temperature conversion is currently using fixed gamma not variable')
 
 #        for particle_field in particle_fields:
 #            self.conversion_factors[particle_field] =  1.0

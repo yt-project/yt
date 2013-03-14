@@ -33,7 +33,6 @@ class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields ):
-    	print 'reading in fluid data'
         tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         cp = 0
         for onechunk in chunks:
@@ -47,7 +46,6 @@ class IOHandlerARTIO(BaseIOHandler):
 
     def _read_particle_selection(self, chunks, selector, fields):
         # TODO: determine proper datatype for fields
-        print 'reading in particle data'
         tr = dict((ftuple, np.empty(0, dtype='float32')) for ftuple in fields)
         for onechunk in chunks:
             for artchunk in onechunk.objs :

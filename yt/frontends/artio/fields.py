@@ -251,13 +251,13 @@ add_field("particle_age",function=_particle_age,units=r"\rm{s}",particle_type=Tr
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')
-    idx = data["particle_type"]<5
+    idx = data["particle_type"]<5 # dhr - particle types are strings...
     #make a dumb assumption that the mass is evenly spread out in the grid
     #must return an array the shape of the grid cells
     if np.sum(idx)>0:
         tr /= np.prod(data['CellVolumeCode']*data.pf['mpchcm']**3.0) #divide by the volume
         tr *= np.sum(data['particle_mass'][idx])*data.pf['Msun'] #Multiply by total contaiend mass
-        print tr.shape
+        #print tr.shape
         return tr
     else:
         return tr*1e-9 #dhr - where does this 1e-9 come from?
