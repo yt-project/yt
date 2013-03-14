@@ -26,28 +26,27 @@ import numpy as np
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
-from .definitions import yt_to_art
+
 
 class IOHandlerARTIO(BaseIOHandler):
     _data_style = "artio"
 
-    def _read_fluid_selection(self, chunks, selector, fields ):
+    def _read_fluid_selection(self, chunks, selector, fields):
         tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         cp = 0
         for onechunk in chunks:
-            for artchunk in onechunk.objs :
-                rv = artchunk.fill(fields)  
+            for artchunk in onechunk.objs:
+                rv = artchunk.fill(fields)
                 for f in fields:
                     tr[f].resize(cp+artchunk.data_size)
                     tr[f][cp:cp+artchunk.data_size] = rv.pop(f)
-                cp += artchunk.data_size 
+                cp += artchunk.data_size
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
         # TODO: determine proper datatype for fields
         tr = dict((ftuple, np.empty(0, dtype='float32')) for ftuple in fields)
         for onechunk in chunks:
-            for artchunk in onechunk.objs :
+            for artchunk in onechunk.objs:
                 artchunk.fill_particles(tr, fields)
         return tr

@@ -1160,13 +1160,13 @@ int artio_grid_read_sfc_range_levels(artio_fileset *handle,
 		return ARTIO_ERR_INVALID_FILESET_MODE;
 	}
 
-	if ( ( options & ARTIO_RETURN_CELLS && 
+	if ( ( (options & ARTIO_RETURN_CELLS) && 
 				!(options & ARTIO_READ_LEAFS) && 
 				!(options & ARTIO_READ_REFINED)) ||
-			( options & ARTIO_RETURN_OCTS && 
-				(options & ARTIO_READ_LEAFS || 
-				options & ARTIO_READ_REFINED ) &&
-				!(options & ARTIO_READ_ALL == ARTIO_READ_ALL ) ) ) {
+			( (options & ARTIO_RETURN_OCTS) && 
+				((options & ARTIO_READ_LEAFS) || 
+				(options & ARTIO_READ_REFINED) ) &&
+				!((options & ARTIO_READ_ALL) == ARTIO_READ_ALL ) ) ) {
 		return ARTIO_ERR_INVALID_CELL_TYPES;
 	}
 	
