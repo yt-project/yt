@@ -129,7 +129,7 @@ class Halo(object):
         # This matches them up.
         self._particle_mask = np.in1d(sp_pid, pid)
         return self._particle_mask
-    
+
     def center_of_mass(self):
         r"""Calculate and return the center of mass.
 
@@ -1090,8 +1090,7 @@ class HaloList(object):
             else:
                 self.particle_fields[field] = \
                     self._data_source[field][ii].astype('float64')
-            print 'snl in halo_objects field',self._fields, 'had to remove delete field'
-            #del self._data_source[field]
+            del self._data_source[field]
         self._base_indices = np.arange(tot_part)[ii]
         gc.collect()
 
@@ -2229,8 +2228,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self.comm.size == 1:
-        #snl temporary fix until periodicity comes along:
-            self._data_source = self.hierarchy.region([0.5] * 3,
+            self._data_source = self.hierarchy.periodic_region_strict([0.5] * 3,
                 LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case where the full box is what we want.
