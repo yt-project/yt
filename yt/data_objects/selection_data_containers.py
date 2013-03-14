@@ -928,7 +928,6 @@ class YTSphereBase(YTSelectionContainer3D):
             raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
         self.radius = radius
-        self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
 
 class YTEllipsoidBase(YTSelectionContainer3D):
     """

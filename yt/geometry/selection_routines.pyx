@@ -407,11 +407,21 @@ cdef class SelectorObject:
 cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
+    cdef np.float64_t domain_left_edge[3]
+    cdef np.float64_t domain_right_edge[3]
+    cdef np.float64_t domain_width[3]
+    cdef bint periodicity[3]
 
     def __init__(self, dobj):
         for i in range(3):
             self.center[i] = dobj.center[i]
         self.radius2 = dobj.radius * dobj.radius
+
+        for i in range(3) :
+            self.domain_left_edge[i] = dobj.pf.domain_left_edge[i]
+            self.domain_right_edge[i] = dobj.pf.domain_right_edge[i]
+            self.domain_width[i] = self.domain_right_edge[i] - self.domain_left_edge[i]
+            self.periodicity[i] = dobj.pf.periodicity[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -420,8 +430,7 @@ cdef class SphereSelector(SelectorObject):
                                np.float64_t right_edge[3],
                                np.int32_t level) nogil:
         cdef np.float64_t box_center, relcenter, closest, dist, edge
-        return 1
-        cdef int id
+        cdef int i
         if (left_edge[0] <= self.center[0] <= right_edge[0] and
             left_edge[1] <= self.center[1] <= right_edge[1] and
             left_edge[2] <= self.center[2] <= right_edge[2]):
@@ -431,10 +440,15 @@ cdef class SphereSelector(SelectorObject):
         for i in range(3):
             box_center = (right_edge[i] + left_edge[i])/2.0
             relcenter = self.center[i] - box_center
+            if self.periodicity[i]:
+                if relcenter > self.domain_width[i]/2.0: 
+                    relcenter -= self.domain_width[i] 
+                elif relcenter < -self.domain_width[i]/2.0: 
+                    relcenter += self.domain_width[i] 
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
-        if dist < self.radius2: return 1
+        if dist <= self.radius2: return 1
         return 0
 
     @cython.boundscheck(False)
@@ -444,10 +458,20 @@ cdef class SphereSelector(SelectorObject):
                          int eterm[3]) nogil:
         cdef np.float64_t dist2, temp
         cdef int i
+        if (pos[0] - 0.5*dds[0] <= self.center[0] <= pos[0]+0.5*dds[0] and
+            pos[1] - 0.5*dds[1] <= self.center[1] <= pos[1]+0.5*dds[1] and
+            pos[2] - 0.5*dds[2] <= self.center[2] <= pos[2]+0.5*dds[2]):
+            return 1
         dist2 = 0
         for i in range(3):
-            temp = (pos[i] - self.center[i])
-            dist2 += temp * temp
+            temp = self.center[i] - pos[i]
+            if self.periodicity[i]:
+                if temp > self.domain_width[i]/2.0:
+                    temp -= self.domain_width[i]
+                elif temp < -self.domain_width[i]/2.0:
+                    temp += self.domain_width[i]
+            temp = temp - fclip(temp, -dds[i]/2.0, dds[i]/2.0)
+            dist2 += temp*temp
         if dist2 <= self.radius2: return 1
         return 0
 
