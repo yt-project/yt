@@ -369,7 +369,7 @@ def _dmpdensity(field, data):
         if not filter.any(): return blank
         num = filter.sum()
     else:
-        filter = None
+        filter = Ellipsis
         num = data["particle_position_x"].size
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),

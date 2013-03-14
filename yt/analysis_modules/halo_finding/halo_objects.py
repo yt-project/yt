@@ -498,39 +498,39 @@ class Halo(object):
         # all the parameters except for the center of mass.
         com = self.center_of_mass()
         position = [self["particle_position_x"],
-		    self["particle_position_y"],
-		    self["particle_position_z"]]
+                    self["particle_position_y"],
+                    self["particle_position_z"]]
         # Locate the furthest particle from com, its vector length and index
-	DW = np.array([self.gridsize[0],self.gridsize[1],self.gridsize[2]])
-	position = [position[0] - com[0],
-		    position[1] - com[1],
-		    position[2] - com[2]]
-	# different cases of particles being on other side of boundary
-	for axis in range(np.size(DW)):
-	    cases = np.array([position[axis],
-	  		      position[axis] + DW[axis],
-			      position[axis] - DW[axis]])        
+        DW = np.array([self.gridsize[0],self.gridsize[1],self.gridsize[2]])
+        position = [position[0] - com[0],
+                    position[1] - com[1],
+                    position[2] - com[2]]
+        # different cases of particles being on other side of boundary
+        for axis in range(np.size(DW)):
+            cases = np.array([position[axis],
+                                position[axis] + DW[axis],
+                              position[axis] - DW[axis]])        
             # pick out the smallest absolute distance from com
             position[axis] = np.choose(np.abs(cases).argmin(axis=0), cases)
-	# find the furthest particle's index
-	r = np.sqrt(position[0]**2 +
-		    position[1]**2 +
-		    position[2]**2)
+        # find the furthest particle's index
+        r = np.sqrt(position[0]**2 +
+                    position[1]**2 +
+                    position[2]**2)
         A_index = r.argmax()
         mag_A = r.max()
         # designate the A vector
-	A_vector = (position[0][A_index],
-		    position[1][A_index],
-		    position[2][A_index])
+        A_vector = (position[0][A_index],
+                    position[1][A_index],
+                    position[2][A_index])
         # designate the e0 unit vector
         e0_vector = A_vector / mag_A
         # locate the tB particle position by finding the max B
-	e0_vector_copy = np.empty((np.size(position[0]), 3), dtype='float64')
+        e0_vector_copy = np.empty((np.size(position[0]), 3), dtype='float64')
         for i in range(3):
             e0_vector_copy[:, i] = e0_vector[i]
         rr = np.array([position[0],
-		       position[1],
-		       position[2]]).T # Similar to tB_vector in old code.
+                       position[1],
+                       position[2]]).T # Similar to tB_vector in old code.
         tC_vector = np.cross(e0_vector_copy, rr)
         te2 = tC_vector.copy()
         for dim in range(3):
@@ -944,7 +944,7 @@ class LoadedHalo(Halo):
         Examples
         --------
         >>> params = halos[0].get_ellipsoid_parameters()
-	"""
+        """
 
         basic_parameters = self._get_ellipsoid_parameters_basic_loadedhalo()
         toreturn = [self.center_of_mass()]
