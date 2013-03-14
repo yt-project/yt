@@ -53,26 +53,26 @@ class ARTIOChunk(object) :
         self.data_size = 0
 
     _fcoords = None
-    def fcoords(self, dobj):
+    def select_fcoords(self, dobj):
         if self._fcoords is None :
             print "Error: ARTIOChunk.fcoords called before fill"
             raise RuntimeError
         return self._fcoords
 
     _ires = None
-    def ires(self, dobj):
+    def select_ires(self, dobj):
         if self._ires is None :
             print "Error: ARTIOChunk.ires called before fill"
             raise RuntimeError
         return self._ires
 
-    def fwidth(self, dobj):
+    def select_fwidth(self, dobj):
         if self._ires is None :
             print "Error: ARTIOChunk.fwidth called before fill"
             raise RuntimeError
         return np.array([2.**-self._ires,2.**-self._ires,2.**-self._ires]).transpose()
 
-    def icoords(self, dobj):
+    def select_icoords(self, dobj):
         if self._fcoords is None or self._ires is None :
             print "Error: ARTIOChunk.icoords called before fill fcoords/level"
             raise RuntimeError
@@ -188,7 +188,8 @@ class ARTIOGeometryHandler(GeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             print "Running selector on base grid"
-            if all(dobj.left_edge == self.pf.domain_left_edge) and \
+            if hasattr(dobj,'left_edge') and hasattr(dobj,'right_edge') and \
+                    all(dobj.left_edge == self.pf.domain_left_edge) and \
                     all(dobj.right_edge == self.pf.domain_right_edge) :
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
             else :
@@ -197,7 +198,7 @@ class ARTIOGeometryHandler(GeometryHandler):
             dobj._chunk_info = [ARTIOChunk(self.pf, dobj.selector, start, end)
                     for (start,end) in list_sfc_ranges]
             print "done creating ARTIOChunks"
-        dobj._current_chunk = None
+        dobj._current_chunk = list(self._chunk_all(dobj))[0]
         print 'done with base chunk'
 
     def _data_size(self, dobj, dobjs) :

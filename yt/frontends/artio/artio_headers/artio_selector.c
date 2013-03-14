@@ -25,7 +25,7 @@ int artio_selection_iterator( artio_selection *selection,
 	}
 
 	if ( selection->subcycle > 0 ) {
-		*start = selection->subcycle;
+		*start = selection->subcycle+1;
 	} else {
 		*start = selection->list[2*selection->cursor];
 	}
