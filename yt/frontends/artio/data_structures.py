@@ -96,7 +96,6 @@ class ARTIOChunk(object) :
                 if s == "all" or self.pf.particle_species[i] == yt_to_art[s] :
                     if yt_to_art[f] in self.pf.particle_variables[i] :
                         art_fields[(i,yt_to_art[f])] = 1
-        print "art_fields:", art_fields.keys()
 
         species_data = self.pf._handle.read_particle_chunk( self.selector, 
             self.sfc_start, self.sfc_end, art_fields.keys() ) 
@@ -222,7 +221,7 @@ class ARTIOGeometryHandler(GeometryHandler):
             yield YTDataChunk(dobj, "io", [chunk], self._data_size )
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
-        print 'snl in geometry_handler read_fluid_fields'
+        #print 'snl in geometry_handler read_fluid_fields'
         if len(fields) == 0: return {}, []
         if chunk is None:
             self._identify_base_chunk(dobj)
