@@ -472,6 +472,7 @@ int artio_particle_read_selection_species( artio_fileset *handle,
 		void *params );
 
 artio_selection *artio_selection_allocate( artio_fileset *handle );
+artio_selection *artio_select_all( artio_fileset *handle );
 artio_selection *artio_select_volume( artio_fileset *handle, double lpos[3], double rpos[3] );
 artio_selection *artio_select_cube( artio_fileset *handle, double center[3], double size );
 int artio_selection_add_root_cell( artio_selection *selection, int coords[3] );                   

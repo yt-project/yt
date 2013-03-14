@@ -57,6 +57,8 @@ cdef extern from "artio.h":
 
     # selection functions
     artio_selection *artio_selection_allocate( artio_fileset_handle *handle )
+    artio_selection *artio_select_all( artio_fileset_handle *handle )
+    artio_selection *artio_select_volume( artio_fileset_handle *handle, double lpos[3], double rpos[3] )
     int artio_selection_add_root_cell( artio_selection *selection, int coords[3] )
     int artio_selection_destroy( artio_selection *selection )
     int artio_selection_iterator( artio_selection *selection,
@@ -127,7 +129,7 @@ cdef class artio_fileset :
 
     # particle attributes
     cdef public int num_species
-    cdef int *particle_pos_index
+    cdef int *particle_position_index
     cdef int *num_particles_per_species
     cdef double *primary_variables
     cdef float *secondary_variables
@@ -152,7 +154,7 @@ cdef class artio_fileset :
             num_root >>= 3
 
         self.sfc_min = 0
-        self.sfc_max = self.num_root_cells
+        self.sfc_max = self.num_root_cells-1
 
         # grid detection
         self.min_level = 0
@@ -169,15 +171,15 @@ cdef class artio_fileset :
 
         # particle detection
         self.num_species = self.parameters['num_particle_species'][0]
-        self.particle_pos_index = <int *>malloc(3*sizeof(int)*self.num_species)
-        if not self.particle_pos_index :
+        self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)
+        if not self.particle_position_index :
             raise MemoryError
         for ispec in range(self.num_species) :
             labels = self.parameters["species_%02d_primary_variable_labels"% (ispec,)]
             try :
-                self.particle_pos_index[3*ispec+0] = labels.index('POSITION_X')
-                self.particle_pos_index[3*ispec+1] = labels.index('POSITION_Y')
-                self.particle_pos_index[3*ispec+2] = labels.index('POSITION_Z')
+                self.particle_position_index[3*ispec+0] = labels.index('POSITION_X')
+                self.particle_position_index[3*ispec+1] = labels.index('POSITION_Y')
+                self.particle_position_index[3*ispec+2] = labels.index('POSITION_Z')
             except ValueError :
                 print "Unable to locate position information for particle species", ispec
                 raise RuntimeError
@@ -196,7 +198,7 @@ cdef class artio_fileset :
         if self.num_octs_per_level : free(self.num_octs_per_level)
         if self.grid_variables : free(self.grid_variables)
 
-        if self.particle_pos_index : free(self.particle_pos_index)
+        if self.particle_position_index : free(self.particle_position_index)
         if self.num_particles_per_species : free(self.num_particles_per_species)
         if self.primary_variables : free(self.primary_variables)
         if self.secondary_variables : free(self.secondary_variables)
@@ -268,37 +270,45 @@ cdef class artio_fileset :
         for i in range(3) : dds[i] = 0
 
         data = {}
-        selected_primary = self.num_species * []
-        selected_secondary = self.num_species * []
-        selected_mass = {}
-        selected_id = {}
         accessed_species = np.zeros( self.num_species, dtype="int")
+        selected_mass = [ None for i in range(self.num_species)]
+        selected_pid = [ None for i in range(self.num_species)]
+        selected_species = [ None for i in range(self.num_species)]
+        selected_primary = [ [] for i in range(self.num_species)]
+        selected_secondary = [ [] for i in range(self.num_species)]
 
         for species,field in fields :
             if species < 0 or species > self.num_species :
                 print "Error: invalid species provided to read_particle_chunk"
                 raise RuntimeError
-            if field < -1 or field >
             accessed_species[species] = 1
-            if field == -1 :
-                data[(species,field)] = np.empty(0,dtype="int64")
-                selected_id[species] = (species,field)
-            elif field >= 0 and field < self.parameters['num_primary_variables'][species] :
-                selected_primary[species].append(field)
+
+            if self.parameters["num_primary_variables"][species] > 0 and \
+                    field in self.parameters["species_%02u_primary_variable_labels"%(species,)] :
+                selected_primary[species].append((self.parameters["species_%02u_primary_variable_labels"%(species,)].index(field),(species,field)))
                 data[(species,field)] = np.empty(0,dtype="float64")
-            elif self.parameters['num_secondary_variables'][species] > 0 and \
+            elif self.parameters["num_secondary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_secondary_variable_labels"%(species,)] :
-                selected_secondary[species].append(self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field))
+                selected_secondary[species].append((self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field),(species,field)))
                 data[(species,field)] = np.empty(0,dtype="float32")
+            elif field == "MASS" :
+                selected_mass[species] = (species,field)
+                data[(species,field)] = np.empty(0,dtype="float32")
+            elif field == "PID" :
+                selected_pid[species] = (species,field)
+                data[(species,field)] = np.empty(0,dtype="int64")
+            elif field == "SPECIES" :
+                selected_species[species] = (species,field)
+                data[(species,field)] = np.empty(0,dtype="int8")
             else :
-                print "Error: invalid ARTIO field", field, "for species",species,"in read_particle_chunk"
-                #raise RuntimeError
+                print "Error; invalid field name provided to read_particle_chunk"
+                raise RuntimeError
 
         # cache the range
         status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max ) 
         check_artio_status(status)
-	
-        for sfc in range( self.sfc_start, self.sfc_end+1 ) :
+
+        for sfc in range( sfc_start, sfc_end+1 ) :
             status = artio_particle_read_root_cell_begin( self.handle, sfc,
                     self.num_particles_per_species )
             check_artio_status(status)	
@@ -331,21 +341,22 @@ cdef class artio_fileset :
                                 data[field][count] = self.secondary_variables[i]
 
                             # add particle id
-                            if selected_id[ispec] :
-                                count = len(data[selected_id[ispec]])
-                                data[selected_id[ispec]].resize(count+1)
-                                data[selected_id[ispec]][count] = pid
+                            if selected_pid[ispec] :
+                                count = len(data[selected_pid[ispec]])
+                                data[selected_pid[ispec]].resize(count+1)
+                                data[selected_pid[ispec]][count] = pid
 
+                            # add mass if requested
                             if selected_mass[ispec] :
                                 count = len(data[selected_mass[ispec]])
                                 data[selected_mass[ispec]].resize(count+1)
-                                data[selected_mass[ispec]][count] = self.particle_species_mass[i]
+                                data[selected_mass[ispec]][count] = self.parameters["particle_species_mass"]
                         
-                        status = artio_particle_read_species_end( self.handle )
-                        check_artio_status(status)
+                    status = artio_particle_read_species_end( self.handle )
+                    check_artio_status(status)
                     
-                status = artio_particle_read_root_cell_end( self.handle )
-                check_artio_status(status)
+            status = artio_particle_read_root_cell_end( self.handle )
+            check_artio_status(status)
  
         return data
 
@@ -456,6 +467,21 @@ cdef class artio_fileset :
 
         return (fcoords, ires, data)
 
+    def root_sfc_ranges_all(self) :
+        cdef int max_range_size = 1024
+        cdef int64_t sfc_start, sfc_end
+        cdef artio_selection *selection
+
+        selection = artio_select_all( self.handle )
+        if selection == NULL :
+            raise RuntimeError
+        sfc_ranges = []
+        while artio_selection_iterator(selection, max_range_size, 
+                &sfc_start, &sfc_end) == ARTIO_SUCCESS :
+            sfc_ranges.append([sfc_start, sfc_end])
+        artio_selection_destroy(selection)
+        return sfc_ranges
+
     def root_sfc_ranges(self, SelectorObject selector) :
         cdef int max_range_size = 1024
         cdef int coords[3]
@@ -465,8 +491,7 @@ cdef class artio_fileset :
         cdef int eterm[3]
         cdef artio_selection *selection
         cdef int i, j, k
-
-        dds[0] = dds[1] = dds[2] = 1.0
+        for i in range(3): dds[i] = 1.0
 
         sfc_ranges=[]
         selection = artio_selection_allocate(self.handle)

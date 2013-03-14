@@ -46,8 +46,8 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        print 'reading in particle data'
         # TODO: determine proper datatype for fields
+        print 'reading in particle data'
         tr = dict((ftuple, np.empty(0, dtype='float32')) for ftuple in fields)
         for onechunk in chunks:
             for artchunk in onechunk.objs :

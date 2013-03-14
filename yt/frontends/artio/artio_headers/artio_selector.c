@@ -32,7 +32,7 @@ int artio_selection_iterator( artio_selection *selection,
 
 	*end = selection->list[2*selection->cursor+1];
 	if ( *end - *start > max_range_size ) {
-		*end = *start + max_range_size;
+		*end = *start + max_range_size-1;
 		selection->subcycle = *end;
 	} else {
 		selection->subcycle = -1;
@@ -196,7 +196,27 @@ void artio_selection_print( artio_selection *selection ) {
 	for ( i = 0; i < selection->num_ranges; i++ ) {
 		printf("%u: %ld %ld\n", i, selection->list[2*i], selection->list[2*i+1] );
 	}
-}	
+}
+
+artio_selection *artio_select_all( artio_fileset *handle ) {
+	artio_selection *selection;
+
+	if ( handle == NULL ) {
+		return NULL;
+	}
+
+	selection = artio_selection_allocate(handle);
+	if ( selection == NULL ) {
+		return NULL;
+	}
+
+	if ( artio_selection_add_range( selection, 0, handle->num_root_cells-1 ) != ARTIO_SUCCESS ) {
+		artio_selection_destroy(selection);
+		return NULL;
+	}
+
+	return selection;
+}
 
 artio_selection *artio_select_volume( artio_fileset *handle, double lpos[3], double rpos[3] ) {
 	int i;

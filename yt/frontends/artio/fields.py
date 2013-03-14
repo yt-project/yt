@@ -39,7 +39,6 @@ import numpy as np
 KnownARTIOFields = FieldInfoContainer()
 add_artio_field = KnownARTIOFields.add_field
 
-#snl: doug removed RFI, but field name is needed in yt/data_objects/field_info_container.py?
 ARTIOFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo) 
 add_field = ARTIOFieldInfo.add_field
 
@@ -56,30 +55,6 @@ for f in known_artio_fields:
 
 add_artio_field("Gamma", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("Gamma")])
-
-#def dx(field, data):
-#    return data.fwidth[:,0]
-#add_field("dx", function=dx)
-#
-#def dy(field, data):
-#    return data.fwidth[:,1]
-#add_field("dy", function=dy)
-#
-#def dz(field, data):
-#    return data.fwidth[:,2]
-#add_field("dz", function=dz)
-#
-#def x(field, data):
-#    return data.fcoords[:,0]
-#add_field("x", function=x)
-#
-#def y(field, data):
-#    return data.fcoords[:,1]
-#add_field("y", function=y)
-#
-#def z(field, data):
-#    return data.fcoords[:,2]
-#add_field("z", function=z)
 
 def _convertDensity(data):
     return data.convert("Density")
@@ -160,10 +135,9 @@ KnownARTIOFields["PotentialHydro"]._projected_units = r"\rm{g}/\rm{cm}^2"
 KnownARTIOFields["PotentialHydro"]._convert_function=_convertPotentialHydro
 
 ####### Derived fields
-import sys
 def _temperature(field, data):
     tr = data["GasEnergy"]/data["Density"] #Gamma fixed not field *(data["Gamma"]-1)*wmu 
-    tr[np.isnan(tr)] = 0.0
+    tr[np.isnan(tr)] = 0.0 #dhr - this is bad, don't just mask nan's, make the user think about what they're doing
     return tr
 def _converttemperature(data):
     x = data.pf.conversion_factors["Temperature"]*data.pf.conversion_factors["Density"]/data.pf.conversion_factors["GasEnergy"]
@@ -248,13 +222,25 @@ add_field("ParticleMass",
           units=r"\rm{g}",
           particle_type=True)
 
-def ParticleMassMsun(field,data):
-    return data['particle_mass']*data.pf.conversion_factors['particle_mass_msun']
-add_field("ParticleMassMsun",
-          function=ParticleMassMsun,
+def ParticleMassMsunAll(field,data):
+    return data['all','particle_mass']*data.pf.conversion_factors['particle_mass_msun']
+add_field(('all',"ParticleMassMsun"),
+          function=ParticleMassMsunAll,
           units=r"\rm{M\odot}",particle_type=True)
 
-add_artio_field("creation_time", function=NullFunc, particle_type=True)
+def ParticleMassMsunStars(field,data):
+    return data['stars','particle_mass']*data.pf.conversion_factors['particle_mass_msun']
+add_field(('stars',"ParticleMassMsun"),
+          function=ParticleMassMsunStars,
+          units=r"\rm{M\odot}",particle_type=True)
+
+def ParticleMassMsunNbody(field,data):
+    return data['nbody','particle_mass']*data.pf.conversion_factors['particle_mass_msun']
+add_field(('nbody',"ParticleMassMsun"),
+          function=ParticleMassMsunNbody,
+          units=r"\rm{M\odot}",particle_type=True)
+
+#add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field,data):
     pa = b2t(data['creation_time'])
 #    tr = np.zeros(pa.shape,dtype='float')-1.0
@@ -274,7 +260,7 @@ def mass_dm(field, data):
         print tr.shape
         return tr
     else:
-        return tr*1e-9
+        return tr*1e-9 #dhr - where does this 1e-9 come from?
 
 add_field("particle_cell_mass_dm", function=mass_dm, units = r"\mathrm{M_{sun}}",
         validators=[ValidateSpatial(0)],        
