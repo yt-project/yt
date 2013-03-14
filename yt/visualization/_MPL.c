@@ -440,6 +440,17 @@ static PyMethodDef __MPLMethods[] = {
 __declspec(dllexport)
 #endif
 
+
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL m
+PyInit__MPL(void)
+#else
+#define _RETVAL 
+init_MPL(void)
+#endif
+{
+    PyObject *m, *d;
 #if PY_MAJOR_VERSION >= 3
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
@@ -453,20 +464,6 @@ __declspec(dllexport)
         NULL,                /* m_clear */
         NULL,                /* m_free */
     };
-#endif
-
-
-PyMODINIT_FUNC
-#if PY_MAJOR_VERSION >= 3
-#define _RETVAL NULL
-PyInit__MPL(void)
-#else
-#define _RETVAL 
-init_MPL(void)
-#endif
-{
-    PyObject *m, *d;
-#if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&moduledef); 
 #else
     m = Py_InitModule("_MPL", __MPLMethods);

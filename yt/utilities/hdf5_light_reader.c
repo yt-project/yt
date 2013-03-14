@@ -40,6 +40,14 @@
 
 #define MIN(a,b) ((a) <= (b) ? (a) : (b))
 
+#if PY_MAJOR_VERSION >= 3
+#define PYINTCONV_AS   PyLong_AsLong
+#define PYINTCONV_FROM PyLong_FromLong
+#else
+#define PYINTCONV_AS   PyInt_AsLong
+#define PYINTCONV_FROM PyInt_FromLong
+#endif
+
 static PyObject *_hdf5ReadError;
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
 
@@ -619,7 +627,7 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
 
     for(i = 0; i < num_grids; i++) {
         grid_key = PyList_GetItem(grid_ids, i);
-        id = PyInt_AsLong(grid_key);
+        id = PYINTCONV_AS(grid_key);
         sprintf(grid_node_name, "Grid%08li", id);
         grid_data = PyDict_New(); // New reference
         PyDict_SetItem(grids_dict, grid_key, grid_data);
@@ -858,7 +866,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       temp = PyList_GetItem(filename_list, ig);
       filename = PyString_AsString(temp);
       temp = PyList_GetItem(grid_ids, ig);
-      id = PyInt_AsLong(temp);
+      id = PYINTCONV_AS(temp);
       //fprintf(stderr, "Counting from grid %d\n", id);
       if(run_validators(&pv, filename, id, 0, packed, ig) < 0) {
         goto _fail;
@@ -892,7 +900,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       temp = PyList_GetItem(filename_list, ig);
       filename = PyString_AsString(temp);
       temp = PyList_GetItem(grid_ids, ig);
-      id = PyInt_AsLong(temp);
+      id = PYINTCONV_AS(temp);
       //fprintf(stderr, "Reading from grid %d\n", id);
       if(run_validators(&pv, filename, id, 1, packed, ig) < 0) {
         goto _fail;
@@ -967,7 +975,7 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
         rv->right_edge[i] = *(npy_float64*) PyArray_GETPTR1(right_edge, i);
     }
 
-    rv->periodic = PyInt_AsLong(operiodic);
+    rv->periodic = PYINTCONV_AS(operiodic);
     if(rv->periodic == 1) {
       PyArrayObject *domain_left_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 3);
       PyArrayObject *domain_right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 4);
@@ -1009,7 +1017,7 @@ int setup_validator_sphere(particle_validation *data, PyObject *InputData)
 
     sv->radius = (npy_float64) PyFloat_AsDouble(radius);
 
-    sv->periodic = PyInt_AsLong(operiodic);
+    sv->periodic = PYINTCONV_AS(operiodic);
     if(sv->periodic == 1) {
       PyArrayObject *domain_left_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 3);
       PyArrayObject *domain_right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 4);
@@ -1848,6 +1856,17 @@ static PyMethodDef _hdf5LightReaderMethods[] = {
 __declspec(dllexport)
 #endif
 
+
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL m
+PyInit_hdf5_light_reader(void)
+#else
+#define _RETVAL 
+inithdf5_light_reader(void)
+#endif
+{
+    PyObject *m, *d;
 #if PY_MAJOR_VERSION >= 3
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
@@ -1861,19 +1880,6 @@ __declspec(dllexport)
         NULL,                /* m_clear */
         NULL,                /* m_free */
     };
-#endif
-
-PyMODINIT_FUNC
-#if PY_MAJOR_VERSION >= 3
-#define _RETVAL NULL
-PyInit_hdf5_light_reader(void)
-#else
-#define _RETVAL 
-inithdf5_light_reader(void)
-#endif
-{
-    PyObject *m, *d;
-#if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&moduledef); 
 #else
     m = Py_InitModule("hdf5_light_reader", _hdf5LightReaderMethods);

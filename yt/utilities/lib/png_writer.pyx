@@ -41,7 +41,7 @@ cdef extern from "stdlib.h":
 # First, declare the Python macro to access files:
 cdef extern from "Python.h":
     ctypedef struct FILE
-    FILE* PyFile_AsFile(object)
+    FILE* PyObject_AsFileDescriptor(object)
     void  fprintf(FILE* f, char* s, char* s)
 
 cdef extern from "png.h":
@@ -131,7 +131,7 @@ def write_png_to_file(np.ndarray[np.uint8_t, ndim=3] buffer,
     cdef png_byte *pix_buffer = <png_byte *> buffer.data
     cdef int width = buffer.shape[1]
     cdef int height = buffer.shape[0]
-    cdef FILE *fileobj = PyFile_AsFile(py_fileobj)
+    cdef FILE *fileobj = PyObject_AsFileDescriptor(py_fileobj)
 
     cdef png_bytep *row_pointers
     cdef png_structp png_ptr
@@ -299,7 +299,7 @@ def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100,
 
     png_destroy_write_struct(&png_ptr, &info_ptr)
 
-    pp = PyString_FromStringAndSize(state.buffer, state.size)
+    pp = str(state.buffer)
     if state.buffer != NULL: free(state.buffer)
     return pp
 

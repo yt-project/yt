@@ -425,6 +425,16 @@ kDTreeTypeDict = {
    0,                         /* tp_new */
 };
 
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL m
+PyInit_EnzoHop(void)
+#else
+#define _RETVAL 
+initEnzoHop(void)
+#endif
+{
+    PyObject *m, *d;
 #if PY_MAJOR_VERSION >= 3
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
@@ -437,17 +447,6 @@ kDTreeTypeDict = {
         NULL,                /* m_clear */
         NULL,                /* m_free */
     };
-#endif
-
-PyMODINIT_FUNC
-#if PY_MAJOR_VERSION >= 3
-PyInit_EnzoHop(void)
-#else
-initEnzoHop(void)
-#endif
-{
-    PyObject *m, *d;
-#if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&moduledef); 
 #else
     m = Py_InitModule("EnzoHop", _HOPMethods);
@@ -465,6 +464,7 @@ initEnzoHop(void)
    PyModule_AddObject(m, "kDTree", (PyObject*)&kDTreeTypeDict);
 
    import_array();
+   return _RETVAL;
 }
 
 /*
