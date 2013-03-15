@@ -171,22 +171,22 @@ add_field("Gas_Energy", function=_Gas_Energy,
 # We set up fields for both TotalEnergy and Total_Energy in the known fields
 # lists.  Note that this does not mean these will be the used definitions.
 add_enzo_field("TotalEnergy", function=NullFunc,
-          display_name = "Total Energy",
+          display_name = r"\rm{Total} \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 add_enzo_field("Total_Energy", function=NullFunc,
-          display_name = "Total Energy",
+          display_name = r"\rm{Total} \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Total_Energy(field, data):
     return data["TotalEnergy"] / _convertEnergy(data)
 add_field("Total_Energy", function=_Total_Energy,
-          display_name = "Total Energy",
+          display_name = r"\rm{Total} \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _TotalEnergy(field, data):
     return data["Total_Energy"] / _convertEnergy(data)
 add_field("TotalEnergy", function=_TotalEnergy,
-          display_name = "Total Energy",
+          display_name = r"\rm{Total} \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _NumberDensity(field, data):
