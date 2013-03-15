@@ -187,8 +187,14 @@ class GeometryHandler(ParallelAnalysisInterface):
                 self.parameter_file.field_dependencies[field] = fd
             except Exception as e:
                 continue
-            available = np.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
+            missing = False
+            # This next bit checks that we can't somehow generate everything.
+            for f in fd.requested:
+                if f not in self.field_list and \
+                    (field[0], f) not in self.field_list:
+                    missing = True
+                    break
+            if not missing: self.derived_field_list.append(field)
         for base_field in fields_to_allcheck:
             # Now we expand our field_info with the new fields
             all_available = all(((pt, field) in self.derived_field_list
