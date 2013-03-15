@@ -407,8 +407,6 @@ cdef class SelectorObject:
 cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
-    cdef np.float64_t domain_left_edge[3]
-    cdef np.float64_t domain_right_edge[3]
     cdef np.float64_t domain_width[3]
     cdef bint periodicity[3]
 
@@ -418,11 +416,10 @@ cdef class SphereSelector(SelectorObject):
         self.radius2 = dobj.radius * dobj.radius
 
         for i in range(3) :
-            self.domain_left_edge[i] = dobj.pf.domain_left_edge[i]
-            self.domain_right_edge[i] = dobj.pf.domain_right_edge[i]
-            self.domain_width[i] = self.domain_right_edge[i] - self.domain_left_edge[i]
+            self.domain_width[i] = dobj.pf.domain_right_edge[i] - \
+                                   dobj.pf.domain_left_edge[i]
             self.periodicity[i] = dobj.pf.periodicity[i]
-
+        
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
