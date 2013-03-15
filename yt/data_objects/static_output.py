@@ -251,6 +251,8 @@ class StaticOutput(object):
     _last_freq = (None, None)
     _last_finfo = None
     def _get_field_info(self, ftype, fname):
+        if ftype == "unknown" and self._last_freq[0] != None:
+            ftype = self._last_freq[0]
         field = (ftype, fname)
         if field == self._last_freq or fname == self._last_freq[1]:
             return self._last_finfo

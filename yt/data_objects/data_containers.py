@@ -453,7 +453,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     def _identify_dependencies(self, fields_to_get):
         inspected = 0
         fields_to_get = fields_to_get[:]
-        for ftype, field in itertools.cycle(fields_to_get):
+        for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
             inspected += 1
             if field not in self.pf.field_dependencies: continue

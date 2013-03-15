@@ -184,17 +184,23 @@ class GeometryHandler(ParallelAnalysisInterface):
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
-                self.parameter_file.field_dependencies[field] = fd
             except Exception as e:
                 continue
             missing = False
             # This next bit checks that we can't somehow generate everything.
+            # We also manually update the 'requested' attribute
+            requested = []
             for f in fd.requested:
-                if f not in self.field_list and \
-                    (field[0], f) not in self.field_list:
+                if (field[0], f) in self.field_list:
+                    requested.append( (field[0], f) )
+                elif f in self.field_list:
+                    requested.append( f )
+                else:
                     missing = True
                     break
             if not missing: self.derived_field_list.append(field)
+            fd.requested = set(requested)
+            self.parameter_file.field_dependencies[field] = fd
         for base_field in fields_to_allcheck:
             # Now we expand our field_info with the new fields
             all_available = all(((pt, field) in self.derived_field_list
