@@ -159,16 +159,43 @@ class GeometryHandler(ParallelAnalysisInterface):
                 self.parameter_file.field_info[field] = known_fields[field]
 
     def _setup_derived_fields(self):
+        fi = self.parameter_file.field_info
         self.derived_field_list = []
-        for field in self.parameter_file.field_info:
+        # First we construct our list of fields to check
+        fields_to_check = []
+        fields_to_allcheck = []
+        for field in fi:
+            finfo = fi[field]
+            # Explicitly defined
+            if isinstance(field, tuple):
+                fields_to_check.append(field)
+                continue
+            # This one is implicity defined for all particle or fluid types.
+            # So we check each.
+            if not finfo.particle_type:
+                fields_to_check.append(field)
+                continue
+            # We do a special case for 'all' later
+            new_fields = [(pt, field) for pt in
+                          self.parameter_file.particle_types]
+            fields_to_check += new_fields
+            fi.update( (new_field, fi[field]) for new_field in new_fields )
+            fields_to_allcheck.append(field)
+        for field in fields_to_check:
             try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
+                fd = fi[field].get_dependencies(pf = self.parameter_file)
                 self.parameter_file.field_dependencies[field] = fd
-            except:
+            except Exception as e:
                 continue
             available = np.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
+        for base_field in fields_to_allcheck:
+            # Now we expand our field_info with the new fields
+            all_available = all(((pt, field) in self.derived_field_list
+                                 for pt in self.parameter_file.particle_types))
+            if all_available:
+                self.derived_field_list.append( ("all", field) )
+                fi["all", base_field] = fi[base_field]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
