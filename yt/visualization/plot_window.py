@@ -29,6 +29,7 @@ import numpy as np
 import matplotlib
 import cStringIO
 import types
+import sys
 import __builtin__
 
 from matplotlib.mathtext import MathTextParser
@@ -75,7 +76,10 @@ try:
     if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
-        from matplotlib.pyparsing_py2 import ParseFatalException
+        if sys.version_info[0] == 3:
+            from matplotlib.pyparsing_py3 import ParseFatalException
+        else:
+            from matplotlib.pyparsing_py2 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
 

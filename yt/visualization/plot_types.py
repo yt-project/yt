@@ -29,7 +29,7 @@ import numpy as np
 
 from yt.funcs import *
 from _mpl_imports import *
-import _MPL
+from . import _MPL
 from .plot_modifications import callback_registry
 from yt.utilities.definitions import \
     x_dict, \

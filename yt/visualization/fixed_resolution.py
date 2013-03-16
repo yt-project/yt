@@ -30,7 +30,7 @@ from yt.utilities.definitions import \
     axis_names
 from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
-import _MPL
+from . import _MPL
 import numpy as np
 import weakref
 

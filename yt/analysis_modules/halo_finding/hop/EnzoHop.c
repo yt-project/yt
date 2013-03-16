@@ -351,7 +351,7 @@ kDTreeType_median_jst(kDTreeType *self, PyObject *args) {
 
     int median = kdMedianJst(self->kd, d, l, u);
 
-    PyObject *omedian = PyInt_FromLong((long)median);
+    PyObject *omedian = PyLong_FromLong((long)median);
     return omedian;
 }
 
@@ -384,8 +384,8 @@ kDTreeType_methods[] = {
 
 static PyTypeObject
 kDTreeTypeDict = {
-   PyObject_HEAD_INIT(NULL)
-   0,                         /* ob_size */
+   PyVarObject_HEAD_INIT(NULL, 0)
+                            /* ob_size */
    "kDTree",               /* tp_name */
    sizeof(kDTreeType),         /* tp_basicsize */
    0,                         /* tp_itemsize */

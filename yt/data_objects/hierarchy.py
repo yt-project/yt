@@ -29,7 +29,6 @@ import string, re, gc, time, cPickle, pdb
 import weakref
 
 from itertools import chain, izip
-from new import classobj
 
 from yt.funcs import *
 
@@ -371,7 +370,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
-        obj = classobj(class_name, (base,), dd)
+        obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
 
     def _initialize_level_stats(self):

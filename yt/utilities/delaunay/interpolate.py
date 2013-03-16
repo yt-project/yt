@@ -1,7 +1,7 @@
 import numpy as np
 
-from _delaunay import compute_planes, linear_interpolate_grid, nn_interpolate_grid
-from _delaunay import nn_interpolate_unstructured
+from ._delaunay import compute_planes, linear_interpolate_grid, nn_interpolate_grid
+from ._delaunay import nn_interpolate_unstructured
 
 __all__ = ['LinearInterpolator', 'NNInterpolator']
 

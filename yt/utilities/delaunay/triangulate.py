@@ -8,7 +8,7 @@ except NameError:
 
 import numpy as np
 
-from _delaunay import delaunay
+from ._delaunay import delaunay
 from interpolate import LinearInterpolator, NNInterpolator
 
 __all__ = ['Triangulation', 'DuplicatePointWarning']

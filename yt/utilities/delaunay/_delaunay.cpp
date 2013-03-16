@@ -744,7 +744,7 @@ static PyMethodDef delaunay_methods[] = {
 
 PyMODINIT_FUNC
 #if PY_MAJOR_VERSION >= 3
-#define _RETVAL NULL
+#define _RETVAL m
 PyInit__delaunay(void)
 #else
 #define _RETVAL 

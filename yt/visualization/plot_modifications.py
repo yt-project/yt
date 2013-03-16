@@ -45,7 +45,7 @@ from yt.utilities.physical_constants import \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
 
-import _MPL
+from . import _MPL
 
 callback_registry = {}
 

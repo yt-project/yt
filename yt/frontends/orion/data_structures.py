@@ -28,7 +28,6 @@ import re
 import weakref
 
 from collections import defaultdict
-from string import strip, rstrip
 from stat import ST_CTIME
 
 import numpy as np
@@ -528,7 +527,9 @@ class OrionStaticOutput(StaticOutput):
             if len(line) < 2 or line.find("#") == 0: # ...but skip comments
                 continue
             try:
-                param, vals = map(strip,map(rstrip,line.split("=")))
+                param, vals = [strip(i) for i in
+                                (j.rstrip() for j in line.split("="))]
+                #param, vals = map(strip,map(rstrip,line.split("=")))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
                 continue
@@ -580,7 +581,9 @@ class OrionStaticOutput(StaticOutput):
         lines = open(self.fparameter_filename).readlines()
         for line in lines:
             if line.count("=") == 1:
-                param, vals = map(strip,map(rstrip,line.split("=")))
+                param, vals = [strip(i) for i in
+                                (j.rstrip() for j in line.split("="))]
+                #param, vals = map(strip,map(rstrip,line.split("=")))
                 if vals.count("'") == 0:
                     t = map(float,[a.replace('D','e').replace('d','e') for a in vals.split()]) # all are floating point.
                 else:
