@@ -164,6 +164,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         # First we construct our list of fields to check
         fields_to_check = []
         fields_to_allcheck = []
+        fields_to_add = []
         for field in fi:
             finfo = fi[field]
             # Explicitly defined
@@ -179,8 +180,10 @@ class GeometryHandler(ParallelAnalysisInterface):
             new_fields = [(pt, field) for pt in
                           self.parameter_file.particle_types]
             fields_to_check += new_fields
-            fi.update( (new_field, fi[field]) for new_field in new_fields )
+            fields_to_add.extend( (new_field, fi[field]) for
+                                   new_field in new_fields )
             fields_to_allcheck.append(field)
+        fi.update(fields_to_add)
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
@@ -201,6 +204,9 @@ class GeometryHandler(ParallelAnalysisInterface):
             if not missing: self.derived_field_list.append(field)
             fd.requested = set(requested)
             self.parameter_file.field_dependencies[field] = fd
+            if not fi[field].particle_type and not isinstance(field, tuple):
+                # Manually hardcode to 'gas'
+                self.parameter_file.field_dependencies["gas", field] = fd
         for base_field in fields_to_allcheck:
             # Now we expand our field_info with the new fields
             all_available = all(((pt, field) in self.derived_field_list
