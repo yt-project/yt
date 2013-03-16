@@ -4628,11 +4628,19 @@ def _check_nested_args(arg, ref_pf):
     narg = [_check_nested_args(a, ref_pf) for a in arg]
     return narg
 
+def _get_pf_by_hash(hash):
+    from yt.data_objects.static_output import _cached_pfs
+    for pf in _cached_pfs.values():
+        if pf._hash() == hash: return pf
+    return None
+
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
     dtype = args[1]
-    pfs = ParameterFileStore()
-    pf = pfs.get_pf_hash(pfid)
+    pf = _get_pf_by_hash(pfid)
+    if not pf:
+        pfs = ParameterFileStore()
+        pf = pfs.get_pf_hash(pfid)
     field_parameters = args[-1]
     # will be much nicer when we can do pfid, *a, fp = args
     args = args[2:-1]

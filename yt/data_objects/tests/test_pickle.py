@@ -1,5 +1,6 @@
 from yt.testing import fake_random_pf, assert_equal
 from yt.analysis_modules.level_sets.api import identify_contours
+import yt.data_objects.api 
 import cPickle
 import os
 
@@ -11,7 +12,7 @@ def setup():
 
 def test_save_load_pickle():
 
-    test_pf = fake_random_pf(64)
+    pf = fake_random_pf(64)
 
     # create extracted region from boolean (fairly complex object)
     center = (pf.domain_left_edge + pf.domain_right_edge) / 2
