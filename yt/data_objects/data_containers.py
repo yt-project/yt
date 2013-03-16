@@ -4606,22 +4606,38 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             mylog.error("Problem uploading.")
         return upload_id
 
+# Many of these items are set up specifically to ensure that
+# we are not breaking old pickle files.  This means we must only call the
+# _reconstruct_object and that we cannot mandate any additional arguments to
+# the reconstruction function.
+#
+# In the future, this would be better off being set up to more directly
+# reference objects or retain state, perhaps with a context manager.
+#
+# One final detail: time series or multiple parameter files in a single pickle
+# seems problematic.
+
+class ReconstructedObject(tuple):
+    pass
+
+def _check_nested_args(arg, ref_pf):
+    if not isinstance(arg, (tuple, list, ReconstructedObject)):
+        return arg
+    elif isinstance(arg, ReconstructedObject) and ref_pf == arg[0]:
+        return arg[1]
+    narg = [_check_nested_args(a, ref_pf) for a in arg]
+    return narg
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
     dtype = args[1]
-    field_parameters = args[-1]
-    # will be much nicer when we can do pfid, *a, fp = args
-    args, new_args = args[2:-1], []
-    for arg in args:
-        if iterable(arg) and len(arg) == 2 \
-           and not isinstance(arg, types.DictType) \
-           and isinstance(arg[1], AMRData):
-            new_args.append(arg[1])
-        else: new_args.append(arg)
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(pfid)
+    field_parameters = args[-1]
+    # will be much nicer when we can do pfid, *a, fp = args
+    args = args[2:-1]
+    new_args = [_check_nested_args(a, pf) for a in args]
     cls = getattr(pf.h, dtype)
     obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
-    return pf, obj
+    return ReconstructedObject((pf, obj))
