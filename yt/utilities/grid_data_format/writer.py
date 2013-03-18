@@ -57,7 +57,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     # don't forget to close the file.
     f.close()
 
-def save_field(pf, field_name):
+def save_field(pf, field_name, field_parameters=None):
     """
     Write a single field associated with the parameter file pf to the
     backup file.
@@ -68,6 +68,8 @@ def save_field(pf, field_name):
         The yt parameter file that the field is associated with.
     field_name : string
         The name of the field to save.
+    field_parameters : dictionary
+        A dictionary of field parameters to set.
     """
 
     field_obj = pf.field_info[field_name]
@@ -85,12 +87,12 @@ def save_field(pf, field_name):
                        particle_type_name="dark_matter")
 
     # now save the field
-    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter")
+    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter", field_parameters=field_parameters)
 
     # don't forget to close the file.
     f.close()
         
-def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
+def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_parameters=None):
 
     # add field info to field_types group
     g = fhandle["field_types"]
@@ -122,6 +124,12 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name):
     # now add actual data, grid by grid
     g = fhandle["data"]     
     for grid in pf.h.grids:
+
+        # set field parameters, if specified
+        if field_parameters is not None:
+            for k,v in field_parameters.iteritems():
+                grid.set_field_parameter(k,v)
+
         grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
         particles_group = grid_group["particles"]
         pt_group = particles_group[particle_type_name]

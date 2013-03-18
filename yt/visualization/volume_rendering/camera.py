@@ -49,7 +49,7 @@ from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, parallel_objects
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from .blenders import  enhance
+from .blenders import  enhance_rgba
 from numpy import pi
 
 def get_corners(le, re):
@@ -232,16 +232,22 @@ class Camera(ParallelAnalysisInterface):
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
         self.tree_type = tree_type
+        if le is None: le = self.pf.domain_left_edge
+        self.le = np.array(le)
+        if re is None: re = self.pf.domain_right_edge
+        self.re = np.array(re)
         if volume is None:
             if self.use_kd:
                 volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost,
-                                   log_fields = log_fields, le=le, re=re)
+                                   log_fields = log_fields, le=self.le, re=self.re)
             else:
                 volume = HomogenizedVolume(fields, pf = self.pf,
                                            log_fields = log_fields)
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume        
+        self.center = (self.re + self.le) / 2.0
+        self.region = self.pf.h.region(self.center, self.le, self.re)
 
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
@@ -267,7 +273,8 @@ class Camera(ParallelAnalysisInterface):
         px = (res[1]*(dy/self.width[1])).astype('int')
         return px, py, dz
 
-    def draw_grids(self, im, alpha=0.3, cmap='algae'):
+    def draw_grids(self, im, alpha=0.3, cmap='algae', min_level=None, 
+                   max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
         By mapping grid level to a color, drawes edges of grids on 
@@ -284,6 +291,9 @@ class Camera(ParallelAnalysisInterface):
             Default : 0.3
         cmap : string, optional
             Colormap to be used mapping grid levels to colors.
+        min_level, max_level : int, optional
+            Optional parameters to specify the min and max level grid boxes 
+            to overplot on the image.  
         
         Returns
         -------
@@ -296,8 +306,18 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        corners = self.pf.h.grid_corners
-        levels = self.pf.h.grid_levels[:,0]
+        corners = self.region.grid_corners
+        levels = self.region.grid_levels[:,0]
+
+        if max_level is not None:
+            subset = levels <= max_level
+            levels = levels[subset]
+            corners = corners[:,:,subset]
+        if min_level is not None:
+            subset = levels >= min_level
+            levels = levels[subset]
+            corners = corners[:,:,subset]
+            
         colors = apply_colormap(levels*1.0,
                                 color_bounds=[0,self.pf.h.max_level],
                                 cmap_name=cmap)[0,:,:]*1.0/255.
@@ -315,11 +335,12 @@ class Camera(ParallelAnalysisInterface):
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
         
         # Must normalize the image
-        ma = im.max()
-        if ma > 0.0: 
-            enhance(im)
+        nim = im.rescale(inline=False)
+        enhance_rgba(nim)
+        nim.add_background_color('black', inline=True)
        
-        lines(im, px, py, colors, 24)
+        lines(nim, px, py, colors, 24)
+        return nim
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -388,12 +409,14 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_domain_boundary.png')
 
         """
-
-        ma = im.max()
-        if ma > 0.0: 
-            enhance(im)
-        self.draw_box(im, self.pf.domain_left_edge, self.pf.domain_right_edge,
+        # Must normalize the image
+        nim = im.rescale(inline=False)
+        enhance_rgba(nim)
+        nim.add_background_color('black', inline=True)
+ 
+        self.draw_box(nim, self.pf.domain_left_edge, self.pf.domain_right_edge,
                         color=np.array([1.0,1.0,1.0,alpha]))
+        return nim
 
     def draw_box(self, im, le, re, color=None):
         r"""Draws a box on an existing volume rendering.
@@ -529,6 +552,8 @@ class Camera(ParallelAnalysisInterface):
     def finalize_image(self, image):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
         return image
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -598,12 +623,14 @@ class Camera(ParallelAnalysisInterface):
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
-    def save_image(self, fn, clip_ratio, image, transparent=False):
-        if self.comm.rank is 0 and fn is not None:
+    def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
+        if self.comm.rank == 0 and fn is not None:
             if transparent:
-                image.write_png(fn, clip_ratio=clip_ratio)
+                image.write_png(fn, clip_ratio=clip_ratio, rescale=True,
+                                background=None)
             else:
-                image[:,:,:3].write_png(fn, clip_ratio=clip_ratio)
+                image.write_png(fn, clip_ratio=clip_ratio, rescale=True,
+                                background='black')
 
     def initialize_source(self):
         return self.volume.initialize_source()
@@ -619,7 +646,7 @@ class Camera(ParallelAnalysisInterface):
         return info_dict
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
-                 num_threads = 0):
+                 num_threads = 0, transparent=False):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
@@ -640,6 +667,9 @@ class Camera(ParallelAnalysisInterface):
             If supplied, will use 'num_threads' number of OpenMP threads during
             the rendering.  Defaults to 0, which uses the environment variable
             OMP_NUM_THREADS.
+        transparent: bool, optional
+            Optionally saves out the 4-channel rgba image, which can appear 
+            empty if the alpha channel is low everywhere. Default: False
 
         Returns
         -------
@@ -655,7 +685,8 @@ class Camera(ParallelAnalysisInterface):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
-        self.save_image(fn, clip_ratio, image)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio, 
+                       transparent=transparent)
         return image
 
     def show(self, clip_ratio = None):
@@ -1191,11 +1222,11 @@ class HEALpixCamera(Camera):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
-        self.save_image(fn, clim, image, label = label)
+        self.save_image(image, fn=fn, clim=clim, label = label)
         return image
 
-    def save_image(self, fn, clim, image, label = None):
-        if self.comm.rank is 0 and fn is not None:
+    def save_image(self, image, fn=None, clim=None, label = None):
+        if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             import matplotlib.figure
             import matplotlib.backends.backend_agg
@@ -1509,7 +1540,7 @@ class MosaicCamera(Camera):
             sto.id = self.imj*self.nimx + self.imi
             sto.result = image
         image = self.reduce_images(my_storage)
-        self.save_image(fn, clip_ratio, image)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio)
         return image
 
     def reduce_images(self,im_dict):
@@ -2165,12 +2196,12 @@ class ProjectionCamera(Camera):
         image = self.finalize_image(sampler.aimage)
         return image
 
-    def save_image(self, fn, clip_ratio, image):
+    def save_image(self, image, fn=None, clip_ratio=None):
         if self.pf.field_info[self.field].take_log:
             im = np.log10(image)
         else:
             im = image
-        if self.comm.rank is 0 and fn is not None:
+        if self.comm.rank == 0 and fn is not None:
             if clip_ratio is not None:
                 write_image(im, fn)
             else:
@@ -2197,7 +2228,7 @@ class ProjectionCamera(Camera):
                                         image, sampler),
                            info=self.get_information())
 
-        self.save_image(fn, clip_ratio, image)
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio)
 
         return image
     snapshot.__doc__ = Camera.snapshot.__doc__
