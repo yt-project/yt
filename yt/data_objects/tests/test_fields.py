@@ -69,6 +69,8 @@ class TestFieldAccess(object):
         dd2.field_parameters.update(_sample_parameters)
         v1 = dd1[self.field_name]
         conv = field._convert_function(dd1) or 1.0
+        if not field.particle_type:
+            assert_equal(v1, dd1["gas", self.field_name])
         if not needs_spatial:
             assert_equal(v1, conv*field._function(field, dd2))
         if not skip_grids:
