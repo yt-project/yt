@@ -183,7 +183,7 @@ cdef inline int cutting_plane_cell(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def cutting_plane_cells(dobj, gobj):
-    cdef np.ndarray[np.uint8_t, ndim=3] mask 
+    cdef np.ndarray[np.uint8_t, ndim=3] mask
     cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
     cdef int i, j, k
@@ -205,58 +205,6 @@ def cutting_plane_cells(dobj, gobj):
             y += dds[1]
         x += dds[0]
     return mask
-                
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
-                        np.ndarray[np.float64_t, ndim=1] right_edge,
-                        int level,
-                        np.ndarray[np.float64_t, ndim=2] left_edges,
-                        np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_index = 0):
-    cdef int i, n
-    cdef int nx = left_edges.shape[0]
-    cdef int inside 
-    for i in range(nx):
-        if i < min_index or levels[i,0] != level:
-            mask[i] = 0
-            continue
-        inside = 1
-        for n in range(3):
-            if left_edge[n] >= right_edges[i,n] or \
-               right_edge[n] <= left_edges[i,n]:
-                inside = 0
-                break
-        if inside == 1: mask[i] = 1
-        else: mask[i] = 0
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def get_box_grids_below_level(
-                        np.ndarray[np.float64_t, ndim=1] left_edge,
-                        np.ndarray[np.float64_t, ndim=1] right_edge,
-                        int level,
-                        np.ndarray[np.float64_t, ndim=2] left_edges,
-                        np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
-    cdef int i, n
-    cdef int nx = left_edges.shape[0]
-    cdef int inside 
-    for i in range(nx):
-        mask[i] = 0
-        if levels[i,0] <= level:
-            inside = 1
-            for n in range(3):
-                if left_edge[n] >= right_edges[i,n] or \
-                   right_edge[n] <= left_edges[i,n]:
-                    inside = 0
-                    break
-            if inside == 1: mask[i] = 1
 
 # Finally, miscellaneous routines.
 

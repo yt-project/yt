@@ -50,7 +50,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("answer_testing")
     config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
-    config.add_data_files(('kdtree', ['kdtree/fKDpy.so']))
     config.add_subpackage("spatial")
     config.add_subpackage("grid_data_format")
     config.add_subpackage("parallel_tools")
