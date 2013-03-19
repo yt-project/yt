@@ -471,7 +471,7 @@ class ARTDomainSubset(object):
             widths[:, i] = base_dx[i] / dds
         return widths
 
-    def fill(self, content, fields):
+    def fill_root(self, content, ftfields):
         """
         This is called from IOHandler. It takes content
         which is a binary stream, reads the requested field
@@ -481,41 +481,48 @@ class ARTDomainSubset(object):
         """
         oct_handler = self.oct_handler
         all_fields = self.domain.pf.h.fluid_field_list
-        fields = [f for ft, f in fields]
-        dest = {}
-        filled = pos = level_offset = 0
+        fields = [f for ft, f in ftfields]
+        level_offset = 0
         field_idxs = [all_fields.index(f) for f in fields]
+        dest = {}
         for field in fields:
             dest[field] = np.zeros(self.cell_count, 'float64')-1.
         level = self.domain_level
-        offset = self.domain.level_offsets
+        source = {}
+        data = _read_root_level(content, self.domain.level_child_offsets,
+                                self.domain.level_count)
+        for field, i in zip(fields, field_idxs):
+            temp = np.reshape(data[i, :], self.domain.pf.domain_dimensions,
+                              order='F').astype('float64').T
+            source[field] = temp
+        level_offset += oct_handler.fill_level_from_grid(
+            self.domain.domain_id,
+            level, dest, source, self.mask, level_offset)
+        return dest
+
+    def fill_level(self, content, ftfields):
+        oct_handler = self.oct_handler
+        fields = [f for ft, f in ftfields]
+        level_offset = 0
+        dest = {}
+        for field in fields:
+            dest[field] = np.zeros(self.cell_count, 'float64')-1.
+        level = self.domain_level
         no = self.domain.level_count[level]
-        if level == 0:
-            source = {}
-            data = _read_root_level(content, self.domain.level_child_offsets,
-                                    self.domain.level_count)
-            for field, i in zip(fields, field_idxs):
-                temp = np.reshape(data[i, :], self.domain.pf.domain_dimensions,
-                                  order='F').astype('float64').T
-                source[field] = temp
-            level_offset += oct_handler.fill_level_from_grid(
-                self.domain.domain_id,
-                level, dest, source, self.mask, level_offset)
-        else:
-            noct_range = [0,no]
-            source = _read_child_level(
-                content, self.domain.level_child_offsets,
-                self.domain.level_offsets,
-                self.domain.level_count, level, fields,
-                self.domain.pf.domain_dimensions,
-                self.domain.pf.parameters['ncell0'],
-                noct_range=noct_range)
-            nocts_filling = noct_range[1]-noct_range[0]
-            level_offset += oct_handler.fill_level(self.domain.domain_id,
-                                                   level, dest, source,
-                                                   self.mask, level_offset,
-                                                   noct_range[0],
-                                                   nocts_filling)
+        noct_range = [0,no]
+        source = _read_child_level(
+            content, self.domain.level_child_offsets,
+            self.domain.level_offsets,
+            self.domain.level_count, level, fields,
+            self.domain.pf.domain_dimensions,
+            self.domain.pf.parameters['ncell0'],
+            noct_range=noct_range)
+        nocts_filling = noct_range[1]-noct_range[0]
+        level_offset += oct_handler.fill_level(self.domain.domain_id,
+                                               level, dest, source,
+                                               self.mask, level_offset,
+                                               noct_range[0],
+                                               nocts_filling)
         return dest
 
 
