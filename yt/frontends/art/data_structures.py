@@ -30,6 +30,8 @@ import glob
 import stat
 import weakref
 import cStringIO
+import difflib
+import glob
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
@@ -86,7 +88,15 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.max_level = pf.max_level
         self.float_type = np.float64
         super(ARTGeometryHandler, self).__init__(pf, data_style)
-        pf.domain_width = 1.0/pf.domain_dimensions.astype('f8')
+    
+    def get_smallest_dx(self):
+        """
+        Returns (in code units) the smallest cell size in the simulation.
+        """
+        #Overloaded
+        pf = self.parameter_file
+        return (1.0/pf.domain_dimensions.astype('f8') /
+                (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
         """
@@ -208,38 +218,20 @@ class ARTStaticOutput(StaticOutput):
         Given the AMR base filename, attempt to find the
         particle header, star files, etc.
         """
-        prefix, suffix = filename_pattern['amr'].split('%s')
-        affix = os.path.basename(file_amr).replace(prefix, '')
-        affix = affix.replace(suffix, '')
-        affix = affix.replace('_', '')
-        full_affix = affix
-        affix = affix[1:-1]
-        dirname = os.path.dirname(file_amr)
-        for fp in (filename_pattern_hf, filename_pattern):
-            for filetype, pattern in fp.items():
-                # if this attribute is already set skip it
-                if getattr(self, "file_"+filetype, None) is not None:
-                    continue
-                # sometimes the affix is surrounded by an extraneous _
-                # so check for an extra character on either side
-                check_filename = dirname+'/'+pattern % ('?%s?' % affix)
-                filenames = glob.glob(check_filename)
-                if len(filenames) > 1:
-                    check_filename_strict = \
-                        dirname+'/'+pattern % ('?%s' % full_affix[1:])
-                    filenames = glob.glob(check_filename_strict)
-
-                if len(filenames) == 1:
-                    setattr(self, "file_"+filetype, filenames[0])
-                    mylog.info('discovered %s:%s', filetype, filenames[0])
-                elif len(filenames) > 1:
-                    setattr(self, "file_"+filetype, None)
-                    mylog.info("Ambiguous number of files found for %s",
-                               check_filename)
-                    for fn in filenames:
-                        faffix = float(affix)
-                else:
-                    setattr(self, "file_"+filetype, None)
+        base_prefix, base_suffix = filename_pattern['amr']
+        possibles = glob.glob(os.path.dirname(file_amr)+"/*")
+        for filetype, (prefix, suffix) in filename_pattern.iteritems():
+            # if this attribute is already set skip it
+            if getattr(self, "file_"+filetype, None) is not None:
+                continue
+            stripped = file_amr.replace(base_prefix,prefix)
+            stripped = stripped.replace(base_suffix,suffix)
+            match, = difflib.get_close_matches(stripped,possibles,1,0.6)
+            if match is not None: 
+                mylog.info('discovered %s:%s', filetype, match)
+                setattr(self, "file_"+filetype, match)
+            else:
+                setattr(self, "file_"+filetype, None)
 
     def __repr__(self):
         return self.file_amr.split('/')[-1]
@@ -427,7 +419,7 @@ class ARTStaticOutput(StaticOutput):
         This could differ for other formats.
         """
         f = ("%s" % args[0])
-        prefix, suffix = filename_pattern['amr'].split('%s')
+        prefix, suffix = filename_pattern['amr']
         with open(f, 'rb') as fh:
             try:
                 amr_header_vals = read_attrs(fh, amr_header_struct, '>')
