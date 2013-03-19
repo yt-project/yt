@@ -55,7 +55,10 @@ class IOHandlerART(BaseIOHandler):
                 f = open(subset.domain.pf._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                rv = subset.fill(f, fields)
+                if subset.domain_level == 0:
+                    rv = subset.fill_root(f, fields)
+                else:
+                    rv = subset.fill_level(f, fields)
                 for ft, f in fields:
                     mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
                                 subset.domain_level,
