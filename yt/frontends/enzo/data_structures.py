@@ -415,7 +415,7 @@ class EnzoHierarchy(GridGeometryHandler):
             # attributes in a defined location.
             if last != g.filename:
                 if handle is not None: handle.close()
-                handle = h5py.File(g.filename)
+                handle = h5py.File(g.filename, "r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue
