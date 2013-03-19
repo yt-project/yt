@@ -76,10 +76,10 @@ particle_star_fields = [
 
 
 filename_pattern = {
-    'amr': ['10MpcBox_','.d'], 
-    'particle_header': ['PMcrd','.DAT'], #
-    'particle_data': ['PMcrs','.DAT'],
-    'particle_stars': ['stars','.dat']
+    'amr': ['10MpcBox_', '.d'],
+    'particle_header': ['PMcrd', '.DAT'],
+    'particle_data': ['PMcrs', '.DAT'],
+    'particle_stars': ['stars', '.dat']
 }
 
 amr_header_struct = [

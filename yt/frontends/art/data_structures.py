@@ -88,12 +88,12 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.max_level = pf.max_level
         self.float_type = np.float64
         super(ARTGeometryHandler, self).__init__(pf, data_style)
-    
+
     def get_smallest_dx(self):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        #Overloaded
+        # Overloaded
         pf = self.parameter_file
         return (1.0/pf.domain_dimensions.astype('f8') /
                 (2**self.max_level)).min()
@@ -115,7 +115,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         mylog.debug("Allocating %s octs", self.total_octs)
         self.oct_handler.allocate_domains(self.octs_per_domain)
         for domain in self.domains:
-            if domain.domain_level==0:
+            if domain.domain_level == 0:
                 domain._read_amr_root(self.oct_handler)
             else:
                 domain._read_amr_level(self.oct_handler)
@@ -229,10 +229,10 @@ class ARTStaticOutput(StaticOutput):
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
                 continue
-            stripped = file_amr.replace(base_prefix,prefix)
-            stripped = stripped.replace(base_suffix,suffix)
-            match, = difflib.get_close_matches(stripped,possibles,1,0.6)
-            if match is not None: 
+            stripped = file_amr.replace(base_prefix, prefix)
+            stripped = stripped.replace(base_suffix, suffix)
+            match, = difflib.get_close_matches(stripped, possibles, 1, 0.6)
+            if match is not None:
                 mylog.info('discovered %s:%s', filetype, match)
                 setattr(self, "_file_"+filetype, match)
             else:
@@ -509,7 +509,7 @@ class ARTDomainSubset(object):
             dest[field] = np.zeros(self.cell_count, 'float64')-1.
         level = self.domain_level
         no = self.domain.level_count[level]
-        noct_range = [0,no]
+        noct_range = [0, no]
         source = _read_child_level(
             content, self.domain.level_child_offsets,
             self.domain.level_offsets,
@@ -582,7 +582,6 @@ class ARTDomainFile(object):
         self._level_count = inoll
         return self._level_oct_offsets
 
-
     def _read_amr_level(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain
@@ -604,7 +603,7 @@ class ARTDomainFile(object):
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     nocts, level, oct_handler.nocts)
 
-    def _read_amr_root(self,oct_handler):
+    def _read_amr_root(self, oct_handler):
         self.level_offsets
         f = open(self.pf._file_amr, "rb")
         # add the root *cell* not *oct* mesh
