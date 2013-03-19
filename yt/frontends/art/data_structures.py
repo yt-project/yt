@@ -153,7 +153,6 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             # and build a subset=mask of domains
             subsets = []
             for d, c in zip(self.domains, counts):
-                nocts = d.level_count[d.domain_level]
                 if c < 1:
                     continue
                 subset = ARTDomainSubset(d, mask, c, d.domain_level)
@@ -199,10 +198,10 @@ class ARTStaticOutput(StaticOutput):
             fields = fluid_fields
         filename = os.path.abspath(filename)
         self._fields_in_file = fields
-        self.file_amr = filename
-        self.file_particle_header = file_particle_header
-        self.file_particle_data = file_particle_data
-        self.file_particle_stars = file_particle_stars
+        self._file_amr = filename
+        self._file_particle_header = file_particle_header
+        self._file_particle_data = file_particle_data
+        self._file_particle_stars = file_particle_stars
         self._find_files(filename)
         self.parameter_filename = filename
         self.skip_particles = skip_particles
@@ -225,19 +224,19 @@ class ARTStaticOutput(StaticOutput):
         possibles = glob.glob(os.path.dirname(file_amr)+"/*")
         for filetype, (prefix, suffix) in filename_pattern.iteritems():
             # if this attribute is already set skip it
-            if getattr(self, "file_"+filetype, None) is not None:
+            if getattr(self, "_file_"+filetype, None) is not None:
                 continue
             stripped = file_amr.replace(base_prefix,prefix)
             stripped = stripped.replace(base_suffix,suffix)
             match, = difflib.get_close_matches(stripped,possibles,1,0.6)
             if match is not None: 
                 mylog.info('discovered %s:%s', filetype, match)
-                setattr(self, "file_"+filetype, match)
+                setattr(self, "_file_"+filetype, match)
             else:
-                setattr(self, "file_"+filetype, None)
+                setattr(self, "_file_"+filetype, None)
 
     def __repr__(self):
-        return self.file_amr.split('/')[-1]
+        return self._file_amr.split('/')[-1]
 
     def _set_units(self):
         """
@@ -333,7 +332,7 @@ class ARTStaticOutput(StaticOutput):
         self.parameters.update(constants)
         self.parameters['Time'] = 1.0
         # read the amr header
-        with open(self.file_amr, 'rb') as f:
+        with open(self._file_amr, 'rb') as f:
             amr_header_vals = read_attrs(f, amr_header_struct, '>')
             for to_skip in ['tl', 'dtl', 'tlold', 'dtlold', 'iSO']:
                 skipped = skip(f, endian='>')
@@ -374,8 +373,8 @@ class ARTStaticOutput(StaticOutput):
             self.root_level = root_level
             mylog.info("Using root level of %02i", self.root_level)
         # read the particle header
-        if not self.skip_particles and self.file_particle_header:
-            with open(self.file_particle_header, "rb") as fh:
+        if not self.skip_particles and self._file_particle_header:
+            with open(self._file_particle_header, "rb") as fh:
                 particle_header_vals = read_attrs(
                     fh, particle_header_struct, '>')
                 fh.seek(seek_extras)
@@ -427,7 +426,7 @@ class ARTStaticOutput(StaticOutput):
             try:
                 amr_header_vals = read_attrs(fh, amr_header_struct, '>')
                 return True
-            except:
+            except AssertionError:
                 return False
         return False
 
@@ -562,7 +561,7 @@ class ARTDomainFile(object):
         if self._level_oct_offsets is not None:
             return self._level_oct_offsets
         # We now have to open the file and calculate it
-        f = open(self.pf.file_amr, "rb")
+        f = open(self.pf._file_amr, "rb")
         nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
             _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
                             self.pf.max_level)
@@ -588,7 +587,7 @@ class ARTDomainFile(object):
         # but on level 1 instead of 128^3 octs, we have 256^3 octs
         # leave this code here instead of static output - it's memory intensive
         self.level_offsets
-        f = open(self.pf.file_amr, "rb")
+        f = open(self.pf._file_amr, "rb")
         # add the root *cell* not *oct* mesh
         level = self.domain_level
         root_octs_side = self.pf.domain_dimensions[0]/2
