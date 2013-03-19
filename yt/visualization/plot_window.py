@@ -595,7 +595,7 @@ class PWViewer(PlotWindow):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in fields:
+        for field in self._field_check(fields):
             if log:
                 self._field_transform[field] = log_transform
             else:
@@ -603,6 +603,7 @@ class PWViewer(PlotWindow):
 
     @invalidate_plot
     def set_transform(self, field, name):
+        field = self._field_check(field)
         if name not in field_transforms: 
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
@@ -621,11 +622,11 @@ class PWViewer(PlotWindow):
 
         """
 
-        if field is 'all':
+        if field == 'all':
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in fields:
+        for field in self._field_check(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
 
@@ -659,7 +660,7 @@ class PWViewer(PlotWindow):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in fields:
+        for field in self._field_check(fields):
             myzmin = zmin
             myzmax = zmax
             if zmin == 'min':
@@ -773,7 +774,7 @@ class PWViewer(PlotWindow):
     def get_field_units(self, field, strip_mathml = True):
         ds = self._frb.data_source
         pf = self.pf
-        field = self.data_source._determine_fields(field)[0]
+        field = self._check_field(field)
         finfo = self.data_source.pf._get_field_info(*field)
         if ds._type_name in ("slice", "cutting"):
             units = finfo.get_units()
@@ -788,6 +789,12 @@ class PWViewer(PlotWindow):
             units = units.replace(r"\rm{", "").replace("}","")
         return units
 
+    def _field_check(self, field):
+        field = self.data_source._determine_fields(field)
+        if isinstance(field, (list, tuple)):
+            return field
+        else:
+            return field[0]
 
 class PWViewerMPL(PWViewer):
     """Viewer using matplotlib as a backend via the WindowPlotMPL. 
@@ -1011,7 +1018,7 @@ class PWViewerMPL(PWViewer):
         else:
             fields = [field]
 
-        for field in fields:
+        for field in self._field_check(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap
             if isinstance(cmap, types.StringTypes):
@@ -1678,7 +1685,7 @@ class PWViewerExtJS(PWViewer):
 
     @invalidate_data
     def set_current_field(self, field):
-        field = self.data_source._determine_fields(field)[0]
+        field = self._check_field(field)
         self._current_field = field
         self._frb[field]
         finfo = self.data_source.pf._get_field_info(*field)
