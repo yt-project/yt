@@ -425,6 +425,7 @@ class FLASHStaticOutput(StaticOutput):
         
         self.dimensionality = dimensionality
 
+        self.geometry = self.parameters["geometry"]
         # Determine base grid parameters
         if 'lrefine_min' in self.parameters.keys() : # PARAMESH
             nblockx = self.parameters["nblockx"]

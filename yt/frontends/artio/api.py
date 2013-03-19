@@ -29,11 +29,11 @@ License:
 """
 
 from .data_structures import \
-      ARTIOStaticOutput
+    ARTIOStaticOutput
 
 from .fields import \
-      ARTIOFieldInfo, \
-      add_artio_field
+    ARTIOFieldInfo, \
+    add_artio_field
 
 from .io import \
-      IOHandlerARTIO
+    IOHandlerARTIO
