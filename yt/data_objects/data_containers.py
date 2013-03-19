@@ -527,11 +527,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._current_chunk = old_chunk
         self._locked = old_locked
 
-    @property   
-    def size(self) :
-        if self._current_chunk is None :
-            self.hierarchy._identify_base_chunk(self)
-        return self_current_chunk.data_size
+#    @property   
+#    def size(self) :
+#        if self._current_chunk is None :
+##            self.hierarchy._identify_base_chunk(self)
+#            return 0
+#        return self._current_chunk.data_size
 
     @property
     def icoords(self):

@@ -95,7 +95,7 @@ add_field("Zeros", function=_Zeros,
           display_field = False)
 
 def _Ones(field, data):
-    return np.ones(data.shape, dtype='float64')
+    return np.ones(data.ActiveDimensions, dtype='float64')
 add_field("Ones", function=_Ones,
           projection_conversion="unitary",
           display_field = False)
