@@ -74,16 +74,12 @@ particle_star_fields = [
     'particle_metallicity',
 ]
 
-filename_pattern = {
-    'amr': '10MpcBox_csf512_%s.d',
-    'particle_header': 'PMcrd%s.DAT',
-    'particle_data': 'PMcrs0%s.DAT',
-    'particle_stars': 'stars_%s.dat'
-}
 
-filename_pattern_hf = {
-    'particle_header': 'PMcrd_%s.DAT',
-    'particle_data': 'PMcrs0_%s.DAT',
+filename_pattern = {
+    'amr': ['10MpcBox_','.d'], 
+    'particle_header': ['PMcrd','.DAT'], #
+    'particle_data': ['PMcrs','.DAT'],
+    'particle_stars': ['stars','.dat']
 }
 
 amr_header_struct = [
