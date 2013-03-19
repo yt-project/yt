@@ -52,7 +52,7 @@ class IOHandlerART(BaseIOHandler):
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.pf.file_amr, "rb")
+                f = open(subset.domain.pf._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 rv = subset.fill(f, fields)
@@ -77,8 +77,8 @@ class IOHandlerART(BaseIOHandler):
             ptmax = ws[-1]
             npt = ls[-1]
             nstars = ls[-1]-ls[-2]
-            file_particle = pf.file_particle_data
-            file_stars = pf.file_particle_stars
+            file_particle = pf._file_particle_data
+            file_stars = pf._file_particle_stars
             ftype_old = None
             for field in fields:
                 if field in fields_read: continue
