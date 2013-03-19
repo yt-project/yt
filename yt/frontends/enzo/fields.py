@@ -361,7 +361,7 @@ def _spdensity(field, data):
                            np.int64(np.where(filter)[0].size),
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
-                           np.float64(data['dx']))
+                           just_one(data['dx']))
     return blank
 add_field("star_density", function=_spdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
@@ -374,7 +374,7 @@ def _dmpdensity(field, data):
         if not filter.any(): return blank
         num = filter.sum()
     else:
-        filter = None
+        filter = Ellipsis
         num = data["particle_position_x"].size
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),
@@ -383,7 +383,7 @@ def _dmpdensity(field, data):
                            num,
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
-                           np.float64(data['dx']))
+                           just_one(data['dx']))
     return blank
 add_field("dm_density", function=_dmpdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
@@ -404,7 +404,7 @@ def _cic_particle_field(field, data):
                            data["particle_position_x"].size,
                            top, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
-                           np.float64(data['dx']))
+                           just_one(data['dx']))
     del particle_field_data
 
     bottom = np.zeros(data.ActiveDimensions, dtype='float32')
@@ -415,7 +415,7 @@ def _cic_particle_field(field, data):
                            data["particle_position_x"].size,
                            bottom, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
-                           np.float64(data['dx']))
+                           just_one(data['dx']))
     top[bottom == 0] = 0.0
     bnz = bottom.nonzero()
     top[bnz] /= bottom[bnz]
@@ -445,7 +445,7 @@ def _star_field(field, data):
                           np.int64(np.where(filter)[0].size),
                           top, np.array(data.LeftEdge).astype(np.float64),
                           np.array(data.ActiveDimensions).astype(np.int32), 
-                          np.float64(data['dx']))
+                          just_one(data['dx']))
     del particle_field_data
 
     bottom = np.zeros(data.ActiveDimensions, dtype='float32')
@@ -456,7 +456,7 @@ def _star_field(field, data):
                           np.int64(np.where(filter)[0].size),
                           bottom, np.array(data.LeftEdge).astype(np.float64),
                           np.array(data.ActiveDimensions).astype(np.int32), 
-                          np.float64(data['dx']))
+                          just_one(data['dx']))
     top[bottom == 0] = 0.0
     bnz = bottom.nonzero()
     top[bnz] /= bottom[bnz]
