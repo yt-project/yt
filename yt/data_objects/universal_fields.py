@@ -946,7 +946,7 @@ def _pdensity(field, data):
                  data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),
-                 np.float64(data['dx']))
+                 just_one(data['dx']))
     return blank
 add_field("particle_density", function=_pdensity,
           validators=[ValidateGridType()], convert_function=_convertDensity,
