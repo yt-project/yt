@@ -20,7 +20,10 @@ def test_sphere_selector():
         data = pf.h.sphere(center, 0.25)
         data.get_data()
         # WARNING: this value has not be externally verified
-        yield assert_equal, data.size, 19568
+        dd = pf.h.all_data()
+        dd.set_field_parameter("center", center)
+        n_outside = (dd["RadiusCode"] >= 0.25).sum()
+        assert_equal( data.size + n_outside, dd.size)
 
         positions = np.array([data[ax] for ax in 'xyz'])
         centers = np.tile( data.center, data.shape[0] ).reshape(data.shape[0],3).transpose()
@@ -28,4 +31,4 @@ def test_sphere_selector():
                          pf.domain_right_edge-pf.domain_left_edge,
                          pf.periodicity)
         # WARNING: this value has not been externally verified
-        yield assert_almost_equal, dist.max(), 0.261806188752
+        yield assert_array_less, dist, 0.25

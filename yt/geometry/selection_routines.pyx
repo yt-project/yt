@@ -467,7 +467,7 @@ cdef class SphereSelector(SelectorObject):
                     temp -= self.domain_width[i]
                 elif temp < -self.domain_width[i]/2.0:
                     temp += self.domain_width[i]
-            temp = temp - fclip(temp, -dds[i]/2.0, dds[i]/2.0)
+            #temp = temp - fclip(temp, -dds[i]/2.0, dds[i]/2.0)
             dist2 += temp*temp
         if dist2 <= self.radius2: return 1
         return 0
