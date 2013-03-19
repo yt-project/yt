@@ -72,7 +72,7 @@ class TestFieldAccess(object):
         if not field.particle_type:
             assert_equal(v1, dd1["gas", self.field_name])
         if not needs_spatial:
-            assert_almost_equal_nulp(v1, conv*field._function(field, dd2), 4)
+            assert_array_almost_equal_nulp(v1, conv*field._function(field, dd2), 4)
         if not skip_grids:
             for g in pf.h.grids:
                 g.field_parameters.update(_sample_parameters)
