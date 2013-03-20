@@ -356,7 +356,7 @@ def read_particles(file, Nrow, idxa=None, idxb=None, field=None):
                 data = np.concatenate((data, temp))
             else:
                 fh.seek(4*np_per_page, 1)
-    return data
+    return data.astype("f8")
 
 
 def read_star_field(file, field=None):
