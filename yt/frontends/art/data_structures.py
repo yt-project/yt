@@ -224,17 +224,19 @@ class ARTStaticOutput(StaticOutput):
         particle header, star files, etc.
         """
         base_prefix, base_suffix = filename_pattern['amr']
-        possibles = glob.glob(os.path.dirname(file_amr)+"/*")
         for filetype, (prefix, suffix) in filename_pattern.iteritems():
-            # if this attribute is already set skip it
+            if "amr" in filetype: continue
             if getattr(self, "_file_"+filetype, None) is not None:
                 continue
             stripped = file_amr.replace(base_prefix, prefix)
             stripped = stripped.replace(base_suffix, suffix)
-            match, = difflib.get_close_matches(stripped, possibles, 1, 0.6)
-            if match is not None:
-                mylog.info('discovered %s:%s', filetype, match)
-                setattr(self, "_file_"+filetype, match)
+            path = "/%s*%s"%(prefix,suffix)
+            possibles = glob.glob(os.path.dirname(file_amr)+path)
+            matches = difflib.get_close_matches(stripped, possibles, 1, 0.85)
+            if len(matches) == 0: continue
+            if matches[0] is not None:
+                mylog.info('discovered %s:%s', filetype, matches[0])
+                setattr(self, "_file_"+filetype, matches[0])
             else:
                 setattr(self, "_file_"+filetype, None)
 
