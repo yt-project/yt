@@ -291,7 +291,7 @@ class EnzoHierarchy(GridGeometryHandler):
         if self.parameter_file.parameters["VersionNumber"] > 2.0:
             active_particles = True
             nap = {}
-            for type in self.parameters["AppendActiveParticleType"]:
+            for type in self.parameters.get("AppendActiveParticleType", []):
                 nap[type] = []
         else:
             active_particles = False
@@ -312,7 +312,7 @@ class EnzoHierarchy(GridGeometryHandler):
             if active_particles:
                 ptypes = _next_token_line("PresentParticleTypes", f)
                 counts = [int(c) for c in _next_token_line("ParticleTypeCounts", f)]
-                for ptype in self.parameters["AppendActiveParticleType"]:
+                for ptype in self.parameters.get("AppendActiveParticleType", []):
                     if ptype in ptypes:
                         nap[ptype].append(counts[ptypes.index(ptype)])
                     else:
@@ -1005,6 +1005,7 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
+        self.periodicity = ensure_tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
         if "CurrentTimeIdentifier" in self.parameters:
