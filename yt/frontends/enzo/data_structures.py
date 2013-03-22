@@ -30,7 +30,9 @@ import os
 import stat
 import string
 import re
-import multiprocessing
+
+from threading import Thread
+import Queue
 
 from itertools import izip
 
@@ -58,7 +60,13 @@ from .fields import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
 
-from data_structures_helper import get_field_names_helper
+def get_field_names_helper(filename, id, results):
+    try:
+        names = hdf5_light_reader.ReadListOfDatasets(
+                    filename, "/Grid%08i" % id)
+        results.put((names, "Grid %s has: %s" % (id, names)))
+    except:
+        results.put((None, "Grid %s is a bit funky?" % id))
 
 class EnzoGrid(AMRGridPatch):
     """
@@ -451,13 +459,17 @@ class EnzoHierarchy(GridGeometryHandler):
                 field_list = set()
                 random_sample = self._generate_random_grids()
                 jobs = []
-                result_queue = multiprocessing.Queue()
+                result_queue = Queue.Queue()
+                # Start threads
                 for grid in random_sample:
                     if not hasattr(grid, 'filename'): continue
-                    p = multiprocessing.Process(target=get_field_names_helper,
+                    helper = Thread(target = get_field_names_helper, 
                         args = (grid.filename, grid.id, result_queue))
-                    jobs.append(p)
-                    p.start()
+                    jobs.append(helper)
+                    helper.start()
+                # Here we make sure they're finished.
+                for helper in jobs:
+                    helper.join()
                 for grid in random_sample:
                     res = result_queue.get()
                     mylog.debug(res[1])
