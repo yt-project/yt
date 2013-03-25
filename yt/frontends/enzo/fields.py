@@ -134,16 +134,16 @@ def _ThermalEnergy(field, data):
         if data.pf["DualEnergyFormalism"]:
             return data["GasEnergy"]
         else:
-            if data.pf["HydroMethod"] == 4 or data.pf["HydroMethod"] == 6:
+            if data.pf["HydroMethod"] in (4,6):
                 return data["TotalEnergy"] - 0.5*(
                     data["x-velocity"]**2.0
                     + data["y-velocity"]**2.0
                     + data["z-velocity"]**2.0 ) - data["MagneticPressure"]
-            else:
-                return data["TotalEnergy"] - 0.5*(
-                    data["x-velocity"]**2.0
-                    + data["y-velocity"]**2.0
-                    + data["z-velocity"]**2.0 )
+
+            return data["TotalEnergy"] - 0.5*(
+                data["x-velocity"]**2.0
+                + data["y-velocity"]**2.0
+                + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{g}")
 
