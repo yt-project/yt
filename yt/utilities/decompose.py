@@ -69,8 +69,8 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
     """ Evaluate longest to shortest edge ratio
         BEWARE: lot's of magic here """
     eff_dim = (n_d > 1).sum()
-    ideal_bsize = eff_dim * (pieces * np.product(n_d) ** (eff_dim - 1)
-                             ) ** (1.0 / eff_dim)
+    exp = float(eff_dim - 1) / float(eff_dim)
+    ideal_bsize = eff_dim * pieces ** (1.0 / eff_dim) * np.product(n_d) ** exp
     mask = np.where(n_d > 1)
     nd_arr = np.array(n_d, dtype=np.float64)[mask]
     bsize = int(np.sum(ldom[mask] / nd_arr * np.product(nd_arr)))
