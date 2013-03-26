@@ -109,6 +109,10 @@ def get_psize(n_d, pieces):
     fac = factorize_number(pieces)
     nfactors = len(fac[:, 2])
     best = 0.0
+    p_size = np.ones(3, dtype=np.int)
+    if pieces == 1:
+        return p_size
+
     while np.all(fac[:, 2] > 0):
         ldom = np.ones(3, dtype=np.int)
         for nfac in range(nfactors):
