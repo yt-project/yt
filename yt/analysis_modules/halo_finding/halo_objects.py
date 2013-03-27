@@ -1059,7 +1059,7 @@ class HaloList(object):
 
     _fields = ["particle_position_%s" % ax for ax in 'xyz']
 
-    def __init__(self, data_source, dm_only=True):
+    def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
