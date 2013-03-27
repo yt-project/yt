@@ -33,6 +33,7 @@ def realistic_pf(fields, nprocs):
     pf.conversion_factors.update( dict((f, 1.0) for f in fields) )
     pf.current_redshift = 0.0001
     pf.hubble_constant = 0.7
+    pf.omega_matter = 0.27
     for unit in mpc_conversion:
         pf.units[unit+'h'] = pf.units[unit]
         pf.units[unit+'cm'] = pf.units[unit]
