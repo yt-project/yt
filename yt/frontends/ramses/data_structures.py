@@ -143,6 +143,7 @@ class RAMSESDomainFile(object):
             fpu.skip(f, 1)
             field_offsets[field] = f.tell()
         self.particle_field_offsets = field_offsets
+        self.particle_field_types = dict(particle_fields)
 
     def _read_amr_header(self):
         hvals = {}
