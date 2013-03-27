@@ -81,7 +81,7 @@ class TestFieldAccess(object):
                 v1 = g[self.field_name]
                 g.clear_data()
                 g.field_parameters.update(_sample_parameters)
-                assert_equal(v1, conv*field._function(field, g))
+                assert_equal_almost_equal_nulp(v1, conv*field._function(field, g), 4)
 
 def test_all_fields():
     for field in FieldInfo:
