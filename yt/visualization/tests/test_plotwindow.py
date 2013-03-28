@@ -28,8 +28,7 @@ import shutil
 from yt.testing import \
     fake_random_pf, assert_equal, assert_rel_equal
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
-    data_dir_load
+    requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 
@@ -65,6 +64,47 @@ def assert_fname(fname):
         image_type = '.pdf'
 
     return image_type == os.path.splitext(fname)[1]
+
+attr_args ={ "pan"             : [( ((0.1, 0.1),), {} )],
+             "pan_rel"         : [( ((0.1, 0.1),), {} )],
+             "set_axes_unit"   : [( ("kpc",), {} ),
+                                  ( ("Mpc",), {} ),
+                                  ( (("kpc", "kpc"),), {} ),
+                                  ( (("kpc", "Mpc"),), {} )],
+             "set_buff_size"   : [( (1600,), {} ),
+                                  ( ((600, 800),), {} )],
+             "set_center"      : [( ((0.4, 0.3),), {} )],
+             "set_cmap"        : [( ('Density', 'RdBu'), {} ),
+                                  ( ('Density', 'kamae'), {} )],
+             "set_font"        : [( ({'family':'sans-serif', 'style':'italic',
+                                      'weight':'bold', 'size':24},), {} )],
+             "set_log"         : [( ('Density', False), {} )],
+             "set_window_size" : [( (7.0,), {} )],
+             "set_zlim" : [( ('Density', 1e-25, 1e-23), {} ),
+                           ( ('Density', 1e-25, None), {'dynamic_range' : 4} )],
+             "zoom" : [( (10,), {} )] }
+
+m7 = "DD0010/moving7_0010"
+wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
+@requires_pf(m7)
+@requires_pf(wt)
+def test_attributes():
+    """Test plot member functions that aren't callbacks"""
+    plot_field = 'Density'
+    decimals = 3
+
+    pf = data_dir_load(m7)
+    for ax in 'xyz':
+        for attr_name in attr_args.keys():
+            for args in attr_args[attr_name]:
+                yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
+                                              args, decimals)
+    pf = data_dir_load(wt)
+    ax = 'z'
+    for attr_name in attr_args.keys():
+        for args in attr_args[attr_name]:
+            yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
+                                          args, decimals)
 
 def test_setwidth():
     pf = fake_random_pf(64)
@@ -136,51 +176,3 @@ def test_save():
     os.chdir(curdir)
     # clean up
     shutil.rmtree(tmpdir)
-
-attr_args ={ "pan"             : [( (0.1, 0.1), {} )],
-             "pan_rel"         : [( (0.1, 0.1), {} )],
-             "set_axes_unit"   : [( "kpc", {} ),
-                                  ( "Mpc", {} ),
-                                  ( ("kpc", "kpc"), {} ),
-                                  ( ("kpc", "Mpc"), {} )],
-             "set_buff_size"   : [( 1600, {} ),
-                                  ( (600, 800), {} )],
-             "set_center"      : [( (0.4, 0.3), {} ),
-                                  ( (12, 15), {'unit' : 'kpc'} )],
-             "set_cmap"        : [( ('Density', 'RdBu'), {} ),
-                                  ( ('Density', 'kamae'), {} )],
-             "set_font"        : [( ({'family':'sans-serif', 'style':'italic',
-                                      'weight':'bold', 'size':24}), {} )],
-             "set_log"         : [( ('Density', False), {} )],
-             "set_window_size" : [( (7.0), {} )],
-             "set_zlim" : [( ('Density', 1e-25, 1e-23), {} ),
-                           ( ('Density', 1e-25, None), {'dynamic_range' : 4} )],
-             "zoom" : [( (10), {} )] }
-
-m7 = "DD0010/moving7_0010"
-g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
-@requires_pf(m7)
-@requires_pf(g30)
-@requires_pf(wt)
-def test_attributes():
-    """Test plot member functions that aren't callbacks"""
-    plot_field = 'Density'
-    decimals = 3
-
-    pf = data_dir_load(m7)
-    for ax in 'xyz':
-        for attr_name in arrr_args.keys():
-            yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
-                                          attr_args[attr_name], decimals)
-    pf = data_dir_load(g30)
-    for ax in 'xyz':
-        for attr_name in arrr_args.keys():
-            yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
-                                          attr_args[attr_name], decimals)
-
-    pf = data_dir_load(wt)
-    ax = 'z'
-    for attr_name in attr_args.keys():
-        yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
-                                      attr_args[attr_name], decimals)

@@ -305,14 +305,14 @@ class AnswerTestingTest(object):
         obj = cls(*obj_type[1])
         return obj
 
-    def create_plot(self, pf, plot_type, plot_args, plot_kwargs = None):
+    def create_plot(self, pf, plot_type, plot_field, plot_axis, plot_kwargs = None):
         # plot_type should be a string
         # plot_args should be a tuple
         # plot_kwargs should be a dict
-        if obj_type is None:
+        if plot_type is None:
             raise RuntimeError('Must explicitly request a plot type')
         cls = getattr(pw, plot_type)
-        plot = cls(*plot_args, **plot_kwargs)
+        plot = cls(*(pf, plot_axis, plot_field), **plot_kwargs)
         return plot
 
     @property
@@ -561,20 +561,23 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
-    _attrs = ('plot_args', 'attr_name', 'attr_args')
+    _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
     def __init__(self, pf_fn, plot_field, plot_axis, attr_name, attr_args,
-                 decimals):
+                 decimals, plot_type = 'SlicePlot'):
         super(PlotWindowAttributeTest, self).__init__(pf_fn)
-        self.plot_args = plot_args
+        self.plot_type = plot_type
+        self.plot_field = plot_field
+        self.plot_axis = plot_axis
+        self.plot_kwargs = {}
         self.attr_name = attr_name
         self.attr_args = attr_args
         self.decimals = decimals
 
     def run(self):
-        plot = self.create_plot(self.pf, self.plot_type,
-                                self.plot_args, self.plot_kwargs)
+        plot = self.create_plot(self.pf, self.plot_type, self.plot_field,
+                                self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
-        attr(*self.attr_args)
+        attr(*self.attr_args[0], **self.attr_args[1])
         return plot
 
     def compare(self, new_result, old_result):
