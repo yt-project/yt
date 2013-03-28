@@ -37,6 +37,7 @@ from yt.config import ytcfg
 from yt.mods import *
 from yt.data_objects.static_output import StaticOutput
 from matplotlib.testing.compare import compare_images
+import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
 import cPickle
 import shelve
@@ -68,6 +69,9 @@ class AnswerTesting(Plugin):
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
+        parser.add_option("--local-dir", dest="output_dir",
+                          default=None, metavar='str',
+                          help="The name of the directory to store local results")
 
     @property
     def my_version(self, version=None):
@@ -578,12 +582,15 @@ class PlotWindowAttributeTest(AnswerTestingTest):
                                 self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
-        return plot
+        fn = plot.save()[0]
+        image = mpimg.imread(fn)
+        os.remove(fn)
+        return image
 
     def compare(self, new_result, old_result):
-        fns = []
-        fns.append(old_result.save('old'))
-        fns.append(new_result.save('new'))
+        fns = ['old.png', 'new.png']
+        mpimg.imsave(fns[0], old_result)
+        mpimg.imsave(fns[1], new_result)
         compare_images(fns[0], fns[1], 10**(-self.decimals))
         for fn in fns: os.remove(fn)
 
