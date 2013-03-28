@@ -4426,7 +4426,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         --------
 
         >>> sp = pf.h.sphere("max", (10, "kpc"))
-        >>> trans = [1.0]
+        >>> trans = 1.0
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> surf = pf.h.surface(sp, "Density", 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
@@ -4437,24 +4437,24 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
-        >>>     surf = pf.h.surface(sp,'Density',r)
-        >>>     surf.export_obj("my_galaxy", transparency=trans, 
-        >>>                      color_field='Temperature', dist_fac = distf, 
-        >>>                      plot_index = i, color_field_max = ma, 
-        >>>                      color_field_min = mi)
+        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', dist_fac = distf, 
+        ...                      plot_index = i, color_field_max = ma, 
+        ...                      color_field_min = mi)
 
         >>> sp = pf.h.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
-        >>>     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
+        ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
         >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
         >>> for i, r in enumerate(rhos):
-        >>>     surf = pf.h.surface(sp,'Density',r)
-        >>>     surf.export_obj("my_galaxy", transparency=trans, 
-        >>>                      color_field='Temperature', emit_field = 'Emissivity', 
-        >>>                      dist_fac = distf, plot_index = i)
+        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', emit_field = 'Emissivity', 
+        ...                      dist_fac = distf, plot_index = i)
 
         """
         if self.vertices is None:
