@@ -94,7 +94,12 @@ class RAMSESDomainFile(object):
                              self.amr_header['ncpu']):
                 header = ( ('file_ilevel', 1, 'I'),
                            ('file_ncache', 1, 'I') )
-                hvals = fpu.read_attrs(f, header)
+                try:
+                    hvals = fpu.read_attrs(f, header, "=")
+                except AssertionError:
+                    print "You are running with the wrong number of fields."
+                    print "Please specify these in the load command."
+                    raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
                 if cpu + 1 == self.domain_id and level >= min_level:
