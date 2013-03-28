@@ -515,18 +515,6 @@ class PlotWindow(object):
     def set_antialias(self,aa):
         self.antialias = aa
 
-    @invalidate_plot
-    def set_contour_info(self, field_name, n_cont = 8, colors = None,
-                         logit = True):
-        if field_name == "None" or n_cont == 0:
-            self._contour_info = None
-            return
-        self._contour_info = (field_name, n_cont, colors, logit)
-
-    @invalidate_plot
-    def set_vector_info(self, skip, scale = 1):
-        self._vector_info = (skip, scale)
-
     @invalidate_data
     def set_buff_size(self, size):
         """Sets a new buffer size for the fixed resolution buffer
@@ -735,59 +723,6 @@ class PWViewer(PlotWindow):
                 except KeyError: 
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
-
-    def get_metadata(self, field, strip_mathml = True, return_string = True):
-        fval = self._frb[field]
-        mi = fval.min()
-        ma = fval.max()
-        x_width = self.xlim[1] - self.xlim[0]
-        y_width = self.ylim[1] - self.ylim[0]
-        if self._axes_unit_names is None:
-            unit = get_smallest_appropriate_unit(x_width, self.pf)
-            unit = (unit, unit)
-        else:
-            unit = self._axes_unit_names
-        units = self.get_field_units(field, strip_mathml)
-        center = getattr(self._frb.data_source, "center", None)
-        if center is None or self._frb.axis == 4:
-            xc, yc, zc = -999, -999, -999
-        else:
-            center[x_dict[self._frb.axis]] = 0.5 * (
-                self.xlim[0] + self.xlim[1])
-            center[y_dict[self._frb.axis]] = 0.5 * (
-                self.ylim[0] + self.ylim[1])
-            xc, yc, zc = center
-        if return_string:
-            md = _metadata_template % dict(
-                pf = self.pf,
-                x_width = x_width*self.pf[unit[0]],
-                y_width = y_width*self.pf[unit[1]],
-                axes_unit_names = unit[0], colorbar_unit = units, 
-                mi = mi, ma = ma, xc = xc, yc = yc, zc = zc)
-        else:
-            md = dict(pf = self.pf,
-                      x_width = x_width*self.pf[unit[0]],
-                      y_width = y_width*self.pf[unit[1]],
-                      axes_unit_names = unit, colorbar_unit = units, 
-                      mi = mi, ma = ma, xc = xc, yc = yc, zc = zc)
-        return md
-
-    def get_field_units(self, field, strip_mathml = True):
-        ds = self._frb.data_source
-        pf = self.pf
-        if ds._type_name in ("slice", "cutting"):
-            units = pf.field_info[field].get_units()
-        elif ds._type_name == "proj" and (ds.weight_field is not None or 
-                                        ds.proj_style == "mip"):
-            units = pf.field_info[field].get_units()
-        elif ds._type_name == "proj":
-            units = pf.field_info[field].get_projected_units()
-        else:
-            units = ""
-        if strip_mathml:
-            units = units.replace(r"\rm{", "").replace("}","")
-        return units
-
 
 class PWViewerMPL(PWViewer):
     """Viewer using matplotlib as a backend via the WindowPlotMPL. 
@@ -1654,6 +1589,70 @@ class PWViewerExtJS(PWViewer):
         new_y = img_y * dy + self.ylim[0]
         print img_x, img_y, dx, dy, new_x, new_y
         self.set_center((new_x, new_y))
+
+    def get_field_units(self, field, strip_mathml = True):
+        ds = self._frb.data_source
+        pf = self.pf
+        if ds._type_name in ("slice", "cutting"):
+            units = pf.field_info[field].get_units()
+        elif ds._type_name == "proj" and (ds.weight_field is not None or 
+                                        ds.proj_style == "mip"):
+            units = pf.field_info[field].get_units()
+        elif ds._type_name == "proj":
+            units = pf.field_info[field].get_projected_units()
+        else:
+            units = ""
+        if strip_mathml:
+            units = units.replace(r"\rm{", "").replace("}","")
+        return units
+
+    def get_metadata(self, field, strip_mathml = True, return_string = True):
+        fval = self._frb[field]
+        mi = fval.min()
+        ma = fval.max()
+        x_width = self.xlim[1] - self.xlim[0]
+        y_width = self.ylim[1] - self.ylim[0]
+        if self._axes_unit_names is None:
+            unit = get_smallest_appropriate_unit(x_width, self.pf)
+            unit = (unit, unit)
+        else:
+            unit = self._axes_unit_names
+        units = self.get_field_units(field, strip_mathml)
+        center = getattr(self._frb.data_source, "center", None)
+        if center is None or self._frb.axis == 4:
+            xc, yc, zc = -999, -999, -999
+        else:
+            center[x_dict[self._frb.axis]] = 0.5 * (
+                self.xlim[0] + self.xlim[1])
+            center[y_dict[self._frb.axis]] = 0.5 * (
+                self.ylim[0] + self.ylim[1])
+            xc, yc, zc = center
+        if return_string:
+            md = _metadata_template % dict(
+                pf = self.pf,
+                x_width = x_width*self.pf[unit[0]],
+                y_width = y_width*self.pf[unit[1]],
+                axes_unit_names = unit[0], colorbar_unit = units, 
+                mi = mi, ma = ma, xc = xc, yc = yc, zc = zc)
+        else:
+            md = dict(pf = self.pf,
+                      x_width = x_width*self.pf[unit[0]],
+                      y_width = y_width*self.pf[unit[1]],
+                      axes_unit_names = unit, colorbar_unit = units, 
+                      mi = mi, ma = ma, xc = xc, yc = yc, zc = zc)
+        return md
+
+    @invalidate_plot
+    def set_contour_info(self, field_name, n_cont = 8, colors = None,
+                         logit = True):
+        if field_name == "None" or n_cont == 0:
+            self._contour_info = None
+            return
+        self._contour_info = (field_name, n_cont, colors, logit)
+
+    @invalidate_plot
+    def set_vector_info(self, skip, scale = 1):
+        self._vector_info = (skip, scale)
 
     @invalidate_data
     def set_current_field(self, field):
