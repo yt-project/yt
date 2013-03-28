@@ -309,10 +309,10 @@ def _get_yt_stack_date():
         return
     print "".join(file(date_file, 'r').readlines())
     print "To update all dependencies, run \"yt update --all\"."
-    
+
 def _update_yt_stack(path):
     "Rerun the install script to updated all dependencies."
-    
+
     install_script = os.path.join(path, "doc/install_script.sh")
     if not os.path.exists(install_script):
         print
@@ -1293,7 +1293,8 @@ class YTPlotCmd(YTCommand):
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
         if pf.dimensionality < 3:
-            axes = [2]
+            dummy_dimensions = np.nonzero(pf.h.grids[0].ActiveDimensions)
+            axes = ensure_list(dummy_dimensions[0][0])
         elif args.axis == 4:
             axes = range(3)
         else:
