@@ -4376,7 +4376,7 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
 
-    def export_obj(self, filename, transparency = None, dist_fac = None,
+    def export_obj(self, filename, transparency = 1.0, dist_fac = None,
                    color_field = None, emit_field = None, color_map = "algae", 
                    color_log = True, emit_log = True, plot_index = None, 
                    color_field_max = None, color_field_min = None, 
@@ -4395,10 +4395,9 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             The file this will be exported to.  This cannot be a file-like object.
             Note - there are no file extentions included - both obj & mtl files 
             are created.
-        transparency : list floats
-            This gives the transparency of the output surface plot.  If multiple 
-            surface plots, this will be a list.  Values from 0.0 (invisible) to 
-            1.0 (opaque).
+        transparency : float
+            This gives the transparency of the output surface plot.  Values
+            from 0.0 (invisible) to 1.0 (opaque).
         dist_fac : float
             Divide the axes distances by this amount.
         color_field : string
@@ -4458,8 +4457,6 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
         >>>                      dist_fac = distf, plot_index = i)
 
         """
-        if transparency is None:
-            transparency = 1.0
         if self.vertices is None:
             self.get_data(color_field,"face")
         elif color_field is not None:
@@ -4475,38 +4472,38 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
     def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
                            color_field_max, color_field_min, 
                            emit_field_max, emit_field_min): # this now holds for obj files
-            if color_log: cs = np.log10(cs)
-            if emit_log: em = np.log10(em)
-            if color_field_min is None:
-                mi = cs.min()
-            else:
-                mi = color_field_min
-                if color_log: mi = np.log10(mi)
-            if color_field_max is None:
-                ma = cs.max()
-            else:
-                ma = color_field_max
-                if color_log: ma = np.log10(ma)
-            cs = (cs - mi) / (ma - mi)
-            # to get color indicies for OBJ formatting
-            from yt.visualization._colormap_data import color_map_luts
-            lut = color_map_luts[color_map]
-            x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
-            arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
-            # now, get emission
-            if emit_field_min is None:
-                emi = em.min()
-            else:
-                emi = emit_field_min
-                if emit_log: emi = np.log10(emi)
-            if emit_field_max is None:
-                ema = em.max()
-            else:
-                ema = emit_field_max
-                if emit_log: ema = np.log10(ema)
-            em = (em - emi)/(ema - emi)
-            x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
-            arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
+        if color_log: cs = np.log10(cs)
+        if emit_log: em = np.log10(em)
+        if color_field_min is None:
+            mi = cs.min()
+        else:
+            mi = color_field_min
+            if color_log: mi = np.log10(mi)
+        if color_field_max is None:
+            ma = cs.max()
+        else:
+            ma = color_field_max
+            if color_log: ma = np.log10(ma)
+        cs = (cs - mi) / (ma - mi)
+        # to get color indicies for OBJ formatting
+        from yt.visualization._colormap_data import color_map_luts
+        lut = color_map_luts[color_map]
+        x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
+        arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
+        # now, get emission
+        if emit_field_min is None:
+            emi = em.min()
+        else:
+            emi = emit_field_min
+            if emit_log: emi = np.log10(emi)
+        if emit_field_max is None:
+            ema = em.max()
+        else:
+            ema = emit_field_max
+            if emit_log: ema = np.log10(ema)
+        em = (em - emi)/(ema - emi)
+        x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
+        arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
 
     @parallel_root_only
     def _export_obj(self, filename, transparency, dist_fac = None, 
