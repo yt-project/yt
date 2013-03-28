@@ -269,7 +269,7 @@ class RAMSESDomainSubset(object):
         base_dx = (self.domain.pf.domain_width /
                    self.domain.pf.domain_dimensions)
         widths = np.empty((self.cell_count, 3), dtype="float64")
-        dds = (2**self.ires(dobj))
+        dds = (2**self.select_ires(dobj))
         for i in range(3):
             widths[:,i] = base_dx[i] / dds
         return widths
