@@ -585,7 +585,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         fns.append(old_result.save('old'))
         fns.append(new_result.save('new'))
         compare_images(fns[0], fns[1], 10**(-self.decimals))
-        #for fn in fns: os.remove(fn)
+        for fn in fns: os.remove(fn)
 
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
