@@ -117,18 +117,21 @@ def read_vector(f, d, endian='='):
     >>> f = open("fort.3", "rb")
     >>> rv = read_vector(f, 'd')
     """
-    fmt = endian+"%s" % d
-    size = struct.calcsize(fmt)
-    padfmt = endian + "I"
-    padsize = struct.calcsize(padfmt)
-    length = struct.unpack(padfmt,f.read(padsize))[0]
-    if length % size!= 0:
+    pad_fmt = "%sI" % (endian)
+    pad_size = struct.calcsize(pad_fmt)
+    vec_len = struct.unpack(pad_fmt,f.read(pad_size))[0] # bytes
+    vec_fmt = "%s%s" % (endian, d)
+    vec_size = struct.calcsize(vec_fmt)
+    if vec_len % vec_size != 0:
         print "fmt = '%s' ; length = %s ; size= %s" % (fmt, length, size)
         raise RuntimeError
-    count = length/ size
-    tr = np.fromfile(f,fmt,count=count)
-    length2= struct.unpack(padfmt,f.read(padsize))[0]
-    assert(length == length2)
+    vec_num = vec_len / vec_size
+    if isinstance(f, file): # Needs to be explicitly a file
+        tr = np.fromfile(f, vec_fmt, count=vec_num)
+    else:
+        tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
+    vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
+    assert(vec_len == vec_len2)
     return tr
 
 def skip(f, n=1, endian='='):
