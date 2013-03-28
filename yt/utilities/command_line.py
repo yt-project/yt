@@ -1292,7 +1292,9 @@ class YTPlotCmd(YTCommand):
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
-        if args.axis == 4:
+        if pf.dimensionality < 3:
+            axes = [2]
+        elif args.axis == 4:
             axes = range(3)
         else:
             axes = [args.axis]
