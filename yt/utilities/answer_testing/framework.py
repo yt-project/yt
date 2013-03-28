@@ -36,6 +36,8 @@ from yt.testing import *
 from yt.config import ytcfg
 from yt.mods import *
 from yt.data_objects.static_output import StaticOutput
+from matplotlib.testing.compare import compare_images
+import yt.visualization.plot_window as pw
 import cPickle
 import shelve
 
@@ -303,6 +305,16 @@ class AnswerTestingTest(object):
         obj = cls(*obj_type[1])
         return obj
 
+    def create_plot(self, pf, plot_type, plot_args, plot_kwargs = None):
+        # plot_type should be a string
+        # plot_args should be a tuple
+        # plot_kwargs should be a dict
+        if obj_type is None:
+            raise RuntimeError('Must explicitly request a plot type')
+        cls = getattr(pw, plot_type)
+        plot = cls(*plot_args, **plot_kwargs)
+        return plot
+
     @property
     def sim_center(self):
         """
@@ -546,6 +558,31 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
+
+class PlotWindowAttributeTest(AnswerTestingTest):
+    _type_name = "PlotWindowAttribute"
+    _attrs = ('plot_args', 'attr_name', 'attr_args')
+    def __init__(self, pf_fn, plot_args, attr_name, attr_args, tolerance=1e-3)
+        super(PlotWindowAttributeTest, self).__init__(pf_fn)
+        self.plot_args = plot_args
+        self.plot_kwargs = {} # hard-coding for now.
+        self.attr_name = attr_name
+        self.attr_args = attr_args
+        self.tolerance = tolerance
+
+    def run(self):
+        plot = self.create_plot(self.pf, self.plot_type,
+                                self.plot_args, self.plot_kwargs)
+        attr = getattr(plot, self.attr_name)
+        attr(*self.attr_args)
+        return plot
+
+    def compare(self, new_result, old_result):
+        fns = []
+        fns.append(old_result.save('old'))
+        fns.append(new_result.save('new'))
+        compare_images(fns[0], fns[1], self.tolerance)
+        #for fn in fns: os.remove(fn)
 
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
