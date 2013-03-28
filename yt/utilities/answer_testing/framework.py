@@ -562,13 +562,13 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_args', 'attr_name', 'attr_args')
-    def __init__(self, pf_fn, plot_args, attr_name, attr_args, tolerance=1e-3)
+    def __init__(self, pf_fn, plot_args, attr_name, attr_args, decimals=3):
         super(PlotWindowAttributeTest, self).__init__(pf_fn)
         self.plot_args = plot_args
         self.plot_kwargs = {} # hard-coding for now.
         self.attr_name = attr_name
         self.attr_args = attr_args
-        self.tolerance = tolerance
+        self.decimals = decimals
 
     def run(self):
         plot = self.create_plot(self.pf, self.plot_type,
@@ -581,7 +581,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         fns = []
         fns.append(old_result.save('old'))
         fns.append(new_result.save('new'))
-        compare_images(fns[0], fns[1], self.tolerance)
+        compare_images(fns[0], fns[1], 10**(-self.decimals))
         #for fn in fns: os.remove(fn)
 
 def requires_pf(pf_fn, big_data = False):
