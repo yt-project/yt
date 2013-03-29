@@ -65,6 +65,7 @@ from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     GroupOwnership
+from yt.utilities.exceptions import YTUnitNotRecognized
 from yt.data_objects.time_series import \
     TimeSeriesData
 
@@ -726,6 +727,8 @@ class PWViewer(PlotWindow):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
+            if isinstance(unit_name, str):
+                unit_name = (unit_name, unit_name)
             for un in unit_name:
                 try:
                     self.pf[un]
