@@ -30,20 +30,22 @@ import contextlib
 import urllib2
 import cPickle
 import sys
+import cPickle
+import shelve
+import zlib
 
+from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 from yt.testing import *
 from yt.config import ytcfg
 from yt.mods import *
 from yt.data_objects.static_output import StaticOutput
-from matplotlib.testing.compare import compare_images
-import matplotlib.image as mpimg
-import yt.visualization.plot_window as pw
-import cPickle
-import shelve
-
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
+
+import matplotlib.image as mpimg
+import yt.visualization.plot_window as pw
+import yt.utilities.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -70,7 +72,7 @@ class AnswerTesting(Plugin):
             default=False, help="Should we run against big data, too?",
             action="store_true")
         parser.add_option("--local-dir", dest="output_dir",
-                          default=None, metavar='str',
+                          default=ytcfg.get("yt", "test_data_dir"), metavar='str',
                           help="The name of the directory to store local results")
 
     @property
@@ -191,6 +193,9 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         self.cache[pf_name] = rv
         return rv
 
+    def progress_callback(self, current, total):
+        self.pbar.update(current)
+
     def dump(self, result_storage):
         if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
@@ -200,13 +205,26 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         c = boto.connect_s3()
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
-            rs = cPickle.dumps(result_storage[pf_name])
+            rs = cPickle.dumps(result_storage[pf_name],
+                               cPickle.HIGHEST_PROTOCOL)
             tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
             if tk is not None: tk.delete()
             k = Key(bucket)
             k.key = "%s_%s" % (self.answer_name, pf_name)
-            k.set_contents_from_string(rs)
+
+            pb_widgets = [
+                unicode(k.key, errors='ignore').encode('utf-8'), ' ',
+                progressbar.FileTransferSpeed(),' <<<', progressbar.Bar(),
+                '>>> ', progressbar.Percentage(), ' ', progressbar.ETA()
+                ]
+            self.pbar = progressbar.ProgressBar(widgets=pb_widgets,
+                                                maxval=sys.getsizeof(rs))
+
+            self.pbar.start()
+            k.set_contents_from_string(rs, cb=self.progress_callback,
+                                       num_cb=100000)
             k.set_acl("public-read")
+            self.pbar.finish()
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
@@ -585,12 +603,12 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         fn = plot.save()[0]
         image = mpimg.imread(fn)
         os.remove(fn)
-        return image
+        return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):
         fns = ['old.png', 'new.png']
-        mpimg.imsave(fns[0], old_result)
-        mpimg.imsave(fns[1], new_result)
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result)))
+        mpimg.imsave(fns[1], np.loads(new_result))
         compare_images(fns[0], fns[1], 10**(-self.decimals))
         for fn in fns: os.remove(fn)
 
