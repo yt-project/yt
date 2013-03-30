@@ -205,8 +205,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         c = boto.connect_s3()
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
-            rs = cPickle.dumps(result_storage[pf_name],
-                               cPickle.HIGHEST_PROTOCOL)
+            rs = cPickle.dumps(result_storage[pf_name])
             tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
             if tk is not None: tk.delete()
             k = Key(bucket)
