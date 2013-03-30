@@ -607,8 +607,8 @@ class PlotWindowAttributeTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         fns = ['old.png', 'new.png']
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result)))
-        mpimg.imsave(fns[1], np.loads(new_result))
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
         compare_images(fns[0], fns[1], 10**(-self.decimals))
         for fn in fns: os.remove(fn)
 
