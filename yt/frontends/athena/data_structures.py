@@ -400,7 +400,7 @@ class AthenaStaticOutput(StaticOutput):
         if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
-        self.unique_identifier = self._handle.__hash__()
+        self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = 'fortran'
