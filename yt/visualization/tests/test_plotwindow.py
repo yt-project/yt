@@ -116,18 +116,27 @@ def test_save():
     test_pf = fake_random_pf(64)
     test_flnms = [None, 'test.png', 'test.eps',
                   'test.ps', 'test.pdf']
+
+    for dim in [0, 1, 2]:
+        obj = SlicePlot(test_pf, dim, 'Density')
+        obj.set_window_size(1)
+        for fname in test_flnms:
+            yield assert_equal, assert_fname(obj.save(fname)[0]), True
+
+    for dim in [0, 1, 2]:
+        obj = ProjectionPlot(test_pf, dim, 'Density')
+        obj.set_window_size(1)
+        for fname in test_flnms:
+            yield assert_equal, assert_fname(obj.save(fname)[0]), True
+
+    obj = OffAxisSlicePlot(test_pf, normal, 'Density')
+    obj.set_window_size(1)
     for fname in test_flnms:
-        for dim in [0, 1, 2]:
-            obj = SlicePlot(test_pf, dim, 'Density')
-            yield assert_equal, assert_fname(obj.save(fname)[0]), True
-
-            obj = ProjectionPlot(test_pf, dim, 'Density')
-            yield assert_equal, assert_fname(obj.save(fname)[0]), True
-
-        obj = OffAxisSlicePlot(test_pf, normal, 'Density')
         yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
-        obj = OffAxisProjectionPlot(test_pf, normal, 'Density')
+    obj = OffAxisProjectionPlot(test_pf, normal, 'Density')
+    obj.set_window_size(1)
+    for fname in test_flnms:
         yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
     os.chdir(curdir)
