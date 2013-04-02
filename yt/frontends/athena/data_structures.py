@@ -54,13 +54,10 @@ class AthenaGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, hierarchy, level, start, dimensions):
         df = hierarchy.storage_filename
-        if 'id0' not in hierarchy.parameter_file.filename:
-            gname = hierarchy.parameter_file.filename
-        else:
-            if id == 0:
-                gname = 'id0/%s.vtk' % df
-            else:
-                gname = 'id%i/%s-id%i%s.vtk' % (id, df[:-5], id, df[-5:] )
+        #if 'id0' not in hierarchy.parameter_file.filename:
+        #    gname = hierarchy.parameter_file.filename
+        #else:
+        gname = hierarchy.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
                               hierarchy = hierarchy)
         self.filename = gname
@@ -222,6 +219,10 @@ class AthenaHierarchy(AMRHierarchy):
         dname = self.hierarchy_filename
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
         gridlistread.insert(0,self.hierarchy_filename)
+        if 'id0' in dname :
+            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+        else :
+            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
         self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -230,13 +231,9 @@ class AthenaHierarchy(AMRHierarchy):
         gdds = np.empty((self.num_grids,3), dtype='float64')
         gdims = np.ones_like(glis)
         j = 0
+        self.grid_filenames = gridlistread
         while j < (self.num_grids):
             f = open(gridlistread[j],'rb')
-            f.close()
-            if j == 0:
-                f = open(dname,'rb')
-            if j != 0:
-                f = open('id%i/%s-id%i%s' % (j, dname[4:-9],j, dname[-9:]),'rb')
             gridread = {}
             gridread['read_field'] = None
             gridread['read_type'] = None
@@ -253,6 +250,7 @@ class AthenaHierarchy(AMRHierarchy):
                 if len(line) == 0: break
                 line = f.readline()
             f.close()
+            levels[j] = gridread['level']
             glis[j,0] = gridread['left_edge'][0]
             glis[j,1] = gridread['left_edge'][1]
             glis[j,2] = gridread['left_edge'][2]
@@ -414,6 +412,10 @@ class AthenaStaticOutput(StaticOutput):
 
         dname = self.parameter_filename
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        if 'id0' in dname :
+            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+        else :
+            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
         self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
