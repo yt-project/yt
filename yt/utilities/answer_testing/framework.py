@@ -71,8 +71,7 @@ class AnswerTesting(Plugin):
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
-        parser.add_option("--local-dir", dest="output_dir",
-                          default=ytcfg.get("yt", "test_data_dir"), metavar='str',
+        parser.add_option("--local-dir", dest="output_dir", metavar='str',
                           help="The name of the directory to store local results")
 
     @property
@@ -128,6 +127,9 @@ class AnswerTesting(Plugin):
 
         # Local/Cloud storage
         if options.local_results:
+            if options.output_dir is None:
+                print 'Please supply an output directory with the --local-dir option'
+                sys.exit(1)
             storage_class = AnswerTestLocalStorage
             # Fix up filename for local storage
             if self.compare_name is not None:
