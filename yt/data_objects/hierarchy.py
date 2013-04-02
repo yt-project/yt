@@ -317,7 +317,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         under the name *name* on the node /Objects.
         """
         s = cPickle.dumps(obj, protocol=-1)
-        self.save_data(s, "/Objects", name, force = True)
+        self.save_data(np.array(s), "/Objects", name, force = True)
 
     def load_object(self, name):
         """
