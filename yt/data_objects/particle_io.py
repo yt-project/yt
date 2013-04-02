@@ -145,23 +145,6 @@ class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
         return (1, (np.array(self.center, dtype='float64'), self.radius,
             1, DLE, DRE))
 
-class ParticleIOHandlerEllipsoid(ParticleIOHandlerImplemented):
-    _source_type = "ellipsoid"
-
-    def __init__(self, pf, source):
-        self.center = source.center
-        self._A = source._A
-        self._B = source._B
-        self._C = source._C
-        self._e0 = source._e0
-        self._tilt = source._tilt
-        ParticleIOHandler.__init__(self, pf, source)
-
-    def _get_args(self):
-        return (1, (np.array(self.center, dtype='float64'), self._A, self._B,
-                    self._C, self._e0, self._tilt))
-
-
 class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
     _source_type = "disk"
     
