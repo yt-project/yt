@@ -119,23 +119,19 @@ def test_save():
 
     for dim in [0, 1, 2]:
         obj = SlicePlot(test_pf, dim, 'Density')
-        obj.set_window_size(1)
         for fname in test_flnms:
             yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
     for dim in [0, 1, 2]:
         obj = ProjectionPlot(test_pf, dim, 'Density')
-        obj.set_window_size(1)
         for fname in test_flnms:
             yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
     obj = OffAxisSlicePlot(test_pf, normal, 'Density')
-    obj.set_window_size(1)
     for fname in test_flnms:
         yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
     obj = OffAxisProjectionPlot(test_pf, normal, 'Density')
-    obj.set_window_size(1)
     for fname in test_flnms:
         yield assert_equal, assert_fname(obj.save(fname)[0]), True
 
