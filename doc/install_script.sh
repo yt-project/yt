@@ -170,6 +170,19 @@ function host_specific
         echo "   $ module load gcc"
         echo
     fi
+    if [ "${MYHOST##midway}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Midway."
+        echo
+        echo " ******************************************"
+        echo " * It may be better to use the yt module! *"
+        echo " *                                        *"
+        echo " *   $ module load yt                     *"
+        echo " *                                        *"
+        echo " ******************************************"
+        echo
+        return
+    fi
     if [ "${MYOS##Darwin}" != "${MYOS}" ]
     then
         echo "Looks like you're running on Mac OSX."
