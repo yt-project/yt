@@ -210,6 +210,8 @@ class YTDataContainer(object):
         """
         Deletes a field
         """
+        if key  not in self.field_data:
+            key = self._determine_fields(key)[0]
         del self.field_data[key]
 
     def _generate_field(self, field):

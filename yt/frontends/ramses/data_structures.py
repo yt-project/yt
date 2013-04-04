@@ -94,7 +94,12 @@ class RAMSESDomainFile(object):
                              self.amr_header['ncpu']):
                 header = ( ('file_ilevel', 1, 'I'),
                            ('file_ncache', 1, 'I') )
-                hvals = fpu.read_attrs(f, header)
+                try:
+                    hvals = fpu.read_attrs(f, header, "=")
+                except AssertionError:
+                    print "You are running with the wrong number of fields."
+                    print "Please specify these in the load command."
+                    raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
                 if cpu + 1 == self.domain_id and level >= min_level:
@@ -143,6 +148,7 @@ class RAMSESDomainFile(object):
             fpu.skip(f, 1)
             field_offsets[field] = f.tell()
         self.particle_field_offsets = field_offsets
+        self.particle_field_types = dict(particle_fields)
 
     def _read_amr_header(self):
         hvals = {}
@@ -265,9 +271,10 @@ class RAMSESDomainSubset(object):
 
     def select_fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
-        base_dx = 1.0/self.domain.pf.domain_dimensions
+        base_dx = (self.domain.pf.domain_width /
+                   self.domain.pf.domain_dimensions)
         widths = np.empty((self.cell_count, 3), dtype="float64")
-        dds = (2**self.ires(dobj))
+        dds = (2**self.select_ires(dobj))
         for i in range(3):
             widths[:,i] = base_dx[i] / dds
         return widths

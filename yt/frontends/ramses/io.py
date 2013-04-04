@@ -60,33 +60,45 @@ class IOHandlerRAMSES(BaseIOHandler):
     def _read_particle_selection(self, chunks, selector, fields):
         size = 0
         masks = {}
+        chunks = list(chunks)
+        pos_fields = [("all","particle_position_%s" % ax) for ax in "xyz"]
         for chunk in chunks:
             for subset in chunk.objs:
                 # We read the whole thing, then feed it back to the selector
-                offsets = []
-                f = open(subset.domain.part_fn, "rb")
-                foffsets = subset.domain.particle_field_offsets
-                selection = {}
-                for ax in 'xyz':
-                    field = "particle_position_%s" % ax
-                    f.seek(foffsets[field])
-                    selection[ax] = fpu.read_vector(f, 'd')
-                mask = selector.select_points(selection['x'],
-                            selection['y'], selection['z'])
+                selection = self._read_particle_subset(subset, pos_fields)
+                mask = selector.select_points(
+                    selection["all", "particle_position_x"],
+                    selection["all", "particle_position_y"],
+                    selection["all", "particle_position_z"])
                 if mask is None: continue
+                #print "MASK", mask
                 size += mask.sum()
                 masks[id(subset)] = mask
         # Now our second pass
-        tr = dict((f, np.empty(size, dtype="float64")) for f in fields)
+        tr = {}
+        pos = 0
         for chunk in chunks:
             for subset in chunk.objs:
-                f = open(subset.domain.part_fn, "rb")
+                selection = self._read_particle_subset(subset, fields)
                 mask = masks.pop(id(subset), None)
                 if mask is None: continue
-                for ftype, fname in fields:
-                    offsets.append((foffsets[fname], (ftype,fname)))
-                for offset, field in sorted(offsets):
-                    f.seek(offset)
-                    tr[field] = fpu.read_vector(f, 'd')[mask]
+                count = mask.sum()
+                for field in fields:
+                    ti = selection.pop(field)[mask]
+                    if field not in tr:
+                        dt = subset.domain.particle_field_types[field[1]]
+                        tr[field] = np.empty(size, dt)
+                    tr[field][pos:pos+count] = ti
+                pos += count
         return tr
 
+    def _read_particle_subset(self, subset, fields):
+        f = open(subset.domain.part_fn, "rb")
+        foffsets = subset.domain.particle_field_offsets
+        tr = {}
+        #for field in sorted(fields, key=lambda a:foffsets[a]):
+        for field in fields:
+            f.seek(foffsets[field[1]])
+            dt = subset.domain.particle_field_types[field[1]]
+            tr[field] = fpu.read_vector(f, dt)
+        return tr

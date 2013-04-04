@@ -1,4 +1,5 @@
 """
+
 The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
@@ -754,8 +755,9 @@ def get_radius(data, field_prefix):
     for i, ax in enumerate('xyz'):
         np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
         if data.pf.periodicity[i] == True:
-            np.subtract(DW[i], r, rdw)
             np.abs(r, r)
+            np.subtract(r, DW[i], rdw)
+            np.abs(rdw, rdw)
             np.minimum(r, rdw, r)
         np.power(r, 2.0, r)
         np.add(radius, r, radius)
@@ -946,7 +948,7 @@ def _pdensity(field, data):
                  data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),
-                 np.float64(data['dx']))
+                 just_one(data['dx']))
     return blank
 add_field("particle_density", function=_pdensity,
           validators=[ValidateGridType()], convert_function=_convertDensity,

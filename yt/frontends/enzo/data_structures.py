@@ -288,7 +288,7 @@ class EnzoHierarchy(GridGeometryHandler):
         if self.parameter_file.parameters["VersionNumber"] > 2.0:
             active_particles = True
             nap = {}
-            for type in self.parameters["AppendActiveParticleType"]:
+            for type in self.parameters.get("AppendActiveParticleType", []):
                 nap[type] = []
         else:
             active_particles = False
@@ -309,7 +309,7 @@ class EnzoHierarchy(GridGeometryHandler):
             if active_particles:
                 ptypes = _next_token_line("PresentParticleTypes", f)
                 counts = [int(c) for c in _next_token_line("ParticleTypeCounts", f)]
-                for ptype in self.parameters["AppendActiveParticleType"]:
+                for ptype in self.parameters.get("AppendActiveParticleType", []):
                     if ptype in ptypes:
                         nap[ptype].append(counts[ptypes.index(ptype)])
                     else:
@@ -415,7 +415,7 @@ class EnzoHierarchy(GridGeometryHandler):
             # attributes in a defined location.
             if last != g.filename:
                 if handle is not None: handle.close()
-                handle = h5py.File(g.filename)
+                handle = h5py.File(g.filename, "r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue

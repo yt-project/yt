@@ -33,6 +33,7 @@ def realistic_pf(fields, nprocs):
     pf.conversion_factors.update( dict((f, 1.0) for f in fields) )
     pf.current_redshift = 0.0001
     pf.hubble_constant = 0.7
+    pf.omega_matter = 0.27
     for unit in mpc_conversion:
         pf.units[unit+'h'] = pf.units[unit]
         pf.units[unit+'cm'] = pf.units[unit]
@@ -72,7 +73,7 @@ class TestFieldAccess(object):
         if not field.particle_type:
             assert_equal(v1, dd1["gas", self.field_name])
         if not needs_spatial:
-            assert_equal(v1, conv*field._function(field, dd2))
+            assert_array_almost_equal_nulp(v1, conv*field._function(field, dd2), 4)
         if not skip_grids:
             for g in pf.h.grids:
                 g.field_parameters.update(_sample_parameters)
@@ -80,7 +81,7 @@ class TestFieldAccess(object):
                 v1 = g[self.field_name]
                 g.clear_data()
                 g.field_parameters.update(_sample_parameters)
-                assert_equal(v1, conv*field._function(field, g))
+                assert_array_almost_equal_nulp(v1, conv*field._function(field, g), 4)
 
 def test_all_fields():
     for field in FieldInfo:
