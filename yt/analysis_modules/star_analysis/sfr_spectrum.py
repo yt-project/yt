@@ -105,16 +105,19 @@ class StarFormationRate(object):
         """
         # Pick out the stars.
         if self.mode == 'data_source':
-            ct = self._data_source["creation_time"]
+            ct = self._data_source["stars","particle_age"]
+            if ct == None :
+                print 'data source must have particle_age!'
+                sys.exit(1)
             ct_stars = ct[ct > 0]
-            mass_stars = self._data_source["ParticleMassMsun"][ct > 0]
+            mass_stars = self._data_source["stars", "ParticleMassMsun"][ct > 0]
         elif self.mode == 'provided':
             ct_stars = self.star_creation_time
             mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
-        self.time_bins = np.linspace(tmin*0.99, self._pf.current_time,
+        self.time_bins = np.linspace(tmin*1.01, self._pf.current_time,
             num = self.bin_count + 1)
         # Figure out which bins the stars go into.
         inds = np.digitize(ct_stars, self.time_bins) - 1
@@ -127,7 +130,7 @@ class StarFormationRate(object):
         for index in xrange(self.bin_count):
             self.cum_mass_bins[index+1] += self.cum_mass_bins[index]
         # We will want the time taken between bins.
-        self.time_bins_dt = self.time_bins[1:] - self.time_bins[:-1]
+        self.time_bins_dt = self.time_bins[:-1] - self.time_bins[1:]
     
     def attach_arrays(self):
         """
@@ -143,7 +146,7 @@ class StarFormationRate(object):
                 vol = ds.volume('mpc')
         elif self.mode == 'provided':
             vol = self.volume
-        tc = self._pf["Time"]
+        tc = self._pf["Time"] #time to seconds?
         self.time = []
         self.lookback_time = []
         self.redshift = []

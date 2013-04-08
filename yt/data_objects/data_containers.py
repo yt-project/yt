@@ -962,8 +962,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
         the container, so this may vary very slightly
         from what might be expected from the geometric volume.
         """
-        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
-            (self.pf[unit] / self.pf['cm']) ** 3.0
+#        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
+#            (self.pf[unit] / self.pf['cm']) ** 3.0
+        print 'data_containers.py bad fix to volume to prevent data_size like issue for ARTIO'
+        return 1
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]

@@ -295,12 +295,12 @@ add_field(('nbody', "ParticleMassMsun"),
 
 #add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field, data):
-    pa = b2t(data['creation_time'])
+    pa = b2t(data['stars','creation_time'])*1e9*31556926
 #    tr = np.zeros(pa.shape,dtype='float')-1.0
 #    tr[pa>0] = pa[pa>0]
     tr = pa
     return tr
-add_field("particle_age", function=_particle_age, units=r"\rm{s}",
+add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
           particle_type=True)
 
 
@@ -416,9 +416,9 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
 
 def b2t(tb, n=1e2, logger=None, **kwargs):
     tb = np.array(tb)
-    if isinstance(tb, 1.1):
-        return a2t(b2a(tb))
     if tb.shape == ():
+        return None 
+    if len(tb) == 1: 
         return a2t(b2a(tb))
     if len(tb) < n:
         n = len(tb)
