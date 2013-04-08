@@ -59,6 +59,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
     def __call__(self, *args, **kwargs):
         e = FieldDetector(flat = True)
         e.NumberOfParticles = 1
+        e.quantities = self._data_source.quantities
         fields = e.requested
         self.func(e, *args, **kwargs)
         retvals = [ [] for i in range(self.n_ret)]
