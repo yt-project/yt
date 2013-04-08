@@ -41,7 +41,6 @@ import numpy # In case anyone wishes to use it by name
 # operations.
 
 import yt.startup_tasks as __startup_tasks
-unparsed_args = __startup_tasks.unparsed_args
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
@@ -146,7 +145,7 @@ from yt.convenience import \
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
-    ortho_find, quartiles, periodic_position 
+    ortho_find, quartiles, periodic_position
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
