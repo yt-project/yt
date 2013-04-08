@@ -159,6 +159,9 @@ class AnswerTesting(Plugin):
         if self.store_results is False: return
         self.storage.dump(self.result_storage)
 
+    def help(self):
+        return "yt answer testing support"
+
 class AnswerTestStorage(object):
     def __init__(self, reference_name=None, answer_name=None):
         self.reference_name = reference_name
