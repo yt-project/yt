@@ -312,8 +312,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         Used for testing the periodic adjustment machinery
         of this derived quantity.
     include_particles : Bool
-	Should we add the mass contribution of particles
-	to calculate binding energy?
+    Should we add the mass contribution of particles
+    to calculate binding energy?
 
     Examples
     --------
@@ -332,13 +332,13 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
                       (data["z-velocity"] - bv_z)**2)).sum()
 
     if (include_particles):
-	mass_to_use = data["TotalMass"]
+        mass_to_use = data["TotalMass"]
         kinetic += 0.5 * (data["Dark_Matter_Mass"] *
                           ((data["cic_particle_velocity_x"] - bv_x)**2 +
                            (data["cic_particle_velocity_y"] - bv_y)**2 +
                            (data["cic_particle_velocity_z"] - bv_z)**2)).sum()
     else:
-	mass_to_use = data["CellMass"]
+        mass_to_use = data["CellMass"]
     # Add thermal energy to kinetic energy
     if (include_thermal_energy):
         thermal = (data["ThermalEnergy"] * mass_to_use).sum()
@@ -375,8 +375,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     for label in ["x", "y", "z"]: # Separating CellMass from the for loop
         local_data[label] = data[label]
     local_data["CellMass"] = mass_to_use # Adding CellMass separately
-					 # NOTE: if include_particles = True, local_data["CellMass"]
-					 #       is not the same as data["CellMass"]!!!
+    # NOTE: if include_particles = True, local_data["CellMass"]
+    #       is not the same as data["CellMass"]!!!
     if periodic.any():
         # Adjust local_data to re-center the clump to remove the periodicity
         # by the gap calculated above.
@@ -431,7 +431,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
             thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
             thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
             thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
-	    vals = np.array([local_data["CellMass"][sel]], order='F')
+            vals = np.array([local_data["CellMass"][sel]], order='F')
             octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
                np.ones_like(thisx).astype('float64'), treecode = 1)
         # Now we calculate the binding energy using a treecode.
