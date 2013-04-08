@@ -59,9 +59,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
     def __call__(self, *args, **kwargs):
         e = FieldDetector(flat = True)
         e.NumberOfParticles = 1
-        e.quantities = self._data_source.quantities
         fields = e.requested
-        self.func(e, *args, **kwargs)
         retvals = [ [] for i in range(self.n_ret)]
         chunks = self._data_source.chunks([], chunking_style="io")
         for ds in parallel_objects(chunks, -1):
@@ -334,7 +332,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
 
     if (include_particles):
         mass_to_use = data["TotalMass"]
-        kinetic += 0.5 * (data["Dark_Matter_Mass"] *
+        kinetic += 0.5 * (data["particle_mass"] *
                           ((data["cic_particle_velocity_x"] - bv_x)**2 +
                            (data["cic_particle_velocity_y"] - bv_y)**2 +
                            (data["cic_particle_velocity_z"] - bv_z)**2)).sum()
