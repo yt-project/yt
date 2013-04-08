@@ -115,14 +115,20 @@ parser.add_argument("--parallel", action="store_true", default=False,
     help = "Run in MPI-parallel mode (must be launched as an MPI task)")
 if not hasattr(sys, 'argv') or sys.argv is None: sys.argv = []
 
+unparsed_args = []
+
 parallel_capable = False
-subparsers = parser.add_subparsers(title="subcommands",
-                        dest='subcommands',
-                        description="Valid subcommands",)
 if not ytcfg.getboolean("yt","__command_line"):
+    opts, unparsed_args = parser.parse_known_args()
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
+    subparsers = parser.add_subparsers(title="subcommands",
+                        dest='subcommands',
+                        description="Valid subcommands",)
 else:
+    subparsers = parser.add_subparsers(title="subcommands",
+                        dest='subcommands',
+                        description="Valid subcommands",)
     def print_help(*args, **kwargs):
         parser.print_help()
     help_parser = subparsers.add_parser("help", help="Print help message")

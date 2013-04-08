@@ -54,7 +54,6 @@ run_big_data = False
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
-ytcfg.set("yt", "__command_line", "True")
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
