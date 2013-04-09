@@ -55,7 +55,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         ptypes = list(set([ftype for ftype, fname in fields]))
         fields = list(set(fields))
         if len(ptypes) > 1: raise NotImplementedError
-        pfields = [(ptypes[0], "position_%s" % ax) for ax in 'xyz']
+        pfields = [(ptypes[0], "particle_position_%s" % ax) for ax in 'xyz']
         size = 0
         for chunk in chunks:
             data = self._read_chunk_data(chunk, pfields, 'active', 
