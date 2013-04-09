@@ -37,8 +37,8 @@ import zlib
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 from yt.testing import *
+from yt.convenience import load
 from yt.config import ytcfg
-from yt.mods import *
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
@@ -158,6 +158,9 @@ class AnswerTesting(Plugin):
     def finalize(self, result=None):
         if self.store_results is False: return
         self.storage.dump(self.result_storage)
+
+    def help(self):
+        return "yt answer testing support"
 
 class AnswerTestStorage(object):
     def __init__(self, reference_name=None, answer_name=None):
