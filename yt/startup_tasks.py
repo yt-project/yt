@@ -120,6 +120,8 @@ unparsed_args = []
 parallel_capable = False
 if not ytcfg.getboolean("yt","__command_line"):
     opts, unparsed_args = parser.parse_known_args()
+    # THIS IS NOT SUCH A GOOD IDEA:
+    #sys.argv = [a for a in unparsed_args]
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
     subparsers = parser.add_subparsers(title="subcommands",
