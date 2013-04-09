@@ -138,7 +138,8 @@ def _ThermalEnergy(field, data):
         return data["TotalEnergy"] - 0.5*(
             data["x-velocity"]**2.0
             + data["y-velocity"]**2.0
-            + data["z-velocity"]**2.0 ) - data["MagneticEnergy"]
+            + data["z-velocity"]**2.0 ) \
+            - data["MagneticEnergy"]/data["Density"]
 
     return data["TotalEnergy"] - 0.5*(
         data["x-velocity"]**2.0
