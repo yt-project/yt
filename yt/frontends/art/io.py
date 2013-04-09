@@ -55,16 +55,50 @@ class IOHandlerART(BaseIOHandler):
                 f = open(subset.domain.pf._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                if subset.domain_level == 0:
-                    rv = subset.fill_root(f, fields)
-                else:
-                    rv = subset.fill_level(f, fields)
+                if ft == 'gas':
+                    if subset.domain_level == 0:
+                        rv = subset.fill_root(f, fields)
+                    else:
+                        rv = subset.fill_level(f, fields)
+                elif ft.startswith('deposit'):
+                    import pdb; pdb.set_trace()
+                    # We will find all particles in this chunk and deposit
+                    # this means the particles will be read again for every 
+                    # hydro chunk, unfortunately
+                    # This is also complicated because particle deposition
+                    # is ideally a derived field formed from the position
+                    # fields plus another particle field, but we are treating
+                    # it like a first class native field
+                    if ft == "deposit":
+                        ft = "particle"
+                    else:
+                        #accept "deposit_stars" field for example
+                        ft = ft.replace("deposit_","")
+                    mylog.debug("Deposit L%i particles", 
+                                subset.domain_level)
+                    coords = [(ft, 'particle_position_%s'%ax ) for ax \
+                                in 'xyz']
+                    fnames = [(ft, f) for oft,f in fields ]
+                    pfields = [c for c in coords]
+                    for f in fnames:
+                        if f in pfields: 
+                            continue
+                        pfields.append(f)
+                    pdata = self._read_particle_selection(chunk,selector,
+                                                          pfields)
+                    x, y, z = (pdata[c] for c in coords)
+                    ppos = np.array([x,y,z]).T
+                    del x,y,z
+                    for c in coords:
+                        if c not in fnames:
+                            del pdata[c]
+                    rv = subset.deposit_particle_fields(ppos, pdata)
                 for ft, f in fields:
-                    mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
-                                subset.domain_level,
-                                f, subset.cell_count, rv[f].min(), rv[f].max(),
-                                cp, cp+subset.cell_count)
-                    tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
+                        mylog.debug("Fill L%i %s with %s (%0.3e %0.3e) (%s:%s)",
+                                    subset.domain_level, f, subset.cell_count, 
+                                    rv[f].min(), rv[f].max(),
+                                    cp, cp+subset.cell_count)
+                        tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
                 cp += subset.cell_count
         return tr
 
