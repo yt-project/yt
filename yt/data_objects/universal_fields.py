@@ -801,8 +801,9 @@ def get_radius(data, field_prefix):
     for i, ax in enumerate('xyz'):
         np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
         if data.pf.periodicity[i] == True:
-            np.subtract(DW[i], r, rdw)
             np.abs(r, r)
+            np.subtract(r, DW[i], rdw)
+            np.abs(rdw, rdw)
             np.minimum(r, rdw, r)
         np.power(r, 2.0, r)
         np.add(radius, r, radius)

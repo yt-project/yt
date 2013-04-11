@@ -130,14 +130,21 @@ add_enzo_field("Cooling_Time", units=r"\rm{s}",
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["TotalEnergy"]
-    else:
-        if data.pf["DualEnergyFormalism"]:
-            return data["GasEnergy"]
-        else:
-            return data["TotalEnergy"] - 0.5*(
-                   data["x-velocity"]**2.0
-                 + data["y-velocity"]**2.0
-                 + data["z-velocity"]**2.0 )
+    
+    if data.pf["DualEnergyFormalism"]:
+        return data["GasEnergy"]
+
+    if data.pf["HydroMethod"] in (4,6):
+        return data["TotalEnergy"] - 0.5*(
+            data["x-velocity"]**2.0
+            + data["y-velocity"]**2.0
+            + data["z-velocity"]**2.0 ) \
+            - data["MagneticEnergy"]/data["Density"]
+
+    return data["TotalEnergy"] - 0.5*(
+        data["x-velocity"]**2.0
+        + data["y-velocity"]**2.0
+        + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{g}")
 
