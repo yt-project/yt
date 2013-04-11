@@ -354,12 +354,35 @@ class AthenaStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        self._setup_nounits_units()
-        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.conversion_factors = defaultdict(lambda: 1.0)    
+        if self.specified_parameters.has_key("LengthUnits") :
+            self._setup_getunits_units()
+        else :
+            self._setup_nounits_units()
+        self.parameters["Time"] = self.conversion_factors["Time"]
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.conversion_factors["Time"] / sec_conversion[unit]
+                        
+    def _setup_getunits_units(self) :
+        box_proper = 3.24077e-25 * self.specified_parameters["LengthUnits"]
+        self.units['aye']  = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] * box_proper
+        if self.specified_parameters.has_key("TimeUnits"):
+            self.conversion_factors["Time"] = self.specified_parameters["TimeUnits"]
+        else :
+            self.conversion_factors["Time"] = 1.0
+        if self.specified_parameters.has_key("DensityUnits"):
+            self.conversion_factors["Density"] = self.specified_parameters["DensityUnits"]
+        else :
+            self.conversion_factors["Density"] = 1.0
+        self.conversion_factors["Mass"] = self.conversion_factors["Density"]*self.units["cm"]**3
+        for a in 'xyz':
+            self.conversion_factors["%s-velocity" % (a)] = self.units["cm"]/self.conversion_factors["Time"]
+                                            
     def _setup_nounits_units(self):
         self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
@@ -422,6 +445,10 @@ class AthenaStaticOutput(StaticOutput):
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
+        if self.specified_parameters.has_key("gamma") :
+            self.parameters["Gamma"] = self.specified_parameters["gamma"]
+        else :
+            self.parameters["Gamma"] = 5./3. 
         self._handle.close()
 
 
