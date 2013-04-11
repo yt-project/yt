@@ -116,6 +116,9 @@ class RAMSESDomainFile(object):
             self.particle_field_offsets = {}
             return
         f = open(self.part_fn, "rb")
+        f.seek(0, os.SEEK_END)
+        flen = f.tell()
+        f.seek(0)
         hvals = {}
         attrs = ( ('ncpu', 1, 'I'),
                   ('ndim', 1, 'I'),
@@ -143,12 +146,15 @@ class RAMSESDomainFile(object):
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
-        field_offsets = {particle_fields[0][0]: f.tell()}
-        for field, vtype in particle_fields[1:]:
-            fpu.skip(f, 1)
+        field_offsets = {}
+        _pfields = {}
+        for field, vtype in particle_fields:
+            if f.tell() >= flen: break
             field_offsets[field] = f.tell()
+            _pfields[field] = vtype
+            fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
-        self.particle_field_types = dict(particle_fields)
+        self.particle_field_types = _pfields
 
     def _read_amr_header(self):
         hvals = {}
