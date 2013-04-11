@@ -37,7 +37,7 @@ import zlib
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 from yt.testing import *
-from yt.convenience import load
+from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.logger import disable_stream_logging
