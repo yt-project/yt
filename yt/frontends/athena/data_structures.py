@@ -339,8 +339,10 @@ class AthenaStaticOutput(StaticOutput):
         self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
-        self.storage_filename = storage_filename 
-        
+        if storage_filename is None:
+            storage_filename = '%s.yt' % filename.split('/')[-1]
+        self.storage_filename = storage_filename
+
         # Unfortunately we now have to mandate that the hierarchy gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
