@@ -506,7 +506,7 @@ echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo 'b46c93d76f8ce09c94765b20b2eeadf71207671f1131777de178b3727c235b4dd77f6e60d62442b96648c3c6749e9e4c1194c1b02af7e946576be09e1ff7ada3  freetype-2.4.11.tar.gz' > freetype-2.4.11.tar.gz.sha512
 echo '15ca0209e8d8f172cb0708a2de946fbbde8551d9bebc4a95fa7ae31558457a7f43249d5289d7675490c577deb4e0153698fd2407644078bf30bd5ab10135fce3  h5py-2.1.2.tar.gz' > h5py-2.1.2.tar.gz.sha512
-echo '283301bf6c3131e3079e7430dce758ccefbc7add42b14ebfc87ca30b1d9ecb20bfc00ecf6ec823fc1e3cc7af16f8ed186cd09364444f55acfcab70c6981c10ed  hdf5-1.8.10-patch1.tar.gz' > hdf5-1.8.10-patch1.tar.gz.sha512
+echo 'c68a425bacaa7441037910b9166f25b89e1387776a7749a5350793f89b1690350df5f018060c31d03686e7c3ed2aa848bd2b945c96350dc3b6322e087934783a  hdf5-1.8.9.tar.gz' > hdf5-1.8.9.tar.gz.sha512
 echo 'b2b53ed358bacab9e8d63a51f17bd5f121ece60a1d7c53e8a8eb08ad8b1e4393a8d7a86eec06e2efc62348114f0d84c0a3dfc805e68e6edd93b20401962b3554  libpng-1.6.1.tar.gz' > libpng-1.6.1.tar.gz.sha512
 echo '497f91725eaf361bdb9bdf38db2bff5068a77038f1536df193db64c9b887e3b0d967486daee722eda6e2c4e60f034eee030673e53d07bf0db0f3f7c0ef3bd208  matplotlib-1.2.1.tar.gz' > matplotlib-1.2.1.tar.gz.sha512
 echo '928fdeaaf0eaec80adbd8765521de9666ab56aaa2101fb9ab2cb392d8b29475d3b052d89652ff9b67522cfcc6cd958717ac715f51b0573ee088e9a595f29afe2  mercurial-2.5.4.tar.gz' > mercurial-2.5.4.tar.gz.sha512
@@ -526,7 +526,7 @@ echo 'd4fdd62f2db5285cd133649bd1bfa5175cb9da8304323abd74e0ef1207d55e6152f0f944da
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 # Individual processes
-[ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.10-patch1.tar.gz
+[ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.7.tar.gz
 [ $INST_BZLIB -eq 1 ] && get_ytproject bzip2-1.0.6.tar.gz
 [ $INST_PNG -eq 1 ] && get_ytproject libpng-1.6.1.tar.gz
@@ -635,11 +635,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.8.10-patch1/done ]
+    if [ ! -e hdf5-1.8.9/done ]
     then
-        [ ! -e hdf5-1.8.10-patch1 ] && tar xfz hdf5-1.8.10-patch1.tar.gz
+        [ ! -e hdf5-1.8.9 ] && tar xfz hdf5-1.8.9.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.8.10-patch1
+        cd hdf5-1.8.9
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
