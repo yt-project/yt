@@ -1034,8 +1034,8 @@ def _MagneticPressure(field,data):
     return data['MagneticEnergy']
 add_field("MagneticPressure",
           function=_MagneticPressure,
-          display_name=r"\rm{Magnetic}\/\rm{Energy}",
-          units="\rm{ergs}\/\rm{cm}^{-3}")
+          display_name=r"\rm{Magnetic}\/\rm{Pressure}",
+          units=r"\rm{ergs}\/\rm{cm}^{-3}")
 
 def _BPoloidal(field,data):
     normal = data.get_field_parameter("normal")
