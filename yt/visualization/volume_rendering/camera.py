@@ -1390,7 +1390,7 @@ class FisheyeCamera(Camera):
 
 
     def finalize_image(self, image):
-        image.shape = self.resolution, self.resolution, 3
+        image.shape = self.resolution, self.resolution, 4
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
@@ -1402,7 +1402,7 @@ class FisheyeCamera(Camera):
                         raise RuntimeError
         
         view_pos = self.center
-        for brick in self.volume.traverse(view_pos, None, image):
+        for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
