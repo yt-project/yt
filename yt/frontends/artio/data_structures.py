@@ -32,7 +32,7 @@ from _artio_caller import \
     artio_is_valid, artio_fileset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from .fields import ARTIOFieldInfo, KnownARTIOFields
+from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
 
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
@@ -145,7 +145,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return (self.parameter_file.domain_width/(2**self.max_level)).min()
+        return  1.0/(2**self.max_level)
 
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]
@@ -391,7 +391,7 @@ class ARTIOStaticOutput(StaticOutput):
             list(set(art_to_yt[s] for s in
                      self.artio_parameters["particle_species_labels"])))
 
-        self.current_time = self.artio_parameters["tl"][0]
+        self.current_time = b2t(self.artio_parameters["tl"][0])
 
         # detect cosmology
         if "abox" in self.artio_parameters:
