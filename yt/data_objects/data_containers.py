@@ -426,8 +426,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _sort_by = None
     _selector = None
     _current_chunk = None
-    size = None
-    shape = None
 
     def __init__(self, *args, **kwargs):
         super(YTSelectionContainer, self).__init__(*args, **kwargs)
@@ -524,16 +522,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # There are several items that need to be swapped out
         # field_data, size, shape
         old_field_data, self.field_data = self.field_data, YTFieldData()
-        old_size, self.size = self.size, chunk.data_size
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
-        #self.shape = (self.size,)
         yield
         self.field_data = old_field_data
-        self.size = old_size
-        #self.shape = (old_size,)
         self._current_chunk = old_chunk
         self._locked = old_locked
+
+#    @property   
+#    def size(self) :
+#        if self._current_chunk is None :
+##            self.hierarchy._identify_base_chunk(self)
+#            return 0
+#        return self._current_chunk.data_size
 
     @property
     def icoords(self):
