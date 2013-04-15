@@ -237,7 +237,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         ds = shelve.open(self.answer_name, protocol=-1)
         for pf_name in result_storage:
             answer_name = "%s" % pf_name
-            if name in ds:
+            if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[pf_name]
         ds.close()
