@@ -167,6 +167,44 @@ cdef class OctreeContainer:
             cur = cur.children[ind[0]][ind[1]][ind[2]]
         return cur
 
+    @cython.boundscheck(True)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef Oct *get_octant(self, ppos):
+        # This does a bit more than the built in get() function
+        # by also computing the index of the octant the point is in
+        cdef np.int64_t ind[3]
+        cdef np.float64_t dds[3], cp[3], pp[3]
+        cdef Oct *cur
+        cdef int i
+        cdef int ii
+        for i in range(3):
+            pp[i] = ppos[i] - self.DLE[i]
+            dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+            ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
+            cp[i] = (ind[i] + 0.5) * dds[i]
+        cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        while cur.children[0][0][0] != NULL:
+            for i in range(3):
+                dds[i] = dds[i] / 2.0
+                if cp[i] > pp[i]:
+                    ind[i] = 0
+                    cp[i] -= dds[i] / 2.0
+                else:
+                    ind[i] = 1
+                    cp[i] += dds[i]/2.0
+            cur = cur.children[ind[0]][ind[1]][ind[2]]
+        for i in range(3):
+            dds[i] = dds[i] / 2.0
+            if cp[i] > pp[i]:
+                ind[i] = 0
+                cp[i] -= dds[i] / 2.0
+            else:
+                ind[i] = 1
+                cp[i] += dds[i]/2.0
+        ii = ((ind[2]*2)+ind[1])*2+ind[0]
+        return cur, ii 
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -887,6 +925,26 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
     #this class is specifically for the NMSU ART
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def deposit_particle_cumsum(np.ndarray[np.float64_t, ndim=3] ppos, 
+                                np.ndarray[np.float64_t, ndim=1] pdata,
+                                np.ndarray[np.float64_t, ndim=1] mask,
+                                np.ndarray[np.float64_t, ndim=1] dest,
+                                fields, int domain):
+        cdef Oct *o
+        cdef OctAllocationContainer *dom = self.domains[domain - 1]
+        cdef np.float64_t pos[3]
+        cdef int ii
+        cdef int no = ppos.shape[0]
+        for n in range(no):
+            pos = ppos[n]
+            *o, ii = dom.get_octant(pos) 
+            if mask[o.local_ind,ii]==0: continue
+            dest[o.ind+ii] += pdata[n]
+        return dest
+
     @cython.boundscheck(True)
     @cython.wraparound(False)
     @cython.cdivision(True)
