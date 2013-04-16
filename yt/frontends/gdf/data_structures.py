@@ -95,11 +95,9 @@ class GDFHierarchy(GridGeometryHandler):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-#        self._handle = h5py.File(self.hierarchy_filename, 'r')
         self._handle = pf._handle
         GridGeometryHandler.__init__(self, pf, data_style)
 
-#        self._handle.close()
 
     def _initialize_data_storage(self):
         pass
@@ -147,7 +145,6 @@ class GDFHierarchy(GridGeometryHandler):
         for gi, g in enumerate(self.grids):
             g._prepare_grid()
             g._setup_dx()
-        return
         for gi, g in enumerate(self.grids):
             g.Children = self._get_grid_children(g)
             for g1 in g.Children:
@@ -167,9 +164,20 @@ class GDFHierarchy(GridGeometryHandler):
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
+    def _get_box_grids(self, left_edge, right_edge):
+        """
+        Gets back all the grids between a left edge and right edge
+        """
+        eps = np.finfo(np.float64).eps
+        grid_i = np.where((np.all((self.grid_right_edge - left_edge) > eps, axis=1) \
+                        &  np.all((right_edge - self.grid_left_edge) > eps, axis=1)) == True)
+
+        return self.grids[grid_i], grid_i
+
+
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
+        grids, grid_ind = self._get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
@@ -216,7 +224,7 @@ class GDFStaticOutput(StaticOutput):
             except:
                 self.units[field_name] = 1.0
             try:
-                current_fields_unit = current_field.attrs['field_units'][0]
+                current_fields_unit = current_field.attrs['field_units']
             except:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
@@ -224,8 +232,6 @@ class GDFStaticOutput(StaticOutput):
                    convert_function=_get_convert(field_name))
         for p, v in self.units.items():
             self.conversion_factors[p] = v
-#        self._handle.close()
-#        del self._handle
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
@@ -256,8 +262,6 @@ class GDFStaticOutput(StaticOutput):
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = 1.0 # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
-#        self._handle.close()
-#        del self._handle
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

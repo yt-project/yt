@@ -64,9 +64,8 @@ class IOHandlerGDFHDF5(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        # TODO ????
-        #if any((ftype != "gas" for ftype, fname in fields)):
-        #    raise NotImplementedError
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
         fhandle = self._handle
         rv = {}
         for field in fields:
