@@ -202,7 +202,7 @@ class GDFStaticOutput(StaticOutput):
             except:
                 self.units[field_name] = 1.0
             try:
-                current_fields_unit = current_field.attrs['field_units'][0]
+                current_fields_unit = current_field.attrs['field_units']
             except:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
