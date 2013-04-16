@@ -51,15 +51,19 @@ class IOHandlerGDFHDF5(BaseIOHandler):
 
 
     def _read_data_set(self, grid, field):
-        data = self._handle[field_dname(grid.id, field)][:, :, :]
-        # TODO transpose data if needed (grid.pf.field_ordering)
+        if self.pf.field_ordering == 1:
+            data = self._handle[field_dname(grid.id, field)][:].swapaxes(0, 2)
+        else:
+            data = self._handle[field_dname(grid.id, field)][:, :, :]
         return data.astype("float64")
 
     def _read_data_slice(self, grid, field, axis, coord):
         slc = [slice(None), slice(None), slice(None)]
         slc[axis] = slice(coord, coord + 1)
-        # TODO transpose data if needed
-        data = self._handle[field_dname(grid.id, field)][slc]
+        if self.pf.field_ordering == 1:
+            data = self._handle[field_dname(grid.id, field)][:].swapaxes(0, 2)[slc]
+        else:
+            data = self._handle[field_dname(grid.id, field)][slc]
         return data.astype("float64")
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -83,8 +87,10 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                     mask = grid.select(selector)  # caches
                     if mask is None:
                         continue
-                    # TODO transpose if needed
-                    data = fhandle[field_dname(grid.id, fname)][mask]
+                    if self.pf.field_ordering == 1:
+                        data = fhandle[field_dname(grid.id, fname)][:].swapaxes(0, 2)[mask]
+                    else:
+                        data = fhandle[field_dname(grid.id, fname)][mask]
                     rv[field][ind:ind + data.size] = data
                     ind += data.size
         return rv
