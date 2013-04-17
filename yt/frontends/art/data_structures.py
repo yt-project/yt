@@ -40,6 +40,8 @@ from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.data_objects.octree_subset import \
+    OctreeSubset
 from yt.geometry.oct_container import \
     ARTOctreeContainer
 from yt.data_objects.field_info_container import \
@@ -434,7 +436,7 @@ class ARTStaticOutput(StaticOutput):
         return False
 
 
-class ARTDomainSubset(object):
+class ARTDomainSubset(OctreeSubset):
     def __init__(self, domain, mask, cell_count, domain_level):
         self.mask = mask
         self.domain = domain
