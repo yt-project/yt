@@ -59,10 +59,12 @@ cdef deposit_direct(oct_handler,
     for pi in np.arange(particles):
         octs = fsel(oct_handler, pr[pi])
         for oct in octs:
-            w = fker(pr[pi],oct) 
-            weights.append(w)
+            for cell in oct.cells:
+                w = fker(pr[pi],cell) 
+                weights.append(w)
         norm = weights.sum()
         for w, oct in zip(weights, octs):
-            fopt(pd[pi], w/norm, oct.index, data_in, data_out)
+            for cell in oct.cells:
+                fopt(pd[pi], w/norm, oct.index, data_in, data_out)
 
 
