@@ -41,55 +41,54 @@ from oct_container cimport Oct, RAMSESOctreeContainer
 
 # Use next_child(domain, int[3] octant, Oct parent)
 
-def create_fake_octree(long noct,
+def create_fake_octree(RAMSESOctreeContainer oct_handler,
+                       long noct,
                        long max_level,
                        np.ndarray[np.int32_t, ndim=1] ndd,
                        np.ndarray[np.float64_t, ndim=1] dle,
                        np.ndarray[np.float64_t, ndim=1] dre,
                        float fsubdivide):
-    cdef RAMSESOctreeContainer oct_handler = RAMSESOctreeContainer(ndd,dle,dre)
     cdef int[3] ind #hold the octant index
     cdef int[3] dd #hold the octant index
     cdef long i
+    cdef long cur_noct = 0
     for i in range(3):
         ind[i] = 0
         dd[i] = ndd[i]
-    cdef long total_oct = (dd[0]*dd[1]*dd[2]) + noct
+    assert dd[0]*dd[1]*dd[2] <= noct
     print 'starting'
     print ind[0], ind[1], ind[2]
     print 'allocate'
-    print total_oct
-    oct_handler.allocate_domains([total_oct])
+    print noct
+    oct_handler.allocate_domains([noct])
+    print 'n_assigned', oct_handler.domains[0].n_assigned
     print 'parent'
     parent = oct_handler.next_root(oct_handler.max_domain, ind)
     print 'subdiv'
-    subdivide(oct_handler,ind, dd, parent, 0, 0, noct,
-              max_level, fsubdivide)
-    return oct_handler
+    while oct_handler.domains[0].n_assigned < noct:
+        cur_noct = subdivide(oct_handler,ind, dd, parent, 0, 0, noct,
+                  max_level, fsubdivide)
 
-cdef subdivide(RAMSESOctreeContainer oct_handler, int ind[3], 
+cdef long subdivide(RAMSESOctreeContainer oct_handler, int ind[3], 
                int dd[3],
-               Oct *parent, long cur_level, long cur_leaf,
+               Oct *parent, long cur_level, long cur_noct,
                long noct, long max_level, float fsubdivide):
-    print "entrance"
+    print cur_level, ' n_assigned ', oct_handler.domains[0].n_assigned, 
+    print ' n', oct_handler.domains[0].n
     cdef int ddr[3]
     cdef long i,j,k
     cdef float rf #random float from 0-1
     if cur_level >= max_level: 
-        return
-    if cur_leaf >= noct: 
-        return
-    print "loop over cells"
+        return cur_noct
+    if oct_handler.domains[0].n_assigned >= noct: 
+        return cur_noct
     for i in range(3):
-        ind[i] = <int> rand() / RAND_MAX * dd[i]
+        ind[i] = <int> ((rand() * 1.0 / RAND_MAX) * dd[i])
         ddr[i] = 2
-    rf = rand() / RAND_MAX
-    print ind[0], ind[1], ind[2]
-    print rf
+    rf = rand() * 1.0 / RAND_MAX
     if rf > fsubdivide:
         #this will mark the octant ind as subdivided
-        print 'subdivide'
         oct = oct_handler.next_child(1, ind, parent)
-        print 'recurse'
         subdivide(oct_handler, ind, ddr, oct, cur_level + 1, 
-                  cur_leaf + 1, noct, max_level, fsubdivide)
+                  cur_noct+ 1, noct, max_level, fsubdivide)
+    return cur_noct
