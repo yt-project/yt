@@ -142,7 +142,7 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *get(self, ppos):
+    cdef Oct *get(self, np.float64_t ppos[3], int *ii = NULL):
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef np.int64_t ind[3]
@@ -165,45 +165,14 @@ cdef class OctreeContainer:
                     ind[i] = 1
                     cp[i] += dds[i]/2.0
             cur = cur.children[ind[0]][ind[1]][ind[2]]
-        return cur
-
-    @cython.boundscheck(True)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef Oct *get_octant(self, ppos):
-        # This does a bit more than the built in get() function
-        # by also computing the index of the octant the point is in
-        cdef np.int64_t ind[3]
-        cdef np.float64_t dds[3], cp[3], pp[3]
-        cdef Oct *cur
-        cdef int i
-        cdef int ii
+        if ii != NULL: return cur
         for i in range(3):
-            pp[i] = ppos[i] - self.DLE[i]
-            dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
-            cp[i] = (ind[i] + 0.5) * dds[i]
-        cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
-        while cur.children[0][0][0] != NULL:
-            for i in range(3):
-                dds[i] = dds[i] / 2.0
-                if cp[i] > pp[i]:
-                    ind[i] = 0
-                    cp[i] -= dds[i] / 2.0
-                else:
-                    ind[i] = 1
-                    cp[i] += dds[i]/2.0
-            cur = cur.children[ind[0]][ind[1]][ind[2]]
-        for i in range(3):
-            dds[i] = dds[i] / 2.0
             if cp[i] > pp[i]:
                 ind[i] = 0
-                cp[i] -= dds[i] / 2.0
             else:
                 ind[i] = 1
-                cp[i] += dds[i]/2.0
-        ii = ((ind[2]*2)+ind[1])*2+ind[0]
-        return cur, ii 
+        ii[0] = ((ind[2]*2)+ind[1])*2+ind[0]
+        return cur
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -298,14 +267,17 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def get_neighbor_boundaries(self, ppos):
+    def get_neighbor_boundaries(self, oppos):
+        cdef int i, ii
+        cdef np.float64_t ppos[3]
+        for i in range(3):
+            ppos[i] = oppos[i]
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]
         self.neighbors(main, neighbors)
         cdef np.ndarray[np.float64_t, ndim=2] bounds
         cdef np.float64_t corner[3], size[3]
         bounds = np.zeros((27,6), dtype="float64")
-        cdef int i, ii
         tnp = 0
         for i in range(27):
             self.oct_bounds(neighbors[i], corner, size)
@@ -928,7 +900,8 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def deposit_particle_cumsum(np.ndarray[np.float64_t, ndim=3] ppos, 
+    def deposit_particle_cumsum(self,
+                                np.ndarray[np.float64_t, ndim=2] ppos, 
                                 np.ndarray[np.float64_t, ndim=1] pdata,
                                 np.ndarray[np.float64_t, ndim=1] mask,
                                 np.ndarray[np.float64_t, ndim=1] dest,
@@ -939,8 +912,9 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
         cdef int ii
         cdef int no = ppos.shape[0]
         for n in range(no):
-            pos = ppos[n]
-            *o, ii = dom.get_octant(pos) 
+            for j in range(3):
+                pos[j] = ppos[n,j]
+            o = self.get(pos, &ii) 
             if mask[o.local_ind,ii]==0: continue
             dest[o.ind+ii] += pdata[n]
         return dest
@@ -1435,12 +1409,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_neighbor_particles(self, ppos):
+    def count_neighbor_particles(self, oppos):
         #How many particles are in my neighborhood
+        cdef int i, ni, dl, tnp
+        cdef np.float64_t ppos[3]
+        for i in range(3):
+            ppos[i] = oppos[i]
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]
         self.neighbors(main, neighbors)
-        cdef int i, ni, dl, tnp
         tnp = 0
         for i in range(27):
             if neighbors[i].sd != NULL:
