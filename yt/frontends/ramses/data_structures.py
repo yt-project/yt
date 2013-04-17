@@ -355,8 +355,16 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, dobj.size)
 
-    def _chunk_spatial(self, dobj, ngz):
-        raise NotImplementedError
+    def _chunk_spatial(self, dobj, ngz, sort = None):
+        sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for i,og in enumerate(sobjs):
+            if ngz > 0:
+                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+            else:
+                g = og
+            size = og.cell_count
+            if size == 0: continue
+            yield YTDataChunk(dobj, "spatial", [g], size)
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
