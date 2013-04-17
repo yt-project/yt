@@ -112,8 +112,8 @@ cdef deposit(OctreeContainer oct_handler,
         np.ndarray[np.float64_t, ndim=2] ppos, #positions,columns are x,y,z
         np.ndarray[np.float64_t, ndim=2] pd, # particle fields
         np.ndarray[np.float64_t, ndim=1] pr, # particle radius
-        np.ndarray[np.float64_t, ndim=2] data_out, #write deposited here
         np.ndarray[np.float64_t, ndim=2] data_in, #used to calc diff, same shape as data_out
+        np.ndarray[np.float64_t, ndim=2] data_out, #write deposited here
         mode='count', selection='nearest', kernel='null'):
     cdef type_opt fopt
     cdef type_sel fsel
