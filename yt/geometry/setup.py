@@ -23,6 +23,13 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/geometry/oct_container.pxd",
                          "yt/geometry/selection_routines.pxd"])
+    config.add_extension("fake_octree", 
+                ["yt/geometry/fake_octree.pyx"],
+                include_dirs=["yt/utilities/lib/"],
+                libraries=["m"],
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/geometry/oct_container.pxd",
+                         "yt/geometry/selection_routines.pxd"])
     config.make_config_py() # installs __config__.py
     #config.make_svn_version_py()
     return config

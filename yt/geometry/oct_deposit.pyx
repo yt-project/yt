@@ -106,7 +106,7 @@ cdef np.float64_t kernel_sph(np.float64_t x) nogil:
         kernel = 0.
     return kernel
 
-cdef np.float64_t kernel_null(np.float64_t x) nogil: return 1.0
+cdef np.float64_t kernel_null(np.float64_t x) nogil: return 0.0
 
 cdef deposit(OctreeContainer oct_handler, 
         np.ndarray[np.float64_t, ndim=2] ppos, #positions,columns are x,y,z
