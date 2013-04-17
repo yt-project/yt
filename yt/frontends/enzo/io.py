@@ -50,7 +50,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
     def _read_particle_selection_by_type(self, chunks, selector, fields):
-        # Active particles don't have the particle_ prefix.
         rv = {}
         ptypes = list(set([ftype for ftype, fname in fields]))
         fields = list(set(fields))
@@ -94,7 +93,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         # Now we have to do something unpleasant
         if any((ftype != "all" for ftype, fname in fields)):
             type_fields = [(ftype, fname) for ftype, fname in fields
-                           if ftype != all]
+                           if ftype != "all"]
             rv.update(self._read_particle_selection_by_type(
                       chunks, selector, type_fields))
             if len(rv) == len(fields): return rv
