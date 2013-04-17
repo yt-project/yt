@@ -53,21 +53,28 @@ def smooth_particles(
     for p in range(ngas):
         kernel_sum[p] = 0.0
         skip = 0
+        # Find the # of cells of the kernel
         for i in range(3):
             pos[i] = ppos[p, i]
+            # Get particle root grid integer index
             ind[i] = <int>((pos[i] - left_edge[i]) / dds[i])
+            # How many root grid cells does the smoothing length span + 1
             half_len = <int>(hsml[p]/dds[i]) + 1
+            # Left and right integer indices of the smoothing range
+            # If smoothing len is small could be inside the same bin
             ib0[i] = ind[i] - half_len
             ib1[i] = ind[i] + half_len
             #pos[i] = ppos[p, i] - left_edge[i]
             #ind[i] = <int>(pos[i] / dds[i])
             #ib0[i] = <int>((pos[i] - hsml[i]) / dds[i]) - 1
             #ib1[i] = <int>((pos[i] + hsml[i]) / dds[i]) + 1
+            # Skip if outside out root grid
             if ib0[i] >= dims[i] or ib1[i] < 0:
                 skip = 1
             ib0[i] = iclip(ib0[i], 0, dims[i] - 1)
             ib1[i] = iclip(ib1[i], 0, dims[i] - 1)
         if skip == 1: continue
+        # Having found the kernel shape, calculate the kernel weight
         for i from ib0[0] <= i <= ib1[0]:
             idist[0] = (ind[0] - i) * (ind[0] - i) * sdds[0]
             for j from ib0[1] <= j <= ib1[1]:
@@ -75,10 +82,14 @@ def smooth_particles(
                 for k from ib0[2] <= k <= ib1[2]:
                     idist[2] = (ind[2] - k) * (ind[2] - k) * sdds[2]
                     dist = idist[0] + idist[1] + idist[2]
+                    # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / hsml[p]
+                    # Kernel is 3D but save the elements in a 1D array
                     gi = ((i * dims[1] + j) * dims[2]) + k
                     pdist[gi] = sph_kernel(dist)
+                    # Save sum to normalize later
                     kernel_sum[p] += pdist[gi]
+        # Having found the kernel, deposit accordingly into gdata
         for i from ib0[0] <= i <= ib1[0]:
             for j from ib0[1] <= j <= ib1[1]:
                 for k from ib0[2] <= k <= ib1[2]:
