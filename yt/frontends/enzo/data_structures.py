@@ -634,6 +634,24 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             self.derived_field_list = self.__class__._cached_derived_field_list
 
+    def _detect_fields(self):
+        self.field_list = []
+        # Do this only on the root processor to save disk work.
+        mylog.info("Gathering a field list (this may take a moment.)")
+        field_list = set()
+        random_sample = self._generate_random_grids()
+        for grid in random_sample:
+            try:
+                gf = self.io._read_field_names(grid)
+            except self.io._read_exception:
+                mylog.debug("Grid %s is a bit funky?", grid.id)
+                continue
+            mylog.debug("Grid %s has: %s", grid.id, gf)
+            field_list = field_list.union(gf)
+        field_list = self.comm.par_combine_object(list(field_list),
+                        datatype="list", op = "cat")
+        self.field_list = list(set(field_list))
+
     def _generate_random_grids(self):
         my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
