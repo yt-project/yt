@@ -196,6 +196,39 @@ cdef class OctreeContainer:
                 count[o.domain - 1] += mask[o.local_ind,i]
         return count
 
+    @cython.boundscheck(True)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_leaves(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        # Modified to work when not all octs are assigned
+        cdef int i, j, k, ii
+        cdef np.int64_t oi
+        # pos here is CELL center, not OCT center.
+        cdef np.float64_t pos[3]
+        cdef int n = mask.shape[0]
+        cdef np.ndarray[np.int64_t, ndim=1] count
+        count = np.zeros(self.max_domain, 'int64')
+        # 
+        cur = self.cont
+        for oi in range(n):
+            if oi - cur.offset >= cur.n_assigned:
+                cur = cur.next
+                if cur == NULL:
+                    break
+            o = &cur.my_octs[oi - cur.offset]
+            # skip if unassigned
+            if o == NULL:
+                continue
+            if o.domain == -1: 
+                continue
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if o.children[i][j][k] == NULL:
+                            ii = ((k*2)+j)*2+i
+                            count[o.domain - 1] += mask[o.local_ind,ii]
+        return count
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
