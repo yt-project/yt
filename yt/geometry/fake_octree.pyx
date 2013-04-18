@@ -52,6 +52,7 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     cdef int[3] dd #hold the octant index
     cdef long i
     cdef long cur_noct = 0
+    cdef long cur_leaf= 0
     for i in range(3):
         ind[i] = 0
         dd[i] = ndd[i]
@@ -63,18 +64,21 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     oct_handler.allocate_domains([noct])
     print 'n_assigned', oct_handler.domains[0].n_assigned
     print 'parent'
-    parent = oct_handler.next_root(oct_handler.max_domain, ind)
+    parent = oct_handler.next_root(1, ind)
+    parent.domain = 1
+    cur_leaf = 8 #we've added one parent...
     print 'subdiv'
     while oct_handler.domains[0].n_assigned < noct:
-        cur_noct = subdivide(oct_handler,ind, dd, parent, 0, 0, noct,
+        cur_noct = subdivide(oct_handler,ind, dd, cur_leaf, parent, 0, 0, noct,
                   max_level, fsubdivide)
 
 cdef long subdivide(RAMSESOctreeContainer oct_handler, int ind[3], 
-               int dd[3],
+               int dd[3], long cur_leaf,
                Oct *parent, long cur_level, long cur_noct,
                long noct, long max_level, float fsubdivide):
-    print cur_level, ' n_assigned ', oct_handler.domains[0].n_assigned, 
-    print ' n', oct_handler.domains[0].n
+    print cur_level, ' na ', oct_handler.domains[0].n_assigned, 
+    print ' n', oct_handler.domains[0].n,
+    print 'pos ', parent.pos[0], parent.pos[1], parent.pos[2]
     cdef int ddr[3]
     cdef long i,j,k
     cdef float rf #random float from 0-1
@@ -89,6 +93,7 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler, int ind[3],
     if rf > fsubdivide:
         #this will mark the octant ind as subdivided
         oct = oct_handler.next_child(1, ind, parent)
+        oct.domain = 1
         subdivide(oct_handler, ind, ddr, oct, cur_level + 1, 
                   cur_noct+ 1, noct, max_level, fsubdivide)
     return cur_noct
