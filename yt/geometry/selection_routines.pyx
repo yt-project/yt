@@ -1147,6 +1147,5 @@ cdef class OctreeSubsetSelector(SelectorObject):
                          int eterm[3]) nogil:
         return 1
 
-
 octree_subset_selector = OctreeSubsetSelector
 

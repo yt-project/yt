@@ -60,6 +60,8 @@ class OctreeSubset(YTSelectionContainer):
         level_counts[1:] = level_counts[:-1]
         level_counts[0] = 0
         self.level_counts = np.add.accumulate(level_counts)
+        self._last_mask = None
+        self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
 
@@ -98,8 +100,35 @@ class OctreeSubset(YTSelectionContainer):
         if not finfo.particle_type:
             nz = self._num_zones + 2*self._num_ghost_zones
             n_oct = tr.shape[0] / (nz**3.0)
-            dest_shape = (nz, nz, nz, n_oct)
-            return tr.reshape(dest_shape)
+            tr.shape = (n_oct, nz, nz, nz)
+            tr = np.rollaxis(tr, 0, 4)
+            return tr
         return tr
 
+    def deposit(self, positions, fields, method):
+        pass
 
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        self._last_mask = self.oct_handler.domain_mask(
+                self.mask, self.domain.domain_id)
+        if self._last_mask.sum() == 0: return None
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
+
+    def count_particles(self, selector, x, y, z):
+        # We don't cache the selector results
+        count = selector.count_points(x,y,z)
+        return count
+
+    def select_particles(self, selector, x, y, z):
+        mask = selector.select_points(x,y,z)
+        return mask
