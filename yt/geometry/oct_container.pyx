@@ -142,7 +142,7 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *get(self, ppos):
+    cdef Oct *get(self, np.float64_t ppos[3], int *ii = NULL):
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef np.int64_t ind[3]
@@ -165,6 +165,13 @@ cdef class OctreeContainer:
                     ind[i] = 1
                     cp[i] += dds[i]/2.0
             cur = cur.children[ind[0]][ind[1]][ind[2]]
+        if ii != NULL: return cur
+        for i in range(3):
+            if cp[i] > pp[i]:
+                ind[i] = 0
+            else:
+                ind[i] = 1
+        ii[0] = ((ind[2]*2)+ind[1])*2+ind[0]
         return cur
 
     @cython.boundscheck(False)
@@ -187,6 +194,39 @@ cdef class OctreeContainer:
             o = &cur.my_octs[oi - cur.offset]
             for i in range(8):
                 count[o.domain - 1] += mask[o.local_ind,i]
+        return count
+
+    @cython.boundscheck(True)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_leaves(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        # Modified to work when not all octs are assigned
+        cdef int i, j, k, ii
+        cdef np.int64_t oi
+        # pos here is CELL center, not OCT center.
+        cdef np.float64_t pos[3]
+        cdef int n = mask.shape[0]
+        cdef np.ndarray[np.int64_t, ndim=1] count
+        count = np.zeros(self.max_domain, 'int64')
+        # 
+        cur = self.cont
+        for oi in range(n):
+            if oi - cur.offset >= cur.n_assigned:
+                cur = cur.next
+                if cur == NULL:
+                    break
+            o = &cur.my_octs[oi - cur.offset]
+            # skip if unassigned
+            if o == NULL:
+                continue
+            if o.domain == -1: 
+                continue
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if o.children[i][j][k] == NULL:
+                            ii = ((k*2)+j)*2+i
+                            count[o.domain - 1] += mask[o.local_ind,ii]
         return count
 
     @cython.boundscheck(False)
@@ -260,14 +300,17 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def get_neighbor_boundaries(self, ppos):
+    def get_neighbor_boundaries(self, oppos):
+        cdef int i, ii
+        cdef np.float64_t ppos[3]
+        for i in range(3):
+            ppos[i] = oppos[i]
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]
         self.neighbors(main, neighbors)
         cdef np.ndarray[np.float64_t, ndim=2] bounds
         cdef np.float64_t corner[3], size[3]
         bounds = np.zeros((27,6), dtype="float64")
-        cdef int i, ii
         tnp = 0
         for i in range(27):
             self.oct_bounds(neighbors[i], corner, size)
@@ -680,7 +723,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 m2[o.local_ind, i] = mask[o.local_ind, i]
         return m2
 
-    def check(self, int curdom):
+    def check(self, int curdom, int print_all = 0):
         cdef int dind, pi
         cdef Oct oct
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
@@ -689,6 +732,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int unassigned = 0
         for pi in range(cont.n_assigned):
             oct = cont.my_octs[pi]
+            if print_all==1:
+                print pi, oct.level, oct.domain,
+                print oct.pos[0],oct.pos[1],oct.pos[2]
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
@@ -901,6 +947,28 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
     #this class is specifically for the NMSU ART
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def deposit_particle_cumsum(self,
+                                np.ndarray[np.float64_t, ndim=2] ppos, 
+                                np.ndarray[np.float64_t, ndim=1] pdata,
+                                np.ndarray[np.float64_t, ndim=1] mask,
+                                np.ndarray[np.float64_t, ndim=1] dest,
+                                fields, int domain):
+        cdef Oct *o
+        cdef OctAllocationContainer *dom = self.domains[domain - 1]
+        cdef np.float64_t pos[3]
+        cdef int ii
+        cdef int no = ppos.shape[0]
+        for n in range(no):
+            for j in range(3):
+                pos[j] = ppos[n,j]
+            o = self.get(pos, &ii) 
+            if mask[o.local_ind,ii]==0: continue
+            dest[o.ind+ii] += pdata[n]
+        return dest
+
     @cython.boundscheck(True)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1394,12 +1462,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_neighbor_particles(self, ppos):
+    def count_neighbor_particles(self, oppos):
         #How many particles are in my neighborhood
+        cdef int i, ni, dl, tnp
+        cdef np.float64_t ppos[3]
+        for i in range(3):
+            ppos[i] = oppos[i]
         cdef Oct *main = self.get(ppos)
         cdef Oct* neighbors[27]
         self.neighbors(main, neighbors)
-        cdef int i, ni, dl, tnp
         tnp = 0
         for i in range(27):
             if neighbors[i].sd != NULL:
