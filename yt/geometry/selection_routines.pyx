@@ -1101,15 +1101,26 @@ grid_selector = GridSelector
 cdef class OctreeSubsetSelector(SelectorObject):
     # This is a numpy array, which will be a bool of ndim 1
     cdef object oct_mask
+    cdef int domain_id
 
     def __init__(self, dobj):
         self.oct_mask = dobj.mask
+        self.domain_id = dobj.domain.domain_id
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
-        return self.oct_mask
+        cdef np.ndarray[np.uint8_t, ndim=2] m2
+        m2 = octree.domain_and(self.oct_mask, self.domain_id)
+        cdef int oi, i, a
+        for oi in range(m2.shape[0]):
+            a = 0
+            for i in range(8):
+                if m2[oi, i] == 1: a = 1
+            for i in range(8):
+                m2[oi, i] = a
+        return m2.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

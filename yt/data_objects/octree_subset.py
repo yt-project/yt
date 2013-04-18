@@ -49,7 +49,6 @@ class OctreeSubset(YTSelectionContainer):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.mask = mask
-        self.n_oct = mask.shape[0]
         self.domain = domain
         self.pf = domain.pf
         self.hierarchy = self.pf.hierarchy
@@ -91,7 +90,6 @@ class OctreeSubset(YTSelectionContainer):
 
     def __getitem__(self, key):
         tr = super(OctreeSubset, self).__getitem__(key)
-        import pdb; pdb.set_trace()
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -99,7 +97,8 @@ class OctreeSubset(YTSelectionContainer):
         finfo = self.pf._get_field_info(*fields[0])
         if not finfo.particle_type:
             nz = self._num_zones + 2*self._num_ghost_zones
-            dest_shape = (nz, nz, nz, self.n_oct)
+            n_oct = tr.shape[0] / (nz**3.0)
+            dest_shape = (nz, nz, nz, n_oct)
             return tr.reshape(dest_shape)
         return tr
 

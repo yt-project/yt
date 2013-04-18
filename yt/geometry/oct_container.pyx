@@ -666,6 +666,20 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 count[cur.my_octs[i - cur.offset].domain - 1] += 1
         return count
 
+    def domain_and(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                   int domain_id):
+        cdef np.int64_t i, oi, n, 
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        cdef np.ndarray[np.uint8_t, ndim=2] m2 = \
+                np.zeros((mask.shape[0], 8), 'uint8')
+        n = mask.shape[0]
+        for oi in range(cur.n_assigned):
+            o = &cur.my_octs[oi]
+            for i in range(8):
+                m2[o.local_ind, i] = mask[o.local_ind, i]
+        return m2
+
     def check(self, int curdom):
         cdef int dind, pi
         cdef Oct oct
