@@ -45,7 +45,6 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     cdef int[3] ind #hold the octant index
     cdef long i
     cdef long cur_leaf = 0
-    cdef long leaves = 0
     cdef np.ndarray[np.uint8_t, ndim=2] mask
     for i in range(3):
         ind[i] = 0
@@ -59,9 +58,8 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
         print "root: nocts ", oct_handler.domains[0].n_assigned
         cur_leaf = subdivide(oct_handler, parent, ind, dd, cur_leaf, 0,
                              max_noct, max_level, fsubdivide, mask)
+    return cur_leaf
                              
-    leaves = oct_handler.count_leaves(mask)
-    assert cur_leaf == leaves
 
 cdef long subdivide(RAMSESOctreeContainer oct_handler, 
                     Oct *parent,
