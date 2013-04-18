@@ -59,6 +59,7 @@ class StaticOutput(object):
     particle_types = ("all",)
     geometry = "cartesian"
     coordinates = None
+    max_level = 99
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):

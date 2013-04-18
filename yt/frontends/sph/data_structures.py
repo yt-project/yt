@@ -40,6 +40,8 @@ from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.data_objects.octree_subset import \
+    OctreeSubset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \
@@ -70,40 +72,8 @@ class ParticleDomainFile(object):
     def _calculate_offsets(self, fields):
         pass
 
-class ParticleDomainSubset(object):
-    def __init__(self, domain, mask, count):
-        self.domain = domain
-        self.mask = mask
-        self.cell_count = count
-        self.oct_handler = domain.pf.h.oct_handler
-        level_counts = self.oct_handler.count_levels(
-            99, self.domain.domain_id, mask)
-        level_counts[1:] = level_counts[:-1]
-        level_counts[0] = 0
-        self.level_counts = np.add.accumulate(level_counts)
-
-    def select_icoords(self, dobj):
-        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.cell_count)
-
-    def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.cell_count)
-
-    def select_fwidth(self, dobj):
-        # Recall domain_dimensions is the number of cells, not octs
-        base_dx = (self.domain.pf.domain_width /
-                   self.domain.pf.domain_dimensions)
-        widths = np.empty((self.cell_count, 3), dtype="float64")
-        dds = (2**self.ires(dobj))
-        for i in range(3):
-            widths[:,i] = base_dx[i] / dds
-        return widths
-
-    def select_ires(self, dobj):
-        return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.cell_count)
-
+class ParticleDomainSubset(OctreeSubset):
+    pass
 
 class ParticleGeometryHandler(OctreeGeometryHandler):
 
@@ -170,8 +140,16 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, dobj.size)
 
-    def _chunk_spatial(self, dobj, ngz):
-        raise NotImplementedError
+    def _chunk_spatial(self, dobj, ngz, sort = None):
+        sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for i,og in enumerate(sobjs):
+            if ngz > 0:
+                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+            else:
+                g = og
+            size = og.cell_count
+            if size == 0: continue
+            yield YTDataChunk(dobj, "spatial", [g], size)
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -216,6 +194,7 @@ class OWLSStaticOutput(StaticOutput):
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
         self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]
         self.omega_lambda = hvals["OmegaLambda"]
         self.omega_matter = hvals["Omega0"]
@@ -317,6 +296,7 @@ class GadgetStaticOutput(StaticOutput):
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+        self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
 
@@ -411,6 +391,7 @@ class TipsyStaticOutput(StaticOutput):
         self.domain_left_edge = np.zeros(3, "float64") - 0.5
         self.domain_right_edge = np.ones(3, "float64") + 0.5
         self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+        self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
 
