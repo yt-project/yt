@@ -678,7 +678,43 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             o = &cur.my_octs[oi]
             for i in range(8):
                 m2[o.local_ind, i] = mask[o.local_ind, i]
-        return m2
+        return m2 # NOTE: This is uint8_t
+
+    def domain_mask(self,
+                    # mask is the base selector's *global* mask
+                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                    int domain_id):
+        # What distinguishes this one from domain_and is that we have a mask,
+        # which covers the whole domain, but our output will only be of a much
+        # smaller subset of octs that belong to a given domain *and* the mask.
+        # Note also that typically when something calls domain_and, they will 
+        # use a logical_any along the oct axis.  Here we don't do that.
+        # Note also that we change the shape of the returned array.
+        cdef np.int64_t i, j, k, oi, n, nm
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        n = mask.shape[0]
+        nm = 0
+        for oi in range(cur.n_assigned):
+            o = &cur.my_octs[oi]
+            use = 0
+            for i in range(8):
+                if mask[o.local_ind, i] == 1: use = 1
+            nm += use
+        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
+                np.zeros((2, 2, 2, nm), 'uint8')
+        nm = 0
+        for oi in range(cur.n_assigned):
+            o = &cur.my_octs[oi]
+            use = 0
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        if mask[o.local_ind, ii] == 0: continue
+                        use = m2[i, j, k, nm] = 1
+            nm += use
+        return m2.astype("bool")
 
     def check(self, int curdom):
         cdef int dind, pi
