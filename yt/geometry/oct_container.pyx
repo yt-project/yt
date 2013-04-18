@@ -676,7 +676,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 count[cur.my_octs[i - cur.offset].domain - 1] += 1
         return count
 
-    def check(self, int curdom):
+    def check(self, int curdom, int print_all = 0):
         cdef int dind, pi
         cdef Oct oct
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
@@ -685,6 +685,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int unassigned = 0
         for pi in range(cont.n_assigned):
             oct = cont.my_octs[pi]
+            if print_all==1:
+                print pi, oct.level, oct.domain,
+                print oct.pos[0],oct.pos[1],oct.pos[2]
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
