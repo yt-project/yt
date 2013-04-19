@@ -351,10 +351,27 @@ class TipsyStaticOutput(StaticOutput):
                     ('dummy',   'i'))
 
     def __init__(self, filename, data_style="tipsy",
-                 root_dimensions = 64):
+                 root_dimensions = 64, endian = ">",
+                 field_dtypes = None,
+                 domain_left_edge = None,
+                 domain_right_edge = None):
+        self.endian = endian
         self._root_dimensions = root_dimensions
         # Set up the template for domain files
         self.storage_filename = None
+        if domain_left_edge is None:
+            domain_left_edge = np.zeros(3, "float64") - 0.5
+        if domain_right_edge is None:
+            domain_right_edge = np.ones(3, "float64") + 0.5
+
+        self.domain_left_edge = np.array(domain_left_edge, dtype="float64")
+        self.domain_right_edge = np.array(domain_right_edge, dtype="float64")
+
+        # My understanding is that dtypes are set on a field by field basis,
+        # not on a (particle type, field) basis
+        if field_dtypes is None: field_dtypes = {}
+        self._field_dtypes = field_dtypes
+
         super(TipsyStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
@@ -373,7 +390,7 @@ class TipsyStaticOutput(StaticOutput):
         # in the GADGET-2 user guide.
 
         f = open(self.parameter_filename, "rb")
-        hh = ">" + "".join(["%s" % (b) for a,b in self._header_spec])
+        hh = self.endian + "".join(["%s" % (b) for a,b in self._header_spec])
         hvals = dict([(a, c) for (a, b), c in zip(self._header_spec,
                      struct.unpack(hh, f.read(struct.calcsize(hh))))])
         self._header_offset = f.tell()
@@ -388,8 +405,9 @@ class TipsyStaticOutput(StaticOutput):
         # This may not be correct.
         self.current_time = hvals["time"]
 
-        self.domain_left_edge = np.zeros(3, "float64") - 0.5
-        self.domain_right_edge = np.ones(3, "float64") + 0.5
+        # NOTE: These are now set in the main initializer.
+        #self.domain_left_edge = np.zeros(3, "float64") - 0.5
+        #self.domain_right_edge = np.ones(3, "float64") + 0.5
         self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
         self.periodicity = (True, True, True)
 
