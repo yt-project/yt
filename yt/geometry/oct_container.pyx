@@ -1303,7 +1303,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 #IND Corresponding integer index on the root octs
                 #CP Center  point of that oct
                 pp[i] = pos[p, i]
-                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]

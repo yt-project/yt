@@ -362,7 +362,7 @@ class TipsyStaticOutput(StaticOutput):
         if domain_left_edge is None:
             domain_left_edge = np.zeros(3, "float64") - 0.5
         if domain_right_edge is None:
-            domain_right_edge = np.ones(3, "float64") + 0.5
+            domain_right_edge = np.zeros(3, "float64") + 0.5
 
         self.domain_left_edge = np.array(domain_left_edge, dtype="float64")
         self.domain_right_edge = np.array(domain_right_edge, dtype="float64")
