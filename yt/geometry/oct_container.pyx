@@ -1490,6 +1490,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef Oct *o
         n = mask.shape[0]
         nm = 0
+        # This could perhaps be faster if we 
         for oi in range(n):
             o = self.oct_list[oi]
             if o.domain != domain_id: continue
@@ -1512,3 +1513,30 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         use = m2[i, j, k, nm] = 1
             nm += use
         return m2.astype("bool")
+
+    def domain_ind(self,
+                    # mask is the base selector's *global* mask
+                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                    int domain_id):
+        # Here we once again do something similar to the other functions.  We
+        # need a set of indices into the final reduced, masked values.  The
+        # indices will be domain.n long, and will be of type int64.  This way,
+        # we can get the Oct through a .get() call, then use Oct.ind as an
+        # index into this newly created array, then finally use the returned
+        # index into the domain subset array for deposition.
+        cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
+        cdef Oct *o
+        offset = self.dom_offsets[domain_id]
+        noct = self.dom_offsets[domain_id + 1] - offset
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(noct, 'int64')
+        nm = 0
+        for oi in range(noct):
+            ind[oi] = -1
+            o = self.oct_list[oi + offset]
+            use = 0
+            for i in range(8):
+                if mask[o.local_ind, i] == 1: use = 1
+            if use == 1:
+                ind[oi] = nm
+            nm += use
+        return ind

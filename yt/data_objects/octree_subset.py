@@ -108,7 +108,17 @@ class OctreeSubset(YTSelectionContainer):
             return tr
         return tr
 
+    _domain_ind = None
+
+    @property
+    def domain_ind(self):
+        if self._domain_ind is None:
+            di = self.oct_handler.domain_ind(self.mask, self.domain.domain_id)
+            self._domain_ind = di
+        return self._domain_ind
+
     def deposit(self, positions, fields, method):
+        # Here we perform our particle deposition.
         pass
 
     def select(self, selector):
