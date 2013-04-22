@@ -1033,7 +1033,7 @@ class PWViewerMPL(PWViewer):
         else:
             raise YTNotInsideNotebook
 
-    def show_or_save(self, name=None, mpl_kwargs=None):
+    def display(self, name=None, mpl_kwargs=None):
         """Will attempt to show the plot in in an IPython notebook.  Failing that, the 
         plot will be saved to disk."""
         try:
