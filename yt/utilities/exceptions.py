@@ -249,3 +249,14 @@ class YTDataSelectorNotImplemented(YTException):
 
     def __str__(self):
         return "Data selector '%s' not implemented." % (self.class_name)
+
+class YTDomainOverflow(YTException):
+    def __init__(self, mi, ma, dle, dre):
+        self.mi = mi
+        self.ma = ma
+        self.dle = dle
+        self.dre = dre
+
+    def __str__(self):
+        return "Particle bounds %s and %s exceed domain bounds %s and %s" % (
+            self.mi, self.ma, self.dle, self.dre)

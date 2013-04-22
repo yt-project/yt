@@ -372,6 +372,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         return rv
 
     def _initialize_octree(self, domain, octree):
+        pf = domain.pf
         with open(domain.domain_filename, "rb") as f:
             f.seek(domain.pf._header_offset)
             for ptype in self._ptypes:
@@ -391,6 +392,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                             pos[:,1].min(), pos[:,1].max())
                 mylog.debug("Spanning: %0.3e .. %0.3e in z",
                             pos[:,2].min(), pos[:,2].max())
+                if np.any(pos.min(axis=0) < pf.domain_left_edge) or \
+                   np.any(pos.max(axis=0) > pf.domain_right_edge):
+                    raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
+                                           pf.domain_left_edge,
+                                           pf.domain_right_edge)
                 del pp
                 octree.add(pos, domain.domain_id)
 
@@ -412,10 +418,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         for ptype, field in self._fields:
             pfields = []
             if tp[ptype] == 0: continue
+            dtbase = domain.pf._field_dtypes.get(field, 'f')
+            ff = "%s%s" % (domain.pf.endian, dtbase)
             if field in _vector_fields:
-                dt = (field, [('x', '>f'), ('y', '>f'), ('z', '>f')])
+                dt = (field, [('x', ff), ('y', ff), ('z', ff)])
             else:
-                dt = (field, '>f')
+                dt = (field, ff)
             pds.setdefault(ptype, []).append(dt)
             field_list.append((ptype, field))
         for ptype in pds:

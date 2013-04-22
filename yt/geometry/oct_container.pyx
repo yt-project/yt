@@ -733,7 +733,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # Note also that typically when something calls domain_and, they will 
         # use a logical_any along the oct axis.  Here we don't do that.
         # Note also that we change the shape of the returned array.
-        cdef np.int64_t i, j, k, oi, n, nm
+        cdef np.int64_t i, j, k, oi, n, nm, use
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
         n = mask.shape[0]
@@ -1371,7 +1371,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 #IND Corresponding integer index on the root octs
                 #CP Center  point of that oct
                 pp[i] = pos[p, i]
-                dds[i] = (self.DRE[i] + self.DLE[i])/self.nn[i]
+                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
                 ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
                 cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
@@ -1547,3 +1547,67 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 m2[o.local_ind, i] = mask[o.local_ind, i]
         return m2
 
+    def domain_mask(self,
+                    # mask is the base selector's *global* mask
+                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                    int domain_id):
+        # What distinguishes this one from domain_and is that we have a mask,
+        # which covers the whole domain, but our output will only be of a much
+        # smaller subset of octs that belong to a given domain *and* the mask.
+        # Note also that typically when something calls domain_and, they will 
+        # use a logical_any along the oct axis.  Here we don't do that.
+        # Note also that we change the shape of the returned array.
+        cdef np.int64_t i, j, k, oi, n, nm, use
+        cdef Oct *o
+        n = mask.shape[0]
+        nm = 0
+        # This could perhaps be faster if we 
+        for oi in range(n):
+            o = self.oct_list[oi]
+            if o.domain != domain_id: continue
+            use = 0
+            for i in range(8):
+                if mask[o.local_ind, i] == 1: use = 1
+            nm += use
+        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
+                np.zeros((2, 2, 2, nm), 'uint8')
+        nm = 0
+        for oi in range(n):
+            o = self.oct_list[oi]
+            if o.domain != domain_id: continue
+            use = 0
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        if mask[o.local_ind, ii] == 0: continue
+                        use = m2[i, j, k, nm] = 1
+            nm += use
+        return m2.astype("bool")
+
+    def domain_ind(self,
+                    # mask is the base selector's *global* mask
+                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                    int domain_id):
+        # Here we once again do something similar to the other functions.  We
+        # need a set of indices into the final reduced, masked values.  The
+        # indices will be domain.n long, and will be of type int64.  This way,
+        # we can get the Oct through a .get() call, then use Oct.ind as an
+        # index into this newly created array, then finally use the returned
+        # index into the domain subset array for deposition.
+        cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
+        cdef Oct *o
+        offset = self.dom_offsets[domain_id]
+        noct = self.dom_offsets[domain_id + 1] - offset
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(noct, 'int64')
+        nm = 0
+        for oi in range(noct):
+            ind[oi] = -1
+            o = self.oct_list[oi + offset]
+            use = 0
+            for i in range(8):
+                if mask[o.local_ind, i] == 1: use = 1
+            if use == 1:
+                ind[oi] = nm
+            nm += use
+        return ind
