@@ -99,9 +99,12 @@ class OctreeSubset(YTSelectionContainer):
         finfo = self.pf._get_field_info(*fields[0])
         if not finfo.particle_type:
             nz = self._num_zones + 2*self._num_ghost_zones
-            n_oct = tr.shape[0] / (nz**3.0)
-            tr.shape = (n_oct, nz, nz, nz)
-            tr = np.rollaxis(tr, 0, 4)
+            # We may need to reshape the field, if it is being queried from
+            # field_data.  If it's already cached, it just passes through.
+            if len(tr.shape) < 4: 
+                n_oct = tr.shape[0] / (nz**3.0)
+                tr.shape = (n_oct, nz, nz, nz)
+                tr = np.rollaxis(tr, 0, 4)
             return tr
         return tr
 
