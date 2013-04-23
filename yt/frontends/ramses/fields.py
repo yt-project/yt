@@ -91,6 +91,8 @@ known_ramses_particle_fields = [
     "particle_mass",
     "particle_identifier",
     "particle_refinement_level",
+    "particle_age",
+    "particle_metallicity",
 ]
 
 for f in known_ramses_particle_fields:

@@ -27,7 +27,7 @@ import struct
 import numpy as np
 import os
 
-def read_attrs(f, attrs):
+def read_attrs(f, attrs,endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     according to a definition of attributes, returning a dictionary.
 
@@ -42,8 +42,12 @@ def read_attrs(f, attrs):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of the format [ (attr_name, count,
-        struct type), ... ].
+        This object should be an iterable of one of the formats: 
+        [ (attr_name, count, struct type), ... ].
+        [ ((name1,name2,name3),count, vector type]
+        [ ((name1,name2,name3),count, 'type type type']
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Returns
     -------
@@ -59,27 +63,37 @@ def read_attrs(f, attrs):
     >>> rv = read_attrs(f, header)
     """
     vv = {}
-    net_format = "="
+    net_format = endian
     for a, n, t in attrs:
+        for end in '@=<>':
+            t = t.replace(end,'')
         net_format += "".join(["I"] + ([t] * n) + ["I"])
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vv = {}
-    for a, b, n in attrs:
+    for a, n, t in attrs:
+        for end in '@=<>':
+            t = t.replace(end,'')
+        if type(a)==tuple:
+            n = len(a)
         s1 = vals.pop(0)
-        v = [vals.pop(0) for i in range(b)]
+        v = [vals.pop(0) for i in range(n)]
         s2 = vals.pop(0)
         if s1 != s2:
-            size = struct.calcsize("=I" + "".join(b*[n]) + "I")
+            size = struct.calcsize(endian + "I" + "".join(n*[t]) + "I")
             print "S1 = %s ; S2 = %s ; %s %s %s = %s" % (
-                    s1, s2, a, b, n, size)
-            raise RuntimeError
+                    s1, s2, a, n, t, size)
         assert(s1 == s2)
-        if b == 1: v = v[0]
-        vv[a] = v
+        if n == 1: v = v[0]
+        if type(a)==tuple:
+            assert len(a) == len(v)
+            for k,val in zip(a,v):
+                vv[k]=val
+        else:
+            vv[a] = v
     return vv
 
-def read_vector(f, d):
+def read_vector(f, d, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     a vector of values.
 
@@ -89,6 +103,8 @@ def read_vector(f, d):
         An open file object.  Should have been opened in mode rb.
     d : data type
         This is the datatype (from the struct module) that we should read.
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Returns
     -------
@@ -101,21 +117,27 @@ def read_vector(f, d):
     >>> f = open("fort.3", "rb")
     >>> rv = read_vector(f, 'd')
     """
-    fmt = "=I"
-    ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
-    ds = struct.calcsize("=%s" % d)
-    if ss % ds != 0:
-        print "fmt = '%s' ; ss = %s ; ds = %s" % (fmt, ss, ds)
+    pad_fmt = "%sI" % (endian)
+    pad_size = struct.calcsize(pad_fmt)
+    vec_len = struct.unpack(pad_fmt,f.read(pad_size))[0] # bytes
+    vec_fmt = "%s%s" % (endian, d)
+    vec_size = struct.calcsize(vec_fmt)
+    if vec_len % vec_size != 0:
+        print "fmt = '%s' ; length = %s ; size= %s" % (fmt, length, size)
         raise RuntimeError
-    count = ss / ds
-    tr = np.fromstring(f.read(np.dtype(d).itemsize*count), d, count)
-    vec = struct.unpack(fmt, f.read(struct.calcsize(fmt)))
-    assert(vec[-1] == ss)
+    vec_num = vec_len / vec_size
+    if isinstance(f, file): # Needs to be explicitly a file
+        tr = np.fromfile(f, vec_fmt, count=vec_num)
+    else:
+        tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
+    vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
+    assert(vec_len == vec_len2)
     return tr
 
-def skip(f, n = 1):
+def skip(f, n=1, endian='='):
     r"""This function accepts a file pointer and skips a Fortran unformatted
-    record.
+    record. Optionally check that the skip was done correctly by checking 
+    the pad bytes.
 
     Parameters
     ----------
@@ -123,6 +145,14 @@ def skip(f, n = 1):
         An open file object.  Should have been opened in mode rb.
     n : int
         Number of records to skip.
+    check : bool
+        Assert that the pad bytes are equal
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
+
+    Returns
+    -------
+    skipped: The number of elements in the skipped array
 
     Examples
     --------
@@ -130,12 +160,40 @@ def skip(f, n = 1):
     >>> f = open("fort.3", "rb")
     >>> skip(f, 3)
     """
+    skipped = 0
+    pos = f.tell()
     for i in range(n):
-        fmt = "=I"
-        ss = struct.unpack(fmt, f.read(struct.calcsize(fmt)))[0]
-        f.seek(ss + struct.calcsize("=I"), os.SEEK_CUR)
+        fmt = endian+"I"
+        size = f.read(struct.calcsize(fmt))
+        s1= struct.unpack(fmt, size)[0]
+        f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
+        s2= struct.unpack(fmt, size)[0]
+        assert s1==s2 
+        skipped += s1/struct.calcsize(fmt)
+    return skipped
 
-def read_record(f, rspec):
+def peek_record_size(f,endian='='):
+    r""" This function accept the file handle and returns
+    the size of the next record and then rewinds the file
+    to the previous position.
+
+    Parameters
+    ----------
+    f : File object
+        An open file object.  Should have been opened in mode rb.
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
+
+    Returns
+    -------
+    Number of bytes in the next record
+    """
+    pos = f.tell()
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    f.seek(pos)
+    return s[0]
+
+def read_record(f, rspec, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     a single "record" with different components.
 
@@ -150,6 +208,8 @@ def read_record(f, rspec):
     rspec : iterable of iterables
         This object should be an iterable of the format [ (attr_name, count,
         struct type), ... ].
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
 
     Returns
     -------
@@ -165,7 +225,11 @@ def read_record(f, rspec):
     >>> rv = read_record(f, header)
     """
     vv = {}
-    net_format = "=I" + "".join(["%s%s" % (n, t) for a, n, t in rspec]) + "I"
+    net_format = endian + "I"
+    for a, n, t in rspec:
+        t = t if len(t)==1 else t[-1]
+        net_format += "%s%s"%(n, t)
+    net_format += "I"
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vvv = vals[:]
