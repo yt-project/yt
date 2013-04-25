@@ -31,7 +31,8 @@ from libc.stdlib cimport malloc, free
 cimport cython
 
 from fp_utils cimport *
-from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from oct_container cimport Oct, OctAllocationContainer, \
+    OctreeContainer, OctInfo
 
 cdef class ParticleDepositOperation:
     def __init__(self, nvals):
@@ -47,8 +48,34 @@ cdef class ParticleDepositOperation:
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None):
-        raise NotImplementedError
-
+        cdef int nf, i, j
+        if fields is None:
+            fields = []
+        nf = len(fields)
+        cdef np.float64_t **field_pointers, *field_vals, pos[3]
+        cdef np.ndarray[np.float64_t, ndim=1] tarr
+        field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
+        field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
+        for i in range(nf):
+            tarr = fields[i]
+            field_pointers[i] = <np.float64_t *> tarr.data
+        cdef int dims[3]
+        dims[0] = dims[1] = dims[2] = 2
+        cdef OctInfo oi
+        cdef np.int64_t offset
+        cdef Oct *oct
+        for i in range(positions.shape[0]):
+            # We should check if particle remains inside the Oct here
+            for j in range(nf):
+                field_vals[j] = field_pointers[j][i]
+            for j in range(3):
+                pos[j] = positions[i, j]
+            oct = octree.get(pos, &oi)
+            #print oct.local_ind, oct.pos[0], oct.pos[1], oct.pos[2]
+            offset = dom_ind[oct.ind]
+            self.process(dims, oi.left_edge, oi.dds,
+                         offset, pos, field_vals)
+        
     def process_grid(self, gobj,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None):
@@ -84,12 +111,13 @@ cdef class ParticleDepositOperation:
 
 cdef class CountParticles(ParticleDepositOperation):
     cdef np.float64_t *count # float, for ease
-    cdef object ocount
+    cdef public object ocount
     def initialize(self):
         self.ocount = np.zeros(self.nvals, dtype="float64")
         cdef np.ndarray arr = self.ocount
         self.count = <np.float64_t*> arr.data
 
+    @cython.cdivision(True)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3], 
                       np.float64_t dds[3],
@@ -101,10 +129,14 @@ cdef class CountParticles(ParticleDepositOperation):
         cdef int ii[3], i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        self.count[gind(ii[0], ii[1], ii[2], dim)] += 1
+        #print "Depositing into", offset,
+        #print gind(ii[0], ii[1], ii[2], dim)
+        self.count[gind(ii[0], ii[1], ii[2], dim) + offset] += 1
         
     def finalize(self):
         return self.ocount
+
+deposit_count = CountParticles
 
 """
 # Mode functions

@@ -39,6 +39,10 @@ cdef struct Oct:
     Oct *children[2][2][2]
     Oct *parent
 
+cdef struct OctInfo:
+    np.float64_t left_edge[3]
+    np.float64_t dds[3]
+
 cdef struct OctAllocationContainer
 cdef struct OctAllocationContainer:
     np.int64_t n
@@ -54,7 +58,7 @@ cdef class OctreeContainer:
     cdef np.float64_t DLE[3], DRE[3]
     cdef public int nocts
     cdef public int max_domain
-    cdef Oct* get(self, np.float64_t ppos[3], int *ii = ?)
+    cdef Oct* get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef void neighbors(self, Oct *, Oct **)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
 

@@ -35,6 +35,7 @@ from .field_info_container import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter
+import yt.geometry.particle_deposit as particle_deposit
 
 class OctreeSubset(YTSelectionContainer):
     _spatial = True
@@ -98,15 +99,19 @@ class OctreeSubset(YTSelectionContainer):
             return tr
         finfo = self.pf._get_field_info(*fields[0])
         if not finfo.particle_type:
-            nz = self._num_zones + 2*self._num_ghost_zones
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.
-            if len(tr.shape) < 4: 
-                n_oct = tr.shape[0] / (nz**3.0)
-                tr.shape = (n_oct, nz, nz, nz)
-                tr = np.rollaxis(tr, 0, 4)
+            if len(tr.shape) < 4:
+                tr = self._reshape_vals(tr)
             return tr
         return tr
+
+    def _reshape_vals(self, arr):
+        nz = self._num_zones + 2*self._num_ghost_zones
+        n_oct = arr.shape[0] / (nz**3.0)
+        arr.shape = (n_oct, nz, nz, nz)
+        arr = np.rollaxis(arr, 0, 4)
+        return arr
 
     _domain_ind = None
 
@@ -117,9 +122,17 @@ class OctreeSubset(YTSelectionContainer):
             self._domain_ind = di
         return self._domain_ind
 
-    def deposit(self, positions, fields, method):
+    def deposit(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
-        pass
+        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        if cls is None:
+            raise YTParticleDepositionNotImplemented(method)
+        nvals = (self.domain_ind >= 0).sum() * 8
+        op = cls(nvals) # We allocate number of zones, not number of octs
+        op.initialize()
+        op.process_octree(self.oct_handler, self.domain_ind, positions, fields)
+        vals = op.finalize()
+        return self._reshape_vals(vals)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:

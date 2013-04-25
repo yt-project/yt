@@ -250,6 +250,13 @@ class YTDataSelectorNotImplemented(YTException):
     def __str__(self):
         return "Data selector '%s' not implemented." % (self.class_name)
 
+class YTParticleDepositionNotImplemented(YTException):
+    def __init__(self, class_name):
+        self.class_name = class_name
+
+    def __str__(self):
+        return "Particle deposition method '%s' not implemented." % (self.class_name)
+
 class YTDomainOverflow(YTException):
     def __init__(self, mi, ma, dle, dre):
         self.mi = mi

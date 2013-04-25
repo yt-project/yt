@@ -142,7 +142,7 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *get(self, np.float64_t ppos[3], int *ii = NULL):
+    cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL):
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef np.int64_t ind[3]
@@ -150,28 +150,24 @@ cdef class OctreeContainer:
         cdef Oct *cur
         cdef int i
         for i in range(3):
-            pp[i] = ppos[i] - self.DLE[i]
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
-            cp[i] = (ind[i] + 0.5) * dds[i]
+            ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
+            cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
         cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
         while cur.children[0][0][0] != NULL:
             for i in range(3):
                 dds[i] = dds[i] / 2.0
-                if cp[i] > pp[i]:
+                if cp[i] > ppos[i]:
                     ind[i] = 0
                     cp[i] -= dds[i] / 2.0
                 else:
                     ind[i] = 1
                     cp[i] += dds[i]/2.0
             cur = cur.children[ind[0]][ind[1]][ind[2]]
-        if ii != NULL: return cur
+        if oinfo == NULL: return cur
         for i in range(3):
-            if cp[i] > pp[i]:
-                ind[i] = 0
-            else:
-                ind[i] = 1
-        ii[0] = ((ind[2]*2)+ind[1])*2+ind[0]
+            oinfo.dds[i] = dds[i] # Cell width
+            oinfo.left_edge[i] = cp[i] - dds[i]
         return cur
 
     @cython.boundscheck(False)
@@ -982,28 +978,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
-    #this class is specifically for the NMSU ART
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def deposit_particle_cumsum(self,
-                                np.ndarray[np.float64_t, ndim=2] ppos, 
-                                np.ndarray[np.float64_t, ndim=1] pdata,
-                                np.ndarray[np.float64_t, ndim=1] mask,
-                                np.ndarray[np.float64_t, ndim=1] dest,
-                                fields, int domain):
-        cdef Oct *o
-        cdef OctAllocationContainer *dom = self.domains[domain - 1]
-        cdef np.float64_t pos[3]
-        cdef int ii
-        cdef int no = ppos.shape[0]
-        for n in range(no):
-            for j in range(3):
-                pos[j] = ppos[n,j]
-            o = self.get(pos, &ii) 
-            if mask[o.local_ind,ii]==0: continue
-            dest[o.ind+ii] += pdata[n]
-        return dest
 
     @cython.boundscheck(True)
     @cython.wraparound(False)
@@ -1262,6 +1236,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0
+        cdef np.int64_t dom_ind
         cdef ParticleArrays *c = self.first_sd
         while c != NULL:
             self.oct_list[i] = c.oct
@@ -1280,11 +1255,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.dom_offsets = <np.int64_t *>malloc(sizeof(np.int64_t) *
                                                 (self.max_domain + 3))
         self.dom_offsets[0] = 0
+        dom_ind = 0
         for i in range(self.nocts):
             self.oct_list[i].local_ind = i
+            self.oct_list[i].ind = dom_ind
+            dom_ind += 1
             if self.oct_list[i].domain > cur_dom:
                 cur_dom = self.oct_list[i].domain
                 self.dom_offsets[cur_dom + 1] = i
+                dom_ind = 0
         self.dom_offsets[cur_dom + 2] = self.nocts
 
     cdef Oct* allocate_oct(self):
@@ -1597,8 +1576,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # index into the domain subset array for deposition.
         cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
         cdef Oct *o
-        offset = self.dom_offsets[domain_id]
-        noct = self.dom_offsets[domain_id + 1] - offset
+        # For particle octrees, domain 0 is special and means non-leaf nodes.
+        offset = self.dom_offsets[domain_id + 1]
+        noct = self.dom_offsets[domain_id + 2] - offset
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(noct, 'int64')
         nm = 0
         for oi in range(noct):
