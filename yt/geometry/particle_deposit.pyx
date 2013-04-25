@@ -1,5 +1,5 @@
 """
-Particle Deposition onto Octs
+Particle Deposition onto Cells
 
 Author: Christopher Moody <chris.e.moody@gmail.com>
 Affiliation: UC Santa Cruz
@@ -25,13 +25,88 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from libc.stdlib cimport malloc, free
 cimport numpy as np
 import numpy as np
+from libc.stdlib cimport malloc, free
 cimport cython
 
+from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 
+cdef class ParticleDepositOperation:
+    def __init__(self, nvals):
+        self.nvals = nvals
+
+    def initialize(self, *args):
+        raise NotImplementedError
+
+    def finalize(self, *args):
+        raise NotImplementedError
+
+    def process_octree(self, OctreeContainer octree,
+                     np.ndarray[np.int64_t, ndim=1] dom_ind,
+                     np.ndarray[np.float64_t, ndim=2] positions,
+                     fields = None):
+        raise NotImplementedError
+
+    def process_grid(self, gobj,
+                     np.ndarray[np.float64_t, ndim=2] positions,
+                     fields = None):
+        cdef int nf, i, j
+        if fields is None:
+            fields = []
+        nf = len(fields)
+        cdef np.float64_t **field_pointers, *field_vals, pos[3]
+        cdef np.ndarray[np.float64_t, ndim=1] tarr
+        field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
+        field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
+        for i in range(nf):
+            tarr = fields[i]
+            field_pointers[i] = <np.float64_t *> tarr.data
+        cdef np.float64_t dds[3], left_edge[3]
+        cdef int dims[3]
+        for i in range(3):
+            dds[i] = gobj.dds[i]
+            left_edge[i] = gobj.LeftEdge[i]
+            dims[i] = gobj.ActiveDimensions[i]
+        for i in range(positions.shape[0]):
+            # Now we process
+            for j in range(nf):
+                field_vals[j] = field_pointers[j][i]
+            for j in range(3):
+                pos[j] = positions[i, j]
+            self.process(dims, left_edge, dds, 0, pos, field_vals)
+
+    cdef void process(self, int dim[3], np.float64_t left_edge[3],
+                      np.float64_t dds[3], np.int64_t offset,
+                      np.float64_t ppos[3], np.float64_t *fields):
+        raise NotImplementedError
+
+cdef class CountParticles(ParticleDepositOperation):
+    cdef np.float64_t *count # float, for ease
+    cdef object ocount
+    def initialize(self):
+        self.ocount = np.zeros(self.nvals, dtype="float64")
+        cdef np.ndarray arr = self.ocount
+        self.count = <np.float64_t*> arr.data
+
+    cdef void process(self, int dim[3],
+                      np.float64_t left_edge[3], 
+                      np.float64_t dds[3],
+                      np.int64_t offset, # offset into IO field
+                      np.float64_t ppos[3], # this particle's position
+                      np.float64_t *fields # any other fields we need
+                      ):
+        # here we do our thing; this is the kernel
+        cdef int ii[3], i
+        for i in range(3):
+            ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
+        self.count[gind(ii[0], ii[1], ii[2], dim)] += 1
+        
+    def finalize(self):
+        return self.ocount
+
+"""
 # Mode functions
 ctypedef np.float64_t (*type_opt)(np.float64_t, np.float64_t)
 cdef np.float64_t opt_count(np.float64_t pdata,
@@ -154,5 +229,4 @@ cdef deposit(OctreeContainer oct_handler,
         for w, oct in zip(weights, octs):
             for cell in oct.cells:
                 fopt(pd[pi], w/norm, oct.index, data_in, data_out)
-
-
+"""
