@@ -166,8 +166,8 @@ cdef class OctreeContainer:
             cur = cur.children[ind[0]][ind[1]][ind[2]]
         if oinfo == NULL: return cur
         for i in range(3):
-            oinfo.dds[i] = dds[i] # Cell width
-            oinfo.left_edge[i] = cp[i] - dds[i]
+            oinfo.dds[i] = dds[i]/2.0 # Cell width
+            oinfo.left_edge[i] = cp[i] - dds[i]/2.0
         return cur
 
     @cython.boundscheck(False)
@@ -754,6 +754,27 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         use = m2[i, j, k, nm] = 1
             nm += use
         return m2.astype("bool")
+
+    def domain_ind(self,
+                    # mask is the base selector's *global* mask
+                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                    int domain_id):
+        cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
+        cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
+        cdef Oct *o
+        # For particle octrees, domain 0 is special and means non-leaf nodes.
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(cur.n_assigned, 'int64')
+        nm = 0
+        for oi in range(cur.n_assigned):
+            ind[oi] = -1
+            o = &cur.my_octs[oi]
+            use = 0
+            for i in range(8):
+                if mask[o.local_ind, i] == 1: use = 1
+            if use == 1:
+                ind[o.ind] = nm
+            nm += use
+        return ind
 
     def check(self, int curdom, int print_all = 0):
         cdef int dind, pi
