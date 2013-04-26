@@ -153,8 +153,10 @@ cdef class OctreeContainer:
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
-        cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
-        while cur.children[0][0][0] != NULL:
+        next = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        # We want to stop recursing when there's nowhere else to go
+        while next != NULL:
+            cur = next
             for i in range(3):
                 dds[i] = dds[i] / 2.0
                 if cp[i] > ppos[i]:
@@ -163,7 +165,7 @@ cdef class OctreeContainer:
                 else:
                     ind[i] = 1
                     cp[i] += dds[i]/2.0
-            cur = cur.children[ind[0]][ind[1]][ind[2]]
+            next = cur.children[ind[0]][ind[1]][ind[2]]
         if oinfo == NULL: return cur
         for i in range(3):
             oinfo.dds[i] = dds[i]/2.0 # Cell width
@@ -707,7 +709,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
     def domain_and(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                    int domain_id):
-        cdef np.int64_t i, oi, n, 
+        cdef np.int64_t i, oi, n,  use
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
         cdef np.ndarray[np.uint8_t, ndim=2] m2 = \
@@ -715,6 +717,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
+            use = 0
             for i in range(8):
                 m2[o.local_ind, i] = mask[o.local_ind, i]
         return m2 # NOTE: This is uint8_t
@@ -763,10 +766,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
         # For particle octrees, domain 0 is special and means non-leaf nodes.
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(cur.n_assigned, 'int64')
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(cur.n, 'int64') - 1
         nm = 0
-        for oi in range(cur.n_assigned):
-            ind[oi] = -1
+        for oi in range(cur.n):
             o = &cur.my_octs[oi]
             use = 0
             for i in range(8):
@@ -803,6 +805,33 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             cont.n - cont.n_assigned, cont.n_assigned, cont.n)
         print "DOMAIN % 3i HAS % 9i MISSED OCTS" % (curdom, nmissed)
         print "DOMAIN % 3i HAS % 9i UNASSIGNED OCTS" % (curdom, unassigned)
+
+    def check_refinement(self, int curdom):
+        cdef int pi, i, j, k, some_refined, some_unrefined
+        cdef Oct *oct
+        cdef int bad = 0
+        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
+        for pi in range(cont.n_assigned):
+            oct = &cont.my_octs[pi]
+            some_unrefined = 0
+            some_refined = 0
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        if oct.children[i][j][k] == NULL:
+                            some_unrefined = 1
+                        else:
+                            some_refined = 1
+            if some_unrefined == some_refined == 1:
+                #print "BAD", oct.ind, oct.local_ind
+                bad += 1
+                if curdom == 10 or curdom == 72:
+                    for i in range(2):
+                        for j in range(2):
+                            for k in range(2):
+                                print (oct.children[i][j][k] == NULL),
+                    print
+        print "BAD TOTAL", curdom, bad, cont.n_assigned
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1535,7 +1564,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
     def domain_and(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                    int domain_id):
-        cdef np.int64_t i, oi, n, 
+        cdef np.int64_t i, oi, n, use
         cdef Oct *o
         cdef np.ndarray[np.uint8_t, ndim=2] m2 = \
                 np.zeros((mask.shape[0], 8), 'uint8')
@@ -1543,6 +1572,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for oi in range(n):
             o = self.oct_list[oi]
             if o.domain != domain_id: continue
+            use = 0
             for i in range(8):
                 m2[o.local_ind, i] = mask[o.local_ind, i]
         return m2

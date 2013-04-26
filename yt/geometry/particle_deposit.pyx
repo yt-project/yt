@@ -47,7 +47,7 @@ cdef class ParticleDepositOperation:
     def process_octree(self, OctreeContainer octree,
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
-                     fields = None):
+                     fields = None, int domain_id = -1):
         cdef int nf, i, j
         if fields is None:
             fields = []
@@ -72,7 +72,8 @@ cdef class ParticleDepositOperation:
                 pos[j] = positions[i, j]
             oct = octree.get(pos, &oi)
             #print oct.local_ind, oct.pos[0], oct.pos[1], oct.pos[2]
-            offset = dom_ind[oct.ind]
+            offset = dom_ind[oct.ind] * 8
+            # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
         
