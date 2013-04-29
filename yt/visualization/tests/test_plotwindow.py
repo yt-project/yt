@@ -160,6 +160,8 @@ def test_save():
     test_flnms = [None, 'test.png', 'test.eps',
                   'test.ps', 'test.pdf']
 
+    ds_region = test_pf.h.region([0.5]*3,[0.4]*3,[0.6]*3)
+
     for dim in [0, 1, 2]:
         obj = SlicePlot(test_pf, dim, 'Density')
         for fname in test_flnms:
@@ -169,6 +171,10 @@ def test_save():
         obj = ProjectionPlot(test_pf, dim, 'Density')
         for fname in test_flnms:
             yield assert_equal, assert_fname(obj.save(fname)[0]), True
+        # Test ProjectionPlot's data_source keyword
+        obj = ProjectionPlot(test_pf, dim, 'Density',
+                             data_source=ds_region)
+        obj.save()
 
     obj = OffAxisSlicePlot(test_pf, normal, 'Density')
     for fname in test_flnms:
