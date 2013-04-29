@@ -188,8 +188,7 @@ add_flash_field("pden", function=NullFunc, take_log=True,
                 units=r"\rm{g}/\rm{cm}^{3}")
 add_flash_field("depo", function=NullFunc, take_log=True,
                 units = r"\rm{ergs}/\rm{g}")
-add_flash_field("ye", function=NullFunc, take_log=True,
-                units = r"\rm{ergs}/\rm{g}")
+add_flash_field("ye", function=NullFunc, take_log=True,)
 add_flash_field("magx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("magx"),
                 units = r"\mathrm{Gau\ss}")
