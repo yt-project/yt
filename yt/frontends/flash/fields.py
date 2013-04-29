@@ -357,7 +357,7 @@ add_field("DivB", function=_DivB, take_log=False,
 
 ## Derived FLASH Fields
 def _nele(field, data):
-    return data['ye'] * data['dens'] * data['sumy'] * 6.022E23
+    return data['dens'] * data['ye'] * 6.022E23
 add_field('nele', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
 add_field('edens', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
 
