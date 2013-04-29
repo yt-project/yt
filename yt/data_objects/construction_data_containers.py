@@ -190,7 +190,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
-    source : `yt.data_objects.api.AMRData`, optional
+    data_source : `yt.data_objects.api.AMRData`, optional
         If specified, this will be the data source used for selecting
         regions to project.
     node_name: string, optional
