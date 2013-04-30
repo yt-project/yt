@@ -37,7 +37,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    kboltz, mh
+    kboltz, mh, Na
 KnownFLASHFields = FieldInfoContainer()
 add_flash_field = KnownFLASHFields.add_field
 
@@ -358,12 +358,12 @@ add_field("DivB", function=_DivB, take_log=False,
 
 ## Derived FLASH Fields
 def _nele(field, data):
-    return data['dens'] * data['ye'] * 6.022E23
+    return data['dens'] * data['ye'] * Na
 add_field('nele', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
 add_field('edens', function=_nele, take_log=True, units=r"\rm{cm}^{-3}")
 
 def _nion(field, data):
-    return data['dens'] * data['sumy'] * 6.022E23
+    return data['dens'] * data['sumy'] * Na
 add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 
 def _abar(field, data):
