@@ -64,6 +64,7 @@ add_field = FLASHFieldInfo.add_field
 translation_dict = {"x-velocity": "velx",
                     "y-velocity": "vely",
                     "z-velocity": "velz",
+                    "VelocityMagnitude": "velo",
                     "Density": "dens",
                     "Temperature": "temp",
                     "Pressure" : "pres", 
@@ -365,12 +366,6 @@ def _nion(field, data):
     return data['dens'] * data['sumy'] * 6.022E23
 add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 
-
 def _abar(field, data):
     return 1.0 / data['sumy']
 add_field('abar', function=_abar, take_log=False)
-
-
-def _velo(field, data):
-    return (data['velx']**2 + data['vely']**2 + data['velz']**2)**0.5
-add_field ('velo', function=_velo, take_log=True, units=r"\rm{cm}/\rm{s}")
