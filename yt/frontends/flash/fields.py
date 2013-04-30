@@ -167,22 +167,22 @@ add_flash_field("pres", function=NullFunc, take_log=True,
                 units=r"\rm{erg}/\rm{cm}^{3}")
 add_flash_field("pion", function=NullFunc, take_log=True,
                 display_name="Ion Pressure",
-                units=r"\rm{J}/\rm{cm}^3")
+                units=r"\rm{erg}/\rm{cm}^3")
 add_flash_field("pele", function=NullFunc, take_log=True,
                 display_name="Electron Pressure, P_e",
-                units=r"\rm{J}/\rm{cm}^3")
+                units=r"\rm{erg}/\rm{cm}^3")
 add_flash_field("prad", function=NullFunc, take_log=True,
                 display_name="Radiation Pressure",
-                units = r"\rm{J}/\rm{cm}^3")
+                units = r"\rm{erg}/\rm{cm}^3")
 add_flash_field("eion", function=NullFunc, take_log=True,
                 display_name="Ion Internal Energy",
-                units=r"\rm{J}")
+                units=r"\rm{erg}")
 add_flash_field("eele", function=NullFunc, take_log=True,
                 display_name="Electron Internal Energy",
-                units=r"\rm{J}")
+                units=r"\rm{erg}")
 add_flash_field("erad", function=NullFunc, take_log=True,
                 display_name="Radiation Internal Energy",
-                units=r"\rm{J}")
+                units=r"\rm{erg}")
 add_flash_field("pden", function=NullFunc, take_log=True,
                 convert_function=_get_convert("pden"),
                 units=r"\rm{g}/\rm{cm}^{3}")
