@@ -998,7 +998,7 @@ def _pdensity(field, data):
     return blank
 add_field("particle_density", function=_pdensity,
           validators=[ValidateGridType()], convert_function=_convertDensity,
-          display_name=r"$\mathrm{Particle}\/\mathrm{Density}$")
+          display_name=r"\mathrm{Particle}\/\mathrm{Density}")
 
 def _MagneticEnergy(field,data):
     """This assumes that your front end has provided Bx, By, Bz in
@@ -1034,8 +1034,8 @@ def _MagneticPressure(field,data):
     return data['MagneticEnergy']
 add_field("MagneticPressure",
           function=_MagneticPressure,
-          display_name=r"\rm{Magnetic}\/\rm{Energy}",
-          units="\rm{ergs}\/\rm{cm}^{-3}")
+          display_name=r"\rm{Magnetic}\/\rm{Pressure}",
+          units=r"\rm{ergs}\/\rm{cm}^{-3}")
 
 def _BPoloidal(field,data):
     normal = data.get_field_parameter("normal")

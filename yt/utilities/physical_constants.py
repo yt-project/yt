@@ -85,3 +85,4 @@ clight = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs
 hcgs = planck_constant_cgs
 sigma_thompson = cross_section_thompson_cgs
+Na = 1 / amu_cgs
