@@ -130,8 +130,6 @@ cdef class CountParticles(ParticleDepositOperation):
         cdef int ii[3], i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        #print "Depositing into", offset,
-        #print gind(ii[0], ii[1], ii[2], dim)
         self.count[gind(ii[0], ii[1], ii[2], dim) + offset] += 1
         
     def finalize(self):

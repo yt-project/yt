@@ -66,6 +66,16 @@ class OctreeSubset(YTSelectionContainer):
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
 
+    def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
+        if field == "dx":
+            return self._current_chunk.fwidth[:,0]
+        elif field == "dy":
+            return self._current_chunk.fwidth[:,1]
+        elif field == "dz":
+            return self._current_chunk.fwidth[:,2]
+
     def select_icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.cell_count,

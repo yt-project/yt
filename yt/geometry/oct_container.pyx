@@ -168,8 +168,16 @@ cdef class OctreeContainer:
             next = cur.children[ind[0]][ind[1]][ind[2]]
         if oinfo == NULL: return cur
         for i in range(3):
-            oinfo.dds[i] = dds[i]/2.0 # Cell width
-            oinfo.left_edge[i] = cp[i] - dds[i]/2.0
+            # This will happen *after* we quit out, so we need to back out the
+            # last change to cp
+            if ind[i] == 1:
+                cp[i] -= dds[i]/2.0 # Now centered
+            else:
+                cp[i] += dds[i]/2.0
+            # We don't need to change dds[i] as it has been halved from the
+            # oct width, thus making it already the cell width
+            oinfo.dds[i] = dds[i] # Cell width
+            oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
         return cur
 
     @cython.boundscheck(False)
@@ -513,7 +521,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
-        ci=0
+        ci = 0
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for k in range(2):
@@ -521,6 +529,9 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     for i in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.local_ind, ii] == 0: continue
+                        # Note that we bit shift because o.pos is oct position,
+                        # not cell position, and it is with respect to octs,
+                        # not cells.
                         coords[ci, 0] = (o.pos[0] << 1) + i
                         coords[ci, 1] = (o.pos[1] << 1) + j
                         coords[ci, 2] = (o.pos[2] << 1) + k
@@ -636,7 +647,6 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                             ii = ((k*2)+j)*2+i
                             if mask[o.local_ind, ii] == 0: continue
                             dest[local_filled + offset] = source[o.local_ind*8+ii]
-                            # print 'oct_container.pyx:sourcemasked',o.level,local_filled, o.local_ind*8+ii, source[o.local_ind*8+ii]
                             local_filled += 1
         return local_filled
 
@@ -765,7 +775,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
         cdef OctAllocationContainer *cur = self.domains[domain_id - 1]
         cdef Oct *o
-        # For particle octrees, domain 0 is special and means non-leaf nodes.
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(cur.n, 'int64') - 1
         nm = 0
         for oi in range(cur.n):
