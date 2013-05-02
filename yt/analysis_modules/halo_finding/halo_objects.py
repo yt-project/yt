@@ -1367,6 +1367,7 @@ class RockstarHaloList(HaloList):
         self._groups = []
         self._max_dens = -1
         self.pf = pf
+        self.redshift = pf.current_redshift
         self.out_list = out_list
         self._data_source = pf.h.all_data()
         mylog.info("Parsing Rockstar halo list")
