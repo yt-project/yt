@@ -528,7 +528,7 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
     if isinstance(unit_expr, Pow):
         unit_data = _get_unit_data_from_expr(unit_expr.args[0], unit_symbol_lut)
         power = unit_expr.args[1]
-        return (unit_data[0]**power, unit_data[1]**power)
+        return (float(unit_data[0]**power), unit_data[1]**power)
 
     if isinstance(unit_expr, Mul):
         cgs_value = 1.0
@@ -538,7 +538,7 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
             cgs_value *= unit_data[0]
             dimensions *= unit_data[1]
 
-        return (cgs_value, dimensions)
+        return (float(cgs_value), dimensions)
 
     raise UnitParseError("Cannot parse for unit data from '%s'. Please supply an expression of only Unit, Symbol, Pow, and Mul objects." % str(unit_expr))
 
