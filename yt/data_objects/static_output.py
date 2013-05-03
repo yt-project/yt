@@ -274,6 +274,8 @@ class StaticOutput(object):
         """
         self.unit_registry = UnitRegistry()
 
+        self.set_code_units()
+
         if hasattr(self, "cosmological_simulation") \
            and getattr(self, "cosmological_simulation"):
             # this dataset is cosmological, so add cosmological units.

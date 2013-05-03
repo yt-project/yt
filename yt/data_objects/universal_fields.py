@@ -480,7 +480,9 @@ def _cell_volume(field, data):
                      * np.ones(data.ActiveDimensions, dtype=np.float64) )
         except AttributeError:
             return data["dx"] * data["dy"] * data["dx"]
-    return data["dx"] * data["dy"] * data["dz"]
+    vol = (data["dx"] * data["dy"] * data["dz"])
+    vol.convert_to_cgs()
+    return vol
 
 add_field("cell_volume", units="cm**3", function=_cell_volume)
 

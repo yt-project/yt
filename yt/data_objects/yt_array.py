@@ -124,7 +124,7 @@ class YTArray(np.ndarray):
                        bitwise_or_unit, bitwise_not: bitwise_not_unit,
                        bitwise_and: bitwise_and_unit}
 
-    def __new__(cls, input_array, input_units=None):
+    def __new__(cls, input_array, input_units=None, registry=None):
         if isinstance(input_array, YTArray):
             return input_array
 
@@ -142,7 +142,7 @@ class YTArray(np.ndarray):
             # units kwarg set, but it's not a Unit object.
             # don't handle all the cases here, let the Unit class handle if
             # it's a str.
-            units = Unit(input_units)
+            units = Unit(input_units, registry=registry)
 
         # Attach the units
         obj.units = units

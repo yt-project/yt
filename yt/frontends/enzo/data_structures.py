@@ -890,6 +890,12 @@ class EnzoStaticOutput(StaticOutput):
         for unit in sec_conversion.keys():
             self.time_units[unit] = self["Time"] / sec_conversion[unit]
 
+    def set_code_units(self):
+        from yt.utilities.units import length, mass, time
+        self.unit_registry.add("code_length", self.parameters["LengthUnits"], length)
+        self.unit_registry.add("code_mass", self.parameters["MassUnits"], mass)
+        self.unit_registry.add("code_time", self.parameters["TimeUnits"], time)
+
     def _setup_comoving_units(self):
         z = self["CosmologyCurrentRedshift"]
         h = self["CosmologyHubbleConstantNow"]

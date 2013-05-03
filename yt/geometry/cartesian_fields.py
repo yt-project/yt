@@ -35,32 +35,39 @@ from yt.data_objects.field_info_container import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter
+from yt.data_objects.yt_array import YTArray
 
 CartesianFieldInfo = FieldInfoContainer()
 CartesianFieldInfo.name = id(CartesianFieldInfo)
 add_cart_field = CartesianFieldInfo.add_field
 
 def _dx(field, data):
-    return data.pf.domain_width[0] * data.fwidth[...,0]
-add_cart_field('dx', function=_dx, display_field=False)
+    return YTArray(data.pf.domain_width[0] * data.fwidth[...,0], 'code_length',
+                   registry = data.pf.unit_registry)
+add_cart_field('dx', function=_dx, display_field=False, units='code_length')
 
 def _dy(field, data):
-    return data.pf.domain_width[1] * data.fwidth[...,1]
-add_cart_field('dy', function=_dy, display_field=False)
+    return YTArray(data.pf.domain_width[1] * data.fwidth[...,1], 'code_length',
+                   registry = data.pf.unit_registry)
+add_cart_field('dy', function=_dy, display_field=False, units='code_length')
 
 def _dz(field, data):
-    return data.pf.domain_width[2] * data.fwidth[...,2]
-add_cart_field('dz', function=_dz, display_field=False)
+    return YTArray(data.pf.domain_width[2] * data.fwidth[...,2], 'code_length',
+                   registry = data.pf.unit_registry)
+add_cart_field('dz', function=_dz, display_field=False, units='code_length')
 
 def _coordX(field, data):
-    return data.pf.domain_left_edge[0] + data.fcoords[...,0]
-add_cart_field('x', function=_coordX, display_field=False)
+    return YTArray(data.pf.domain_left_edge[0] + data.fcoords[...,0], 'code_length',
+                   registry = data.pf.unit_registry)
+add_cart_field('x', function=_coordX, display_field=False, units='code_length')
 
 def _coordY(field, data):
-    return data.pf.domain_left_edge[1] + data.fcoords[...,1]
-add_cart_field('y', function=_coordY, display_field=False)
+    return YTArray(data.pf.domain_left_edge[1] + data.fcoords[...,1], 'code_length',
+                   registry = data.pf.unit_registry)
+add_cart_field('y', function=_coordY, display_field=False, units='code_length')
 
 def _coordZ(field, data):
-    return data.pf.domain_left_edge[2] + data.fcoords[...,2]
-add_cart_field('z', function=_coordZ, display_field=False)
+    return YTArray(data.pf.domain_left_edge[2] + data.fcoords[...,2], 'code_length',
+                   registry = data.pf.unit_registry)
+add_cart_field('z', function=_coordZ, display_field=False, units='code_length')
 
