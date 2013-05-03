@@ -281,7 +281,7 @@ def _convertBfield(data):
 for field in ['Bx','By','Bz']:
     f = KnownEnzoFields[field]
     f._convert_function=_convertBfield
-    f._units = "gauss"
+    f.units = "gauss"
     f.take_log=False
 
 def _convertRadiation(data):
@@ -289,11 +289,11 @@ def _convertRadiation(data):
 for field in ["HI_kph", "HeI_kph", "HeII_kph", "H2I_kdiss"]:
     f = KnownEnzoFields[field]
     f._convert_function = _convertRadiation
-    f._units = "s**-1"
+    f.units = "s**-1"
     f.take_log=True
 
 KnownEnzoFields["PhotoGamma"]._convert_function = _convertRadiation
-KnownEnzoFields["PhotoGamma"]._units = "eV / s"
+KnownEnzoFields["PhotoGamma"].units = "eV / s"
 KnownEnzoFields["PhotoGamma"].take_log = True
 
 def _convertRadiationAccel(data):
@@ -301,7 +301,7 @@ def _convertRadiationAccel(data):
 for dim in range(1,4):
     f = KnownEnzoFields["RadAccel%d" % dim]
     f._convert_function = _convertRadiationAccel
-    f._units = "cm / s**2"
+    f.units = "cm / s**2"
     f.take_log=False
 def _RadiationAccelerationMagnitude(field, data):
     return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
@@ -317,16 +317,13 @@ def _convertDensity(data):
     return data.convert("Density")
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
         ["SN_Colour"]:
-    KnownEnzoFields[field]._units = "g / cm**3"
+    KnownEnzoFields[field].units = "g / cm**3"
     KnownEnzoFields[field]._convert_function=_convertDensity
 
 def _Density(field, data):
     return data["Density"]
 
-add_field("density", function=_Density, validators=ValidateDataField(["Density"]),
-          units="g / cm**3")
-
-EnzoFieldInfo["density"]._units = "g / cm**3"
+add_field("density", function=_Density, units="g / cm**3")
 
 add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
@@ -345,14 +342,14 @@ add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           validators=ValidateDataField("Dark_Matter_Density"),
           display_name="Dark\/Matter\/Mass", units="Msun")
 
-KnownEnzoFields["Temperature"]._units = "K"
-KnownEnzoFields["Dust_Temperature"]._units = "K"
+KnownEnzoFields["Temperature"].units = "K"
+KnownEnzoFields["Dust_Temperature"].units = "K"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = KnownEnzoFields["%s-velocity" % ax]
-    f._units = "cm / s"
+    f.units = "cm / s"
     f._convert_function = _convertVelocity
     f.take_log = False
 

@@ -206,7 +206,7 @@ class GDFStaticOutput(StaticOutput):
             except:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
-                   units=current_fields_unit, projected_units="",
+                   units=current_fields_unit,
                    convert_function=_get_convert(field_name))
 
         self._handle.close()

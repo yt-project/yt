@@ -100,9 +100,7 @@ for fn1, fn2 in translation_dict.items():
         add_field(fn1.split("_")[0] + "_Density",
                   function=_get_density(fn1), take_log=True,
                   display_name="%s\/Density" % fn1.split("_")[0],
-                  units = r"g/cm**3",
-                  projected_units = r"g/cm**2",
-                  )
+                  units = r"g/cm**3")
 
 def _get_convert(fname):
     def _conv(data):
@@ -111,8 +109,7 @@ def _get_convert(fname):
 
 add_flash_field("dens", function=NullFunc, take_log=True,
                 convert_function=_get_convert("dens"),
-                units="g/cm**3",
-                projected_units = "g/cm**2"),
+                units="g/cm**3")
 add_flash_field("velx", function=NullFunc, take_log=False,
                 convert_function=_get_convert("velx"),
                 units="cm/s")
