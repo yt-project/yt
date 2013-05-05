@@ -25,10 +25,15 @@ License:
 """
 
 import numpy as np
+from yt.utilities.physical_constants import \
+    gravitational_constant_cgs, \
+    km_per_cm, \
+    pc_per_mpc, \
+    speed_of_light_cgs
 
-c_kms = 2.99792458e5 # c in km/s
-G = 6.67259e-8 # cgs
-kmPerMpc = 3.08567758e19
+c_kms = speed_of_light_cgs * km_per_cm # c in km/s
+G = gravitational_constant_cgs
+kmPerMpc = km_per_pc * pc_per_mpc
 
 class Cosmology(object):
     def __init__(self, HubbleConstantNow = 71.0,
@@ -162,6 +167,7 @@ class EnzoCosmology(object):
         """
         # Changed 2.52e17 to 2.52e19 because H_0 is in km/s/Mpc, 
         # instead of 100 km/s/Mpc.
+        # TODO: Move me to physical_units
         return 2.52e19 / np.sqrt(self.OmegaMatterNow) / \
             self.HubbleConstantNow / np.power(1 + self.InitialRedshift,1.5)
 

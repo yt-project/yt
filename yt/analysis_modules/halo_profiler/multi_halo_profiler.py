@@ -52,6 +52,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call, \
     parallel_root_only, \
     parallel_objects
+from yt.utilities.physical_constants import \
+    mass_sun_cgs, \
+    rho_crit_now
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer
 from yt.visualization.image_writer import write_image
@@ -951,12 +954,11 @@ class HaloProfiler(ParallelAnalysisInterface):
         if 'ActualOverdensity' in profile.keys():
             return
 
-        rho_crit_now = 1.8788e-29 * self.pf.hubble_constant**2 # g cm^-3
-        Msun2g = 1.989e33
-        rho_crit = rho_crit_now * ((1.0 + self.pf.current_redshift)**3.0)
+        rhocritnow = rho_crit_now * self.pf.hubble_constant**2 # g cm^-3
+        rho_crit = rhocritnow * ((1.0 + self.pf.current_redshift)**3.0)
         if not self.use_critical_density: rho_crit *= self.pf.omega_matter
 
-        profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
+        profile['ActualOverdensity'] = (mass_sun_cgs * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit
 
     def _check_for_needed_profile_fields(self):

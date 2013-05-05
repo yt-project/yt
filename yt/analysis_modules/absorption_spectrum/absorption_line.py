@@ -24,6 +24,13 @@ License:
 """
 
 import numpy as np
+from yt.utilities.physical_constants import \
+    charge_proton_cgs, \
+    cm_per_km, \
+    km_per_cm, \
+    mass_electron_cgs, \
+    speed_of_light_cgs
+
 
 def voigt(a,u):
     """
@@ -167,10 +174,10 @@ def tau_profile(lam0, fval, gamma, vkms, column_density,
     """
 
     ## constants
-    me = 1.6726231e-24 / 1836.        # grams mass electron 
-    e = 4.8032e-10                    # esu 
-    c = 2.99792456e5                  # km/s
-    ccgs = c * 1.e5                   # cm/s 
+    me = mass_electron_cgs              # grams mass electron 
+    e = charge_proton_cgs               # esu 
+    c = speed_of_light_cgs * km_per_cm  # km/s
+    ccgs = speed_of_light_cgs           # cm/s 
 
     ## shift lam0 by deltav
     if deltav is not None:
@@ -181,7 +188,7 @@ def tau_profile(lam0, fval, gamma, vkms, column_density,
         lam1 = lam0
 
     ## conversions
-    vdop = vkms * 1.e5                # in cm/s
+    vdop = vkms * cm_per_km           # in cm/s
     lam0cgs = lam0 / 1.e8             # rest wavelength in cm
     lam1cgs = lam1 / 1.e8             # line wavelength in cm
     nu1 = ccgs / lam1cgs              # line freq in Hz
