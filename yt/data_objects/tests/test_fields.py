@@ -21,7 +21,7 @@ _sample_parameters = dict(
     cp_z_vec = np.array((0.0, 0.0, 1.0)),
 )
 
-_base_fields = ["Density", "x-velocity", "y-velocity", "z-velocity"]
+_base_fields = ["density", "x-velocity", "y-velocity", "z-velocity"]
 
 def realistic_pf(fields, nprocs):
     pf = fake_random_pf(16, fields = fields, nprocs = nprocs)

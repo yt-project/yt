@@ -38,6 +38,6 @@ def test_ray():
             dts = np.clip(tout[my_cells], 0.0, 1.0) - np.clip(tin[my_cells], 0.0, 1.0)
 
             yield assert_equal, ray_cells.sum(), my_cells.sum()
-            yield assert_rel_equal, my_ray['Density'][ray_cells].sum(), \
-                                    my_all['Density'][my_cells].sum(), 14
+            yield assert_rel_equal, my_ray['density'][ray_cells].sum(), \
+                                    my_all['density'][my_cells].sum(), 14
             yield assert_rel_equal, my_ray['dts'].sum(), 1.0, 14

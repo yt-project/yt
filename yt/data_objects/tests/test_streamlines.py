@@ -5,7 +5,7 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
-_fields = ("Density", "x-velocity", "y-velocity", "z-velocity")
+_fields = ("density", "x-velocity", "y-velocity", "z-velocity")
 
 def test_covering_grid():
     return
@@ -20,4 +20,4 @@ def test_covering_grid():
         for path in (streams.path(i) for i in range(8)):
             yield assert_rel_equal, path['dts'].sum(), 1.0, 14
             yield assert_equal, np.all(path['t'] <= (1.0 + 1e-10)), True
-            path["Density"]
+            path["density"]

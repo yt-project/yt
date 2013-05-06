@@ -274,6 +274,8 @@ class StaticOutput(object):
         """
         self.unit_registry = UnitRegistry()
 
+        self.set_code_units()
+
         if hasattr(self, "cosmological_simulation") \
            and getattr(self, "cosmological_simulation"):
             # this dataset is cosmological, so add cosmological units.
@@ -283,7 +285,7 @@ class StaticOutput(object):
 
         # @todo: Can we remove this now?
         for field in self.field_info.values():
-            field.unit_obj = self.get_unit_from_registry(field._units)
+            field.unit_obj = self.get_unit_from_registry(field.units)
 
     def get_unit_from_registry(self, unit_str):
         """

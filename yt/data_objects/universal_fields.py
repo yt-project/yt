@@ -141,6 +141,11 @@ add_field("ones", function=_ones, projection_conversion="unitary",
           display_field=False)
 add_field("cells_per_bin", function=_ones, display_field=False)
 
+def _zeros(field, data):
+    return np.zeros(data.shape, dtype=np.float64)
+
+add_field("zeros", function=_zeros, projection_conversion="unitary",
+          display_field=False)
 
 def _sound_speed(field, data):
     if data.pf["eos_type"] == 1:
@@ -475,7 +480,9 @@ def _cell_volume(field, data):
                      * np.ones(data.ActiveDimensions, dtype=np.float64) )
         except AttributeError:
             return data["dx"] * data["dy"] * data["dx"]
-    return data["dx"] * data["dy"] * data["dz"]
+    vol = (data["dx"] * data["dy"] * data["dz"])
+    vol.convert_to_cgs()
+    return vol
 
 add_field("cell_volume", units="cm**3", function=_cell_volume)
 

@@ -365,9 +365,8 @@ class DerivedField(object):
     convert_function : callable
        A function that converts to CGS, **only if necessary**
     units : str
-       A mathtext-formatted string that describes the field
-    projected_units : str
-       If we display a projection, what should the units be?
+       A plain text string encoding the unit.  Powers must be in
+       python syntax (** instead of ^).
     take_log : bool
        Describes whether the field should be logged
     validators : list
@@ -387,7 +386,7 @@ class DerivedField(object):
     """
     def __init__(self, name, function, convert_function=None,
                  particle_convert_function=None, units=None,
-                 projected_units=None, take_log=True, validators=None,
+                 take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None,
                  projection_conversion="cm"):
@@ -421,24 +420,12 @@ class DerivedField(object):
         else:
             raise FieldUnitsError("Cannot handle units '%s' (type %s). Please provide a string or Unit object." % (units, type(units)) )
 
-        self._units = self.units
-
-        if projected_units is None:
-            self.projected_units = ""
-        elif isinstance(projected_units, str):
-            self.projected_units = projected_units
-        elif isinstance(projected_units, Unit):
-            self.projected_units = str(projected_units)
-        else:
-            raise FieldUnitsError("Cannot handle projected_units '%s' (type %s). Please provide a string or Unit object." % (projected_units, type(projection_units)) )
-
     def _copy_def(self):
         dd = {}
         dd['name'] = self.name
         dd['convert_function'] = self._convert_function
         dd['particle_convert_function'] = self._particle_convert_function
         dd['units'] = self.units
-        dd['projected_units'] = self.projected_units,
         dd['take_log'] = self.take_log
         dd['validators'] = self.validators.copy()
         dd['particle_type'] = self.particle_type
@@ -507,7 +494,7 @@ class DerivedField(object):
 
         # Grab the correct units
         if projected:
-            units = self.projected_units
+            raise NotImplementedError
         else:
             units = self.units
         # Add unit label

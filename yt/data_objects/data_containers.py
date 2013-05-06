@@ -204,11 +204,10 @@ class YTDataContainer(object):
         self.get_data(f)
         fi = self.pf._get_field_info(*f)
 
-        # @todo: Might find a better way to grab the unit object.
         # fi.units is the unit expression string. We depend on the registry
         # hanging off the dataset to define this unit object.
-        unit_obj = self.pf.get_unit_from_registry(fi._units)
-        self.field_data[f] = YTArray(self.field_data[f], input_units=unit_obj)
+        self.field_data[f] = YTArray(self.field_data[f], fi.units,
+                                     self.pf.unit_registry)
         return self.field_data[f]
 
     def __setitem__(self, key, val):
@@ -516,7 +515,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 index += 1
                 if field in self.field_data: continue
                 try:
-                    self.field_data[field] = self._generate_field(field)
+                    fd = self._generate_field(field)
+                    if type(fd) != YTArray:
+                        fd = YTArray(fd, self.pf._get_field_info(*field).units,
+                                     self.pf.unit_registry)
+                    self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
