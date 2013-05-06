@@ -33,8 +33,8 @@ import sys
 
 from nose.plugins import Plugin
 from yt.testing import *
+from yt.convenience import load
 from yt.config import ytcfg
-from yt.mods import *
 from yt.data_objects.static_output import StaticOutput
 import cPickle
 import shelve
@@ -96,7 +96,7 @@ class AnswerTesting(Plugin):
                 self.store_name = options.answer_name
             self.compare_name = None
         # if we're not storing, then we're comparing, and we want default
-        # comparison name to be the latest gold standard 
+        # comparison name to be the latest gold standard
         # either on network or local
         else:
             if options.answer_name is None:
@@ -117,18 +117,18 @@ class AnswerTesting(Plugin):
             self.compare_name = None
         elif self.compare_name == "latest":
             self.compare_name = _latest
-            
-        # Local/Cloud storage 
+
+        # Local/Cloud storage
         if options.local_results:
             storage_class = AnswerTestLocalStorage
-            # Fix up filename for local storage 
+            # Fix up filename for local storage
             if self.compare_name is not None:
                 self.compare_name = "%s/%s/%s" % \
-                    (os.path.realpath(options.output_dir), self.compare_name, 
+                    (os.path.realpath(options.output_dir), self.compare_name,
                      self.compare_name)
             if self.store_name is not None:
                 name_dir_path = "%s/%s" % \
-                    (os.path.realpath(options.output_dir), 
+                    (os.path.realpath(options.output_dir),
                     self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
@@ -147,7 +147,7 @@ class AnswerTesting(Plugin):
 
     def finalize(self, result=None):
         if self.store_results is False: return
-        self.storage.dump(self.result_storage)        
+        self.storage.dump(self.result_storage)
 
 class AnswerTestStorage(object):
     def __init__(self, reference_name=None, answer_name=None):
@@ -155,9 +155,9 @@ class AnswerTestStorage(object):
         self.answer_name = answer_name
         self.cache = {}
     def dump(self, result_storage, result):
-        raise NotImplementedError 
+        raise NotImplementedError
     def get(self, pf_name, default=None):
-        raise NotImplementedError 
+        raise NotImplementedError
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, pf_name, default = None):
@@ -195,7 +195,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
             if tk is not None: tk.delete()
             k = Key(bucket)
             k.key = "%s_%s" % (self.answer_name, pf_name)
@@ -277,7 +277,7 @@ class AnswerTestingTest(object):
         nv = self.run()
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
-            if dd is None or self.description not in dd: 
+            if dd is None or self.description not in dd:
                 raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
@@ -335,7 +335,7 @@ class AnswerTestingTest(object):
         args = [self._type_name, str(self.pf), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
         return "_".join(args)
-        
+
 class FieldValuesTest(AnswerTestingTest):
     _type_name = "FieldValues"
     _attrs = ("field", )
@@ -357,7 +357,7 @@ class FieldValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % self.field
         if self.decimals is None:
-            assert_equal(new_result, old_result, 
+            assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
             assert_allclose(new_result, old_result, 10.**(-self.decimals),
@@ -381,12 +381,12 @@ class AllFieldValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = "All field values for %s not equal." % self.field
         if self.decimals is None:
-            assert_equal(new_result, old_result, 
+            assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
             assert_rel_equal(new_result, old_result, self.decimals,
                              err_msg=err_msg, verbose=True)
-            
+
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
@@ -426,7 +426,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_equal(new_result[k], old_result[k],
                              err_msg=err_msg)
             else:
-                assert_allclose(new_result[k], old_result[k], 
+                assert_allclose(new_result[k], old_result[k],
                                  10.**-(self.decimals), err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
@@ -446,7 +446,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = self.create_obj(self.pf, self.obj_type)
         else:
             obj = None
-        proj = self.pf.h.proj(self.field, self.axis, 
+        proj = self.pf.h.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
@@ -505,7 +505,7 @@ class VerifySimulationSameTest(AnswerTestingTest):
             assert_equal(new_result[i], old_result[i],
                          err_msg="Output times not equal.",
                          verbose=True)
-        
+
 class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
     _attrs = ()
