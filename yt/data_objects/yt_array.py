@@ -32,7 +32,7 @@ import numpy as np
 from numpy import add, subtract, multiply, divide, \
     negative, absolute, sqrt, square, power, reciprocal
 
-from yt.utilities.units import Unit, UnitOperationError, dimensionless
+from yt.utilities.units import Unit
 
 def sqrt_unit(unit):
     return unit**0.5

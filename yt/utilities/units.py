@@ -42,7 +42,7 @@ class SymbolNotFoundError(Exception):
 class UnitParseError(Exception):
     pass
 
-class UnitOperationError(Exception):
+class InvalidUnitOperation(Exception):
     pass
 
 #
@@ -545,7 +545,7 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
 
 def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
     """
-    Searches for the unit data typle corresponding to the given symbol.
+    Searches for the unit data tuple corresponding to the given symbol.
 
     Parameters
     ----------
@@ -558,7 +558,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
 
     if symbol_str in unit_symbol_lut:
         # lookup successful, return the tuple directly
-        return default_unit_symbol_lut[symbol_str]
+        return unit_symbol_lut[symbol_str]
 
     # could still be a known symbol with a prefix
     possible_prefix = symbol_str[0]
