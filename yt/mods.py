@@ -46,11 +46,11 @@ unparsed_args = __startup_tasks.unparsed_args
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
-from yt.config import ytcfg, ytcfgDefaults
+from yt.config import ytcfg, ytcfg_defaults
 import yt.utilities.physical_constants as physical_constants
 
 from yt.utilities.logger import level as __level
-if __level >= int(ytcfgDefaults["loglevel"]):
+if __level >= int(ytcfg_defaults["loglevel"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
     np.seterr(all = 'ignore')
@@ -154,7 +154,7 @@ from yt.convenience import \
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
-    ortho_find, quartiles, periodic_position 
+    ortho_find, quartiles, periodic_position
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
