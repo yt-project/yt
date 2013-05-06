@@ -417,6 +417,8 @@ class EnzoHierarchy(GridGeometryHandler):
         fields = []
         for ptype in self.parameter_file["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
+            if np.any(select_grids) == False:
+                continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
             handle = h5py.File(g.filename)
