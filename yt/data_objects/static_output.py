@@ -278,7 +278,10 @@ class StaticOutput(object):
            and getattr(self, "cosmological_simulation"):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.add("h", self.hubble_constant, dimensionless)
+            # Comoving lengths: pc, AU, m... anything else?
+            #self.unit_registry.add("pccm", ...)
 
+        # @todo: Can we remove this now?
         for field in self.field_info.values():
             field.unit_obj = self.get_unit_from_registry(field._units)
 
