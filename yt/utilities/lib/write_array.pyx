@@ -1,7 +1,7 @@
 """
 Faster, cythonized file IO
 
-Author: Andrew Myers
+Author: Andrew Myers <atmyers2@gmail.com>
 Affiliation: UCB
 Homepage: http://yt-project.org/
 License:
