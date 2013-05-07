@@ -72,20 +72,64 @@ class RadMC3DWriter:
     '''
 
     This class provides a mechanism for writing out data files in a format
-    readable by radmc3d. Examples:
+    readable by radmc3d. Currently, only the ASCII format, "Layer" style
+    file format is supported. For more information please see the radmc3d
+    manual.
+
+    Parameters
+    ----------
+
+    pf : `StaticOutput`
+        This is the parameter file object corresponding to the
+        simulation output to be written out.
+
+    max_level : int
+        An int corresponding to the maximum number of levels of refinement
+        to include in the output. Often, this does not need to be very large
+        as information on very high levels is frequently unobservable.
+        Default = 2. 
+
+    Examples
+    --------
+
+    This will create a field called "DustDensity" and write it out to the
+    file "dust_data.inp" in a form readable by radmc3d:
+
+    >>> from yt.mods import *
+    >>> from yt.analysis_modules.radmc3d_export.api import *
+
+    >>> dust_to_gas = 0.01
+    >>> def _DustDensity(field, data):
+    >>>     return dust_to_gas*data['Density']
+    >>> add_field("DustDensity", function=_DustDensity)
     
-    from yt.mods import *
-    from yt.analysis_modules.radmc3d_export.api import *
+    >>> pf = load("galaxy0030/galaxy0030")
+    >>> writer = RadMC3DWriter(pf)
     
-    pf = load('../data.0199.3d.hdf5')
-    writer = RadMC3DWriter(pf)
+    >>> writer.write_amr_grid()
+    >>> writer.write_dust_file("DustDensity", "dust_data.inp")
+
+    This will create a field called "NumberDensityCO and write it out to
+    the file "numberdens_co.inp". It will also write out information about
+    the gas velocity to "gas_velocity.inp" so that this broadening may be
+    included in the radiative transfer calculation by radmc3d:
+
+    >>> from yt.mods import *
+    >>> from yt.analysis_modules.radmc3d_export.api import *
+
+    >>> x_co = 1.0e-4
+    >>> mu_h = 2.34e-24
+    >>> def _NumberDensityCO(field, data):
+    >>>     return (x_co/mu_h)*data['Density']
+    >>> add_field("NumberDensityCO", function=_NumberDensityCO)
     
-    writer.write_amr_grid()
-    writer.write_dust_data('dust-density', 'dust_data.inp')
-    writer.write_dust_data('dust-temperature', 'dust_temperature.inp')
-    writer.write_line_data('number-density-co', 'numberdens_co.inp')
-    writer.write_line_data('gas-temperature', 'gas_temperature.inp')
-    writer.write_line_data( ['x-velocity', 'y-velocity', 'z-velocity'], 'gas_velocity.inp') 
+    >>> pf = load("galaxy0030/galaxy0030")
+    >>> writer = RadMC3DWriter(pf)
+    
+    >>> writer.write_amr_grid()
+    >>> writer.write_line_file("NumberDensityCO", "numberdens_co.inp")
+    >>> writer.write_line_file(['x-velocity', 'y-velocity', 'z-velocity'], 'gas_velocity.inp') 
+
     '''
 
     def __init__(self, pf, max_level=2):
@@ -206,7 +250,7 @@ class RadMC3DWriter:
         '''
         This method writes out fields in the format radmc3d needs to compute
         thermal dust emission. In particular, if you have a field called
-        "dust-density", you can write out a dust_density.inp file. 
+        "DustDensity", you can write out a dust_density.inp file. 
 
         '''
         fhandle = open(filename, 'w')
