@@ -6,8 +6,9 @@ Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: J. S. Oishi <jsoishi@gmail.com>
-Author: John ZuHone <jzuhone@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: John ZuHone <jzuhone@gmail.com>
+Affiliation: NASA/Goddard Space Flight Center
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2013 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
