@@ -79,6 +79,9 @@ class AthenaGrid(AMRGridPatch):
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
+    def __repr__(self):
+        return "AthenaGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 def parse_line(line, grid):
     # grid is a dictionary
     splitup = line.strip().split()
@@ -382,9 +385,13 @@ class AthenaStaticOutput(StaticOutput):
                                             
     def _setup_nounits_units(self):
         self.conversion_factors["Time"] = 1.0
+        self.conversion_factors["Density"] = 1.0
+        self.conversion_factors["Mass"] = 1.0
+        for a in 'xyz':
+            self.conversion_factors["%s-velocity" % (a)] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+        
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
         # Read the start of a grid to get simulation parameters.
