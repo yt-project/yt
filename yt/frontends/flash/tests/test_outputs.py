@@ -34,7 +34,7 @@ from yt.frontends.flash.api import FLASHStaticOutput
 _fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
-@requires_pf(sloshing)
+@requires_pf(sloshing, big_data=True)
 def test_sloshing():
     pf = data_dir_load(sloshing)
     yield assert_equal, str(pf), "sloshing_low_res_hdf5_plt_cnt_0300"
@@ -50,11 +50,3 @@ def test_wind_tunnel():
     yield assert_equal, str(pf), "windtunnel_4lev_hdf5_plt_cnt_0030"
     for test in small_patch_amr(wt, _fields_2d):
         yield test
-
-gcm = "GalaxyClusterMerger/fiducial_1to10_b0.273d_hdf5_plt_cnt_0245.gz"
-@requires_pf(gcm, big_data=True)
-def test_galaxy_cluster_merger():
-    pf = data_dir_load(gcm)
-    for test in big_patch_amr(gcm, _fields):
-        yield test
-
