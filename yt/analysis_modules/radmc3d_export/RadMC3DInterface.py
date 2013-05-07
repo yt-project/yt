@@ -93,7 +93,8 @@ class RadMC3DWriter:
     --------
 
     This will create a field called "DustDensity" and write it out to the
-    file "dust_data.inp" in a form readable by radmc3d:
+    file "dust_data.inp" in a form readable by radmc3d. It will also write
+    a "dust_temperature.inp" file with everything set to 10.0 K: 
 
     >>> from yt.mods import *
     >>> from yt.analysis_modules.radmc3d_export.api import *
@@ -102,12 +103,17 @@ class RadMC3DWriter:
     >>> def _DustDensity(field, data):
     >>>     return dust_to_gas*data['Density']
     >>> add_field("DustDensity", function=_DustDensity)
+
+    >>> def _DustTemperature(field, data):
+    >>>     return 10.0*data['Ones']
+    >>> add_field("DustTemperature", function=_DustTemperature)
     
     >>> pf = load("galaxy0030/galaxy0030")
     >>> writer = RadMC3DWriter(pf)
     
     >>> writer.write_amr_grid()
     >>> writer.write_dust_file("DustDensity", "dust_data.inp")
+    >>> writer.write_dust_file("DustTemperature", "dust_temperature.inp")
 
     This will create a field called "NumberDensityCO and write it out to
     the file "numberdens_co.inp". It will also write out information about
@@ -255,7 +261,17 @@ class RadMC3DWriter:
         '''
         This method writes out fields in the format radmc3d needs to compute
         thermal dust emission. In particular, if you have a field called
-        "DustDensity", you can write out a dust_density.inp file. 
+        "DustDensity", you can write out a dust_density.inp file.
+
+        Parameters
+        ----------
+
+        field : string
+            The name of the field to be written out
+        filename : string
+            The name of the file to write the data to. The filenames radmc3d
+            expects for its various modes of operations are described in the
+            radmc3d manual.
 
         '''
         fhandle = open(filename, 'w')
@@ -283,6 +299,17 @@ class RadMC3DWriter:
         '''
         This method writes out fields in the format radmc3d needs to compute
         line emission.
+
+        Parameters
+        ----------
+
+        field : string or list of 3 strings
+            If a string, the name of the field to be written out. If a list,
+            three fields that will be written to the file as a vector quantity.
+        filename : string
+            The name of the file to write the data to. The filenames radmc3d
+            expects for its various modes of operations are described in the
+            radmc3d manual.
 
         '''
         fhandle = open(filename, 'w')
