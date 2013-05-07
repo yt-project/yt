@@ -174,3 +174,18 @@ for pf in _particle_field_list:
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)
+
+def _ParticleMass(field, data):
+    particles = data["particle_mass"].astype('float64')
+    return particles
+
+def _ParticleMassMsun(field, data):
+    particles = data["particle_mass"].astype('float64')
+    return particles/1.989e33
+
+add_field("ParticleMass",
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
+          particle_type=True)
+add_field("ParticleMassMsun",
+          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
+          particle_type=True)
