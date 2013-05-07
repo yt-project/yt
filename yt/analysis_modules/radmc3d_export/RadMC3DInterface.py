@@ -25,12 +25,13 @@ License:
 """
 
 from yt.mods import *
+from yt.utilities.lib.write_array import write_3D_array, write_3D_vector_array
 
 class RadMC3DLayer:
     '''
 
     This class represents an AMR 'layer' of the style described in
-    the radmc3d manual. Unlike grids, layers may not have more
+    the radmc3d manual. Unlike yt grids, layers may not have more
     than one parent, so level L grids will need to be split up
     if they straddle two or more level L - 1 grids. 
 
@@ -74,7 +75,7 @@ class RadMC3DWriter:
     readable by radmc3d. Examples:
     
     from yt.mods import *
-    from RadMC3DInterface import *
+    from yt.analysis_modules.radmc3d_export.api import *
     
     pf = load('../data.0199.3d.hdf5')
     writer = RadMC3DWriter(pf)
@@ -191,9 +192,6 @@ class RadMC3DWriter:
         grid_file.close()
 
     def _write_layer_data_to_file(self, fhandle, field, level, LE, dim):
-        import pyximport; pyximport.install()
-        from write_array import write_3D_array, write_3D_vector_array
-
         cg = self.pf.h.covering_grid(level, LE, dim)
         if type(field) == type([]):
             data_x = cg[field[0]]

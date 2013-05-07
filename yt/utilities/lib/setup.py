@@ -204,6 +204,8 @@ def configuration(parent_package='',top_path=None):
                           "yt/utilities/lib/field_interpolation_tables.pxd",
                           ]
           )
+    config.add_extension("write_array",
+                         ["yt/utilities/lib/write_array.pyx"])
     config.add_extension("GridTree", 
     ["yt/utilities/lib/GridTree.pyx"],
         libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
