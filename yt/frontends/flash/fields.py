@@ -354,6 +354,8 @@ def _DivB(fields, data):
 add_field("DivB", function=_DivB, take_log=False,
           units=r"\rm{Gauss}\/\rm{cm}^{-1}")
 
+
+
 ## Derived FLASH Fields
 def _nele(field, data):
     return data['dens'] * data['ye'] * Na
