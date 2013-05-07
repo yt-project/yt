@@ -115,7 +115,7 @@ class RadMC3DWriter:
     >>> writer.write_dust_file("DustDensity", "dust_data.inp")
     >>> writer.write_dust_file("DustTemperature", "dust_temperature.inp")
 
-    This will create a field called "NumberDensityCO and write it out to
+    This will create a field called "NumberDensityCO" and write it out to
     the file "numberdens_co.inp". It will also write out information about
     the gas velocity to "gas_velocity.inp" so that this broadening may be
     included in the radiative transfer calculation by radmc3d:
@@ -308,7 +308,7 @@ class RadMC3DWriter:
             three fields that will be written to the file as a vector quantity.
         filename : string
             The name of the file to write the data to. The filenames radmc3d
-            expects for its various modes of operations are described in the
+            expects for its various modes of operation are described in the
             radmc3d manual.
 
         '''
