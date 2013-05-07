@@ -1033,6 +1033,14 @@ class PWViewerMPL(PWViewer):
         else:
             raise YTNotInsideNotebook
 
+    def display(self, name=None, mpl_kwargs=None):
+        """Will attempt to show the plot in in an IPython notebook.  Failing that, the 
+        plot will be saved to disk."""
+        try:
+            return self.show()
+        except YTNotInsideNotebook:
+            return self.save(name=name, mpl_kwargs=mpl_kwargs)
+
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
 
@@ -1221,6 +1229,9 @@ class ProjectionPlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
 
+    data_source : AMR3DData Object
+         Object to be used for data selection.  Defaults to a region covering the
+         entire simulation.
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
     max_level: int
@@ -1245,7 +1256,7 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window', fontsize=18,
-                 field_parameters=None):
+                 field_parameters=None, data_source=None):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1255,7 +1266,7 @@ class ProjectionPlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
-                         center=center, **field_parameters)
+                         center=center, source=data_source, **field_parameters)
         PWViewerMPL.__init__(self, proj, bounds, origin=origin, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 

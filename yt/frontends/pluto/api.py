@@ -38,4 +38,4 @@ from .fields import \
       add_pluto_field
 
 from .io import \
-      IOHandlerChomboHDF5
+      IOHandlerPlutoHDF5

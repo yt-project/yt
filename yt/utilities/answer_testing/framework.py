@@ -37,7 +37,7 @@ import zlib
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 from yt.testing import *
-from yt.convenience import load
+from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import StaticOutput
 from yt.utilities.logger import disable_stream_logging
@@ -237,7 +237,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         ds = shelve.open(self.answer_name, protocol=-1)
         for pf_name in result_storage:
             answer_name = "%s" % pf_name
-            if name in ds:
+            if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[pf_name]
         ds.close()
