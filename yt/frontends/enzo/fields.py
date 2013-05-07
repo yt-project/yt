@@ -130,14 +130,21 @@ add_enzo_field("Cooling_Time", units=r"\rm{s}",
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["TotalEnergy"]
-    else:
-        if data.pf["DualEnergyFormalism"]:
-            return data["GasEnergy"]
-        else:
-            return data["TotalEnergy"] - 0.5*(
-                   data["x-velocity"]**2.0
-                 + data["y-velocity"]**2.0
-                 + data["z-velocity"]**2.0 )
+    
+    if data.pf["DualEnergyFormalism"]:
+        return data["GasEnergy"]
+
+    if data.pf["HydroMethod"] in (4,6):
+        return data["TotalEnergy"] - 0.5*(
+            data["x-velocity"]**2.0
+            + data["y-velocity"]**2.0
+            + data["z-velocity"]**2.0 ) \
+            - data["MagneticEnergy"]/data["Density"]
+
+    return data["TotalEnergy"] - 0.5*(
+        data["x-velocity"]**2.0
+        + data["y-velocity"]**2.0
+        + data["z-velocity"]**2.0 )
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{g}")
 
@@ -171,22 +178,22 @@ add_field("Gas_Energy", function=_Gas_Energy,
 # We set up fields for both TotalEnergy and Total_Energy in the known fields
 # lists.  Note that this does not mean these will be the used definitions.
 add_enzo_field("TotalEnergy", function=NullFunc,
-          display_name = "$\rm{Total}\/\rm{Energy}$",
+          display_name = r"\rm{Total}\/ \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 add_enzo_field("Total_Energy", function=NullFunc,
-          display_name = "$\rm{Total}\/\rm{Energy}$",
+          display_name = r"\rm{Total}\/ \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Total_Energy(field, data):
     return data["TotalEnergy"] / _convertEnergy(data)
 add_field("Total_Energy", function=_Total_Energy,
-          display_name = "$\rm{Total}\/\rm{Energy}$",
+          display_name = r"\rm{Total}\/ \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _TotalEnergy(field, data):
     return data["Total_Energy"] / _convertEnergy(data)
 add_field("TotalEnergy", function=_TotalEnergy,
-          display_name = "$\rm{Total}\/\rm{Energy}$",
+          display_name = r"\rm{Total}\/ \rm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _NumberDensity(field, data):
@@ -369,7 +376,7 @@ def _dmpdensity(field, data):
         if not filter.any(): return blank
         num = filter.sum()
     else:
-        filter = None
+        filter = Ellipsis
         num = data["particle_position_x"].size
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),

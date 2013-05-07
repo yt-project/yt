@@ -30,17 +30,22 @@ import contextlib
 import urllib2
 import cPickle
 import sys
-
-from nose.plugins import Plugin
-from yt.testing import *
-from yt.config import ytcfg
-from yt.mods import *
-from yt.data_objects.static_output import StaticOutput
 import cPickle
 import shelve
+import zlib
 
+from matplotlib.testing.compare import compare_images
+from nose.plugins import Plugin
+from yt.testing import *
+from yt.convenience import load, simulation
+from yt.config import ytcfg
+from yt.data_objects.static_output import StaticOutput
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
+
+import matplotlib.image as mpimg
+import yt.visualization.plot_window as pw
+import yt.utilities.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -66,6 +71,8 @@ class AnswerTesting(Plugin):
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
+        parser.add_option("--local-dir", dest="output_dir", metavar='str',
+                          help="The name of the directory to store local results")
 
     @property
     def my_version(self, version=None):
@@ -96,7 +103,7 @@ class AnswerTesting(Plugin):
                 self.store_name = options.answer_name
             self.compare_name = None
         # if we're not storing, then we're comparing, and we want default
-        # comparison name to be the latest gold standard 
+        # comparison name to be the latest gold standard
         # either on network or local
         else:
             if options.answer_name is None:
@@ -117,18 +124,21 @@ class AnswerTesting(Plugin):
             self.compare_name = None
         elif self.compare_name == "latest":
             self.compare_name = _latest
-            
-        # Local/Cloud storage 
+
+        # Local/Cloud storage
         if options.local_results:
+            if options.output_dir is None:
+                print 'Please supply an output directory with the --local-dir option'
+                sys.exit(1)
             storage_class = AnswerTestLocalStorage
-            # Fix up filename for local storage 
+            # Fix up filename for local storage
             if self.compare_name is not None:
                 self.compare_name = "%s/%s/%s" % \
-                    (os.path.realpath(options.output_dir), self.compare_name, 
+                    (os.path.realpath(options.output_dir), self.compare_name,
                      self.compare_name)
             if self.store_name is not None:
                 name_dir_path = "%s/%s" % \
-                    (os.path.realpath(options.output_dir), 
+                    (os.path.realpath(options.output_dir),
                     self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
@@ -147,7 +157,10 @@ class AnswerTesting(Plugin):
 
     def finalize(self, result=None):
         if self.store_results is False: return
-        self.storage.dump(self.result_storage)        
+        self.storage.dump(self.result_storage)
+
+    def help(self):
+        return "yt answer testing support"
 
 class AnswerTestStorage(object):
     def __init__(self, reference_name=None, answer_name=None):
@@ -155,9 +168,9 @@ class AnswerTestStorage(object):
         self.answer_name = answer_name
         self.cache = {}
     def dump(self, result_storage, result):
-        raise NotImplementedError 
+        raise NotImplementedError
     def get(self, pf_name, default=None):
-        raise NotImplementedError 
+        raise NotImplementedError
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, pf_name, default = None):
@@ -185,6 +198,9 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         self.cache[pf_name] = rv
         return rv
 
+    def progress_callback(self, current, total):
+        self.pbar.update(current)
+
     def dump(self, result_storage):
         if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
@@ -195,12 +211,24 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
             if tk is not None: tk.delete()
             k = Key(bucket)
             k.key = "%s_%s" % (self.answer_name, pf_name)
-            k.set_contents_from_string(rs)
+
+            pb_widgets = [
+                unicode(k.key, errors='ignore').encode('utf-8'), ' ',
+                progressbar.FileTransferSpeed(),' <<<', progressbar.Bar(),
+                '>>> ', progressbar.Percentage(), ' ', progressbar.ETA()
+                ]
+            self.pbar = progressbar.ProgressBar(widgets=pb_widgets,
+                                                maxval=sys.getsizeof(rs))
+
+            self.pbar.start()
+            k.set_contents_from_string(rs, cb=self.progress_callback,
+                                       num_cb=100000)
             k.set_acl("public-read")
+            self.pbar.finish()
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
@@ -209,7 +237,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         ds = shelve.open(self.answer_name, protocol=-1)
         for pf_name in result_storage:
             answer_name = "%s" % pf_name
-            if name in ds:
+            if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[pf_name]
         ds.close()
@@ -277,7 +305,7 @@ class AnswerTestingTest(object):
         nv = self.run()
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
-            if dd is None or self.description not in dd: 
+            if dd is None or self.description not in dd:
                 raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
@@ -302,6 +330,16 @@ class AnswerTestingTest(object):
         cls = getattr(pf.h, obj_type[0])
         obj = cls(*obj_type[1])
         return obj
+
+    def create_plot(self, pf, plot_type, plot_field, plot_axis, plot_kwargs = None):
+        # plot_type should be a string
+        # plot_args should be a tuple
+        # plot_kwargs should be a dict
+        if plot_type is None:
+            raise RuntimeError('Must explicitly request a plot type')
+        cls = getattr(pw, plot_type)
+        plot = cls(*(pf, plot_axis, plot_field), **plot_kwargs)
+        return plot
 
     @property
     def sim_center(self):
@@ -335,7 +373,7 @@ class AnswerTestingTest(object):
         args = [self._type_name, str(self.pf), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
         return "_".join(args)
-        
+
 class FieldValuesTest(AnswerTestingTest):
     _type_name = "FieldValues"
     _attrs = ("field", )
@@ -357,7 +395,7 @@ class FieldValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % self.field
         if self.decimals is None:
-            assert_equal(new_result, old_result, 
+            assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
             assert_allclose(new_result, old_result, 10.**(-self.decimals),
@@ -381,12 +419,12 @@ class AllFieldValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = "All field values for %s not equal." % self.field
         if self.decimals is None:
-            assert_equal(new_result, old_result, 
+            assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
             assert_rel_equal(new_result, old_result, self.decimals,
                              err_msg=err_msg, verbose=True)
-            
+
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
@@ -426,7 +464,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_equal(new_result[k], old_result[k],
                              err_msg=err_msg)
             else:
-                assert_allclose(new_result[k], old_result[k], 
+                assert_allclose(new_result[k], old_result[k],
                                  10.**-(self.decimals), err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
@@ -505,7 +543,7 @@ class VerifySimulationSameTest(AnswerTestingTest):
             assert_equal(new_result[i], old_result[i],
                          err_msg="Output times not equal.",
                          verbose=True)
-        
+
 class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
     _attrs = ()
@@ -546,6 +584,37 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
+
+class PlotWindowAttributeTest(AnswerTestingTest):
+    _type_name = "PlotWindowAttribute"
+    _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
+    def __init__(self, pf_fn, plot_field, plot_axis, attr_name, attr_args,
+                 decimals, plot_type = 'SlicePlot'):
+        super(PlotWindowAttributeTest, self).__init__(pf_fn)
+        self.plot_type = plot_type
+        self.plot_field = plot_field
+        self.plot_axis = plot_axis
+        self.plot_kwargs = {}
+        self.attr_name = attr_name
+        self.attr_args = attr_args
+        self.decimals = decimals
+
+    def run(self):
+        plot = self.create_plot(self.pf, self.plot_type, self.plot_field,
+                                self.plot_axis, self.plot_kwargs)
+        attr = getattr(plot, self.attr_name)
+        attr(*self.attr_args[0], **self.attr_args[1])
+        fn = plot.save()[0]
+        image = mpimg.imread(fn)
+        os.remove(fn)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        fns = ['old.png', 'new.png']
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
+        compare_images(fns[0], fns[1], 10**(-self.decimals))
+        for fn in fns: os.remove(fn)
 
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
@@ -602,4 +671,3 @@ class AssertWrapper(object):
 
     def __call__(self):
         self.args[0](*self.args[1:])
-

@@ -1,5 +1,5 @@
 """
-Data structures for Chombo.
+Data structures for Pluto.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
@@ -39,8 +39,8 @@ from stat import \
      ST_CTIME
 
 from .definitions import \
-     chombo2enzoDict, \
-     yt2chomboFieldsDict, \
+     pluto2enzoDict, \
+     yt2plutoFieldsDict, \
      parameterDict \
 
 from yt.funcs import *
@@ -59,9 +59,9 @@ from yt.utilities.io_handler import \
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-from .fields import ChomboFieldInfo, KnownChomboFields
+from .fields import PlutoFieldInfo, KnownPlutoFields
 
-class ChomboGrid(AMRGridPatch):
+class PlutoGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
     def __init__(self, id, hierarchy, level, start, stop):
@@ -95,9 +95,9 @@ class ChomboGrid(AMRGridPatch):
         self.dds = self.hierarchy.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class ChomboHierarchy(AMRHierarchy):
+class PlutoHierarchy(AMRHierarchy):
 
-    grid = ChomboGrid
+    grid = PlutoGrid
 
     def __init__(self,pf,data_style='chombo_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
@@ -112,37 +112,8 @@ class ChomboHierarchy(AMRHierarchy):
         self._handle = pf._handle
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._handle.keys()[1:]
+        self._levels = self._handle.keys()[2:]
         AMRHierarchy.__init__(self,pf,data_style)
-        self._read_particles()
-
-    def _read_particles(self):
-        self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
-        if not os.path.exists(self.particle_filename): return
-        with open(self.particle_filename, 'r') as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip().split(' ')[0])
-            for line in lines[1:]:
-                particle_position_x = float(line.split(' ')[1])
-                particle_position_y = float(line.split(' ')[2])
-                particle_position_z = float(line.split(' ')[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask=np.ones(self.num_grids)
-                for i in xrange(len(coord)):
-                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
 
     def _detect_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
@@ -162,8 +133,8 @@ class ChomboHierarchy(AMRHierarchy):
         f = self._handle # shortcut
 
         # this relies on the first Group in the H5 file being
-        # 'Chombo_global'
-        levels = f.keys()[1:]
+        # 'Chombo_global' and the second 'Expressions'
+        levels = f.keys()[2:]
         grids = []
         self.dds_list = []
         i = 0
@@ -179,8 +150,8 @@ class ChomboHierarchy(AMRHierarchy):
                                start = si, stop = ei)
                 grids.append(pg)
                 grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*si.astype(self.float_type)
-                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1)
+                self.grid_left_edge[i] = dx*si.astype(self.float_type) + self.domain_left_edge
+                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1) + self.domain_left_edge
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
@@ -211,10 +182,10 @@ class ChomboHierarchy(AMRHierarchy):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class ChomboStaticOutput(StaticOutput):
-    _hierarchy_class = ChomboHierarchy
-    _fieldinfo_fallback = ChomboFieldInfo
-    _fieldinfo_known = KnownChomboFields
+class PlutoStaticOutput(StaticOutput):
+    _hierarchy_class = PlutoHierarchy
+    _fieldinfo_fallback = PlutoFieldInfo
+    _fieldinfo_known = KnownPlutoFields
 
     def __init__(self, filename, data_style='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
@@ -250,7 +221,7 @@ class ChomboStaticOutput(StaticOutput):
         seconds = 1 #self["Time"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = seconds / sec_conversion[unit]
-        for key in yt2chomboFieldsDict:
+        for key in yt2plutoFieldsDict:
             self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
@@ -270,22 +241,11 @@ class ChomboStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         """
-        Check to see whether an 'orion2.ini' file
-        exists in the plot file directory. If one does, attempt to parse it.
-        Otherwise grab the dimensions from the hdf5 file.
+        Reads in an inputs file in the 'pluto.ini' format. Probably not
+        especially robust at the moment.
         """
-        
-        if os.path.isfile('orion2.ini'): self._parse_inputs_file('orion2.ini')
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
-        self.domain_left_edge = self.__calc_left_edge()
-        self.domain_right_edge = self.__calc_right_edge()
-        self.domain_dimensions = self.__calc_domain_dimensions()
-        self.dimensionality = 3
-        self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
-        self.periodicity = (True, True, True)
 
-    def _parse_inputs_file(self, ini_filename):
+        ini_filename = 'pluto.ini'
         self.fullplotdir = os.path.abspath(self.parameter_filename)
         self.ini_filename = self._localize( \
             self.ini_filename, ini_filename)
@@ -298,8 +258,8 @@ class ChomboStaticOutput(StaticOutput):
                 param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
-            if chombo2enzoDict.has_key(param):
-                paramName = chombo2enzoDict[param]
+            if pluto2enzoDict.has_key(param):
+                paramName = pluto2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
                     self.parameters[paramName] = t[0]
@@ -309,35 +269,32 @@ class ChomboStaticOutput(StaticOutput):
                     else:
                         self.parameters[paramName] = t
 
-    def __calc_left_edge(self):
-        fileh = self._handle
-        dx0 = fileh['/level_0'].attrs['dx']
-        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        return LE
-
-    def __calc_right_edge(self):
-        fileh = self._handle
-        dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
-        return RE
-
-    def __calc_domain_dimensions(self):
-        fileh = self._handle
-        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
-        return R_index - L_index
-
+            # assumes 3D for now
+            elif param.startswith("X1-grid"):
+                t = vals.split()
+                low1 = float(t[1])
+                high1 = float(t[4])
+                N1 = int(t[2])
+            elif param.startswith("X2-grid"):
+                t = vals.split()
+                low2 = float(t[1])
+                high2 = float(t[4])
+                N2 = int(t[2])
+            elif param.startswith("X3-grid"):
+                t = vals.split()
+                low3 = float(t[1])
+                high3 = float(t[4])
+                N3 = int(t[2])
+            
+        self.dimensionality = 3
+        self.domain_left_edge = np.array([low1,low2,low3])
+        self.domain_right_edge = np.array([high1,high2,high3])
+        self.domain_dimensions = np.array([N1,N2,N3])
+        self.refine_by = self.parameters["RefineBy"]
+            
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.isfile('pluto.ini'):
-            try:
-                fileh = h5py.File(args[0],'r')
-                valid = "Chombo_global" in fileh["/"]
-                fileh.close()
-                return valid
-            except:
-                pass
-        return False
+        return os.path.isfile('pluto.ini')
 
     @parallel_root_only
     def print_key_parameters(self):

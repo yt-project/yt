@@ -53,7 +53,7 @@ def _get_convert(fname):
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, hierarchy, level, start, dimensions):
-        df = hierarchy.storage_filename
+        df = hierarchy.parameter_file.filename[4:-4]
         if 'id0' not in hierarchy.parameter_file.filename:
             gname = hierarchy.parameter_file.filename
         else:
@@ -119,21 +119,19 @@ class AthenaHierarchy(AMRHierarchy):
 
     grid = AthenaGrid
     _data_style='athena'
+    _data_file = None
     
     def __init__(self, pf, data_style='athena'):
         self.parameter_file = weakref.proxy(pf)
+        self.directory = os.path.dirname(self.parameter_file.filename)
         self.data_style = data_style
         # for now, the hierarchy file is the parameter file!
-        self.storage_filename = self.parameter_file.storage_filename
         self.hierarchy_filename = self.parameter_file.filename
         #self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = file(self.hierarchy_filename,'rb')
         AMRHierarchy.__init__(self, pf, data_style)
 
         self._fhandle.close()
-
-    def _initialize_data_storage(self):
-        pass
 
     def _detect_fields(self):
         field_map = {}
@@ -337,12 +335,14 @@ class AthenaStaticOutput(StaticOutput):
     _data_style = "athena"
 
     def __init__(self, filename, data_style='athena',
-                 storage_filename = None, parameters = {}):
+                 storage_filename=None, parameters={}):
         self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
-        self.storage_filename = filename[4:-4]
-        
+        if storage_filename is None:
+            storage_filename = '%s.yt' % filename.split('/')[-1]
+        self.storage_filename = storage_filename
+
         # Unfortunately we now have to mandate that the hierarchy gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
@@ -402,7 +402,7 @@ class AthenaStaticOutput(StaticOutput):
         if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
-        self.unique_identifier = self._handle.__hash__()
+        self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = 'fortran'

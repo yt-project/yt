@@ -16,7 +16,11 @@ from numpy.distutils import log
 from distutils import version
 
 from distutils.core import Command
+from distutils.spawn import find_executable
 
+def find_fortran_deps():
+    return (find_executable("Forthon"),
+            find_executable("gfortran"))
 
 class BuildForthon(Command):
 
@@ -40,11 +44,17 @@ class BuildForthon(Command):
     def run(self):
 
         """runner"""
+        (Forthon_exe, gfortran_exe) = find_fortran_deps()
+        if None in (Forthon_exe, gfortran_exe):
+            sys.stderr.write(
+                "fKDpy.so won't be built due to missing Forthon/gfortran\n"
+            )
+            return
 
         cwd = os.getcwd()
         os.chdir(os.path.join(cwd, 'yt/utilities/kdtree'))
-        cmd = ["Forthon", "-F", "gfortran", "--compile_first", "fKD_source",
-               "--no2underscores", "--fopt", "'-O3'", "fKD",
+        cmd = [Forthon_exe, "-F", "gfortran", "--compile_first",
+               "fKD_source", "--no2underscores", "--fopt", "'-O3'", "fKD",
                "fKD_source.f90"]
         subprocess.check_call(cmd, shell=False)
         shutil.move(glob.glob('build/lib*/fKDpy.so')[0], os.getcwd())
@@ -145,7 +155,7 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 
 import setuptools
 
-VERSION = "2.5dev"
+VERSION = "2.6dev"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
@@ -184,9 +194,13 @@ class my_build_src(build_src.build_src):
 
 class my_install_data(np_install_data.install_data):
     def run(self):
-        self.distribution.data_files.append(
-            ('yt/utilities/kdtree', ['yt/utilities/kdtree/fKDpy.so'])
-        )
+        (Forthon_exe, gfortran_exe) = find_fortran_deps()
+        if None in (Forthon_exe, gfortran_exe):
+            pass
+        else:
+            self.distribution.data_files.append(
+                ('yt/utilities/kdtree', ['yt/utilities/kdtree/fKDpy.so'])
+                )
         np_install_data.install_data.run(self)
 
 class my_build_py(build_py):
