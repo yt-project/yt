@@ -5,6 +5,8 @@ Author: Samuel W. Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: John A. ZuHone <jzuhone@gmail.com>
+Affiliation: NASA/Goddard Space Flight Center
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
@@ -131,6 +133,9 @@ def _gasenergy(field, data) :
         return data["pressure"]/(data.pf["Gamma"]-1.0)/data["density"]
     except :
         return (data["total_energy"] - 
+                0.5*(data["cell_centered_B_x"]**2 +
+                     data["cell_centered_B_y"]**2 +
+                     data["cell_centered_B_z"]**2) - 
                 0.5*(data["momentum_x"]**2 +
                      data["momentum_y"]**2 +
                      data["momentum_z"]**2)/data["density"])/data["density"]
@@ -145,6 +150,9 @@ def _pressure(field, data) :
         return data["pressure"]
     except :
         return (data["total_energy"] -
+                0.5*(data["cell_centered_B_x"]**2 +
+                     data["cell_centered_B_y"]**2 +
+                     data["cell_centered_B_z"]**2) -
                 0.5*(data["momentum_x"]**2 +
                      data["momentum_y"]**2 +
                      data["momentum_z"]**2)/data["density"])*(data.pf["Gamma"]-1.0)
