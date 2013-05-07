@@ -169,7 +169,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     ... halo_finder_function=parallelHF)
     """
     def __init__(self, restart_files=[], database='halos.db',
-            halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
+            halo_finder_function=HaloFinder, halo_finder_threshold=160.0,
             FOF_link_length=0.2, dm_only=False, refresh=False,
             index=True):
         ParallelAnalysisInterface.__init__(self)
