@@ -208,7 +208,7 @@ class RadMC3DWriter:
         grid_file.write('{}    {}    {} \n'.format(1, 1, 1)) # assume 3D
         grid_file.write('{}    {}    {} \n'.format(dims[0], dims[1], dims[2]))
         if self.max_level != 0:
-            s = str(self.max_level) + '    ' + str(len(self.layers)) + '\n'
+            s = str(self.max_level) + '    ' + str(len(self.layers)-1) + '\n'
             grid_file.write(s)
 
         # write base grid cell wall positions
@@ -236,9 +236,9 @@ class RadMC3DWriter:
                     if potential_parent.id == p:
                         LE = potential_parent.LeftEdge
                 ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
-            ix  = int(ind[0])
-            iy  = int(ind[1])
-            iz  = int(ind[2])
+            ix  = int(ind[0]+0.5)
+            iy  = int(ind[1]+0.5)
+            iz  = int(ind[2]+0.5)
             nx, ny, nz = layer.ActiveDimensions / 2
             s = '{}    {}    {}    {}    {}    {}    {} \n'
             s = s.format(p, ix, iy, iz, nx, ny, nz)
