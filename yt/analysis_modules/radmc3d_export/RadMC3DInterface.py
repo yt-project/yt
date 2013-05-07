@@ -1,0 +1,259 @@
+"""
+Code to export from yt to RadMC3D
+
+Author: Andrew Myers
+Affiliation: UCB
+Homepage: http://yt-project.org/
+License:
+  Copyright (C) 2013 Andrew Myers.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+
+from yt.mods import *
+
+class RadMC3DLayer:
+    '''
+
+    This class represents an AMR 'layer' of the style described in
+    the radmc3d manual. Unlike grids, layers may not have more
+    than one parent, so level L grids will need to be split up
+    if they straddle two or more level L - 1 grids. 
+
+    '''
+    def __init__(self, level, parent, id, LE, RE, dim):
+        self.level = level
+        self.parent = parent
+        self.LeftEdge = LE
+        self.RightEdge = RE
+        self.ActiveDimensions = dim
+        self.id = id
+
+    def get_overlap_with(self, grid):
+        '''
+
+        Returns the overlapping region between two Layers,
+        or a layer and a grid. RE < LE means in any direction
+        means no overlap.
+
+        '''
+        LE = np.maximum(self.LeftEdge,  grid.LeftEdge)
+        RE = np.minimum(self.RightEdge, grid.RightEdge)
+        return LE, RE
+
+    def overlaps(self, grid):
+        '''
+
+        Returns whether or not this layer overlaps a given grid
+        
+        '''
+        LE, RE = self.get_overlap_with(grid)
+        if np.any(RE <= LE):
+            return False
+        else:
+            return True
+
+class RadMC3DWriter:
+    '''
+
+    This class provides a mechanism for writing out data files in a format
+    readable by radmc3d. Examples:
+    
+    from yt.mods import *
+    from RadMC3DInterface import *
+    
+    pf = load('../data.0199.3d.hdf5')
+    writer = RadMC3DWriter(pf)
+    
+    writer.write_amr_grid()
+    writer.write_dust_data('dust-density', 'dust_data.inp')
+    writer.write_dust_data('dust-temperature', 'dust_temperature.inp')
+    writer.write_line_data('number-density-co', 'numberdens_co.inp')
+    writer.write_line_data('gas-temperature', 'gas_temperature.inp')
+    writer.write_line_data( ['x-velocity', 'y-velocity', 'z-velocity'], 'gas_velocity.inp') 
+    '''
+
+    def __init__(self, pf, max_level=2):
+        self.max_level = max_level
+        self.cell_count = 0 
+        self.layers = []
+        self.domain_dimensions = pf.domain_dimensions
+        self.domain_left_edge  = pf.domain_left_edge
+        self.domain_right_edge = pf.domain_right_edge
+        self.grid_filename = 'amr_grid.inp'
+        self.pf = pf
+
+        base_layer = RadMC3DLayer(0, None, 0, \
+                                  self.domain_left_edge, \
+                                  self.domain_right_edge, \
+                                  self.domain_dimensions)
+
+        self.layers.append(base_layer)
+        self.cell_count += np.product(pf.domain_dimensions)
+
+        for grid in pf.h.grids:
+            if grid.Level <= self.max_level:
+                self._add_grid_to_layers(grid)
+
+    def _get_parents(self, grid):
+        parents = []  
+        for potential_parent in self.layers:
+            if potential_parent.level == grid.Level - 1:
+                if potential_parent.overlaps(grid):
+                    parents.append(potential_parent)
+        return parents
+
+    def _add_grid_to_layers(self, grid):
+        parents = self._get_parents(grid)
+        for parent in parents:
+            LE, RE = parent.get_overlap_with(grid)
+            N = (RE - LE) / grid.dds
+            N = np.array([int(n + 0.5) for n in N])
+            new_layer = RadMC3DLayer(grid.Level, parent.id, len(self.layers), \
+                                     LE, RE, N)
+            self.layers.append(new_layer)
+            self.cell_count += np.product(N)
+            
+    def write_amr_grid(self):
+        '''
+        This routine writes the 'amr_grid.inp' file that describes the mesh radmc3d
+        will use.
+
+        '''
+        dims = self.domain_dimensions
+        left_edge = self.domain_left_edge
+        right_edge = self.domain_right_edge
+
+        # calculate cell wall positions
+        xs = [str(x) for x in np.linspace(left_edge[0], right_edge[0], dims[0]+1)]
+        ys = [str(y) for y in np.linspace(left_edge[1], right_edge[1], dims[1]+1)]
+        zs = [str(z) for z in np.linspace(left_edge[2], right_edge[2], dims[2]+1)]
+
+        # writer file header
+        grid_file = open(self.grid_filename, 'w')
+        grid_file.write('1 \n') # iformat is always 1
+        if self.max_level == 0:
+            grid_file.write('0 \n')
+        else:
+            grid_file.write('10 \n') # only layer-style AMR files are supported
+        grid_file.write('1 \n') # only cartesian coordinates are supported
+        grid_file.write('0 \n') 
+        grid_file.write('{}    {}    {} \n'.format(1, 1, 1)) # assume 3D
+        grid_file.write('{}    {}    {} \n'.format(dims[0], dims[1], dims[2]))
+        if self.max_level != 0:
+            grid_file.write(str(self.max_level) + '    ' + str(len(self.layers)) + '\n')
+
+        # write base grid cell wall positions
+        for x in xs:
+            grid_file.write(x + '    ')
+        grid_file.write('\n')
+
+        for y in ys:
+            grid_file.write(y + '    ')
+        grid_file.write('\n')
+
+        for z in zs:
+            grid_file.write(z + '    ')
+        grid_file.write('\n')
+
+        # write information about fine layers, skipping the base layer:
+        for layer in self.layers[1:]:
+            p = layer.parent
+            dds = (layer.RightEdge - layer.LeftEdge) / (layer.ActiveDimensions)
+            if p == 0:
+                ind = (layer.LeftEdge - left_edge) / (2.0*dds) + 1
+            else:
+                LE = np.zeros(3)
+                for potential_parent in self.layers:
+                    if potential_parent.id == p:
+                        LE = potential_parent.LeftEdge
+                ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
+            ix  = int(ind[0])
+            iy  = int(ind[1])
+            iz  = int(ind[2])
+            nx, ny, nz = layer.ActiveDimensions / 2
+            grid_file.write('{}    {}    {}    {}    {}    {}    {} \n'.format(p, ix, iy, iz, nx, ny, nz))
+
+        grid_file.close()
+
+    def _write_layer_data_to_file(self, fhandle, field, level, LE, dim):
+        import pyximport; pyximport.install()
+        from write_array import write_3D_array, write_3D_vector_array
+
+        cg = self.pf.h.covering_grid(level, LE, dim)
+        if type(field) == type([]):
+            data_x = cg[field[0]]
+            data_y = cg[field[1]]
+            data_z = cg[field[2]]
+            write_3D_vector_array(data_x, data_y, data_x, fhandle)
+        else:
+            data = cg[field]
+            write_3D_array(data, fhandle)
+
+    def write_dust_file(self, field, filename):
+        '''
+        This method writes out fields in the format radmc3d needs to compute
+        thermal dust emission. In particular, if you have a field called
+        "dust-density", you can write out a dust_density.inp file. 
+
+        '''
+        fhandle = open(filename, 'w')
+
+        # write header
+        fhandle.write('1 \n')
+        fhandle.write(str(self.cell_count) + ' \n')
+        fhandle.write('1 \n')
+
+        # now write fine layers:
+        for layer in self.layers:
+            lev = layer.level
+            if lev == 0:
+                LE = self.domain_left_edge
+                N  = self.domain_dimensions
+            else:
+                LE = layer.LeftEdge
+                N  = layer.ActiveDimensions
+
+            self._write_layer_data_to_file(fhandle, field, lev, LE, N)
+            
+        fhandle.close()
+
+    def write_line_file(self, field, filename):
+        '''
+        This method writes out fields in the format radmc3d needs to compute
+        line emission.
+
+        '''
+        fhandle = open(filename, 'w')
+
+        # write header
+        fhandle.write('1 \n')
+        fhandle.write(str(self.cell_count) + ' \n')
+
+        # now write fine layers:
+        for layer in self.layers:
+            lev = layer.level
+            if lev == 0:
+                LE = self.domain_left_edge
+                N  = self.domain_dimensions
+            else:
+                LE = layer.LeftEdge
+                N  = layer.ActiveDimensions
+
+            self._write_layer_data_to_file(fhandle, field, lev, LE, N)
+
+        fhandle.close()

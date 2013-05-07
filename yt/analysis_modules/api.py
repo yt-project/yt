@@ -117,3 +117,6 @@ from .star_analysis.api import \
 from .two_point_functions.api import \
     TwoPointFunctions, \
     FcnSet
+
+from .radmc3d_export.api import \
+    RadMC3DWriter
