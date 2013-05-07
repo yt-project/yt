@@ -159,7 +159,6 @@ class AthenaHierarchy(AMRHierarchy):
             splitup = line.strip().split()
             if 'SCALARS' in splitup:
                 field = splitup[1]
-                #print field
                 if not read_table:
                     line = f.readline() # Read the lookup table line
                     read_table = True
@@ -168,7 +167,6 @@ class AthenaHierarchy(AMRHierarchy):
 
             elif 'VECTORS' in splitup:
                 field = splitup[1]
-                #print field                
                 for ax in 'xyz':
                     field_map["%s_%s" % (field, ax)] =\
                             ('vector', f.tell() - read_table_offset)
