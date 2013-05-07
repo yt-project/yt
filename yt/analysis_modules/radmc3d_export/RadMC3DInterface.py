@@ -25,7 +25,8 @@ License:
 """
 
 from yt.mods import *
-from yt.utilities.lib.write_array import write_3D_array, write_3D_vector_array
+from yt.utilities.lib.write_array import \
+    write_3D_array, write_3D_vector_array
 
 class RadMC3DLayer:
     '''
@@ -127,7 +128,8 @@ class RadMC3DWriter:
     
     >>> writer.write_amr_grid()
     >>> writer.write_line_file("NumberDensityCO", "numberdens_co.inp")
-    >>> writer.write_line_file(['x-velocity', 'y-velocity', 'z-velocity'], 'gas_velocity.inp') 
+    >>> velocity_fields = ['x-velocity', 'y-velocity', 'z-velocity']
+    >>> writer.write_line_file(velocity_fields, 'gas_velocity.inp') 
 
     '''
 
@@ -167,25 +169,26 @@ class RadMC3DWriter:
             LE, RE = parent.get_overlap_with(grid)
             N = (RE - LE) / grid.dds
             N = np.array([int(n + 0.5) for n in N])
-            new_layer = RadMC3DLayer(grid.Level, parent.id, len(self.layers), \
+            new_layer = RadMC3DLayer(grid.Level, parent.id, \
+                                     len(self.layers), \
                                      LE, RE, N)
             self.layers.append(new_layer)
             self.cell_count += np.product(N)
             
     def write_amr_grid(self):
         '''
-        This routine writes the 'amr_grid.inp' file that describes the mesh radmc3d
-        will use.
+        This routine writes the 'amr_grid.inp' file that describes the mesh
+        radmc3d will use.
 
         '''
         dims = self.domain_dimensions
-        left_edge = self.domain_left_edge
-        right_edge = self.domain_right_edge
+        LE   = self.domain_left_edge
+        RE   = self.domain_right_edge
 
         # calculate cell wall positions
-        xs = [str(x) for x in np.linspace(left_edge[0], right_edge[0], dims[0]+1)]
-        ys = [str(y) for y in np.linspace(left_edge[1], right_edge[1], dims[1]+1)]
-        zs = [str(z) for z in np.linspace(left_edge[2], right_edge[2], dims[2]+1)]
+        xs = [str(x) for x in np.linspace(LE[0], RE[0], dims[0]+1)]
+        ys = [str(y) for y in np.linspace(LE[1], RE[1], dims[1]+1)]
+        zs = [str(z) for z in np.linspace(LE[2], RE[2], dims[2]+1)]
 
         # writer file header
         grid_file = open(self.grid_filename, 'w')
@@ -199,7 +202,8 @@ class RadMC3DWriter:
         grid_file.write('{}    {}    {} \n'.format(1, 1, 1)) # assume 3D
         grid_file.write('{}    {}    {} \n'.format(dims[0], dims[1], dims[2]))
         if self.max_level != 0:
-            grid_file.write(str(self.max_level) + '    ' + str(len(self.layers)) + '\n')
+            s = str(self.max_level) + '    ' + str(len(self.layers)) + '\n'
+            grid_file.write(s)
 
         # write base grid cell wall positions
         for x in xs:
@@ -219,7 +223,7 @@ class RadMC3DWriter:
             p = layer.parent
             dds = (layer.RightEdge - layer.LeftEdge) / (layer.ActiveDimensions)
             if p == 0:
-                ind = (layer.LeftEdge - left_edge) / (2.0*dds) + 1
+                ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
             else:
                 LE = np.zeros(3)
                 for potential_parent in self.layers:
@@ -230,7 +234,9 @@ class RadMC3DWriter:
             iy  = int(ind[1])
             iz  = int(ind[2])
             nx, ny, nz = layer.ActiveDimensions / 2
-            grid_file.write('{}    {}    {}    {}    {}    {}    {} \n'.format(p, ix, iy, iz, nx, ny, nz))
+            s = '{}    {}    {}    {}    {}    {}    {} \n'
+            s = s.format(p, ix, iy, iz, nx, ny, nz)
+            grid_file.write(s)
 
         grid_file.close()
 
