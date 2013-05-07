@@ -28,7 +28,7 @@ fi
 
 # If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
-NUMPY_ARGS="--fcompiler=gnu95"
+#NUMPY_ARGS="--fcompiler=gnu95"
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
@@ -47,7 +47,7 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
-INST_SCIPY=1    # Install scipy?
+INST_SCIPY=0    # Install scipy?
 
 # If you've got yt some other place, set this to point to it.
 YT_DIR=""

@@ -4,11 +4,14 @@ Data structures for Athena.
 Author: Samuel W. Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
 Author: J. S. Oishi <jsoishi@gmail.com>
+Author: John ZuHone <jzuhone@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
+  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
+  John ZuHone.
   All Rights Reserved.
 
   This file is part of yt.
@@ -110,8 +113,6 @@ def parse_line(line, grid):
         grid['read_field'] = field
         grid['read_type'] = 'vector'
 
-
-
 class AthenaHierarchy(AMRHierarchy):
 
     grid = AthenaGrid
@@ -158,6 +159,7 @@ class AthenaHierarchy(AMRHierarchy):
             splitup = line.strip().split()
             if 'SCALARS' in splitup:
                 field = splitup[1]
+                #print field
                 if not read_table:
                     line = f.readline() # Read the lookup table line
                     read_table = True
@@ -166,6 +168,7 @@ class AthenaHierarchy(AMRHierarchy):
 
             elif 'VECTORS' in splitup:
                 field = splitup[1]
+                #print field                
                 for ax in 'xyz':
                     field_map["%s_%s" % (field, ax)] =\
                             ('vector', f.tell() - read_table_offset)
