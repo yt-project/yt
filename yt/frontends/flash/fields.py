@@ -64,7 +64,6 @@ add_field = FLASHFieldInfo.add_field
 translation_dict = {"x-velocity": "velx",
                     "y-velocity": "vely",
                     "z-velocity": "velz",
-                    "VelocityMagnitude": "velo",
                     "Density": "dens",
                     "Temperature": "temp",
                     "Pressure" : "pres", 
