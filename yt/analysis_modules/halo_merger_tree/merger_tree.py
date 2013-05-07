@@ -143,7 +143,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         Note that this is not a string, so no quotes. Default = HaloFinder.
     halo_finder_threshold : Float
         If using HaloFinder or parallelHF, the value of the density threshold
-        used when halo finding. Default = 80.0.
+        used when halo finding. Default = 160.0.
     FOF_link_length : Float
         If using FOFHaloFinder, the linking length between particles.
         Default = 0.2.
@@ -169,7 +169,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     ... halo_finder_function=parallelHF)
     """
     def __init__(self, restart_files=[], database='halos.db',
-            halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
+            halo_finder_function=HaloFinder, halo_finder_threshold=160.0,
             FOF_link_length=0.2, dm_only=False, refresh=False,
             index=True):
         ParallelAnalysisInterface.__init__(self)
