@@ -252,7 +252,7 @@ class RadMC3DWriter:
             data_x = cg[field[0]]
             data_y = cg[field[1]]
             data_z = cg[field[2]]
-            write_3D_vector_array(data_x, data_y, data_x, fhandle)
+            write_3D_vector_array(data_x, data_y, data_z, fhandle)
         else:
             data = cg[field]
             write_3D_array(data, fhandle)
