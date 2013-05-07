@@ -10,7 +10,7 @@ Author: John ZuHone <jzuhone@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
+  Copyright (C) 2008-2013 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
   John ZuHone.
   All Rights Reserved.
 
