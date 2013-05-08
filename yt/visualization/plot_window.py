@@ -426,7 +426,7 @@ class PlotWindow(object):
 
         parameters
         ----------
-        width : float, array of floats, (float, unit) tuple, or arry of (float, unit) tuples.
+        width : float, array of floats, (float, unit) tuple, or tuple of (float, unit) tuples.
              Width can have four different formats to support windows with variable
              x and y widths.  They are:
 
