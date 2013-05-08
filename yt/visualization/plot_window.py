@@ -551,8 +551,11 @@ class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
 
     """
+    _plot_type = None
     def __init__(self, *args,**kwargs):
         setup = kwargs.pop("setup", True)
+        if self._plot_type is None:
+            self._plot_type = kwargs.pop("plot_type")
         PlotWindow.__init__(self, *args,**kwargs)
         self._axes_unit_names = None
         self._callbacks = []
