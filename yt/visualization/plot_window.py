@@ -638,7 +638,7 @@ class PWViewer(PlotWindow):
 
         Other Parameters
         ----------------
-        dyanmic_range : float (default: None)
+        dynamic_range : float (default: None)
             The dynamic range of the image.
             If zmin == None, will set zmin = zmax / dynamic_range
             If zmax == None, will set zmax = zmin * dynamic_range
