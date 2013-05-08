@@ -330,32 +330,58 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     f.seek(pos)
     return unitary_center, fl, iocts, nLevel, root_level
 
+def get_ranges(skip, count, field, words=6, real_size=4, np_per_page=4096**2, 
+                  num_pages=1):
+    #translate every particle index into a file position ranges
+    ranges = []
+    arr_size = np_per_page * real_size
+    page_size = words * np_per_page * real_size
+    idxa, idxb = 0, 0
+    posa, posb = 0, 0
+    left = count
+    for page in range(num_pages):
+        idxb += np_per_page
+        for i, fname in enumerate(['x', 'y', 'z', 'vx', 'vy', 'vz']):
+            posb += arr_size
+            if i == field or fname == field:
+                if skip < np_per_page and count > 0:
+                    left_in_page = np_per_page - skip
+                    this_count = min(left_in_page, count)
+                    count -= this_count
+                    start = posa + skip * real_size
+                    end = posa + this_count * real_size
+                    ranges.append((start, this_count))
+                    skip = 0
+                    assert end <= posb
+                else:
+                    skip -= np_per_page
+            posa += arr_size
+        idxa += np_per_page
+    assert count == 0
+    return ranges
 
-def read_particles(file, Nrow, idxa=None, idxb=None, field=None):
+
+def read_particles(file, Nrow, idxa, idxb, field):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
-    np_per_page = Nrow**2  # defined in ART a_setup.h
+    np_per_page = Nrow**2  # defined in ART a_setup.h, # of particles/page
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
     data = np.array([], 'f4')
     fh = open(file, 'r')
-    totalp = idxb-idxa
-    left = totalp
-    for page in range(num_pages):
-        for i, fname in enumerate(['x', 'y', 'z', 'vx', 'vy', 'vz']):
-            if i == field or fname == field:
-                if idxa is not None:
-                    fh.seek(real_size*idxa, 1)
-                    count = min(np_per_page, left)
-                    temp = np.fromfile(fh, count=count, dtype='>f4')
-                    pageleft = np_per_page-count-idxa
-                    fh.seek(real_size*pageleft, 1)
-                    left -= count
-                else:
-                    count = np_per_page
-                    temp = np.fromfile(fh, count=count, dtype='>f4')
-                data = np.concatenate((data, temp))
-            else:
-                fh.seek(4*np_per_page, 1)
+    skip, count = idxa, idxb - idxa
+    import pdb; pdb.set_trace()
+    kwargs = dict(words=words, real_size=real_size, 
+                  np_per_page=np_per_page, num_pages=num_pages)
+    ranges = get_ranges(skip, count, field, **kwargs)
+    data = None
+    for seek, this_count in ranges:
+        fh.seek(seek)
+        temp = np.fromfile(fh, count=this_count, dtype='>f4')
+        if data is None:
+            data = temp
+        else:
+            data = np.concatenate((data, temp))
+    fh.close()
     return data
 
 
