@@ -143,7 +143,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         Note that this is not a string, so no quotes. Default = HaloFinder.
     halo_finder_threshold : Float
         If using HaloFinder or parallelHF, the value of the density threshold
-        used when halo finding. Default = 80.0.
+        used when halo finding. Default = 160.0.
     FOF_link_length : Float
         If using FOFHaloFinder, the linking length between particles.
         Default = 0.2.
@@ -169,7 +169,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     ... halo_finder_function=parallelHF)
     """
     def __init__(self, restart_files=[], database='halos.db',
-            halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
+            halo_finder_function=HaloFinder, halo_finder_threshold=160.0,
             FOF_link_length=0.2, dm_only=False, refresh=False,
             index=True):
         ParallelAnalysisInterface.__init__(self)
@@ -758,17 +758,19 @@ class MergerTreeConnect(DatabaseFunctions):
     
     def query(self, string):
         r"""Performs a query of the database and returns the results as a list
-        of tuple(s), even if the result is singular.
+        of tuples, even if the result is singular.
         
         Parameters
         ----------
-        string : String
+        
+        string : str
             The SQL query of the database.
         
         Examples
-        -------
+        --------
+
         >>> results = mtc.query("SELECT GlobalHaloID from Halos where SnapHaloID = 0 and \
-        ... SnapZ = 0;")
+        ...    SnapZ = 0;")
         """
         # Query the database and return a list of tuples.
         if string is None:

@@ -238,6 +238,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         tpf = ts[0]
 
         def _particle_count(field, data):
+            if data.NumberOfParticles == 0: return 0
             try:
                 data["particle_type"]
                 has_particle_type=True

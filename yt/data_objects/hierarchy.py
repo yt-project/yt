@@ -209,7 +209,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         pf = self.parameter_file
         if find_max: c = self.find_max("Density")[1]
         else: c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
-        return self.region(c, 
+        return self.region(c,
             pf.domain_left_edge, pf.domain_right_edge)
 
     def clear_all_data(self):
@@ -236,6 +236,8 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                 fn = os.path.join(self.directory,
                         "%s.yt" % self.parameter_file.basename)
         dir_to_check = os.path.dirname(fn)
+        if dir_to_check == '':
+            dir_to_check = '.'
         # We have four options:
         #    Writeable, does not exist      : create, open as append
         #    Writeable, does exist          : open as append
@@ -308,7 +310,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self.save_data = self._save_data
         else:
             self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
-    
+
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
@@ -317,7 +319,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         under the name *name* on the node /Objects.
         """
         s = cPickle.dumps(obj, protocol=-1)
-        self.save_data(s, "/Objects", name, force = True)
+        self.save_data(np.array(s, dtype='c'), "/Objects", name, force = True)
 
     def load_object(self, name):
         """
@@ -367,7 +369,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return self.select_grids(self.grid_levels.max())[0].dds[0]
+        return self.select_grids(self.grid_levels.max())[0].dds[:].min()
 
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)

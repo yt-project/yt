@@ -244,8 +244,9 @@ class LightRay(CosmologySplice):
             If True, use dynamic load balancing to create the projections.
             Default: False.
 
-        Getting the Nearest Galaxies
-        ----------------------------
+        Notes
+        -----
+
         The light ray tool will use the HaloProfiler to calculate the
         distance and mass of the nearest halo to that pixel.  In order
         to do this, a dictionary called halo_profiler_parameters is used
