@@ -369,7 +369,6 @@ def read_particles(file, Nrow, idxa, idxb, field):
     data = np.array([], 'f4')
     fh = open(file, 'r')
     skip, count = idxa, idxb - idxa
-    import pdb; pdb.set_trace()
     kwargs = dict(words=words, real_size=real_size, 
                   np_per_page=np_per_page, num_pages=num_pages)
     ranges = get_ranges(skip, count, field, **kwargs)
