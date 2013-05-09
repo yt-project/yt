@@ -49,13 +49,13 @@ add_field = AthenaFieldInfo.add_field
 KnownAthenaFields = FieldInfoContainer()
 add_athena_field = KnownAthenaFields.add_field
 
-add_athena_field("density", function=NullFunc, take_log=True,
+add_athena_field("density", function=NullFunc, take_log=False,
                  units=r"", projected_units =r"")
 
-add_athena_field("pressure", function=NullFunc, take_log=True,
+add_athena_field("pressure", function=NullFunc, take_log=False,
                  units=r"")
 
-add_athena_field("total_energy", function=NullFunc, take_log=True,
+add_athena_field("total_energy", function=NullFunc, take_log=False,
                  units=r"")
 
 add_athena_field("velocity_x", function=NullFunc, take_log=False,
@@ -94,33 +94,30 @@ def _convertDensity(data) :
     return data.convert("Density")
 def _density(field, data) :
     return data["density"]
-add_field("Density", function=_density, take_log=True,
+add_field("Density", function=_density, take_log=False,
           units=r"\rm{g}/\rm{cm}^3", projected_units=r"\rm{g}/\rm{cm}^2",
           convert_function=_convertDensity)
 
-def _convertVelocity(data) :
+def _convertVelocity(data):
     return data.convert("x-velocity")
-def _xvelocity(field, data) :
-    try :
-        data.pf.field_info["velocity_x"]
+def _xvelocity(field, data):
+    if "velocity_x" in data.pf.field_info:
         return data["velocity_x"]
-    except :
+    else:
         return data["momentum_x"]/data["density"]           
 add_field("x-velocity", function=_xvelocity, take_log=False,
           units=r"\rm{cm}/\rm{s}", convert_function=_convertVelocity)
-def _yvelocity(field, data) :
-    try :
-        data.pf.field_info["velocity_y"]
+def _yvelocity(field, data):
+    if "velocity_y" in data.pf.field_info:
         return data["velocity_y"]
-    except :
+    else:
         return data["momentum_y"]/data["density"]
 add_field("y-velocity", function=_yvelocity, take_log=False,
           units=r"\rm{cm}/\rm{s}", convert_function=_convertVelocity)
-def _zvelocity(field, data) :
-    try :
-        data.pf.field_info["velocity_z"]
+def _zvelocity(field, data):
+    if "velocity_z" in data.pf.field.info:
         return data["velocity_z"]
-    except :
+    else:
         return data["momentum_z"]/data["density"]
 add_field("z-velocity", function=_zvelocity, take_log=False,
           units=r"\rm{cm}/\rm{s}", convert_function=_convertVelocity)
@@ -128,10 +125,9 @@ add_field("z-velocity", function=_zvelocity, take_log=False,
 def _convertEnergy(data) :
     return data.convert("x-velocity")**2
 def _gasenergy(field, data) :
-    try :
-        data.pf.field_info["pressure"]
+    if "pressure" in data.pf.field_info:
         return data["pressure"]/(data.pf["Gamma"]-1.0)/data["density"]
-    except :
+    else:
         return (data["total_energy"] - 
                 0.5*(data["cell_centered_B_x"]**2 +
                      data["cell_centered_B_y"]**2 +
@@ -139,16 +135,15 @@ def _gasenergy(field, data) :
                 0.5*(data["momentum_x"]**2 +
                      data["momentum_y"]**2 +
                      data["momentum_z"]**2)/data["density"])/data["density"]
-add_field("Gas_Energy", function=_gasenergy, take_log=True,
+add_field("Gas_Energy", function=_gasenergy, take_log=False,
           units=r"\rm{erg}/\rm{g}")
 
 def _convertPressure(data) :
     return data.convert("Density")*data.convert("x-velocity")**2
 def _pressure(field, data) :
-    try :
-        data.pf.field_info["pressure"]
+    if "pressure" in data.pf.field_info:
         return data["pressure"]
-    except :
+    else:
         return (data["total_energy"] -
                 0.5*(data["cell_centered_B_x"]**2 +
                      data["cell_centered_B_y"]**2 +
@@ -156,16 +151,16 @@ def _pressure(field, data) :
                 0.5*(data["momentum_x"]**2 +
                      data["momentum_y"]**2 +
                      data["momentum_z"]**2)/data["density"])*(data.pf["Gamma"]-1.0)
-add_field("Pressure", function=_pressure, take_log=True, convert_function=_convertPressure,
+add_field("Pressure", function=_pressure, take_log=False, convert_function=_convertPressure,
           units=r"\rm{erg}/\rm{cm}^3", projected_units=r"\rm{erg}/\rm{cm}^2")
 
 def _temperature(field, data):
-    if data.has_field_parameter("mu") :
+    if data.has_field_parameter("mu"):
         mu = data.get_field_parameter("mu")
     else:
         mu = 0.6
     return mu*mh*data["Pressure"]/data["Density"]/kboltz
-add_field("Temperature", function=_temperature, take_log=True,
+add_field("Temperature", function=_temperature, take_log=False,
           units=r"\rm{K}")
 
 def _convertBfield(data):
