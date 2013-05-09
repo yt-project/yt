@@ -102,11 +102,11 @@ class RadMC3DWriter:
 
     >>> dust_to_gas = 0.01
     >>> def _DustDensity(field, data):
-    >>>     return dust_to_gas*data["Density"]
+    ...     return dust_to_gas*data["Density"]
     >>> add_field("DustDensity", function=_DustDensity)
 
     >>> def _DustTemperature(field, data):
-    >>>     return 10.0*data["Ones"]
+    ...     return 10.0*data["Ones"]
     >>> add_field("DustTemperature", function=_DustTemperature)
     
     >>> pf = load("galaxy0030/galaxy0030")
@@ -127,7 +127,7 @@ class RadMC3DWriter:
     >>> x_co = 1.0e-4
     >>> mu_h = 2.34e-24
     >>> def _NumberDensityCO(field, data):
-    >>>     return (x_co/mu_h)*data["Density"]
+    ...     return (x_co/mu_h)*data["Density"]
     >>> add_field("NumberDensityCO", function=_NumberDensityCO)
     
     >>> pf = load("galaxy0030/galaxy0030")
