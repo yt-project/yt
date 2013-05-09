@@ -60,12 +60,13 @@ from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
     axis_names, \
-    axis_labels
+    axis_labels, \
+    numeric
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     GroupOwnership
-from yt.utilities.exceptions import YTUnitNotRecognized
+from yt.utilities.exceptions import YTUnitNotRecognized, YTInvalidWidthError
 from yt.data_objects.time_series import \
     TimeSeriesData
 
@@ -152,6 +153,17 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
+def assert_valid_width_tuple(width):
+    try:
+        assert iterable(width) and len(width) == 2,
+               "width (%s) is not a two element tuple" % width
+        valid = isinstance(width[0], numeric) and isinstance(width[1], str)
+        msg = "width (%s) is invalid " % str(width)
+        msg += "valid widths look like this: (12, 'au')"
+        assert valid, msg
+    except AssertionError, e:
+        raise YTInvalidWidthError(e)
+
 def StandardWidth(axis, width, depth, pf):
     if width is None:
         # Default to code units
@@ -164,17 +176,25 @@ def StandardWidth(axis, width, depth, pf):
             width = ((pf.domain_width.min(), '1'),
                      (pf.domain_width.min(), '1'))
     elif iterable(width):
-        if isinstance(width[1], str):
-            width = (width, width)
-        elif isinstance(width[1], (long, int, float)):
+        if isinstance(width[0], tuple) and isinstance(width[1], tuple):
+            assert_valid_width_tuple(width[0])
+            assert_valid_width_tuple(width[1])
+        elif isinstance(width[0], numeric) and isinstance(width[1], numeric):
             width = ((width[0], '1'), (width[1], '1'))
+        else:
+            assert_valid_width_tuple(width)
+            width = (width, width)
     else:
+        try:
+            assert isinstance(width, numeric), "width (%s) is invalid" % str(width)
+        except AssertionError, e:
+            raise YTInvalidWidthError(e)
         width = ((width, '1'), (width, '1'))
     if depth is not None:
         if iterable(depth) and isinstance(depth[1], str):
             depth = (depth,)
         elif iterable(depth):
-            raise RuntimeError("Depth must be a float or a (width,\"unit\") tuple")
+            assert_valid_width_tuple(depth)
         else:
             depth = ((depth, '1'),)
         width += depth
@@ -447,18 +467,31 @@ class PlotWindow(object):
              in code units.  If units are provided the resulting plot axis labels will
              use the supplied units.
         unit : str
-             the unit the width has been specified in.
-             defaults to code units.  If width is a tuple this
-             argument is ignored
-
+             the unit the width has been specified in. If width is a tuple, this
+             argument is ignored. Defaults to code units.
         """
         if width is not None:
             set_axes_unit = True
         else:
             set_axes_unit = False
 
-        if isinstance(width, (int, long, float)):
+        if isinstance(width, numeric):
             width = (width, unit)
+        elif iterable(width):
+            if isinstance(width[0], tuple) and isinstance(width[1], tuple):
+                assert_valid_width_tuple(width[0])
+                assert_valid_width_tuple(width[1])
+            elif isinstance(width[0], numeric) and isinstance(width[1], numeric):
+                width = ((width[0], '1'), (width[1], '1'))
+            else:
+                assert_valid_width_tuple(width)
+                # If width and unit are both valid width tuples, we
+                # assume width controls x and unit controls y
+                try:
+                    assert_valid_width_tuple(unit)
+                    width = (width, unit)
+                except YTInvalidWidthError:
+                    width = (width, width)
 
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
