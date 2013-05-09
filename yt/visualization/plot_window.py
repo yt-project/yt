@@ -164,6 +164,22 @@ def assert_valid_width_tuple(width):
     except AssertionError, e:
         raise YTInvalidWidthError(e)
 
+def validate_iterable_width(width, unit=None):
+    if isinstance(width[0], tuple) and isinstance(width[1], tuple):
+        assert_valid_width_tuple(width[0])
+        assert_valid_width_tuple(width[1])
+    elif isinstance(width[0], Number) and isinstance(width[1], Number):
+        width = ((width[0], '1'), (width[1], '1'))
+    else:
+        assert_valid_width_tuple(width)
+        # If width and unit are both valid width tuples, we
+        # assume width controls x and unit controls y
+        try:
+            assert_valid_width_tuple(unit)
+            width = (width, unit)
+        except YTInvalidWidthError:
+            width = (width, width)
+
 def StandardWidth(axis, width, depth, pf):
     if width is None:
         # Default to code units
@@ -176,14 +192,7 @@ def StandardWidth(axis, width, depth, pf):
             width = ((pf.domain_width.min(), '1'),
                      (pf.domain_width.min(), '1'))
     elif iterable(width):
-        if isinstance(width[0], tuple) and isinstance(width[1], tuple):
-            assert_valid_width_tuple(width[0])
-            assert_valid_width_tuple(width[1])
-        elif isinstance(width[0], numeric) and isinstance(width[1], numeric):
-            width = ((width[0], '1'), (width[1], '1'))
-        else:
-            assert_valid_width_tuple(width)
-            width = (width, width)
+        validate_iterable_width(width)
     else:
         try:
             assert isinstance(width, Number), "width (%s) is invalid" % str(width)
@@ -196,6 +205,10 @@ def StandardWidth(axis, width, depth, pf):
         elif iterable(depth):
             assert_valid_width_tuple(depth)
         else:
+            try:
+                assert isinstance(depth, Number), "width (%s) is invalid" % str(depth)
+            except: AssertionError, e
+                raise YTInvalidWidthError(e)
             depth = ((depth, '1'),)
         width += depth
     return width
@@ -478,20 +491,7 @@ class PlotWindow(object):
         if isinstance(width, Number):
             width = (width, unit)
         elif iterable(width):
-            if isinstance(width[0], tuple) and isinstance(width[1], tuple):
-                assert_valid_width_tuple(width[0])
-                assert_valid_width_tuple(width[1])
-            elif isinstance(width[0], numeric) and isinstance(width[1], numeric):
-                width = ((width[0], '1'), (width[1], '1'))
-            else:
-                assert_valid_width_tuple(width)
-                # If width and unit are both valid width tuples, we
-                # assume width controls x and unit controls y
-                try:
-                    assert_valid_width_tuple(unit)
-                    width = (width, unit)
-                except YTInvalidWidthError:
-                    width = (width, width)
+            validate_iterable_width(width, unit)
 
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
