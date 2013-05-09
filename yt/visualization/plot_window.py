@@ -426,7 +426,7 @@ class PlotWindow(object):
 
         parameters
         ----------
-        width : float, array of floats, (float, unit) tuple, or arry of (float, unit) tuples.
+        width : float, array of floats, (float, unit) tuple, or tuple of (float, unit) tuples.
              Width can have four different formats to support windows with variable
              x and y widths.  They are:
 
@@ -551,8 +551,11 @@ class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
 
     """
+    _plot_type = None
     def __init__(self, *args,**kwargs):
         setup = kwargs.pop("setup", True)
+        if self._plot_type is None:
+            self._plot_type = kwargs.pop("plot_type")
         PlotWindow.__init__(self, *args,**kwargs)
         self._axes_unit_names = None
         self._callbacks = []
@@ -635,7 +638,7 @@ class PWViewer(PlotWindow):
 
         Other Parameters
         ----------------
-        dyanmic_range : float (default: None)
+        dynamic_range : float (default: None)
             The dynamic range of the image.
             If zmin == None, will set zmin = zmax / dynamic_range
             If zmax == None, will set zmax = zmin * dynamic_range
