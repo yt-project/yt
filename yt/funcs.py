@@ -613,7 +613,10 @@ def mkdir_rec(path):
     mkdir_rec("a/b/c")
     """
     dir_list = path.split("/")
-    basedir = "."
+    if path.startswith("/"):
+        basedir = ""
+    else:
+        basedir = "."
     for dir in dir_list:
         basedir = "%s/%s" % (basedir, dir)
         if not os.path.isdir(basedir): os.mkdir(basedir)
