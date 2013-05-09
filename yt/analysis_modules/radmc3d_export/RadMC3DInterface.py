@@ -37,13 +37,13 @@ class RadMC3DLayer:
     if they straddle two or more level L - 1 grids. 
 
     '''
-    def __init__(self, level, parent, id, LE, RE, dim):
+    def __init__(self, level, parent, unique_id, LE, RE, dim):
         self.level = level
         self.parent = parent
         self.LeftEdge = LE
         self.RightEdge = RE
         self.ActiveDimensions = dim
-        self.id = id
+        self.id = unique_id
 
     def get_overlap_with(self, grid):
         '''
