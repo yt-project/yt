@@ -158,8 +158,8 @@ def assert_valid_width_tuple(width):
         assert iterable(width) and len(width) == 2, \
             "width (%s) is not a two element tuple" % width
         valid = isinstance(width[0], numeric) and isinstance(width[1], str)
-        msg = "width (%s) is invalid " % str(width)
-        msg += "valid widths look like this: (12, 'au')"
+        msg = "width (%s) is invalid. " % str(width)
+        msg += "Valid widths look like this: (12, 'au')"
         assert valid, msg
     except AssertionError, e:
         raise YTInvalidWidthError(e)
