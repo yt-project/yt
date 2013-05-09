@@ -953,7 +953,7 @@ class PWViewerMPL(PWViewer):
         ----------
         font_dict : dict
         A dict of keyword parameters to be passed to
-        matplotlib.font_manager.FontProperties.
+        :py:class:`matplotlib.font_manager.FontProperties`.
 
         Possible keys include
         * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
