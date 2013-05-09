@@ -93,7 +93,7 @@ class RadMC3DWriter:
     --------
 
     This will create a field called "DustDensity" and write it out to the
-    file "dust_data.inp" in a form readable by radmc3d. It will also write
+    file "dust_density.inp" in a form readable by radmc3d. It will also write
     a "dust_temperature.inp" file with everything set to 10.0 K: 
 
     >>> from yt.mods import *
@@ -112,7 +112,7 @@ class RadMC3DWriter:
     >>> writer = RadMC3DWriter(pf)
     
     >>> writer.write_amr_grid()
-    >>> writer.write_dust_file("DustDensity", "dust_data.inp")
+    >>> writer.write_dust_file("DustDensity", "dust_density.inp")
     >>> writer.write_dust_file("DustTemperature", "dust_temperature.inp")
 
     This will create a field called "NumberDensityCO" and write it out to
