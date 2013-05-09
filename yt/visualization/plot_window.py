@@ -1237,8 +1237,6 @@ class ProjectionPlot(PWViewerMPL):
          entire simulation.
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
-    max_level: int
-         The maximum level to project to.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1258,7 +1256,7 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window', fontsize=18,
+                 weight_field=None, origin='center-window', fontsize=18,
                  field_parameters=None, data_source=None):
         ts = self._initialize_dataset(pf)
         self.ts = ts
@@ -1268,8 +1266,8 @@ class ProjectionPlot(PWViewerMPL):
         if axes_unit is None  and units != ('1', '1'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
-        proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
-                         center=center, source=data_source, **field_parameters)
+        proj = pf.h.proj(axis, fields, weight_field=weight_field, center=center,
+                         source=data_source, **field_parameters)
         PWViewerMPL.__init__(self, proj, bounds, origin=origin, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
