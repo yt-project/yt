@@ -115,7 +115,7 @@ def _yvelocity(field, data):
 add_field("y-velocity", function=_yvelocity, take_log=False,
           units=r"\rm{cm}/\rm{s}", convert_function=_convertVelocity)
 def _zvelocity(field, data):
-    if "velocity_z" in data.pf.field.info:
+    if "velocity_z" in data.pf.field_info:
         return data["velocity_z"]
     else:
         return data["momentum_z"]/data["density"]
