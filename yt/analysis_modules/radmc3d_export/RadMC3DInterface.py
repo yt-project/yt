@@ -74,7 +74,8 @@ class RadMC3DWriter:
 
     This class provides a mechanism for writing out data files in a format
     readable by radmc3d. Currently, only the ASCII, "Layer" style file format
-    is supported. For more information please see the radmc3d manual.
+    is supported. For more information please see the radmc3d manual at:
+    http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d
 
     Parameters
     ----------
