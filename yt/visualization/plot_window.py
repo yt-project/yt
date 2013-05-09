@@ -35,6 +35,7 @@ from matplotlib.mathtext import MathTextParser
 from matplotlib.font_manager import FontProperties
 from distutils import version
 from functools import wraps
+from numbers import Number
 
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
@@ -60,8 +61,7 @@ from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
     axis_names, \
-    axis_labels, \
-    numeric
+    axis_labels
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -157,7 +157,7 @@ def assert_valid_width_tuple(width):
     try:
         assert iterable(width) and len(width) == 2, \
             "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], numeric) and isinstance(width[1], str)
+        valid = isinstance(width[0], Number) and isinstance(width[1], str)
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         assert valid, msg
@@ -186,7 +186,7 @@ def StandardWidth(axis, width, depth, pf):
             width = (width, width)
     else:
         try:
-            assert isinstance(width, numeric), "width (%s) is invalid" % str(width)
+            assert isinstance(width, Number), "width (%s) is invalid" % str(width)
         except AssertionError, e:
             raise YTInvalidWidthError(e)
         width = ((width, '1'), (width, '1'))
@@ -475,7 +475,7 @@ class PlotWindow(object):
         else:
             set_axes_unit = False
 
-        if isinstance(width, numeric):
+        if isinstance(width, Number):
             width = (width, unit)
         elif iterable(width):
             if isinstance(width[0], tuple) and isinstance(width[1], tuple):

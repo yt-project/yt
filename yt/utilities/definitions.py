@@ -64,5 +64,3 @@ sec_conversion = {'Gyr'   : sec_per_Gyr,
                   'days'  : sec_per_day}
 
 axis_labels = [('y','z'),('x','z'),('x','y')]
-
-numeric = (int, long, float)
