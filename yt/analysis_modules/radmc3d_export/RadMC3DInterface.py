@@ -249,7 +249,7 @@ class RadMC3DWriter:
 
     def _write_layer_data_to_file(self, fhandle, field, level, LE, dim):
         cg = self.pf.h.covering_grid(level, LE, dim, num_ghost_zones=1)
-        if type(field) == type([]):
+        if isinstance(field, list):
             data_x = cg[field[0]]
             data_y = cg[field[1]]
             data_z = cg[field[2]]
