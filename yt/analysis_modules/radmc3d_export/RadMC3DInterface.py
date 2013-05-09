@@ -31,7 +31,7 @@ from yt.utilities.lib.write_array import \
 class RadMC3DLayer:
     '''
 
-    This class represents an AMR 'layer' of the style described in
+    This class represents an AMR "layer" of the style described in
     the radmc3d manual. Unlike yt grids, layers may not have more
     than one parent, so level L grids will need to be split up
     if they straddle two or more level L - 1 grids. 
@@ -101,11 +101,11 @@ class RadMC3DWriter:
 
     >>> dust_to_gas = 0.01
     >>> def _DustDensity(field, data):
-    >>>     return dust_to_gas*data['Density']
+    >>>     return dust_to_gas*data["Density"]
     >>> add_field("DustDensity", function=_DustDensity)
 
     >>> def _DustTemperature(field, data):
-    >>>     return 10.0*data['Ones']
+    >>>     return 10.0*data["Ones"]
     >>> add_field("DustTemperature", function=_DustTemperature)
     
     >>> pf = load("galaxy0030/galaxy0030")
@@ -126,7 +126,7 @@ class RadMC3DWriter:
     >>> x_co = 1.0e-4
     >>> mu_h = 2.34e-24
     >>> def _NumberDensityCO(field, data):
-    >>>     return (x_co/mu_h)*data['Density']
+    >>>     return (x_co/mu_h)*data["Density"]
     >>> add_field("NumberDensityCO", function=_NumberDensityCO)
     
     >>> pf = load("galaxy0030/galaxy0030")
@@ -134,8 +134,8 @@ class RadMC3DWriter:
     
     >>> writer.write_amr_grid()
     >>> writer.write_line_file("NumberDensityCO", "numberdens_co.inp")
-    >>> velocity_fields = ['x-velocity', 'y-velocity', 'z-velocity']
-    >>> writer.write_line_file(velocity_fields, 'gas_velocity.inp') 
+    >>> velocity_fields = ["x-velocity", "y-velocity", "z-velocity"]
+    >>> writer.write_line_file(velocity_fields, "gas_velocity.inp") 
 
     '''
 
@@ -146,7 +146,7 @@ class RadMC3DWriter:
         self.domain_dimensions = pf.domain_dimensions
         self.domain_left_edge  = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
-        self.grid_filename = 'amr_grid.inp'
+        self.grid_filename = "amr_grid.inp"
         self.pf = pf
 
         base_layer = RadMC3DLayer(0, None, 0, \
@@ -183,7 +183,7 @@ class RadMC3DWriter:
             
     def write_amr_grid(self):
         '''
-        This routine writes the 'amr_grid.inp' file that describes the mesh
+        This routine writes the "amr_grid.inp" file that describes the mesh
         radmc3d will use.
 
         '''
@@ -247,7 +247,7 @@ class RadMC3DWriter:
         grid_file.close()
 
     def _write_layer_data_to_file(self, fhandle, field, level, LE, dim):
-        cg = self.pf.h.covering_grid(level, LE, dim)
+        cg = self.pf.h.covering_grid(level, LE, dim, num_ghost_zones=1)
         if type(field) == type([]):
             data_x = cg[field[0]]
             data_y = cg[field[1]]
