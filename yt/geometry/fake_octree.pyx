@@ -67,7 +67,7 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
                     long cur_leaf, long cur_level, 
                     long max_noct, long max_level, float fsubdivide,
                     np.ndarray[np.uint8_t, ndim=2] mask):
-    print "child", parent.ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
+    print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
     cdef int ddr[3]
     cdef long i,j,k
     cdef float rf #random float from 0-1

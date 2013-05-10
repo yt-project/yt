@@ -201,7 +201,7 @@ cdef class SelectorObject:
             this_level = 0
         if res == 0:
             for i in range(8):
-                mask[root.local_ind,i] = 0
+                mask[root.domain_ind,i] = 0
             # If this level *is* being selected (i.e., no early termination)
             # then we know no child zones will be selected.
             if this_level == 1:
@@ -217,11 +217,11 @@ cdef class SelectorObject:
                     ii = ((k*2)+j)*2+i
                     ch = root.children[i][j][k]
                     if next_level == 1 and ch != NULL:
-                        mask[root.local_ind, ii] = 0
+                        mask[root.domain_ind, ii] = 0
                         self.recursively_select_octs(
                             ch, spos, sdds, mask, level + 1)
                     elif this_level == 1:
-                        mask[root.local_ind, ii] = \
+                        mask[root.domain_ind, ii] = \
                             self.select_cell(spos, sdds, eterm)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]

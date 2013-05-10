@@ -30,8 +30,12 @@ cdef struct ParticleArrays
 
 cdef struct Oct
 cdef struct Oct:
-    np.int64_t ind          # index
-    np.int64_t local_ind
+    np.int64_t file_ind     # index with respect to the order in which it was
+                            # added
+    np.int64_t domain_ind   # index within the global set of domains
+                            # note that moving to a local index will require
+                            # moving to split-up masks, which is part of a
+                            # bigger refactor
     np.int64_t domain       # (opt) addl int index
     np.int64_t pos[3]       # position in ints
     np.int8_t level
@@ -61,6 +65,9 @@ cdef class OctreeContainer:
     cdef Oct* get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef void neighbors(self, Oct *, Oct **)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
+    # This function must return the offset from global-to-local domains; i.e.,
+    # OctAllocationContainer.offset if such a thing exists.
+    cdef np.int64_t get_domain_offset(self, int domain_id)
 
 cdef class ARTIOOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains

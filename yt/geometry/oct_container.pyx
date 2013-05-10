@@ -56,8 +56,8 @@ cdef OctAllocationContainer *allocate_octs(
     for n in range(n_octs):
         oct = &n_cont.my_octs[n]
         oct.parent = NULL
-        oct.ind = oct.domain = -1
-        oct.local_ind = n + n_cont.offset
+        oct.file_ind = oct.domain = -1
+        oct.domain_ind = n + n_cont.offset
         oct.level = -1
         for i in range(2):
             for j in range(2):
@@ -130,7 +130,7 @@ cdef class OctreeContainer:
         while cur != NULL:
             for i in range(cur.n_assigned):
                 this = &cur.my_octs[i]
-                yield (this.ind, this.local_ind, this.domain)
+                yield (this.file_ind, this.domain_ind, this.domain)
             cur = cur.next
 
     cdef void oct_bounds(self, Oct *o, np.float64_t *corner, np.float64_t *size):
@@ -138,6 +138,9 @@ cdef class OctreeContainer:
         for i in range(3):
             size[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i] << o.level)
             corner[i] = o.pos[i] * size[i] + self.DLE[i]
+
+    cdef np.int64_t get_domain_offset(self, int domain_id):
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -199,7 +202,7 @@ cdef class OctreeContainer:
                 cur = cur.next
             o = &cur.my_octs[oi - cur.offset]
             for i in range(8):
-                count[o.domain - 1] += mask[o.local_ind,i]
+                count[o.domain - 1] += mask[o.domain_ind,i]
         return count
 
     @cython.boundscheck(True)
@@ -232,7 +235,7 @@ cdef class OctreeContainer:
                     for k in range(2):
                         if o.children[i][j][k] == NULL:
                             ii = ((k*2)+j)*2+i
-                            count[o.domain - 1] += mask[o.local_ind,ii]
+                            count[o.domain - 1] += mask[o.domain_ind,ii]
         return count
 
     @cython.boundscheck(False)
@@ -493,7 +496,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
             next_oct.pos[i] = pos[i]
         next_oct.domain = curdom
         next_oct.parent = cur
-        next_oct.ind = 1
+        next_oct.file_ind = 1
         next_oct.level = curlevel
         return next_oct
 
@@ -528,7 +531,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for i in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[o.local_ind, ii] == 0: continue
+                        if mask[o.domain_ind, ii] == 0: continue
                         # Note that we bit shift because o.pos is oct position,
                         # not cell position, and it is with respect to octs,
                         # not cells.
@@ -574,7 +577,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for i in range(8):
-                if mask[o.local_ind, i] == 0: continue
+                if mask[o.domain_ind, i] == 0: continue
                 level_count[o.level] += 1
         return level_count
 
@@ -613,7 +616,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for i in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[o.local_ind, ii] == 0: continue
+                        if mask[o.domain_ind, ii] == 0: continue
                         coords[ci, 0] = pos[0] + dx[0] * i
                         coords[ci, 1] = pos[1] + dx[1] * j
                         coords[ci, 2] = pos[2] + dx[2] * k
@@ -645,12 +648,16 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                     for j in range(2):
                         for i in range(2):
                             ii = ((k*2)+j)*2+i
-                            if mask[o.local_ind, ii] == 0: continue
-                            dest[local_filled + offset] = source[o.local_ind*8+ii]
+                            if mask[o.domain_ind, ii] == 0: continue
+                            dest[local_filled + offset] = source[o.domain_ind*8+ii]
                             local_filled += 1
         return local_filled
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
+
+    cdef np.int64_t get_domain_offset(self, int domain_id):
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        return cont.offset
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
@@ -729,7 +736,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             o = &cur.my_octs[oi]
             use = 0
             for i in range(8):
-                m2[o.local_ind, i] = mask[o.local_ind, i]
+                m2[o.domain_ind, i] = mask[o.domain_ind, i]
         return m2 # NOTE: This is uint8_t
 
     def domain_mask(self,
@@ -751,7 +758,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             o = &cur.my_octs[oi]
             use = 0
             for i in range(8):
-                if mask[o.local_ind, i] == 1: use = 1
+                if mask[o.domain_ind, i] == 1: use = 1
             nm += use
         cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
                 np.zeros((2, 2, 2, nm), 'uint8')
@@ -763,7 +770,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[o.local_ind, ii] == 0: continue
+                        if mask[o.domain_ind, ii] == 0: continue
                         use = m2[i, j, k, nm] = 1
             nm += use
         return m2.astype("bool")
@@ -781,9 +788,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             o = &cur.my_octs[oi]
             use = 0
             for i in range(8):
-                if mask[o.local_ind, i] == 1: use = 1
+                if mask[o.domain_ind, i] == 1: use = 1
             if use == 1:
-                ind[o.ind] = nm
+                ind[o.file_ind] = nm
             nm += use
         return ind
 
@@ -832,7 +839,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         else:
                             some_refined = 1
             if some_unrefined == some_refined == 1:
-                #print "BAD", oct.ind, oct.local_ind
+                #print "BAD", oct.file_ind, oct.domain_ind
                 bad += 1
                 if curdom == 10 or curdom == 72:
                     for i in range(2):
@@ -890,7 +897,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             # Now we should be at the right level
             cur.domain = curdom
             if local == 1:
-                cur.ind = p
+                cur.file_ind = p
             cur.level = curlevel
         return cont.n_assigned - initial
 
@@ -914,7 +921,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[o.local_ind, ii] == 0: continue
+                        if mask[o.domain_ind, ii] == 0: continue
                         ci = level_counts[o.level]
                         coords[ci, 0] = (o.pos[0] << 1) + i
                         coords[ci, 1] = (o.pos[1] << 1) + j
@@ -959,7 +966,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
             for i in range(8):
-                if mask[o.local_ind, i] == 0: continue
+                if mask[o.domain_ind, i] == 0: continue
                 level_count[o.level] += 1
         return level_count
 
@@ -997,7 +1004,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[o.local_ind, ii] == 0: continue
+                        if mask[o.domain_ind, ii] == 0: continue
                         ci = level_counts[o.level]
                         coords[ci, 0] = pos[0] + dx[0] * i
                         coords[ci, 1] = pos[1] + dx[1] * j
@@ -1029,8 +1036,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     for j in range(2):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
-                            if mask[o.local_ind, ii] == 0: continue
-                            dest[local_filled + offset] = source[o.ind, ii]
+                            if mask[o.domain_ind, ii] == 0: continue
+                            dest[local_filled + offset] = source[o.file_ind, ii]
                             local_filled += 1
         return local_filled
 
@@ -1061,7 +1068,7 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                index = o.ind-subchunk_offset
+                index = o.file_ind-subchunk_offset
                 if o.level != level: continue
                 if index < 0: continue
                 if index >= subchunk_max: 
@@ -1072,7 +1079,7 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
                     for j in range(2):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
-                            if mask[o.local_ind, ii] == 0: continue
+                            if mask[o.domain_ind, ii] == 0: continue
                             dest[local_filled + offset] = \
                                 source[index,ii]
                             local_filled += 1
@@ -1112,7 +1119,7 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
                     for j in range(2):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
-                            if mask[o.local_ind, ii] == 0: continue
+                            if mask[o.domain_ind, ii] == 0: continue
                             ox = (o.pos[0] << 1) + i
                             oy = (o.pos[1] << 1) + j
                             oz = (o.pos[2] << 1) + k
@@ -1316,8 +1323,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.dom_offsets[0] = 0
         dom_ind = 0
         for i in range(self.nocts):
-            self.oct_list[i].local_ind = i
-            self.oct_list[i].ind = dom_ind
+            self.oct_list[i].domain_ind = i
+            self.oct_list[i].file_ind = dom_ind
             dom_ind += 1
             if self.oct_list[i].domain > cur_dom:
                 cur_dom = self.oct_list[i].domain
@@ -1334,8 +1341,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef ParticleArrays *sd = <ParticleArrays*> \
             malloc(sizeof(ParticleArrays))
         cdef int i, j, k
-        my_oct.ind = my_oct.domain = -1
-        my_oct.local_ind = self.nocts - 1
+        my_oct.file_ind = my_oct.domain = -1
+        my_oct.domain_ind = self.nocts - 1
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
         my_oct.sd = sd
@@ -1386,7 +1393,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for oi in range(ndo):
             o = self.oct_list[oi + doff]
             for i in range(8):
-                if mask[o.local_ind, i] == 0: continue
+                if mask[o.domain_ind, i] == 0: continue
                 level_count[o.level] += 1
         return level_count
 
@@ -1583,7 +1590,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if o.domain != domain_id: continue
             use = 0
             for i in range(8):
-                m2[o.local_ind, i] = mask[o.local_ind, i]
+                m2[o.domain_ind, i] = mask[o.domain_ind, i]
         return m2
 
     def domain_mask(self,
@@ -1606,7 +1613,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if o.domain != domain_id: continue
             use = 0
             for i in range(8):
-                if mask[o.local_ind, i] == 1: use = 1
+                if mask[o.domain_ind, i] == 1: use = 1
             nm += use
         cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
                 np.zeros((2, 2, 2, nm), 'uint8')
@@ -1619,7 +1626,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        if mask[o.local_ind, ii] == 0: continue
+                        if mask[o.domain_ind, ii] == 0: continue
                         use = m2[i, j, k, nm] = 1
             nm += use
         return m2.astype("bool")
@@ -1631,7 +1638,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # Here we once again do something similar to the other functions.  We
         # need a set of indices into the final reduced, masked values.  The
         # indices will be domain.n long, and will be of type int64.  This way,
-        # we can get the Oct through a .get() call, then use Oct.ind as an
+        # we can get the Oct through a .get() call, then use Oct.file_ind as an
         # index into this newly created array, then finally use the returned
         # index into the domain subset array for deposition.
         cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
@@ -1646,7 +1653,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             o = self.oct_list[oi + offset]
             use = 0
             for i in range(8):
-                if mask[o.local_ind, i] == 1: use = 1
+                if mask[o.domain_ind, i] == 1: use = 1
             if use == 1:
                 ind[oi] = nm
             nm += use
