@@ -1133,7 +1133,7 @@ class SlicePlot(PWViewerMPL):
     fields : string
          The name of the field(s) to be plotted.
     center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blanck,
+         The coordinate of the center of the image.  If left blank,
          the image centers on the location of the maximum density
          cell.  If set to 'c' or 'center', the plot is centered on
          the middle of the domain.  If set to 'max', will be at the point
@@ -1243,7 +1243,7 @@ class ProjectionPlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blanck,
+         The coordinate of the center of the image.  If left blank,
          the image centers on the location of the maximum density
          cell.  If set to 'c' or 'center', the plot is centered on
          the middle of the domain.  If set to 'max', will be at the point
@@ -1361,7 +1361,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blanck,
+        The coordinate of the center of the image.  If left blank,
         the image centers on the location of the maximum density
         cell.  If set to 'c' or 'center', the plot is centered on
         the middle of the domain.
@@ -1444,7 +1444,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blanck,
+        The coordinate of the center of the image.  If left blank,
         the image centers on the location of the maximum density
         cell.  If set to 'c' or 'center', the plot is centered on
         the middle of the domain.
