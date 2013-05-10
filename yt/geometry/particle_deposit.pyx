@@ -62,8 +62,9 @@ cdef class ParticleDepositOperation:
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 2
         cdef OctInfo oi
-        cdef np.int64_t offset
+        cdef np.int64_t offset, moff
         cdef Oct *oct
+        moff = octree.get_domain_offset(domain_id)
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
@@ -75,7 +76,8 @@ cdef class ParticleDepositOperation:
             # might have particles that belong to octs outside our domain.
             if oct.domain != domain_id: continue
             #print domain_id, oct.local_ind, oct.ind, oct.domain, oct.pos[0], oct.pos[1], oct.pos[2]
-            offset = dom_ind[oct.ind] * 8
+            # Note that this has to be our local index, not our in-file index.
+            offset = dom_ind[oct.domain_ind - moff] * 8
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
