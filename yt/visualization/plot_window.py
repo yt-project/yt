@@ -35,6 +35,7 @@ from matplotlib.mathtext import MathTextParser
 from matplotlib.font_manager import FontProperties
 from distutils import version
 from functools import wraps
+from numbers import Number
 
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
@@ -65,7 +66,7 @@ from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     GroupOwnership
-from yt.utilities.exceptions import YTUnitNotRecognized
+from yt.utilities.exceptions import YTUnitNotRecognized, YTInvalidWidthError
 from yt.data_objects.time_series import \
     TimeSeriesData
 
@@ -152,6 +153,34 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
+def assert_valid_width_tuple(width):
+    try:
+        assert iterable(width) and len(width) == 2, \
+            "width (%s) is not a two element tuple" % width
+        valid = isinstance(width[0], Number) and isinstance(width[1], str)
+        msg = "width (%s) is invalid. " % str(width)
+        msg += "Valid widths look like this: (12, 'au')"
+        assert valid, msg
+    except AssertionError, e:
+        raise YTInvalidWidthError(e)
+
+def validate_iterable_width(width, unit=None):
+    if isinstance(width[0], tuple) and isinstance(width[1], tuple):
+        assert_valid_width_tuple(width[0])
+        assert_valid_width_tuple(width[1])
+        return width
+    elif isinstance(width[0], Number) and isinstance(width[1], Number):
+        return ((width[0], '1'), (width[1], '1'))
+    else:
+        assert_valid_width_tuple(width)
+        # If width and unit are both valid width tuples, we
+        # assume width controls x and unit controls y
+        try:
+            assert_valid_width_tuple(unit)
+            return (width, unit)
+        except YTInvalidWidthError:
+            return (width, width)
+
 def StandardWidth(axis, width, depth, pf):
     if width is None:
         # Default to code units
@@ -164,18 +193,23 @@ def StandardWidth(axis, width, depth, pf):
             width = ((pf.domain_width.min(), '1'),
                      (pf.domain_width.min(), '1'))
     elif iterable(width):
-        if isinstance(width[1], str):
-            width = (width, width)
-        elif isinstance(width[1], (long, int, float)):
-            width = ((width[0], '1'), (width[1], '1'))
+        width = validate_iterable_width(width)
     else:
+        try:
+            assert isinstance(width, Number), "width (%s) is invalid" % str(width)
+        except AssertionError, e:
+            raise YTInvalidWidthError(e)
         width = ((width, '1'), (width, '1'))
     if depth is not None:
         if iterable(depth) and isinstance(depth[1], str):
             depth = (depth,)
         elif iterable(depth):
-            raise RuntimeError("Depth must be a float or a (width,\"unit\") tuple")
+            assert_valid_width_tuple(depth)
         else:
+            try:
+                assert isinstance(depth, Number), "width (%s) is invalid" % str(depth)
+            except AssertionError, e:
+                raise YTInvalidWidthError(e)
             depth = ((depth, '1'),)
         width += depth
     return width
@@ -447,18 +481,18 @@ class PlotWindow(object):
              in code units.  If units are provided the resulting plot axis labels will
              use the supplied units.
         unit : str
-             the unit the width has been specified in.
-             defaults to code units.  If width is a tuple this
-             argument is ignored
-
+             the unit the width has been specified in. If width is a tuple, this
+             argument is ignored. Defaults to code units.
         """
         if width is not None:
             set_axes_unit = True
         else:
             set_axes_unit = False
 
-        if isinstance(width, (int, long, float)):
+        if isinstance(width, Number):
             width = (width, unit)
+        elif iterable(width):
+            width = validate_iterable_width(width, unit)
 
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
@@ -743,6 +777,7 @@ class PWViewerMPL(PWViewer):
         font_size = kwargs.pop("fontsize", 18)
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=font_size, fname=font_path)
+        self._font_color = None
         PWViewer.__init__(self, *args, **kwargs)
 
     def _setup_origin(self):
@@ -870,7 +905,9 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
 
             for label in (self.plots[f].axes.get_xticklabels() +
-                          self.plots[f].axes.get_yticklabels()):
+                          self.plots[f].axes.get_yticklabels() +
+                          [self.plots[f].axes.xaxis.get_offset_text(),
+                           self.plots[f].axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
@@ -887,6 +924,16 @@ class PWViewerMPL(PWViewer):
                 label.set_fontproperties(fp)
 
             self.run_callbacks(f)
+
+            if self._font_color is not None:
+                ax = self.plots[f].axes
+                cbax = self.plots[f].cb.ax
+                labels = \
+                  ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() + \
+                  cbax.yaxis.get_ticklabels() + \
+                  [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
+                for label in labels:
+                    label.set_color(self._font_color)
 
         self._plot_valid = True
 
@@ -909,27 +956,48 @@ class PWViewerMPL(PWViewer):
         ----------
         font_dict : dict
         A dict of keyword parameters to be passed to
-        matplotlib.font_manager.FontProperties.  See the matplotlib font
-        manager documentation for more details.
+        :py:class:`matplotlib.font_manager.FontProperties`.
+
+        Possible keys include
+        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
+          'monospace'.
+        * style - The font style. Either normal, italic or oblique.
+        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
+          'orange'.
+        * variant: Either normal or small-caps.
+        * size: Either an relative value of xx-small, x-small, small, medium,
+          large, x-large, xx-large or an absolute font size, e.g. 12
+        * stretch: A numeric value in the range 0-1000 or one of
+          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
+          semi-expanded, expanded, extra-expanded or ultra-expanded
+        * weight: A numeric value in the range 0-1000 or one of ultralight,
+          light, normal, regular, book, medium, roman, semibold, demibold, demi,
+          bold, heavy, extra bold, or black
+
+        See the matplotlib font manager API documentation for more details.
         http://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
-        Mathtext axis labels will only obey the `size` keyword.
+        Mathtext axis labels will only obey the `size` and `color` keyword.
 
         Examples
         --------
-        This sets the font to be 24-pt, sans-serif, italic, and bold-face.
+        This sets the font to be 24-pt, blue, sans-serif, italic, and
+        bold-face.
 
         >>> slc = SlicePlot(pf, 'x', 'Density')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24})
+                          'weight':'bold', 'size':24, 'color':'blue'})
 
         """
         if font_dict is None:
             font_dict = {}
+        if 'color' in font_dict:
+            self._font_color = font_dict.pop('color')
         self._font_properties = \
             FontProperties(**font_dict)
+
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
@@ -1065,7 +1133,7 @@ class SlicePlot(PWViewerMPL):
     fields : string
          The name of the field(s) to be plotted.
     center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blanck,
+         The coordinate of the center of the image.  If left blank,
          the image centers on the location of the maximum density
          cell.  If set to 'c' or 'center', the plot is centered on
          the middle of the domain.  If set to 'max', will be at the point
@@ -1175,7 +1243,7 @@ class ProjectionPlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blanck,
+         The coordinate of the center of the image.  If left blank,
          the image centers on the location of the maximum density
          cell.  If set to 'c' or 'center', the plot is centered on
          the middle of the domain.  If set to 'max', will be at the point
@@ -1293,7 +1361,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blanck,
+        The coordinate of the center of the image.  If left blank,
         the image centers on the location of the maximum density
         cell.  If set to 'c' or 'center', the plot is centered on
         the middle of the domain.
@@ -1376,7 +1444,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blanck,
+        The coordinate of the center of the image.  If left blank,
         the image centers on the location of the maximum density
         cell.  If set to 'c' or 'center', the plot is centered on
         the middle of the domain.
