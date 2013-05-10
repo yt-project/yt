@@ -905,7 +905,9 @@ class PWViewerMPL(PWViewer):
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
 
             for label in (self.plots[f].axes.get_xticklabels() +
-                          self.plots[f].axes.get_yticklabels()):
+                          self.plots[f].axes.get_yticklabels() +
+                          [self.plots[f].axes.xaxis.get_offset_text(),
+                           self.plots[f].axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
