@@ -790,7 +790,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             for i in range(8):
                 if mask[o.domain_ind, i] == 1: use = 1
             if use == 1:
-                ind[o.file_ind] = nm
+                ind[o.domain_ind - cur.offset] = nm
             nm += use
         return ind
 
@@ -915,6 +915,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         n = mask.shape[0]
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((cell_count, 3), dtype="int64")
+        ci = 0
         for oi in range(cur.n_assigned):
             o = &cur.my_octs[oi]
             for i in range(2):
@@ -922,11 +923,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.domain_ind, ii] == 0: continue
-                        ci = level_counts[o.level]
                         coords[ci, 0] = (o.pos[0] << 1) + i
                         coords[ci, 1] = (o.pos[1] << 1) + j
                         coords[ci, 2] = (o.pos[2] << 1) + k
-                        level_counts[o.level] += 1
+                        ci += 1
         return coords
 
     @cython.boundscheck(False)
@@ -948,9 +948,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             o = &cur.my_octs[oi]
             for i in range(8):
                 if mask[oi + cur.offset, i] == 0: continue
-                ci = level_counts[o.level]
                 levels[ci] = o.level
-                level_counts[o.level] += 1
+                ci += 1
         return levels
 
     @cython.boundscheck(False)
@@ -991,6 +990,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             # position.  Note that the positions will also all be offset by
             # dx/2.0.  This is also for *oct grids*, not cells.
             base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+        ci = 0
         for oi in range(cur.n):
             o = &cur.my_octs[oi]
             for i in range(3):
@@ -1005,11 +1005,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
                         if mask[o.domain_ind, ii] == 0: continue
-                        ci = level_counts[o.level]
                         coords[ci, 0] = pos[0] + dx[0] * i
                         coords[ci, 1] = pos[1] + dx[1] * j
                         coords[ci, 2] = pos[2] + dx[2] * k
-                        level_counts[o.level] += 1
+                        ci += 1
         return coords
 
     @cython.boundscheck(False)
@@ -1031,17 +1030,14 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                if o.level != level: continue
-                for i in range(2):
-                    for j in range(2):
-                        for k in range(2):
-                            ii = ((k*2)+j)*2+i
-                            if mask[o.domain_ind, ii] == 0: continue
-                            dest[local_filled + offset] = source[o.file_ind, ii]
-                            local_filled += 1
+                for ii in range(8):
+                    # We iterate and check here to keep our counts consistent
+                    # when filling different levels.
+                    if mask[o.domain_ind, ii] == 0: continue
+                    if o.level == level: 
+                        dest[local_filled] = source[o.file_ind, ii]
+                    local_filled += 1
         return local_filled
-
-
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
 
