@@ -542,7 +542,6 @@ def vector_length(start, end):
 
 def periodic_distance(coord1, coord2):
     "Calculate length of shortest vector between to points in periodic domain."
-
     dif = coord1 - coord2
 
     dim = np.ones(coord1.shape,dtype=int)
