@@ -1,5 +1,6 @@
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mp
 from yt.data_objects.image_array import ImageArray
+from yt.data_objects.field_info_container import add_field
 import numpy as np
 
 Tcmb = 2.726
@@ -40,25 +41,27 @@ add_field("TBetaPar", function=_t_beta_par)
 
 vlist = 'xyz'
 
-def SZProjection(pf, axis, freqs, width=(1, "unitary"), nx=800, ny=800)
+def SZProjection(pf, axis, freqs, center="c", width=(1, "unitary"), nx=800, ny=800):
 
     num_freqs = len(freqs)
     freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
     xo = hcgs*freqs*1.0e9/(kboltz*Tcmb)
 
-    proj1 = pf.h.proj("TempkeV", weight_field="Density")
-    proj2 = pf.h.proj("Density")
-
-    if axis in vlist:
-	vfield = "velocity_%s" % (axis)
-	proj1.set_field_parameter("axis", axis)
-    elif axis in xrange(0,3) :
-	vfield = "velocity_%s" % (vlist[axis])
-	proj1.set_field_parameter("axis", vlist[axis])
-    
-    frb1 = proj1.to_frb(width, n)
-    frb2 = proj2.to_frb(width, n)
-    
+    if isinstance(axis, np.ndarray) :
+        frb1["TempkeV"] = off_axis_projection(pf, center, axis, width, nx, field="TempkeV", weight="Density")
+        frb2["Density"] = off_axis_projection(pf, center, axis, width, nx, field="Density")
+    else :
+        if axis in vlist:
+            vfield = "velocity_%s" % (axis)
+            proj1.set_field_parameter("axis", axis)
+        elif axis in xrange(0,3) :
+            vfield = "velocity_%s" % (vlist[axis])
+            proj1.set_field_parameter("axis", vlist[axis])
+        proj1 = pf.h.proj(axis, "TempkeV", weight_field="Density")
+        proj2 = pf.h.proj(axis, "Density")
+        frb1 = proj1.to_frb(width, nx)
+        frb2 = proj2.to_frb(width, ny)
+                    
     TeSZ = frb1["TempkeV"]
     omega1 = frb1["Tsquared"]/(TeSZ*TeSZ) - 1.
     sigma1 = frb1["TBetaPar"]/TeSZ - betac_par
