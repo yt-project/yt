@@ -45,6 +45,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
             import pyfits
         except ImportError:
             mylog.error('You do not have pyfits, install before attempting to use fits exporter')
+            raise
         hdur = pyfits.PrimaryHDU(image[:,:,0])
         hdug = pyfits.ImageHDU(image[:,:,1])
         hdub = pyfits.ImageHDU(image[:,:,2])
