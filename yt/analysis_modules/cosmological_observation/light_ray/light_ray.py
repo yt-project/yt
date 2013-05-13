@@ -461,7 +461,7 @@ class LightRay(CosmologySplice):
     def _get_nearest_halo_properties(self, data, halo_list, fields=None):
         """
         Calculate distance to nearest object in halo list for each lixel in data.
-        Return list of distances and masses of nearest objects.
+        Return list of distances and other properties of nearest objects.
         """
 
         if fields is None: fields = []
@@ -475,17 +475,18 @@ class LightRay(CosmologySplice):
         nearest_distance = np.zeros(data['x'].shape)
         field_data = dict([(field, np.zeros(data['x'].shape)) \
                            for field in fields])
-        for index in xrange(nearest_distance.size):
-            nearest = np.argmin(periodic_distance(np.array([data['x'][index],
-                                                            data['y'][index],
-                                                            data['z'][index]]),
-                                                  halo_centers))
-            nearest_distance[index] = periodic_distance(np.array([data['x'][index],
-                                                                  data['y'][index],
-                                                                  data['z'][index]]),
-                                                        halo_centers[nearest])
-            for field in fields:
-                field_data[field][index] = halo_field_values[field][nearest]
+        if halo_centers.size > 0:
+            for index in xrange(nearest_distance.size):
+                nearest = np.argmin(periodic_distance(np.array([data['x'][index],
+                                                                data['y'][index],
+                                                                data['z'][index]]),
+                                                      halo_centers))
+                nearest_distance[index] = periodic_distance(np.array([data['x'][index],
+                                                                      data['y'][index],
+                                                                      data['z'][index]]),
+                                                            halo_centers[nearest])
+                for field in fields:
+                    field_data[field][index] = halo_field_values[field][nearest]
 
         return_data = {'nearest_halo': nearest_distance}
         for field in fields:
@@ -541,6 +542,9 @@ def vector_length(start, end):
 
 def periodic_distance(coord1, coord2):
     "Calculate length of shortest vector between to points in periodic domain."
+
+    print coord1, coord2
+    
     dif = coord1 - coord2
 
     dim = np.ones(coord1.shape,dtype=int)
