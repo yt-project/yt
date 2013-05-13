@@ -119,8 +119,7 @@ class OctreeSubset(YTSelectionContainer):
     def _reshape_vals(self, arr):
         nz = self._num_zones + 2*self._num_ghost_zones
         n_oct = arr.shape[0] / (nz**3.0)
-        arr.shape = (n_oct, nz, nz, nz)
-        arr = np.rollaxis(arr, 0, 4)
+        arr = arr.reshape((nz, nz, nz, n_oct), order="F")
         return arr
 
     _domain_ind = None
