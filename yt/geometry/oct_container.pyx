@@ -1190,6 +1190,16 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 free(o.sd.pos)
         free(o)
 
+    def __iter__(self):
+        #Get the next oct, will traverse domains
+        #Note that oct containers can be sorted 
+        #so that consecutive octs are on the same domain
+        cdef int oi
+        cdef Oct *o
+        for oi in range(self.nocts):
+            o = self.oct_list[oi]
+            yield (o.file_ind, o.domain_ind, o.domain)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1327,6 +1337,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 self.dom_offsets[cur_dom + 1] = i
                 dom_ind = 0
         self.dom_offsets[cur_dom + 2] = self.nocts
+
+    cdef np.int64_t get_domain_offset(self, int domain_id):
+        return self.dom_offsets[domain_id + 1]
 
     cdef Oct* allocate_oct(self):
         #Allocate the memory, set to NULL or -1
