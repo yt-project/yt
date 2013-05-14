@@ -1097,7 +1097,7 @@ class HaloList(object):
     def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
-            return (self._data_source["creation_time"] < 0)
+            return (self._data_source["creation_time"] <= 0)
         elif 'particle_type' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on particle type")
             return (self._data_source["particle_type"] == 1)
