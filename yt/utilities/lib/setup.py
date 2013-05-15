@@ -98,30 +98,36 @@ def check_for_freetype():
     print "You can locate this by looking for the file ft2build.h"
     sys.exit(1)
 
-# see http://openmp.org/wp/openmp-compilers/
-omp_test = r"""#include <omp.h>
-#include <stdio.h>
-int main() {
-#pragma omp parallel
-printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(), omp_get_num_threads());
-}
-"""
-   
 def check_for_openmp():
+    # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
+    # Get compiler invocation
+    compiler = os.getenv("CC")
+    if compiler == None:
+        compiler = 'cc'
+
+    # Attempt to compile a test script.
+    # See http://openmp.org/wp/openmp-compilers/
     filename = r'test.c'
     file = open(filename,'w', 0)
-    file.write(omp_test)
+    file.write(
+        "#include <omp.h>\n"
+        "#include <stdio.h>\n"
+        "int main() {\n"
+        "#pragma omp parallel\n"
+        "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
+        "}"
+        )
     with open(os.devnull, 'w') as fnull:
-        exit_code = subprocess.call(['cc', '-fopenmp', filename], stdout=fnull,
-                                 stderr=fnull)
+        exit_code = subprocess.call([compiler, '-fopenmp', filename],
+                                    stdout=fnull, stderr=fnull)
         
-    file.close
+    # Clean up
+    file.close()
     os.chdir(curdir)
-    #clean up
     shutil.rmtree(tmpdir)
 
     if exit_code == 0:
