@@ -528,18 +528,23 @@ class BoxlibStaticOutput(StaticOutput):
         be useless, but this is where it keeps mu = mass per
         particle/m_hydrogen.
         """
-        lines = open(self.fparameter_filename).readlines()
-        for line in lines:
-            if line.count("=") == 1:
-                param, vals = map(strip,map(rstrip,line.split("=")))
-                if vals.count("'") == 0:
-                    t = map(float,[a.replace('D','e').replace('d','e') for a in vals.split()]) # all are floating point.
-                else:
-                    t = vals.split()
-                if len(t) == 1:
-                    self.fparameters[param] = t[0]
-                else:
-                    self.fparameters[param] = t
+        regexp = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
+        for line in (l for l in open(self.fparameter_filename) if "=" in l):
+            param, vals = [v.strip() for v in line.split("=")]
+            # Now, there are a couple different types of parameters.
+            # Some will be where you only have floating point values, others
+            # will be where things are specified as string literals.
+            # Unfortunately, we're also using Fortran values, which will have
+            # things like 1.d-2 which is pathologically difficult to parse if
+            # your C library doesn't include 'd' in its locale for strtod.
+            # So we'll try to determine this.
+            vals = vals.split()
+            if any(regexp.match(v) for v in vals):
+                vals = [float(v.replace("D","e").replace("d","e"))
+                        for v in vals]
+            if len(vals) == 1:
+                vals = vals[0]
+            self.fparameters[param] = vals
 
     def _parse_header_file(self):
         """
