@@ -1,5 +1,5 @@
 """
-Data structures for Orion. 
+Data structures for Boxlib Codes 
 
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -46,15 +46,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from .definitions import \
     orion2enzoDict, \
     parameterDict, \
-    yt2orionFieldsDict, \
-    orion_FAB_header_pattern
+    FAB_header_pattern
 from .fields import \
     OrionFieldInfo, \
     add_orion_field, \
     KnownOrionFields
 
 
-class OrionGrid(AMRGridPatch):
+class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
                  dimensions, start, stop, paranoia=False, **kwargs):
@@ -107,11 +106,11 @@ class OrionGrid(AMRGridPatch):
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
-        return "OrionGrid_%04i" % (self.id)
+        return "BoxlibGrid_%04i" % (self.id)
 
-class OrionHierarchy(AMRHierarchy):
-    grid = OrionGrid
-    def __init__(self, pf, data_style='orion_native'):
+class BoxlibHierarchy(AMRHierarchy):
+    grid = BoxlibGrid
+    def __init__(self, pf, data_style='boxlib_native'):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -122,57 +121,11 @@ class OrionHierarchy(AMRHierarchy):
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self,pf, self.data_style)
         self._populate_hierarchy()
-        self._read_particles()
+        #self._read_particles()
 
-    def _read_particles(self):
-        """
-        reads in particles and assigns them to grids. Will search for
-        Star particles, then sink particles if no star particle file
-        is found, and finally will simply note that no particles are
-        found if neither works. To add a new Orion particle type,
-        simply add it to the if/elif/else block.
-
-        """
-        self.grid_particle_count = np.zeros(len(self.grids))
-
-        for particle_filename in ["StarParticles", "SinkParticles"]:
-            fn = os.path.join(self.pf.fullplotdir, particle_filename)
-            if os.path.exists(fn): self._read_particle_file(fn)
-
-    def _read_particle_file(self, fn):
-        """actually reads the orion particle data file itself.
-
-        """
-        if not os.path.exists(fn): return
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip()[0])
-            for line in lines[1:]:
-                particle_position_x = float(line.split(' ')[1])
-                particle_position_y = float(line.split(' ')[2])
-                particle_position_z = float(line.split(' ')[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask=np.ones(self.num_grids)
-                for i in xrange(len(coord)):
-                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
-        return True
-                
     def readGlobalHeader(self,filename,paranoid_read):
         """
-        read the global header file for an Orion plotfile output.
+        read the global header file for an Boxlib plotfile output.
         """
         counter = 0
         header_file = open(filename,'r')
@@ -248,7 +201,7 @@ class OrionHierarchy(AMRHierarchy):
             counter += 1
             nsteps = int(self.__global_header_lines[counter])
             counter += 1
-            self.levels.append(OrionLevel(lev,ngrids))
+            self.levels.append(BoxlibLevel(lev,ngrids))
             # open level header, extract file names and offsets for
             # each grid
             # read slightly out of order here: at the end of the lo,hi
@@ -316,7 +269,7 @@ class OrionHierarchy(AMRHierarchy):
         """
         Cache the endianness and bytes perreal of the grids by using a
         test grid and assuming that all grids have the same
-        endianness. This is a pretty safe assumption since Orion uses
+        endianness. This is a pretty safe assumption since Boxlib uses
         one file per processor, and if you're running on a cluster
         with different endian processors, then you're on your own!
         """
@@ -326,8 +279,7 @@ class OrionHierarchy(AMRHierarchy):
         inFile.close()
         header.strip()
         
-        # parse it. the patter is in OrionDefs.py
-        headerRe = re.compile(orion_FAB_header_pattern)
+        headerRe = re.compile(FAB_header_pattern)
         bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
         self._bytesPerReal = int(bytesPerReal)
         if self._bytesPerReal == int(endian[0]):
@@ -389,7 +341,6 @@ class OrionHierarchy(AMRHierarchy):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
         AMRHierarchy._setup_classes(self, dd)
-        #self._add_object_class('grid', "OrionGrid", OrionGridBase, dd)
         self.object_types.sort()
 
     def _get_grid_children(self, grid):
@@ -431,19 +382,19 @@ class OrionHierarchy(AMRHierarchy):
         self._data_mode = None
         self._max_locations = {}
     
-class OrionLevel:
+class BoxlibLevel:
     def __init__(self,level,ngrids):
         self.level = level
         self.ngrids = ngrids
         self.grids = []
     
 
-class OrionStaticOutput(StaticOutput):
+class BoxlibStaticOutput(StaticOutput):
     """
     This class is a stripped down class that simply reads and parses
-    *filename*, without looking at the Orion hierarchy.
+    *filename*, without looking at the Boxlib hierarchy.
     """
-    _hierarchy_class = OrionHierarchy
+    _hierarchy_class = BoxlibHierarchy
     _fieldinfo_fallback = OrionFieldInfo
     _fieldinfo_known = KnownOrionFields
 
@@ -621,8 +572,6 @@ class OrionStaticOutput(StaticOutput):
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         for unit in sec_conversion.keys():
             self.time_units[unit] = 1.0 / sec_conversion[unit]
-        for key in yt2orionFieldsDict:
-            self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
         z = 0
@@ -643,3 +592,50 @@ class OrionStaticOutput(StaticOutput):
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
 
+class OrionHierarchy(BoxlibHierarchy):
+    def _read_particles(self):
+        """
+        reads in particles and assigns them to grids. Will search for
+        Star particles, then sink particles if no star particle file
+        is found, and finally will simply note that no particles are
+        found if neither works. To add a new Orion particle type,
+        simply add it to the if/elif/else block.
+
+        """
+        self.grid_particle_count = np.zeros(len(self.grids))
+
+        for particle_filename in ["StarParticles", "SinkParticles"]:
+            fn = os.path.join(self.pf.fullplotdir, particle_filename)
+            if os.path.exists(fn): self._read_particle_file(fn)
+
+    def _read_particle_file(self, fn):
+        """actually reads the orion particle data file itself.
+
+        """
+        if not os.path.exists(fn): return
+        with open(fn, 'r') as f:
+            lines = f.readlines()
+            self.num_stars = int(lines[0].strip()[0])
+            for line in lines[1:]:
+                particle_position_x = float(line.split(' ')[1])
+                particle_position_y = float(line.split(' ')[2])
+                particle_position_z = float(line.split(' ')[3])
+                coord = [particle_position_x, particle_position_y, particle_position_z]
+                # for each particle, determine which grids contain it
+                # copied from object_finding_mixin.py
+                mask=np.ones(self.num_grids)
+                for i in xrange(len(coord)):
+                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                ind = np.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = np.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
+        return True
+                

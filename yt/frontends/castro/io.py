@@ -42,17 +42,6 @@ class IOHandlerNative(BaseIOHandler):
     def modify(self, field):
         return field.swapaxes(0,2)
 
-    def _read_particle_field(self, grid, field):
-        offset = grid._particle_offset
-        filen = os.path.expanduser(grid.particle_filename)
-        off = grid._particle_offset
-        tr = np.zeros(grid.NumberOfParticles, dtype='float64')
-        read_castro_particles(filen, off,
-            castro_particle_field_names.index(field),
-            len(castro_particle_field_names),
-            tr)
-        return tr
-
     def _read_data(self, grid, field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
