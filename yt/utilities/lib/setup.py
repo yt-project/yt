@@ -116,7 +116,7 @@ def check_for_openmp():
     file = open(filename,'w', 0)
     file.write(omp_test)
     with open(os.devnull, 'w') as fnull:
-        result = subprocess.call(['cc', '-fopenmp', filename], stdout=fnull,
+        exit_code = subprocess.call(['cc', '-fopenmp', filename], stdout=fnull,
                                  stderr=fnull)
         
     file.close
@@ -124,14 +124,17 @@ def check_for_openmp():
     #clean up
     shutil.rmtree(tmpdir)
 
-    return result
+    if exit_code == 0:
+        return True
+    else:
+        return False
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
     png_inc, png_lib = check_for_png()
     freetype_inc, freetype_lib = check_for_freetype()
-    if check_for_openmp() == 0:
+    if check_for_openmp() == True:
         omp_args = ['-fopenmp']
     else:
         omp_args = None
