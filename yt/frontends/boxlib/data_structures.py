@@ -295,13 +295,6 @@ class BoxlibHierarchy(AMRHierarchy):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
 
-class BoxlibLevel:
-    def __init__(self,level,ngrids):
-        self.level = level
-        self.ngrids = ngrids
-        self.grids = []
-    
-
 class BoxlibStaticOutput(StaticOutput):
     """
     This class is a stripped down class that simply reads and parses
