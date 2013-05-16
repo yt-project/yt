@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import setuptools
-import os, sys, os.path, glob
+import os, sys, os.path, glob, \
+  tempfile, subprocess, shutil
 
 def check_for_png():
     # First up: HDF5_DIR in environment
@@ -97,11 +98,50 @@ def check_for_freetype():
     print "You can locate this by looking for the file ft2build.h"
     sys.exit(1)
 
+def check_for_openmp():
+    # Create a temporary directory
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    # Get compiler invocation
+    compiler = os.getenv('CC', 'cc')
+
+    # Attempt to compile a test script.
+    # See http://openmp.org/wp/openmp-compilers/
+    filename = r'test.c'
+    file = open(filename,'w', 0)
+    file.write(
+        "#include <omp.h>\n"
+        "#include <stdio.h>\n"
+        "int main() {\n"
+        "#pragma omp parallel\n"
+        "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
+        "}"
+        )
+    with open(os.devnull, 'w') as fnull:
+        exit_code = subprocess.call([compiler, '-fopenmp', filename],
+                                    stdout=fnull, stderr=fnull)
+        
+    # Clean up
+    file.close()
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+    if exit_code == 0:
+        return True
+    else:
+        return False
+
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
     png_inc, png_lib = check_for_png()
     freetype_inc, freetype_lib = check_for_freetype()
+    if check_for_openmp() == True:
+        omp_args = ['-fopenmp']
+    else:
+        omp_args = None
     # Because setjmp.h is included by lots of things, and because libpng hasn't
     # always properly checked its header files (see
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
@@ -129,8 +169,8 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/freetype_includes.h"])
     config.add_extension("geometry_utils", 
                 ["yt/utilities/lib/geometry_utils.pyx"],
-               extra_compile_args=['-fopenmp'],
-               extra_link_args=['-fopenmp'],
+               extra_compile_args=omp_args,
+               extra_link_args=omp_args,
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Interpolators", 
                 ["yt/utilities/lib/Interpolators.pyx"],
@@ -194,8 +234,8 @@ def configuration(parent_package='',top_path=None):
                  glob.glob("yt/utilities/lib/healpix_*.c"), 
                include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
-               extra_compile_args=['-fopenmp'],
-               extra_link_args=['-fopenmp'],
+               extra_compile_args=omp_args,
+               extra_link_args=omp_args,
                depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
                           "yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",
