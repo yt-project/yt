@@ -67,6 +67,7 @@ class AMRGridPatch(object):
         self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
+        self.filename = filename
 
     def get_global_startindex(self):
         """

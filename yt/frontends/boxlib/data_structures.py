@@ -30,6 +30,7 @@ import weakref
 from collections import defaultdict
 from string import strip, rstrip
 from stat import ST_CTIME
+import glob
 
 import numpy as np
 
@@ -42,6 +43,8 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.utilities.lib import \
+    get_box_grids_level
 
 from .definitions import \
     orion2enzoDict, \
@@ -51,221 +54,142 @@ from .fields import \
     OrionFieldInfo, \
     add_orion_field, \
     KnownOrionFields
+from .io import IOHandlerBoxlib
 
+_scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
+_file_finder = re.compile(r"FabOnDisk: (\w+_D_[0-9]{4}) (\d+)\n")
+_dim_finder = re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")
+_data_files_finder = re.compile(r"Level_[\d]/")
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
-                 dimensions, start, stop, paranoia=False, **kwargs):
-        AMRGridPatch.__init__(self, index, **kwargs)
-        self.filename = filename
+
+    def __init__(self, grid_id, offset, filename = None,
+                 hierarchy = None):
+        super(BoxlibGrid, self).__init__(grid_id, filename, hierarchy)
         self._offset = offset
-        self._paranoid = paranoia
-        
-        # should error check this
-        self.ActiveDimensions = (dimensions.copy()).astype('int32')#.transpose()
-        self.start_index = start.copy()#.transpose()
-        self.stop_index = stop.copy()#.transpose()
-        self.LeftEdge  = LeftEdge.copy()
-        self.RightEdge = RightEdge.copy()
-        self.index = index
-        self.Level = level
+        self._parent_id = []
+        self._children_ids = []
+
+    def _prepare_grid(self):
+        super(BoxlibGrid, self)._prepare_grid()
+        my_ind = self.id - self._id_offset
+        self.start_index = self.hierarchy.grid_start_index[my_ind]
 
     def get_global_startindex(self):
         return self.start_index
 
-    def _prepare_grid(self):
-        """
-        Copies all the appropriate attributes from the hierarchy
-        """
-        # This is definitely the slowest part of generating the hierarchy
-        # Now we give it pointers to all of its attributes
-        # Note that to keep in line with Enzo, we have broken PEP-8
-        h = self.hierarchy # cache it
-        #self.StartIndices = h.gridStartIndices[self.id]
-        #self.EndIndices = h.gridEndIndices[self.id]
-        h.grid_levels[self.id,0] = self.Level
-        h.grid_left_edge[self.id,:] = self.LeftEdge[:]
-        h.grid_right_edge[self.id,:] = self.RightEdge[:]
-        #self.Time = h.gridTimes[self.id,0]
-        self.NumberOfParticles = 0 # these will be read in later
-        self.field_indexes = h.field_indexes
-        self.Children = h.gridTree[self.id]
-        pIDs = h.gridReverseTree[self.id]
-        if len(pIDs) > 0:
-            self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
-        else:
-            self.Parent = None
-
     def _setup_dx(self):
         # has already been read in and stored in hierarchy
-        dx = self.hierarchy.grid_dxs[self.index][0]
-        dy = self.hierarchy.grid_dys[self.index][0]
-        dz = self.hierarchy.grid_dzs[self.index][0]
-        self.dds = np.array([dx, dy, dz])
+        my_ind = self.id - self._id_offset
+        self.dds = self.hierarchy.level_dds[self.Level,:]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
         return "BoxlibGrid_%04i" % (self.id)
 
+    @property
+    def Parent(self):
+        if len(self._parent_id) == 0:
+            return None
+        return [self.hierarchy.grids[pid - self._id_offset]
+                for pid in self._parent_id]
+
+    @property
+    def Children(self):
+        return [self.hierarchy.grids[cid - self._id_offset]
+                for cid in self._children_ids]
+
 class BoxlibHierarchy(AMRHierarchy):
     grid = BoxlibGrid
     def __init__(self, pf, data_style='boxlib_native'):
-        self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        header_filename = os.path.join(pf.fullplotdir,'Header')
-        self.directory = pf.fullpath
         self.data_style = data_style
+        self.header_filename = os.path.join(pf.fullplotdir, 'Header')
 
-        self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
-        self.__cache_endianness(self.levels[-1].grids[-1])
-        AMRHierarchy.__init__(self,pf, self.data_style)
-        self._populate_hierarchy()
+        AMRHierarchy.__init__(self, pf, data_style)
+        self._cache_endianness(self.grids[-1])
         #self._read_particles()
 
-    def readGlobalHeader(self,filename,paranoid_read):
+    def _parse_hierarchy(self):
         """
         read the global header file for an Boxlib plotfile output.
         """
-        counter = 0
-        header_file = open(filename,'r')
-        self.__global_header_lines = header_file.readlines()
+        self.max_level = self.parameter_file._max_level
+        header_file = open(self.header_filename,'r')
+        # We can now skip to the point in the file we want to start parsing at.
+        header_file.seek(self.parameter_file._header_mesh_start)
 
-        # parse the file
-        self.orion_version = self.__global_header_lines[0].rstrip()
-        self.n_fields      = int(self.__global_header_lines[1])
-
-        counter = self.n_fields+2
-        self.field_list = []
-        for i,line in enumerate(self.__global_header_lines[2:counter]):
-            self.field_list.append(line.rstrip())
-
-        # this is unused...eliminate it?
-        #for f in self.field_indexes:
-        #    self.field_list.append(orion2ytFieldsDict.get(f,f))
-
-        self.dimension = int(self.__global_header_lines[counter])
-        if self.dimension != 3:
-            raise RunTimeError("Orion must be in 3D to use yt.")
-        counter += 1
-        self.Time = float(self.__global_header_lines[counter])
-        counter += 1
-        self.finest_grid_level = int(self.__global_header_lines[counter])
-        self.n_levels = self.finest_grid_level + 1
-        counter += 1
-        # quantities with _unnecessary are also stored in the inputs
-        # file and are not needed.  they are read in and stored in
-        # case in the future we want to enable a "backwards" way of
-        # taking the data out of the Header file and using it to fill
-        # in in the case of a missing inputs file
-        self.domainLeftEdge_unnecessary = np.array(map(float,self.__global_header_lines[counter].split()))
-        counter += 1
-        self.domainRightEdge_unnecessary = np.array(map(float,self.__global_header_lines[counter].split()))
-        counter += 1
-        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split() #np.array(map(int,self.__global_header_lines[counter].split()))
-        counter += 1
-        self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
-        #domain_re.search(self.__global_header_lines[counter]).groups()
-        counter += 1
-        self.timestepsPerLevel_unnecessary = self.__global_header_lines[counter]
-        counter += 1
-        self.dx = np.zeros((self.n_levels,3))
-        for i,line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
-            self.dx[i] = np.array(map(float,line.split()))
-        counter += self.n_levels
-        self.geometry = int(self.__global_header_lines[counter])
-        if self.geometry != 0:
+        dx = []
+        for i in range(self.max_level + 1):
+            dx.append([float(v) for v in header_file.next().split()])
+        self.level_dds = np.array(dx, dtype="float64")
+        if int(header_file.next()) != 0:
             raise RunTimeError("yt only supports cartesian coordinates.")
-        counter += 1
-
-        # this is just to debug. eventually it should go away.
-        linebreak = int(self.__global_header_lines[counter])
-        if linebreak != 0:
+        if int(header_file.next()) != 0:
             raise RunTimeError("INTERNAL ERROR! This should be a zero.")
-        counter += 1
 
         # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
-        self.levels = []
+        self.grids = []
         grid_counter = 0
-        file_finder_pattern = r"FabOnDisk: (\w+_D_[0-9]{4}) (\d+)\n"
-        re_file_finder = re.compile(file_finder_pattern)
-        dim_finder_pattern = r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)\n"
-        re_dim_finder = re.compile(dim_finder_pattern)
-        data_files_pattern = r"Level_[\d]/"
-        data_files_finder = re.compile(data_files_pattern)
-
-        for level in range(0,self.n_levels):
-            tmp = self.__global_header_lines[counter].split()
+        for level in range(self.max_level + 1):
+            vals = header_file.next().split()
             # should this be grid_time or level_time??
-            lev,ngrids,grid_time = int(tmp[0]),int(tmp[1]),float(tmp[2])
-            counter += 1
-            nsteps = int(self.__global_header_lines[counter])
-            counter += 1
-            self.levels.append(BoxlibLevel(lev,ngrids))
-            # open level header, extract file names and offsets for
-            # each grid
-            # read slightly out of order here: at the end of the lo,hi
-            # pairs for x,y,z is a *list* of files types in the Level
-            # directory. each type has Header and a number of data
-            # files (one per processor)
-            tmp_offset = counter + 3*ngrids
-            nfiles = 0
-            key_off = 0
-            files =   {} # dict(map(lambda a: (a,[]),self.field_list))
-            offsets = {} # dict(map(lambda a: (a,[]),self.field_list))
-            while nfiles+tmp_offset < len(self.__global_header_lines) and data_files_finder.match(self.__global_header_lines[nfiles+tmp_offset]):
-                filen = os.path.join(self.parameter_file.fullplotdir, \
-                                     self.__global_header_lines[nfiles+tmp_offset].strip())
-                # open each "_H" header file, and get the number of
+            lev, ngrids, grid_time = int(vals[0]),int(vals[1]),float(vals[2])
+            assert(lev == level)
+            nsteps = int(header_file.next())
+            for gi in range(ngrids):
+                xlo, xhi = [float(v) for v in header_file.next().split()]
+                ylo, yhi = [float(v) for v in header_file.next().split()]
+                zlo, zhi = [float(v) for v in header_file.next().split()]
+                self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
+                self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
+            # Now we get to the level header filename, which we open and parse.
+            fn = os.path.join(self.parameter_file.fullplotdir,
+                              header_file.next().strip())
+            level_header_file = open(fn + "_H")
+            level_dir = os.path.dirname(fn)
+            # We skip the first two lines, although they probably contain
+            # useful information I don't know how to decipher.
+            level_header_file.next()
+            level_header_file.next()
+            # Now we get the number of data files
+            ncomp_this_file = int(level_header_file.next())
+            # Skip the next line, and we should get the number of grids / FABs
+            # in this file
+            level_header_file.next()
+            # To decipher this next line, we expect something like:
+            # (8 0
+            # where the first is the number of FABs in this level.
+            ngrids = int(level_header_file.next().split()[0][1:])
+            # Now we can iterate over each and get the indices.
+            for gi in range(ngrids):
                 # components within it
-                level_header_file = open(filen+'_H','r').read()
-                start_stop_index = re_dim_finder.findall(level_header_file) # just take the last one
-                grid_file_offset = re_file_finder.findall(level_header_file)
-                ncomp_this_file = int(level_header_file.split('\n')[2])
-                for i in range(ncomp_this_file):
-                    key = self.field_list[i+key_off]
-                    f,o = zip(*grid_file_offset)
-                    files[key] = f
-                    offsets[key] = o
-                    self.field_indexes[key] = i
-                key_off += ncomp_this_file
-                nfiles += 1
-            # convert dict of lists to list of dicts
-            fn = []
-            off = []
-            lead_path = os.path.join(self.parameter_file.fullplotdir,'Level_%i'%level)
-            for i in range(ngrids):
-                fi = [os.path.join(lead_path,files[key][i]) for key in self.field_list]
-                of = [int(offsets[key][i]) for key in self.field_list]
-                fn.append(dict(zip(self.field_list,fi)))
-                off.append(dict(zip(self.field_list,of)))
-
-            for grid in range(0,ngrids):
-                gfn = fn[grid]  # filename of file containing this grid
-                gfo = off[grid] # offset within that file
-                xlo,xhi = map(float,self.__global_header_lines[counter].split())
-                counter+=1
-                ylo,yhi = map(float,self.__global_header_lines[counter].split())
-                counter+=1
-                zlo,zhi = map(float,self.__global_header_lines[counter].split())
-                counter+=1
-                lo = np.array([xlo,ylo,zlo])
-                hi = np.array([xhi,yhi,zhi])
-                dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
-                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read,hierarchy=self))
-                grid_counter += 1 # this is global, and shouldn't be reset
-                                  # for each level
-
+                start, stop = _dim_finder.match(level_header_file.next()).groups()
+                start = np.array(start.split(","), dtype="int64")
+                stop = np.array(stop.split(","), dtype="int64")
+                dims = stop - start + 1
+                self.grid_dimensions[grid_counter + gi,:] = dims
+                self.grid_start_index[grid_counter + gi,:] = start
+            # Now we read two more lines.  The first of these is a close
+            # parenthesis.
+            level_header_file.next()
+            # This line I'm not 100% sure of, but it's either number of grids
+            # or number of FABfiles.
+            level_header_file.next()
+            # Now we iterate over grids to find their offsets in each file.
+            for gi in range(ngrids):
+                # Now we get the data file, at which point we're ready to
+                # create the grid.
+                dummy, filename, offset = level_header_file.next().split()
+                filename = os.path.join(level_dir, filename)
+                go = self.grid(grid_counter + gi, int(offset), filename, self)
+                go.Level = self.grid_levels[grid_counter + gi,:] = level
+                self.grids.append(go)
+            grid_counter += ngrids
             # already read the filenames above...
-            counter+=nfiles
-            self.num_grids = grid_counter
             self.float_type = 'float64'
 
-        self.maxLevel = self.n_levels - 1 
-        self.max_level = self.n_levels - 1
-        header_file.close()
-
-    def __cache_endianness(self,test_grid):
+    def _cache_endianness(self,test_grid):
         """
         Cache the endianness and bytes perreal of the grids by using a
         test grid and assuming that all grids have the same
@@ -274,7 +198,7 @@ class BoxlibHierarchy(AMRHierarchy):
         with different endian processors, then you're on your own!
         """
         # open the test file & grab the header
-        inFile = open(os.path.expanduser(test_grid.filename[self.field_list[0]]),'rb')
+        inFile = open(os.path.expanduser(test_grid.filename),'rb')
         header = inFile.readline()
         inFile.close()
         header.strip()
@@ -292,7 +216,7 @@ class BoxlibHierarchy(AMRHierarchy):
         dtype += ('f%i' % self._bytesPerReal) # always a floating point
         self._dtype = dtype
 
-    def __calculate_grid_dimensions(self,start_stop):
+    def __calculate_grid_dimensions(self, start_stop):
         start = np.array(map(int,start_stop[0].split(',')))
         stop = np.array(map(int,start_stop[1].split(',')))
         dimension = stop - start + 1
@@ -300,78 +224,57 @@ class BoxlibHierarchy(AMRHierarchy):
         
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
-        self.grids = np.concatenate([level.grids for level in self.levels])
-        self.grid_levels = np.concatenate([level.ngrids*[level.level] for level in self.levels])
-        self.grid_levels = np.array(self.grid_levels.reshape((self.num_grids,1)),dtype='int32')
-        grid_dcs = np.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
-        self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
-        self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
-        self.grid_dzs = grid_dcs[:,2].reshape((self.num_grids,1))
-        left_edges = []
-        right_edges = []
-        dims = []
-        for level in self.levels:
-            left_edges += [g.LeftEdge for g in level.grids]
-            right_edges += [g.RightEdge for g in level.grids]
-            dims += [g.ActiveDimensions for g in level.grids]
-        self.grid_left_edge = np.array(left_edges)
-        self.grid_right_edge = np.array(right_edges)
-        self.grid_dimensions = np.array(dims)
-        self.gridReverseTree = [] * self.num_grids
-        self.gridReverseTree = [ [] for i in range(self.num_grids)]
-        self.gridTree = [ [] for i in range(self.num_grids)]
-        mylog.debug("Done creating grid objects")
-
-    def _populate_hierarchy(self):
-        self.__setup_grid_tree()
-        #self._setup_grid_corners()
+        self.grids = np.array(self.grids, dtype='object')
+        self._reconstruct_parent_child()
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
             grid._setup_dx()
+        mylog.debug("Done creating grid objects")
 
-    def __setup_grid_tree(self):
+    def _reconstruct_parent_child(self):
+        mask = np.empty(len(self.grids), dtype='int32')
+        mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
-            children = self._get_grid_children(grid)
-            for child in children:
-                self.gridReverseTree[child.id].append(i)
-                self.gridTree[i].append(weakref.proxy(child))
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        dd["field_indexes"] = self.field_indexes
-        AMRHierarchy._setup_classes(self, dd)
-        self.object_types.sort()
+            get_box_grids_level(self.grid_left_edge[i,:],
+                                self.grid_right_edge[i,:],
+                                self.grid_levels[i] + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            ids = np.where(mask.astype("bool")) # where is a tuple
+            grid._children_ids = ids[0] + grid._id_offset 
+        mylog.debug("Second pass; identifying parents")
+        for i, grid in enumerate(self.grids): # Second pass
+            for child in grid.Children:
+                child._parent_id.append(i + grid._id_offset)
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         mask = np.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
-        return self.grids[mask]
+        return np.where(mask)
 
     def _count_grids(self):
-        """this is already provided in 
-
-        """
-        pass
-
+        # We can get everything from the Header file, but note that we're
+        # duplicating some work done elsewhere.  In a future where we don't
+        # pre-allocate grid arrays, this becomes unnecessary.
+        header_file = open(self.header_filename, 'r')
+        header_file.seek(self.parameter_file._header_mesh_start)
+        # Skip over the level dxs, geometry and the zero:
+        [header_file.next() for i in range(self.parameter_file._max_level + 3)]
+        # Now we need to be very careful, as we've seeked, and now we iterate.
+        # Does this work?  We are going to count the number of places that we
+        # have a three-item line.  The three items would be level, number of
+        # grids, and then grid time.
+        self.num_grids = 0
+        for line in header_file:
+            if len(line.split()) != 3: continue
+            self.num_grids += int(line.split()[1])
+        
     def _initialize_grid_arrays(self):
-        mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
-
-    def _parse_hierarchy(self):
-        pass
-    
-    def _detect_fields(self):
-        pass
-
-    def _setup_derived_fields(self):
-        pass
+        super(BoxlibHierarchy, self)._initialize_grid_arrays()
+        self.grid_start_index = np.zeros((self.num_grids,3), 'int64')
 
     def _initialize_state_variables(self):
         """override to not re-initialize num_grids in AMRHierarchy.__init__
@@ -381,7 +284,17 @@ class BoxlibHierarchy(AMRHierarchy):
         self._data_file = None
         self._data_mode = None
         self._max_locations = {}
-    
+
+    def _detect_fields(self):
+        # This is all done in _parse_header_file
+        self.field_list = self.parameter_file._field_list[:]
+        self.field_indexes = dict((f, i)
+                                for i, f in enumerate(self.field_list))
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+
 class BoxlibLevel:
     def __init__(self,level,ngrids):
         self.level = level
@@ -399,7 +312,7 @@ class BoxlibStaticOutput(StaticOutput):
     _fieldinfo_known = KnownOrionFields
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
-                 data_style='orion_native', paranoia=False,
+                 data_style='boxlib_native', paranoia=False,
                  storage_filename = None):
         """
         The paramfile is usually called "inputs"
@@ -417,7 +330,7 @@ class BoxlibStaticOutput(StaticOutput):
         self.fparameters = {}
 
         StaticOutput.__init__(self, plotname.rstrip("/"),
-                              data_style='orion_native')
+                              data_style='boxlib_native')
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
@@ -464,71 +377,59 @@ class BoxlibStaticOutput(StaticOutput):
         self.fparameter_filename = self._localize(
                 self.fparameter_filename, 'probin')
         if os.path.isfile(self.fparameter_filename):
-            self._parse_fparameter_file()
-            for param in self.fparameters:
-                if orion2enzoDict.has_key(param):
-                    self.parameters[orion2enzoDict[param]]=self.fparameters[param]
+            self._parse_probin()
         # Let's read the file
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
-        lines = open(self.parameter_filename).readlines()
-        for lineI, line in enumerate(lines):
-            if line.find("#") >= 1: # Keep the commented lines...
-                line=line[:line.find("#")]
-            line=line.strip().rstrip()
-            if len(line) < 2 or line.find("#") == 0: # ...but skip comments
-                continue
-            try:
-                param, vals = map(strip,map(rstrip,line.split("=")))
-            except ValueError:
-                mylog.error("ValueError: '%s'", line)
-                continue
-            if orion2enzoDict.has_key(param):
-                paramName = orion2enzoDict[param]
-                t = map(parameterDict[paramName], vals.split())
-                if len(t) == 1:
-                    self.parameters[paramName] = t[0]
+        for line in (line.split("#")[0].strip() for line in
+                     open(self.parameter_filename)):
+            if len(line) == 0: continue
+            param, vals = [s.strip() for s in line.split("=")]
+            if param == "amr.n_cell":
+                vals = self.domain_dimensions = np.array(vals.split(), dtype='int32')
+            elif param == "amr.ref_ratio":
+                vals = self.refine_by = int(vals[0])
+            elif param == "Prob.lo_bc":
+                vals = self.periodicity = ensure_tuple([i == 0 for i in vals.split()])
+            elif param == "castro.use_comoving":
+                vals = self.cosmological_simulation = bool(vals)
+            else:
+                # Now we guess some things about the parameter and its type
+                v = vals.split()[0] # Just in case there are multiple; we'll go
+                                    # back afterward to using vals.
+                try:
+                    float(v.upper().replace("D","E"))
+                except:
+                    pcast = str
                 else:
-                    if paramName == "RefineBy":
-                        self.parameters[paramName] = t[0]
+                    syms = (".", "D+", "D-", "E+", "E-")
+                    if any(sym in v for sym in syms for v in vals.split()):
+                        pcast = float
                     else:
-                        self.parameters[paramName] = t
-                
-            elif param.startswith("geometry.prob_hi"):
-                self.domain_right_edge = \
-                    np.array([float(i) for i in vals.split()])
-            elif param.startswith("geometry.prob_lo"):
-                self.domain_left_edge = \
-                    np.array([float(i) for i in vals.split()])
-            elif param.startswith("Prob.lo_bc"):
-                self.periodicity = ensure_tuple([i == 0 for i in vals])
-
-        self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
-        self.dimensionality = self.parameters["TopGridRank"]
-        self.domain_dimensions = np.array(self.parameters["TopGridDimensions"],dtype='int32')
-        self.refine_by = self.parameters["RefineBy"]
+                        pcast = int
+                vals = [pcast(v) for v in vals.split()]
+                if len(vals) == 1: vals = vals[0]
+            self.parameters[param] = vals
 
         if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):
             self.cosmological_simulation = 1
-            self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
-            self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
-            self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
+            self.omega_lambda = self.parameters["comoving_OmL"]
+            self.omega_matter = self.parameters["comoving_OmM"]
+            self.hubble_constant = self.parameters["comoving_h"]
             a_file = open(os.path.join(self.fullplotdir,'comoving_a'))
             line = a_file.readline().strip()
             a_file.close()
-            self.parameters["CosmologyCurrentRedshift"] = 1/float(line) - 1
-            self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
+            self.current_redshift = 1/float(line) - 1
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
-    def _parse_fparameter_file(self):
+    def _parse_probin(self):
         """
         Parses the fortran parameter file for Orion. Most of this will
         be useless, but this is where it keeps mu = mass per
         particle/m_hydrogen.
         """
-        regexp = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
         for line in (l for l in open(self.fparameter_filename) if "=" in l):
             param, vals = [v.strip() for v in line.split("=")]
             # Now, there are a couple different types of parameters.
@@ -539,29 +440,49 @@ class BoxlibStaticOutput(StaticOutput):
             # your C library doesn't include 'd' in its locale for strtod.
             # So we'll try to determine this.
             vals = vals.split()
-            if any(regexp.match(v) for v in vals):
+            if any(_scinot_finder.match(v) for v in vals):
                 vals = [float(v.replace("D","e").replace("d","e"))
                         for v in vals]
             if len(vals) == 1:
                 vals = vals[0]
-            self.fparameters[param] = vals
+            self.parameters[param] = vals
 
     def _parse_header_file(self):
         """
-        Parses the BoxLib header file to get any parameters stored
-        there. Hierarchy information is read out of this file in
-        OrionHierarchy. 
-
-        Currently, only Time is read here.
+        We parse the Boxlib header, which we use as our basis.  Anything in the
+        inputs file will override this, but the inputs file is not strictly
+        necessary for orientation of the data in space.
         """
+
+        # Note: Python uses a read-ahead buffer, so using .next(), which would
+        # be my preferred solution, won't work here.  We have to explicitly
+        # call readline() if we want to end up with an offset at the very end.
+        # Fortunately, elsewhere we don't care about the offset, so we're fine
+        # everywhere else using iteration exclusively.
         header_file = open(os.path.join(self.fullplotdir,'Header'))
-        lines = header_file.readlines()
-        header_file.close()
-        n_fields = int(lines[1])
-        self.current_time = float(lines[3+n_fields])
+        self.orion_version = header_file.readline().rstrip()
+        n_fields = int(header_file.readline())
 
+        self._field_list = [header_file.readline().strip()
+                           for i in range(n_fields)]
 
-                
+        self.dimensionality = int(header_file.readline())
+        if self.dimensionality != 3:
+            raise RunTimeError("Boxlib 1D and 2D support not currently available.")
+        self.current_time = float(header_file.readline())
+        # This is traditionally a hierarchy attribute, so we will set it, but
+        # in a slightly hidden variable.
+        self._max_level = int(header_file.readline()) 
+        self.domain_left_edge = np.array(header_file.readline().split(),
+                                         dtype="float64")
+        self.domain_right_edge = np.array(header_file.readline().split(),
+                                         dtype="float64")
+        self.refine_by = int(header_file.readline())
+        # We now skip over global index space and timesteps per level
+        for i in range(2):
+            header_file.readline()
+        self._header_mesh_start = header_file.tell()
+
     def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file

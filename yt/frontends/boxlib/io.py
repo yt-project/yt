@@ -26,15 +26,13 @@ License:
 
 import os
 import numpy as np
+from yt.utilities.lib import read_castro_particles, read_and_seek
 from yt.utilities.io_handler import \
            BaseIOHandler
 
-from definitions import \
-    yt2orionFieldsDict
-
 class IOHandlerBoxlib(BaseIOHandler):
 
-    _data_style = "boxlib_base"
+    _data_style = "boxlib_native"
 
     def modify(self, field):
         return field.swapaxes(0,2)
@@ -42,84 +40,27 @@ class IOHandlerBoxlib(BaseIOHandler):
         def read(line, field):
             return float(line.split(' ')[index[field]])
 
-    def _read_data(self,grid,field):
+    def _read_data(self, grid, field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
 
         """
 
-        filen = os.path.expanduser(grid.filename[field])
-        off = grid._offset[field]
-        inFile = open(filen,'rb')
-        inFile.seek(off)
-        header = inFile.readline()
-        header.strip()
+        filen = os.path.expanduser(grid.filename)
+        offset1 = grid._offset
+        # one field has nElements * bytesPerReal bytes and is located
+        # nElements * bytesPerReal * field_index from the offset location
+        bytesPerReal = grid.hierarchy._bytesPerReal
 
-        if grid._paranoid:
-            mylog.warn("Orion Native reader: Paranoid read mode.")
-            headerRe = re.compile(orion_FAB_header_pattern)
-            bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
-
-            # we will build up a dtype string, starting with endian
-            # check endianness (this code is ugly. fix?)
-            bytesPerReal = int(bytesPerReal)
-            if bytesPerReal == int(endian[0]):
-                dtype = '<'
-            elif bytesPerReal == int(endian[-1]):
-                dtype = '>'
-            else:
-                raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
-
-            dtype += ('f%i'% bytesPerReal) #always a floating point
-
-            # determine size of FAB
-            start = np.array(map(int,start.split(',')))
-            stop = np.array(map(int,stop.split(',')))
-
-            gridSize = stop - start + 1
-
-            error_count = 0
-            if (start != grid.start).any():
-                print "Paranoia Error: Cell_H and %s do not agree on grid start." %grid.filename
-                error_count += 1
-            if (stop != grid.stop).any():
-                print "Paranoia Error: Cell_H and %s do not agree on grid stop." %grid.filename
-                error_count += 1
-            if (gridSize != grid.ActiveDimensions).any():
-                print "Paranoia Error: Cell_H and %s do not agree on grid dimensions." %grid.filename
-                error_count += 1
-            if bytesPerReal != grid.hierarchy._bytesPerReal:
-                print "Paranoia Error: Cell_H and %s do not agree on bytes per real number." %grid.filename
-                error_count += 1
-            if (bytesPerReal == grid.hierarchy._bytesPerReal and dtype != grid.hierarchy._dtype):
-                print "Paranoia Error: Cell_H and %s do not agree on endianness." %grid.filename
-                error_count += 1
-
-            if error_count > 0:
-                raise RunTimeError("Paranoia unveiled %i differences between Cell_H and %s." % (error_count, grid.filename))
-
-        else:
-            start = grid.start_index
-            stop = grid.stop_index
-            dtype = grid.hierarchy._dtype
-            bytesPerReal = grid.hierarchy._bytesPerReal
-
+        field_index = grid.hierarchy.field_indexes[field]
         nElements = grid.ActiveDimensions.prod()
+        offset2 = int(nElements*bytesPerReal*field_index)
 
-        # one field has nElements*bytesPerReal bytes and is located
-        # nElements*bytesPerReal*field_index from the offset location
-        if yt2orionFieldsDict.has_key(field):
-            fieldname = yt2orionFieldsDict[field]
-        else:
-            fieldname = field
-        field_index = grid.field_indexes[fieldname]
-        inFile.seek(int(nElements*bytesPerReal*field_index),1)
-        field = np.fromfile(inFile,count=nElements,dtype=dtype)
+        dtype = grid.hierarchy._dtype
+        field = np.empty(nElements, dtype=grid.hierarchy._dtype)
+        read_and_seek(filen, offset1, offset2, field, nElements * bytesPerReal)
         field = field.reshape(grid.ActiveDimensions, order='F')
 
-        # we can/should also check against the max and min in the header file
-
-        inFile.close()
         return field
 
 class IOHandlerOrion(IOHandlerBoxlib):
