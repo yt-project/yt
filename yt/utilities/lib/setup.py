@@ -105,9 +105,7 @@ def check_for_openmp():
     os.chdir(tmpdir)
 
     # Get compiler invocation
-    compiler = os.getenv("CC")
-    if compiler == None:
-        compiler = 'cc'
+    compiler = os.getenv('CC', 'cc')
 
     # Attempt to compile a test script.
     # See http://openmp.org/wp/openmp-compilers/
