@@ -57,6 +57,7 @@ from .fields import \
 from .io import IOHandlerBoxlib
 
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
+_dim_finder = re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
