@@ -57,9 +57,6 @@ from .fields import \
 from .io import IOHandlerBoxlib
 
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
-_file_finder = re.compile(r"FabOnDisk: (\w+_D_[0-9]{4}) (\d+)\n")
-_dim_finder = re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")
-_data_files_finder = re.compile(r"Level_[\d]/")
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
