@@ -4080,7 +4080,7 @@ class AMRBooleanRegionBase(AMR3DData):
             if region in ["OR", "AND", "NOT", "(", ")"]:
                 s += region
             else:
-                s += region.__repr__(clean = True)
+                s += region.__repr__()
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
