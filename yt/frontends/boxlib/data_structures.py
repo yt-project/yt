@@ -225,12 +225,6 @@ class BoxlibHierarchy(AMRHierarchy):
         mylog.debug("FAB header suggests dtype of %s", dtype)
         self._dtype = np.dtype(dtype)
 
-    def __calculate_grid_dimensions(self, start_stop):
-        start = np.array(map(int,start_stop[0].split(',')))
-        stop = np.array(map(int,start_stop[1].split(',')))
-        dimension = stop - start + 1
-        return dimension,start,stop
-        
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
         self.grids = np.array(self.grids, dtype='object')
