@@ -65,6 +65,8 @@ _header_pattern = re.compile(r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), " +
                              r"\(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) " +
                              "\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n")
 
+
+
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
 
@@ -108,7 +110,7 @@ class BoxlibHierarchy(AMRHierarchy):
     grid = BoxlibGrid
     def __init__(self, pf, data_style='boxlib_native'):
         self.data_style = data_style
-        self.header_filename = os.path.join(pf.fullplotdir, 'Header')
+        self.header_filename = os.path.join(pf.output_dir, 'Header')
 
         AMRHierarchy.__init__(self, pf, data_style)
         self._cache_endianness(self.grids[-1])
@@ -148,7 +150,7 @@ class BoxlibHierarchy(AMRHierarchy):
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
-            fn = os.path.join(self.parameter_file.fullplotdir,
+            fn = os.path.join(self.parameter_file.output_dir,
                               header_file.next().strip())
             level_header_file = open(fn + "_H")
             level_dir = os.path.dirname(fn)
@@ -310,9 +312,12 @@ class BoxlibStaticOutput(StaticOutput):
     _hierarchy_class = BoxlibHierarchy
     _fieldinfo_fallback = OrionFieldInfo
     _fieldinfo_known = KnownOrionFields
+    _output_prefix = None
 
-    def __init__(self, plotname, paramFilename=None, fparamFilename=None,
-                 data_style='boxlib_native', paranoia=False,
+    def __init__(self, output_dir,
+                 cparam_filename = "inputs",
+                 fparam_filename = "probin",
+                 data_style='boxlib_native',
                  storage_filename = None):
         """
         The paramfile is usually called "inputs"
@@ -321,65 +326,64 @@ class BoxlibStaticOutput(StaticOutput):
         as per BoxLib, data_style will be Native (implemented here), IEEE (not
         yet implemented) or ASCII (not yet implemented.)
         """
+        self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
+        self.cparam_filename = self._localize_check(cparam_filename)
+        self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
-        self.paranoid_read = paranoia
-        self.parameter_filename = paramFilename
-        self.fparameter_filename = fparamFilename
-        self.__ipfn = paramFilename
 
-        StaticOutput.__init__(self, plotname.rstrip("/"),
-                              data_style='boxlib_native')
+        StaticOutput.__init__(self, output_dir, data_style='boxlib_native')
 
-        # These should maybe not be hardcoded?
+        # These are still used in a few places.
         self.parameters["HydroMethod"] = 'boxlib'
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["EOSType"] = -1 # default
 
-    def _localize(self, f, default):
-        if f is None:
-            return os.path.join(self.directory, default)
-        return f
+    def _localize_check(self, fn):
+        # If the file exists, use it.  If not, set it to None.
+        full_fn = os.path.join(self.output_dir, fn)
+        if os.path.exists(full_fn):
+            return full_fn
+        return None
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
-        pname = args[0].rstrip("/")
-        dn = os.path.dirname(pname)
-        if len(args) > 1: kwargs['paramFilename'] = args[1]
-        pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
+        output_dir = args[0]
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        args = inspect.getcallargs(cls.__init__, args, kwargs)
+        # This might need to be localized somehow
+        inputs_filename = os.path.join(
+                            os.path.dirname(os.path.abspath(output_dir)),
+                            args['cparam_filename'])
+        if not os.path.exists(inputs_filename) and \
+           not os.path.exists(jobinfo_filename):
+            return True # We have no parameters to go off of
+        # If we do have either inputs or jobinfo, we should be deferring to a
+        # different frontend.
+        return False
 
-        # We check for the job_info file's existence because this is currently
-        # what distinguishes Orion data from MAESTRO data.
-        pfn = os.path.join(pfname)
-        if not os.path.exists(pfn): return False
-        castro = any(("castro." in line for line in open(pfn)))
-        nyx = any(("nyx." in line for line in open(pfn)))
-        maestro = os.path.exists(os.path.join(pname, "job_info"))
-        really_orion = any(("geometry.prob_lo" in line for line in open(pfn)))
-        orion = (not castro) and (not maestro) and (not nyx) and really_orion
-        return orion
-        
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
         dictionaries.
         """
-        self.fullplotdir = os.path.abspath(self.parameter_filename)
         self._parse_header_file()
-        self.parameter_filename = self._localize(
-                self.__ipfn, 'inputs')
-        self.fparameter_filename = self._localize(
-                self.fparameter_filename, 'probin')
-        if os.path.isfile(self.fparameter_filename):
-            self._parse_probin()
         # Let's read the file
-        hfn = os.path.join(self.fullplotdir, 'Header')
+        hfn = os.path.join(self.output_dir, 'Header')
         self.unique_identifier = int(os.stat(hfn)[ST_CTIME])
         # the 'inputs' file is now optional
-        if not os.path.exists(self.parameter_filename):
+        self._parse_cparams()
+        self._parse_fparams()
+
+    def _parse_cparams(self):
+        if self.cparam_filename is None:
             return
         for line in (line.split("#")[0].strip() for line in
-                     open(self.parameter_filename)):
+                     open(self.cparam_filename)):
             if len(line) == 0: continue
             param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
@@ -389,7 +393,7 @@ class BoxlibStaticOutput(StaticOutput):
             elif param == "Prob.lo_bc":
                 vals = self.periodicity = ensure_tuple([i == 0 for i in vals.split()])
             elif param == "castro.use_comoving":
-                vals = self.cosmological_simulation = bool(vals)
+                vals = self.cosmological_simulation = int(vals)
             else:
                 # Now we guess some things about the parameter and its type
                 v = vals.split()[0] # Just in case there are multiple; we'll go
@@ -408,12 +412,11 @@ class BoxlibStaticOutput(StaticOutput):
                 if len(vals) == 1: vals = vals[0]
             self.parameters[param] = vals
 
-        if self.parameters.has_key("ComovingCoordinates") and bool(self.parameters["ComovingCoordinates"]):
-            self.cosmological_simulation = 1
+        if self.cosmological_simulation == 1:
             self.omega_lambda = self.parameters["comoving_OmL"]
             self.omega_matter = self.parameters["comoving_OmM"]
             self.hubble_constant = self.parameters["comoving_h"]
-            a_file = open(os.path.join(self.fullplotdir,'comoving_a'))
+            a_file = open(os.path.join(self.output_dir,'comoving_a'))
             line = a_file.readline().strip()
             a_file.close()
             self.current_redshift = 1/float(line) - 1
@@ -421,13 +424,15 @@ class BoxlibStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
-    def _parse_probin(self):
+    def _parse_fparams(self):
         """
         Parses the fortran parameter file for Orion. Most of this will
         be useless, but this is where it keeps mu = mass per
         particle/m_hydrogen.
         """
-        for line in (l for l in open(self.fparameter_filename) if "=" in l):
+        if self.fparam_filename is None:
+            return
+        for line in (l for l in open(self.fparam_filename) if "=" in l):
             param, vals = [v.strip() for v in line.split("=")]
             # Now, there are a couple different types of parameters.
             # Some will be where you only have floating point values, others
@@ -456,7 +461,7 @@ class BoxlibStaticOutput(StaticOutput):
         # call readline() if we want to end up with an offset at the very end.
         # Fortunately, elsewhere we don't care about the offset, so we're fine
         # everywhere else using iteration exclusively.
-        header_file = open(os.path.join(self.fullplotdir,'Header'))
+        header_file = open(os.path.join(self.output_dir,'Header'))
         self.orion_version = header_file.readline().rstrip()
         n_fields = int(header_file.readline())
 
@@ -533,6 +538,33 @@ class BoxlibStaticOutput(StaticOutput):
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
 
+class OrionStaticOutput(BoxlibStaticOutput):
+    
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args
+        output_dir = args[0]
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        args = inspect.getcallargs(cls.__init__, args, kwargs)
+        # This might need to be localized somehow
+        inputs_filename = os.path.join(
+                            os.path.dirname(os.path.abspath(output_dir)),
+                            args['cparam_filename'])
+        if not os.path.exists(inputs_filename):
+            return False
+        if os.path.exists(jobinfo_filename):
+            return False
+        # Now we check for all the others
+        lines = open(inputs_filename).readlines()
+        if any(("castro." in line for line in lines)): return False
+        if any(("nyx." in line for line in lines)): return False
+        if any(("geometry.prob_lo" in line for line in lines)): return True
+        return False
+
 class OrionHierarchy(BoxlibHierarchy):
     def _read_particles(self):
         """
@@ -546,7 +578,7 @@ class OrionHierarchy(BoxlibHierarchy):
         self.grid_particle_count = np.zeros(len(self.grids))
 
         for particle_filename in ["StarParticles", "SinkParticles"]:
-            fn = os.path.join(self.pf.fullplotdir, particle_filename)
+            fn = os.path.join(self.pf.output_dir, particle_filename)
             if os.path.exists(fn): self._read_particle_file(fn)
 
     def _read_particle_file(self, fn):
@@ -580,3 +612,24 @@ class OrionHierarchy(BoxlibHierarchy):
                     self.grids[ind].NumberOfParticles += 1
         return True
                 
+
+class CastroStaticOutput(BoxlibStaticOutput):
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args
+        output_dir = args[0]
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        args = inspect.getcallargs(cls.__init__, args, kwargs)
+        # This might need to be localized somehow
+        if not os.path.exists(jobinfo_filename):
+            return False
+        # Now we check for all the others
+        lines = open(jobinfo_filename).readlines()
+        if any(line.startswith("Castro   ") for line in lines): return True
+        return False
+
