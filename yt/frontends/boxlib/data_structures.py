@@ -61,7 +61,7 @@ _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
 _dim_finder = re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")
 # This is the line that prefixes each set of data for a FAB in the FAB file
-_header_pattern = re.compile(r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, " +
+_header_pattern = re.compile(r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), " +
                              r"\(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) " +
                              "\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n")
 
@@ -207,6 +207,12 @@ class BoxlibHierarchy(AMRHierarchy):
         
         bpr, endian, start, stop, centering, nc = \
             _header_pattern.search(header).groups()
+        # Note that previously we were using a different value for BPR than we
+        # use now.  Here is an example set of information directly from BoxLib:
+        #  * DOUBLE data
+        #  * FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (1 2 3 4 5 6 7 8)))((0,0) (63,63) (0,0)) 27
+        #  * FLOAT data
+        #  * FAB ((8, (32 8 23 0 1 9 0 127)),(4, (1 2 3 4)))((0,0) (63,63) (0,0)) 27
         if bpr == endian[0]:
             dtype = '<f%s' % bpr
         elif bpr == endian[-1]:
@@ -321,19 +327,13 @@ class BoxlibStaticOutput(StaticOutput):
         self.fparameter_filename = fparamFilename
         self.__ipfn = paramFilename
 
-        self.fparameters = {}
-
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='boxlib_native')
 
         # These should maybe not be hardcoded?
-        self.parameters["HydroMethod"] = 'orion' # always PPM DE
+        self.parameters["HydroMethod"] = 'boxlib'
         self.parameters["Time"] = 1. # default unit is 1...
-        self.parameters["DualEnergyFormalism"] = 0 # always off.
         self.parameters["EOSType"] = -1 # default
-
-        if self.fparameters.has_key("mu"):
-            self.parameters["mu"] = self.fparameters["mu"]
 
     def _localize(self, f, default):
         if f is None:
