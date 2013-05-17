@@ -111,6 +111,7 @@ class BoxlibHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style='boxlib_native'):
         self.data_style = data_style
         self.header_filename = os.path.join(pf.output_dir, 'Header')
+        self.directory = pf.output_dir
 
         AMRHierarchy.__init__(self, pf, data_style)
         self._cache_endianness(self.grids[-1])
@@ -193,7 +194,7 @@ class BoxlibHierarchy(AMRHierarchy):
                 self.grids.append(go)
             grid_counter += ngrids
             # already read the filenames above...
-            self.float_type = 'float64'
+        self.float_type = 'float64'
 
     def _cache_endianness(self,test_grid):
         """
@@ -399,7 +400,7 @@ class BoxlibStaticOutput(StaticOutput):
                     pcast = str
                 else:
                     syms = (".", "D+", "D-", "E+", "E-")
-                    if any(sym in v for sym in syms for v in vals.split()):
+                    if any(sym in v.upper() for sym in syms for v in vals.split()):
                         pcast = float
                     else:
                         pcast = int
