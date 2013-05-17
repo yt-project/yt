@@ -340,7 +340,8 @@ class BoxlibStaticOutput(StaticOutput):
 
     def _localize_check(self, fn):
         # If the file exists, use it.  If not, set it to None.
-        full_fn = os.path.join(self.output_dir, fn)
+        root_dir = os.path.dirname(self.output_dir)
+        full_fn = os.path.join(root_dir, fn)
         if os.path.exists(full_fn):
             return full_fn
         return None
@@ -412,7 +413,7 @@ class BoxlibStaticOutput(StaticOutput):
                 if len(vals) == 1: vals = vals[0]
             self.parameters[param] = vals
 
-        if self.cosmological_simulation == 1:
+        if getattr(self, "cosmological_simulation", 0) == 1:
             self.omega_lambda = self.parameters["comoving_OmL"]
             self.omega_matter = self.parameters["comoving_OmM"]
             self.hubble_constant = self.parameters["comoving_h"]
@@ -626,10 +627,41 @@ class CastroStaticOutput(BoxlibStaticOutput):
             return False
         args = inspect.getcallargs(cls.__init__, args, kwargs)
         # This might need to be localized somehow
+        fparam_filename = os.path.join(
+                            os.path.dirname(os.path.abspath(output_dir)),
+                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
+            return False
+        if os.path.exists(fparam_filename):
             return False
         # Now we check for all the others
         lines = open(jobinfo_filename).readlines()
+        if any(line.startswith("Castro   ") for line in lines): return True
+        return False
+
+class MaestroStaticOutput(BoxlibStaticOutput):
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args
+        output_dir = args[0]
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        args = inspect.getcallargs(cls.__init__, args, kwargs)
+        # This might need to be localized somehow
+        fparam_filename = os.path.join(
+                            os.path.dirname(os.path.abspath(output_dir)),
+                            args['fparam_filename'])
+        if not os.path.exists(jobinfo_filename):
+            return False
+        if not os.path.exists(fparam_filename):
+            return False
+        # Now we check for all the others
+        lines = open(jobinfo_filename).readlines()
+        # Maestro outputs have "Castro" in them
         if any(line.startswith("Castro   ") for line in lines): return True
         return False
 
