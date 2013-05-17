@@ -370,8 +370,11 @@ class BoxlibStaticOutput(StaticOutput):
         if os.path.isfile(self.fparameter_filename):
             self._parse_probin()
         # Let's read the file
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
+        hfn = os.path.join(self.fullplotdir, 'Header')
+        self.unique_identifier = int(os.stat(hfn)[ST_CTIME])
+        # the 'inputs' file is now optional
+        if not os.path.exists(self.parameter_filename):
+            return
         for line in (line.split("#")[0].strip() for line in
                      open(self.parameter_filename)):
             if len(line) == 0: continue
@@ -468,10 +471,30 @@ class BoxlibStaticOutput(StaticOutput):
                                          dtype="float64")
         self.domain_right_edge = np.array(header_file.readline().split(),
                                          dtype="float64")
-        self.refine_by = int(header_file.readline())
-        # We now skip over global index space and timesteps per level
-        for i in range(2):
-            header_file.readline()
+        ref_factors = np.array([int(i) for i in
+                                header_file.readline().split()])
+        if ref_factors.size == 0:
+            # We use a default of two, as Nyx doesn't always output this value
+            ref_factors = [2]
+        # We can't vary refinement factors based on dimension, or whatever else
+        # they are vaied on.  In one curious thing, I found that some Castro 3D
+        # data has only two refinement factors, which I don't know how to
+        # understand.
+        assert(np.unique(ref_factors).size == 1)
+        self.refine_by = ref_factors[0]
+        # Now we read the global index space, to get 
+        index_space = header_file.readline()
+        # This will be of the form:
+        #  ((0,0,0) (255,255,255) (0,0,0)) ((0,0,0) (511,511,511) (0,0,0))
+        # So note that if we split it all up based on spaces, we should be
+        # fine, as long as we take the first two entries, which correspond to
+        # the root level.  I'm not 100% pleased with this solution.
+        root_space = index_space.replace("(","").replace(")","").split()[:2]
+        start = np.array(root_space[0].split(","), dtype="int64")
+        stop = np.array(root_space[1].split(","), dtype="int64")
+        self.domain_dimensions = stop - start + 1
+        # Skip timesteps per level
+        header_file.readline()
         self._header_mesh_start = header_file.tell()
 
     def _set_units(self):
@@ -480,8 +503,6 @@ class BoxlibStaticOutput(StaticOutput):
         """
         self.units = {}
         self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
         self._setup_nounits_units()
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
