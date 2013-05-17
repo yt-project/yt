@@ -29,6 +29,7 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
     km_per_cm, \
     pc_per_mpc, \
+    km_per_pc, \
     speed_of_light_cgs
 
 c_kms = speed_of_light_cgs * km_per_cm # c in km/s
