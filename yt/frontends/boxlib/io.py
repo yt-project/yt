@@ -81,7 +81,10 @@ class IOHandlerOrion(IOHandlerBoxlib):
                  'particle_burnstate': 14,
                  'particle_id': 15}
 
-        fn = grid.pf.fullplotdir + "/StarParticles"
+        def read(line, field):
+            return float(line.split(' ')[index[field]])
+
+        fn = grid.pf.output_dir + "/StarParticles"
         with open(fn, 'r') as f:
             lines = f.readlines()
             particles = []

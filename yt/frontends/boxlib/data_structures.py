@@ -326,7 +326,7 @@ class BoxlibStaticOutput(StaticOutput):
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, output_dir, data_style='boxlib_native')
+        StaticOutput.__init__(self, output_dir, data_style)
 
         # These are still used in a few places.
         self.parameters["HydroMethod"] = 'boxlib'
@@ -534,34 +534,13 @@ class BoxlibStaticOutput(StaticOutput):
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
 
-class OrionStaticOutput(BoxlibStaticOutput):
-    
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        # fill our args
-        output_dir = args[0]
-        header_filename = os.path.join(output_dir, "Header")
-        jobinfo_filename = os.path.join(output_dir, "job_info")
-        if not os.path.exists(header_filename):
-            # We *know* it's not boxlib if Header doesn't exist.
-            return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        inputs_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['cparam_filename'])
-        if not os.path.exists(inputs_filename):
-            return False
-        if os.path.exists(jobinfo_filename):
-            return False
-        # Now we check for all the others
-        lines = open(inputs_filename).readlines()
-        if any(("castro." in line for line in lines)): return False
-        if any(("nyx." in line for line in lines)): return False
-        if any(("geometry.prob_lo" in line for line in lines)): return True
-        return False
-
 class OrionHierarchy(BoxlibHierarchy):
+    
+    def __init__(self, pf, data_style='orion_native'):
+        BoxlibHierarchy.__init__(self, pf, data_style)
+        self._read_particles()
+        #self.io = IOHandlerOrion
+
     def _read_particles(self):
         """
         reads in particles and assigns them to grids. Will search for
@@ -608,6 +587,43 @@ class OrionHierarchy(BoxlibHierarchy):
                     self.grids[ind].NumberOfParticles += 1
         return True
                 
+class OrionStaticOutput(BoxlibStaticOutput):
+
+    _hierarchy_class = OrionHierarchy
+
+    def __init__(self, output_dir,
+                 cparam_filename = "inputs",
+                 fparam_filename = "probin",
+                 data_style='orion_native',
+                 storage_filename = None):
+
+        BoxlibStaticOutput.__init__(self, output_dir,
+                 cparam_filename, fparam_filename, data_style)
+          
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args                                                                               
+        output_dir = args[0]
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.                                      
+            return False
+        args = inspect.getcallargs(cls.__init__, args, kwargs)
+        # This might need to be localized somehow                                                     
+        inputs_filename = os.path.join(
+                            os.path.dirname(os.path.abspath(output_dir)),
+                            args['cparam_filename'])
+        if not os.path.exists(inputs_filename):
+            return False
+        if os.path.exists(jobinfo_filename):
+            return False
+        # Now we check for all the others                                                             
+        lines = open(inputs_filename).readlines()
+        if any(("castro." in line for line in lines)): return False
+        if any(("nyx." in line for line in lines)): return False
+        if any(("geometry.prob_lo" in line for line in lines)): return True
+        return False
 
 class CastroStaticOutput(BoxlibStaticOutput):
 
