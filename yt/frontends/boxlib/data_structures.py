@@ -48,16 +48,22 @@ from yt.utilities.lib import \
 
 from .definitions import \
     orion2enzoDict, \
-    parameterDict, \
-    FAB_header_pattern
+    parameterDict
 from .fields import \
     OrionFieldInfo, \
     add_orion_field, \
     KnownOrionFields
 from .io import IOHandlerBoxlib
 
+# This is what we use to find scientific notation that might include d's
+# instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
+# This is the dimensions in the Cell_H file for each level
 _dim_finder = re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")
+# This is the line that prefixes each set of data for a FAB in the FAB file
+_header_pattern = re.compile(r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, " +
+                             r"\(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) " +
+                             "\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n")
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
@@ -196,23 +202,20 @@ class BoxlibHierarchy(AMRHierarchy):
         with different endian processors, then you're on your own!
         """
         # open the test file & grab the header
-        inFile = open(os.path.expanduser(test_grid.filename),'rb')
-        header = inFile.readline()
-        inFile.close()
-        header.strip()
+        with open(os.path.expanduser(test_grid.filename), 'rb') as f:
+            header = f.readline()
         
-        headerRe = re.compile(FAB_header_pattern)
-        bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
-        self._bytesPerReal = int(bytesPerReal)
-        if self._bytesPerReal == int(endian[0]):
-            dtype = '<'
-        elif self._bytesPerReal == int(endian[-1]):
-            dtype = '>'
+        bpr, endian, start, stop, centering, nc = \
+            _header_pattern.search(header).groups()
+        if bpr == endian[0]:
+            dtype = '<f%s' % bpr
+        elif bpr == endian[-1]:
+            dtype = '>f%s' % bpr
         else:
             raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
 
-        dtype += ('f%i' % self._bytesPerReal) # always a floating point
-        self._dtype = dtype
+        mylog.debug("FAB header suggests dtype of %s", dtype)
+        self._dtype = np.dtype(dtype)
 
     def __calculate_grid_dimensions(self, start_stop):
         start = np.array(map(int,start_stop[0].split(',')))

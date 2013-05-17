@@ -71,4 +71,3 @@ orion2enzoDict = {"amr.n_cell": "TopGridDimensions",
                   "comoving_h": "CosmologyHubbleConstantNow"
                   }
 
-FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"

@@ -37,9 +37,6 @@ class IOHandlerBoxlib(BaseIOHandler):
     def modify(self, field):
         return field.swapaxes(0,2)
 
-        def read(line, field):
-            return float(line.split(' ')[index[field]])
-
     def _read_data(self, grid, field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
@@ -48,18 +45,14 @@ class IOHandlerBoxlib(BaseIOHandler):
 
         filen = os.path.expanduser(grid.filename)
         offset1 = grid._offset
-        # one field has nElements * bytesPerReal bytes and is located
-        # nElements * bytesPerReal * field_index from the offset location
-        bytesPerReal = grid.hierarchy._bytesPerReal
-
-        field_index = grid.hierarchy.field_indexes[field]
-        nElements = grid.ActiveDimensions.prod()
-        offset2 = int(nElements*bytesPerReal*field_index)
-
         dtype = grid.hierarchy._dtype
-        field = np.empty(nElements, dtype=grid.hierarchy._dtype)
-        read_and_seek(filen, offset1, offset2, field, nElements * bytesPerReal)
-        field = field.reshape(grid.ActiveDimensions, order='F')
+        bpr = grid.hierarchy._dtype.itemsize
+        ne = grid.ActiveDimensions.prod()
+        field_index = grid.hierarchy.field_indexes[field]
+        offset2 = int(ne*bpr*field_index)
+
+        field = np.empty(grid.ActiveDimensions, dtype=dtype, order='F')
+        read_and_seek(filen, offset1, offset2, field, ne * bpr)
 
         return field
 
