@@ -60,8 +60,8 @@ from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
-    axis_names, \
-    axis_labels
+    axis_names, axis_labels, \
+    formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -891,6 +891,8 @@ class PWViewerMPL(PWViewer):
 
             axes_unit_labels = ['', '']
             for i, un in enumerate((unit_x, unit_y)):
+                if un in formatted_length_unit_names:
+                    un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
                     axes_unit_labels[i] = '\/\/('+un+')'
 

@@ -58,6 +58,11 @@ mpc_conversion = {'Mpc'   : mpc_per_mpc,
                   'km'    : km_per_mpc,
                   'cm'    : cm_per_mpc}
 
+# Nicely formatted versions of common length units
+formatted_length_unit_names = {'mpc'     : 'Mpc',
+                               'au'      : 'AU',
+                               'rsun'    : 'R_\odot'}
+
 # How many seconds are in each thing
 sec_conversion = {'Gyr'   : sec_per_Gyr,
                   'Myr'   : sec_per_Myr,
