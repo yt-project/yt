@@ -7,7 +7,7 @@ Author: Nathan Goldbaum <goldbaum@ucolick.org>
 Affiliation: UCSC Astronomy
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2010-2013 J. S. Oishi., Nathan Goldbaum  All Rights Reserved.
 
   This file is part of yt.
 
@@ -886,9 +886,6 @@ class PWViewerMPL(PWViewer):
                                           self._colormaps[f], extent, aspect,
                                           zlim, size, fp.get_size())
 
-            self.plots[f].cb = self.plots[f].figure.colorbar(
-                self.plots[f].image, cax = self.plots[f].cax)
-
             axes_unit_labels = ['', '']
             for i, un in enumerate((unit_x, unit_y)):
                 if un in formatted_length_unit_names:
@@ -1760,6 +1757,10 @@ class WindowPlotMPL(ImagePlotMPL):
         ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
+        if cbname == 'linear':
+            self.cb.formatter.set_scientific(True)
+            self.cb.formatter.set_powerlimits((-2,3))
+            self.cb.update_ticks()
 
     def _get_best_layout(self, size, fontsize=18):
         aspect = 1.0*size[0]/size[1]
