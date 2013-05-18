@@ -165,7 +165,7 @@ class StaticOutput(object):
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
-        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'cm']:
+        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
             vv = v*self[unit]
             if vv < max_nu and vv > 1.0:
                 good_u = unit
