@@ -608,6 +608,6 @@ def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
     if not my_dir:
-        my_dir = os.getcwd()
+        return
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
