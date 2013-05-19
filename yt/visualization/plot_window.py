@@ -919,7 +919,10 @@ class PWViewerMPL(PWViewer):
 
             self.plots[f].cb.set_label(colorbar_label, fontproperties=fp)
 
-            for label in self.plots[f].cb.ax.get_yticklabels():
+            for label in (self.plots[f].cb.ax.get_xticklabels() +
+                          self.plots[f].cb.ax.get_yticklabels() +
+                          [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
+                           self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
 
             self.run_callbacks(f)
