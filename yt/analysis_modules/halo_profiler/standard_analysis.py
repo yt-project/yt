@@ -68,8 +68,10 @@ class StandardRadialAnalysis(object):
         self.prof = prof
 
     def plot_everything(self, dirname = None):
-        if dirname is None: dirname = "%s_profile_plots/" % (self.pf)
-        if not os.path.isdir(dirname): os.makedirs(dirname)
+        if not dirname:
+            dirname = "%s_profile_plots/" % (self.pf)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
         import matplotlib; matplotlib.use("Agg")
         import pylab
         for field in self.prof.keys():

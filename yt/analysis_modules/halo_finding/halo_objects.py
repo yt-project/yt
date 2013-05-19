@@ -2009,13 +2009,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
-        # if path denoted in filename, assure path exists
-        my_dir = os.path.dirname(filename)
-        if not os.path.exists(my_dir):
-            only_on_root(os.makedirs, my_dir)
-
+        ensure_dir_exists(filename)
         f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f, ellipsoid_data)
+
 
     def write_particle_lists_txt(self, prefix):
         r"""Write out the names of the HDF5 files containing halo particle data
@@ -2033,13 +2030,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
-        # if path denoted in prefix, assure path exists
-        my_dir = os.path.dirname(prefix)
-        if not os.path.exists(my_dir):
-            only_on_root(os.makedirs, my_dir)
-
+        ensure_dir_exists(prefix)
         f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
+
 
     @parallel_blocking_call
     def write_particle_lists(self, prefix):
@@ -2061,11 +2055,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
-        # if path denoted in prefix, assure path exists
-        my_dir = os.path.dirname(prefix)
-        if not os.path.exists(my_dir):
-            only_on_root(os.makedirs, my_dir)
-
+        ensure_dir_exists(prefix)
         fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -2094,16 +2084,12 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         ellipsoid_data : bool.
             Whether to save the ellipsoidal information to the files.
             Default = False.
-        
+
         Examples
         --------
         >>> halos.dump("MyHalos")
         """
-        # if path denoted in basename, assure path exists
-        my_dir = os.path.dirname(basename)
-        if not os.path.exists(my_dir):
-            only_on_root(os.makedirs, my_dir)
-
+        ensure_dir_exists(basename)
         self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)

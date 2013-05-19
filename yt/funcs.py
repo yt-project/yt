@@ -602,3 +602,12 @@ def fix_axis(axis):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+
+
+def ensure_dir_exists(path):
+    r"""Create all directories in path recursively in a parallel safe manner"""
+    my_dir = os.path.dirname(path)
+    if not my_dir:
+        my_dir = os.getcwd()
+    if not os.path.exists(my_dir):
+        only_on_root(os.makedirs, my_dir)
