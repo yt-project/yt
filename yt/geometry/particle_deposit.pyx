@@ -114,7 +114,7 @@ cdef class CountParticles(ParticleDepositOperation):
     cdef public object ocount
     def initialize(self):
         # Create a numpy array accessible to python
-        self.ocount = np.zeros(self.nvals, dtype="float64")
+        self.ocount = np.zeros(self.nvals, dtype="int64")
         cdef np.ndarray arr = self.ocount
         # alias the C-view for use in cython
         self.count = <np.int64_t*> arr.data
@@ -176,9 +176,18 @@ cdef class StdParticleField(ParticleDepositOperation):
     cdef np.float64_t *count # float, for ease
     cdef public object ocount
     def initialize(self):
-        self.osum = np.zeros(self.nvals, dtype="float64")
-        cdef np.ndarray arr = self.osum
-        self.sum = <np.float64_t*> arr.data
+        # we do this in a single pass, but need two scalar
+        # per cell, M_k, and Q_k and also the number of particles
+        # deposited into each one
+        self.omk= np.zeros(self.nvals, dtype="float64")
+        cdef np.ndarray omkarr= self.omk
+        self.mk= <np.float64_t*> omkarr.data
+        self.oqk= np.zeros(self.nvals, dtype="float64")
+        cdef np.ndarray oqkarr= self.oqk
+        self.qk= <np.float64_t*> oqkarr.data
+        self.oi = np.zeros(self.nvals, dtype="int64")
+        cdef np.ndarray oiarr = self.oi
+        self.qk= <np.float64_t*> oiarr.data
 
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
@@ -189,12 +198,19 @@ cdef class StdParticleField(ParticleDepositOperation):
                       np.float64_t *fields # any other fields we need
                       ):
         # here we do our thing; this is the kernel
-        cdef int ii[3], i
+        cdef int ii[3], i, cell_index
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
         #print "Depositing into", offset,
         #print gind(ii[0], ii[1], ii[2], dim)
-        self.sum[gind(ii[0], ii[1], ii[2], dim) + offset] += fields[i]
+        cell_index = gind(ii[0], ii[1], ii[2], dim) + offset
+        if self.mk[cell_index] == -1:
+            self.mk[cell_index] = fields[i]
+        else:
+            self.mk[cell_index] = self.mk[cell_index] + (fields[i] - self.mk[cell_index]) / k
+
+
+        if self.sum
         
     def finalize(self):
         return self.sum
