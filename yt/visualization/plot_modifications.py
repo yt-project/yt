@@ -694,7 +694,7 @@ class ClumpContourCallback(PlotCallback):
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
-        self.rv = plot._axes.contour(buff, len(self.clumps)+1,
+        self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent,**self.plot_args)
         plot._axes.hold(False)
 
