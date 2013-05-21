@@ -613,7 +613,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         fns = ['old.png', 'new.png']
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
-        compare_images(fns[0], fns[1], 10**(-self.decimals))
+        assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
         for fn in fns: os.remove(fn)
 
 def requires_pf(pf_fn, big_data = False):

@@ -7,7 +7,7 @@ Author: Nathan Goldbaum <goldbaum@ucolick.org>
 Affiliation: UCSC Astronomy
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2010-2011 J. S. Oishi.  All Rights Reserved.
+  Copyright (C) 2010-2013 J. S. Oishi., Nathan Goldbaum  All Rights Reserved.
 
   This file is part of yt.
 
@@ -60,8 +60,8 @@ from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
-    axis_names, \
-    axis_labels
+    axis_names, axis_labels, \
+    formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -886,11 +886,10 @@ class PWViewerMPL(PWViewer):
                                           self._colormaps[f], extent, aspect,
                                           zlim, size, fp.get_size())
 
-            self.plots[f].cb = self.plots[f].figure.colorbar(
-                self.plots[f].image, cax = self.plots[f].cax)
-
             axes_unit_labels = ['', '']
             for i, un in enumerate((unit_x, unit_y)):
+                if un in formatted_length_unit_names:
+                    un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
                     axes_unit_labels[i] = '\/\/('+un+')'
 
@@ -920,7 +919,10 @@ class PWViewerMPL(PWViewer):
 
             self.plots[f].cb.set_label(colorbar_label, fontproperties=fp)
 
-            for label in self.plots[f].cb.ax.get_yticklabels():
+            for label in (self.plots[f].cb.ax.get_xticklabels() +
+                          self.plots[f].cb.ax.get_yticklabels() +
+                          [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
+                           self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
 
             self.run_callbacks(f)
@@ -1758,6 +1760,10 @@ class WindowPlotMPL(ImagePlotMPL):
         ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
+        if cbname == 'linear':
+            self.cb.formatter.set_scientific(True)
+            self.cb.formatter.set_powerlimits((-2,3))
+            self.cb.update_ticks()
 
     def _get_best_layout(self, size, fontsize=18):
         aspect = 1.0*size[0]/size[1]

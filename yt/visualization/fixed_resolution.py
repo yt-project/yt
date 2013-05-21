@@ -172,7 +172,7 @@ class FixedResolutionBuffer(object):
         
         info['label'] = self.data_source.pf.field_info[item].display_name
         if info['label'] is None:
-            info['label'] = r'$\rm{'+item+r'}$'
+            info['label'] = r'$\rm{'+item.replace('_','\/').title()+r'}$'
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
