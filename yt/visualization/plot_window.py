@@ -880,12 +880,14 @@ class PWViewerMPL(PWViewer):
 
             image = self._frb[f]
 
-            if image.max() == image.min() == 0:
+            if image.max() == image.min():
                 if self._field_transform[f] == log_transform:
-                    mylog.warning("Buffer values for field %s are zero everywhere. " % f)
-                    mylog.warning("Switching from logarithmic to linear colorbar scaling")
+                    mylog.warning("Plot image for field %s has zero dynamic " \
+                                  "range. Min = Max = %d." % \
+                                  (f, image.max()))
+                    mylog.warning("Switching to linear colorbar scaling.")
                     self._field_transform[f] = linear_transform
-            
+
             fp = self._font_properties
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
