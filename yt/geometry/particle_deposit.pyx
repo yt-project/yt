@@ -194,7 +194,7 @@ cdef class StdParticleField(ParticleDepositOperation):
         cdef np.ndarray oqkarr= self.oqk
         self.qk= <np.float64_t*> oqkarr.data
         # particle count
-        self.oi = np.zeros(self.nvals, dtype="int64")
+        self.oi = np.zeros(self.nvals, dtype="float64")
         cdef np.ndarray oiarr = self.oi
         self.i = <np.float64_t*> oiarr.data
 
@@ -207,24 +207,28 @@ cdef class StdParticleField(ParticleDepositOperation):
                       np.float64_t *fields
                       ):
         cdef int ii[3], i, cell_index
-        cdef float k
+        cdef float k, mk, qk
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
         cell_index = gind(ii[0], ii[1], ii[2], dim) + offset
-        k = <float> self.i[cell_index]
-        if self.i[cell_index] == 0:
+        k = self.i[cell_index] 
+        mk = self.mk[cell_index]
+        qk = self.qk[cell_index] 
+        #print k, mk, qk, cell_index
+        if k == 0.0:
             # Initialize cell values
             self.mk[cell_index] = fields[0]
         else:
-            self.mk[cell_index] = self.mk[cell_index] + \
-                                  (fields[0] - self.mk[cell_index]) / k
-            self.qk[cell_index] = self.qk[cell_index] + \
-                                  (k - 1.0) * (fields[0] - 
-                                             self.mk[cell_index]) ** 2.0 / k
-        self.qk[cell_index] += 1
+            self.mk[cell_index] = mk + (fields[0] - mk) / k
+            self.qk[cell_index] = qk + (k - 1.0) * (fields[0] - mk)**2.0 / k
+        self.i[cell_index] += 1
         
     def finalize(self):
-        return self.sum
+        # This is the standard variance
+        # if we want sample variance divide by (self.oi - 1.0)
+        std = self.oqk / self.oi
+        std[~np.isfinite(std)] = 0.0
+        return std
 
 deposit_std = StdParticleField
 
