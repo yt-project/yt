@@ -324,7 +324,8 @@ class ARTStaticOutput(StaticOutput):
         self.conversion_factors = cf
 
         for ax in 'xyz':
-            self.conversion_factors["%s-velocity" % ax] = 1.0
+            self.conversion_factors["%s-velocity" % ax] = cf["Velocity"]
+            self.conversion_factors["particle_velocity_%s" % ax] = cf["Velocity"]
         for pt in particle_fields:
             if pt not in self.conversion_factors.keys():
                 self.conversion_factors[pt] = 1.0
