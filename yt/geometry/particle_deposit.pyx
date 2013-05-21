@@ -47,7 +47,7 @@ cdef class ParticleDepositOperation:
     def process_octree(self, OctreeContainer octree,
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
-                     fields = None):
+                     fields = None, int domain_id = -1):
         cdef int nf, i, j
         if fields is None:
             fields = []
@@ -62,8 +62,9 @@ cdef class ParticleDepositOperation:
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 2
         cdef OctInfo oi
-        cdef np.int64_t offset
+        cdef np.int64_t offset, moff
         cdef Oct *oct
+        moff = octree.get_domain_offset(domain_id)
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
@@ -71,8 +72,14 @@ cdef class ParticleDepositOperation:
             for j in range(3):
                 pos[j] = positions[i, j]
             oct = octree.get(pos, &oi)
-            #print oct.local_ind, oct.pos[0], oct.pos[1], oct.pos[2]
-            offset = dom_ind[oct.ind]
+            # This next line is unfortunate.  Basically it says, sometimes we
+            # might have particles that belong to octs outside our domain.
+            if oct.domain != domain_id: continue
+            #print domain_id, oct.local_ind, oct.ind, oct.domain, oct.pos[0], oct.pos[1], oct.pos[2]
+            # Note that this has to be our local index, not our in-file index.
+            offset = dom_ind[oct.domain_ind - moff] * 8
+            if offset < 0: continue
+            # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
         
@@ -110,7 +117,7 @@ cdef class ParticleDepositOperation:
         raise NotImplementedError
 
 cdef class CountParticles(ParticleDepositOperation):
-    cdef np.float64_t *count # float, for ease
+    cdef np.int64_t *count # float, for ease
     cdef public object ocount
     def initialize(self):
         # Create a numpy array accessible to python
@@ -131,18 +138,16 @@ cdef class CountParticles(ParticleDepositOperation):
         cdef int ii[3], i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        #print "Depositing into", offset,
-        #print gind(ii[0], ii[1], ii[2], dim)
         self.count[gind(ii[0], ii[1], ii[2], dim) + offset] += 1
         
     def finalize(self):
-        return self.ocount
+        return self.ocount.astype('f8')
 
 deposit_count = CountParticles
 
 cdef class SumParticleField(ParticleDepositOperation):
-    cdef np.float64_t *count # float, for ease
-    cdef public object ocount
+    cdef np.float64_t *sum
+    cdef public object osum
     def initialize(self):
         self.osum = np.zeros(self.nvals, dtype="float64")
         cdef np.ndarray arr = self.osum
@@ -152,20 +157,17 @@ cdef class SumParticleField(ParticleDepositOperation):
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3], 
                       np.float64_t dds[3],
-                      np.int64_t offset, # offset into IO field
-                      np.float64_t ppos[3], # this particle's position
-                      np.float64_t *fields # any other fields we need
+                      np.int64_t offset, 
+                      np.float64_t ppos[3],
+                      np.float64_t *fields 
                       ):
-        # here we do our thing; this is the kernel
         cdef int ii[3], i
         for i in range(3):
-            ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        #print "Depositing into", offset,
-        #print gind(ii[0], ii[1], ii[2], dim)
-        self.sum[gind(ii[0], ii[1], ii[2], dim) + offset] += fields[i]
+            ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
+        self.sum[gind(ii[0], ii[1], ii[2], dim) + offset] += fields[0]
         
     def finalize(self):
-        return self.sum
+        return self.osum
 
 deposit_sum = SumParticleField
 
@@ -173,47 +175,56 @@ cdef class StdParticleField(ParticleDepositOperation):
     # Thanks to Britton and MJ Turk for the link
     # to a single-pass STD
     # http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
-    cdef np.float64_t *count # float, for ease
-    cdef public object ocount
+    cdef np.float64_t *mk
+    cdef np.float64_t *qk
+    cdef np.float64_t *i
+    cdef public object omk
+    cdef public object oqk
+    cdef public object oi
     def initialize(self):
         # we do this in a single pass, but need two scalar
         # per cell, M_k, and Q_k and also the number of particles
         # deposited into each one
+        # the M_k term
         self.omk= np.zeros(self.nvals, dtype="float64")
         cdef np.ndarray omkarr= self.omk
         self.mk= <np.float64_t*> omkarr.data
+        # the Q_k term
         self.oqk= np.zeros(self.nvals, dtype="float64")
         cdef np.ndarray oqkarr= self.oqk
         self.qk= <np.float64_t*> oqkarr.data
+        # particle count
         self.oi = np.zeros(self.nvals, dtype="int64")
         cdef np.ndarray oiarr = self.oi
-        self.qk= <np.float64_t*> oiarr.data
+        self.i = <np.float64_t*> oiarr.data
 
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3], 
                       np.float64_t dds[3],
-                      np.int64_t offset, # offset into IO field
-                      np.float64_t ppos[3], # this particle's position
-                      np.float64_t *fields # any other fields we need
+                      np.int64_t offset,
+                      np.float64_t ppos[3],
+                      np.float64_t *fields
                       ):
-        # here we do our thing; this is the kernel
         cdef int ii[3], i, cell_index
+        cdef float k
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        #print "Depositing into", offset,
-        #print gind(ii[0], ii[1], ii[2], dim)
         cell_index = gind(ii[0], ii[1], ii[2], dim) + offset
-        if self.mk[cell_index] == -1:
-            self.mk[cell_index] = fields[i]
+        k = <float> self.i[cell_index]
+        if self.i[cell_index] == 0:
+            # Initialize cell values
+            self.mk[cell_index] = fields[0]
         else:
-            self.mk[cell_index] = self.mk[cell_index] + (fields[i] - self.mk[cell_index]) / k
-
-
-        if self.sum
+            self.mk[cell_index] = self.mk[cell_index] + \
+                                  (fields[0] - self.mk[cell_index]) / k
+            self.qk[cell_index] = self.qk[cell_index] + \
+                                  (k - 1.0) * (fields[0] - 
+                                             self.mk[cell_index]) ** 2.0 / k
+        self.qk[cell_index] += 1
         
     def finalize(self):
         return self.sum
 
-deposit_sum = SumParticleField
+deposit_std = StdParticleField
 

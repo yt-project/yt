@@ -66,6 +66,16 @@ class OctreeSubset(YTSelectionContainer):
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
 
+    def _generate_container_field(self, field):
+        if self._current_chunk is None:
+            self.hierarchy._identify_base_chunk(self)
+        if field == "dx":
+            return self._current_chunk.fwidth[:,0]
+        elif field == "dy":
+            return self._current_chunk.fwidth[:,1]
+        elif field == "dz":
+            return self._current_chunk.fwidth[:,2]
+
     def select_icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
                                         self.cell_count,
@@ -109,8 +119,7 @@ class OctreeSubset(YTSelectionContainer):
     def _reshape_vals(self, arr):
         nz = self._num_zones + 2*self._num_ghost_zones
         n_oct = arr.shape[0] / (nz**3.0)
-        arr.shape = (n_oct, nz, nz, nz)
-        arr = np.rollaxis(arr, 0, 4)
+        arr = arr.reshape((nz, nz, nz, n_oct), order="F")
         return arr
 
     _domain_ind = None
@@ -130,7 +139,8 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (self.domain_ind >= 0).sum() * 8
         op = cls(nvals) # We allocate number of zones, not number of octs
         op.initialize()
-        op.process_octree(self.oct_handler, self.domain_ind, positions, fields)
+        op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
+                          self.domain.domain_id)
         vals = op.finalize()
         return self._reshape_vals(vals)
 

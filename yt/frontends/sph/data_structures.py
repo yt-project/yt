@@ -96,7 +96,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         total_particles = sum(sum(d.total_particles.values())
                               for d in self.domains)
         self.oct_handler = ParticleOctreeContainer(
-            self.parameter_file.domain_dimensions,
+            self.parameter_file.domain_dimensions/2,
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
         self.oct_handler.n_ref = 64

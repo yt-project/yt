@@ -249,7 +249,13 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
                     mask = self._current_chunk.objs[0].select(self.selector)
                     if mask is None: continue
-                    data = self[field][mask]
+                    data = self[field]
+                    if len(data.shape) == 4:
+                        # This is how we keep it consistent between oct ordering
+                        # and grid ordering.
+                        data = data.T[mask.T]
+                    else:
+                        data = data[mask]
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
