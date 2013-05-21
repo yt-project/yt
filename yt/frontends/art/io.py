@@ -140,7 +140,7 @@ class IOHandlerART(BaseIOHandler):
                     temp[-nstars:] = data
                     tr[field] = temp
                     del data
-                tr[field] = tr[field][mask]
+                tr[field] = tr[field][mask].astype('f8')
                 ftype_old = ftype
                 fields_read.append(field)
         if tr == {}:
