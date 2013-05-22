@@ -226,9 +226,9 @@ cdef class StdParticleField(ParticleDepositOperation):
     def finalize(self):
         # This is the standard variance
         # if we want sample variance divide by (self.oi - 1.0)
-        std = self.oqk / self.oi
-        std[~np.isfinite(std)] = 0.0
-        return std
+        std2 = self.oqk / self.oi
+        std2[self.oi == 0.0] = 0.0
+        return np.sqrt(std2)
 
 deposit_std = StdParticleField
 
