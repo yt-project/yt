@@ -565,7 +565,7 @@ then
             then
                 sed -i.bak 's/soname/install_name/' Makefile-libbz2_so
             else
-                sed -i.bak -e 's/soname/install_name/' -e "s/CC=gcc/CC=${CC}/" Makefile-libbz2_so
+                sed -i.bak -e 's/soname/install_name/' -e "s|CC=gcc|CC=${CC}|" Makefile-libbz2_so
             fi
         fi
         ( make install CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
