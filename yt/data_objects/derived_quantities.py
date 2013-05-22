@@ -60,7 +60,10 @@ class DerivedQuantity(ParallelAnalysisInterface):
         e = FieldDetector(flat = True)
         e.NumberOfParticles = 1
         fields = e.requested
-        self.func(e, *args, **kwargs)
+        try:
+            self.func(e, *args, **kwargs)
+        except:
+            mylog.error("Could not preload for quantity %s, IO speed may suffer", self.__name__)
         retvals = [ [] for i in range(self.n_ret)]
         chunks = self._data_source.chunks([], chunking_style="io")
         for ds in parallel_objects(chunks, -1):

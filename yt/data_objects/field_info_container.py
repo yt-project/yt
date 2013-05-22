@@ -233,6 +233,7 @@ class FieldDetector(defaultdict):
         if pf is None:
             # required attrs
             pf = fake_parameter_file(lambda: 1)
+            pf["Massarr"] = np.ones(6)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.cosmological_simulation = 0.0
             pf.hubble_constant = 0.7

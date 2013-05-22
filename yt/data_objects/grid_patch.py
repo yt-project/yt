@@ -44,6 +44,7 @@ from .field_info_container import \
     NeedsProperty, \
     NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
+import yt.geometry.particle_deposit as particle_deposit
 
 class AMRGridPatch(YTSelectionContainer):
     _spatial = True
@@ -473,6 +474,17 @@ class AMRGridPatch(YTSelectionContainer):
     def tcoords(self, dobj):
         dt, t = dobj.selector.get_dt(self)
         return dt, t
+
+    def deposit(self, positions, fields = None, method = None):
+        # Here we perform our particle deposition.
+        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        if cls is None:
+            raise YTParticleDepositionNotImplemented(method)
+        op = cls(self.ActiveDimensions.prod()) # We allocate number of zones, not number of octs
+        op.initialize()
+        op.process_grid(self, positions, fields)
+        vals = op.finalize()
+        return vals.reshape(self.ActiveDimensions, order="F")
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
