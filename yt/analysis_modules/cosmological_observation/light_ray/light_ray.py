@@ -321,17 +321,18 @@ class LightRay(CosmologySplice):
         # Initialize data structures.
         self._data = {}
         if fields is None: fields = []
-        all_fields = [field for field in fields]
+        data_fields = fields[:]
+        all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
         if get_nearest_halo:
             all_fields.extend(['x', 'y', 'z', 'nearest_halo'])
             all_fields.extend(['nearest_halo_%s' % field \
                                for field in nearest_halo_fields])
-            fields.extend(['x', 'y', 'z'])
+            data_fields.extend(['x', 'y', 'z'])
         if get_los_velocity:
             all_fields.extend(['x-velocity', 'y-velocity',
                                'z-velocity', 'los_velocity'])
-            fields.extend(['x-velocity', 'y-velocity', 'z-velocity'])
+            data_fields.extend(['x-velocity', 'y-velocity', 'z-velocity'])
 
         all_ray_storage = {}
         for my_storage, my_segment in parallel_objects(self.light_ray_solution,
@@ -373,7 +374,7 @@ class LightRay(CosmologySplice):
                                                  (sub_ray['dts'] *
                                                   vector_length(sub_segment[0],
                                                                 sub_segment[1]))])
-                for field in fields:
+                for field in data_fields:
                     sub_data[field] = np.concatenate([sub_data[field],
                                                       (sub_ray[field])])
 
