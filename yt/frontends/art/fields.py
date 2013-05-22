@@ -49,19 +49,6 @@ for f in fluid_fields:
     add_art_field(f, function=NullFunc, take_log=True,
                   validators=[ValidateDataField(f)])
 
-for f in particle_fields:
-    add_art_field(f, function=NullFunc, take_log=True,
-                  validators=[ValidateDataField(f)],
-                  particle_type=True)
-add_art_field("particle_mass", function=NullFunc, take_log=True,
-              validators=[ValidateDataField(f)],
-              particle_type=True,
-              convert_function=lambda x: x.convert("particle_mass"))
-add_art_field("particle_mass_initial", function=NullFunc, take_log=True,
-              validators=[ValidateDataField(f)],
-              particle_type=True,
-              convert_function=lambda x: x.convert("particle_mass"))
-
 def _convertDensity(data):
     return data.convert("Density")
 KnownARTFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
@@ -213,6 +200,24 @@ ARTFieldInfo["Metal_Density"]._units = r"\rm{g}/\rm{cm}^3"
 ARTFieldInfo["Metal_Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
 
 # Particle fields
+for f in particle_fields:
+    add_art_field(f, function=NullFunc, take_log=True,
+                  validators=[ValidateDataField(f)],
+                  particle_type=True)
+for ax in "xyz":
+    add_art_field("particle_velocity_%s" % ax, function=NullFunc, take_log=True,
+                  validators=[ValidateDataField(f)],
+                  particle_type=True,
+                  convert_function=lambda x: x.convert("particle_velocity_%s" % ax))
+add_art_field("particle_mass", function=NullFunc, take_log=True,
+              validators=[ValidateDataField(f)],
+              particle_type=True,
+              convert_function=lambda x: x.convert("particle_mass"))
+add_art_field("particle_mass_initial", function=NullFunc, take_log=True,
+              validators=[ValidateDataField(f)],
+              particle_type=True,
+              convert_function=lambda x: x.convert("particle_mass"))
+
 def _particle_age(field, data):
     tr = data["particle_creation_time"]
     return data.pf.current_time - tr
