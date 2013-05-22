@@ -201,7 +201,7 @@ cdef class SelectorObject:
             this_level = 0
         if res == 0:
             for i in range(8):
-                mask[root.local_ind,i] = 0
+                mask[root.domain_ind,i] = 0
             # If this level *is* being selected (i.e., no early termination)
             # then we know no child zones will be selected.
             if this_level == 1:
@@ -217,11 +217,11 @@ cdef class SelectorObject:
                     ii = ((k*2)+j)*2+i
                     ch = root.children[i][j][k]
                     if next_level == 1 and ch != NULL:
-                        mask[root.local_ind, ii] = 0
+                        mask[root.domain_ind, ii] = 0
                         self.recursively_select_octs(
                             ch, spos, sdds, mask, level + 1)
                     elif this_level == 1:
-                        mask[root.local_ind, ii] = \
+                        mask[root.domain_ind, ii] = \
                             self.select_cell(spos, sdds, eterm)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
@@ -1097,4 +1097,55 @@ cdef class GridSelector(SelectorObject):
 
 
 grid_selector = GridSelector
+
+cdef class OctreeSubsetSelector(SelectorObject):
+    # This is a numpy array, which will be a bool of ndim 1
+    cdef object oct_mask
+    cdef int domain_id
+
+    def __init__(self, dobj):
+        self.oct_mask = dobj.mask
+        self.domain_id = dobj.domain.domain_id
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_octs(self, OctreeContainer octree):
+        cdef np.ndarray[np.uint8_t, ndim=2] m2
+        m2 = octree.domain_and(self.oct_mask, self.domain_id)
+        cdef int oi, i, a
+        for oi in range(m2.shape[0]):
+            a = 0
+            for i in range(8):
+                if m2[oi, i] == 1: a = 1
+            for i in range(8):
+                m2[oi, i] = a
+        return m2.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        check[0] = 0
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges,
+                     np.ndarray[np.int32_t, ndim=2] levels):
+        raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        return 1
+
+octree_subset_selector = OctreeSubsetSelector
 

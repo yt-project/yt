@@ -31,6 +31,9 @@ License:
 from grid_patch import \
     AMRGridPatch
 
+from octree_subset import \
+    OctreeSubset
+
 from static_output import \
     StaticOutput
 
