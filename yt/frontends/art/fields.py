@@ -218,6 +218,7 @@ add_art_field("particle_mass_initial", function=NullFunc, take_log=True,
               particle_type=True,
               convert_function=lambda x: x.convert("particle_mass"))
 
+
 def _particle_age(field, data):
     tr = data["particle_creation_time"]
     return data.pf.current_time - tr
@@ -260,3 +261,108 @@ def _ParticleMassMsun(field, data):
     return data["particle_mass"]/mass_sun_cgs
 add_field("ParticleMassMsun", function=_ParticleMassMsun, particle_type=True,
           take_log=True, units=r"\rm{Msun}")
+
+# Particle Deposition Fields
+ptypes = ["all", "darkmatter", "stars"]
+names  = ["Particle", "Dark Matter", "Stellar"]
+
+# Particle Mass Density Fields
+for ptype, name in zip(ptypes, names):
+    def particle_density(field, data):
+        vol = data["CellVolume"]
+        pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                               for ax in 'xyz'])
+        pmass = dd[(ptype, "particle_mass")]
+        mass = data.deposit(pos, [pmass], method = "sum")
+        return mass / vol
+    add_field("%s_mass_density_deposit" % ptype, function=particle_density, 
+              particle_type=False, take_log=True, units=r'g/cm^{3}',
+              display_name="%s Density" % name, 
+              validators=[ValidateSpatial()], projection_conversion='1')
+
+# Particle Mass Fields
+for ptype, name in zip(ptypes, names):
+    def particle_count(field, data):
+        pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                               for ax in 'xyz'])
+        mass = data.deposit(pos, method = "sum")
+        return mass
+    add_field("%s_mass_deposit" % ptype, function=particle_density, 
+              particle_type=False, take_log=True, units=r'1/cm^{3}',
+              display_name="%s Mass Density" % name, 
+              validators=[ValidateSpatial()], projection_conversion='1')
+
+# Particle Number Density Fields
+for ptype, name in zip(ptypes, names):
+    def particle_count(field, data):
+        vol = data["CellVolume"]
+        pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                               for ax in 'xyz'])
+        count = data.deposit(pos, method = "count")
+        return count / vol
+    add_field("%s_number_density_deposit" % ptype, function=particle_density, 
+              particle_type=False, take_log=True, units=r'1/cm^{3}',
+              display_name="%s Number Density" % name, 
+              validators=[ValidateSpatial()], projection_conversion='1')
+
+# Particle Number Fields
+for ptype, name in zip(ptypes, names):
+    def particle_count(field, data):
+        pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                               for ax in 'xyz'])
+        count = data.deposit(pos, method = "count")
+        return count 
+    add_field("%s_number_deposit" % ptype, function=particle_density, 
+              particle_type=False, take_log=True, units=r'1/cm^{3}',
+              display_name="%s Number" % name, 
+              validators=[ValidateSpatial()], projection_conversion='1')
+
+# Particle Velocity Fields
+for ptype, name in zip(ptypes, names):
+    for axis in 'xyz':
+        def particle_velocity(field, data):
+            pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                                   for ax in 'xyz'])
+            vel = data[(ptype, "particle_velocity_%s" % axis)]
+            vel_deposit = data.deposit(vel, method = "sum")
+            return vel_deposit
+        add_field("%s_velocity_%s_deposit" % (ptype, axis), 
+                  function=particle_velocity, 
+                  particle_type=False, take_log=False, units=r'cm/s',
+                  display_name="%s Velocity %s" % (name, axis.upper()), 
+                  validators=[ValidateSpatial()], projection_conversion='1')
+
+# Particle Mass-weighted Velocity Fields
+for ptype, name in zip(ptypes, names):
+    for axis in 'xyz':
+        def particle_velocity_weighted(field, data):
+            pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                                   for ax in 'xyz'])
+            vel  = data[(ptype, "particle_velocity_%s" % axis)]
+            mass = data[(ptype, "particle_mass")]
+            vel_deposit = data.deposit(vel * mass, method = "sum")
+            norm = data.deposit(mass, method = "sum")
+            return vel_deposit / norm
+        add_field("%s_weighted_velocity_%s_deposit" % (ptype, axis), 
+                  function=particle_velocity, 
+                  particle_type=False, take_log=False, units=r'cm/s',
+                  display_name="%s Velocity %s" % (name, axis.upper()), 
+                  validators=[ValidateSpatial()], projection_conversion='1')
+
+# Particle Mass-weighted Velocity Magnitude Fields
+for ptype, name in zip(ptypes, names):
+    def particle_velocity_weighted(field, data):
+        pos = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                               for ax in 'xyz'])
+        vels = np.column_stack([dd[(ptype, "particle_position_%s" % ax)]
+                               for ax in 'xyz'])
+        vel = np.sqrt(np.sum(vels, axis=0))
+        mass = data[(ptype, "particle_mass")]
+        vel_deposit = data.deposit(vel * mass, method = "sum")
+        norm = data.deposit(mass, method = "sum")
+        return vel_deposit / norm
+    add_field("%s_weighted_velocity_deposit" % (ptype, axis), 
+              function=particle_velocity, 
+              particle_type=False, take_log=False, units=r'cm/s',
+              display_name="%s Velocity" % name, 
+              validators=[ValidateSpatial()], projection_conversion='1')
