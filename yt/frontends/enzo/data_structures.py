@@ -105,6 +105,9 @@ class EnzoGrid(AMRGridPatch):
         """
         Intelligently set the filename.
         """
+        if filename is None:
+            self.filename = filename
+            return
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -311,6 +314,7 @@ class EnzoHierarchy(AMRHierarchy):
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
+        fn = [f if f >=0 else (None, ) for f in fn]
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, npart)
         temp_grids = np.empty(self.num_grids, dtype='object')
@@ -373,6 +377,7 @@ class EnzoHierarchy(AMRHierarchy):
         giter = izip(grids, levels, procs, parents)
         bn = self._bn % (self.pf)
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
+        pmap.append((None, )) # Now, P==-1 will give None
         for grid,L,P,Pid in giter:
             grid.Level = L
             grid._parent_id = Pid
