@@ -440,7 +440,7 @@ add_field("CellMassCode",
           convert_function=_convertCellMassCode)
 
 def _TotalMass(field,data):
-    return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
+    return (data["Density"]+data["particle_density"]) * data["CellVolume"]
 add_field("TotalMass", function=_TotalMass, units=r"\rm{g}")
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
@@ -453,7 +453,7 @@ add_field("StarMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _Matter_Density(field,data):
-    return (data['Density'] + data['Dark_Matter_Density'])
+    return (data['Density'] + data['particle_density'])
 add_field("Matter_Density",function=_Matter_Density,units=r"\rm{g}/\rm{cm^3}")
 
 def _ComovingDensity(field, data):
