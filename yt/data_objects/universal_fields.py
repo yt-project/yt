@@ -44,7 +44,8 @@ from field_info_container import \
     NeedsOriginalGrid, \
     NeedsDataField, \
     NeedsProperty, \
-    NeedsParameter
+    NeedsParameter, \
+    NullFunc
 
 from yt.utilities.physical_constants import \
      mh, \
@@ -981,6 +982,14 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
+
+# We add these fields so that the field detector can use them
+for field in ["particle_position_%s" % ax for ax in "xyz"] + \
+             ["ParticleMass"]:
+    # This marker should let everyone know not to use the fields, but NullFunc
+    # should do that, too.
+    add_field(field, function=NullFunc, particle_type = True,
+        units=r"UNDEFINED")
 
 def _pdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float64')
