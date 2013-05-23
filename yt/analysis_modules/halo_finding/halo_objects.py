@@ -1062,8 +1062,9 @@ class HaloList(object):
     def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
+        *dm_only* is True (default), only run it on the dark matter particles, 
+        otherwise on all particles.  Returns an iterable collection of 
+        *HopGroup* items.
         """
         self._data_source = data_source
         self.dm_only = dm_only
@@ -1458,7 +1459,7 @@ class RockstarHaloList(HaloList):
 class HOPHaloList(HaloList):
     """
     Run hop on *data_source* with a given density *threshold*.  If
-    *dm_only* is set, only run it on the dark matter particles, otherwise
+    *dm_only* is True (default), only run it on the dark matter particles, otherwise
     on all particles.  Returns an iterable collection of *HopGroup* items.
     """
     _name = "HOP"
@@ -1657,7 +1658,7 @@ class TextHaloList(HaloList):
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     """
     Run hop on *data_source* with a given density *threshold*.  If
-    *dm_only* is set, only run it on the dark matter particles, otherwise
+    *dm_only* is True (default), only run it on the dark matter particles, otherwise
     on all particles.  Returns an iterable collection of *HopGroup* items.
     """
     _name = "parallelHOP"
@@ -2122,7 +2123,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     resize : bool
         Turns load-balancing on or off. Default = True.
     kdtree : string
@@ -2556,7 +2557,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         applied.  Default = 0.2.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
