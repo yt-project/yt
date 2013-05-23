@@ -2451,7 +2451,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
