@@ -305,7 +305,7 @@ class EnzoHierarchy(AMRHierarchy):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(["-1"])
+            fn.append([None])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
@@ -314,7 +314,6 @@ class EnzoHierarchy(AMRHierarchy):
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
-        fn = [f if f >=0 else (None, ) for f in fn]
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, npart)
         temp_grids = np.empty(self.num_grids, dtype='object')
@@ -410,7 +409,10 @@ class EnzoHierarchy(AMRHierarchy):
                 parents.append(g.Parent.id)
             else:
                 parents.append(-1)
-            procs.append(int(self.filenames[i][0][-4:]))
+            if self.filenames[i][0] is None:
+                procs.append(-1)
+            else:
+                procs.append(int(self.filenames[i][0][-4:]))
             levels.append(g.Level)
 
         parents = np.array(parents, dtype='int64')
