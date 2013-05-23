@@ -488,13 +488,13 @@ class RAMSESStaticOutput(StaticOutput):
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
-        mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
+        mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"]
+        self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - rheader['levelmin']
 
     @classmethod
