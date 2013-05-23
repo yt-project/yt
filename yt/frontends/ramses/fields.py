@@ -109,39 +109,24 @@ for f in known_ramses_particle_fields:
                   validators = [ValidateDataField(f)],
                   particle_type = True)
 
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
+for ax in 'xyz':
+    KnownRAMSESFields["particle_velocity_%s" % ax]._convert_function = \
+        _convertVelocity
 
 def _convertParticleMass(data):
-    return data.convert("Density")*(data.convert("cm")**3.0)
-def _IOLevelParticleMass(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
-    return cf
+    return data.convert("mass")
+
+KnownRAMSESFields["particle_mass"]._convert_function = \
+        _convertParticleMass
+KnownRAMSESFields["particle_mass"]._units = r"\mathrm{g}"
+
 def _convertParticleMassMsun(data):
-    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
-def _IOLevelParticleMassMsun(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
-    return cf
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass,
-          particle_convert_function=_IOLevelParticleMass)
+    return 1.0/1.989e33
+add_field("ParticleMass", function=TranslationFunc("particle_mass"), 
+          particle_type=True)
 add_field("ParticleMassMsun",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          particle_convert_function=_IOLevelParticleMassMsun)
-
-
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
+          function=TranslationFunc("particle_mass"), 
+          particle_type=True, convert_function=_convertParticleMassMsun)
 
 def _Temperature(field, data):
     rv = data["Pressure"]/data["Density"]
