@@ -34,6 +34,9 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.utilities.physical_constants import \
+    boltzmann_constant_cgs, \
+    mass_hydrogen_cgs
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
 add_field = RAMSESFieldInfo.add_field
@@ -72,6 +75,11 @@ def _convertDensity(data):
 KnownRAMSESFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
 KnownRAMSESFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
 KnownRAMSESFields["Density"]._convert_function=_convertDensity
+
+def _convertPressure(data):
+    return data.convert("Pressure")
+KnownRAMSESFields["Pressure"]._units=r"\rm{dyne}/\rm{cm}^{2}/\mu"
+KnownRAMSESFields["Pressure"]._convert_function=_convertPressure
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
@@ -134,3 +142,9 @@ def _ParticleMass(field, data):
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles
+
+def _Temperature(field, data):
+    rv = data["Pressure"]/data["Density"]
+    rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
+    return rv
+add_field("Temperature", function=_Temperature, units=r"\rm{K}")
