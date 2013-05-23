@@ -280,12 +280,12 @@ add_field("particle_cell_mass_dm", function=mass_dm, units = r"\mathrm{M_{sun}}"
         projection_conversion="1")
 
 def _spdensity(field, data):
-    grid_mass = np.zeros(data.ActiveDimensions, dtype='float32')
+    grid_mass = np.zeros(data.ActiveDimensions, dtype='float64')
     if data.star_mass.shape[0] ==0 : return grid_mass 
     amr_utils.CICDeposit_3(data.star_position_x,
                            data.star_position_y,
                            data.star_position_z,
-                           data.star_mass.astype('float32'),
+                           data.star_mass,
                            data.star_mass.shape[0],
                            grid_mass, 
                            np.array(data.LeftEdge).astype(np.float64),

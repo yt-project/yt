@@ -982,22 +982,21 @@ def _JeansMassMsun(field,data):
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
 
-def _convertDensity(data):
-    return data.convert("Density")
 def _pdensity(field, data):
-    blank = np.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return blank
     CICDeposit_3(data["particle_position_x"].astype(np.float64),
                  data["particle_position_y"].astype(np.float64),
                  data["particle_position_z"].astype(np.float64),
-                 data["particle_mass"].astype(np.float32),
+                 data["ParticleMass"],
                  data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),
                  np.float64(data['dx']))
+    np.divide(blank, data["CellVolume"], blank)
     return blank
 add_field("particle_density", function=_pdensity,
-          validators=[ValidateGridType()], convert_function=_convertDensity,
+          validators=[ValidateGridType()],
           display_name=r"\mathrm{Particle}\/\mathrm{Density}")
 
 def _MagneticEnergy(field,data):
