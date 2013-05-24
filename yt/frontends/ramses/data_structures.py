@@ -440,9 +440,10 @@ class RAMSESStaticOutput(StaticOutput):
         self.conversion_factors['mass'] = rho_u * self.parameters['unit_l']**3
 
     def _setup_nounits_units(self):
-        unit_l_prop = self.parameters['unit_l'] / (1.0 + self.current_redshift)
+        # Note that unit_l *already* converts to proper!
+        unit_l = self.parameters['unit_l']
         for unit in mpc_conversion.keys():
-            self.units[unit] = unit_l_prop * mpc_conversion[unit] / mpc_conversion["cm"]
+            self.units[unit] = unit_l * mpc_conversion[unit] / mpc_conversion["cm"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
 
