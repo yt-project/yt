@@ -108,6 +108,7 @@ class LightRay(CosmologySplice):
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
 
         self.light_ray_solution = []
+        self.halo_lists = {}
         self._data = {}
 
         # Get list of datasets for light ray solution.
@@ -192,6 +193,7 @@ class LightRay(CosmologySplice):
                        get_los_velocity=False,
                        get_nearest_halo=False,
                        nearest_halo_fields=None,
+                       halo_list_file=None,
                        halo_profiler_parameters=None,
                        njobs=1, dynamic=False):
         """
@@ -228,6 +230,10 @@ class LightRay(CosmologySplice):
         nearest_halo_fields : list
             A list of fields to be calculated for the halos nearest to
             every lixel in the ray.
+            Default: None.
+        halo_list_file : str
+            Filename containing a list of halo properties to be used 
+            for getting the nearest halos to absorbers.
             Default: None.
         halo_profiler_parameters: dict
             A dictionary of parameters to be passed to the HaloProfiler
@@ -287,7 +293,7 @@ class LightRay(CosmologySplice):
         >>> # Make the profiles.
         >>> halo_profiler_actions.append({'function': make_profiles,
         ...                           'args': None,
-        ...                           'kwargs': {'filename': 'VirializedHalos.out'}})
+        ...                           'kwargs': {'filename': 'VirializedHalos.h5'}})
         ...
         >>> halo_list = 'filtered'
         >>> halo_profiler_parameters = dict(halo_profiler_kwargs=halo_profiler_kwargs,
@@ -305,6 +311,7 @@ class LightRay(CosmologySplice):
         ...                   get_nearest_halo=True,
         ...                   nearest_halo_fields=['TotalMassMsun_100',
         ...                                        'RadiusMpc_100'],
+        ...                   halo_list_file='VirializedHalos.h5',
         ...                   halo_profiler_parameters=halo_profiler_parameters,
         ...                   get_los_velocity=True)
         
@@ -348,10 +355,6 @@ class LightRay(CosmologySplice):
             mylog.info("Getting segment at z = %s: %s to %s." %
                        (my_segment['redshift'], my_segment['start'],
                         my_segment['end']))
-
-            if get_nearest_halo:
-                halo_list = self._get_halo_list(my_segment['filename'],
-                                                **halo_profiler_parameters)
 
             # Load dataset for segment.
             pf = load(my_segment['filename'])
@@ -401,6 +404,9 @@ class LightRay(CosmologySplice):
 
             # Calculate distance to nearest object on halo list for each lixel.
             if get_nearest_halo:
+                halo_list = self._get_halo_list(pf, fields=nearest_halo_fields,
+                                                filename=halo_list_file,
+                                                **halo_profiler_parameters)
                 sub_data.update(self._get_nearest_halo_properties(sub_data, halo_list,
                                 fields=nearest_halo_fields))
                 sub_data['nearest_halo'] *= pf.units['mpccm']
@@ -435,30 +441,67 @@ class LightRay(CosmologySplice):
         self._data = all_data
         return all_data
 
-    def _get_halo_list(self, dataset, halo_profiler_kwargs=None,
+    def _get_halo_list(self, pf, fields=None, filename=None, 
+                       halo_profiler_kwargs=None,
                        halo_profiler_actions=None, halo_list='all'):
-        "Load a list of halos for the dataset."
+        "Load a list of halos for the pf."
+
+        if pf.basename in self.halo_lists:
+            return self.halo_lists[pf.basename]
+
+        if fields is None: fields = []
+
+        if filename is not None and \
+                os.path.exists(os.path.join(pf.fullpath, filename)):
+
+            my_filename = os.path.join(pf.fullpath, filename)
+            mylog.info("Loading halo list from %s." % my_filename)
+            my_list = {}
+            in_file = h5py.File(my_filename, 'r')
+            for field in fields + ['center']:
+                my_list[field] = in_file[field][:]
+            in_file.close()
+
+        else:
+            my_list = self._halo_profiler_list(pf, fields=fields,
+                                               halo_profiler_kwargs=halo_profiler_kwargs,
+                                               halo_profiler_actions=halo_profiler_actions,
+                                               halo_list=halo_list)
+
+        self.halo_lists[pf.basename] = my_list
+        return self.halo_lists[pf.basename]
+
+    def _halo_profiler_list(self, pf, fields=None, 
+                            halo_profiler_kwargs=None,
+                            halo_profiler_actions=None, halo_list='all'):
+        "Run the HaloProfiler to get the halo list."
 
         if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
         if halo_profiler_actions is None: halo_profiler_actions = []
 
-        hp = HaloProfiler(dataset, **halo_profiler_kwargs)
+        hp = HaloProfiler(pf, **halo_profiler_kwargs)
         for action in halo_profiler_actions:
             if not action.has_key('args'): action['args'] = ()
             if not action.has_key('kwargs'): action['kwargs'] = {}
             action['function'](hp, *action['args'], **action['kwargs'])
 
         if halo_list == 'all':
-            return_list = copy.deepcopy(hp.all_halos)
+            hp_list = copy.deepcopy(hp.all_halos)
         elif halo_list == 'filtered':
-            return_list = copy.deepcopy(hp.filtered_halos)
+            hp_list = copy.deepcopy(hp.filtered_halos)
         else:
             mylog.error("Keyword, halo_list, must be either 'all' or 'filtered'.")
-            return_list = None
+            hp_list = None
 
         del hp
-        return return_list
 
+        # Create position array from halo list.
+        return_list = dict([(field, np.array(map(lambda halo: halo[field],
+                                                 hp_list))) \
+                                for field in fields])
+        return_list['center'] = np.array(map(lambda halo: halo['center'], hp_list))
+        return return_list
+        
     def _get_nearest_halo_properties(self, data, halo_list, fields=None):
         """
         Calculate distance to nearest object in halo list for each lixel in data.
@@ -466,28 +509,22 @@ class LightRay(CosmologySplice):
         """
 
         if fields is None: fields = []
-
-        # Create position array from halo list.
-        halo_centers = np.array(map(lambda halo: halo['center'], halo_list))
-        halo_field_values = dict([(field, np.array(map(lambda halo: halo[field],
-                                                       halo_list))) \
-                                  for field in fields])
-
-        nearest_distance = np.zeros(data['x'].shape)
         field_data = dict([(field, np.zeros(data['x'].shape)) \
                            for field in fields])
-        if halo_centers.size > 0:
+        nearest_distance = np.zeros(data['x'].shape)
+
+        if halo_list['center'].size > 0:
             for index in xrange(nearest_distance.size):
                 nearest = np.argmin(periodic_distance(np.array([data['x'][index],
                                                                 data['y'][index],
                                                                 data['z'][index]]),
-                                                      halo_centers))
+                                                      halo_list['center']))
                 nearest_distance[index] = periodic_distance(np.array([data['x'][index],
                                                                       data['y'][index],
                                                                       data['z'][index]]),
-                                                            halo_centers[nearest])
+                                                            halo_list['center'][nearest])
                 for field in fields:
-                    field_data[field][index] = halo_field_values[field][nearest]
+                    field_data[field][index] = halo_list[field][nearest]
 
         return_data = {'nearest_halo': nearest_distance}
         for field in fields:
