@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import gc
 import numpy as np
 import os
 import h5py
@@ -583,7 +584,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
-                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
 
             # get a sphere object to profile
@@ -630,6 +631,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 g.clear_data()
             sphere.clear_data()
             del sphere
+            gc.collect()
 
         return profile
 
