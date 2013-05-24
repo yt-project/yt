@@ -44,6 +44,10 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.physical_constants import \
+    gravitational_constant_cgs, \
+    km_per_pc
+import yt.utilities.physical_constants as pcons
 from .fields import \
     OWLSFieldInfo, \
     KnownOWLSFields, \
@@ -352,6 +356,7 @@ class TipsyStaticOutput(StaticOutput):
 
     def __init__(self, filename, data_style="tipsy",
                  root_dimensions = 64, endian = ">",
+                 box_size = None, hubble_constant = None,
                  field_dtypes = None,
                  domain_left_edge = None,
                  domain_right_edge = None):
@@ -428,3 +433,26 @@ class TipsyStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         # We do not allow load() of these files.
         return False
+
+    @classmethod
+    def calculate_tipsy_units(self, hubble_constant, box_size):
+        # box_size in cm, or else in a unit we can convert to cm
+        # hubble_constant is assumed to be in units scaled to 100 km / s / Mpc
+        hubble_hertz = hubble_constant / (km_per_pc * 1e4)
+        if isinstance(box_size, types.TupleType):
+            if not isinstance(box_size[1], types.StringTypes):
+                raise RuntimeError
+            conversion = getattr(pcons, "cm_per_%s" % box_size[1], None)
+            if conversion is None:
+                raise RuntimeError
+            box_size = box_size[0] * conversion
+        print hubble_hertz, box_size
+        units = {}
+        units['length'] = box_size
+        units['density'] = 3.0 * hubble_hertz**2 / \
+                          (8.0 * np.pi * gravitational_constant_cgs)
+        # density is in g/cm^3
+        units['mass'] = units['density'] * units['length']**3.0
+        units['time'] = 1.0 / np.sqrt(gravitational_constant_cgs * units['density'])
+        units['velocity'] = units['length'] / units['time']
+        return units
