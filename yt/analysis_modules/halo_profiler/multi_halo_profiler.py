@@ -631,6 +631,9 @@ class HaloProfiler(ParallelAnalysisInterface):
                 g.clear_data()
             sphere.clear_data()
             del sphere
+            # Currently, this seems to be the only way to prevent large 
+            # halo profiling runs from running out of ram.
+            # It would be good to track down the real cause at some point.
             gc.collect()
 
         return profile
