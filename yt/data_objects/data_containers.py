@@ -249,7 +249,13 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
                     mask = self._current_chunk.objs[0].select(self.selector)
                     if mask is None: continue
-                    data = self[field][mask]
+                    data = self[field]
+                    if len(data.shape) == 4:
+                        # This is how we keep it consistent between oct ordering
+                        # and grid ordering.
+                        data = data.T[mask.T]
+                    else:
+                        data = data[mask]
                     rv[ind:ind+data.size] = data
                     ind += data.size
         else:
@@ -512,6 +518,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                     for f in gip.fields:
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)
+
+    def deposit(self, positions, fields, op):
+        assert(self._current_chunk.chunk_type == "spatial")
+        fields = ensure_list(fields)
+        self.hierarchy._deposit_particle_fields(self, positions, fields, op)
 
     @contextmanager
     def _field_lock(self):

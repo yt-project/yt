@@ -233,6 +233,7 @@ class FieldDetector(defaultdict):
         if pf is None:
             # required attrs
             pf = fake_parameter_file(lambda: 1)
+            pf["Massarr"] = np.ones(6)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.cosmological_simulation = 0.0
             pf.hubble_constant = 0.7
@@ -285,6 +286,9 @@ class FieldDetector(defaultdict):
                 return self[item]
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
+
+    def deposit(self, *args, **kwargs):
+        return np.random.random((self.nd, self.nd, self.nd))
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
