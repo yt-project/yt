@@ -31,6 +31,11 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
+from yt.utilities.physical_constants import \
+    cm_per_mpc, \
+    mass_sun_cgs, \
+    rho_crit_now
+
 
 class HaloMassFcn(ParallelAnalysisInterface):
     """
@@ -259,7 +264,9 @@ class HaloMassFcn(ParallelAnalysisInterface):
         sigma8_unnorm = math.sqrt(self.sigma_squared_of_R(R));
         sigma_normalization = self.sigma8input / sigma8_unnorm;
 
-        rho0 = self.omega_matter0 * 2.78e+11; # in units of h^2 Msolar/Mpc^3
+        # rho0 in units of h^2 Msolar/Mpc^3
+        rho0 = self.omega_matter0 * \
+                rho_crit_now * cm_per_mpc**3 / mass_sun_cgs
 
         # spacing in mass of our sigma calculation
         dm = (float(self.log_mass_max) - self.log_mass_min)/self.num_sigma_bins;
@@ -294,7 +301,9 @@ class HaloMassFcn(ParallelAnalysisInterface):
     def dndm(self):
         
         # constants - set these before calling any functions!
-        rho0 = self.omega_matter0 * 2.78e+11; # in units of h^2 Msolar/Mpc^3
+        # rho0 in units of h^2 Msolar/Mpc^3
+        rho0 = self.omega_matter0 * \
+                rho_crit_now * cm_per_mpc**3 / mass_sun_cgs
         self.delta_c0 = 1.69;  # critical density for turnaround (Press-Schechter)
         
         nofmz_cum = 0.0;  # keep track of cumulative number density

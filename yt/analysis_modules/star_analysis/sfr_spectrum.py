@@ -31,9 +31,13 @@ from yt.funcs import *
 from yt.utilities.cosmology import \
     Cosmology, \
     EnzoCosmology
+from yt.utilities.physical_constants import \
+    sec_per_year, \
+    speed_of_light_cgs
 
-YEAR = 3.155693e7 # sec / year
-LIGHT = 2.997925e10 # cm / s
+
+YEAR = sec_per_year # sec / year
+LIGHT = speed_of_light_cgs # cm / s
 
 class StarFormationRate(object):
     r"""Calculates the star formation rate for a given population of

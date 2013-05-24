@@ -48,15 +48,16 @@ from field_info_container import \
     NeedsParameter
 
 from yt.utilities.physical_constants import \
-     mh, \
-     me, \
-     sigma_thompson, \
-     clight, \
-     kboltz, \
-     G, \
-     rho_crit_now, \
-     speed_of_light_cgs, \
-     km_per_cm, keV_per_K
+    mass_sun_cgs, \
+    mh, \
+    me, \
+    sigma_thompson, \
+    clight, \
+    kboltz, \
+    G, \
+    rho_crit_now, \
+    speed_of_light_cgs, \
+    km_per_cm, keV_per_K
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -379,7 +380,7 @@ add_field("JeansMassMsun",function=JeansMassMsun,units=r"\rm{Msun}")
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
 def _convertCellMassMsun(data):
-    return 5.027854e-34 # g^-1
+    return 1.0 / mass_sun_cgs # g^-1
 add_field("CellMass", function=_CellMass, units=r"\rm{g}")
 add_field("CellMassMsun", units=r"M_{\odot}",
           function=_CellMass,
@@ -458,6 +459,7 @@ def _convertConvergence(data):
     # lens to source
     DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
         data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
+    # TODO: convert 1.5e14 to constants
     return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter * 
                                 (data.pf.hubble_constant / speed_of_light_cgs)**2 *
                                 (1 + data.pf.current_redshift)))
@@ -520,7 +522,7 @@ def _XRayEmissivity(field, data):
     return ((data["Density"].astype('float64')**2.0) \
             *data["Temperature"]**0.5)
 def _convertXRayEmissivity(data):
-    return 2.168e60
+    return 2.168e60 #TODO: convert me to constants
 add_field("XRayEmissivity", function=_XRayEmissivity,
           convert_function=_convertXRayEmissivity,
           projection_conversion="1")
@@ -927,8 +929,8 @@ def _MeanMolecularWeight(field,data):
 add_field("MeanMolecularWeight",function=_MeanMolecularWeight,units=r"")
 
 def _JeansMassMsun(field,data):
-    MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * \
-    (3/(4*3.1415926535897931))**(0.5) / 1.989e33
+    MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
+    (3.0 / (4.0 * np.pi)) ** (0.5) / mass_sun_cgs
 
     return (MJ_constant *
             ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *

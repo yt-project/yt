@@ -34,6 +34,9 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.utilities.physical_constants import \
+    boltzmann_constant_cgs, \
+    mass_hydrogen_cgs
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
 add_field = RAMSESFieldInfo.add_field
@@ -73,6 +76,11 @@ KnownRAMSESFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
 KnownRAMSESFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
 KnownRAMSESFields["Density"]._convert_function=_convertDensity
 
+def _convertPressure(data):
+    return data.convert("Pressure")
+KnownRAMSESFields["Pressure"]._units=r"\rm{dyne}/\rm{cm}^{2}/\mu"
+KnownRAMSESFields["Pressure"]._convert_function=_convertPressure
+
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
@@ -101,36 +109,27 @@ for f in known_ramses_particle_fields:
                   validators = [ValidateDataField(f)],
                   particle_type = True)
 
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
+for ax in 'xyz':
+    KnownRAMSESFields["particle_velocity_%s" % ax]._convert_function = \
+        _convertVelocity
 
 def _convertParticleMass(data):
-    return data.convert("Density")*(data.convert("cm")**3.0)
-def _IOLevelParticleMass(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
-    return cf
+    return data.convert("mass")
+
+KnownRAMSESFields["particle_mass"]._convert_function = \
+        _convertParticleMass
+KnownRAMSESFields["particle_mass"]._units = r"\mathrm{g}"
+
 def _convertParticleMassMsun(data):
-    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
-def _IOLevelParticleMassMsun(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
-    return cf
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass,
-          particle_convert_function=_IOLevelParticleMass)
+    return 1.0/1.989e33
+add_field("ParticleMass", function=TranslationFunc("particle_mass"), 
+          particle_type=True)
 add_field("ParticleMassMsun",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          particle_convert_function=_IOLevelParticleMassMsun)
+          function=TranslationFunc("particle_mass"), 
+          particle_type=True, convert_function=_convertParticleMassMsun)
 
-
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
+def _Temperature(field, data):
+    rv = data["Pressure"]/data["Density"]
+    rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
+    return rv
+add_field("Temperature", function=_Temperature, units=r"\rm{K}")

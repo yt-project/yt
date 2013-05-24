@@ -37,6 +37,9 @@ from yt.data_objects.field_info_container import add_field
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
+from yt.utilities.physical_constants import \
+    erg_per_eV, \
+    keV_per_Hz
 
 xray_data_version = 1
 
@@ -101,7 +104,7 @@ class EmissivityIntegrator(object):
                   np.power(10, np.concatenate([self.log_E[:-1] - 0.5 * E_diff,
                                                [self.log_E[-1] - 0.5 * E_diff[-1],
                                                 self.log_E[-1] + 0.5 * E_diff[-1]]]))
-        self.dnu = 2.41799e17 * np.diff(self.E_bins)
+        self.dnu = keV_per_Hz * np.diff(self.E_bins)
 
     def _get_interpolator(self, data, e_min, e_max):
         r"""Create an interpolator for total emissivity in a 
@@ -311,7 +314,7 @@ def add_xray_photon_emissivity_field(e_min, e_max, filename=None,
     """
 
     my_si = EmissivityIntegrator(filename=filename)
-    energy_erg = np.power(10, my_si.log_E) * 1.60217646e-9
+    energy_erg = np.power(10, my_si.log_E) * erg_per_eV
 
     em_0 = my_si._get_interpolator((my_si.emissivity_primordial[..., :] / energy_erg),
                                    e_min, e_max)
