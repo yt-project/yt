@@ -496,10 +496,10 @@ class LightRay(CosmologySplice):
         del hp
 
         # Create position array from halo list.
-        return_list = dict([(field, np.array(map(lambda halo: halo[field],
-                                                 hp_list))) \
-                                for field in fields])
-        return_list['center'] = np.array(map(lambda halo: halo['center'], hp_list))
+        return_list = dict([(field, []) for field in fields])
+        for halo in hp_list:
+            for field in fields + ['center']:
+                return_list[field].append(halo[field])
         return return_list
         
     def _get_nearest_halo_properties(self, data, halo_list, fields=None):
