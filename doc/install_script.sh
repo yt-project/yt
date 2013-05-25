@@ -10,7 +10,8 @@
 # subversion checkout of yt, you can set YT_DIR, too.  (It'll already
 # check the current directory and one up.
 #
-# And, feel free to drop me a line: matthewturk@gmail.com
+# If you experience problems, please visit the Help section at 
+# http://yt-project.org.
 #
 
 DEST_SUFFIX="yt-`uname -m`"
