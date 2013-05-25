@@ -17,7 +17,7 @@ DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
 
-if [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
 then
     DEST_DIR=${YT_DEST}
 fi
@@ -46,7 +46,7 @@ INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
-INST_ROCKSTAR=0 # Install the Rockstar halo finder?
+INST_ROCKSTAR=1 # Install the Rockstar halo finder?
 INST_SCIPY=0    # Install scipy?
 
 # If you've got yt some other place, set this to point to it.
@@ -96,6 +96,48 @@ fi
 #------------------------------------------------------------------------------#
 
 LOG_FILE="${DEST_DIR}/yt_install.log"
+
+function write_config
+{
+    CONFIG_FILE=${DEST_DIR}/.yt_config
+
+    echo INST_HG=${INST_HG} > ${CONFIG_FILE}
+    echo INST_ZLIB=${INST_ZLIB} >> ${CONFIG_FILE}
+    echo INST_BZLIB=${INST_BZLIB} >> ${CONFIG_FILE}
+    echo INST_PNG=${INST_PNG} >> ${CONFIG_FILE}
+    echo INST_FTYPE=${INST_FTYPE} >> ${CONFIG_FILE}
+    echo INST_ENZO=${INST_ENZO} >> ${CONFIG_FILE}
+    echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
+    echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
+    echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
+    echo INST_ROCKSTAR=${INST_ROCKSTAR} >> ${CONFIG_FILE}
+    echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
+    echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
+    echo MPL_SUPP_LDFLAGS=${MPL_SUPP_LDFLAGS} >> ${CONFIG_FILE}
+    echo MPL_SUPP_CFLAGS=${MPL_SUPP_CFLAGS} >> ${CONFIG_FILE}
+    echo MPL_SUPP_CXXFLAGS=${MPL_SUPP_CXXFLAGS} >> ${CONFIG_FILE}
+    echo MAKE_PROCS=${MAKE_PROCS} >> ${CONFIG_FILE}
+    if [ ${HDF5_DIR} ]
+    then
+        echo ${HDF5_DIR} >> ${CONFIG_FILE}
+    fi
+    if [ ${NUMPY_ARGS} ]
+    then
+        echo ${NUMPY_ARGS} >> ${CONFIG_FILE}
+    fi
+}
+
+# Write config settings to file.
+CONFIG_FILE=${DEST_DIR}/.yt_config
+mkdir -p ${DEST_DIR}
+if [ -z ${REINST_YT} ] || [ ${REINST_YT} -neq 1 ]
+then
+    write_config
+elif [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -f ${CONFIG_FILE} ]
+then
+    USED_CONFIG=1
+    source ${CONFIG_FILE}
+fi
 
 function get_willwont
 {
@@ -375,6 +417,10 @@ printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
 get_willwont ${INST_0MQ}
 echo "be installing ZeroMQ"
 
+printf "%-15s = %s so I " "INST_ROCKSTAR" "${INST_ROCKSTAR}"
+get_willwont ${INST_0MQ}
+echo "be installing Rockstar"
+
 echo
 
 if [ -z "$HDF5_DIR" ]
@@ -396,6 +442,12 @@ echo "If you'd rather stop, maybe think things over, even grab a sandwich, "
 echo "hit Ctrl-C."
 echo
 host_specific
+if [ ${USED_CONFIG} ]
+then
+    echo "Settings were loaded from ${CONFIG_FILE}."
+    echo "Remove this file if you wish to return to the default settings."
+    echo
+fi
 echo "========================================================================"
 echo
 read -p "[hit enter] "
