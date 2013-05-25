@@ -446,8 +446,8 @@ class LightRay(CosmologySplice):
                        halo_profiler_actions=None, halo_list='all'):
         "Load a list of halos for the pf."
 
-        if pf.basename in self.halo_lists:
-            return self.halo_lists[pf.basename]
+        if str(pf) in self.halo_lists:
+            return self.halo_lists[str(pf)]
 
         if fields is None: fields = []
 
@@ -468,8 +468,8 @@ class LightRay(CosmologySplice):
                                                halo_profiler_actions=halo_profiler_actions,
                                                halo_list=halo_list)
 
-        self.halo_lists[pf.basename] = my_list
-        return self.halo_lists[pf.basename]
+        self.halo_lists[str(pf)] = my_list
+        return self.halo_lists[str(pf)]
 
     def _halo_profiler_list(self, pf, fields=None, 
                             halo_profiler_kwargs=None,
@@ -509,9 +509,9 @@ class LightRay(CosmologySplice):
         """
 
         if fields is None: fields = []
-        field_data = dict([(field, np.zeros(data['x'].shape)) \
+        field_data = dict([(field, np.zeros_like(data['x'])) \
                            for field in fields])
-        nearest_distance = np.zeros(data['x'].shape)
+        nearest_distance = np.zeros_like(data['x'])
 
         if halo_list['center'].size > 0:
             for index in xrange(nearest_distance.size):
