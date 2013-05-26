@@ -496,7 +496,7 @@ class LightRay(CosmologySplice):
         del hp
 
         # Create position array from halo list.
-        return_list = dict([(field, []) for field in fields])
+        return_list = dict([(field, []) for field in fields + ['center']])
         for halo in hp_list:
             for field in fields + ['center']:
                 return_list[field].append(halo[field])
