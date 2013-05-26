@@ -63,7 +63,7 @@ class UnilinearFieldInterpolator:
         if isinstance(boundaries, np.ndarray):
             if boundaries.size != table.shape[0]:
                 mylog.error("Bins array not the same length as the data.")
-                raise ValuesError
+                raise ValueError
             self.x_bins = boundaries
         else:
             x0, x1 = boundaries
