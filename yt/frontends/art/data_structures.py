@@ -136,6 +136,10 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                 self.parameter_file.particle_types.append("specie%i" % specie)
         else:
             self.parameter_file.particle_types = []
+        for ptype in self.parameter_file.particle_types:
+            for pfield in self.particle_field_list:
+                pfn = (ptype, pfield)
+                self.field_list.append(pfn)
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
