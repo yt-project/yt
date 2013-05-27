@@ -274,7 +274,8 @@ for ptype, name in zip(ptypes, names):
                                for ax in 'xyz'])
         pmass = data[(ptype, "particle_mass")]
         mass = data.deposit(pos, [pmass], method = "sum")
-        return mass / vol
+        dens = mass / vol
+        return dens
     add_field("%s_mass_density_deposit" % ptype, function=particle_density, 
               particle_type=False, take_log=True, units=r'g/cm^{3}',
               display_name="%s Density" % name, 

@@ -43,7 +43,6 @@ class IOHandlerART(BaseIOHandler):
     _data_style = "art"
     tb, ages = None, None
     cache = {}
-    masks = {}
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -71,8 +70,6 @@ class IOHandlerART(BaseIOHandler):
         return tr
 
     def _get_mask(self, selector, ftype):
-        if ftype in self.masks.keys():
-            return self.masks[ftype]
         pf = self.pf
         ptmax = self.ws[-1]
         pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
@@ -84,16 +81,15 @@ class IOHandlerART(BaseIOHandler):
         off = 1.0/dd
         x, y, z = (t/dd - off for t in (x, y, z))
         mask = selector.select_points(x, y, z)
-        self.masks[ftype] = mask
         # save the particle positions if asked
         for ax in 'xyz':
             f = (ftype, "particle_position_%s" % ax)
             self.cache[f] = vars()[ax]
-        return self.masks[ftype]
+        return mask
 
-    def _get_field(self,  mask, field):
+    def _get_field(self,  field):
         if field in self.cache.keys():
-            return self.cache[field][mask].astype('f8')
+            return self.cache[field]
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
@@ -117,7 +113,7 @@ class IOHandlerART(BaseIOHandler):
                     a += size
             tr[field] = data
         elif fname == "particle_index":
-            tr[field] = np.arange(idxa, idxb).astype('int64')
+            tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
             data = np.zeros(npa, dtype='int')
@@ -146,25 +142,24 @@ class IOHandlerART(BaseIOHandler):
             del data
         if tr == {}:
             tr = dict((f, np.array([])) for f in fields)
-        self.cache[field] = tr[field].astype('f8')
-        return self.cache[field][mask]
+        self.cache[field] = tr[field]
+        return self.cache[field]
 
     def _read_particle_selection(self, chunks, selector, fields):
-        tr = {}
-        fields_read = []
-        chunk = [c for c in chunks][0]
-        self.pf = chunk.objs[0].domain.pf
-        self.ws = self.pf.parameters["wspecies"]
-        self.ls = self.pf.parameters["lspecies"]
-        self.file_particle = self.pf._file_particle_data
-        self.file_stars = self.pf._file_particle_stars
-        self.Nrow = self.pf.parameters["Nrow"]
-        data = {}
-        #import pdb; pdb.set_trace()
+        for chunk in chunks:
+            self.pf = chunk.objs[0].domain.pf
+            self.ws = self.pf.parameters["wspecies"]
+            self.ls = self.pf.parameters["lspecies"]
+            self.file_particle = self.pf._file_particle_data
+            self.file_stars = self.pf._file_particle_stars
+            self.Nrow = self.pf.parameters["Nrow"]
+            break
+        data = {f:np.array([]) for f in fields}
         for f in fields:
             ftype, fname = f
             mask = self._get_mask(selector, ftype)
-            data[f] =  self._get_field(mask, f)
+            arr = self._get_field(f)[mask].astype('f8')
+            data[f] = np.concatenate((arr, data[f]))
         return data
 
 def _determine_field_size(pf, field, lspecies, ptmax):
