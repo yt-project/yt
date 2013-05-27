@@ -73,27 +73,21 @@ class IOHandlerART(BaseIOHandler):
         pf = self.pf
         ptmax = self.ws[-1]
         pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
-        rp = lambda ax: read_particles(
-            self.file_particle, self.Nrow, idxa=idxa,
-            idxb=idxb, fields=ax)
-        x, y, z = rp(['x','y','z'])
-        dd = pf.domain_dimensions[0]
-        off = 1.0/dd
-        x, y, z = (t/dd - off for t in (x, y, z))
+        pstr = 'particle_position_%s'
+        x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z)
-        # save the particle positions if asked
-        for ax in 'xyz':
-            f = (ftype, "particle_position_%s" % ax)
-            self.cache[f] = vars()[ax]
         return mask
 
     def _get_field(self,  field):
         if field in self.cache.keys():
+            mylog.debug("Cached %s", str(field))
             return self.cache[field]
+        mylog.debug("Reading %s", str(field))
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.pf, ftype, self.ls, ptmax)
+        pbool, idxa, idxb = _determine_field_size(self.pf, ftype, 
+                                                  self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
         rp = lambda ax: read_particles(
@@ -101,7 +95,9 @@ class IOHandlerART(BaseIOHandler):
             idxb=idxb, fields=ax)
         for i, ax in enumerate('xyz'):
             if fname.startswith("particle_position_%s" % ax):
-                tr[field] = rp([ax])
+                dd = self.pf.domain_dimensions[0]
+                off = 1.0/dd
+                tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 tr[field] = rp(['v'+ax])
         if fname == "particle_mass":
