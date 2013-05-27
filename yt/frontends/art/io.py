@@ -43,6 +43,7 @@ class IOHandlerART(BaseIOHandler):
     _data_style = "art"
     tb, ages = None, None
     cache = {}
+    masks = {}
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -70,13 +71,17 @@ class IOHandlerART(BaseIOHandler):
         return tr
 
     def _get_mask(self, selector, ftype):
+        key = (selector, ftype)
+        if key in self.masks.keys():
+            return self.masks[key]
         pf = self.pf
         ptmax = self.ws[-1]
         pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z)
-        return mask
+        self.masks[key] = mask
+        return self.masks[key]
 
     def _get_field(self,  field):
         if field in self.cache.keys():
