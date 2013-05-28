@@ -44,7 +44,8 @@ from field_info_container import \
     NeedsOriginalGrid, \
     NeedsDataField, \
     NeedsProperty, \
-    NeedsParameter
+    NeedsParameter, \
+    NullFunc
 
 from yt.utilities.physical_constants import \
      mh, \
@@ -440,7 +441,7 @@ add_field("CellMassCode",
           convert_function=_convertCellMassCode)
 
 def _TotalMass(field,data):
-    return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
+    return (data["Density"]+data["particle_density"]) * data["CellVolume"]
 add_field("TotalMass", function=_TotalMass, units=r"\rm{g}")
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
@@ -453,7 +454,7 @@ add_field("StarMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _Matter_Density(field,data):
-    return (data['Density'] + data['Dark_Matter_Density'])
+    return (data['Density'] + data['particle_density'])
 add_field("Matter_Density",function=_Matter_Density,units=r"\rm{g}/\rm{cm^3}")
 
 def _ComovingDensity(field, data):
@@ -982,22 +983,29 @@ def _JeansMassMsun(field,data):
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
 
-def _convertDensity(data):
-    return data.convert("Density")
+# We add these fields so that the field detector can use them
+for field in ["particle_position_%s" % ax for ax in "xyz"] + \
+             ["ParticleMass"]:
+    # This marker should let everyone know not to use the fields, but NullFunc
+    # should do that, too.
+    add_field(field, function=NullFunc, particle_type = True,
+        units=r"UNDEFINED")
+
 def _pdensity(field, data):
-    blank = np.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return blank
     CICDeposit_3(data["particle_position_x"].astype(np.float64),
                  data["particle_position_y"].astype(np.float64),
                  data["particle_position_z"].astype(np.float64),
-                 data["particle_mass"].astype(np.float32),
+                 data["ParticleMass"],
                  data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),
                  np.float64(data['dx']))
+    np.divide(blank, data["CellVolume"], blank)
     return blank
 add_field("particle_density", function=_pdensity,
-          validators=[ValidateGridType()], convert_function=_convertDensity,
+          validators=[ValidateGridType()],
           display_name=r"\mathrm{Particle}\/\mathrm{Density}")
 
 def _MagneticEnergy(field,data):

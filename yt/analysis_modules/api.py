@@ -119,3 +119,7 @@ from .two_point_functions.api import \
     FcnSet
 
 from .SZmaps import SZprojection
+
+from .radmc3d_export.api import \
+    RadMC3DWriter
+

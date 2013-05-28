@@ -2017,7 +2017,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
-    image = np.zeros((nv,1,3), dtype='float64', order='C')
+    image = np.zeros((nv,1,4), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, np.arange(nv))
     vs.shape = (nv,1,3)
     if rotation is not None:

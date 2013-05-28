@@ -105,6 +105,9 @@ class EnzoGrid(AMRGridPatch):
         """
         Intelligently set the filename.
         """
+        if filename is None:
+            self.filename = filename
+            return
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -302,7 +305,7 @@ class EnzoHierarchy(AMRHierarchy):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(["-1"])
+            fn.append([None])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
@@ -373,6 +376,7 @@ class EnzoHierarchy(AMRHierarchy):
         giter = izip(grids, levels, procs, parents)
         bn = self._bn % (self.pf)
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
+        pmap.append((None, )) # Now, P==-1 will give None
         for grid,L,P,Pid in giter:
             grid.Level = L
             grid._parent_id = Pid
@@ -405,7 +409,10 @@ class EnzoHierarchy(AMRHierarchy):
                 parents.append(g.Parent.id)
             else:
                 parents.append(-1)
-            procs.append(int(self.filenames[i][0][-4:]))
+            if self.filenames[i][0] is None:
+                procs.append(-1)
+            else:
+                procs.append(int(self.filenames[i][0][-4:]))
             levels.append(g.Level)
 
         parents = np.array(parents, dtype='int64')

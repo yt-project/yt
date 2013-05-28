@@ -147,6 +147,13 @@ def test_setwidth():
          (-5/pf['kpc'], 5/pf['kpc']),
          (15/pf['kpc'], 10/pf['kpc'])], 15
 
+    slc.set_width((15,'kpc'),(10000,'pc'))
+
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (-5/pf['kpc'], 5/pf['kpc']),
+         (15/pf['kpc'], 10/pf['kpc'])], 15
+
 def test_save():
     """Test plot window creation and saving to disk."""
     # Perform I/O in safe place instead of yt main dir

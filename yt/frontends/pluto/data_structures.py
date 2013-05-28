@@ -99,7 +99,7 @@ class PlutoHierarchy(AMRHierarchy):
 
     grid = PlutoGrid
 
-    def __init__(self,pf,data_style='chombo_hdf5'):
+    def __init__(self,pf,data_style='pluto_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
         self.data_style = data_style
@@ -187,7 +187,7 @@ class PlutoStaticOutput(StaticOutput):
     _fieldinfo_fallback = PlutoFieldInfo
     _fieldinfo_known = KnownPlutoFields
 
-    def __init__(self, filename, data_style='chombo_hdf5',
+    def __init__(self, filename, data_style='pluto_hdf5',
                  storage_filename = None, ini_filename = None):
         self._handle = h5py.File(filename,'r')
         self.current_time = self._handle.attrs['time']

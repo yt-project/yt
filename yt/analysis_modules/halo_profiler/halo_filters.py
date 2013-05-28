@@ -105,7 +105,8 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
 
     if use_log:
         for field in temp_profile.keys():
-            temp_profile[field] = np.log10(temp_profile[field])
+            temp_profile[field] = np.log10(np.clip(temp_profile[field], 1e-90, 
+                                                   max(temp_profile[field])))
 
     virial = dict((field, 0.0) for field in fields)
 

@@ -1062,7 +1062,7 @@ class HaloList(object):
     def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
+        *dm_only* is True (default), only run it on the dark matter particles, otherwise
         on all particles.  Returns an iterable collection of *HopGroup* items.
         """
         self._data_source = data_source
@@ -1097,7 +1097,7 @@ class HaloList(object):
     def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
-            return (self._data_source["creation_time"] < 0)
+            return (self._data_source["creation_time"] <= 0)
         elif 'particle_type' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on particle type")
             return (self._data_source["particle_type"] == 1)
@@ -1458,7 +1458,7 @@ class RockstarHaloList(HaloList):
 class HOPHaloList(HaloList):
     """
     Run hop on *data_source* with a given density *threshold*.  If
-    *dm_only* is set, only run it on the dark matter particles, otherwise
+    *dm_only* is True (default), only run it on the dark matter particles, otherwise
     on all particles.  Returns an iterable collection of *HopGroup* items.
     """
     _name = "HOP"
@@ -1657,7 +1657,7 @@ class TextHaloList(HaloList):
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     """
     Run hop on *data_source* with a given density *threshold*.  If
-    *dm_only* is set, only run it on the dark matter particles, otherwise
+    *dm_only* is True (default), only run it on the dark matter particles, otherwise
     on all particles.  Returns an iterable collection of *HopGroup* items.
     """
     _name = "parallelHOP"
@@ -2009,12 +2009,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
-        # if path denoted in filename, assure path exists
-        if len(filename.split('/')) > 1:
-            mkdir_rec('/'.join(filename.split('/')[:-1]))
-
+        ensure_dir_exists(filename)
         f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f, ellipsoid_data)
+
 
     def write_particle_lists_txt(self, prefix):
         r"""Write out the names of the HDF5 files containing halo particle data
@@ -2032,12 +2030,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
-        # if path denoted in prefix, assure path exists
-        if len(prefix.split('/')) > 1:
-            mkdir_rec('/'.join(prefix.split('/')[:-1]))
-
+        ensure_dir_exists(prefix)
         f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
+
 
     @parallel_blocking_call
     def write_particle_lists(self, prefix):
@@ -2059,10 +2055,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
-        # if path denoted in prefix, assure path exists
-        if len(prefix.split('/')) > 1:
-            mkdir_rec('/'.join(prefix.split('/')[:-1]))
-
+        ensure_dir_exists(prefix)
         fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -2091,15 +2084,12 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         ellipsoid_data : bool.
             Whether to save the ellipsoidal information to the files.
             Default = False.
-        
+
         Examples
         --------
         >>> halos.dump("MyHalos")
         """
-        # if path denoted in basename, assure path exists
-        if len(basename.split('/')) > 1:
-            mkdir_rec('/'.join(basename.split('/')[:-1]))
-
+        ensure_dir_exists(basename)
         self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)
@@ -2132,7 +2122,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     resize : bool
         Turns load-balancing on or off. Default = True.
     kdtree : string
@@ -2461,7 +2451,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
@@ -2566,7 +2556,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         applied.  Default = 0.2.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
