@@ -147,14 +147,13 @@ class IOHandlerART(BaseIOHandler):
         return self.cache[field]
 
     def _read_particle_selection(self, chunks, selector, fields):
-        for chunk in chunks:
-            self.pf = chunk.objs[0].domain.pf
-            self.ws = self.pf.parameters["wspecies"]
-            self.ls = self.pf.parameters["lspecies"]
-            self.file_particle = self.pf._file_particle_data
-            self.file_stars = self.pf._file_particle_stars
-            self.Nrow = self.pf.parameters["Nrow"]
-            break
+        chunk = chunks.next()
+        self.pf = chunk.objs[0].domain.pf
+        self.ws = self.pf.parameters["wspecies"]
+        self.ls = self.pf.parameters["lspecies"]
+        self.file_particle = self.pf._file_particle_data
+        self.file_stars = self.pf._file_particle_stars
+        self.Nrow = self.pf.parameters["Nrow"]
         data = {f:np.array([]) for f in fields}
         for f in fields:
             ftype, fname = f
