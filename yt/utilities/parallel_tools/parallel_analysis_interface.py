@@ -257,7 +257,7 @@ def parallel_root_only(func):
             try:
                 rv = func(*args, **kwargs)
                 all_clear = 1
-            except:
+            except Exception as ex:
                 traceback.print_last()
                 all_clear = 0
         else:
