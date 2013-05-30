@@ -255,11 +255,13 @@ class StaticOutput(object):
         if ftype == "unknown" and self._last_freq[0] != None:
             ftype = self._last_freq[0]
         field = (ftype, fname)
-        if field == self._last_freq or fname == self._last_freq[1]:
+        if field == self._last_freq:
             return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
+            return self._last_finfo
+        if fname == self._last_freq[1]:
             return self._last_finfo
         if fname in self.field_info:
             self._last_freq = field

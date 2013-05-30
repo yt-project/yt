@@ -265,15 +265,22 @@ class FieldDetector(defaultdict):
                 + 1e-4*np.random.random((nd * nd * nd)))
 
     def __missing__(self, item):
-        FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(item) and FI[item]._function.func_name != 'NullFunc':
+        if hasattr(self.pf, "field_info") and isinstance(item, tuple):
+            finfo = self.pf._get_field_info(*item)
+        else:
+            FI = getattr(self.pf, "field_info", FieldInfo)
+            if item in FI:
+                finfo = FI[item]
+            else:
+                finfo = None
+        if finfo is not None and finfo._function.func_name != 'NullFunc':
             try:
-                vv = FI[item](self)
+                vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
                 nfd = FieldDetector(self.nd + ngz * 2)
                 nfd._num_ghost_zones = ngz
-                vv = FI[item](nfd)
+                vv = finfo(nfd)
                 if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]
                 for i in nfd.requested:
                     if i not in self.requested: self.requested.append(i)

@@ -124,6 +124,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         self.field_list = pfl
         pf = self.parameter_file
         pf.particle_types = tuple(set(pt for pt, pf in pfl))
+        pf.particle_types += ('all',)
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()

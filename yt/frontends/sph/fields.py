@@ -126,18 +126,28 @@ for ptype in ["Gas", "DarkMatter", "Stars"]:
 
 _gadget_ptypes = ("Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry")
 
-def _gadget_particle_fields(ptype):
+def _gadget_particle_fields(_ptype):
     def _Mass(field, data):
         pind = _gadget_ptypes.index(ptype)
         if data.pf["Massarr"][pind] == 0.0:
             return data[ptype, "Masses"].copy()
-        mass = np.ones(data[ptype, "Coordinates"].shape[0], dtype="float64")
+        mass = np.ones(data[ptype, "ParticleIDs"].shape[0], dtype="float64")
         # Note that this is an alias, which is why we need to apply conversion
         # here.  Otherwise we'd have an asymmetry.
         mass *= data.pf["Massarr"][pind] * data.convert("mass")
         return mass
     GadgetFieldInfo.add_field((ptype, "Mass"), function=_Mass,
                               particle_type = True)
+
+def _AllGadgetMass(field, data):
+    v = []
+    for ptype in data.pf.particle_types:
+        if ptype == "all": continue
+        v.append(data[ptype, "Mass"].copy())
+    masses = np.concatenate(v)
+    return masses
+GadgetFieldInfo.add_field(("all", "Mass"), function=_AllGadgetMass,
+        particle_type = True, units = r"\mathrm{g}")
 
 for ptype in _gadget_ptypes:
     _gadget_particle_fields(ptype)
@@ -150,3 +160,5 @@ for ptype in _gadget_ptypes:
         convert_function=_get_conv("velocity"),
         units = r"\mathrm{cm}/\mathrm{s}")
     _particle_functions(ptype, "Coordinates", "Mass", GadgetFieldInfo)
+#_gadget_particle_fields("all")
+_particle_functions("all", "Coordinates", "Mass", GadgetFieldInfo)
