@@ -300,6 +300,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self._root_dimensions = root_dimensions
         # Set up the template for domain files
         self.storage_filename = None
+        if unit_base is not None and "UnitLength_in_cm" in unit_base:
+            unit_base['cm'] = unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
         super(GadgetStaticOutput, self).__init__(filename, data_style)
 
@@ -351,6 +353,22 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self.domain_count = hvals["NumFiles"]
 
         f.close()
+
+    def _set_units(self):
+        super(GadgetStaticOutput, self)._set_units()
+        length_unit = self.units['cm']
+        unit_base = self._unit_base or {}
+        velocity_unit = unit_base.get("velocity", 1e5)
+        velocity_unit = unit_base.get("UnitVelocity_in_cm_per_s", velocity_unit)
+        mass_unit = unit_base.get("g", 1.989e43 / self.hubble_constant)
+        mass_unit = unit_base.get("UnitMass_in_g", mass_unit)
+        time_unit = length_unit / velocity_unit
+        self.conversion_factors["velocity"] = velocity_unit
+        self.conversion_factors["mass"] = mass_unit
+        self.conversion_factors["density"] = mass_unit / length_unit**3
+        #import pdb; pdb.set_trace()
+        for u in sec_conversion:
+            self.time_units[u] = time_unit * sec_conversion[u]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

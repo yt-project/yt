@@ -37,6 +37,8 @@ from yt.data_objects.field_info_container import \
     NullFunc, \
     TranslationFunc
 import yt.data_objects.universal_fields
+from yt.utilities.physical_constants import \
+    mass_sun_cgs
 
 OWLSFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_owls_field = OWLSFieldInfo.add_field
@@ -64,6 +66,7 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
+             display_name = "\\mathrm{%s Count}" % ptype,
              projection_conversion = '1')
 
     def particle_density(field, data):
@@ -75,9 +78,28 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_density" % ptype),
              function = particle_density,
              validators = [ValidateSpatial()],
+             display_name = "\\mathrm{%s Density}" % ptype,
              units = r"\mathrm{g}/\mathrm{cm}^{3}",
+             projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
              projection_conversion = 'cm')
 
+    # Now some translation functions.
+
+    registry.add_field((ptype, "ParticleMass"),
+            function = TranslationFunc((ptype, mass_name)),
+            particle_type = True,
+            units = r"\mathrm{g}")
+
+    def _ParticleMassMsun(field, data):
+        return data[ptype, mass_name].copy()
+    def _conv_Msun(data):
+        return 1.0/mass_sun_cgs
+
+    registry.add_field((ptype, "ParticleMassMsun"),
+            function = _ParticleMassMsun,
+            convert_function = _conv_Msun,
+            particle_type = True,
+            units = r"\mathrm{M}_\odot")
 
 def _get_conv(cf):
     def _convert(data):
@@ -85,7 +107,6 @@ def _get_conv(cf):
     return _convert
 
 for ptype in ["Gas", "DarkMatter", "Stars"]:
-    _particle_functions(ptype, "Coordinates", "Mass", TipsyFieldInfo)
     KnownTipsyFields.add_field((ptype, "Mass"), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("mass"),
@@ -94,7 +115,10 @@ for ptype in ["Gas", "DarkMatter", "Stars"]:
         particle_type = True,
         convert_function=_get_conv("velocity"),
         units = r"\mathrm{cm}/\mathrm{s}")
-   
+    # Note that we have to do this last so that TranslationFunc operates
+    # correctly.
+    _particle_functions(ptype, "Coordinates", "Mass", TipsyFieldInfo)
+
 # GADGET
 # ======
 
@@ -106,13 +130,23 @@ def _gadget_particle_fields(ptype):
     def _Mass(field, data):
         pind = _gadget_ptypes.index(ptype)
         if data.pf["Massarr"][pind] == 0.0:
-            return data[ptype, "Masses"]
+            return data[ptype, "Masses"].copy()
         mass = np.ones(data[ptype, "Coordinates"].shape[0], dtype="float64")
-        mass *= data.pf["Massarr"][pind]
+        # Note that this is an alias, which is why we need to apply conversion
+        # here.  Otherwise we'd have an asymmetry.
+        mass *= data.pf["Massarr"][pind] * data.convert("mass")
         return mass
     GadgetFieldInfo.add_field((ptype, "Mass"), function=_Mass,
                               particle_type = True)
 
 for ptype in _gadget_ptypes:
     _gadget_particle_fields(ptype)
+    KnownGadgetFields.add_field((ptype, "Masses"), function=NullFunc,
+        particle_type = True,
+        convert_function=_get_conv("mass"),
+        units = r"\mathrm{g}")
+    KnownGadgetFields.add_field((ptype, "Velocities"), function=NullFunc,
+        particle_type = True,
+        convert_function=_get_conv("velocity"),
+        units = r"\mathrm{cm}/\mathrm{s}")
     _particle_functions(ptype, "Coordinates", "Mass", GadgetFieldInfo)
