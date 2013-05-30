@@ -82,6 +82,7 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
 def _get_conv(cf):
     def _convert(data):
         return data.convert(cf)
+    return _convert
 
 for ptype in ["Gas", "DarkMatter", "Stars"]:
     _particle_functions(ptype, "Coordinates", "Mass", TipsyFieldInfo)
