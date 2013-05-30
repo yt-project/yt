@@ -55,7 +55,7 @@ _pf_store = ParameterFileStore()
 class StaticOutput(object):
 
     default_fluid_type = "gas"
-    fluid_types = ("gas",)
+    fluid_types = ("gas","deposit")
     particle_types = ("all",)
     geometry = "cartesian"
     coordinates = None
