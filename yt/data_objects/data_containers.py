@@ -228,17 +228,18 @@ class YTDataContainer(object):
     def _generate_fluid_field(self, field):
         # First we check the validator
         ftype, fname = field
+        finfo = self.pf._get_field_info(ftype, fname)
         if self._current_chunk is None or \
            self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            self.pf.field_info[fname].check_available(gen_obj)
+            finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
         else:
-            rv = self.pf.field_info[fname](gen_obj)
+            rv = finfo(gen_obj)
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
