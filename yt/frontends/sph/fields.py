@@ -139,15 +139,22 @@ def _gadget_particle_fields(_ptype):
     GadgetFieldInfo.add_field((ptype, "Mass"), function=_Mass,
                               particle_type = True)
 
-def _AllGadgetMass(field, data):
-    v = []
-    for ptype in data.pf.particle_types:
-        if ptype == "all": continue
-        v.append(data[ptype, "Mass"].copy())
-    masses = np.concatenate(v)
-    return masses
-GadgetFieldInfo.add_field(("all", "Mass"), function=_AllGadgetMass,
-        particle_type = True, units = r"\mathrm{g}")
+def _field_concat(fname):
+    def _AllFields(field, data):
+        v = []
+        for ptype in data.pf.particle_types:
+            if ptype == "all": continue
+            v.append(data[ptype, fname].copy())
+        rv = np.concatenate(v, axis=0)
+        return rv
+    return _AllFields
+
+for fname in ["Coordinates", "Velocities", "ParticleIDs",
+              # Note: Mass, not Masses
+              "Mass"]:
+    func = _field_concat(fname)
+    GadgetFieldInfo.add_field(("all", fname), function=func,
+            particle_type = True)
 
 for ptype in _gadget_ptypes:
     _gadget_particle_fields(ptype)
