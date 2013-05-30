@@ -167,28 +167,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         psize = defaultdict(lambda: 0)
         chunks = list(chunks)
         pf = chunks[0].objs[0].domain.pf
-        aptypes = [ptype for ptype in pf.particle_types if ptype != "all"]
         ptypes = set()
         for ftype, fname in fields:
-            if ftype == "all":
-                # We simply read everything and concatenate them. 
-                ptall += [(ptype, fname) for ptype in aptypes]
-            else:
-                ptf[ftype].append(fname)
-                ptypes.add(ftype)
-        if len(ptall) > 0:
-            fv = self._read_particle_selection(chunks, selector, ptall)
-            # Now we have a dict of the return values, and we need to
-            # concatenate
-            fields = set(fname for ftype, fname in fv)
-            for field in fields:
-                v = []
-                for ptype in aptypes:
-                    va = fv.pop((ptype, field), None)
-                    if va is None: continue
-                    v.append(va)
-                rv["all", field] = np.concatenate(v, axis=0)
-        if len(ptf) == 0: return rv
+            ptf[ftype].append(fname)
+            ptypes.add(ftype)
         ptypes = list(ptypes)
         ptypes.sort(key = lambda a: self._ptypes.index(a))
         for chunk in chunks:

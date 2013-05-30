@@ -367,7 +367,6 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
         self.conversion_factors["density"] = mass_unit / length_unit**3
-        #import pdb; pdb.set_trace()
         for u in sec_conversion:
             self.time_units[u] = time_unit * sec_conversion[u]
 

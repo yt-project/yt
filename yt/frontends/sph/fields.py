@@ -126,7 +126,7 @@ for ptype in ["Gas", "DarkMatter", "Stars"]:
 
 _gadget_ptypes = ("Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry")
 
-def _gadget_particle_fields(_ptype):
+def _gadget_particle_fields(ptype):
     def _Mass(field, data):
         pind = _gadget_ptypes.index(ptype)
         if data.pf["Massarr"][pind] == 0.0:
@@ -157,11 +157,11 @@ for fname in ["Coordinates", "Velocities", "ParticleIDs",
             particle_type = True)
 
 for ptype in _gadget_ptypes:
-    _gadget_particle_fields(ptype)
     KnownGadgetFields.add_field((ptype, "Masses"), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("mass"),
         units = r"\mathrm{g}")
+    _gadget_particle_fields(ptype)
     KnownGadgetFields.add_field((ptype, "Velocities"), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("velocity"),

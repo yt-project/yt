@@ -291,6 +291,10 @@ class FieldDetector(defaultdict):
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
                 return self[item]
+        elif finfo is not None and finfo.particle_type:
+            self[item] = np.ones(self.NumberOfParticles)
+            self.requested.append(item)
+            return self[item]
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
 
