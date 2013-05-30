@@ -257,7 +257,8 @@ class ParticleStaticOutput(StaticOutput):
         for unit_registry in [mpch, sec_conversion]:
             for unit in sorted(unit_base):
                 if unit in unit_registry:
-                    base = unit_registry[unit] / unit_registry['mpc'] 
+                    ratio = (unit_registry[unit] / unit_registry['mpc'] )
+                    base = unit_base[unit] * ratio
                     break
             if base is None: continue
             for unit in unit_registry:
@@ -381,7 +382,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
                  field_dtypes = None,
                  domain_left_edge = None,
                  domain_right_edge = None,
-                 unit_base = None):
+                 unit_base = None,
+                 cosmology_parameters = None):
         self.endian = endian
         self._root_dimensions = root_dimensions
         # Set up the template for domain files
@@ -399,7 +401,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
         if field_dtypes is None: field_dtypes = {}
         self._field_dtypes = field_dtypes
 
-        unit_base = self._unit_base or {}
+        self._unit_base = unit_base or {}
+        self._cosmology_parameters = cosmology_parameters
         super(TipsyStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
@@ -434,10 +437,16 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         self.cosmological_simulation = 1
 
-        self.current_redshift = 0.0
-        self.omega_lambda = 0.0
-        self.omega_matter = 0.0
-        self.hubble_constant = 0.0
+        cosm = self._cosmology_parameters or {}
+        dcosm = dict(current_redshift = 0.0,
+                     omega_lambda = 0.0,
+                     omega_matter = 0.0,
+                     hubble_constant = 1.0)
+        for param in ['current_redshift', 'omega_lambda',
+                      'omega_matter', 'hubble_constant']:
+            pval = cosm.get(param, dcosm[param])
+            setattr(self, param, pval)
+
         self.parameters = hvals
 
         self.domain_template = self.parameter_filename
