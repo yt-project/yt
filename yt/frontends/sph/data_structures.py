@@ -44,6 +44,9 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.physical_constants import \
+    G
+from yt.utilities.cosmology import Cosmology
 from .fields import \
     OWLSFieldInfo, \
     KnownOWLSFields, \
@@ -254,15 +257,17 @@ class ParticleStaticOutput(StaticOutput):
             mpch['%shcm' % unit] = (mpch["%sh" % unit] / 
                     (1 + self.current_redshift))
             mpch['%scm' % unit] = mpch[unit] / (1 + self.current_redshift)
-        for unit_registry in [mpch, sec_conversion]:
+        # ud == unit destination
+        # ur == unit registry
+        for ud, ur in [(self.units, mpch), (self.time_units, sec_conversion)]:
             for unit in sorted(unit_base):
-                if unit in unit_registry:
-                    ratio = (unit_registry[unit] / unit_registry['mpc'] )
+                if unit in ur:
+                    ratio = (ur[unit] / ur['mpc'] )
                     base = unit_base[unit] * ratio
                     break
             if base is None: continue
-            for unit in unit_registry:
-                self.units[unit] = unit_registry[unit] / base
+            for unit in ur:
+                ud[unit] = ur[unit] / base
 
 class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
@@ -453,6 +458,22 @@ class TipsyStaticOutput(ParticleStaticOutput):
         self.domain_count = 1
 
         f.close()
+
+    def _set_units(self):
+        super(TipsyStaticOutput, self)._set_units()
+        DW = (self.domain_right_edge - self.domain_left_edge).max()
+        cosmo = Cosmology(self.hubble_constant * 100.0,
+                          self.omega_matter, self.omega_lambda)
+        length_unit = DW * self.units['cm'] # Get it in proper cm
+        density_unit = cosmo.CriticalDensity(self.current_redshift)
+        mass_unit = density_unit * length_unit**3
+        time_unit = 1.0 / np.sqrt(G*density_unit)
+        velocity_unit = length_unit / time_unit
+        self.conversion_factors["velocity"] = velocity_unit
+        self.conversion_factors["mass"] = mass_unit
+        self.conversion_factors["density"] = density_unit
+        for u in sec_conversion:
+            self.time_units[u] = time_unit * sec_conversion[u]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

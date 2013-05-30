@@ -33,7 +33,9 @@ from yt.data_objects.field_info_container import \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
-    ValidateGridType
+    ValidateGridType, \
+    NullFunc, \
+    TranslationFunc
 import yt.data_objects.universal_fields
 
 OWLSFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
@@ -76,8 +78,21 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
              units = r"\mathrm{g}/\mathrm{cm}^{3}",
              projection_conversion = 'cm')
 
+
+def _get_conv(cf):
+    def _convert(data):
+        return data.convert(cf)
+
 for ptype in ["Gas", "DarkMatter", "Stars"]:
     _particle_functions(ptype, "Coordinates", "Mass", TipsyFieldInfo)
+    KnownTipsyFields.add_field((ptype, "Mass"), function=NullFunc,
+        particle_type = True,
+        convert_function=_get_conv("mass"),
+        units = r"\mathrm{g}")
+    KnownTipsyFields.add_field((ptype, "Velocities"), function=NullFunc,
+        particle_type = True,
+        convert_function=_get_conv("velocity"),
+        units = r"\mathrm{cm}/\mathrm{s}")
    
 # GADGET
 # ======

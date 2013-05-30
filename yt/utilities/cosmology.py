@@ -109,6 +109,8 @@ class Cosmology(object):
         return (self.AngularDiameterDistance(z_i,z_f) / 648. * np.pi)
 
     def CriticalDensity(self,z):
+        return ( (3.0 * (self.HubbleConstantNow / kmPerMpc)**2.0)
+               / (8.0 * np.pi * G) )
         return (3.0 / 8.0 / np.pi * sqr(self.HubbleConstantNow / kmPerMpc) / G *
                 (self.OmegaLambdaNow + ((1 + z)**3.0) * self.OmegaMatterNow))
 
