@@ -405,13 +405,6 @@ class TipsyStaticOutput(ParticleStaticOutput):
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
 
-    def _set_units(self):
-        self.units = {}
-        self.time_units = {}
-        self.conversion_factors = {}
-        DW = self.domain_right_edge - self.domain_left_edge
-        self.units["unitary"] = 1.0 / DW.max()
-
     def _parse_parameter_file(self):
 
         # The entries in this header are capitalized and named to match Table 4
