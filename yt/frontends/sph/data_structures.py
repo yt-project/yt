@@ -234,7 +234,36 @@ class GadgetBinaryDomainFile(ParticleDomainFile):
         self.field_offsets = self.io._calculate_field_offsets(
                 field_list, self.total_particles)
 
-class GadgetStaticOutput(StaticOutput):
+class ParticleStaticOutput(StaticOutput):
+    _unit_base = None
+
+    def _set_units(self):
+        self.units = {}
+        self.time_units = {}
+        self.conversion_factors = {}
+        self.units['1'] = 1.0
+        self.units['unitary'] = (self.domain_right_edge -
+                                 self.domain_left_edge).max()
+        # Check 
+        base = None
+        mpch = {}
+        mpch.update(mpc_conversion)
+        unit_base = self._unit_base or {}
+        for unit in mpc_conversion:
+            mpch['%sh' % unit] = mpch[unit] / self.hubble_constant
+            mpch['%shcm' % unit] = (mpch["%sh" % unit] / 
+                    (1 + self.current_redshift))
+            mpch['%scm' % unit] = mpch[unit] / (1 + self.current_redshift)
+        for unit_registry in [mpch, sec_conversion]:
+            for unit in sorted(unit_base):
+                if unit in unit_registry:
+                    base = unit_registry[unit] / unit_registry['mpc'] 
+                    break
+            if base is None: continue
+            for unit in unit_registry:
+                self.units[unit] = unit_registry[unit] / base
+
+class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _domain_class = GadgetBinaryDomainFile
     _fieldinfo_fallback = GadgetFieldInfo
@@ -258,19 +287,16 @@ class GadgetStaticOutput(StaticOutput):
                     ('unused', 16, 'i') )
 
     def __init__(self, filename, data_style="gadget_binary",
-                 additional_fields = (), root_dimensions = 64):
+                 additional_fields = (), root_dimensions = 64,
+                 unit_base = None):
         self._root_dimensions = root_dimensions
         # Set up the template for domain files
         self.storage_filename = None
+        self._unit_base = unit_base
         super(GadgetStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
-
-    def _set_units(self):
-        self.units = {}
-        self.time_units = {}
-        self.conversion_factors = {}
 
     def _parse_parameter_file(self):
 
@@ -337,7 +363,7 @@ class TipsyDomainFile(ParticleDomainFile):
         io._create_dtypes(self)
 
 
-class TipsyStaticOutput(StaticOutput):
+class TipsyStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _domain_class = TipsyDomainFile
     _fieldinfo_fallback = TipsyFieldInfo
@@ -354,7 +380,8 @@ class TipsyStaticOutput(StaticOutput):
                  root_dimensions = 64, endian = ">",
                  field_dtypes = None,
                  domain_left_edge = None,
-                 domain_right_edge = None):
+                 domain_right_edge = None,
+                 unit_base = None):
         self.endian = endian
         self._root_dimensions = root_dimensions
         # Set up the template for domain files
@@ -372,10 +399,11 @@ class TipsyStaticOutput(StaticOutput):
         if field_dtypes is None: field_dtypes = {}
         self._field_dtypes = field_dtypes
 
+        unit_base = self._unit_base or {}
         super(TipsyStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
-        return os.path.basename(self.parameter_filename).split(".")[0]
+        return os.path.basename(self.parameter_filename)
 
     def _set_units(self):
         self.units = {}
