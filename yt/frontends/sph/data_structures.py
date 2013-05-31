@@ -248,8 +248,8 @@ class ParticleStaticOutput(StaticOutput):
         self.time_units = {}
         self.conversion_factors = {}
         self.units['1'] = 1.0
-        self.units['unitary'] = (self.domain_right_edge -
-                                 self.domain_left_edge).max()
+        DW = self.domain_right_edge - self.domain_left_edge
+        self.units["unitary"] = 1.0 / DW.max()
         # Check 
         base = None
         mpch = {}
