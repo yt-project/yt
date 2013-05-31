@@ -342,10 +342,11 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def get_all(self, int count_only = 0):
+    def get_all(self, int count_only = 0, int style = 1):
         cdef int i, j, vi
         cdef int total = 0
         vals = []
+        self.merged = style
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 total += self.count(self.root_nodes[i][j])

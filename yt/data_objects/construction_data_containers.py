@@ -228,10 +228,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self.proj_style = style
         if style == "mip":
             self.func = np.max
-            op = "max"
         elif style == "integrate":
             self.func = np.sum # for the future
-            op = "sum"
         else:
             raise NotImplementedError(style)
         self.weight_field = weight_field
@@ -299,7 +297,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         # TODO: Add the combine operation
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
-        px, py, pdx, pdy, nvals, nwvals = tree.get_all(False)
+        px, py, pdx, pdy, nvals, nwvals = tree.get_all(False, merge_style)
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
         np.multiply(px, self.pf.domain_width[x_dict[self.axis]], px)
