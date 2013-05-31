@@ -135,11 +135,36 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
             particle_type = True, function = v)
         registry.add_field((ptype, "particle_position_%s" % ax),
             particle_type = True, function = p)
-    
+
+# Here are helper functions for things like vector fields and so on.
+
 def _get_conv(cf):
     def _convert(data):
         return data.convert(cf)
     return _convert
+
+def _field_concat(fname):
+    def _AllFields(field, data):
+        v = []
+        for ptype in data.pf.particle_types:
+            if ptype == "all": continue
+            v.append(data[ptype, fname].copy())
+        rv = np.concatenate(v, axis=0)
+        return rv
+    return _AllFields
+
+def _field_concat_slice(fname, axi):
+    def _AllFields(field, data):
+        v = []
+        for ptype in data.pf.particle_types:
+            if ptype == "all": continue
+            v.append(data[ptype, fname][:,axi])
+        rv = np.concatenate(v, axis=0)
+        return rv
+    return _AllFields
+
+# TIPSY
+# =====
 
 for ptype in ["Gas", "DarkMatter", "Stars"]:
     KnownTipsyFields.add_field((ptype, "Mass"), function=NullFunc,
@@ -153,6 +178,20 @@ for ptype in ["Gas", "DarkMatter", "Stars"]:
     # Note that we have to do this last so that TranslationFunc operates
     # correctly.
     _particle_functions(ptype, "Coordinates", "Mass", TipsyFieldInfo)
+_particle_functions("all", "Coordinates", "Mass", TipsyFieldInfo)
+
+for fname in ["Coordinates", "Velocities", "ParticleIDs", "Mass",
+              "Epsilon", "Phi"]:
+    func = _field_concat(fname)
+    TipsyFieldInfo.add_field(("all", fname), function=func,
+            particle_type = True)
+
+for iname, oname in [("Coordinates", "particle_position_"),
+                     ("Velocities", "particle_velocity_")]:
+    for axi, ax in enumerate("xyz"):
+        func = _field_concat_slice(iname, axi)
+        TipsyFieldInfo.add_field(("all", oname + ax), function=func,
+                particle_type = True)
 
 # GADGET
 # ======
@@ -161,6 +200,8 @@ for ptype in ["Gas", "DarkMatter", "Stars"]:
 
 _gadget_ptypes = ("Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry")
 
+# This has to be done manually for Gadget, because some of the particles will
+# have uniform mass
 def _gadget_particle_fields(ptype):
     def _Mass(field, data):
         pind = _gadget_ptypes.index(ptype)
@@ -174,23 +215,12 @@ def _gadget_particle_fields(ptype):
     GadgetFieldInfo.add_field((ptype, "Mass"), function=_Mass,
                               particle_type = True)
 
-def _field_concat(fname):
-    def _AllFields(field, data):
-        v = []
-        for ptype in data.pf.particle_types:
-            if ptype == "all": continue
-            v.append(data[ptype, fname].copy())
-        rv = np.concatenate(v, axis=0)
-        return rv
-    return _AllFields
-
 for fname in ["Coordinates", "Velocities", "ParticleIDs",
               # Note: Mass, not Masses
               "Mass"]:
     func = _field_concat(fname)
     GadgetFieldInfo.add_field(("all", fname), function=func,
             particle_type = True)
-
 
 for ptype in _gadget_ptypes:
     KnownGadgetFields.add_field((ptype, "Masses"), function=NullFunc,
@@ -205,21 +235,10 @@ for ptype in _gadget_ptypes:
     _particle_functions(ptype, "Coordinates", "Mass", GadgetFieldInfo)
     KnownGadgetFields.add_field((ptype, "Coordinates"), function=NullFunc,
         particle_type = True)
-#_gadget_particle_fields("all")
 _particle_functions("all", "Coordinates", "Mass", GadgetFieldInfo)
 
 # Now we have to manually apply the splits for "all", since we don't want to
 # use the splits defined above.
-
-def _field_concat_slice(fname, axi):
-    def _AllFields(field, data):
-        v = []
-        for ptype in data.pf.particle_types:
-            if ptype == "all": continue
-            v.append(data[ptype, fname][:,axi])
-        rv = np.concatenate(v, axis=0)
-        return rv
-    return _AllFields
 
 for iname, oname in [("Coordinates", "particle_position_"),
                      ("Velocities", "particle_velocity_")]:
