@@ -1138,6 +1138,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #True if not in domain
         if cur.children[0][0][0] != NULL:
             return 0
+        elif cur.sd.np == 0:
+            return 0
         elif cur.sd.np >= self.n_ref:
             return 1
         elif cur.domain >= 0 and cur.domain != domain_id:
@@ -1154,6 +1156,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for j in range(2):
                 for k in range(2):
                     noct = self.allocate_oct()
+                    noct.domain = o.domain
                     noct.level = o.level + 1
                     noct.pos[0] = (o.pos[0] << 1) + i
                     noct.pos[1] = (o.pos[1] << 1) + j
