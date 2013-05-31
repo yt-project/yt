@@ -165,7 +165,7 @@ class Halo(object):
             com.append(c[i])
         com = np.array(com)
         c = (com * pm).sum(axis=1) / pm.sum()
-        return c%self.pf.domain_width
+        return c%self.pf.domain_width + self.pf.domain_left_edge
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to
