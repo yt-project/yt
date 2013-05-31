@@ -292,7 +292,13 @@ class FieldDetector(defaultdict):
                 else: self[item] = vv.ravel()
                 return self[item]
         elif finfo is not None and finfo.particle_type:
-            self[item] = np.ones(self.NumberOfParticles)
+            if item == "Coordinates" or item[1] == "Coordinates" or \
+               item == "Velocities" or item[1] == "Velocities":
+                # A vector
+                self[item] = np.ones((self.NumberOfParticles, 3))
+            else:
+                # Not a vector
+                self[item] = np.ones(self.NumberOfParticles)
             self.requested.append(item)
             return self[item]
         self.requested.append(item)

@@ -69,6 +69,19 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
              display_name = "\\mathrm{%s Count}" % ptype,
              projection_conversion = '1')
 
+    def particle_mass(field, data):
+        pos = data[ptype, coord_name]
+        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+        return d
+
+    registry.add_field(("deposit", "%s_mass" % ptype),
+             function = particle_mass,
+             validators = [ValidateSpatial()],
+             display_name = "\\mathrm{%s Mass}" % ptype,
+             units = r"\mathrm{g}",
+             projected_units = r"\mathrm{g}\/\mathrm{cm}",
+             projection_conversion = 'cm')
+
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
@@ -101,6 +114,28 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
             particle_type = True,
             units = r"\mathrm{M}_\odot")
 
+    # For 'all', which is a special field, we skip adding a few types.
+    
+    if ptype == "all": return
+
+    # Now we have to set up the various velocity and coordinate things.  In the
+    # future, we'll actually invert this and use the 3-component items
+    # elsewhere, and stop using these.
+    
+    # Note that we pass in _ptype here so that it's defined inside the closure.
+    def _get_coord_funcs(axi, _ptype):
+        def _particle_velocity(field, data):
+            return data[_ptype, "Velocities"][:,axi]
+        def _particle_position(field, data):
+            return data[_ptype, "Coordinates"][:,axi]
+        return _particle_velocity, _particle_position
+    for axi, ax in enumerate("xyz"):
+        v, p = _get_coord_funcs(axi, ptype)
+        registry.add_field((ptype, "particle_velocity_%s" % ax),
+            particle_type = True, function = v)
+        registry.add_field((ptype, "particle_position_%s" % ax),
+            particle_type = True, function = p)
+    
 def _get_conv(cf):
     def _convert(data):
         return data.convert(cf)
@@ -156,6 +191,7 @@ for fname in ["Coordinates", "Velocities", "ParticleIDs",
     GadgetFieldInfo.add_field(("all", fname), function=func,
             particle_type = True)
 
+
 for ptype in _gadget_ptypes:
     KnownGadgetFields.add_field((ptype, "Masses"), function=NullFunc,
         particle_type = True,
@@ -167,5 +203,28 @@ for ptype in _gadget_ptypes:
         convert_function=_get_conv("velocity"),
         units = r"\mathrm{cm}/\mathrm{s}")
     _particle_functions(ptype, "Coordinates", "Mass", GadgetFieldInfo)
+    KnownGadgetFields.add_field((ptype, "Coordinates"), function=NullFunc,
+        particle_type = True)
 #_gadget_particle_fields("all")
 _particle_functions("all", "Coordinates", "Mass", GadgetFieldInfo)
+
+# Now we have to manually apply the splits for "all", since we don't want to
+# use the splits defined above.
+
+def _field_concat_slice(fname, axi):
+    def _AllFields(field, data):
+        v = []
+        for ptype in data.pf.particle_types:
+            if ptype == "all": continue
+            v.append(data[ptype, fname][:,axi])
+        rv = np.concatenate(v, axis=0)
+        return rv
+    return _AllFields
+
+for iname, oname in [("Coordinates", "particle_position_"),
+                     ("Velocities", "particle_velocity_")]:
+    for axi, ax in enumerate("xyz"):
+        func = _field_concat_slice(iname, axi)
+        GadgetFieldInfo.add_field(("all", oname + ax), function=func,
+                particle_type = True)
+
