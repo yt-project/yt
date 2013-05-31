@@ -77,6 +77,14 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         parses the Orion Star Particle text files
              
         """
+
+        fn = grid.pf.fullplotdir[:-4] + "sink"
+
+        # Figure out the format of the particle file
+        with open(fn, 'r') as f:
+            lines = f.readlines()
+        line = lines[1]
+        
         index = {'particle_mass': 0,
                  'particle_position_x': 1,
                  'particle_position_y': 2,
@@ -87,15 +95,33 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                  'particle_angmomen_x': 7,
                  'particle_angmomen_y': 8,
                  'particle_angmomen_z': 9,
-                 'particle_mlast': 10,
-                 'particle_mdeut': 11,
-                 'particle_n': 12,
-                 'particle_mdot': 13,
-                 'particle_burnstate': 14,
-                 'particle_id': 15}
+                 'particle_id': -1}
 
+        if len(line.strip().split()) == 11:
+            pass  
+
+        elif len(line.strip().split()) == 17:
+            index['particle_mlast']     = 10
+            index['particle_r']         = 11
+            index['particle_mdeut']     = 12
+            index['particle_n']         = 13
+            index['particle_mdot']      = 14,
+            index['particle_burnstate'] = 15
+
+        elif len(line.strip().split()) == 18:
+            index['particle_mlast']     = 10
+            index['particle_r']         = 11
+            index['particle_mdeut']     = 12
+            index['particle_n']         = 13
+            index['particle_mdot']      = 14,
+            index['particle_burnstate'] = 15,
+            index['particle_luminosity']= 16
+
+        else:
+            print 'Warning - could not figure out particle output file'
+            
         def read(line, field):
-            return float(line.split(' ')[index[field]])
+            return float(line.strip().split(' ')[index[field]])
 
         fn = grid.pf.fullplotdir[:-4] + "sink"
         with open(fn, 'r') as f:
