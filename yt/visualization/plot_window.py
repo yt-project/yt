@@ -1069,6 +1069,8 @@ class PWViewerMPL(PWViewer):
                 # for cutting planes
                 n = "%s_%s_%s" % (name, type, k)
             if weight:
+                if isinstance(weight, tuple):
+                    weight = weight[1]
                 n += "_%s" % (weight)
             names.append(v.save(n,mpl_kwargs))
         return names
