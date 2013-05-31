@@ -617,17 +617,11 @@ def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
 
-def mkdir_rec(path):
-    """
-    Recursive mkdir, so that if you mkdir two levels deep and the first 
-    one doesn't exist, it creates the first, and then any subsequent dirs.
 
-    Examples
-    --------
-    mkdir_rec("a/b/c")
-    """
-    dir_list = path.split("/")
-    basedir = "."
-    for dir in dir_list:
-        basedir = "%s/%s" % (basedir, dir)
-        if not os.path.isdir(basedir): os.mkdir(basedir)
+def ensure_dir_exists(path):
+    r"""Create all directories in path recursively in a parallel safe manner"""
+    my_dir = os.path.dirname(path)
+    if not my_dir:
+        return
+    if not os.path.exists(my_dir):
+        only_on_root(os.makedirs, my_dir)

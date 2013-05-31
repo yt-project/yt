@@ -151,8 +151,12 @@ def _TotalMass(data):
     particle masses in the object.
     """
     baryon_mass = data["CellMassMsun"].sum()
-    particle_mass = data["ParticleMassMsun"].sum()
-    return [baryon_mass + particle_mass]
+    try:
+        particle_mass = data["ParticleMassMsun"].sum()
+        total_mass = baryon_mass + particle_mass
+    except KeyError:
+        total_mass = baryon_mass
+    return [total_mass]
 def _combTotalMass(data, total_mass):
     return total_mass.sum()
 add_quantity("TotalMass", function=_TotalMass,

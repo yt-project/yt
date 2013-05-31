@@ -105,6 +105,9 @@ class EnzoGrid(AMRGridPatch):
         """
         Intelligently set the filename.
         """
+        if filename is None:
+            self.filename = filename
+            return
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -302,7 +305,7 @@ class EnzoHierarchy(AMRHierarchy):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(["-1"])
+            fn.append([None])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
@@ -373,6 +376,7 @@ class EnzoHierarchy(AMRHierarchy):
         giter = izip(grids, levels, procs, parents)
         bn = self._bn % (self.pf)
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
+        pmap.append((None, )) # Now, P==-1 will give None
         for grid,L,P,Pid in giter:
             grid.Level = L
             grid._parent_id = Pid
@@ -405,7 +409,10 @@ class EnzoHierarchy(AMRHierarchy):
                 parents.append(g.Parent.id)
             else:
                 parents.append(-1)
-            procs.append(int(self.filenames[i][0][-4:]))
+            if self.filenames[i][0] is None:
+                procs.append(-1)
+            else:
+                procs.append(int(self.filenames[i][0][-4:]))
             levels.append(g.Level)
 
         parents = np.array(parents, dtype='int64')
@@ -634,6 +641,24 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             self.derived_field_list = self.__class__._cached_derived_field_list
 
+    def _detect_fields(self):
+        self.field_list = []
+        # Do this only on the root processor to save disk work.
+        mylog.info("Gathering a field list (this may take a moment.)")
+        field_list = set()
+        random_sample = self._generate_random_grids()
+        for grid in random_sample:
+            try:
+                gf = self.io._read_field_names(grid)
+            except self.io._read_exception:
+                mylog.debug("Grid %s is a bit funky?", grid.id)
+                continue
+            mylog.debug("Grid %s has: %s", grid.id, gf)
+            field_list = field_list.union(gf)
+        field_list = self.comm.par_combine_object(list(field_list),
+                        datatype="list", op = "cat")
+        self.field_list = list(set(field_list))
+
     def _generate_random_grids(self):
         my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
@@ -770,7 +795,7 @@ class EnzoStaticOutput(StaticOutput):
         data_label_factors = {}
         for line in (l.strip() for l in lines):
             if len(line) < 2: continue
-            param, vals = (i.strip() for i in line.split("="))
+            param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.

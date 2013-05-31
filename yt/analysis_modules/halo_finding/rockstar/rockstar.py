@@ -338,6 +338,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     hires_only = (self.hires_dm_mass is not None),
                     **kwargs)
         # Make the directory to store the halo lists in.
+        if not self.outbase:
+            self.outbase = os.getcwd()
         if self.comm.rank == 0:
             if not os.path.exists(self.outbase):
                 os.makedirs(self.outbase)

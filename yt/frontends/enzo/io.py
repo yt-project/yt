@@ -119,9 +119,13 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         files_keys = defaultdict(lambda: [])
         pf_field_list = grids[0].pf.h.field_list
         sets = [dset for dset in list(sets) if dset in pf_field_list]
-        for g in grids: files_keys[g.filename].append(g)
+        for g in grids:
+            files_keys[g.filename].append(g)
         exc = self._read_exception
         for file in files_keys:
+            # This is a funny business with Enzo files that are DM-only,
+            # where grids can have *no* data, but still exist.
+            if file is None: continue
             mylog.debug("Starting read %s (%s)", file, sets)
             nodes = [g.id for g in files_keys[file]]
             nodes.sort()

@@ -1327,7 +1327,7 @@ class YTPlotCmd(YTCommand):
             plt.set_log(args.field, args.takelog)
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)
-            if not os.path.isdir(args.output): os.makedirs(args.output)
+            ensure_dir_exists(args.output)
             plt.save(os.path.join(args.output,"%s" % (pf)))
 
 class YTRenderCmd(YTCommand):

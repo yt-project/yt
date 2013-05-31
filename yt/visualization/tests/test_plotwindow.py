@@ -147,6 +147,13 @@ def test_setwidth():
          (-5/pf['kpc'], 5/pf['kpc']),
          (15/pf['kpc'], 10/pf['kpc'])], 15
 
+    slc.set_width((15,'kpc'),(10000,'pc'))
+
+    yield assert_rel_equal, [slc.xlim, slc.ylim, slc.width], \
+        [(-7.5/pf['kpc'], 7.5/pf['kpc']),
+         (-5/pf['kpc'], 5/pf['kpc']),
+         (15/pf['kpc'], 10/pf['kpc'])], 15
+
 def test_save():
     """Test plot window creation and saving to disk."""
     # Perform I/O in safe place instead of yt main dir
@@ -160,6 +167,8 @@ def test_save():
     test_flnms = [None, 'test.png', 'test.eps',
                   'test.ps', 'test.pdf']
 
+    ds_region = test_pf.h.region([0.5]*3,[0.4]*3,[0.6]*3)
+
     for dim in [0, 1, 2]:
         obj = SlicePlot(test_pf, dim, 'Density')
         for fname in test_flnms:
@@ -169,6 +178,10 @@ def test_save():
         obj = ProjectionPlot(test_pf, dim, 'Density')
         for fname in test_flnms:
             yield assert_equal, assert_fname(obj.save(fname)[0]), True
+        # Test ProjectionPlot's data_source keyword
+        obj = ProjectionPlot(test_pf, dim, 'Density',
+                             data_source=ds_region)
+        obj.save()
 
     obj = OffAxisSlicePlot(test_pf, normal, 'Density')
     for fname in test_flnms:

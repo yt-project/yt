@@ -31,8 +31,8 @@ import numpy as np
 from yt.utilities.io_handler import \
            BaseIOHandler
 
-class IOHandlerChomboHDF5(BaseIOHandler):
-    _data_style = "chombo_hdf5"
+class IOHandlerPlutoHDF5(BaseIOHandler):
+    _data_style = "pluto_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
