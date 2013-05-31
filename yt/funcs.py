@@ -369,6 +369,20 @@ def only_on_root(func, *args, **kwargs):
     if ytcfg.getint("yt", cfg_option) > 0: return
     return func(*args, **kwargs)
 
+def is_root():
+    """
+    This function returns True if it is on the root processor of the
+    topcomm and False otherwise.
+    """
+    from yt.config import ytcfg
+    cfg_option = "__topcomm_parallel_rank"
+    if not ytcfg.getboolean("yt","__parallel"):
+        return True
+    if ytcfg.getint("yt", cfg_option) > 0: 
+        return False
+    return True
+
+
 #
 # Our signal and traceback handling functions
 #
