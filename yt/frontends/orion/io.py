@@ -96,7 +96,7 @@ class IOHandlerNative(BaseIOHandler):
             print 'These results could be nonsense!'
 
         def read(line, field):
-            return float(line.split(' ')[index[field]])
+            return float(line.strip().split(' ')[index[field]])
 
         with open(fn, 'r') as f:
             lines = f.readlines()
