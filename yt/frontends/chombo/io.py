@@ -123,8 +123,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
         else:
             # give a warning if none of the above apply:
-            print 'Warning - could not figure out particle output file'
-            print 'These results could be nonsense!'
+            mylog.warning('Warning - could not figure out particle output file')
+            mylog.warning('These results could be nonsense!')
             
         def read(line, field):
             return float(line.strip().split(' ')[index[field]])
