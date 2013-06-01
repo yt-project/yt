@@ -46,7 +46,7 @@ class IOHandlerNative(BaseIOHandler):
         """
 
         fn = grid.pf.fullplotdir + "/StarParticles"
-        if !os.path.exists(fn):
+        if not os.path.exists(fn):
             fn = grid.pf.fullplotdir + "/SinkParticles"
 
         # Figure out the format of the particle file
