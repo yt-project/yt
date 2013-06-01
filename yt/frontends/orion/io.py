@@ -46,12 +46,15 @@ class IOHandlerNative(BaseIOHandler):
         """
 
         fn = grid.pf.fullplotdir + "/StarParticles"
+        if !os.path.exists(fn):
+            fn = grid.pf.fullplotdir + "/SinkParticles"
 
         # Figure out the format of the particle file
         with open(fn, 'r') as f:
             lines = f.readlines()
         line = lines[1]
         
+        # The basic fields that all sink particles have
         index = {'particle_mass': 0,
                  'particle_position_x': 1,
                  'particle_position_y': 2,
@@ -65,9 +68,11 @@ class IOHandlerNative(BaseIOHandler):
                  'particle_id': -1}
 
         if len(line.strip().split()) == 11:
+            # these are vanilla sinks, do nothing
             pass  
 
         elif len(line.strip().split()) == 17:
+            # these are old-style stars, add stellar model parameters
             index['particle_mlast']     = 10
             index['particle_r']         = 11
             index['particle_mdeut']     = 12
@@ -76,6 +81,7 @@ class IOHandlerNative(BaseIOHandler):
             index['particle_burnstate'] = 15
 
         elif len(line.strip().split()) == 18:
+            # these are the newer style, add luminosity as well
             index['particle_mlast']     = 10
             index['particle_r']         = 11
             index['particle_mdeut']     = 12
@@ -85,7 +91,9 @@ class IOHandlerNative(BaseIOHandler):
             index['particle_luminosity']= 16
 
         else:
-            print 'Warning - Could not figure out particle file format'
+            # give a warning if none of the above apply:
+            print 'Warning - could not figure out particle output file'
+            print 'These results could be nonsense!'
 
         def read(line, field):
             return float(line.split(' ')[index[field]])
