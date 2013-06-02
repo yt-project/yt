@@ -330,8 +330,6 @@ class GadgetStaticOutput(ParticleStaticOutput):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Set standard values
 
-        # This may not be correct.
-        self.current_time = hvals["Time"] * sec_conversion["Gyr"]
 
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
@@ -355,6 +353,18 @@ class GadgetStaticOutput(ParticleStaticOutput):
             self.hubble_constant = 1.0 # So that scaling comes out correct
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
+            # This may not be correct.
+            self.current_time = hvals["Time"] * sec_conversion["Gyr"]
+        else:
+            # Now we calculate our time based on the cosmology, because in
+            # ComovingIntegration hvals["Time"] will in fact be the expansion
+            # factor, not the actual integration time, so we re-calculate
+            # global time from our Cosmology.
+            cosmo = Cosmology(self.hubble_constant * 100.0,
+                        self.omega_matter, self.omega_lambda)
+            self.current_time = cosmo.UniverseAge(self.current_redshift)
+            mylog.info("Calculating time from %0.3e to be %0.3e seconds",
+                       hvals["Time"], self.current_time)
         self.parameters = hvals
 
         prefix = self.parameter_filename.split(".", 1)[0]
@@ -379,12 +389,15 @@ class GadgetStaticOutput(ParticleStaticOutput):
         msun10 = mass_sun_cgs * 1e10 / self.hubble_constant
         mass_unit = unit_base.get("g", msun10)
         mass_unit = unit_base.get("UnitMass_in_g", mass_unit)
-        time_unit = length_unit / velocity_unit
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
         self.conversion_factors["density"] = mass_unit / length_unit**3
-        for u in sec_conversion:
-            self.time_units[u] = time_unit * sec_conversion[u]
+        # Currently, setting time_units is disabled.  The current_time is
+        # accurately set, but until a time that we can confirm how
+        # FormationTime for stars is set I am disabling these.
+        #time_unit = length_unit / velocity_unit
+        #for u in sec_conversion:
+        #    self.time_units[u] = time_unit / sec_conversion[u]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
