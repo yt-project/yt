@@ -303,7 +303,9 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # Set up the template for domain files
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
-            unit_base['cm'] = unit_base["UnitLength_in_cm"]
+            # We assume this is comoving, because in the absence of comoving
+            # integration the redshift will be zero.
+            unit_base['cmcm'] = unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
         super(GadgetStaticOutput, self).__init__(filename, data_style)
 
@@ -342,6 +344,17 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self.omega_lambda = hvals["OmegaLambda"]
         self.omega_matter = hvals["Omega0"]
         self.hubble_constant = hvals["HubbleParam"]
+        # According to the Gadget manual, OmegaLambda will be zero for
+        # non-cosmological datasets.  However, it may be the case that
+        # individuals are running cosmological simulations *without* Lambda, in
+        # which case we may be doing something incorrect here.
+        # It may be possible to deduce whether ComovingIntegration is on
+        # somehow, but opinions on this vary.
+        if self.omega_lambda == 0.0:
+            mylog.info("Omega Lambda is 0.0, so we are turning off Cosmology.")
+            self.hubble_constant = 1.0 # So that scaling comes out correct
+            self.cosmological_simulation = 0
+            self.current_redshift = 0.0
         self.parameters = hvals
 
         prefix = self.parameter_filename.split(".", 1)[0]
@@ -362,8 +375,9 @@ class GadgetStaticOutput(ParticleStaticOutput):
         unit_base = self._unit_base or {}
         velocity_unit = unit_base.get("velocity", 1e5)
         velocity_unit = unit_base.get("UnitVelocity_in_cm_per_s", velocity_unit)
-        msun10 = mass_sun_cgs * 1e10
-        mass_unit = unit_base.get("g", msun10 / self.hubble_constant)
+        # We set hubble_constant = 1.0 for non-cosmology
+        msun10 = mass_sun_cgs * 1e10 / self.hubble_constant
+        mass_unit = unit_base.get("g", msun10)
         mass_unit = unit_base.get("UnitMass_in_g", mass_unit)
         time_unit = length_unit / velocity_unit
         self.conversion_factors["velocity"] = velocity_unit
