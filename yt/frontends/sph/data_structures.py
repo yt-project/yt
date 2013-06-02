@@ -47,7 +47,8 @@ from yt.utilities.definitions import \
 from yt.utilities.physical_constants import \
     G, \
     gravitational_constant_cgs, \
-    km_per_pc
+    km_per_pc, \
+    mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
     OWLSFieldInfo, \
@@ -361,7 +362,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
         unit_base = self._unit_base or {}
         velocity_unit = unit_base.get("velocity", 1e5)
         velocity_unit = unit_base.get("UnitVelocity_in_cm_per_s", velocity_unit)
-        mass_unit = unit_base.get("g", 1.989e43 / self.hubble_constant)
+        msun10 = mass_sun_cgs * 1e10
+        mass_unit = unit_base.get("g", msun10 / self.hubble_constant)
         mass_unit = unit_base.get("UnitMass_in_g", mass_unit)
         time_unit = length_unit / velocity_unit
         self.conversion_factors["velocity"] = velocity_unit
