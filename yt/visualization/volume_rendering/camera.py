@@ -185,7 +185,7 @@ class Camera(ParallelAnalysisInterface):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         self.log_fields = log_fields
-        dd = pf.h.all_data()
+        dd = self.pf.h.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
             self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]

@@ -50,7 +50,7 @@ steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [ 1,  1, -1], [ 1,  1,  0], [ 1,  1,  1] ])
 
 
-def make_vcd(data):
+def make_vcd(data, log=False):
     new_field = np.zeros(np.array(data.shape) + 1, dtype='float64')
     of = data
     new_field[:-1, :-1, :-1] += of
@@ -62,6 +62,8 @@ def make_vcd(data):
     new_field[1:, 1:, :-1] += of
     new_field[1:, 1:, 1:] += of
     np.multiply(new_field, 0.125, new_field)
+    if log:
+        new_field = np.log10(new_field)
 
     new_field[:, :, -1] = 2.0*new_field[:, :, -2] - new_field[:, :, -3]
     new_field[:, :, 0] = 2.0*new_field[:, :, 1] - new_field[:, :, 2]
@@ -69,6 +71,9 @@ def make_vcd(data):
     new_field[:, 0, :] = 2.0*new_field[:, 1, :] - new_field[:, 2, :]
     new_field[-1, :, :] = 2.0*new_field[-2, :, :] - new_field[-3, :, :]
     new_field[0, :, :] = 2.0*new_field[1, :, :] - new_field[2, :, :]
+
+    if log: 
+        np.power(10.0, new_field, new_field)
     return new_field
 
 class Tree(object):
@@ -269,12 +274,12 @@ class AMRKDTree(ParallelAnalysisInterface):
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
         else:
             dds = []
-            mask = make_vcd(grid.child_mask)
-            mask = np.clip(mask, 0.0, 1.0)
-            mask[mask<1.0] = np.inf
+            #mask = make_vcd(grid.child_mask)
+            #mask = np.clip(mask, 0.0, 1.0)
+            #mask[mask<1.0] = np.inf
             for i,field in enumerate(self.fields):
-                vcd = make_vcd(grid[field])
-                vcd *= mask
+                vcd = make_vcd(grid[field], log=self.log_fields[i])
+                #vcd *= mask
                 if self.log_fields[i]: vcd = np.log10(vcd)
                 dds.append(vcd)
                 self.current_saved_grids.append(grid)
