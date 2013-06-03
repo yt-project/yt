@@ -653,3 +653,39 @@ for ax in 'xyz':
                function=TranslationFunc(("CenOstriker","position_%s" % ax)),
                particle_type = True)
 
+def particle_count(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, method = "count")
+    return d
+EnzoFieldInfo.add_field(("deposit", "%s_count" % "all"),
+         function = particle_count,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{%s Count}" % "all",
+         projection_conversion = '1')
+
+def particle_mass(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
+    return d
+
+EnzoFieldInfo.add_field(("deposit", "%s_mass" % "all"),
+         function = particle_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{%s Mass}" % "all",
+         units = r"\mathrm{g}",
+         projected_units = r"\mathrm{g}\/\mathrm{cm}",
+         projection_conversion = 'cm')
+
+def particle_density(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
+    d /= data["CellVolume"]
+    return d
+
+EnzoFieldInfo.add_field(("deposit", "%s_density" % "all"),
+         function = particle_density,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{%s Density}" % "all",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
+         projection_conversion = 'cm')

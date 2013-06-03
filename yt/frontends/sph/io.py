@@ -341,7 +341,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             else:
                 rv[field] = np.empty(size, dtype="float64")
                 if size == 0: continue
-                rv[field][:] = vals[field]
+                rv[field][:] = vals[field][mask]
         return rv
 
     def _read_particle_selection(self, chunks, selector, fields):

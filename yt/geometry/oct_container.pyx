@@ -705,13 +705,15 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                for ii in range(8):
-                    # We iterate and check here to keep our counts consistent
-                    # when filling different levels.
-                    if mask[o.domain_ind, ii] == 0: continue
-                    if o.level == level: 
-                        dest[local_filled] = source[o.file_ind, ii]
-                    local_filled += 1
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            ii = ((k*2)+j)*2+i
+                            if mask[o.domain_ind, ii] == 0: continue
+                            if o.level == level:
+                                dest[local_filled] = \
+                                    source[o.file_ind, ii]
+                            local_filled += 1
         return local_filled
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):

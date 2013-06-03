@@ -36,7 +36,9 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
-    mass_hydrogen_cgs
+    mass_hydrogen_cgs, \
+    mass_sun_cgs
+import numpy as np
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
 add_field = RAMSESFieldInfo.add_field
@@ -121,7 +123,7 @@ KnownRAMSESFields["particle_mass"]._convert_function = \
 KnownRAMSESFields["particle_mass"]._units = r"\mathrm{g}"
 
 def _convertParticleMassMsun(data):
-    return 1.0/1.989e33
+    return 1.0/mass_sun_cgs
 add_field("ParticleMass", function=TranslationFunc("particle_mass"), 
           particle_type=True)
 add_field("ParticleMassMsun",
@@ -133,3 +135,46 @@ def _Temperature(field, data):
     rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
     return rv
 add_field("Temperature", function=_Temperature, units=r"\rm{K}")
+
+
+# We now set up a couple particle fields.  This should eventually be abstracted
+# into a single particle field function that adds them all on and is used
+# across frontends, but that will need to wait until moving to using
+# Coordinates, or vector fields.
+
+def particle_count(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, method = "count")
+    return d
+RAMSESFieldInfo.add_field(("deposit", "%s_count" % "all"),
+         function = particle_count,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{%s Count}" % "all",
+         projection_conversion = '1')
+
+def particle_mass(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
+    return d
+
+RAMSESFieldInfo.add_field(("deposit", "%s_mass" % "all"),
+         function = particle_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{%s Mass}" % "all",
+         units = r"\mathrm{g}",
+         projected_units = r"\mathrm{g}\/\mathrm{cm}",
+         projection_conversion = 'cm')
+
+def particle_density(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
+    d /= data["CellVolume"]
+    return d
+
+RAMSESFieldInfo.add_field(("deposit", "%s_density" % "all"),
+         function = particle_density,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{%s Density}" % "all",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
+         projection_conversion = 'cm')
