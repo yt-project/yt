@@ -73,12 +73,12 @@ def make_vcd(data):
 
 class Tree(object):
     def __init__(self, pf, comm_rank=0, comm_size=1,
-            min_level=None, max_level=None, source=None):
+            min_level=None, max_level=None, data_source=None):
         
         self.pf = pf
-        if source is None:
-            source = pf.h.all_data()
-        self.source = source
+        if data_source is None:
+            data_source = pf.h.all_data()
+        self.data_source = data_source
         self._id_offset = self.pf.h.grids[0]._id_offset
         if min_level is None: min_level = 0
         if max_level is None: max_level = pf.h.max_level
@@ -86,8 +86,8 @@ class Tree(object):
         self.max_level = max_level
         self.comm_rank = comm_rank
         self.comm_size = comm_size
-        left_edge = self.source.left_edge
-        right_edge= self.source.right_edge
+        left_edge = self.data_source.left_edge
+        right_edge= self.data_source.right_edge
         self.trunk = Node(None, None, None,
                 left_edge, right_edge, None, 1)
         self.build()
@@ -102,8 +102,8 @@ class Tree(object):
     def build(self):
         lvl_range = range(self.min_level, self.max_level+1)
         for lvl in lvl_range:
-            #grids = self.source.select_grids(lvl)
-            grids = np.array([b for b, mask in self.source.blocks])
+            #grids = self.data_source.select_grids(lvl)
+            grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
             if len(grids) == 0: break
             self.add_grids(grids)
 
@@ -148,7 +148,7 @@ class AMRKDTree(ParallelAnalysisInterface):
     fields = None
     log_fields = None
     no_ghost = True
-    def __init__(self, pf, min_level=None, max_level=None, source=None):
+    def __init__(self, pf, min_level=None, max_level=None, data_source=None):
 
         ParallelAnalysisInterface.__init__(self)
 
@@ -159,17 +159,20 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.brick_dimensions = []
         self.sdx = pf.h.get_smallest_dx()
         self._initialized = False
-        self._id_offset = pf.h.grids[0]._id_offset
+        try: 
+            self._id_offset = pf.h.grids[0]._id_offset
+        except:
+            self._id_offset = 0
 
         #self.add_mask_field()
-        if source is None:
-            source = pf.h.all_data()
-        self.source = source
+        if data_source is None:
+            data_source = pf.h.all_data()
+        self.data_source = data_source
     
         mylog.debug('Building AMRKDTree')
         self.tree = Tree(pf, self.comm.rank, self.comm.size,
                          min_level=min_level,
-                         max_level=max_level, source=source)
+                         max_level=max_level, data_source=data_source)
 
     def set_fields(self, fields, log_fields, no_ghost):
         self.fields = fields
