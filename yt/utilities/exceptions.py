@@ -208,3 +208,10 @@ class YTTooManyVertices(YTException):
         s = "There are too many vertices (%s) to upload to Sketchfab. " % (self.nv)
         s += "Your model has been saved as %s .  You should upload manually." % (self.fn)
         return s
+
+class YTInvalidWidthError(YTException):
+    def __init__(self, error):
+        self.error = error
+
+    def __str__(self):
+        return str(self.error)

@@ -1,13 +1,11 @@
 """
-API for yt.frontends.pluto
+API for RadMC3D Export code
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
-Homepage: http://yt.Chombotools.org/
+Author: Andrew Myers <atmyers2@gmail.com>
+Affiliation: UCB
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
@@ -28,14 +26,5 @@ License:
 
 """
 
-from .data_structures import \
-      PlutoGrid, \
-      PlutoHierarchy, \
-      PlutoStaticOutput
-
-from .fields import \
-      PlutoFieldInfo, \
-      add_pluto_field
-
-from .io import \
-      IOHandlerPlutoHDF5
+from .RadMC3DInterface import \
+    RadMC3DWriter
