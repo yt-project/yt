@@ -306,7 +306,6 @@ def _particle_functions(ptype, pname):
              projection_conversion = 'cm')
 
     def particle_density(field, data):
-        print data.shape
         pos = particle_pos(data)
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
         d /= data["CellVolume"]
@@ -334,21 +333,25 @@ def _particle_functions(ptype, pname):
              projected_units = r"\mathrm{1}/\mathrm{cm}^{-2}",
              projection_conversion = 'cm')
 
-    def particle_mass_velocity(field, data):
-        pos = particle_pos(data)
-        vel = particle_vel(data, ax) 
-        mass = data[ptype, mass_name]
-        d  = data.deposit(pos, [mass, vel], method = "weighted_mean")
-        d /= data.deposit(pos, [mass], method = "sum")
-        return d
 
-    add_field("deposit_%s_weighted_velocity" % ptype,
-             function = particle_mass,
-             validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Mass Weighted Velocity}" % pname,
-             units = r"\mathrm{g}",
-             projected_units = r"\mathrm{g}\/\mathrm{cm}",
-             projection_conversion = 'cm')
+    for ax in "xyz":
+        def particle_mass_velocity(field, data, ax):
+            pos = particle_pos(data)
+            vel = particle_vel(data, ax) 
+            mass = data[ptype, mass_name]
+            d = data.deposit(pos, [vel, mass], method = "weighted_mean")
+            d[~np.isfinite(d)] = 0.0
+            return d
+
+        add_field("deposit_%s_weighted_velocity_%s" % (ptype, ax),
+                 function = lambda f, d: particle_mass_velocity(f, d, ax),
+                 validators = [ValidateSpatial()],
+                 display_name = "\\mathrm{%s Mass Weighted Velocity %s}" % \
+                                (pname, ax.upper()),
+                 units = r"\mathrm{\mathrm{cm}/\mathrm{s}}",
+                 projected_units = r"\mathrm{\mathrm{cm}/\mathrm{s}}",
+                 projection_conversion = '1',
+                 take_log=False)
 
     add_field((ptype, "ParticleMass"),
             function = TranslationFunc((ptype, mass_name)),
