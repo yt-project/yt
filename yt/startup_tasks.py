@@ -142,10 +142,8 @@ if parallel_capable == True:
 elif exe_name in \
         ["mpi4py", "embed_enzo",
          "python"+sys.version[:3]+"-mpi"] \
-        or '_parallel' in dir(sys) \
-        or any(["ipengine" in arg for arg in sys.argv]) \
-        or any(["cluster-id" in arg for arg in sys.argv]):
-    #parallel_capable = turn_on_parallelism()
-    pass
+    or '_parallel' in dir(sys) \
+    or any(["ipengine" in arg for arg in sys.argv]):
+    parallel_capable = turn_on_parallelism()
 else:
     parallel_capable = False
