@@ -232,3 +232,39 @@ cdef class StdParticleField(ParticleDepositOperation):
 
 deposit_std = StdParticleField
 
+
+cdef class WeightedMeanParticleField(ParticleDepositOperation):
+    # Deposit both mass * field and mass into two scalars
+    # then in finalize divide mass * field / mass
+    cdef np.float64_t *wf
+    cdef public object owf
+    cdef np.float64_t *w
+    cdef public object ow
+    def initialize(self):
+        self.owf = np.zeros(self.nvals, dtype='float64')
+        cdef np.ndarray wfarr = self.owf
+        self.wf = <np.float64_t*> wfarr.data
+        
+        self.ow = np.zeros(self.nvals, dtype='float64')
+        cdef np.ndarray wfarr = self.ow
+        self.w = <np.float64_t*> warr.data
+    
+    @cython.cdivision(True)
+    cdef void process(self, int dim[3],
+                      np.float64_t left_edge[3], 
+                      np.float64_t dds[3],
+                      np.int64_t offset, 
+                      np.float64_t ppos[3],
+                      np.float64_t *fields 
+                      ):
+        cdef int ii[3], i
+        for i in range(3):
+            ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
+        self.w[ gind(ii[0], ii[1], ii[2], dim) + offset] += fields[1]
+        self.wf[gind(ii[0], ii[1], ii[2], dim) + offset] += fields[0] * fields[1]
+        
+    def finalize(self):
+        return self.owf / self.ow
+
+deposit_weighted_mean= WeightedMeanParticleField
+
