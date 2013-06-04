@@ -44,6 +44,7 @@ class IOHandlerART(BaseIOHandler):
     tb, ages = None, None
     cache = {}
     masks = {}
+    caching = False
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -72,7 +73,7 @@ class IOHandlerART(BaseIOHandler):
 
     def _get_mask(self, selector, ftype):
         key = (selector, ftype)
-        if key in self.masks.keys():
+        if key in self.masks.keys() and self.caching:
             return self.masks[key]
         pf = self.pf
         ptmax = self.ws[-1]
@@ -80,11 +81,14 @@ class IOHandlerART(BaseIOHandler):
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z)
-        self.masks[key] = mask
-        return self.masks[key]
+        if self.caching:
+            self.masks[key] = mask
+            return self.masks[key]
+        else:
+            return mask
 
     def _get_field(self,  field):
-        if field in self.cache.keys():
+        if field in self.cache.keys() and self.caching:
             mylog.debug("Cached %s", str(field))
             return self.cache[field]
         mylog.debug("Reading %s", str(field))
@@ -143,8 +147,11 @@ class IOHandlerART(BaseIOHandler):
             del data
         if tr == {}:
             tr = dict((f, np.array([])) for f in fields)
-        self.cache[field] = tr[field]
-        return self.cache[field]
+        if self.caching:
+            self.cache[field] = tr[field]
+            return self.cache[field]
+        else:
+            return tr[field]
 
     def _read_particle_selection(self, chunks, selector, fields):
         chunk = chunks.next()

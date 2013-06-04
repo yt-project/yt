@@ -246,7 +246,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         self.wf = <np.float64_t*> wfarr.data
         
         self.ow = np.zeros(self.nvals, dtype='float64')
-        cdef np.ndarray wfarr = self.ow
+        cdef np.ndarray warr = self.ow
         self.w = <np.float64_t*> warr.data
     
     @cython.cdivision(True)
