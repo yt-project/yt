@@ -477,8 +477,23 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if fields is None: return
         fields = self._determine_fields(fields)
         # Now we collect all our fields
-        fields_to_get = [f for f in fields if f not in self.field_data]
-        if len(fields_to_get) == 0:
+        # Here is where we need to perform a validation step, so that if we
+        # have a field requested that we actually *can't* yet get, we put it
+        # off until the end.  This prevents double-reading fields that will
+        # need to be used in spatial fields later on.
+        fields_to_get = []
+        # This will be pre-populated with spatial fields
+        fields_to_generate = [] 
+        for field in self._determine_fields(fields):
+            if field in self.field_data: continue
+            finfo = self.pf._get_field_info(*field)
+            try:
+                finfo.check_available(self)
+            except NeedsGridType:
+                fields_to_generate.append(field)
+                continue
+            fields_to_get.append(field)
+        if len(fields_to_get) == 0 and fields_to_generate == 0:
             return
         elif self._locked == True:
             raise GenerationInProgress(fields)
@@ -502,12 +517,18 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         read_particles, gen_particles = self.hierarchy._read_particle_fields(
                                         particles, self, self._current_chunk)
         self.field_data.update(read_particles)
-        fields_to_generate = gen_fluids + gen_particles
+        fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
 
     def _generate_fields(self, fields_to_generate):
         index = 0
         with self._field_lock():
+            # At this point, we assume that any fields that are necessary to
+            # *generate* a field are in fact already available to us.  Note
+            # that we do not make any assumption about whether or not the
+            # fields have a spatial requirement.  This will be checked inside
+            # _generate_field, at which point additional dependencies may
+            # actually be noted.
             while any(f not in self.field_data for f in fields_to_generate):
                 field = fields_to_generate[index % len(fields_to_generate)]
                 index += 1
