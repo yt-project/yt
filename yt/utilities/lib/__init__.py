@@ -40,3 +40,4 @@ from .grid_traversal import *
 from .marching_cubes import *
 from .GridTree import *
 from .write_array import *
+from .amr_kdtools import *

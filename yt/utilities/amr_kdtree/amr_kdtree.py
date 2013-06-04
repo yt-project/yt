@@ -26,10 +26,12 @@ License:
 from yt.funcs import *
 import numpy as np
 import h5py
-from amr_kdtools import Node, Split, kd_is_leaf, kd_sum_volume, kd_node_check, \
-        depth_traverse, viewpoint_traverse, add_grids, \
+from amr_kdtools import \
         receive_and_reduce, send_to_parent, scatter_image, find_node, \
-        depth_first_touch, add_grid
+        depth_first_touch
+from yt.utilities.lib.amr_kdtools import Node, add_grids, add_grid, \
+        kd_is_leaf, depth_traverse, viewpoint_traverse, kd_traverse, \
+        get_left_edge, get_right_edge, kd_sum_volume, kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
 from yt.utilities.lib.grid_traversal import PartitionedGrid
@@ -67,12 +69,11 @@ class Tree(object):
         self.comm_rank = comm_rank
         self.comm_size = comm_size
         self.trunk = Node(None, None, None,
-                left, right, None, 1)
+                left, right, -1, 1)
         if grids is None:
-            self.grids = pf.h.region((left+right)/2., left, right)._grids
-        else:
-            self.grids = grids
-        self.build(grids)
+            grids = pf.h.region((left+right)/2., left, right)._grids
+        self.grids = grids
+        self.build(self.grids)
 
     def add_grids(self, grids):
         lvl_range = range(self.min_level, self.max_level+1)
@@ -91,7 +92,8 @@ class Tree(object):
                     gles = np.array([g.LeftEdge for g in grids])[gmask]
                     gres = np.array([g.RightEdge for g in grids])[gmask]
                     gids = np.array([g.id for g in grids])[gmask]
-                    add_grids(self.trunk, gles, gres, gids, self.comm_rank,
+                    add_grids(self.trunk, gids.size, gles, gres, gids, 
+                              self.comm_rank,
                               self.comm_size)
                     grids_added += grids.size
                     del gles, gres, gids, grids
@@ -99,31 +101,35 @@ class Tree(object):
                     grids_added += grids.size
                     [add_grid(self.trunk, g.LeftEdge, g.RightEdge, g.id,
                               self.comm_rank, self.comm_size) for g in grids]
-        else:
-            gles = np.array([g.LeftEdge for g in grids])
-            gres = np.array([g.RightEdge for g in grids])
-            gids = np.array([g.id for g in grids])
+            return
 
-            add_grids(self.trunk, gles, gres, gids, self.comm_rank, self.comm_size)
-            del gles, gres, gids, grids
+        for lvl in lvl_range:
+            gles = np.array([g.LeftEdge for g in grids if g.Level == lvl])
+            gres = np.array([g.RightEdge for g in grids if g.Level == lvl])
+            gids = np.array([g.id for g in grids if g.Level == lvl])
+
+            add_grids(self.trunk, len(gids), gles, gres, gids, self.comm_rank, self.comm_size)
+            del gles, gres, gids
 
 
-    def build(self, grids = None):
+    def build(self, grids=None):
         self.add_grids(grids)
 
     def check_tree(self):
-        for node in depth_traverse(self):
-            if node.grid is None:
+        for node in depth_traverse(self.trunk):
+            if node.grid == -1:
                 continue
             grid = self.pf.h.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
             gre = grid.RightEdge
-            li = np.rint((node.left_edge-gle)/dds).astype('int32')
-            ri = np.rint((node.right_edge-gle)/dds).astype('int32')
+            nle = get_left_edge(node)
+            nre = get_right_edge(node)
+            li = np.rint((nle-gle)/dds).astype('int32')
+            ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
-            assert(np.all(grid.LeftEdge <= node.left_edge))
-            assert(np.all(grid.RightEdge >= node.right_edge))
+            assert(np.all(grid.LeftEdge <= nle))
+            assert(np.all(grid.RightEdge >= nre))
             assert(np.all(dims > 0))
             # print grid, dims, li, ri
 
@@ -135,7 +141,7 @@ class Tree(object):
     def sum_cells(self, all_cells=False):
         cells = 0
         for node in depth_traverse(self):
-            if node.grid is None:
+            if node.grid != -1:
                 continue
             if not all_cells and not kd_is_leaf(node):
                 continue
@@ -204,14 +210,8 @@ class AMRKDTree(ParallelAnalysisInterface):
         self._initialized = True
 
     def traverse(self, viewpoint=None):
-        if viewpoint is None:
-            for node in depth_traverse(self.tree):
-                if kd_is_leaf(node) and node.grid is not None:
-                    yield self.get_brick_data(node)
-        else:
-            for node in viewpoint_traverse(self.tree, viewpoint):
-                if kd_is_leaf(node) and node.grid is not None:
-                    yield self.get_brick_data(node)
+        for node in kd_traverse(self.tree.trunk):
+            yield self.get_brick_data(node)
 
     def get_node(self, nodeid):
         path = np.binary_repr(nodeid)
@@ -269,12 +269,13 @@ class AMRKDTree(ParallelAnalysisInterface):
         grid = self.pf.h.grids[node.grid - self._id_offset]
         dds = grid.dds
         gle = grid.LeftEdge
-        gre = grid.RightEdge
-        li = np.rint((node.left_edge-gle)/dds).astype('int32')
-        ri = np.rint((node.right_edge-gle)/dds).astype('int32')
+        nle = get_left_edge(node)
+        nre = get_right_edge(node)
+        li = np.rint((nle-gle)/dds).astype('int32')
+        ri = np.rint((nre-gle)/dds).astype('int32')
         dims = (ri - li).astype('int32')
-        assert(np.all(grid.LeftEdge <= node.left_edge))
-        assert(np.all(grid.RightEdge >= node.right_edge))
+        assert(np.all(grid.LeftEdge <= nle))
+        assert(np.all(grid.RightEdge >= nre))
 
         if grid in self.current_saved_grids:
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
@@ -292,8 +293,8 @@ class AMRKDTree(ParallelAnalysisInterface):
                   li[2]:ri[2]+1].copy() for d in dds]
 
         brick = PartitionedGrid(grid.id, data,
-                                node.left_edge.copy(),
-                                node.right_edge.copy(),
+                                nle.copy(),
+                                nre.copy(),
                                 dims.astype('int64'))
         node.data = brick
         if not self._initialized: self.brick_dimensions.append(dims)
@@ -427,7 +428,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             f = h5py.File(fn,"a")
             for node in depth_traverse(self.tree):
                 i = node.id
-                if node.grid is not None:
+                if node.grid != -1:
                     data = [f["brick_%s_%s" %
                               (hex(i), field)][:].astype('float64') for field in self.fields]
                     node.data = PartitionedGrid(node.grid.id, data,

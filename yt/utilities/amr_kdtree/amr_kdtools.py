@@ -26,6 +26,7 @@ License:
 import numpy as np
 from yt.funcs import *
 from yt.utilities.lib import kdtree_get_choices
+from yt.utilities.lib.amr_kdtools import kd_is_leaf
 
 def _lchild_id(node_id): return (node_id<<1)
 def _rchild_id(node_id): return (node_id<<1) + 1
@@ -309,59 +310,6 @@ def kd_node_check(node):
     else:
         return kd_node_check(node.left)+kd_node_check(node.right)
 
-def kd_is_leaf(node):
-    has_l_child = node.left is None
-    has_r_child = node.right is None
-    assert has_l_child == has_r_child
-    return has_l_child
-
-def step_depth(current, previous):
-    '''
-    Takes a single step in the depth-first traversal
-    '''
-    if kd_is_leaf(current): # At a leaf, move back up
-        previous = current
-        current = current.parent
-
-    elif current.parent is previous: # Moving down, go left first
-        previous = current
-        if current.left is not None:
-            current = current.left
-        elif current.right is not None:
-            current = current.right
-        else:
-            current = current.parent
-
-    elif current.left is previous: # Moving up from left, go right 
-        previous = current
-        if current.right is not None:
-            current = current.right
-        else:
-            current = current.parent
-
-    elif current.right is previous: # Moving up from right child, move up
-        previous = current
-        current = current.parent
-
-    return current, previous
-
-def depth_traverse(tree, max_node=None):
-    '''
-    Yields a depth-first traversal of the kd tree always going to
-    the left child before the right.
-    '''
-    current = tree.trunk
-    previous = None
-    if max_node is None:
-        max_node = np.inf
-    while current is not None:
-        yield current
-        current, previous = step_depth(current, previous)
-        if current is None: break
-        if current.id >= max_node:
-            current = current.parent
-            previous = current.right
-
 def depth_first_touch(tree, max_node=None):
     '''
     Yields a depth-first traversal of the kd tree always going to
@@ -392,64 +340,64 @@ def breadth_traverse(tree):
         current, previous = step_depth(current, previous)
 
 
-def viewpoint_traverse(tree, viewpoint):
-    '''
-    Yields a viewpoint dependent traversal of the kd-tree.  Starts
-    with nodes furthest away from viewpoint.
-    '''
-
-    current = tree.trunk
-    previous = None
-    while current is not None:
-        yield current
-        current, previous = step_viewpoint(current, previous, viewpoint)
-
-def step_viewpoint(current, previous, viewpoint):
-    '''
-    Takes a single step in the viewpoint based traversal.  Always
-    goes to the node furthest away from viewpoint first.
-    '''
-    if kd_is_leaf(current): # At a leaf, move back up
-        previous = current
-        current = current.parent
-    elif current.split.dim is None: # This is a dead node
-        previous = current
-        current = current.parent
-
-    elif current.parent is previous: # Moving down
-        previous = current
-        if viewpoint[current.split.dim] <= current.split.pos:
-            if current.right is not None:
-                current = current.right
-            else:
-                previous = current.right
-        else:
-            if current.left is not None:
-                current = current.left
-            else:
-                previous = current.left
-
-    elif current.right is previous: # Moving up from right 
-        previous = current
-        if viewpoint[current.split.dim] <= current.split.pos:
-            if current.left is not None:
-                current = current.left
-            else:
-                current = current.parent
-        else:
-            current = current.parent
-
-    elif current.left is previous: # Moving up from left child
-        previous = current
-        if viewpoint[current.split.dim] > current.split.pos:
-            if current.right is not None:
-                current = current.right
-            else:
-                current = current.parent
-        else:
-            current = current.parent
-
-    return current, previous
+# def viewpoint_traverse(tree, viewpoint):
+#     '''
+#     Yields a viewpoint dependent traversal of the kd-tree.  Starts
+#     with nodes furthest away from viewpoint.
+#     '''
+# 
+#     current = tree.trunk
+#     previous = None
+#     while current is not None:
+#         yield current
+#         current, previous = step_viewpoint(current, previous, viewpoint)
+# 
+# def step_viewpoint(current, previous, viewpoint):
+#     '''
+#     Takes a single step in the viewpoint based traversal.  Always
+#     goes to the node furthest away from viewpoint first.
+#     '''
+#     if kd_is_leaf(current): # At a leaf, move back up
+#         previous = current
+#         current = current.parent
+#     elif current.split.dim is None: # This is a dead node
+#         previous = current
+#         current = current.parent
+# 
+#     elif current.parent is previous: # Moving down
+#         previous = current
+#         if viewpoint[current.split.dim] <= current.split.pos:
+#             if current.right is not None:
+#                 current = current.right
+#             else:
+#                 previous = current.right
+#         else:
+#             if current.left is not None:
+#                 current = current.left
+#             else:
+#                 previous = current.left
+# 
+#     elif current.right is previous: # Moving up from right 
+#         previous = current
+#         if viewpoint[current.split.dim] <= current.split.pos:
+#             if current.left is not None:
+#                 current = current.left
+#             else:
+#                 current = current.parent
+#         else:
+#             current = current.parent
+# 
+#     elif current.left is previous: # Moving up from left child
+#         previous = current
+#         if viewpoint[current.split.dim] > current.split.pos:
+#             if current.right is not None:
+#                 current = current.right
+#             else:
+#                 current = current.parent
+#         else:
+#             current = current.parent
+# 
+#     return current, previous
 
 
 def receive_and_reduce(comm, incoming_rank, image, add_to_front):
