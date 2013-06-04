@@ -91,8 +91,8 @@ class Tree(object):
         self.max_level = max_level
         self.comm_rank = comm_rank
         self.comm_size = comm_size
-        left_edge = self.data_source.left_edge
-        right_edge= self.data_source.right_edge
+        left_edge = np.array([-np.inf]*3)
+        right_edge = np.array([np.inf]*3)
         self.trunk = Node(None, None, None,
                 left_edge, right_edge, None, 1)
         self.build()
@@ -109,7 +109,7 @@ class Tree(object):
         for lvl in lvl_range:
             #grids = self.data_source.select_grids(lvl)
             grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
-            if len(grids) == 0: break
+            if len(grids) == 0: continue 
             self.add_grids(grids)
 
     def check_tree(self):
@@ -274,12 +274,12 @@ class AMRKDTree(ParallelAnalysisInterface):
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
         else:
             dds = []
-            #mask = make_vcd(grid.child_mask)
-            #mask = np.clip(mask, 0.0, 1.0)
-            #mask[mask<1.0] = np.inf
+            mask = make_vcd(grid.child_mask)
+            mask = np.clip(mask, 0.0, 1.0)
+            mask[mask<0.5] = np.inf
             for i,field in enumerate(self.fields):
                 vcd = make_vcd(grid[field], log=self.log_fields[i])
-                #vcd *= mask
+                vcd *= mask
                 if self.log_fields[i]: vcd = np.log10(vcd)
                 dds.append(vcd)
                 self.current_saved_grids.append(grid)
