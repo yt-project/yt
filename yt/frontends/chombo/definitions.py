@@ -56,10 +56,10 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "NumberOfParticleAttributes": int,
                                  }
 
-pluto2enzoDict = {"GAMMA": "Gamma",
+chombo2enzoDict = {"GAMMA": "Gamma",
                   "Ref_ratio": "RefineBy"
                                     }
 
-yt2plutoFieldsDict = {}
-pluto2ytFieldsDict = {}
+yt2chomboFieldsDict = {}
+chombo2ytFieldsDict = {}
 

@@ -37,7 +37,6 @@ import numpy as np
 import weakref
 
 class FixedResolutionBuffer(object):
-    _exclude_fields = ('pz','pdz','dx','x','y','z')
     r"""
     FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
 
@@ -91,6 +90,7 @@ class FixedResolutionBuffer(object):
     >>> print frb1["Temperature"].max()
     104923.1
     """
+    _exclude_fields = ('pz','pdz','dx','x','y','z')
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source
@@ -178,6 +178,7 @@ class FixedResolutionBuffer(object):
         info['label'] = finfo.display_name
         if info['label'] is None:
             info['label'] = r'$\rm{'+fname+r'}$'
+            info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'

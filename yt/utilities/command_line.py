@@ -309,10 +309,10 @@ def _get_yt_stack_date():
         return
     print "".join(file(date_file, 'r').readlines())
     print "To update all dependencies, run \"yt update --all\"."
-    
+
 def _update_yt_stack(path):
     "Rerun the install script to updated all dependencies."
-    
+
     install_script = os.path.join(path, "doc/install_script.sh")
     if not os.path.exists(install_script):
         print
@@ -1292,7 +1292,10 @@ class YTPlotCmd(YTCommand):
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
-        if args.axis == 4:
+        if pf.dimensionality < 3:
+            dummy_dimensions = np.nonzero(pf.h.grids[0].ActiveDimensions <= 1)
+            axes = ensure_list(dummy_dimensions[0][0])
+        elif args.axis == 4:
             axes = range(3)
         else:
             axes = [args.axis]
@@ -1324,7 +1327,7 @@ class YTPlotCmd(YTCommand):
             plt.set_log(args.field, args.takelog)
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)
-            if not os.path.isdir(args.output): os.makedirs(args.output)
+            ensure_dir_exists(args.output)
             plt.save(os.path.join(args.output,"%s" % (pf)))
 
 class YTRenderCmd(YTCommand):

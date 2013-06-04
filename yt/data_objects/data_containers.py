@@ -366,10 +366,9 @@ class YTDataContainer(object):
                      [self.field_parameters])
         return (_reconstruct_object, args)
 
-    def __repr__(self, clean = False):
+    def __repr__(self):
         # We'll do this the slow way to be clear what's going on
-        if clean: s = "%s: " % (self.__class__.__name__)
-        else: s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._con_args])
         return s
@@ -979,25 +978,49 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return self.quantities["TotalQuantity"]("CellVolume")[0] * \
             (self.pf[unit] / self.pf['cm']) ** 3.0
 
+# Many of these items are set up specifically to ensure that
+# we are not breaking old pickle files.  This means we must only call the
+# _reconstruct_object and that we cannot mandate any additional arguments to
+# the reconstruction function.
+#
+# In the future, this would be better off being set up to more directly
+# reference objects or retain state, perhaps with a context manager.
+#
+# One final detail: time series or multiple parameter files in a single pickle
+# seems problematic.
+
+class ReconstructedObject(tuple):
+    pass
+
+def _check_nested_args(arg, ref_pf):
+    if not isinstance(arg, (tuple, list, ReconstructedObject)):
+        return arg
+    elif isinstance(arg, ReconstructedObject) and ref_pf == arg[0]:
+        return arg[1]
+    narg = [_check_nested_args(a, ref_pf) for a in arg]
+    return narg
+
+def _get_pf_by_hash(hash):
+    from yt.data_objects.static_output import _cached_pfs
+    for pf in _cached_pfs.values():
+        if pf._hash() == hash: return pf
+    return None
+
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
     dtype = args[1]
+    pf = _get_pf_by_hash(pfid)
+    if not pf:
+        pfs = ParameterFileStore()
+        pf = pfs.get_pf_hash(pfid)
     field_parameters = args[-1]
     # will be much nicer when we can do pfid, *a, fp = args
-    args, new_args = args[2:-1], []
-    for arg in args:
-        if iterable(arg) and len(arg) == 2 \
-           and not isinstance(arg, types.DictType) \
-           and isinstance(arg[1], YTDataContainer):
-            new_args.append(arg[1])
-        else: new_args.append(arg)
-    pfs = ParameterFileStore()
-    pf = pfs.get_pf_hash(pfid)
+    args = args[2:-1]
+    new_args = [_check_nested_args(a, pf) for a in args]
     cls = getattr(pf.h, dtype)
     obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
-    return pf, obj
-
+    return ReconstructedObject((pf, obj))
 
 class YTSelectedIndicesBase(YTSelectionContainer3D):
     """An arbitrarily defined data container that allows for selection
@@ -1254,7 +1277,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             if region in ["OR", "AND", "NOT", "(", ")"]:
                 s += region
             else:
-                s += region.__repr__(clean = True)
+                s += region.__repr__()
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
