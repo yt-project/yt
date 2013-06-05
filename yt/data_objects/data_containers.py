@@ -519,11 +519,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)
 
-    def deposit(self, positions, fields, op):
-        assert(self._current_chunk.chunk_type == "spatial")
-        fields = ensure_list(fields)
-        self.hierarchy._deposit_particle_fields(self, positions, fields, op)
-
     @contextmanager
     def _field_lock(self):
         self._locked = True

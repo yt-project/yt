@@ -53,6 +53,7 @@ from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, ParallelAnalysisInterface
+import yt.geometry.particle_deposit as particle_deposit
 
 from .field_info_container import\
     NeedsGridType,\
@@ -433,20 +434,31 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
-        fill, gen = self._split_fields(fields_to_get)
+        fill, gen, part = self._split_fields(fields_to_get)
+        if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         if len(gen) > 0: self._generate_fields(gen)
 
     def _split_fields(self, fields_to_get):
         fill, gen = self.pf.h._split_fields(fields_to_get)
+        particles = []
         for field in gen:
             finfo = self.pf._get_field_info(*field)
             try:
                 finfo.check_available(self)
             except NeedsOriginalGrid:
                 fill.append(field)
+        for field in fill:
+            finfo = self.pf._get_field_info(*field)
+            if finfo.particle_type:
+                particles.append(field)
         gen = [f for f in gen if f not in fill]
-        return fill, gen
+        fill = [f for f in fill if f not in particles]
+        return fill, gen, particles
+
+    def _fill_particles(self, part):
+        for p in part:
+            self[p] = self._data_source[p]
 
     def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
@@ -484,6 +496,20 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         else:
             raise KeyError(field)
         return rv
+
+    @property
+    def LeftEdge(self):
+        return self.left_edge
+
+    def deposit(self, positions, fields = None, method = None):
+        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        if cls is None:
+            raise YTParticleDepositionNotImplemented(method)
+        op = cls(self.ActiveDimensions.prod()) # We allocate number of zones, not number of octs
+        op.initialize()
+        op.process_grid(self, positions, fields)
+        vals = op.finalize()
+        return vals.reshape(self.ActiveDimensions, order="F")
 
 class LevelState(object):
     current_dx = None
