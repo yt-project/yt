@@ -30,7 +30,8 @@ from amr_kdtools import \
         receive_and_reduce, send_to_parent, scatter_image
 
 from yt.utilities.lib.amr_kdtools import Node, add_pygrids, find_node, \
-        kd_is_leaf, depth_traverse, viewpoint_traverse, kd_traverse, \
+        kd_is_leaf, depth_traverse, depth_first_touch, viewpoint_traverse, \
+        kd_traverse, \
         get_left_edge, get_right_edge, kd_sum_volume, kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import ParallelAnalysisInterface 
@@ -479,10 +480,10 @@ class AMRKDTree(ParallelAnalysisInterface):
         gridids = []
         splitdims = []
         splitposs = []
-        for node in depth_first_touch(self.tree):
+        for node in depth_first_touch(self.tree.trunk):
             nids.append(node.node_id) 
-            les.append(node.left_edge) 
-            res.append(node.right_edge) 
+            les.append(node.get_left_edge()) 
+            res.append(node.get_right_edge()) 
             if node.left is None:
                 leftids.append(-1) 
             else:
@@ -517,14 +518,18 @@ class AMRKDTree(ParallelAnalysisInterface):
         N = nids.shape[0]
         for i in xrange(N):
             n = self.get_node(nids[i])
-            n.left_edge = les[i]
-            n.right_edge = res[i]
+            n.set_left_edge(les[i])
+            n.set_right_edge(res[i])
             if lids[i] != -1 and n.left is None:
-                n.left = Node(n, None, None, None,  
-                                      None, None, lids[i])
+                n.left = Node(n, None, None, 
+                              np.zeros(3, dtype='float64'),  
+                              np.zeros(3, dtype='float64'),  
+                              -1, lids[i])
             if rids[i] != -1 and n.right is None:
-                n.right = Node(n, None, None, None, 
-                                      None, None, rids[i])
+                n.right = Node(n, None, None, 
+                               np.zeros(3, dtype='float64'),  
+                               np.zeros(3, dtype='float64'),  
+                               -1, rids[i])
             if gids[i] != -1:
                 n.grid = gids[i]
 

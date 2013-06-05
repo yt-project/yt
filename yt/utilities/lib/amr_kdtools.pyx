@@ -45,11 +45,11 @@ cdef struct Split:
 @cython.cdivision(True)
 cdef class Node:
 
-    cdef readonly Node left
-    cdef readonly Node right
-    cdef readonly Node parent
-    cdef readonly int grid
-    cdef readonly long node_id
+    cdef public Node left
+    cdef public Node right
+    cdef public Node parent
+    cdef public int grid
+    cdef public long node_id
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef public data
@@ -72,6 +72,7 @@ cdef class Node:
             self.right_edge[i] = right_edge[i]
         self.grid = grid
         self.node_id = node_id
+        self.split == NULL
 
     def print_me(self):
         print 'Node %i' % self.node_id
@@ -82,10 +83,32 @@ cdef class Node:
         print '\t grid: %i' % self.grid
 
     def get_split_dim(self):
-        try: 
+        if self.split != NULL:
             return self.split.dim
-        except:
+        else:
             return -1
+    
+    def get_split_pos(self):
+        if self.split != NULL:
+            return self.split.pos
+        else:
+            return np.nan
+
+    def get_left_edge(self):
+        return get_left_edge(self)
+    
+    def get_right_edge(self):
+        return get_right_edge(self)
+
+    def set_left_edge(self, np.ndarray[np.float64_t, ndim=1] left_edge):
+        cdef int i
+        for i in range(3):
+            self.left_edge[i] = left_edge[i]
+    
+    def set_right_edge(self, np.ndarray[np.float64_t, ndim=1] right_edge):
+        cdef int i
+        for i in range(3):
+            self.right_edge[i] = right_edge[i]
     
     def get_split_pos(self):
         try: 
@@ -654,16 +677,6 @@ cdef geo_split(Node node,
             grid_id, rank, size)
     return
 
-cdef new_right(Node node, Split * split):
-    new_right = Node.right_edge.copy()
-    new_right[split.dim] = split.pos
-    return new_right
-
-cdef new_left(Node node, Split * split):
-    new_left = Node.left_edge.copy()
-    new_left[split.dim] = split.pos
-    return new_left
-
 cdef void divide(Node node, Split * split):
     # Create a Split
     node.split = split
@@ -762,12 +775,12 @@ def depth_traverse(Node trunk, max_node=None):
             current = current.parent
             previous = current.right
 
-def depth_first_touch(tree, max_node=None):
+def depth_first_touch(Node tree, max_node=None):
     '''
     Yields a depth-first traversal of the kd tree always going to
     the left child before the right.
     '''
-    current = tree.trunk
+    current = tree
     previous = None
     if max_node is None:
         max_node = np.inf
@@ -776,23 +789,23 @@ def depth_first_touch(tree, max_node=None):
             yield current
         current, previous = step_depth(current, previous)
         if current is None: break
-        if current.id >= max_node:
+        if current.node_id >= max_node:
             current = current.parent
             previous = current.right
 
-def breadth_traverse(tree):
+def breadth_traverse(Node tree):
     '''
     Yields a breadth-first traversal of the kd tree always going to
     the left child before the right.
     '''
-    current = tree.trunk
+    current = tree
     previous = None
     while current is not None:
         yield current
         current, previous = step_depth(current, previous)
 
 
-def viewpoint_traverse(tree, viewpoint):
+def viewpoint_traverse(Node tree, viewpoint):
     '''
     Yields a viewpoint dependent traversal of the kd-tree.  Starts
     with nodes furthest away from viewpoint.
