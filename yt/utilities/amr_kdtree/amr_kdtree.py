@@ -27,9 +27,9 @@ from yt.funcs import *
 import numpy as np
 import h5py
 from amr_kdtools import \
-        receive_and_reduce, send_to_parent, scatter_image, find_node, \
-        depth_first_touch
-from yt.utilities.lib.amr_kdtools import Node, add_pygrids, \
+        receive_and_reduce, send_to_parent, scatter_image
+
+from yt.utilities.lib.amr_kdtools import Node, add_pygrids, find_node, \
         kd_is_leaf, depth_traverse, viewpoint_traverse, kd_traverse, \
         get_left_edge, get_right_edge, kd_sum_volume, kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface \
@@ -233,13 +233,13 @@ class AMRKDTree(ParallelAnalysisInterface):
         owners = {}
         for bottom_id in range(self.comm.size, 2*self.comm.size):
             temp = self.get_node(bottom_id)
-            owners[temp.id] = temp.id - self.comm.size
+            owners[temp.node_id] = temp.node_id - self.comm.size
             while temp is not None:
                 if temp.parent is None: break
                 if temp == temp.parent.right:
                     break
                 temp = temp.parent
-                owners[temp.id] = owners[temp.left.id]
+                owners[temp.node_id] = owners[temp.left.node_id]
         return owners
 
     def reduce_tree_images(self, image, viewpoint):
@@ -250,17 +250,18 @@ class AMRKDTree(ParallelAnalysisInterface):
         node = self.get_node(nprocs + myrank)
 
         while True:
-            if owners[node.parent.id] == myrank:
-                split = node.parent.split
-                left_in_front = viewpoint[split.dim] < node.parent.split.pos
+            if owners[node.parent.node_id] == myrank:
+                split_dim = node.parent.get_split_dim()
+                split_pos = node.parent.get_split_pos()
+                left_in_front = viewpoint[split_dim] < split_pos
                 #add_to_front = (left_in_front == (node == node.parent.right))
                 add_to_front = not left_in_front
-                image = receive_and_reduce(self.comm, owners[node.parent.right.id],
+                image = receive_and_reduce(self.comm, owners[node.parent.right.node_id],
                                   image, add_to_front)
-                if node.parent.id == 1: break
+                if node.parent.node_id == 1: break
                 else: node = node.parent
             else:
-                send_to_parent(self.comm, owners[node.parent.id], image)
+                send_to_parent(self.comm, owners[node.parent.node_id], image)
                 break
         image = scatter_image(self.comm, owners[1], image)
         return image
@@ -407,7 +408,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         f = h5py.File(fn,'w')
         for node in depth_traverse(self.tree):
-            i = node.id
+            i = node.node_id
             if node.data is not None:
                 for fi,field in enumerate(self.fields):
                     try:
@@ -428,7 +429,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         try:
             f = h5py.File(fn,"a")
             for node in depth_traverse(self.tree):
-                i = node.id
+                i = node.node_id
                 if node.grid != -1:
                     data = [f["brick_%s_%s" %
                               (hex(i), field)][:].astype('float64') for field in self.fields]
@@ -479,31 +480,27 @@ class AMRKDTree(ParallelAnalysisInterface):
         splitdims = []
         splitposs = []
         for node in depth_first_touch(self.tree):
-            nids.append(node.id) 
+            nids.append(node.node_id) 
             les.append(node.left_edge) 
             res.append(node.right_edge) 
             if node.left is None:
                 leftids.append(-1) 
             else:
-                leftids.append(node.left.id) 
+                leftids.append(node.left.node_id) 
             if node.right is None:
                 rightids.append(-1) 
             else:
-                rightids.append(node.right.id) 
+                rightids.append(node.right.node_id) 
             if node.parent is None:
                 parentids.append(-1) 
             else:
-                parentids.append(node.parent.id) 
+                parentids.append(node.parent.node_id) 
             if node.grid is None:
                 gridids.append(-1) 
             else:
                 gridids.append(node.grid) 
-            if node.split is None:
-                splitdims.append(-1)
-                splitposs.append(np.nan)
-            else:
-                splitdims.append(node.split.dim)
-                splitposs.append(node.split.pos)
+            splitdims.append(node.get_split_dim())
+            splitposs.append(node.get_split_pos())
 
         return nids, parentids, leftids, rightids, les, res, gridids,\
                 splitdims, splitposs
@@ -532,7 +529,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 n.grid = gids[i]
 
             if splitdims[i] != -1:
-                n.split = Split(splitdims[i], splitposs[i])
+                n.create_split(splitdims[i], splitposs[i])
 
         mylog.info('AMRKDTree rebuilt, Final Volume: %e' % kd_sum_volume(self.tree.trunk))
         return self.tree.trunk

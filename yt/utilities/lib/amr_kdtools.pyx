@@ -1,14 +1,33 @@
+"""
+AMR kD-Tree Cython Tools
+
+Authors: Samuel Skillman <samskillman@gmail.com>
+Affiliation: University of Colorado at Boulder
+
+Homepage: http://yt-project.org/
+License:
+  Copyright (C) 2013 Samuel Skillman.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import numpy as np
 cimport numpy as np
 cimport cython
-from libc.stdlib cimport malloc, free, abs
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
-from field_interpolation_tables cimport \
-    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
-    FIT_eval_transfer_with_light
-from fixed_interpolator cimport *
-
-from cython.parallel import prange, parallel, threadid
+from libc.stdlib cimport malloc, free
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -30,7 +49,7 @@ cdef class Node:
     cdef readonly Node right
     cdef readonly Node parent
     cdef readonly int grid
-    cdef readonly int node_id
+    cdef readonly long node_id
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef public data
@@ -43,7 +62,7 @@ cdef class Node:
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   int grid,
-                  int node_id):
+                  long node_id):
         self.left = left
         self.right = right
         self.parent = parent
@@ -62,6 +81,23 @@ cdef class Node:
                                    self.right_edge[2])
         print '\t grid: %i' % self.grid
 
+    def get_split_dim(self):
+        try: 
+            return self.split.dim
+        except:
+            return -1
+    
+    def get_split_pos(self):
+        try: 
+            return self.split.pos
+        except:
+            return np.nan
+
+    def create_split(self, dim, pos):
+        split = <Split *> malloc(sizeof(Split))
+        split.dim = dim 
+        split.pos = pos
+        self.split = split
 
 def get_left_edge(Node node):
     le = np.empty(3, dtype='float64')
@@ -78,19 +114,19 @@ def get_right_edge(Node node):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def _lchild_id(int node_id):
+cdef long _lchild_id(long node_id):
     return (node_id<<1)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def _rchild_id(int node_id):
+cdef long _rchild_id(long node_id):
     return (node_id<<1) + 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def _parent_id(int node_id):
+cdef long _parent_id(long node_id):
     return (node_id-1) >> 1
 
 @cython.boundscheck(False)
@@ -174,9 +210,10 @@ cdef insert_grid(Node node,
         return
 
     # If we should continue to split based on parallelism, do so!
-    # if should_i_split(node, rank, size):
-    #     geo_split(node, gle, gre, grid_id, rank, size)
-    #     return
+    if should_i_split(node, rank, size):
+        geo_split(node, gle, gre, grid_id, rank, size)
+        return
+
     cdef int contained = 1
     for i in range(3):
         if gle[i] > node.left_edge[i] or\
@@ -325,9 +362,9 @@ cdef void insert_grids(Node node,
 
     if ngrids == 1:
         # If we should continue to split based on parallelism, do so!
-        #if should_i_split(node, rank, size):
-        #    geo_split(node, gles, gres, grid_ids, rank, size)
-        #    return
+        if should_i_split(node, rank, size):
+            geo_split(node, gles[0], gres[0], gids[0], rank, size)
+            return
 
         for i in range(3):
             contained *= gles[0][i] <= node.left_edge[i]
@@ -383,8 +420,6 @@ cdef split_grid(Node node,
     split = <Split *> malloc(sizeof(Split))
     split.dim = best_dim
     split.pos = split_pos
-
-    #del data
 
     # Create a Split
     divide(node, split)
@@ -570,57 +605,54 @@ cdef int split_grids(Node node,
 
     return 0
 
-# def geo_split_grid(node, gle, gre, grid_id, rank, size):
-#     big_dim = np.argmax(gre-gle)
-#     new_pos = (gre[big_dim] + gle[big_dim])/2.
-#     old_gre = gre.copy()
-#     new_gle = gle.copy()
-#     new_gle[big_dim] = new_pos
-#     gre[big_dim] = new_pos
-# 
-#     split = Split(big_dim, new_pos)
-# 
-#     # Create a Split
-#     divide(node, split)
-# 
-#     # Populate Left Node
-#     #print 'Inserting left node', node.left_edge, node.right_edge
-#     insert_grid(node.left, gle, gre,
-#                 grid_id, rank, size)
-# 
-#     # Populate Right Node
-#     #print 'Inserting right node', node.left_edge, node.right_edge
-#     insert_grid(node.right, new_gle, old_gre,
-#                 grid_id, rank, size)
-#     return
-# 
-# 
-# def geo_split(node, gles, gres, grid_ids, rank, size):
-#     big_dim = np.argmax(gres[0]-gles[0])
-#     new_pos = (gres[0][big_dim] + gles[0][big_dim])/2.
-#     old_gre = gres[0].copy()
-#     new_gle = gles[0].copy()
-#     new_gle[big_dim] = new_pos
-#     gres[0][big_dim] = new_pos
-#     gles = np.append(gles, np.array([new_gle]), axis=0)
-#     gres = np.append(gres, np.array([old_gre]), axis=0)
-#     grid_ids = np.append(grid_ids, grid_ids, axis=0)
-# 
-#     split = Split(big_dim, new_pos)
-# 
-#     # Create a Split
-#     divide(node, split)
-# 
-#     # Populate Left Node
-#     #print 'Inserting left node', node.left_edge, node.right_edge
-#     insert_grids(node.left, gles[:1], gres[:1],
-#             grid_ids[:1], rank, size)
-# 
-#     # Populate Right Node
-#     #print 'Inserting right node', node.left_edge, node.right_edge
-#     insert_grids(node.right, gles[1:], gres[1:],
-#             grid_ids[1:], rank, size)
-#     return
+cdef geo_split(Node node, 
+               np.float64_t *gle, 
+               np.float64_t *gre, 
+               int grid_id, 
+               int rank, 
+               int size):
+    cdef int big_dim = 0
+    cdef int i
+    cdef np.float64_t v, my_max = 0.0
+    
+    for i in range(3):
+        v = gre[i] - gle[i]
+        if v > my_max:
+            my_max = v
+            big_dim = i
+
+    new_pos = (gre[big_dim] + gle[big_dim])/2.
+    
+    lnew_gle = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    lnew_gre = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    rnew_gle = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    rnew_gre = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+
+    for j in range(3):
+        lnew_gle[j] = gle[j]
+        lnew_gre[j] = gre[j]
+        rnew_gle[j] = gle[j]
+        rnew_gre[j] = gre[j]
+
+    split = <Split *> malloc(sizeof(Split))
+    split.dim = big_dim 
+    split.pos = new_pos
+
+    # Create a Split
+    divide(node, split)
+
+    #lnew_gre[big_dim] = new_pos
+    # Populate Left Node
+    #print 'Inserting left node', node.left_edge, node.right_edge
+    insert_grid(node.left, lnew_gle, lnew_gre, 
+            grid_id, rank, size)
+
+    #rnew_gle[big_dim] = new_pos 
+    # Populate Right Node
+    #print 'Inserting right node', node.left_edge, node.right_edge
+    insert_grid(node.right, rnew_gle, rnew_gre,
+            grid_id, rank, size)
+    return
 
 cdef new_right(Node node, Split * split):
     new_right = Node.right_edge.copy()
