@@ -140,19 +140,20 @@ class Tree(object):
 
     def sum_cells(self, all_cells=False):
         cells = 0
-        for node in depth_traverse(self):
-            if node.grid != -1:
+        for node in depth_traverse(self.trunk):
+            if node.grid == -1:
                 continue
             if not all_cells and not kd_is_leaf(node):
                 continue
             grid = self.pf.h.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            li = np.rint((node.left_edge-gle)/dds).astype('int32')
-            ri = np.rint((node.right_edge-gle)/dds).astype('int32')
+            nle = get_left_edge(node)
+            nre = get_right_edge(node)
+            li = np.rint((nle-gle)/dds).astype('int32')
+            ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
             cells += np.prod(dims)
-
         return cells
 
 class AMRKDTree(ParallelAnalysisInterface):
