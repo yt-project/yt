@@ -694,5 +694,5 @@ EnzoFieldInfo.add_field(("deposit", "%s_density" % "all"),
          validators = [ValidateSpatial()],
          display_name = "\\mathrm{%s Density}" % "all",
          units = r"\mathrm{g}/\mathrm{cm}^{3}",
-         projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
