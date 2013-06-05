@@ -114,68 +114,18 @@ def kd_traverse(Node trunk, viewpoint=None):
             if kd_is_leaf(node) and node.grid != -1:
                 yield node
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef add_grid(Node node, 
+                   np.float64_t *gle, 
+                   np.float64_t *gre, 
+                   int gid, 
+                   int rank,
+                   int size):
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# def add_grid(Node node, 
-#                    np.ndarray[np.float64_t, ndim=1] gle, 
-#                    np.ndarray[np.float64_t, ndim=1] gre, 
-#                    int gid, 
-#                    int rank,
-#                    int size):
-# 
-#     if not should_i_build(node, rank, size):
-#         return
-# 
-#     if kd_is_leaf(node):
-#         insert_grid(node, gle, gre, gid, rank, size)
-#     else:
-#         less_id = gle[node.split.dim] < node.split.pos
-#         if less_id:
-#             add_grid(node.left, gle, gre,
-#                      gid, rank, size)
-# 
-#         greater_id = gre[node.split.dim] > node.split.pos
-#         if greater_id:
-#             add_grid(node.right, gle, gre,
-#                      gid, rank, size)
-#     return
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# def insert_grid(Node node, 
-#                       np.ndarray[np.float64_t, ndim=1] gle, 
-#                       np.ndarray[np.float64_t, ndim=1] gre, 
-#                       int grid_id, 
-#                       int rank,
-#                       int size):
-#     if not should_i_build(node, rank, size):
-#         return
-# 
-#     # If we should continue to split based on parallelism, do so!
-#     # if should_i_split(node, rank, size):
-#     #     geo_split(node, gle, gre, grid_id, rank, size)
-#     #     return
-#     cdef int contained = 1
-#     for i in range(3):
-#         if gle[i] > node.left_edge[i] or\
-#            gre[i] < node.right_edge[i]:
-#             contained *= 0
-# 
-#     if contained == 1:
-#         node.grid = grid_id 
-#         assert(node.grid != -1)
-#         return
-# 
-#     # Split the grid
-#     cdef int check = split_grid(node, gle, gre, grid_id, rank, size)
-#     # If check is -1, then we have found a place where there are no choices.
-#     # Exit out and set the node to None.
-#     if check == -1:
-#         node.grid = -1 
-#     return
+    if not should_i_build(node, rank, size):
+        return
 
     if kd_is_leaf(node):
         insert_grid(node, gle, gre, gid, rank, size)
@@ -191,15 +141,35 @@ def kd_traverse(Node trunk, viewpoint=None):
                      gid, rank, size)
     return
 
+def add_pygrid(Node node, 
+                   np.ndarray[np.float64_t, ndim=1] gle, 
+                   np.ndarray[np.float64_t, ndim=1] gre, 
+                   int gid, 
+                   int rank,
+                   int size):
+
+    """
+    The entire purpose of this function is to move everything from ndarrays
+    to internal C pointers. 
+    """
+    pgles = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    pgres = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    cdef int j
+    for j in range(3):
+        pgles[j] = gle[j]
+        pgres[j] = gre[j]
+
+    add_grid(node, pgles, pgres, gid, rank, size)
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def insert_grid(Node node, 
-                      np.ndarray[np.float64_t, ndim=1] gle, 
-                      np.ndarray[np.float64_t, ndim=1] gre, 
-                      int grid_id, 
-                      int rank,
-                      int size):
+cdef insert_grid(Node node, 
+                np.float64_t *gle, 
+                np.float64_t *gre, 
+                int grid_id, 
+                int rank,
+                int size):
     if not should_i_build(node, rank, size):
         return
 
@@ -229,7 +199,7 @@ def insert_grid(Node node,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def add_grids(Node node, 
+def add_pygrids(Node node, 
                     int ngrids,
                     np.ndarray[np.float64_t, ndim=2] gles, 
                     np.ndarray[np.float64_t, ndim=2] gres, 
@@ -377,60 +347,61 @@ cdef void insert_grids(Node node,
         node.grid = -1
     return
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# def split_grid(Node node, 
-#                np.ndarray[np.float64_t, ndim=1] gle, 
-#                np.ndarray[np.float64_t, ndim=1] gre, 
-#                int gid, 
-#                int rank,
-#                int size):
-#     # Find a Split
-#     data = np.empty((1, 2, 3), dtype='float64')
-#     for i in range(3):
-#         data[0, 0, i] = gle[i]
-#         data[0, 1, i] = gre[i]
-#         # print 'Single Data: ', gle[i], gre[i]
-# 
-#     le = np.empty(3)
-#     re = np.empty(3)
-#     for i in range(3):
-#         le[i] = node.left_edge[i]
-#         re[i] = node.right_edge[i]
-# 
-#     best_dim, split_pos, less_id, greater_id = \
-#         kdtree_get_choices(1, data, le, re)
-# 
-#     # If best_dim is -1, then we have found a place where there are no choices.
-#     # Exit out and set the node to None.
-#     if best_dim == -1:
-#         print 'Failed to split grid.'
-#         return -1
-# 
-#         
-#     split = <Split *> malloc(sizeof(Split))
-#     split.dim = best_dim
-#     split.pos = split_pos
-# 
-#     #del data
-# 
-#     # Create a Split
-#     divide(node, split)
-# 
-#     # Populate Left Node
-#     #print 'Inserting left node', node.left_edge, node.right_edge
-#     if less_id == 1:
-#         insert_grid(node.left, gle, gre,
-#                      gid, rank, size)
-# 
-#     # Populate Right Node
-#     #print 'Inserting right node', node.left_edge, node.right_edge
-#     if greater_id == 1:
-#         insert_grid(node.right, gle, gre,
-#                      gid, rank, size)
-# 
-#     return 0
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef split_grid(Node node, 
+               np.float64_t *gle, 
+               np.float64_t *gre, 
+               int gid, 
+               int rank,
+               int size):
+
+    cdef int j
+    data = <np.float64_t ***> malloc(sizeof(np.float64_t**))
+    data[0] = <np.float64_t **> malloc(2 * sizeof(np.float64_t*))
+    for j in range(2):
+        data[0][j] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+    for j in range(3):
+        data[0][0][j] = gle[j]
+        data[0][1][j] = gre[j]
+
+    less_ids = <np.uint8_t *> malloc(1 * sizeof(np.uint8_t))
+    greater_ids = <np.uint8_t *> malloc(1 * sizeof(np.uint8_t))
+
+    best_dim, split_pos, nless, ngreater = \
+        kdtree_get_choices(1, data, node.left_edge, node.right_edge,
+                          less_ids, greater_ids)
+
+    # If best_dim is -1, then we have found a place where there are no choices.
+    # Exit out and set the node to None.
+    if best_dim == -1:
+        print 'Failed to split grid.'
+        return -1
+
+        
+    split = <Split *> malloc(sizeof(Split))
+    split.dim = best_dim
+    split.pos = split_pos
+
+    #del data
+
+    # Create a Split
+    divide(node, split)
+
+    # Populate Left Node
+    #print 'Inserting left node', node.left_edge, node.right_edge
+    if nless == 1:
+        insert_grid(node.left, gle, gre,
+                     gid, rank, size)
+
+    # Populate Right Node
+    #print 'Inserting right node', node.left_edge, node.right_edge
+    if ngreater == 1:
+        insert_grid(node.right, gle, gre,
+                     gid, rank, size)
+
+    return 0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -442,10 +413,6 @@ cdef kdtree_get_choices(int n_grids,
                         np.uint8_t *less_ids,
                         np.uint8_t *greater_ids,
                        ):
-# cdef kdtree_get_choices(int n_grids, 
-#                         np.ndarray[np.float64_t, ndim=3] data,
-#                         np.ndarray[np.float64_t, ndim=1] l_corner,
-#                         np.ndarray[np.float64_t, ndim=1] r_corner):
     cdef int i, j, k, dim, n_unique, best_dim, n_best, addit, my_split
     cdef np.float64_t **uniquedims, *uniques, split
     uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
