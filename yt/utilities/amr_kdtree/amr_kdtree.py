@@ -29,7 +29,7 @@ import h5py
 from amr_kdtools import \
         receive_and_reduce, send_to_parent, scatter_image, find_node, \
         depth_first_touch
-from yt.utilities.lib.amr_kdtools import Node, add_grids, add_grid, \
+from yt.utilities.lib.amr_kdtools import Node, add_grids, \
         kd_is_leaf, depth_traverse, viewpoint_traverse, kd_traverse, \
         get_left_edge, get_right_edge, kd_sum_volume, kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface \
@@ -210,7 +210,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         self._initialized = True
 
     def traverse(self, viewpoint=None):
-        for node in kd_traverse(self.tree.trunk):
+        for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
             yield self.get_brick_data(node)
 
     def get_node(self, nodeid):
