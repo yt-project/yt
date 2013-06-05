@@ -29,6 +29,7 @@ cimport numpy as np
 import numpy as np
 from libc.stdlib cimport malloc, free
 cimport cython
+from libc.math cimport sqrt
 
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, \
@@ -104,6 +105,7 @@ cdef class ParticleDepositOperation:
             left_edge[i] = gobj.LeftEdge[i]
             dims[i] = gobj.ActiveDimensions[i]
         for i in range(positions.shape[0]):
+            if i % 10000 == 0: print i, positions.shape[0]
             # Now we process
             for j in range(nf):
                 field_vals[j] = field_pointers[j][i]
@@ -144,6 +146,68 @@ cdef class CountParticles(ParticleDepositOperation):
         return self.ocount.astype('f8')
 
 deposit_count = CountParticles
+
+cdef class SimpleSmooth(ParticleDepositOperation):
+    # Note that this does nothing at the edges.  So it will give a poor
+    # estimate there, and since Octrees are mostly edges, this will be a very
+    # poor SPH kernel.
+    cdef np.float64_t *data
+    cdef public object odata
+    cdef np.float64_t *temp
+    cdef public object otemp
+
+    def initialize(self):
+        self.odata = np.zeros(self.nvals, dtype="float64")
+        cdef np.ndarray arr = self.odata
+        self.data = <np.float64_t*> arr.data
+        self.otemp = np.zeros(self.nvals, dtype="float64")
+        arr = self.otemp
+        self.temp = <np.float64_t*> arr.data
+
+    @cython.cdivision(True)
+    cdef void process(self, int dim[3],
+                      np.float64_t left_edge[3],
+                      np.float64_t dds[3],
+                      np.int64_t offset,
+                      np.float64_t ppos[3],
+                      np.float64_t *fields
+                      ):
+        cdef int ii[3], half_len, ib0[3], ib1[3]
+        cdef int i, j, k
+        cdef np.float64_t idist[3], kernel_sum, dist
+        # Smoothing length is fields[0]
+        kernel_sum = 0.0
+        for i in range(3):
+            ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
+            half_len = <int>(fields[0]/dds[i]) + 1
+            ib0[i] = ii[i] - half_len
+            ib1[i] = ii[i] + half_len
+            if ib0[i] >= dim[i] or ib1[i] <0:
+                return
+            ib0[i] = iclip(ib0[i], 0, dim[i] - 1)
+            ib1[i] = iclip(ib1[i], 0, dim[i] - 1)
+        for i from ib0[0] <= i <= ib1[0]:
+            idist[0] = (ii[0] - i) * (ii[0] - i) * dds[0]
+            for j from ib0[1] <= j <= ib1[1]:
+                idist[1] = (ii[1] - j) * (ii[1] - j) * dds[1] 
+                for k from ib0[2] <= k <= ib1[2]:
+                    idist[2] = (ii[2] - k) * (ii[2] - k) * dds[2]
+                    dist = idist[0] + idist[1] + idist[2]
+                    # Calculate distance in multiples of the smoothing length
+                    dist = sqrt(dist) / fields[0]
+                    self.temp[gind(i,j,k,dim) + offset] = sph_kernel(dist)
+                    kernel_sum += self.temp[gind(i,j,k,dim) + offset]
+        # Having found the kernel, deposit accordingly into gdata
+        for i from ib0[0] <= i <= ib1[0]:
+            for j from ib0[1] <= j <= ib1[1]:
+                for k from ib0[2] <= k <= ib1[2]:
+                    dist = self.temp[gind(i,j,k,dim) + offset] / kernel_sum
+                    self.data[gind(i,j,k,dim) + offset] += fields[1] * dist
+        
+    def finalize(self):
+        return self.odata
+
+deposit_simple_smooth = SimpleSmooth
 
 cdef class SumParticleField(ParticleDepositOperation):
     cdef np.float64_t *sum
