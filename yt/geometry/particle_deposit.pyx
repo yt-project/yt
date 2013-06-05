@@ -105,7 +105,6 @@ cdef class ParticleDepositOperation:
             left_edge[i] = gobj.LeftEdge[i]
             dims[i] = gobj.ActiveDimensions[i]
         for i in range(positions.shape[0]):
-            if i % 10000 == 0: print i, positions.shape[0]
             # Now we process
             for j in range(nf):
                 field_vals[j] = field_pointers[j][i]
