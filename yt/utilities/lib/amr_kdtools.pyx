@@ -26,13 +26,13 @@ cdef struct Split:
 @cython.cdivision(True)
 cdef class Node:
 
-    cdef public Node left
-    cdef public Node right
-    cdef public Node parent
-    cdef public int grid
-    cdef public int node_id
-    cdef np.float64_t * left_edge
-    cdef np.float64_t * right_edge
+    cdef readonly Node left
+    cdef readonly Node right
+    cdef readonly Node parent
+    cdef readonly int grid
+    cdef readonly int node_id
+    cdef np.float64_t left_edge[3]
+    cdef np.float64_t right_edge[3]
     cdef public data
     cdef Split * split
 
@@ -48,8 +48,6 @@ cdef class Node:
         self.right = right
         self.parent = parent
         cdef int i
-        self.left_edge = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
-        self.right_edge = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
@@ -99,13 +97,12 @@ def _parent_id(int node_id):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int should_i_build(Node node, int rank, int size):
-    return 1
-    # if (node.node_id < size) or (node.node_id >= 2*size):
-    #     return 1 
-    # elif node.node_id - size == rank:
-    #     return 1 
-    # else:
-    #     return 0 
+    if (node.node_id < size) or (node.node_id >= 2*size):
+        return 1 
+    elif node.node_id - size == rank:
+        return 1 
+    else:
+        return 0 
 
 def kd_traverse(Node trunk, viewpoint=None):
     if viewpoint is None:
@@ -239,6 +236,35 @@ def add_grids(Node node,
                     np.ndarray[np.int64_t, ndim=1] gids, 
                     int rank,
                     int size):
+    """
+    The entire purpose of this function is to move everything from ndarrays
+    to internal C pointers. 
+    """
+    pgles = <np.float64_t **> malloc(ngrids * sizeof(np.float64_t*))
+    pgres = <np.float64_t **> malloc(ngrids * sizeof(np.float64_t*))
+    pgids = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    for i in range(ngrids):
+        pgles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        pgres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        pgids[i] = gids[i]
+        for j in range(3):
+            pgles[i][j] = gles[i, j]
+            pgres[i][j] = gres[i, j]
+
+    add_grids(node, ngrids, pgles, pgres, pgids, rank, size)
+
+
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef add_grids(Node node, 
+                    int ngrids,
+                    np.float64_t **gles, 
+                    np.float64_t **gres, 
+                    np.int64_t *gids, 
+                    int rank,
+                    int size):
     cdef int i, j, nless, ngreater
     cdef np.int64_t gid
     if not should_i_build(node, rank, size):
@@ -248,38 +274,44 @@ def add_grids(Node node,
         insert_grids(node, ngrids, gles, gres, gids, rank, size)
         return
 
-    cdef np.ndarray less_ids = np.zeros(ngrids, dtype='int64')
-    cdef np.ndarray greater_ids = np.zeros(ngrids, dtype='int64')
+    less_ids= <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    greater_ids = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
    
     nless = 0
     ngreater = 0
     for i in range(ngrids):
-        if gles[i, node.split.dim] < node.split.pos:
+        if gles[i][node.split.dim] < node.split.pos:
             less_ids[nless] = i
             nless += 1
             
-        if gres[i, node.split.dim] > node.split.pos:
+        if gres[i][node.split.dim] > node.split.pos:
             greater_ids[ngreater] = i
             ngreater += 1
 
     #print 'nless: %i' % nless
     #print 'ngreater: %i' % ngreater
 
-    cdef np.ndarray less_gles = np.zeros([nless, 3], dtype='float64')
-    cdef np.ndarray less_gres = np.zeros([nless, 3], dtype='float64')
-    cdef np.ndarray l_ids = np.zeros(nless, dtype='int64')
+    less_gles = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    less_gres = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    l_ids = <np.int64_t *> malloc(nless * sizeof(np.int64_t))
+    for i in range(nless):
+        less_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        less_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
-    cdef np.ndarray greater_gles = np.zeros([ngreater, 3], dtype='float64')
-    cdef np.ndarray greater_gres = np.zeros([ngreater, 3], dtype='float64')
-    cdef np.ndarray g_ids = np.zeros(ngreater, dtype='int64')
+    greater_gles = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    greater_gres = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    g_ids = <np.int64_t *> malloc(ngreater * sizeof(np.int64_t))
+    for i in range(ngreater):
+        greater_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        greater_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
     cdef int index
     for i in range(nless):
         index = less_ids[i]
         l_ids[i] = gids[index]
         for j in range(3):
-            less_gles[i, j] = gles[index, j]
-            less_gres[i, j] = gres[index, j]
+            less_gles[i][j] = gles[index][j]
+            less_gres[i][j] = gres[index][j]
 
     if nless > 0:
         add_grids(node.left, nless, less_gles, less_gres,
@@ -289,8 +321,8 @@ def add_grids(Node node,
         index = greater_ids[i]
         g_ids[i] = gids[index]
         for j in range(3):
-            greater_gles[i, j] = gles[index, j]
-            greater_gres[i, j] = gres[index, j]
+            greater_gles[i][j] = gles[index][j]
+            greater_gres[i][j] = gres[index][j]
 
     if ngreater > 0:
         add_grids(node.right, ngreater, greater_gles, greater_gres,
@@ -310,9 +342,9 @@ cdef int should_i_split(Node node, int rank, int size):
 @cython.cdivision(True)
 cdef void insert_grids(Node node, 
                        int ngrids,
-                       np.ndarray[np.float64_t, ndim=2] gles, 
-                       np.ndarray[np.float64_t, ndim=2] gres, 
-                       np.ndarray[np.int64_t, ndim=1] gids, 
+                       np.float64_t **gles, 
+                       np.float64_t **gres, 
+                       np.int64_t *gids, 
                        int rank,
                        int size):
     
@@ -328,8 +360,8 @@ cdef void insert_grids(Node node,
         #    return
 
         for i in range(3):
-            contained *= gles[0, i] <= node.left_edge[i]
-            contained *= gres[0, i] >= node.right_edge[i]
+            contained *= gles[0][i] <= node.left_edge[i]
+            contained *= gres[0][i] >= node.right_edge[i]
     
         if contained == 1:
             # print 'Node fully contained, setting to grid: %i' % gids[0]
@@ -470,21 +502,18 @@ cdef kdtree_get_choices(int n_grids,
     # Return out unique values
     return best_dim, split, nless, ngreater
 
-#@cython.boundscheck(True)
+#@cython.boundscheck(False)
 #@cython.wraparound(False)
 #@cython.cdivision(True)
 cdef int split_grids(Node node, 
                        int ngrids,
-                       np.ndarray[np.float64_t, ndim=2] gles, 
-                       np.ndarray[np.float64_t, ndim=2] gres, 
-                       np.ndarray[np.int64_t, ndim=1] gids, 
+                       np.float64_t **gles, 
+                       np.float64_t **gres, 
+                       np.int64_t *gids, 
                        int rank,
                        int size):
     # Find a Split
     cdef int i, j, k
-
-    le = get_left_edge(node)
-    re = get_right_edge(node)
 
     data = <np.float64_t ***> malloc(ngrids * sizeof(np.float64_t**))
     for i in range(ngrids):
@@ -492,8 +521,8 @@ cdef int split_grids(Node node,
         for j in range(2):
             data[i][j] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
         for j in range(3):
-            data[i][0][j] = gles[i, j]
-            data[i][1][j] = gres[i, j]
+            data[i][0][j] = gles[i][j]
+            data[i][1][j] = gres[i][j]
 
     less_ids = <np.uint8_t *> malloc(ngrids * sizeof(np.uint8_t))
     greater_ids = <np.uint8_t *> malloc(ngrids * sizeof(np.uint8_t))
@@ -517,8 +546,8 @@ cdef int split_grids(Node node,
     # Create a Split
     divide(node, split)
 
-    cdef np.ndarray less_index = np.zeros(ngrids, dtype='int64')
-    cdef np.ndarray greater_index = np.zeros(ngrids, dtype='int64')
+    less_index = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    greater_index = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
    
     nless = 0
     ngreater = 0
@@ -531,21 +560,27 @@ cdef int split_grids(Node node,
             greater_index[ngreater] = i
             ngreater += 1
 
-    cdef np.ndarray less_gles = np.zeros([nless, 3], dtype='float64')
-    cdef np.ndarray less_gres = np.zeros([nless, 3], dtype='float64')
-    cdef np.ndarray l_ids = np.zeros(nless, dtype='int64')
+    less_gles = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    less_gres = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    l_ids = <np.int64_t *> malloc(nless * sizeof(np.int64_t))
+    for i in range(nless):
+        less_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        less_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
-    cdef np.ndarray greater_gles = np.zeros([ngreater, 3], dtype='float64')
-    cdef np.ndarray greater_gres = np.zeros([ngreater, 3], dtype='float64')
-    cdef np.ndarray g_ids = np.zeros(ngreater, dtype='int64')
+    greater_gles = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    greater_gres = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    g_ids = <np.int64_t *> malloc(ngreater * sizeof(np.int64_t))
+    for i in range(ngreater):
+        greater_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        greater_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
     cdef int index
     for i in range(nless):
         index = less_index[i]
         l_ids[i] = gids[index]
         for j in range(3):
-            less_gles[i, j] = gles[index, j]
-            less_gres[i, j] = gres[index, j]
+            less_gles[i][j] = gles[index][j]
+            less_gres[i][j] = gres[index][j]
 
     if nless > 0:
         # Populate Left Node
@@ -557,8 +592,8 @@ cdef int split_grids(Node node,
         index = greater_index[i]
         g_ids[i] = gids[index]
         for j in range(3):
-            greater_gles[i, j] = gles[index, j]
-            greater_gres[i, j] = gres[index, j]
+            greater_gles[i][j] = gles[index][j]
+            greater_gres[i][j] = gres[index][j]
 
     if ngreater > 0:
         # Populate Right Node
@@ -634,28 +669,25 @@ cdef void divide(Node node, Split * split):
     # Create a Split
     node.split = split
     
-    lle = np.zeros(3, dtype='float64')
-    lre = np.zeros(3, dtype='float64')
-    rle = np.zeros(3, dtype='float64')
-    rre = np.zeros(3, dtype='float64')
+    cdef np.ndarray[np.float64_t, ndim=1] le = np.zeros(3, dtype='float64')
+    cdef np.ndarray[np.float64_t, ndim=1] re = np.zeros(3, dtype='float64')
 
     cdef int i
     for i in range(3):
-        lle[i] = node.left_edge[i]
-        lre[i] = node.right_edge[i]
-        rle[i] = node.left_edge[i]
-        rre[i] = node.right_edge[i]
-    lre[split.dim] = split.pos
-    rle[split.dim] = split.pos
+        le[i] = node.left_edge[i]
+        re[i] = node.right_edge[i]
+    re[split.dim] = split.pos
 
     node.left = Node(node, None, None,
-            lle.copy(), lre.copy(), node.grid,
+                     le, re, node.grid,
                      _lchild_id(node.node_id))
 
+    re[split.dim] = node.right_edge[split.dim]
+    le[split.dim] = split.pos
     node.right = Node(node, None, None,
-            rle.copy(), rre.copy(), node.grid,
+                      le, re, node.grid,
                       _rchild_id(node.node_id))
-    
+
     return
 # 
 def kd_sum_volume(Node node):
@@ -668,16 +700,6 @@ def kd_sum_volume(Node node):
         return vol 
     else:
         return kd_sum_volume(node.left) + kd_sum_volume(node.right)
-# 
-# def kd_sum_cells(node):
-#     if (node.left is None) and (node.right is None):
-#         if node.grid is None:
-#             return 0.0
-#         return np.prod(node.right_edge - node.left_edge)
-#     else:
-#         return kd_sum_volume(node.left) + kd_sum_volume(node.right)
-# 
-# 
 
 def kd_node_check(Node node):
     assert (node.left is None) == (node.right is None)
@@ -687,7 +709,6 @@ def kd_node_check(Node node):
         else: return 0.0
     else:
         return kd_node_check(node.left)+kd_node_check(node.right)
-
 
 def kd_is_leaf(Node node):
     cdef int has_l_child = node.left == None
@@ -741,37 +762,37 @@ def depth_traverse(Node trunk, max_node=None):
         if current.node_id >= max_node:
             current = current.parent
             previous = current.right
-# 
-# def depth_first_touch(tree, max_node=None):
-#     '''
-#     Yields a depth-first traversal of the kd tree always going to
-#     the left child before the right.
-#     '''
-#     current = tree.trunk
-#     previous = None
-#     if max_node is None:
-#         max_node = np.inf
-#     while current is not None:
-#         if previous is None or previous.parent != current:
-#             yield current
-#         current, previous = step_depth(current, previous)
-#         if current is None: break
-#         if current.id >= max_node:
-#             current = current.parent
-#             previous = current.right
-# 
-# def breadth_traverse(tree):
-#     '''
-#     Yields a breadth-first traversal of the kd tree always going to
-#     the left child before the right.
-#     '''
-#     current = tree.trunk
-#     previous = None
-#     while current is not None:
-#         yield current
-#         current, previous = step_depth(current, previous)
-# 
-# 
+
+def depth_first_touch(tree, max_node=None):
+    '''
+    Yields a depth-first traversal of the kd tree always going to
+    the left child before the right.
+    '''
+    current = tree.trunk
+    previous = None
+    if max_node is None:
+        max_node = np.inf
+    while current is not None:
+        if previous is None or previous.parent != current:
+            yield current
+        current, previous = step_depth(current, previous)
+        if current is None: break
+        if current.id >= max_node:
+            current = current.parent
+            previous = current.right
+
+def breadth_traverse(tree):
+    '''
+    Yields a breadth-first traversal of the kd tree always going to
+    the left child before the right.
+    '''
+    current = tree.trunk
+    previous = None
+    while current is not None:
+        yield current
+        current, previous = step_depth(current, previous)
+
+
 def viewpoint_traverse(tree, viewpoint):
     '''
     Yields a viewpoint dependent traversal of the kd-tree.  Starts
@@ -832,57 +853,28 @@ def step_viewpoint(Node current,
             current = current.parent
 
     return current, previous
-# 
-# 
-# def receive_and_reduce(comm, incoming_rank, image, add_to_front):
-#     mylog.debug( 'Receiving image from %04i' % incoming_rank)
-#     #mylog.debug( '%04i receiving image from %04i'%(self.comm.rank,back.owner))
-#     arr2 = comm.recv_array(incoming_rank, incoming_rank).reshape(
-#         (image.shape[0], image.shape[1], image.shape[2]))
-# 
-#     if add_to_front:
-#         front = arr2
-#         back = image
-#     else:
-#         front = image
-#         back = arr2
-# 
-#     if image.shape[2] == 3:
-#         # Assume Projection Camera, Add
-#         np.add(image, front, image)
-#         return image
-# 
-#     ta = 1.0 - front[:,:,3]
-#     np.maximum(ta, 0.0, ta)
-#     # This now does the following calculation, but in a memory
-#     # conservative fashion
-#     # image[:,:,i  ] = front[:,:,i] + ta*back[:,:,i]
-#     image = back.copy()
-#     for i in range(4):
-#         np.multiply(image[:,:,i], ta, image[:,:,i])
-#     np.add(image, front, image)
-#     return image
-# 
-# def send_to_parent(comm, outgoing_rank, image):
-#     mylog.debug( 'Sending image to %04i' % outgoing_rank)
-#     comm.send_array(image, outgoing_rank, tag=comm.rank)
-# 
-# def scatter_image(comm, root, image):
-#     mylog.debug( 'Scattering from %04i' % root)
-#     image = comm.mpi_bcast(image, root=root)
-#     return image
-# 
-# def find_node(node, pos):
-#     """
-#     Find the AMRKDTree node enclosing a position
-#     """
-#     assert(np.all(node.left_edge <= pos))
-#     assert(np.all(node.right_edge > pos))
-#     while not kd_is_leaf(node):
-#         if pos[node.split.dim] < node.split.pos:
-#             node = node.left
-#         else:
-#             node = node.right
-#     return node
+
+cdef int point_in_node(Node node, 
+                       np.ndarray[np.float64_t, ndim=1] point):
+    cdef int i
+    cdef int inside = 1
+    for i in range(3):
+        inside *= node.left_edge[i] <= point[i]
+        inside *= node.right_edge[i] > point[i]
+    return inside
+
+
+def find_node(Node node,
+              np.ndarray[np.float64_t, ndim=1] point):
+    """
+    Find the AMRKDTree node enclosing a position
+    """
+    assert(point_in_node(node, point))
+    while not kd_is_leaf(node):
+        if point[node.split.dim] < node.split.pos:
+            node = node.left
+        else:
+            node = node.right
+    return node
 
 

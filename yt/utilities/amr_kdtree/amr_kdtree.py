@@ -29,7 +29,7 @@ import h5py
 from amr_kdtools import \
         receive_and_reduce, send_to_parent, scatter_image, find_node, \
         depth_first_touch
-from yt.utilities.lib.amr_kdtools import Node, add_grids, \
+from yt.utilities.lib.amr_kdtools import Node, add_pygrids, \
         kd_is_leaf, depth_traverse, viewpoint_traverse, kd_traverse, \
         get_left_edge, get_right_edge, kd_sum_volume, kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface \
@@ -92,7 +92,7 @@ class Tree(object):
                     gles = np.array([g.LeftEdge for g in grids])[gmask]
                     gres = np.array([g.RightEdge for g in grids])[gmask]
                     gids = np.array([g.id for g in grids])[gmask]
-                    add_grids(self.trunk, gids.size, gles, gres, gids, 
+                    add_pygrids(self.trunk, gids.size, gles, gres, gids, 
                               self.comm_rank,
                               self.comm_size)
                     grids_added += grids.size
@@ -108,7 +108,7 @@ class Tree(object):
             gres = np.array([g.RightEdge for g in grids if g.Level == lvl])
             gids = np.array([g.id for g in grids if g.Level == lvl])
 
-            add_grids(self.trunk, len(gids), gles, gres, gids, self.comm_rank, self.comm_size)
+            add_pygrids(self.trunk, len(gids), gles, gres, gids, self.comm_rank, self.comm_size)
             del gles, gres, gids
 
 
