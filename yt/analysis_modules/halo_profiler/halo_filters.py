@@ -27,6 +27,7 @@ from copy import deepcopy
 import numpy as np
 
 from yt.funcs import *
+from yt.utilities.physical_constants import TINY
 
 def VirialFilter(profile, overdensity_field='ActualOverdensity',
                  virial_overdensity=200., must_be_virialized=True,
@@ -105,7 +106,7 @@ def VirialFilter(profile, overdensity_field='ActualOverdensity',
 
     if use_log:
         for field in temp_profile.keys():
-            temp_profile[field] = np.log10(np.clip(temp_profile[field], 1e-90, 
+            temp_profile[field] = np.log10(np.clip(temp_profile[field], TINY,
                                                    max(temp_profile[field])))
 
     virial = dict((field, 0.0) for field in fields)
