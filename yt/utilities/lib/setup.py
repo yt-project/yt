@@ -249,6 +249,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("GridTree", 
     ["yt/utilities/lib/GridTree.pyx"],
         libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
         gpd = os.environ["GPERFTOOLS"]

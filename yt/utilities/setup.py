@@ -56,6 +56,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("lib")
     config.add_extension("data_point_utilities",
                 "yt/utilities/data_point_utilities.c", libraries=["m"])
+    config.add_subpackage("tests")
     hdf5_inc, hdf5_lib = check_for_hdf5()
     include_dirs = [hdf5_inc]
     library_dirs = [hdf5_lib]
