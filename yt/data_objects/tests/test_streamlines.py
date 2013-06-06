@@ -13,14 +13,10 @@ def test_streamlines():
     cs = np.array([a.ravel() for a in cs]).T
     length = (1.0/128) * 16 # 16 half-widths of a cell
     for nprocs in [1, 2, 4, 8]:
-        print nprocs
         pf = fake_random_pf(64, nprocs = nprocs, fields = _fields)
         streams = Streamlines(pf, cs, length=length)
         streams.integrate_through_volume()
-        print 'I did it.'
         for path in (streams.path(i) for i in range(8)):
             yield assert_rel_equal, path['dts'].sum(), 1.0, 14
             yield assert_equal, np.all(path['t'] <= (1.0 + 1e-10)), True
-            print path['dts'].sum()
-            print np.all(path['t'] <= (1.0 + 1e-10))
             path["Density"]
