@@ -1074,19 +1074,22 @@ class PerspectiveCamera(Camera):
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
-        view_pos = self.front_center
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
 
         pbar.finish()
-        image = sampler.aimage
-        self.finalize_image(image)
+        image = self.finalize_image(sampler.aimage)
         return image
 
     def finalize_image(self, image):
+        view_pos = self.front_center
         image.shape = self.resolution[0], self.resolution[0], 4
+        image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
+        return image
 
 def corners(left_edge, right_edge):
     return np.array([

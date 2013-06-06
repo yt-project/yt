@@ -253,18 +253,16 @@ class AMRKDTree(ParallelAnalysisInterface):
         while owners[node.parent.node_id] == myrank:
             split_dim = node.parent.get_split_dim()
             split_pos = node.parent.get_split_pos()
-            left_in_front = viewpoint[split_dim] < split_pos
-            #add_to_front = (left_in_front == (node == node.parent.right))
-            add_to_front = not left_in_front
-            image = receive_and_reduce(self.comm, owners[node.parent.right.node_id],
-                              image, add_to_front)
+            add_to_front = viewpoint[split_dim] >= split_pos
+            image = receive_and_reduce(self.comm,
+                                       owners[node.parent.right.node_id],
+                                       image, add_to_front)
             if node.parent.node_id == 1: break
             else: node = node.parent
         else:
             send_to_parent(self.comm, owners[node.parent.node_id], image)
 
-        image = scatter_image(self.comm, owners[1], image)
-        return image
+        return scatter_image(self.comm, owners[1], image)
 
     def get_brick_data(self, node):
         if node.data is not None: return node.data
