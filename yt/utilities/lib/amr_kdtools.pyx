@@ -301,8 +301,8 @@ cdef add_grids(Node node,
         insert_grids(node, ngrids, gles, gres, gids, rank, size)
         return
 
-    less_ids= <np.int64_t *> alloca(ngrids * sizeof(np.int64_t))
-    greater_ids = <np.int64_t *> alloca(ngrids * sizeof(np.int64_t))
+    less_ids= <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    greater_ids = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
    
     nless = 0
     ngreater = 0
@@ -318,19 +318,19 @@ cdef add_grids(Node node,
     #print 'nless: %i' % nless
     #print 'ngreater: %i' % ngreater
 
-    less_gles = <np.float64_t **> alloca(nless * sizeof(np.float64_t*))
-    less_gres = <np.float64_t **> alloca(nless * sizeof(np.float64_t*))
-    l_ids = <np.int64_t *> alloca(nless * sizeof(np.int64_t))
+    less_gles = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    less_gres = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    l_ids = <np.int64_t *> malloc(nless * sizeof(np.int64_t))
     for i in range(nless):
-        less_gles[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-        less_gres[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+        less_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        less_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
-    greater_gles = <np.float64_t **> alloca(ngreater * sizeof(np.float64_t*))
-    greater_gres = <np.float64_t **> alloca(ngreater * sizeof(np.float64_t*))
-    g_ids = <np.int64_t *> alloca(ngreater * sizeof(np.int64_t))
+    greater_gles = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    greater_gres = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    g_ids = <np.int64_t *> malloc(ngreater * sizeof(np.int64_t))
     for i in range(ngreater):
-        greater_gles[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-        greater_gres[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+        greater_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        greater_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
     cdef int index
     for i in range(nless):
@@ -354,13 +354,29 @@ cdef add_grids(Node node,
     if ngreater > 0:
         add_grids(node.right, ngreater, greater_gles, greater_gres,
                   g_ids, rank, size)
+
+    for i in range(nless):
+        free(less_gles[i])
+        free(less_gres[i])
+    free(l_ids)
+    free(less_ids)
+    free(less_gles)
+    free(less_gres)
+    for i in range(ngreater):
+        free(greater_gles[i])
+        free(greater_gres[i])
+    free(g_ids)
+    free(greater_ids)
+    free(greater_gles)
+    free(greater_gres)
+
     return
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int should_i_split(Node node, int rank, int size):
-    if node.node_id < size:
+    if node.node_id < size and node.node_id > 0:
         return 1
     return 0
 
@@ -568,8 +584,8 @@ cdef int split_grids(Node node,
     # Create a Split
     divide(node, split)
 
-    less_index = <np.int64_t *> alloca(ngrids * sizeof(np.int64_t))
-    greater_index = <np.int64_t *> alloca(ngrids * sizeof(np.int64_t))
+    less_index = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    greater_index = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
    
     nless = 0
     ngreater = 0
@@ -582,19 +598,19 @@ cdef int split_grids(Node node,
             greater_index[ngreater] = i
             ngreater += 1
 
-    less_gles = <np.float64_t **> alloca(nless * sizeof(np.float64_t*))
-    less_gres = <np.float64_t **> alloca(nless * sizeof(np.float64_t*))
-    l_ids = <np.int64_t *> alloca(nless * sizeof(np.int64_t))
+    less_gles = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    less_gres = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
+    l_ids = <np.int64_t *> malloc(nless * sizeof(np.int64_t))
     for i in range(nless):
-        less_gles[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-        less_gres[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+        less_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        less_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
-    greater_gles = <np.float64_t **> alloca(ngreater * sizeof(np.float64_t*))
-    greater_gres = <np.float64_t **> alloca(ngreater * sizeof(np.float64_t*))
-    g_ids = <np.int64_t *> alloca(ngreater * sizeof(np.int64_t))
+    greater_gles = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    greater_gres = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
+    g_ids = <np.int64_t *> malloc(ngreater * sizeof(np.int64_t))
     for i in range(ngreater):
-        greater_gles[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-        greater_gres[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+        greater_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        greater_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
 
     cdef int index
     for i in range(nless):
@@ -622,6 +638,22 @@ cdef int split_grids(Node node,
         #print 'Inserting right node', node.left_edge, node.right_edge
         insert_grids(node.right, ngreater, greater_gles, greater_gres,
                      g_ids, rank, size)
+
+    for i in range(nless):
+        free(less_gles[i])
+        free(less_gres[i])
+    free(l_ids)
+    free(less_index)
+    free(less_gles)
+    free(less_gres)
+    for i in range(ngreater):
+        free(greater_gles[i])
+        free(greater_gres[i])
+    free(g_ids)
+    free(greater_index)
+    free(greater_gles)
+    free(greater_gres)
+
 
     return 0
 
