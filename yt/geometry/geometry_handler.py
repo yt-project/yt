@@ -237,6 +237,8 @@ class GeometryHandler(ParallelAnalysisInterface):
                 fn = os.path.join(self.directory,
                         "%s.yt" % self.parameter_file.basename)
         dir_to_check = os.path.dirname(fn)
+        if dir_to_check == '':
+            dir_to_check = '.'
         # We have four options:
         #    Writeable, does not exist      : create, open as append
         #    Writeable, does exist          : open as append
@@ -324,7 +326,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         under the name *name* on the node /Objects.
         """
         s = cPickle.dumps(obj, protocol=-1)
-        self.save_data(s, "/Objects", name, force = True)
+        self.save_data(np.array(s, dtype='c'), "/Objects", name, force = True)
 
     def load_object(self, name):
         """

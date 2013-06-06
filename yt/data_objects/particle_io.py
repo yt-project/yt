@@ -58,7 +58,8 @@ class ParticleIOHandler(object):
 
     def get_data(self, fields):
         fields = ensure_list(fields)
-        rvs = self.source.get_data(fields, force_particle_read=True)
+        self.source.get_data(fields, force_particle_read=True)
+        rvs = [self.source[field] for field in fields]
         if len(fields) == 1: return rvs[0]
         return rvs
 

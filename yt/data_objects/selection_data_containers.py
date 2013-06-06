@@ -989,12 +989,12 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         given the tilt about the x axis when e0 was aligned 
         to x after t1, t2 rotations about z, y
         """
-        RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
-        RY = get_rotation_matrix(-t2,   (0,1,0)).transpose()
-        RZ = get_rotation_matrix(-t1,   (0,0,1)).transpose()
-        e1 = ((0, 1, 0) * RX).sum(axis = 1)
-        e1 = (e1 * RY).sum(axis = 1)
-        e1 = (e1 * RZ).sum(axis = 1)
+        RX = get_rotation_matrix(-tilt, (1, 0, 0)).transpose()
+        RY = get_rotation_matrix(-t2,   (0, 1, 0)).transpose()
+        RZ = get_rotation_matrix(-t1,   (0, 0, 1)).transpose()
+        e1 = ((0, 1, 0) * RX).sum(axis=1)
+        e1 = (e1 * RY).sum(axis=1)
+        e1 = (e1 * RZ).sum(axis=1)
         e2 = np.cross(e0, e1)
 
         self._e1 = e1

@@ -100,10 +100,10 @@ class IOHandlerNative(BaseIOHandler):
             if (gridSize != grid.ActiveDimensions).any():
                 print "Paranoia Error: Cell_H and %s do not agree on grid dimensions." %grid.filename
                 error_count += 1
-            if bytesPerReal != grid.hierarchy._bytesPerReal:
+            if bytesPerReal != grid.hierarchy._bytes_per_real:
                 print "Paranoia Error: Cell_H and %s do not agree on bytes per real number." %grid.filename
                 error_count += 1
-            if (bytesPerReal == grid.hierarchy._bytesPerReal and dtype != grid.hierarchy._dtype):
+            if (bytesPerReal == grid.hierarchy._bytes_per_real and dtype != grid.hierarchy._dtype):
                 print "Paranoia Error: Cell_H and %s do not agree on endianness." %grid.filename
                 error_count += 1
 
@@ -114,7 +114,7 @@ class IOHandlerNative(BaseIOHandler):
             start = grid.start_index
             stop = grid.stop_index
             dtype = grid.hierarchy._dtype
-            bytesPerReal = grid.hierarchy._bytesPerReal
+            bytesPerReal = grid.hierarchy._bytes_per_real
 
         nElements = grid.ActiveDimensions.prod()
 

@@ -302,7 +302,9 @@ class FieldDetector(defaultdict):
             self.requested.append(item)
             return self[item]
         self.requested.append(item)
-        return defaultdict.__missing__(self, item)
+        if item not in self:
+            self[item] = self._read_data(item)
+        return self[item]
 
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
@@ -310,7 +312,7 @@ class FieldDetector(defaultdict):
     def _read_data(self, field_name):
         self.requested.append(field_name)
         FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(field_name) and FI[field_name].particle_type:
+        if field_name in FI and FI[field_name].particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)

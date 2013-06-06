@@ -112,6 +112,9 @@ class EnzoGrid(AMRGridPatch):
         """
         Intelligently set the filename.
         """
+        if filename is None:
+            self.filename = filename
+            return
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -312,7 +315,7 @@ class EnzoHierarchy(GridGeometryHandler):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(["-1"])
+            fn.append([None])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             # Below we find out what active particles exist in this grid,
@@ -662,26 +665,26 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, np):
+    def _fill_arrays(self, ei, si, LE, RE, npart):
         self.grid_dimensions[:,:1] = ei
         self.grid_dimensions[:,:1] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge[:,:1] = LE
         self.grid_right_edge[:,:1] = RE
-        self.grid_particle_count.flat[:] = np
+        self.grid_particle_count.flat[:] = npart
         self.grid_left_edge[:,1:] = 0.0
         self.grid_right_edge[:,1:] = 1.0
         self.grid_dimensions[:,1:] = 1
 
 class EnzoHierarchy2D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, np):
+    def _fill_arrays(self, ei, si, LE, RE, npart):
         self.grid_dimensions[:,:2] = ei
         self.grid_dimensions[:,:2] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge[:,:2] = LE
         self.grid_right_edge[:,:2] = RE
-        self.grid_particle_count.flat[:] = np
+        self.grid_particle_count.flat[:] = npart
         self.grid_left_edge[:,2] = 0.0
         self.grid_right_edge[:,2] = 1.0
         self.grid_dimensions[:,2] = 1
@@ -693,7 +696,6 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
-
     def __init__(self, filename, data_style=None,
                  file_style = None,
                  parameter_override = None,
@@ -731,9 +733,9 @@ class EnzoStaticOutput(StaticOutput):
         self._hierarchy_class = EnzoHierarchy2D
         self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
-            np.concatenate([self["DomainLeftEdge"], [0.0]])
+            np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
-            np.concatenate([self["DomainRightEdge"], [1.0]])
+            np.concatenate([self.domain_right_edge, [1.0]])
 
     def get_parameter(self,parameter,type=None):
         """
@@ -786,7 +788,7 @@ class EnzoStaticOutput(StaticOutput):
         data_label_factors = {}
         for line in (l.strip() for l in lines):
             if len(line) < 2: continue
-            param, vals = (i.strip() for i in line.split("="))
+            param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.
@@ -1023,8 +1025,8 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.dimensionality = self.parameters["TopGridRank"]
         self.periodicity = ensure_tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
         if "CurrentTimeIdentifier" in self.parameters:

@@ -4,11 +4,15 @@ Data structures for Athena.
 Author: Samuel W. Skillman <samskillman@gmail.com>
 Affiliation: University of Colorado at Boulder
 Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
 Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: John ZuHone <jzuhone@gmail.com>
+Affiliation: NASA/Goddard Space Flight Center
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
+  Copyright (C) 2008-2013 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
+  John ZuHone.
   All Rights Reserved.
 
   This file is part of yt.
@@ -53,14 +57,8 @@ def _get_convert(fname):
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, hierarchy, level, start, dimensions):
-        df = hierarchy.storage_filename
-        if 'id0' not in hierarchy.parameter_file.filename:
-            gname = hierarchy.parameter_file.filename
-        else:
-            if id == 0:
-                gname = 'id0/%s.vtk' % df
-            else:
-                gname = 'id%i/%s-id%i%s.vtk' % (id, df[:-5], id, df[-5:] )
+        df = hierarchy.parameter_file.filename[4:-4]
+        gname = hierarchy.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
                               hierarchy = hierarchy)
         self.filename = gname
@@ -84,6 +82,9 @@ class AthenaGrid(AMRGridPatch):
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+
+    def __repr__(self):
+        return "AthenaGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 def parse_line(line, grid):
     # grid is a dictionary
@@ -113,27 +114,23 @@ def parse_line(line, grid):
         grid['read_field'] = field
         grid['read_type'] = 'vector'
 
-
-
 class AthenaHierarchy(GridGeometryHandler):
 
     grid = AthenaGrid
     _data_style='athena'
+    _data_file = None
     
     def __init__(self, pf, data_style='athena'):
         self.parameter_file = weakref.proxy(pf)
+        self.directory = os.path.dirname(self.parameter_file.filename)
         self.data_style = data_style
         # for now, the hierarchy file is the parameter file!
-        self.storage_filename = self.parameter_file.storage_filename
         self.hierarchy_filename = self.parameter_file.filename
         #self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = file(self.hierarchy_filename,'rb')
         AMRHierarchy.__init__(self, pf, data_style)
 
         self._fhandle.close()
-
-    def _initialize_data_storage(self):
-        pass
 
     def _detect_fields(self):
         field_map = {}
@@ -222,6 +219,10 @@ class AthenaHierarchy(GridGeometryHandler):
         dname = self.hierarchy_filename
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
         gridlistread.insert(0,self.hierarchy_filename)
+        if 'id0' in dname :
+            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+        else :
+            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
         self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -230,13 +231,9 @@ class AthenaHierarchy(GridGeometryHandler):
         gdds = np.empty((self.num_grids,3), dtype='float64')
         gdims = np.ones_like(glis)
         j = 0
+        self.grid_filenames = gridlistread
         while j < (self.num_grids):
             f = open(gridlistread[j],'rb')
-            f.close()
-            if j == 0:
-                f = open(dname,'rb')
-            if j != 0:
-                f = open('id%i/%s-id%i%s' % (j, dname[4:-9],j, dname[-9:]),'rb')
             gridread = {}
             gridread['read_field'] = None
             gridread['read_type'] = None
@@ -253,6 +250,7 @@ class AthenaHierarchy(GridGeometryHandler):
                 if len(line) == 0: break
                 line = f.readline()
             f.close()
+            levels[j] = gridread['level']
             glis[j,0] = gridread['left_edge'][0]
             glis[j,1] = gridread['left_edge'][1]
             glis[j,2] = gridread['left_edge'][2]
@@ -337,12 +335,14 @@ class AthenaStaticOutput(StaticOutput):
     _data_style = "athena"
 
     def __init__(self, filename, data_style='athena',
-                 storage_filename = None, parameters = {}):
+                 storage_filename=None, parameters={}):
         self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
-        self.storage_filename = filename[4:-4]
-        
+        if storage_filename is None:
+            storage_filename = '%s.yt' % filename.split('/')[-1]
+        self.storage_filename = storage_filename
+
         # Unfortunately we now have to mandate that the hierarchy gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
@@ -356,17 +356,44 @@ class AthenaStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        self._setup_nounits_units()
-        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.conversion_factors = defaultdict(lambda: 1.0)    
+        if self.specified_parameters.has_key("LengthUnits") :
+            self._setup_getunits_units()
+        else :
+            self._setup_nounits_units()
+        self.parameters["Time"] = self.conversion_factors["Time"]
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.conversion_factors["Time"] / sec_conversion[unit]
+                        
+    def _setup_getunits_units(self) :
+        box_proper = 3.24077e-25 * self.specified_parameters["LengthUnits"]
+        self.units['aye']  = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] * box_proper
+        if self.specified_parameters.has_key("TimeUnits"):
+            self.conversion_factors["Time"] = self.specified_parameters["TimeUnits"]
+        else :
+            self.conversion_factors["Time"] = 1.0
+        if self.specified_parameters.has_key("DensityUnits"):
+            self.conversion_factors["Density"] = self.specified_parameters["DensityUnits"]
+        else :
+            self.conversion_factors["Density"] = 1.0
+        self.conversion_factors["Mass"] = self.conversion_factors["Density"]*self.units["cm"]**3
+        for a in 'xyz':
+            self.conversion_factors["%s-velocity" % (a)] = self.units["cm"]/self.conversion_factors["Time"]
+                                            
     def _setup_nounits_units(self):
         self.conversion_factors["Time"] = 1.0
+        self.conversion_factors["Density"] = 1.0
+        self.conversion_factors["Mass"] = 1.0
+        for a in 'xyz':
+            self.conversion_factors["%s-velocity" % (a)] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+        
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
         # Read the start of a grid to get simulation parameters.
@@ -402,7 +429,7 @@ class AthenaStaticOutput(StaticOutput):
         if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
-        self.unique_identifier = self._handle.__hash__()
+        self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = 'fortran'
@@ -414,12 +441,20 @@ class AthenaStaticOutput(StaticOutput):
 
         dname = self.parameter_filename
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        if 'id0' in dname :
+            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+        else :
+            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
         self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
+        if self.specified_parameters.has_key("gamma") :
+            self.parameters["Gamma"] = self.specified_parameters["gamma"]
+        else :
+            self.parameters["Gamma"] = 5./3. 
         self._handle.close()
 
 

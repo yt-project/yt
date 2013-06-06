@@ -472,7 +472,7 @@ class LabelCallback(PlotCallback):
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
     good_u = None
-    for unit in ['mpc','kpc','pc','au','rsun','cm']:
+    for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
         vv = v*pf[unit]
         if vv < max_nu and vv > 1.0:
             good_u = unit
@@ -694,7 +694,7 @@ class ClumpContourCallback(PlotCallback):
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
-        self.rv = plot._axes.contour(buff, len(self.clumps)+1,
+        self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent,**self.plot_args)
         plot._axes.hold(False)
 

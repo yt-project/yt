@@ -93,7 +93,7 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
              validators = [ValidateSpatial()],
              display_name = "\\mathrm{%s Density}" % ptype,
              units = r"\mathrm{g}/\mathrm{cm}^{3}",
-             projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
+             projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
              projection_conversion = 'cm')
 
     # Now some translation functions.
