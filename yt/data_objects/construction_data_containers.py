@@ -511,6 +511,53 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         vals = op.finalize()
         return vals.reshape(self.ActiveDimensions, order="F")
 
+class YTArbitraryGridBase(YTCoveringGridBase):
+    """A 3D region with arbitrary bounds and dimensions.
+
+    In contrast to the Covering Grid, this object accepts a left edge, a right
+    edge, and dimensions.  This allows it to be used for creating 3D particle
+    deposition fields that are independent of the underlying mesh, whether that
+    is yt-generated or from the simulation data.  For example, arbitrary boxes
+    around particles can be drawn and particle deposition fields can be
+    created.  This object will refuse to generate any fluid fields.
+    
+    Parameters
+    ----------
+    left_edge : array_like
+        The left edge of the region to be extracted
+    rigth_edge : array_like
+        The left edge of the region to be extracted
+    dims : array_like
+        Number of cells along each axis of resulting grid.
+
+    Examples
+    --------
+    >>> obj = pf.h.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
+    ...                          dims=[128, 128, 128])
+    """
+    _spatial = True
+    _type_name = "arbitrary_grid"
+    _con_args = ('left_edge', 'right_edge', 'ActiveDimensions')
+    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
+    def __init__(self, left_edge, right_edge, dims,
+                 pf = None, field_parameters = None):
+        if field_parameters is None:
+            center = None
+        else:
+            center = field_parameters.get("center", None)
+        YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
+        self.left_edge = np.array(left_edge)
+        self.right_edge = np.array(right_edge)
+        self.ActiveDimensions = np.array(dims, dtype='int32')
+        if self.ActiveDimensions.size == 1:
+            self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
+        self.dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
+        self.level = 99
+        self._setup_data_source()
+
+    def _fill_fields(self, fields):
+        raise NotImplementedError
+
 class LevelState(object):
     current_dx = None
     current_dims = None
