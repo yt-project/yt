@@ -163,71 +163,6 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
-class OWLSStaticOutput(StaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
-    _domain_class = ParticleDomainFile
-    _fieldinfo_fallback = OWLSFieldInfo
-    _fieldinfo_known = KnownOWLSFields
-
-    def __init__(self, filename, data_style="OWLS", root_dimensions = 64):
-        self._root_dimensions = root_dimensions
-        # Set up the template for domain files
-        self.storage_filename = None
-        super(OWLSStaticOutput, self).__init__(filename, data_style)
-
-    def __repr__(self):
-        return os.path.basename(self.parameter_filename).split(".")[0]
-
-    def _set_units(self):
-        self.units = {}
-        self.time_units = {}
-        self.conversion_factors = {}
-        DW = self.domain_right_edge - self.domain_left_edge
-        self.units["unitary"] = 1.0 / DW.max()
-
-    def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename)
-        hvals = {}
-        hvals.update(handle["/Header"].attrs)
-
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        # Set standard values
-        self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
-        self.domain_left_edge = np.zeros(3, "float64")
-        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
-        self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
-        self.parameters = hvals
-
-        prefix = self.parameter_filename.split(".", 1)[0]
-        suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.domain_template = "%s.%%(num)i.%s" % (prefix, suffix)
-        self.domain_count = hvals["NumFilesPerSnapshot"]
-
-        handle.close()
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        try:
-            fileh = h5py.File(args[0],'r')
-            if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
-        except:
-            pass
-        return False
-
 class GadgetBinaryDomainFile(ParticleDomainFile):
     def __init__(self, pf, io, domain_filename, domain_id):
         with open(domain_filename, "rb") as f:
@@ -402,6 +337,74 @@ class GadgetStaticOutput(ParticleStaticOutput):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         # We do not allow load() of these files.
+        return False
+
+class OWLSStaticOutput(GadgetStaticOutput):
+    _hierarchy_class = ParticleGeometryHandler
+    _domain_class = ParticleDomainFile
+    _fieldinfo_fallback = OWLSFieldInfo # For now we have separate from Gadget
+    _fieldinfo_known = KnownOWLSFields
+    _header_spec = None # Override so that there's no confusion
+
+    def __init__(self, filename, data_style="OWLS", root_dimensions = 64):
+        self._root_dimensions = root_dimensions
+        # Set up the template for domain files
+        self.storage_filename = None
+        super(OWLSStaticOutput, self).__init__(filename, data_style,
+                                               root_dimensions,
+                                               unit_base = None)
+
+    def __repr__(self):
+        return os.path.basename(self.parameter_filename).split(".")[0]
+
+    def _parse_parameter_file(self):
+        handle = h5py.File(self.parameter_filename)
+        hvals = {}
+        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+        # Set standard values
+        self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
+        self.domain_left_edge = np.zeros(3, "float64")
+        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+        self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
+        self.current_redshift = hvals["Redshift"]
+        self.omega_lambda = hvals["OmegaLambda"]
+        self.omega_matter = hvals["Omega0"]
+        self.hubble_constant = hvals["HubbleParam"]
+        self.parameters = hvals
+
+        prefix = self.parameter_filename.split(".", 1)[0]
+        suffix = self.parameter_filename.rsplit(".", 1)[-1]
+        self.domain_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.domain_count = hvals["NumFilesPerSnapshot"]
+
+        # To avoid having to open files twice
+        self._unit_base = {}
+        self._unit_base.update((str(k), v) for k, v in handle["/Units"].attrs.items())
+        # Comoving cm is given in the Units
+        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
+
+        handle.close()
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0],'r')
+            if "Constants" in fileh["/"].keys() and \
+               "Header" in fileh["/"].keys():
+                fileh.close()
+                return True
+            fileh.close()
+        except:
+            pass
         return False
 
 class TipsyDomainFile(ParticleDomainFile):

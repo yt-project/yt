@@ -78,7 +78,7 @@ class OctreeGeometryHandler(GeometryHandler):
             source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
               max_val, mx, my, mz)
-        self.pf.parameters["Max%sValue" % (field)] = max_val
-        self.pf.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        self.pf.parameters["Max%sValue" % (field,)] = max_val
+        self.pf.parameters["Max%sPos" % (field,)] = "%s" % ((mx,my,mz),)
         return max_val, np.array((mx,my,mz), dtype='float64')
 
