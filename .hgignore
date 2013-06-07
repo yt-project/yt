@@ -10,7 +10,9 @@ yt/frontends/artio/_artio_caller.c
 yt/analysis_modules/halo_finding/rockstar/rockstar_interface.c
 yt/frontends/ramses/_ramses_reader.cpp
 yt/frontends/sph/smoothing_kernel.c
+yt/geometry/fake_octree.c
 yt/geometry/oct_container.c
+yt/geometry/particle_deposit.c
 yt/geometry/selection_routines.c
 yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
