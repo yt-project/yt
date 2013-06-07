@@ -696,3 +696,15 @@ EnzoFieldInfo.add_field(("deposit", "%s_density" % "all"),
          units = r"\mathrm{g}/\mathrm{cm}^{3}",
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
+
+def particle_cic(field, data):
+    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
+    d = data.deposit(pos, [data["ParticleMass"]], method="cic")
+    d /= data["CellVolume"]
+    return d
+add_field(("deposit", "all_cic"), function=particle_cic,
+          validators=[ValidateSpatial()],
+          display_name = "\\mathrm{All CIC Density}",
+          units = r"\mathrm{g}/\mathrm{cm}^{3}",
+          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+          projection_conversion = 'cm')

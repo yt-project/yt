@@ -96,6 +96,20 @@ def _particle_functions(ptype, coord_name, mass_name, registry):
              projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
              projection_conversion = 'cm')
 
+    def particle_cic(field, data):
+        pos = data[ptype, coord_name]
+        d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
+        d /= data["CellVolume"]
+        return d
+
+    registry.add_field(("deposit", "%s_cic" % ptype),
+             function = particle_cic,
+             validators = [ValidateSpatial()],
+             display_name = "\\mathrm{%s CIC Density}" % ptype,
+             units = r"\mathrm{g}/\mathrm{cm}^{3}",
+             projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+             projection_conversion = 'cm')
+
     # Now some translation functions.
 
     registry.add_field((ptype, "ParticleMass"),

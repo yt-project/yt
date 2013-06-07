@@ -295,3 +295,44 @@ cdef class StdParticleField(ParticleDepositOperation):
 
 deposit_std = StdParticleField
 
+cdef class CICDeposit(ParticleDepositOperation):
+    cdef np.float64_t *field
+    cdef public object ofield
+    def initialize(self):
+        self.ofield = np.zeros(self.nvals, dtype="float64")
+        cdef np.ndarray arr = self.ofield
+        self.field = <np.float64_t *> arr.data
+
+    cdef void process(self, int dim[3],
+                      np.float64_t left_edge[3],
+                      np.float64_t dds[3],
+                      np.int64_t offset, # offset into IO field
+                      np.float64_t ppos[3], # this particle's position
+                      np.float64_t *fields # any other fields we need
+                      ):
+        
+        cdef int i, j, k, ind[3], ii
+        cdef np.float64_t rpos[3], rdds[3][2]
+        cdef np.float64_t fact, edge0, edge1, edge2
+        cdef np.float64_t le0, le1, le2
+        cdef np.float64_t dx, dy, dz, dx2, dy2, dz2
+
+        # Compute the position of the central cell
+        for i in range(3):
+            rpos[i] = (ppos[i]-left_edge[i])/dds[i]
+            rpos[i] = fclip(rpos[i], 0.5001, dim[i]-0.5001)
+            ind[i] = <int> (rpos[i] + 0.5)
+            # Note these are 1, then 0
+            rdds[i][1] = (<np.float64_t> ind[i]) + 0.5 - rpos[i]
+            rdds[i][0] = 1.0 - rdds[i][1]
+
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    ii = gind(ind[0] - i, ind[1] - j, ind[2] - k, dim) + offset
+                    self.field[ii] += fields[0]*rdds[0][i]*rdds[1][j]*rdds[2][k]
+
+    def finalize(self):
+        return self.ofield
+
+deposit_cic = CICDeposit
