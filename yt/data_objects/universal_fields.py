@@ -886,6 +886,7 @@ def _CuttingPlaneVelocityX(field, data):
         bulk_velocity = np.zeros(3)
     v_vec = np.array([data["%s-velocity" % ax] - bv \
                 for ax, bv in zip('xyz', bulk_velocity)])
+    v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
     return np.sum(x_vec * v_vec, axis=-1)
 add_field("CuttingPlaneVelocityX", 
           function=_CuttingPlaneVelocityX,
@@ -899,6 +900,7 @@ def _CuttingPlaneVelocityY(field, data):
         bulk_velocity = np.zeros(3)
     v_vec = np.array([data["%s-velocity" % ax] - bv \
                 for ax, bv in zip('xyz', bulk_velocity)])
+    v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
     return np.sum(y_vec * v_vec, axis=-1)
 add_field("CuttingPlaneVelocityY", 
           function=_CuttingPlaneVelocityY,
