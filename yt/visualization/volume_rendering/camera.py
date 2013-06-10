@@ -342,6 +342,32 @@ class Camera(ParallelAnalysisInterface):
         lines(nim, px, py, colors, 24)
         return nim
 
+    def draw_coordinate_vectors(self, im):
+        center = self.origin
+        width = self.width
+        length = 0.05*self.resolution[0]
+        # Put the starting point in the lower left
+        px0 = int(0.05 * self.resolution[0])
+        py0 = int(0.95 * self.resolution[1])
+
+        alpha = im[:,:,3].max()
+        if alpha == 0.0:
+            alpha = 1.0
+
+        coord_vectors = [np.array([length, 0.0, 0.0]),
+                         np.array([0.0, length, 0.0]),
+                         np.array([0.0, 0.0, length])]
+        colors = [np.array([1.0, 0.0, 0.0, alpha]),
+                  np.array([0.0, 1.0, 0.0, alpha]),
+                  np.array([0.0, 0.0, 1.0, alpha])]
+
+        for vec, color in zip(coord_vectors, colors):
+            dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
+            dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
+            print px0, py0, dx, dy, color
+            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]), 
+                  np.array([color, color]))
+
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
 

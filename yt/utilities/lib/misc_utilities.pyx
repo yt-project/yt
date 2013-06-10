@@ -130,7 +130,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
-    cdef int has_alpha = (image.shape[-1] == 4)
+    cdef int has_alpha = (image.shape[2] == 4)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
@@ -160,7 +160,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
                 if has_alpha:
                     for i in range(4):
-                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+                        image[x0,y0,i] = (1.-alpha[3])*image[x0,y0,i] + alpha[i]
                 else:
                     for i in range(3):
                         image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
