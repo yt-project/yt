@@ -60,7 +60,8 @@ if parallel_capable:
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
             int32   = MPI.INT,
-            int64   = MPI.LONG
+            int64   = MPI.LONG,
+            c       = MPI.CHAR,
     )
     op_names = dict(
         sum = MPI.SUM,
@@ -73,7 +74,8 @@ else:
             float32 = "MPI.FLOAT",
             float64 = "MPI.DOUBLE",
             int32   = "MPI.INT",
-            int64   = "MPI.LONG"
+            int64   = "MPI.LONG",
+            c       = "MPI.CHAR",
     )
     op_names = dict(
             sum = "MPI.SUM",
@@ -483,6 +485,10 @@ def parallel_ring(objects, generator_func, mutable = False):
     for obj in oiter:
         if generate_endpoints and my_rank in (0, my_size) or idata is None:
             idata = generator_func(obj)
+            idtype = odtype = get_mpi_type(idata.dtype)
+            if idtype is None:
+                idtype = 'c'
+                odtype = idata.dtype
         yield obj, idata
         # We first send to the previous processor
         osize[0] = idata.size
@@ -490,9 +496,9 @@ def parallel_ring(objects, generator_func, mutable = False):
         t2 = my_comm.mpi_nonblocking_send(osize, dest)
         my_comm.mpi_Request_Waitall([t1, t2])
         odata = idata
-        idata = np.empty(isize[0], dtype=odata.dtype)
-        t3 = my_comm.mpi_nonblocking_send(odata, dest, dtype=odata.dtype)
-        t4 = my_comm.mpi_nonblocking_recv(idata, source, dtype=odata.dtype)
+        idata = np.empty(isize[0], dtype=odtype)
+        t3 = my_comm.mpi_nonblocking_send(odata.view(idtype), dest, dtype=idtype)
+        t4 = my_comm.mpi_nonblocking_recv(idata.view(idtype), source, dtype=idtype)
         my_comm.mpi_Request_Waitall([t3, t4])
         del odata
 
