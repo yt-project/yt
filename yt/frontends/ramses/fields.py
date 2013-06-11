@@ -178,3 +178,71 @@ RAMSESFieldInfo.add_field(("deposit", "%s_density" % "all"),
          units = r"\mathrm{g}/\mathrm{cm}^{3}",
          projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
          projection_conversion = 'cm')
+
+# We'll add a bunch of species fields here.  In the not too distant future,
+# we'll be moving all of these to a unified field location, so they can be
+# shared between various frontends.
+
+# NOTE: No Electron here because I don't know how RAMSES handles them, and if
+# they are handled differently than Enzo does (where they are scaled to mh)
+
+_speciesList = ["HI", "HII",
+                "HeI", "HeII", "HeIII",
+                "H2I", "H2II", "HM",
+                "DI", "DII", "HDI"]
+_speciesMass = {"HI": 1.0, "HII": 1.0,
+                "HeI": 4.0, "HeII": 4.0, "HeIII": 4.0,
+                "H2I": 2.0, "H2II": 2.0, "HM": 1.0,
+                "DI": 2.0, "DII": 2.0, "HDI": 3.0}
+
+def _SpeciesComovingDensity(field, data):
+    sp = field.name.split("_")[0] + "_Density"
+    ef = (1.0 + data.pf.current_redshift)**3.0
+    return data[sp] / ef
+
+def _SpeciesFraction(field, data):
+    sp = field.name.split("_")[0] + "_Density"
+    return data[sp] / data["Density"]
+
+def _SpeciesMass(field, data):
+    sp = field.name.split("_")[0] + "_Density"
+    return data[sp] * data["CellVolume"]
+
+def _SpeciesNumberDensity(field, data):
+    species = field.name.split("_")[0]
+    sp = field.name.split("_")[0] + "_Density"
+    return data[sp] / _speciesMass[species]
+
+def _convertCellMassMsun(data):
+    return 1.0/mass_sun_cgs # g^-1
+def _ConvertNumberDensity(data):
+    return 1.0/mh
+
+for species in _speciesList:
+    add_ramses_field("%s_Density" % species,
+             function = NullFunc,
+             display_name = "%s\/Density" % species,
+             units = r"\rm{g}/\rm{cm}^3",
+             projected_units = r"\rm{g}/\rm{cm}^2")
+    add_field("%s_Fraction" % species,
+             function=_SpeciesFraction,
+             validators=ValidateDataField("%s_Density" % species),
+             display_name="%s\/Fraction" % species)
+    add_field("Comoving_%s_Density" % species,
+             function=_SpeciesComovingDensity,
+             validators=ValidateDataField("%s_Density" % species),
+             display_name="Comoving\/%s\/Density" % species)
+    add_field("%s_Mass" % species, units=r"\rm{g}", 
+              function=_SpeciesMass, 
+              validators=ValidateDataField("%s_Density" % species),
+              display_name="%s\/Mass" % species)
+    add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
+              function=_SpeciesMass, 
+              convert_function=_convertCellMassMsun,
+              validators=ValidateDataField("%s_Density" % species),
+              display_name="%s\/Mass" % species)
+    if _speciesMass.has_key(species):
+        add_field("%s_NumberDensity" % species,
+                  function=_SpeciesNumberDensity,
+                  convert_function=_ConvertNumberDensity,
+                  validators=ValidateDataField("%s_Density" % species))
