@@ -461,15 +461,65 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
         my_communicator.barrier()
 
 def parallel_ring(objects, generator_func, mutable = False):
-    # Mutable governs whether or not we will be modifying the arrays, or
-    # whether they are identical to generator_func(obj)
+    r"""This function loops in a ring around a set of objects, yielding the
+    results of generator_func and passing from one processor to another to
+    avoid IO or expensive computation.
+
+    This function is designed to operate in sequence on a set of objects, where
+    the creation of those objects might be expensive.  For instance, this could
+    be a set of particles that are costly to read from disk.  Processor N will
+    run generator_func on an object, and the results of that will both be
+    yielded and passed to processor N-1.  If the length of the objects is not
+    equal to the number of processors, then the final processor in the top
+    communicator will re-generate the data as needed.
+
+    In all likelihood, this function will only be useful internally to yt.
+
+    Parameters
+    ----------
+    objects : iterable
+        The list of objects to operate on.
+    generator_func : callable
+        This function will be called on each object, and the results yielded.
+        It must return a single NumPy array; for multiple values, it needs to
+        have a custom dtype.
+    mutable : bool
+        Should the arrays be considered mutable?  Currently, this will only
+        work if the number of processors equals the number of objects.
+    dynamic : bool
+        This governs whether or not dynamic load balancing will be enabled.
+        This requires one dedicated processor; if this is enabled with a set of
+        128 processors available, only 127 will be available to iterate over
+        objects as one will be load balancing the rest.
+
+
+    Examples
+    --------
+    Here is a simple example of a ring loop around a set of integers, with a
+    custom dtype.
+
+    >>> dt = numpy.dtype([('x', 'float64'), ('y', 'float64'), ('z', 'float64')])
+    >>> def gfunc(o):
+    ...     numpy.random.seed(o)
+    ...     rv = np.empty(1000, dtype=dt)
+    ...     rv['x'] = numpy.random.random(1000)
+    ...     rv['y'] = numpy.random.random(1000)
+    ...     rv['z'] = numpy.random.random(1000)
+    ...     return rv
+    ...
+    >>> obj = range(8)
+    >>> for obj, arr in parallel_ring(obj, gfunc):
+    ...     print arr['x'].sum(), arr['y'].sum(), arr['z'].sum()
+    ...
+
+    """
     if mutable: raise NotImplementedError
     my_comm = communication_system.communicators[-1]
     my_size = my_comm.size
     my_rank = my_comm.rank # This will also be the first object we access
     if not parallel_capable and not mutable:
         for obj in objects:
-            yield generator_func(obj)
+            yield obj, generator_func(obj)
         return
     generate_endpoints = len(objects) != my_size
     if generate_endpoints and mutable:
