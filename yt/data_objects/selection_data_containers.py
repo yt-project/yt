@@ -894,7 +894,7 @@ class YTDataCollectionBase(YTSelectionContainer3D):
     Child cells are not returned.
     """
     _type_name = "data_collection"
-    _con_args = ("obj_list",)
+    _con_args = ("_obj_list",)
     def __init__(self, center, obj_list, pf = None, field_parameters = None):
         YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],

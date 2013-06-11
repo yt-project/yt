@@ -29,6 +29,7 @@ cimport numpy as np
 import numpy as np
 from libc.stdlib cimport malloc, free
 cimport cython
+from libc.math cimport sqrt
 
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
@@ -38,6 +39,21 @@ cdef extern from "alloca.h":
 
 cdef inline int gind(int i, int j, int k, int dims[3]):
     return ((k*dims[1])+j)*dims[0]+i
+
+
+####################################################
+# Standard SPH kernel for use with the Grid method #
+####################################################
+
+cdef inline np.float64_t sph_kernel(np.float64_t x) nogil:
+    cdef np.float64_t kernel
+    if x <= 0.5:
+        kernel = 1.-6.*x*x*(1.-x)
+    elif x>0.5 and x<=1.0:
+        kernel = 2.*(1.-x)*(1.-x)*(1.-x)
+    else:
+        kernel = 0.
+    return kernel
 
 cdef class ParticleDepositOperation:
     # We assume each will allocate and define their own temporary storage
