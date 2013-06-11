@@ -222,6 +222,7 @@ for species in _speciesList:
     add_ramses_field("%s_Density" % species,
              function = NullFunc,
              display_name = "%s\/Density" % species,
+             convert_function = _convertDensity,
              units = r"\rm{g}/\rm{cm}^3",
              projected_units = r"\rm{g}/\rm{cm}^2")
     add_field("%s_Fraction" % species,
