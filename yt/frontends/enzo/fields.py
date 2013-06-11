@@ -37,7 +37,8 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    mh
+    mh, \
+    mass_sun_cgs
 from yt.funcs import *
 
 import yt.utilities.lib as amr_utils
@@ -81,7 +82,7 @@ def _SpeciesNumberDensity(field, data):
     return data[sp] / _speciesMass[species]
 
 def _convertCellMassMsun(data):
-    return 5.027854e-34 # g^-1
+    return 1.0/mass_sun_cgs # g^-1
 def _ConvertNumberDensity(data):
     return 1.0/mh
 
