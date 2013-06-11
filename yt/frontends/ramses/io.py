@@ -86,7 +86,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 for field in fields:
                     ti = selection.pop(field)[mask]
                     if field not in tr:
-                        dt = subset.domain.particle_field_types[field[1]]
+                        dt = subset.domain.particle_field_types[field]
                         tr[field] = np.empty(size, dt)
                     tr[field][pos:pos+count] = ti
                 pos += count
@@ -98,7 +98,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         tr = {}
         #for field in sorted(fields, key=lambda a:foffsets[a]):
         for field in fields:
-            f.seek(foffsets[field[1]])
-            dt = subset.domain.particle_field_types[field[1]]
+            f.seek(foffsets[field])
+            dt = subset.domain.particle_field_types[field]
             tr[field] = fpu.read_vector(f, dt)
         return tr

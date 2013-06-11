@@ -152,8 +152,8 @@ class RAMSESDomainFile(object):
         _pfields = {}
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
-            field_offsets[field] = f.tell()
-            _pfields[field] = vtype
+            field_offsets["all", field] = f.tell()
+            _pfields["all", field] = vtype
             fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields

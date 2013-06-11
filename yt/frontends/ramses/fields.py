@@ -34,10 +34,14 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
-    mass_sun_cgs
+    mass_sun_cgs, \
+    mh
 import numpy as np
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
@@ -106,78 +110,25 @@ known_ramses_particle_fields = [
 ]
 
 for f in known_ramses_particle_fields:
-    if f not in KnownRAMSESFields:
-        add_ramses_field(f, function=NullFunc, take_log=True,
-                  validators = [ValidateDataField(f)],
-                  particle_type = True)
+    add_ramses_field(("all", f), function=NullFunc, take_log=True,
+              particle_type = True)
 
 for ax in 'xyz':
-    KnownRAMSESFields["particle_velocity_%s" % ax]._convert_function = \
+    KnownRAMSESFields["all", "particle_velocity_%s" % ax]._convert_function = \
         _convertVelocity
 
 def _convertParticleMass(data):
     return data.convert("mass")
 
-KnownRAMSESFields["particle_mass"]._convert_function = \
+KnownRAMSESFields["all", "particle_mass"]._convert_function = \
         _convertParticleMass
-KnownRAMSESFields["particle_mass"]._units = r"\mathrm{g}"
-
-def _convertParticleMassMsun(data):
-    return 1.0/mass_sun_cgs
-add_field("ParticleMass", function=TranslationFunc("particle_mass"), 
-          particle_type=True)
-add_field("ParticleMassMsun",
-          function=TranslationFunc("particle_mass"), 
-          particle_type=True, convert_function=_convertParticleMassMsun)
+KnownRAMSESFields["all", "particle_mass"]._units = r"\mathrm{g}"
 
 def _Temperature(field, data):
     rv = data["Pressure"]/data["Density"]
     rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
     return rv
 add_field("Temperature", function=_Temperature, units=r"\rm{K}")
-
-
-# We now set up a couple particle fields.  This should eventually be abstracted
-# into a single particle field function that adds them all on and is used
-# across frontends, but that will need to wait until moving to using
-# Coordinates, or vector fields.
-
-def particle_count(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, method = "count")
-    return d
-RAMSESFieldInfo.add_field(("deposit", "%s_count" % "all"),
-         function = particle_count,
-         validators = [ValidateSpatial()],
-         display_name = "\\mathrm{%s Count}" % "all",
-         projection_conversion = '1')
-
-def particle_mass(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
-    return d
-
-RAMSESFieldInfo.add_field(("deposit", "%s_mass" % "all"),
-         function = particle_mass,
-         validators = [ValidateSpatial()],
-         display_name = "\\mathrm{%s Mass}" % "all",
-         units = r"\mathrm{g}",
-         projected_units = r"\mathrm{g}\/\mathrm{cm}",
-         projection_conversion = 'cm')
-
-def particle_density(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
-    d /= data["CellVolume"]
-    return d
-
-RAMSESFieldInfo.add_field(("deposit", "%s_density" % "all"),
-         function = particle_density,
-         validators = [ValidateSpatial()],
-         display_name = "\\mathrm{%s Density}" % "all",
-         units = r"\mathrm{g}/\mathrm{cm}^{3}",
-         projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
-         projection_conversion = 'cm')
 
 # We'll add a bunch of species fields here.  In the not too distant future,
 # we'll be moving all of these to a unified field location, so they can be
@@ -247,3 +198,10 @@ for species in _speciesList:
                   function=_SpeciesNumberDensity,
                   convert_function=_ConvertNumberDensity,
                   validators=ValidateDataField("%s_Density" % species))
+
+# PARTICLE FIELDS
+particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
+                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
+                          RAMSESFieldInfo)
+particle_deposition_functions("all", "Coordinates", "particle_mass",
+                               RAMSESFieldInfo)
