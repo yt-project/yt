@@ -485,10 +485,9 @@ def parallel_ring(objects, generator_func, mutable = False):
     for obj in oiter:
         if generate_endpoints and my_rank in (0, my_size) or idata is None:
             idata = generator_func(obj)
-            idtype = odtype = get_mpi_type(idata.dtype)
-            if idtype is None:
+            idtype = odtype = idata.dtype
+            if get_mpi_type(idtype) is None:
                 idtype = 'c'
-                odtype = idata.dtype
         yield obj, idata
         # We first send to the previous processor
         osize[0] = idata.size
