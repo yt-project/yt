@@ -458,6 +458,44 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     if barrier:
         my_communicator.barrier()
 
+def parallel_ring(objects, generator_func, mutable = False):
+    # Mutable governs whether or not we will be modifying the arrays, or
+    # whether they are identical to generator_func(obj)
+    if mutable: raise NotImplementedError
+    my_comm = communication_system.communicators[-1]
+    my_size = my_comm.size
+    my_rank = my_comm.rank # This will also be the first object we access
+    if not parallel_capable and not mutable:
+        for obj in objects:
+            yield generator_func(obj)
+        return
+    if len(objects) != my_size or mutable:
+        raise NotImplementedError
+    generate_endpoints = len(objects) > my_size
+    # Now we need to do pairwise sends
+    source = (my_rank - 1) % my_size
+    dest = (my_rank + 1) % my_size
+    oiter = itertools.islice(itertools.cycle(objects),
+                             my_rank, my_rank+len(objects))
+    idata = None
+    isize = np.zeros((1,), dtype="int64")
+    osize = np.zeros((1,), dtype="int64")
+    for obj in oiter:
+        if generate_endpoints and my_rank in (0, my_size) or idata is None:
+            idata = generator_func(obj)
+        yield obj, idata
+        # We first send to the previous processor
+        osize[0] = idata.size
+        t1 = my_comm.mpi_nonblocking_recv(isize, source)
+        t2 = my_comm.mpi_nonblocking_send(osize, dest)
+        my_comm.mpi_Request_Waitall([t1, t2])
+        odata = idata
+        idata = np.empty(isize[0], dtype=odata.dtype)
+        t3 = my_comm.mpi_nonblocking_send(odata, dest, dtype=odata.dtype)
+        t4 = my_comm.mpi_nonblocking_recv(idata, source, dtype=odata.dtype)
+        my_comm.mpi_Request_Waitall([t3, t4])
+        del odata
+
 class CommunicationSystem(object):
     communicators = []
 
