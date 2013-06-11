@@ -491,7 +491,13 @@ class EnzoHierarchy(GridGeometryHandler):
         else:
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
-        self.field_list = list(field_list)
+        self.field_list = []
+        # Now we will, avoiding the problem of particle types not having names.
+        for field in field_list:
+            if ("all", field) in KnownEnzoFields:
+                self.field_list.append(("all", field))
+            else:
+                self.field_list.append(field)
 
     def _generate_random_grids(self):
         if self.num_grids > 40:

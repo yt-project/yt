@@ -36,6 +36,9 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions
 from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs
@@ -528,11 +531,11 @@ add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units=r"\rm{Gauss}")
 
 for pf in ["type", "mass"] + \
           ["position_%s" % ax for ax in 'xyz']:
-    add_enzo_field("particle_%s" % pf, NullFunc, particle_type=True)
+    add_enzo_field(("all", "particle_%s" % pf), NullFunc, particle_type=True)
     
 def _convRetainInt(data):
     return 1
-add_enzo_field("particle_index", function=NullFunc,
+add_enzo_field(("all", "particle_index"), function=NullFunc,
           particle_type=True, convert_function=_convRetainInt)
 
 def _get_vel_convert(ax):
@@ -542,11 +545,11 @@ def _get_vel_convert(ax):
 for ax in 'xyz':
     pf = "particle_velocity_%s" % ax
     cfunc = _get_vel_convert(ax)
-    add_enzo_field(pf, function=NullFunc, convert_function=cfunc,
+    add_enzo_field(("all", pf), function=NullFunc, convert_function=cfunc,
               particle_type=True)
 
 for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
-    add_enzo_field(pf, function=NullFunc,
+    add_enzo_field(("all", pf), function=NullFunc,
               validators = [ValidateDataField(pf)],
               particle_type=True)
 add_field("particle_mass", function=NullFunc, particle_type=True)
@@ -661,51 +664,8 @@ for ax in 'xyz':
                function=TranslationFunc(("CenOstriker","position_%s" % ax)),
                particle_type = True)
 
-def particle_count(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, method = "count")
-    return d
-EnzoFieldInfo.add_field(("deposit", "%s_count" % "all"),
-         function = particle_count,
-         validators = [ValidateSpatial()],
-         display_name = "\\mathrm{%s Count}" % "all",
-         projection_conversion = '1')
-
-def particle_mass(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
-    return d
-
-EnzoFieldInfo.add_field(("deposit", "%s_mass" % "all"),
-         function = particle_mass,
-         validators = [ValidateSpatial()],
-         display_name = "\\mathrm{%s Mass}" % "all",
-         units = r"\mathrm{g}",
-         projected_units = r"\mathrm{g}\/\mathrm{cm}",
-         projection_conversion = 'cm')
-
-def particle_density(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, [data["ParticleMass"]], method = "sum")
-    d /= data["CellVolume"]
-    return d
-
-EnzoFieldInfo.add_field(("deposit", "%s_density" % "all"),
-         function = particle_density,
-         validators = [ValidateSpatial()],
-         display_name = "\\mathrm{%s Density}" % "all",
-         units = r"\mathrm{g}/\mathrm{cm}^{3}",
-         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
-         projection_conversion = 'cm')
-
-def particle_cic(field, data):
-    pos = np.column_stack([data["particle_position_%s" % ax] for ax in 'xyz'])
-    d = data.deposit(pos, [data["ParticleMass"]], method="cic")
-    d /= data["CellVolume"]
-    return d
-add_field(("deposit", "all_cic"), function=particle_cic,
-          validators=[ValidateSpatial()],
-          display_name = "\\mathrm{All CIC Density}",
-          units = r"\mathrm{g}/\mathrm{cm}^{3}",
-          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
-          projection_conversion = 'cm')
+particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
+                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
+                          EnzoFieldInfo)
+particle_deposition_functions("all", "Coordinates", "ParticleMass",
+                               EnzoFieldInfo)
