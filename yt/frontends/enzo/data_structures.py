@@ -492,7 +492,11 @@ class EnzoHierarchy(GridGeometryHandler):
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
         self.field_list = []
-        # Now we will, avoiding the problem of particle types not having names.
+        # Now we will iterate over all fields, trying to avoid the problem of
+        # particle types not having names.  This should convert all known
+        # particle fields that exist in Enzo outputs into the construction
+        # ("all", field) and should not otherwise affect ActiveParticle
+        # simulations.
         for field in field_list:
             if ("all", field) in KnownEnzoFields:
                 self.field_list.append(("all", field))
