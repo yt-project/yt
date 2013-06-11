@@ -37,7 +37,8 @@ import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
-    mass_sun_cgs
+    mass_sun_cgs, \
+    mh
 import numpy as np
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
