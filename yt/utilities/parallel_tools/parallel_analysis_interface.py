@@ -471,9 +471,11 @@ def parallel_ring(objects, generator_func, mutable = False):
         for obj in objects:
             yield generator_func(obj)
         return
-    if len(objects) != my_size or mutable:
+    generate_endpoints = len(objects) != my_size
+    if generate_endpoints and mutable:
         raise NotImplementedError
-    generate_endpoints = len(objects) > my_size
+    gforw = generate_endpoints and my_rank == 0
+    gback = generate_endpoints and my_rank == my_size - 1
     # Now we need to do pairwise sends
     source = (my_rank - 1) % my_size
     dest = (my_rank + 1) % my_size
@@ -483,22 +485,30 @@ def parallel_ring(objects, generator_func, mutable = False):
     isize = np.zeros((1,), dtype="int64")
     osize = np.zeros((1,), dtype="int64")
     for obj in oiter:
-        if generate_endpoints and my_rank in (0, my_size) or idata is None:
+        if idata is None or gforw:
             idata = generator_func(obj)
             idtype = odtype = idata.dtype
             if get_mpi_type(idtype) is None:
                 idtype = 'c'
         yield obj, idata
         # We first send to the previous processor
-        osize[0] = idata.size
-        t1 = my_comm.mpi_nonblocking_recv(isize, source)
-        t2 = my_comm.mpi_nonblocking_send(osize, dest)
-        my_comm.mpi_Request_Waitall([t1, t2])
+        tags = []
+        if not gforw:
+            tags.append(my_comm.mpi_nonblocking_recv(isize, source))
+        if not gback:
+            osize[0] = idata.size
+            tags.append(my_comm.mpi_nonblocking_send(osize, dest))
+        my_comm.mpi_Request_Waitall(tags)
         odata = idata
-        idata = np.empty(isize[0], dtype=odtype)
-        t3 = my_comm.mpi_nonblocking_send(odata.view(idtype), dest, dtype=idtype)
-        t4 = my_comm.mpi_nonblocking_recv(idata.view(idtype), source, dtype=idtype)
-        my_comm.mpi_Request_Waitall([t3, t4])
+        tags = []
+        if not gforw:
+            idata = np.empty(isize[0], dtype=odtype)
+            tags.append(my_comm.mpi_nonblocking_recv(
+                          idata.view(idtype), source, dtype=idtype))
+        if not gback:
+            tags.append(my_comm.mpi_nonblocking_send(
+                          odata.view(idtype), dest, dtype=idtype))
+        my_comm.mpi_Request_Waitall(tags)
         del odata
 
 class CommunicationSystem(object):
