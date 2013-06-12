@@ -859,6 +859,23 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     self.visit_free(o.children[i][j][k])
         free(o)
 
+    def clear_fileind(self):
+        cdef i, j, k
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    self.visit_clear(self.root_mesh[i][j][k])
+
+    cdef void visit_clear(self, Oct *o):
+        #Free the memory for this oct recursively
+        cdef int i, j, k
+        o.file_ind = 0
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if o.children[i][j][k] == NULL: continue
+                    self.visit_clear(o.children[i][j][k])
+
     def __iter__(self):
         #Get the next oct, will traverse domains
         #Note that oct containers can be sorted 
