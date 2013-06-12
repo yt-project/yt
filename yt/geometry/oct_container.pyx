@@ -33,6 +33,8 @@ from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 from selection_routines cimport SelectorObject
 cimport cython
 
+DEF ORDER_MAX=20
+
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -815,11 +817,6 @@ cdef int compare_octs(void *vo1, void *vo2) nogil:
     elif o1.domain > o2.domain: return 1
 
 cdef class ParticleOctreeContainer(OctreeContainer):
-    #Each ParticleArrays contains an Oct
-    #a reference to the next ParticleArrays
-    #its index and the number of particles 
-    cdef ParticleArrays *first_sd
-    cdef ParticleArrays *last_sd
     cdef Oct** oct_list
     #The starting oct index of each domain
     cdef np.int64_t *dom_offsets 
@@ -860,11 +857,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 for k in range(2):
                     if o.children[i][j][k] == NULL: continue
                     self.visit_free(o.children[i][j][k])
-        if o.sd.np >= 0:
-            if o.sd.pos != NULL:
-                for i in range(3):
-                    free(o.sd.pos[i])
-                free(o.sd.pos)
         free(o)
 
     def __iter__(self):
@@ -984,36 +976,29 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #every domain
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
-        cdef np.int64_t i = 0
-        cdef np.int64_t dom_ind
-        cdef ParticleArrays *c = self.first_sd
-        while c != NULL:
-            self.oct_list[i] = c.oct
-            max_level = imax(max_level, c.oct.level)
-            if c.np >= 0:
-                for j in range(3):
-                    free(c.pos[j])
-                free(c.pos)
-                c.pos = NULL
-            c = c.next
-            i += 1
+        cdef np.int64_t i = 0, lpos = 0
         self.max_level = max_level
-        qsort(self.oct_list, self.nocts, sizeof(Oct*), &compare_octs)
         cdef int cur_dom = -1
         # We always need at least 2, and if max_domain is 0, we need 3.
-        self.dom_offsets = <np.int64_t *>malloc(sizeof(np.int64_t) *
-                                                (self.max_domain + 3))
-        self.dom_offsets[0] = 0
-        dom_ind = 0
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    self.visit_assign(self.root_mesh[i][j][k], &lpos)
+        assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
-            self.oct_list[i].file_ind = dom_ind
-            dom_ind += 1
-            if self.oct_list[i].domain > cur_dom:
-                cur_dom = self.oct_list[i].domain
-                self.dom_offsets[cur_dom + 1] = i
-                dom_ind = 0
-        self.dom_offsets[cur_dom + 2] = self.nocts
+            self.oct_list[i].file_ind = -1
+
+    cdef visit_assign(self, Oct *o, np.int64_t *lpos):
+        cdef int i, j, k
+        self.oct_list[lpos[0]] = o
+        lpos[0] += 1
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if o.children[i][j][k] != NULL:
+                        self.visit_assign(o.children[i][j][k], lpos)
+        return
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return self.dom_offsets[domain_id + 1]
@@ -1024,44 +1009,18 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #track of how many are used with np initially 0
         self.nocts += 1
         cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
-        cdef ParticleArrays *sd = <ParticleArrays*> \
-            malloc(sizeof(ParticleArrays))
         cdef int i, j, k
-        my_oct.file_ind = my_oct.domain = -1
+        my_oct.domain = -1
+        my_oct.file_ind = 0
         my_oct.domain_ind = self.nocts - 1
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
-        my_oct.sd = sd
         for i in range(2):
             for j in range(2):
                 for k in range(2):
                     my_oct.children[i][j][k] = NULL
         my_oct.parent = NULL
-        if self.first_sd == NULL:
-            self.first_sd = sd
-        if self.last_sd != NULL:
-            self.last_sd.next = sd
-        self.last_sd = sd
-        sd.oct = my_oct
-        sd.next = NULL
-        sd.pos = <np.float64_t **> malloc(sizeof(np.float64_t*) * 3)
-        for i in range(3):
-            sd.pos[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * self.n_ref)
-        for i in range(self.n_ref):
-            sd.pos[0][i] = sd.pos[1][i] = sd.pos[2][i] = 0.0
-        sd.np = 0
         return my_oct
-
-    def linearly_count(self):
-        #Without visiting oct and cells
-        #jump from particle arrays to the next one
-        #counting the total # of particles en route
-        cdef np.int64_t total = 0
-        cdef ParticleArrays *c = self.first_sd
-        while c != NULL:
-            total += 1
-            c = c.next
-        return total
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1083,105 +1042,73 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 level_count[o.level] += 1
         return level_count
 
-    def add(self, np.ndarray[np.float64_t, ndim=2] pos, np.int64_t domain_id):
+    def add(self, np.ndarray[np.uint64_t, ndim=1] indices, np.int64_t domain_id):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
-        cdef int no = pos.shape[0]
-        cdef int p, i, level
-        cdef np.float64_t dds[3], cp[3], pp[3]
-        cdef int ind[3]
-        self.max_domain = max(self.max_domain, domain_id)
-        cdef int mid, mad
+        cdef np.int64_t no = indices.shape[0], p, index
+        cdef int i, level, ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
+        cdef np.uint64_t *data = <np.uint64_t *> indices.data
         for p in range(no):
+            # We have morton indices, which means we choose left and right by
+            # looking at (MAX_ORDER - level) & with the values 1, 2, 8.
             level = 0
+            index = indices[p]
             for i in range(3):
-                #PP Calculate the unitary position, 
-                #DDS Domain dimensions
-                #IND Corresponding integer index on the root octs
-                #CP Center  point of that oct
-                pp[i] = pos[p, i]
-                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
-                cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
+                ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+                assert(ind[i] < self.nn[i])
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
-            if self._check_refine(cur, cp, domain_id) == 1:
-                self.refine_oct(cur, cp)
-            while cur.sd.np < 0:
-                if level > 100:
-                    raise RuntimeError
-                for i in range(3):
-                    dds[i] = dds[i] / 2.0
-                    if cp[i] > pp[i]:
-                        ind[i] = 0
-                        cp[i] -= dds[i] / 2.0
-                    else:
-                        ind[i] = 1
-                        cp[i] += dds[i]/2.0
-                cur = cur.children[ind[0]][ind[1]][ind[2]]
+            while cur.file_ind >= self.n_ref:
+                if level >= ORDER_MAX: break # Just dump it here.
                 level += 1
-                if self._check_refine(cur, cp, domain_id) == 1:
-                    self.refine_oct(cur, cp)
-            # Now we copy in our particle 
-            cur.level = level
-            for i in range(3):
-                cur.sd.pos[i][cur.sd.np] = pp[i]
-            cur.domain = domain_id
-            cur.sd.np += 1
+                for i in range(3):
+                    ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+                if cur.children[ind[0]][ind[1]][ind[2]] == NULL:
+                    self.refine_oct(cur, data, p)
+                cur = cur.children[ind[0]][ind[1]][ind[2]]
+            cur.file_ind += 1
 
-    cdef int _check_refine(self, Oct *cur, np.float64_t cp[3], int domain_id):
-        #Answers: should we refine this oct?
-        #False if refined, 
-        #False if not refined, but doesn't need refinement
-        #True if particles need refinement, 
-        #True if not in domain
-        if cur.children[0][0][0] != NULL:
-            return 0
-        elif cur.sd.np == 0:
-            return 0
-        elif cur.sd.np >= self.n_ref:
-            return 1
-        elif cur.domain >= 0 and cur.domain != domain_id:
-            return 1
-        return 0
-
-    cdef void refine_oct(self, Oct *o, np.float64_t pos[3]):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void refine_oct(self, Oct *o, np.uint64_t *data, np.int64_t p):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
         cdef int i, j, k, m, ind[3]
         cdef Oct *noct
+        cdef np.uint64_t prefix2
         for i in range(2):
             for j in range(2):
                 for k in range(2):
                     noct = self.allocate_oct()
                     noct.domain = o.domain
+                    noct.file_ind = 0
                     noct.level = o.level + 1
                     noct.pos[0] = (o.pos[0] << 1) + i
                     noct.pos[1] = (o.pos[1] << 1) + j
                     noct.pos[2] = (o.pos[2] << 1) + k
                     noct.parent = o
                     o.children[i][j][k] = noct
-        for m in range(o.sd.np):
-            for i in range(3):
-                if o.sd.pos[i][m] < pos[i]:
-                    ind[i] = 0
-                else:
-                    ind[i] = 1
-            noct = o.children[ind[0]][ind[1]][ind[2]]
-            k = noct.sd.np
-            for i in range(3):
-                noct.sd.pos[i][k] = o.sd.pos[i][m]
-            noct.domain = o.domain
-            noct.sd.np += 1
-        o.sd.np = -1
-        o.domain = -1
+        o.file_ind = self.n_ref + 1
         for i in range(3):
-            free(o.sd.pos[i])
-        free(o.sd.pos)
+            ind[i] = (data[p] >> ((ORDER_MAX - (o.level + 1))*3 + (2 - i))) & 1
+        noct = o.children[ind[0]][ind[1]][ind[2]]
+        # Now we look at the last nref particles to decide where they go.
+        n = imin(p, self.n_ref)
+        cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
+        # Now we figure out our prefix, which is the oct address at this level.
+        # As long as we're actually in Morton order, we do not need to worry
+        # about *any* of the other children of the oct.
+        prefix1 = data[p] >> (ORDER_MAX - noct.level)*3
+        for i in range(n):
+            prefix2 = arr[i] >> (ORDER_MAX - noct.level)*3
+            if (prefix1 == prefix2):
+                noct.file_ind += 1
+        #print ind[0], ind[1], ind[2], noct.file_ind, noct.level
 
     def recursively_count(self):
         #Visit every cell, accumulate the # of cells per level
@@ -1220,7 +1147,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for oi in range(self.nocts):
             m = 0
             o = self.oct_list[oi]
-            if o.sd.np <= 0 or o.domain == -1: continue
+            #if o.sd.np <= 0 or o.domain == -1: continue
             for i in range(8):
                 if mask[oi, i] == 1:
                     m = 1
@@ -1228,24 +1155,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if m == 0: continue
             dmask[o.domain] = 1
         return dmask.astype("bool")
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def count_neighbor_particles(self, oppos):
-        #How many particles are in my neighborhood
-        cdef int i, ni, dl, tnp
-        cdef np.float64_t ppos[3]
-        for i in range(3):
-            ppos[i] = oppos[i]
-        cdef Oct *main = self.get(ppos)
-        cdef Oct* neighbors[27]
-        self.neighbors(main, neighbors)
-        tnp = 0
-        for i in range(27):
-            if neighbors[i].sd != NULL:
-                tnp += neighbors[i].sd.np
-        return tnp
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

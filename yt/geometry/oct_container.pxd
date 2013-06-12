@@ -26,8 +26,6 @@ License:
 cimport numpy as np
 from fp_utils cimport *
 
-cdef struct ParticleArrays
-
 cdef struct Oct
 cdef struct Oct:
     np.int64_t file_ind     # index with respect to the order in which it was
@@ -39,7 +37,6 @@ cdef struct Oct:
     np.int64_t domain       # (opt) addl int index
     np.int64_t pos[3]       # position in ints
     np.int8_t level
-    ParticleArrays *sd
     Oct *children[2][2][2]
     Oct *parent
 
@@ -73,9 +70,3 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
-
-cdef struct ParticleArrays:
-    Oct *oct
-    ParticleArrays *next
-    np.float64_t **pos
-    np.int64_t np
