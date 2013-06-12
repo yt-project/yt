@@ -121,7 +121,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.int64_t, ndim=1] xs,
           np.ndarray[np.int64_t, ndim=1] ys,
           np.ndarray[np.float64_t, ndim=2] colors,
-          int points_per_color=1):
+          int points_per_color=1,
+          int thick=1):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
@@ -153,17 +154,21 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
         else:
             sy = -1
         while(1):
-            if (x0 < 0 and sx == -1): break
-            elif (x0 >= nx and sx == 1): break
-            elif (y0 < 0 and sy == -1): break
-            elif (y0 >= nx and sy == 1): break
-            if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
+            if (x0 < thick and sx == -1): break
+            elif (x0 >= nx-thick+1 and sx == 1): break
+            elif (y0 < thick and sy == -1): break
+            elif (y0 >= ny-thick+1 and sy == 1): break
+            if (x0 >=thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick):
                 if has_alpha:
                     for i in range(4):
-                        image[x0,y0,i] = (1.-alpha[3])*image[x0,y0,i] + alpha[i]
+                        image[x0-thick/2:x0+(1+thick)/2, 
+                              y0-thick/2:y0+(1+thick)/2,i] = \
+                                (1.-alpha[3])*image[x0,y0,i] + alpha[i]
                 else:
                     for i in range(3):
-                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+                        image[x0-thick/2:x0+(1+thick)/2, 
+                              y0-thick/2:y0+(1+thick)/2,i] = \
+                                (1.-alpha[i])*image[x0,y0,i] + alpha[i]
 
             if (x0 == x1 and y0 == y1):
                 break
