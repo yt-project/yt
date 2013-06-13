@@ -381,7 +381,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         morton = np.empty(sum(data_file.total_particles.values()),
                           dtype="uint64")
         ind = 0
-        DLE, DRE = pf.domain_right_edge, pf.domain_left_edge
+        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         dx = (DRE - DLE) / (2**ORDER_MAX)
         with open(data_file.filename, "rb") as f:
             f.seek(pf._header_offset)
@@ -406,14 +406,14 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                            pf.domain_right_edge)
                 pos = np.empty((count, 3), dtype="uint64")
                 mylog.info("Adding %0.3e %s particles", count, ptype)
-                pos[:,0] = np.floor((pp['Coordinates']['x'] - DLE[0])/dx[0])
-                pos[:,1] = np.floor((pp['Coordinates']['y'] - DLE[1])/dx[1])
-                pos[:,2] = np.floor((pp['Coordinates']['z'] - DLE[2])/dx[2])
-                del pp
+                for axi, ax in enumerate("xyz"):
+                    coords = pp['Coordinates'][ax].astype("float64")
+                    coords = np.floor((coords - DLE[axi])/dx[axi])
+                    pos[:,axi] = coords
                 morton[ind:ind+count] = get_morton_indices(pos)
+                del pp, pos
         morton.sort()
         octree.add(morton, data_file.file_id)
-        print octree.recursively_count()
 
     def _count_particles(self, domain):
         npart = {
