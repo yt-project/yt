@@ -89,7 +89,7 @@ class ParticleGeometryHandler(GeometryHandler):
             self.io._initialize_octree(dom, self.oct_handler)
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
-        tot = self.oct_handler.linearly_count()
+        tot = sum(self.oct_handler.recursively_count().values())
         mylog.info("Identified %0.3e octs", tot)
 
     def _detect_fields(self):

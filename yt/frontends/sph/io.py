@@ -405,13 +405,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                            pf.domain_left_edge,
                                            pf.domain_right_edge)
                 pos = np.empty((count, 3), dtype="uint64")
-                mylog.info("Adding %0.3e %s particles", count, ptype)
                 for axi, ax in enumerate("xyz"):
                     coords = pp['Coordinates'][ax].astype("float64")
                     coords = np.floor((coords - DLE[axi])/dx[axi])
                     pos[:,axi] = coords
                 morton[ind:ind+count] = get_morton_indices(pos)
                 del pp, pos
+        mylog.info("Adding %0.3e particles", morton.size)
         morton.sort()
         octree.add(morton, data_file.file_id)
 
