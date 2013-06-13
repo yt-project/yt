@@ -343,6 +343,38 @@ class Camera(ParallelAnalysisInterface):
         return nim
 
     def draw_coordinate_vectors(self, im, length=0.05, thickness=1):
+        r"""Draws three coordinate vectors in the corner of a rendering.
+
+        Modifies an existing image to have three lines corresponding to the
+        coordinate directions colored by {x,y,z} = {r,g,b}.  Currently only
+        functional for plane-parallel volume rendering.
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera,
+            which will be painted by grid lines.
+        length: float, optional
+            The length of the lines, as a fraction of the image size.
+            Default : 0.05
+        thickness : int, optional
+            Thickness in pixels of the line to be drawn.
+
+        Returns
+        -------
+        None
+
+        Modifies
+        --------
+        im: The original image.
+
+        Examples
+        --------
+        >>> im = cam.snapshot()
+        >>> cam.draw__coordinate_vectors(im)
+        >>> im.write_png('render_with_grids.png')
+
+        """
         length_pixels = length * self.resolution[0]
         # Put the starting point in the lower left
         px0 = int(length * self.resolution[0])
@@ -364,7 +396,7 @@ class Camera(ParallelAnalysisInterface):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
             print px0, py0, dx, dy, color
-            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]), 
+            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
                   np.array([color, color]), 1, thickness)
 
     def draw_line(self, im, x0, x1, color=None):
