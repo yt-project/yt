@@ -158,7 +158,8 @@ class RadMC3DWriter:
         self.layers.append(base_layer)
         self.cell_count += np.product(pf.domain_dimensions)
 
-        for grid in pf.h.grids:
+        sorted_grids = sorted(pf.h.grids, key=lambda x: x.Level)
+        for grid in sorted_grids:
             if grid.Level <= self.max_level:
                 self._add_grid_to_layers(grid)
 
@@ -232,11 +233,11 @@ class RadMC3DWriter:
             if p == 0:
                 ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
             else:
-                LE = np.zeros(3)
+                parent_LE = np.zeros(3)
                 for potential_parent in self.layers:
                     if potential_parent.id == p:
-                        LE = potential_parent.LeftEdge
-                ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
+                        parent_LE = potential_parent.LeftEdge
+                ind = (layer.LeftEdge - parent_LE) / (2.0*dds) + 1
             ix  = int(ind[0]+0.5)
             iy  = int(ind[1]+0.5)
             iz  = int(ind[2]+0.5)
