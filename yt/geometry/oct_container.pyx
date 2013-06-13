@@ -1286,3 +1286,40 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 ind[oi] = nm
             nm += use
         return ind
+
+cdef class ParticleRegions:
+    cdef np.float64_t left_edge[3]
+    cdef np.float64_t dds[3]
+    cdef np.float64_t idds[3]
+    cdef np.int32_t dims[3]
+    cdef public int nfiles
+    cdef public object masks
+
+    def __init__(self, left_edge, right_edge, dims, nfiles):
+        cdef int i
+        self.nfiles = nfiles
+        for i in range(3):
+            self.left_edge[i] = left_edge[i]
+            self.dims[i] = dims[i]
+            self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
+            self.idds[i] = 1.0/self.dds[i]
+        # We use 64-bit masks
+        self.masks = []
+        for i in range(nfiles/64 + 1):
+            self.masks.append(np.zeros(dims, dtype="uint64"))
+
+    def add_data_file(self, np.ndarray[np.float64_t, ndim=2] pos, int file_id):
+        cdef np.int64_t no = pos.shape[0]
+        cdef np.int64_t p
+        cdef int ind[3], i
+        cdef np.ndarray[np.uint64_t, ndim=3] mask
+        mask = self.masks[file_id/64]
+        val = 1 << (file_id - (file_id/64)*64)
+        for p in range(no):
+            # Now we locate the particle
+            for i in range(3):
+                ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
+            mask[ind[0],ind[1],ind[2]] |= val
+
+    def identify_data_files(self, SelectorObject selector):
+        pass

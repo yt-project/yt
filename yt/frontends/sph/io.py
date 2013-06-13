@@ -34,7 +34,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import get_morton_indices
 
-from yt.geometry.oct_container import _ORDER_MAX as ORDER_MAX
+from yt.geometry.oct_container import _ORDER_MAX, ParticleRegions
 
 _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
@@ -382,10 +382,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                           dtype="uint64")
         ind = 0
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
-        dx = (DRE - DLE) / (2**ORDER_MAX)
+        dx = (DRE - DLE) / (2**_ORDER_MAX)
+        self.regions = ParticleRegions(
+                pf.domain_left_edge, pf.domain_right_edge,
+                [64, 64, 64], len(self._ptypes))
         with open(data_file.filename, "rb") as f:
             f.seek(pf._header_offset)
-            for ptype in self._ptypes:
+            for iptype, ptype in enumerate(self._ptypes):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0: continue
@@ -404,6 +407,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     raise YTDomainOverflow(mis, mas,
                                            pf.domain_left_edge,
                                            pf.domain_right_edge)
+                fpos = np.empty((count, 3), dtype="float64")
+                fpos[:,0] = pp["Coordinates"]["x"]
+                fpos[:,1] = pp["Coordinates"]["y"]
+                fpos[:,2] = pp["Coordinates"]["z"]
+                self.regions.add_data_file(fpos, iptype)
+                del fpos
                 pos = np.empty((count, 3), dtype="uint64")
                 for axi, ax in enumerate("xyz"):
                     coords = pp['Coordinates'][ax].astype("float64")
