@@ -143,10 +143,10 @@ class Halo(object):
             return self.CoM
         pm = self["ParticleMassMsun"]
         c = {}
-        c[0] = self["particle_position_x"]
-        c[1] = self["particle_position_y"]
-        c[2] = self["particle_position_z"]
-        c_vec = np.zeros(3)
+        # We shift into a box where the origin is the left edge
+        c[0] = self["particle_position_x"] - self.pf.domain_left_edge[0]
+        c[1] = self["particle_position_y"] - self.pf.domain_left_edge[1]
+        c[2] = self["particle_position_z"] - self.pf.domain_left_edge[2]
         com = []
         for i in range(3):
             # A halo is likely periodic around a boundary if the distance 
@@ -159,13 +159,12 @@ class Halo(object):
                 com.append(c[i])
                 continue
             # Now we want to flip around only those close to the left boundary.
-            d_left = c[i] - self.pf.domain_left_edge[i]
-            sel = (d_left <= (self.pf.domain_width[i]/2))
+            sel = (c[i] <= (self.pf.domain_width[i]/2))
             c[i][sel] += self.pf.domain_width[i]
             com.append(c[i])
         com = np.array(com)
         c = (com * pm).sum(axis=1) / pm.sum()
-        return c%self.pf.domain_width
+        return c%self.pf.domain_width + self.pf.domain_left_edge
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to

@@ -21,4 +21,9 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("castro")
     config.add_subpackage("stream")
     config.add_subpackage("pluto")
+    config.add_subpackage("flash/tests")
+    config.add_subpackage("enzo/tests")
+    config.add_subpackage("orion/tests")
+    config.add_subpackage("stream/tests")
+    config.add_subpackage("chombo/tests")
     return config
