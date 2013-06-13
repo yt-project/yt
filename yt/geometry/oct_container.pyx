@@ -1080,20 +1080,26 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
-            while cur.file_ind >= self.n_ref:
+            while (cur.file_ind + 1) > self.n_ref:
                 if level >= ORDER_MAX: break # Just dump it here.
                 level += 1
                 for i in range(3):
                     ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
                 if cur.children[ind[0]][ind[1]][ind[2]] == NULL:
-                    self.refine_oct(cur, data, p)
-                cur = cur.children[ind[0]][ind[1]][ind[2]]
+                    cur = self.refine_oct(cur, index)
+                    self.filter_particles(cur, data, p)
+                else:
+                    cur = cur.children[ind[0]][ind[1]][ind[2]]
+                    if domain_id > 0:
+                        cur.file_ind = 0
+                        self.filter_particles(cur, data, p)
+            if p >= self.n_ref: domain_id = 0
             cur.file_ind += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void refine_oct(self, Oct *o, np.uint64_t *data, np.int64_t p):
+    cdef Oct *refine_oct(self, Oct *o, np.uint64_t index):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
@@ -1114,20 +1120,23 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     o.children[i][j][k] = noct
         o.file_ind = self.n_ref + 1
         for i in range(3):
-            ind[i] = (data[p] >> ((ORDER_MAX - (o.level + 1))*3 + (2 - i))) & 1
+            ind[i] = (index >> ((ORDER_MAX - (o.level + 1))*3 + (2 - i))) & 1
         noct = o.children[ind[0]][ind[1]][ind[2]]
+        return noct
+
+    cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p):
         # Now we look at the last nref particles to decide where they go.
-        n = imin(p, self.n_ref)
+        cdef int n = imin(p, self.n_ref)
         cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
         # Now we figure out our prefix, which is the oct address at this level.
         # As long as we're actually in Morton order, we do not need to worry
         # about *any* of the other children of the oct.
-        prefix1 = data[p] >> (ORDER_MAX - noct.level)*3
+        prefix1 = data[p] >> (ORDER_MAX - o.level)*3
         for i in range(n):
-            prefix2 = arr[i] >> (ORDER_MAX - noct.level)*3
+            prefix2 = arr[i] >> (ORDER_MAX - o.level)*3
             if (prefix1 == prefix2):
-                noct.file_ind += 1
-        #print ind[0], ind[1], ind[2], noct.file_ind, noct.level
+                o.file_ind += 1
+        #print ind[0], ind[1], ind[2], o.file_ind, o.level
 
     def recursively_count(self):
         #Visit every cell, accumulate the # of cells per level
