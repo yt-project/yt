@@ -323,7 +323,7 @@ cdef inline np.uint64_t spread_bits(np.uint64_t x):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_morton_indices(np.ndarray[np.int64_t, ndim=2] left_index):
+def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
     cdef np.int64_t i, mi
     cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
     morton_indices = np.zeros(left_index.shape[0], 'uint64')

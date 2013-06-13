@@ -35,6 +35,8 @@ cimport cython
 
 DEF ORDER_MAX=20
 
+_ORDER_MAX = ORDER_MAX
+
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)

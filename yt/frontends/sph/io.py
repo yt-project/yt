@@ -32,6 +32,9 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 from yt.utilities.fortran_utils import read_record
+from yt.utilities.lib.geometry_utils import get_morton_indices
+
+from yt.geometry.oct_container import _ORDER_MAX as ORDER_MAX
 
 _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
@@ -373,34 +376,44 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 f.close()
         return rv
 
-    def _initialize_octree(self, domain, octree):
-        pf = domain.pf
-        with open(domain.domain_filename, "rb") as f:
-            f.seek(domain.pf._header_offset)
+    def _initialize_octree(self, data_file, octree):
+        pf = data_file.pf
+        morton = np.empty(sum(data_file.total_particles.values()),
+                          dtype="uint64")
+        ind = 0
+        DLE, DRE = pf.domain_right_edge, pf.domain_left_edge
+        dx = (DRE - DLE) / (2**ORDER_MAX)
+        with open(data_file.filename, "rb") as f:
+            f.seek(pf._header_offset)
             for ptype in self._ptypes:
                 # We'll just add the individual types separately
-                count = domain.total_particles[ptype]
+                count = data_file.total_particles[ptype]
                 if count == 0: continue
                 pp = np.fromfile(f, dtype = self._pdtypes[ptype],
                                  count = count)
-                pos = np.empty((count, 3), dtype="float64")
-                mylog.info("Adding %0.3e %s particles", count, ptype)
-                pos[:,0] = pp['Coordinates']['x']
-                pos[:,1] = pp['Coordinates']['y']
-                pos[:,2] = pp['Coordinates']['z']
-                mylog.debug("Spanning: %0.3e .. %0.3e in x",
-                            pos[:,0].min(), pos[:,0].max())
-                mylog.debug("Spanning: %0.3e .. %0.3e in y",
-                            pos[:,1].min(), pos[:,1].max())
-                mylog.debug("Spanning: %0.3e .. %0.3e in z",
-                            pos[:,2].min(), pos[:,2].max())
-                if np.any(pos.min(axis=0) < pf.domain_left_edge) or \
-                   np.any(pos.max(axis=0) > pf.domain_right_edge):
-                    raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
+                mis = np.empty(3, dtype="float64")
+                mas = np.empty(3, dtype="float64")
+                for axi, ax in enumerate('xyz'):
+                    mi = pp["Coordinates"][ax].min()
+                    ma = pp["Coordinates"][ax].max()
+                    mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
+                    mis[axi] = mi
+                    mas[axi] = ma
+                if np.any(mis < pf.domain_left_edge) or \
+                   np.any(mas > pf.domain_right_edge):
+                    raise YTDomainOverflow(mis, mas,
                                            pf.domain_left_edge,
                                            pf.domain_right_edge)
+                pos = np.empty((count, 3), dtype="uint64")
+                mylog.info("Adding %0.3e %s particles", count, ptype)
+                pos[:,0] = np.floor((pp['Coordinates']['x'] - DLE[0])/dx[0])
+                pos[:,1] = np.floor((pp['Coordinates']['y'] - DLE[1])/dx[1])
+                pos[:,2] = np.floor((pp['Coordinates']['z'] - DLE[2])/dx[2])
                 del pp
-                octree.add(pos, domain.domain_id)
+                morton[ind:ind+count] = get_morton_indices(pos)
+        morton.sort()
+        octree.add(morton, data_file.file_id)
+        print octree.recursively_count()
 
     def _count_particles(self, domain):
         npart = {
