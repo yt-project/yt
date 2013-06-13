@@ -1059,6 +1059,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 level_count[o.level] += 1
         return level_count
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def add(self, np.ndarray[np.uint64_t, ndim=1] indices, np.int64_t domain_id):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
@@ -1069,12 +1072,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         for p in range(no):
             # We have morton indices, which means we choose left and right by
-            # looking at (MAX_ORDER - level) & with the values 1, 2, 8.
+            # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
             level = 0
             index = indices[p]
             for i in range(3):
                 ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
-                assert(ind[i] < self.nn[i])
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
@@ -1095,9 +1097,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
-        cdef int i, j, k, m, ind[3]
+        cdef int i, j, k, m, n, ind[3]
         cdef Oct *noct
-        cdef np.uint64_t prefix2
+        cdef np.uint64_t prefix1, prefix2
         for i in range(2):
             for j in range(2):
                 for k in range(2):
