@@ -395,7 +395,7 @@ add_field("CellMassCode",
           convert_function=_convertCellMassCode)
 
 def _TotalMass(field,data):
-    return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
+    return (data["Density"]+data["particle_density"]) * data["CellVolume"]
 add_field("TotalMass", function=_TotalMass, units=r"\rm{g}")
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
