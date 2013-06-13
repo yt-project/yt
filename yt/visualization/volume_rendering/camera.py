@@ -395,7 +395,6 @@ class Camera(ParallelAnalysisInterface):
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
-            print px0, py0, dx, dy, color
             lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
                   np.array([color, color]), 1, thickness)
 
