@@ -42,9 +42,14 @@ from yt.utilities.physical_constants import sec_per_year
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
     tb, ages = None, None
-    cache = {}
-    masks = {}
+    cache = None
+    masks = None
     caching = False
+
+    def __init__(self):
+        self.cache = {}
+        self.masks = {}
+        super(IOHandlerART, self).__init__()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
