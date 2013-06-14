@@ -277,3 +277,60 @@ for _ptype in _ptypes:
                               ARTFieldInfo)
     particle_deposition_functions(_ptype, "Coordinates", "particle_mass",
                                    ARTFieldInfo)
+
+# Mixed Fluid-Particle Fields
+
+def baryon_density(field, data):
+    pos = np.column_stack([data["stars", "particle_position_%s" % ax]
+        for ax in 'xyz'])
+    pmass = data["stars", "particle_mass"]
+    mass  = data.deposit(pos, [pmass], method = "sum")
+    mass += data["gas", "CellMass"]
+    vol   = data["CellVolume"]
+    return mass / vol
+
+ARTFieldInfo.add_field(("deposit", "baryon_density"),
+         function = baryon_density,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Baryon Density}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
+def total_density(field, data):
+    ptype = 'specie0'
+    rho = data["deposit", "baryon_density"]
+    pos = np.column_stack([data[ptype, "particle_position_%s" % ax]
+                           for ax in 'xyz'])
+    pmas = data[ptype, "particle_mass"]
+    mass = data.deposit(pos, [pmas], method = "sum")
+    vol  = data["gas", "CellVolume"]
+    return rho + (mass / vol)
+
+ARTFieldInfo.add_field(("deposit", "total_density"),
+         function = total_density,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Total Density}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
+
+def multimass_density(field, data):
+    ptype = 'darkmatter'
+    rho = data["deposit", "baryon_density"]
+    pos = np.column_stack([data[ptype, "particle_position_%s" % ax]
+                           for ax in 'xyz'])
+    pmas = data[ptype, "particle_mass"]
+    mass = data.deposit(pos, [pmas], method = "sum")
+    vol   = data["gas", "CellVolume"]
+    return rho + mass / vol
+
+ARTFieldInfo.add_field(("deposit", "multimass_density"),
+         function = total_density,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Multimass Density}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
