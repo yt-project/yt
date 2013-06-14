@@ -67,8 +67,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              projection_conversion = 'cm')
 
     def particle_density(field, data):
-        pos = data[ptype, coord_name]
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+        d = data["deposit", "%s_mass" % ptype]
         d /= data["CellVolume"]
         return d
 
