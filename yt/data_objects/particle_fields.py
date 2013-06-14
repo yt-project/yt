@@ -56,25 +56,10 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        dx = data["dx"]
-        return d / dx
+        return d
 
     registry.add_field(("deposit", "%s_mass" % ptype),
              function = particle_mass,
-             validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Mass}" % ptype,
-             units = r"\mathrm{g}",
-             projected_units = r"\mathrm{g}",
-             projection_conversion = '1')
-
-
-    def particle_mass_width(field, data):
-        pos = data[ptype, coord_name]
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        return d
-
-    registry.add_field(("deposit", "%s_mass_width" % ptype),
-             function = particle_mass_width,
              validators = [ValidateSpatial()],
              display_name = "\\mathrm{%s Mass}" % ptype,
              units = r"\mathrm{g}",
