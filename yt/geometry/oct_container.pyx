@@ -1336,8 +1336,8 @@ cdef class ParticleRegions:
                     LE[2] = self.left_edge[2]
                     RE[2] = LE[2] + self.dds[2]
                     for k in range(self.dims[2]):
-                        if selector.select_grid(LE, RE, 0) == 0: continue
-                        fmask |= mask[i,j,k]
+                        if selector.select_grid(LE, RE, 0) == 1:
+                            fmask |= mask[i,j,k]
                         LE[2] += self.dds[2]
                         RE[2] += self.dds[2]
                     LE[1] += self.dds[1]
