@@ -226,6 +226,79 @@ cdef class SelectorObject:
                 spos[1] += sdds[1]
             spos[0] += sdds[0]
 
+    def count_octs(self, OctreeContainer octree):
+        cdef int i, j, k, n
+        cdef np.float64_t pos[3], dds[3]
+        cdef np.int64_t count = 0
+        # This dds is the oct-width
+        for i in range(3):
+            dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
+        # Pos is the center of the octs
+        pos[0] = octree.DLE[0] + dds[0]/2.0
+        for i in range(octree.nn[0]):
+            pos[1] = octree.DLE[1] + dds[1]/2.0
+            for j in range(octree.nn[1]):
+                pos[2] = octree.DLE[2] + dds[2]/2.0
+                for k in range(octree.nn[2]):
+                    if octree.root_mesh[i][j][k] == NULL: continue
+                    self.recursively_count_octs(
+                        octree.root_mesh[i][j][k],
+                        pos, dds, 0, &count) 
+                    pos[2] += dds[2]
+                pos[1] += dds[1]
+            pos[0] += dds[0]
+        return count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void recursively_count_octs(self, Oct *root,
+                        np.float64_t pos[3], np.float64_t dds[3],
+                        int level, np.int64_t *count):
+        cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
+        cdef int i, j, k, res, ii
+        cdef Oct *ch
+        # Remember that pos is the *center* of the oct, and dds is the oct
+        # width.  So to get to the edges, we add/subtract half of dds.
+        for i in range(3):
+            # sdds is the cell width
+            sdds[i] = dds[i]/2.0
+            LE[i] = pos[i] - dds[i]/2.0
+            RE[i] = pos[i] + dds[i]/2.0
+        #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
+        res = self.select_grid(LE, RE, level)
+        cdef int eterm[3] 
+        eterm[0] = eterm[1] = eterm[2] = 0
+        cdef int next_level, this_level
+        # next_level: an int that says whether or not we can progress to children
+        # this_level: an int that says whether or not we can select from this
+        # level
+        next_level = this_level = 1
+        if level == self.max_level:
+            next_level = 0
+        if level < self.min_level or level > self.max_level:
+            this_level = 0
+        if res == 0 and this_level == 1:
+            return
+        # Now we visit all our children.  We subtract off sdds for the first
+        # pass because we center it on the first cell.
+        spos[0] = pos[0] - sdds[0]/2.0
+        for i in range(2):
+            spos[1] = pos[1] - sdds[1]/2.0
+            for j in range(2):
+                spos[2] = pos[2] - sdds[2]/2.0
+                for k in range(2):
+                    ii = ((k*2)+j)*2+i
+                    ch = root.children[i][j][k]
+                    if next_level == 1 and ch != NULL:
+                        self.recursively_count_octs(
+                            ch, spos, sdds, level + 1, count)
+                    elif this_level == 1:
+                        count[0] += self.select_cell(spos, sdds, eterm)
+                    spos[2] += sdds[2]
+                spos[1] += sdds[1]
+            spos[0] += sdds[0]
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level) nogil:

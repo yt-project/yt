@@ -35,6 +35,9 @@ cdef class SelectorObject:
                         np.float64_t pos[3], np.float64_t dds[3],
                         np.ndarray[np.uint8_t, ndim=2] mask,
                         int level = ?)
+    cdef void recursively_count_octs(self, Oct *root,
+                        np.float64_t pos[3], np.float64_t dds[3],
+                        int level, np.int64_t *count)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level) nogil
