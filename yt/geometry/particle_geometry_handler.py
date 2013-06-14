@@ -142,9 +142,8 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            file_ids = self.regions.identify_data_files(dobj.selector)
-            subset = [ParticleOctreeSubset([self.data_files[i] for i in file_ids],
-                                          self.parameter_file)]
+            data_files = getattr(dobj, "data_files", self.data_files)
+            subset = [ParticleOctreeSubset(data_files, self.parameter_file)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -159,12 +158,13 @@ class ParticleGeometryHandler(GeometryHandler):
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.
-        osubset = ParticleOctreeSubset(sobjs, self.parameter_file)
-                                       
-        if ngz > 0:
-            raise NotImplementedError
-        yield ParticleDataChunk(self.oct_handler, self.regions,
-                                dobj, "spatial", [osubset])
+        for i,og in enumerate(sobjs):
+            if ngz > 0:
+                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+            else:
+                g = og
+            yield ParticleDataChunk(self.oct_handler, self.regions, dobj,
+                                    "spatial", [g])
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
