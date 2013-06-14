@@ -705,13 +705,15 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                for ii in range(8):
-                    # We iterate and check here to keep our counts consistent
-                    # when filling different levels.
-                    if mask[o.domain_ind, ii] == 0: continue
-                    if o.level == level: 
-                        dest[local_filled] = source[o.file_ind, ii]
-                    local_filled += 1
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            ii = ((k*2)+j)*2+i
+                            if mask[o.domain_ind, ii] == 0: continue
+                            if o.level == level:
+                                dest[local_filled] = \
+                                    source[o.file_ind, ii]
+                            local_filled += 1
         return local_filled
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
@@ -1138,6 +1140,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #True if not in domain
         if cur.children[0][0][0] != NULL:
             return 0
+        elif cur.sd.np == 0:
+            return 0
         elif cur.sd.np >= self.n_ref:
             return 1
         elif cur.domain >= 0 and cur.domain != domain_id:
@@ -1154,6 +1158,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for j in range(2):
                 for k in range(2):
                     noct = self.allocate_oct()
+                    noct.domain = o.domain
                     noct.level = o.level + 1
                     noct.pos[0] = (o.pos[0] << 1) + i
                     noct.pos[1] = (o.pos[1] << 1) + j

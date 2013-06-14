@@ -28,7 +28,6 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
-from cython.parallel import prange, parallel, threadid
 from selection_routines cimport SelectorObject
 from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 #from geometry_utils cimport point_to_hilbert

@@ -38,8 +38,10 @@ import numpy # In case anyone wishes to use it by name
 
 # This next item will handle most of the actual startup procedures, but it will
 # also attempt to parse the command line and set up the global state of various
-# operations.
-
+# operations.  The variable unparsed_args is not used internally but is
+# provided as a convenience for users who wish to parse arguments in scripts.
+# See http://lists.spacepope.org/pipermail/yt-dev-spacepope.org/2011-December/
+#     001727.html
 import yt.startup_tasks as __startup_tasks
 unparsed_args = __startup_tasks.unparsed_args
 
@@ -108,6 +110,9 @@ from yt.frontends.athena.api import \
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
 
+from yt.frontends.pluto.api import \
+     PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
+
 #from yt.frontends.maestro.api import \
 #    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
@@ -154,7 +159,7 @@ from yt.convenience import \
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
-    ortho_find, quartiles, periodic_position 
+    ortho_find, quartiles, periodic_position
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -

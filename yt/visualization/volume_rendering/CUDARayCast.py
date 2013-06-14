@@ -29,6 +29,8 @@ from yt.mods import *
 import yt.extensions.HierarchySubset as hs
 import numpy as np
 import h5py, time
+from yt.utilities.physical_constants import \
+    mass_hydrogen_cgs
 
 import matplotlib;matplotlib.use("Agg");import pylab
 
@@ -62,7 +64,7 @@ if __name__ == "__main__":
 
     print "Constructing transfer function."
     if "Data" in fn:
-        mh = np.log10(1.67e-24)
+        mh = np.log10(mass_hydrogen_cgs)
         tf = ColorTransferFunction((7.5+mh, 14.0+mh))
         tf.add_gaussian( 8.25+mh, 0.002, [0.2, 0.2, 0.4, 0.1])
         tf.add_gaussian( 9.75+mh, 0.002, [0.0, 0.0, 0.3, 0.1])

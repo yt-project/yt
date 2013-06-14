@@ -55,7 +55,7 @@ _pf_store = ParameterFileStore()
 class StaticOutput(object):
 
     default_fluid_type = "gas"
-    fluid_types = ("gas",)
+    fluid_types = ("gas","deposit")
     particle_types = ("all",)
     geometry = "cartesian"
     coordinates = None
@@ -179,7 +179,7 @@ class StaticOutput(object):
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
-        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'cm']:
+        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
             vv = v*self[unit]
             if vv < max_nu and vv > 1.0:
                 good_u = unit
@@ -252,18 +252,28 @@ class StaticOutput(object):
     _last_freq = (None, None)
     _last_finfo = None
     def _get_field_info(self, ftype, fname):
+        guessing_type = False
         if ftype == "unknown" and self._last_freq[0] != None:
             ftype = self._last_freq[0]
+            guessing_type = True
         field = (ftype, fname)
-        if field == self._last_freq or fname == self._last_freq[1]:
+        if field == self._last_freq:
             return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
+        if fname == self._last_freq[1]:
+            return self._last_finfo
         if fname in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[fname]
+            return self._last_finfo
+        # We also should check "all" for particles, which can show up if you're
+        # mixing deposition/gas fields with particle fields.
+        if guessing_type and ("all", fname) in self.field_info:
+            self._last_freq = ("all", fname)
+            self._last_finfo = self.field_info["all", fname]
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 

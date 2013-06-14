@@ -167,6 +167,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_grid_chunk(self, chunks, fields):
         sets = [fname for ftype, fname in fields]
         g = chunks[0].objs[0]
+        if g.filename is None:
+            return {}
         rv = hdf5_light_reader.ReadMultipleGrids(
             g.filename, [g.id], sets, "")[g.id]
         for ftype, fname in fields:
@@ -182,6 +184,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 continue
             elif filter_particles == 'active' and \
                  g.NumberOfActiveParticles[fields[0][0]] == 0:
+                continue
+            elif g.filename is None:
                 continue
             grids_by_file[g.filename].append(g.id)
         sets = [fname for ftype, fname in fields]

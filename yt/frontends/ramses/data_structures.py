@@ -91,6 +91,7 @@ class RAMSESDomainFile(object):
         hydro_offset = np.zeros(n_levels, dtype='int64')
         hydro_offset -= 1
         level_count = np.zeros(n_levels, dtype='int64')
+        skipped = []
         for level in range(self.amr_header['nlevelmax']):
             for cpu in range(self.amr_header['nboundary'] +
                              self.amr_header['ncpu']):
@@ -101,13 +102,15 @@ class RAMSESDomainFile(object):
                 except AssertionError:
                     print "You are running with the wrong number of fields."
                     print "Please specify these in the load command."
+                    print "We are looking for %s fields." % self.nvar
+                    print "The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
                 if cpu + 1 == self.domain_id and level >= min_level:
                     hydro_offset[level - min_level] = f.tell()
                     level_count[level - min_level] = hvals['file_ncache']
-                fpu.skip(f, 8 * self.nvar)
+                skipped = fpu.skip(f, 8 * self.nvar)
         self._hydro_offset = hydro_offset
         self._level_count = level_count
         return self._hydro_offset
@@ -152,8 +155,8 @@ class RAMSESDomainFile(object):
         _pfields = {}
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
-            field_offsets[field] = f.tell()
-            _pfields[field] = vtype
+            field_offsets["all", field] = f.tell()
+            _pfields["all", field] = vtype
             fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
@@ -403,15 +406,24 @@ class RAMSESStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        self.conversion_factors["Density"] = self.parameters['unit_d']
+        rho_u = self.parameters['unit_d']
+        self.conversion_factors["Density"] = rho_u
         vel_u = self.parameters['unit_l'] / self.parameters['unit_t']
+        self.conversion_factors["Pressure"] = rho_u*vel_u**2
         self.conversion_factors["x-velocity"] = vel_u
         self.conversion_factors["y-velocity"] = vel_u
         self.conversion_factors["z-velocity"] = vel_u
+        # Necessary to get the length units in, which are needed for Mass
+        self.conversion_factors['mass'] = rho_u * self.parameters['unit_l']**3
 
     def _setup_nounits_units(self):
+        # Note that unit_l *already* converts to proper!
+        unit_l = self.parameters['unit_l']
         for unit in mpc_conversion.keys():
-            self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
+            self.units[unit] = unit_l * mpc_conversion[unit] / mpc_conversion["cm"]
+            self.units['%sh' % unit] = self.units[unit] * self.hubble_constant
+            self.units['%shcm' % unit] = (self.units['%sh' % unit] /
+                                          (1 + self.current_redshift))
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
 
@@ -460,19 +472,18 @@ class RAMSESStaticOutput(StaticOutput):
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
-        mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
+        mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"]
+        self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - rheader['levelmin']
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not os.path.basename(args[0]).startswith("info_"): return False
         fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
-        print fn
         return os.path.exists(fn)
 

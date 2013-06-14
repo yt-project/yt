@@ -32,6 +32,8 @@ from yt.utilities.lib import \
 from yt.utilities.lib import \
     MatchPointsToGrids, \
     GridTree
+from yt.utilities.physical_constants import \
+    HUGE
 
 class ObjectFindingMixin(object) :
 
@@ -83,7 +85,7 @@ class ObjectFindingMixin(object) :
         Returns (value, center) of location of minimum for a given field
         """
         gI = np.where(self.grid_levels >= 0) # Slow but pedantic
-        minVal = 1e100
+        minVal = HUGE
         for grid in self.grids[gI[0]]:
             mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
             val, coord = grid.find_min(field)

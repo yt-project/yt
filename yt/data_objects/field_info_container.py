@@ -233,6 +233,7 @@ class FieldDetector(defaultdict):
         if pf is None:
             # required attrs
             pf = fake_parameter_file(lambda: 1)
+            pf["Massarr"] = np.ones(6)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.cosmological_simulation = 0.0
             pf.hubble_constant = 0.7
@@ -264,15 +265,22 @@ class FieldDetector(defaultdict):
                 + 1e-4*np.random.random((nd * nd * nd)))
 
     def __missing__(self, item):
-        FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(item) and FI[item]._function.func_name != 'NullFunc':
+        if hasattr(self.pf, "field_info") and isinstance(item, tuple):
+            finfo = self.pf._get_field_info(*item)
+        else:
+            FI = getattr(self.pf, "field_info", FieldInfo)
+            if item in FI:
+                finfo = FI[item]
+            else:
+                finfo = None
+        if finfo is not None and finfo._function.func_name != 'NullFunc':
             try:
-                vv = FI[item](self)
+                vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
                 nfd = FieldDetector(self.nd + ngz * 2)
                 nfd._num_ghost_zones = ngz
-                vv = FI[item](nfd)
+                vv = finfo(nfd)
                 if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]
                 for i in nfd.requested:
                     if i not in self.requested: self.requested.append(i)
@@ -283,8 +291,20 @@ class FieldDetector(defaultdict):
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
                 return self[item]
+        elif finfo is not None and finfo.particle_type:
+            if item == "Coordinates" or item[1] == "Coordinates" or \
+               item == "Velocities" or item[1] == "Velocities":
+                # A vector
+                self[item] = np.ones((self.NumberOfParticles, 3))
+            else:
+                # Not a vector
+                self[item] = np.ones(self.NumberOfParticles)
+            self.requested.append(item)
+            return self[item]
         self.requested.append(item)
-        return defaultdict.__missing__(self, item)
+        if item not in self:
+            self[item] = self._read_data(item)
+        return self[item]
 
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
@@ -292,7 +312,7 @@ class FieldDetector(defaultdict):
     def _read_data(self, field_name):
         self.requested.append(field_name)
         FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(field_name) and FI[field_name].particle_type:
+        if field_name in FI and FI[field_name].particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)

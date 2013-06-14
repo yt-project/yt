@@ -50,7 +50,7 @@ steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [ 1,  1, -1], [ 1,  1,  0], [ 1,  1,  1] ])
 
 
-def make_vcd(data):
+def make_vcd(data, log=False):
     new_field = np.zeros(np.array(data.shape) + 1, dtype='float64')
     of = data
     new_field[:-1, :-1, :-1] += of
@@ -62,6 +62,8 @@ def make_vcd(data):
     new_field[1:, 1:, :-1] += of
     new_field[1:, 1:, 1:] += of
     np.multiply(new_field, 0.125, new_field)
+    if log:
+        new_field = np.log10(new_field)
 
     new_field[:, :, -1] = 2.0*new_field[:, :, -2] - new_field[:, :, -3]
     new_field[:, :, 0] = 2.0*new_field[:, :, 1] - new_field[:, :, 2]
@@ -69,16 +71,19 @@ def make_vcd(data):
     new_field[:, 0, :] = 2.0*new_field[:, 1, :] - new_field[:, 2, :]
     new_field[-1, :, :] = 2.0*new_field[-2, :, :] - new_field[-3, :, :]
     new_field[0, :, :] = 2.0*new_field[1, :, :] - new_field[2, :, :]
+
+    if log: 
+        np.power(10.0, new_field, new_field)
     return new_field
 
 class Tree(object):
     def __init__(self, pf, comm_rank=0, comm_size=1,
-            min_level=None, max_level=None, source=None):
+            min_level=None, max_level=None, data_source=None):
         
         self.pf = pf
-        if source is None:
-            source = pf.h.all_data()
-        self.source = source
+        if data_source is None:
+            data_source = pf.h.all_data()
+        self.data_source = data_source
         self._id_offset = self.pf.h.grids[0]._id_offset
         if min_level is None: min_level = 0
         if max_level is None: max_level = pf.h.max_level
@@ -86,8 +91,8 @@ class Tree(object):
         self.max_level = max_level
         self.comm_rank = comm_rank
         self.comm_size = comm_size
-        left_edge = self.source.left_edge
-        right_edge= self.source.right_edge
+        left_edge = np.array([-np.inf]*3)
+        right_edge = np.array([np.inf]*3)
         self.trunk = Node(None, None, None,
                 left_edge, right_edge, None, 1)
         self.build()
@@ -102,9 +107,9 @@ class Tree(object):
     def build(self):
         lvl_range = range(self.min_level, self.max_level+1)
         for lvl in lvl_range:
-            #grids = self.source.select_grids(lvl)
-            grids = np.array([b for b, mask in self.source.blocks])
-            if len(grids) == 0: break
+            #grids = self.data_source.select_grids(lvl)
+            grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
+            if len(grids) == 0: continue 
             self.add_grids(grids)
 
     def check_tree(self):
@@ -148,7 +153,7 @@ class AMRKDTree(ParallelAnalysisInterface):
     fields = None
     log_fields = None
     no_ghost = True
-    def __init__(self, pf, min_level=None, max_level=None, source=None):
+    def __init__(self, pf, min_level=None, max_level=None, data_source=None):
 
         ParallelAnalysisInterface.__init__(self)
 
@@ -159,17 +164,20 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.brick_dimensions = []
         self.sdx = pf.h.get_smallest_dx()
         self._initialized = False
-        self._id_offset = pf.h.grids[0]._id_offset
+        try: 
+            self._id_offset = pf.h.grids[0]._id_offset
+        except:
+            self._id_offset = 0
 
         #self.add_mask_field()
-        if source is None:
-            source = pf.h.all_data()
-        self.source = source
+        if data_source is None:
+            data_source = pf.h.all_data()
+        self.data_source = data_source
     
         mylog.debug('Building AMRKDTree')
         self.tree = Tree(pf, self.comm.rank, self.comm.size,
                          min_level=min_level,
-                         max_level=max_level, source=source)
+                         max_level=max_level, data_source=data_source)
 
     def set_fields(self, fields, log_fields, no_ghost):
         self.fields = fields
@@ -268,9 +276,9 @@ class AMRKDTree(ParallelAnalysisInterface):
             dds = []
             mask = make_vcd(grid.child_mask)
             mask = np.clip(mask, 0.0, 1.0)
-            mask[mask<1.0] = np.inf
+            mask[mask<0.5] = np.inf
             for i,field in enumerate(self.fields):
-                vcd = make_vcd(grid[field])
+                vcd = make_vcd(grid[field], log=self.log_fields[i])
                 vcd *= mask
                 if self.log_fields[i]: vcd = np.log10(vcd)
                 dds.append(vcd)

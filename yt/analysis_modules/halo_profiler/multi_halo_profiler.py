@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import gc
 import numpy as np
 import os
 import h5py
@@ -52,6 +53,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call, \
     parallel_root_only, \
     parallel_objects
+from yt.utilities.physical_constants import \
+    mass_sun_cgs, \
+    rho_crit_now
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer
 from yt.visualization.image_writer import write_image
@@ -583,7 +587,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
-                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
 
             # get a sphere object to profile
@@ -629,6 +633,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                 g.clear_data()
             sphere.clear_data()
             del sphere
+            # Currently, this seems to be the only way to prevent large 
+            # halo profiling runs from running out of ram.
+            # It would be good to track down the real cause at some point.
+            gc.collect()
 
         return profile
 
@@ -951,12 +959,11 @@ class HaloProfiler(ParallelAnalysisInterface):
         if 'ActualOverdensity' in profile.keys():
             return
 
-        rho_crit_now = 1.8788e-29 * self.pf.hubble_constant**2 # g cm^-3
-        Msun2g = 1.989e33
-        rho_crit = rho_crit_now * ((1.0 + self.pf.current_redshift)**3.0)
+        rhocritnow = rho_crit_now * self.pf.hubble_constant**2 # g cm^-3
+        rho_crit = rhocritnow * ((1.0 + self.pf.current_redshift)**3.0)
         if not self.use_critical_density: rho_crit *= self.pf.omega_matter
 
-        profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
+        profile['ActualOverdensity'] = (mass_sun_cgs * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit
 
     def _check_for_needed_profile_fields(self):

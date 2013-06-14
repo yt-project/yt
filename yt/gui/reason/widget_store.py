@@ -76,7 +76,8 @@ class WidgetStore(dict):
         sl = pf.h.slice(axis, coord, center = center)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
-        pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), setup = False)
+        pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
+                           setup = False, plot_type='SlicePlot')
         pw.set_current_field(field)
         field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
@@ -96,7 +97,7 @@ class WidgetStore(dict):
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
-                           setup = False)
+                           setup = False, plot_type='ProjectionPlot')
         pw.set_current_field(field)
         field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]

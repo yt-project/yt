@@ -163,8 +163,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         rv = {}
         # We first need a set of masks for each particle type
         ptf = defaultdict(list)
+        ptall = []
         psize = defaultdict(lambda: 0)
         chunks = list(chunks)
+        pf = chunks[0].objs[0].domain.pf
         ptypes = set()
         for ftype, fname in fields:
             ptf[ftype].append(fname)
@@ -339,7 +341,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             else:
                 rv[field] = np.empty(size, dtype="float64")
                 if size == 0: continue
-                rv[field][:] = vals[field]
+                rv[field][:] = vals[field][mask]
         return rv
 
     def _read_particle_selection(self, chunks, selector, fields):

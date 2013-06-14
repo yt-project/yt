@@ -23,8 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import h5py
-try: import pyfits
-except: pass
 import numpy as np
 
 from yt.funcs import *
@@ -44,13 +42,16 @@ def export_rgba(image, fn, h5=True, fits=False, ):
         f.close()
     if fits:
         try:
-            hdur = pyfits.PrimaryHDU(image[:,:,0])
-            hdug = pyfits.ImageHDU(image[:,:,1])
-            hdub = pyfits.ImageHDU(image[:,:,2])
-            hdua = pyfits.ImageHDU(image[:,:,3])
-            hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
-            hdulist.writeto('%s.fits'%fn,clobber=True)
-        except: mylog.error('You do not have pyfits, install before attempting to use fits exporter')
+            import pyfits
+        except ImportError:
+            mylog.error('You do not have pyfits, install before attempting to use fits exporter')
+            raise
+        hdur = pyfits.PrimaryHDU(image[:,:,0])
+        hdug = pyfits.ImageHDU(image[:,:,1])
+        hdub = pyfits.ImageHDU(image[:,:,2])
+        hdua = pyfits.ImageHDU(image[:,:,3])
+        hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
+        hdulist.writeto('%s.fits'%fn,clobber=True)
 
 def import_rgba(name, h5=True):
     """

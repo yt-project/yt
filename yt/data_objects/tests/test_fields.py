@@ -89,6 +89,9 @@ def test_all_fields():
         if field.startswith("particle"): continue
         if field.startswith("CIC"): continue
         if field.startswith("WeakLensingConvergence"): continue
+        if field.startswith("DensityPerturbation"): continue
+        if field.startswith("Matter_Density"): continue
+        if field.startswith("Overdensity"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
             yield TestFieldAccess(field, nproc)

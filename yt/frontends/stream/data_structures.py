@@ -25,6 +25,7 @@ License:
 
 import weakref
 import numpy as np
+import uuid
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -265,8 +266,10 @@ class StreamStaticOutput(StaticOutput):
         #self._conversion_override = conversion_override
 
         self.stream_handler = stream_handler
-        StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
-        self.storage_filename = storage_filename
+        name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
+        from yt.data_objects.static_output import _cached_pfs
+        _cached_pfs[name] = self
+        StaticOutput.__init__(self, name, self._data_style)
 
         self.units = {}
         self.time_units = {}

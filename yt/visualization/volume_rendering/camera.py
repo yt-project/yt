@@ -164,7 +164,7 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  min_level=None, max_level=None, no_ghost=True,
-                 source=None,
+                 data_source=None,
                  use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
@@ -185,7 +185,7 @@ class Camera(ParallelAnalysisInterface):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         self.log_fields = log_fields
-        dd = pf.h.all_data()
+        dd = self.pf.h.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
             self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
@@ -196,13 +196,13 @@ class Camera(ParallelAnalysisInterface):
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
 
-        if source is None:
-            source = self.pf.h.all_data()
-        self.source = source
+        if data_source is None:
+            data_source = self.pf.h.all_data()
+        self.data_source = data_source
 
         if volume is None:
             volume = AMRKDTree(self.pf, min_level=min_level, 
-                               max_level=max_level, source=self.source)
+                               max_level=max_level, data_source=self.data_source)
         self.volume = volume        
 
     def _setup_box_properties(self, width, center, unit_vectors):
@@ -1064,11 +1064,13 @@ class HEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, use_kd=True, no_ghost=False, use_light=False):
+                 pf = None, use_kd=True, no_ghost=False, use_light=False,
+                 inner_radius = 10):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = np.array(center, dtype='float64')
         self.radius = radius
+        self.inner_radius = inner_radius
         self.nside = nside
         self.use_kd = use_kd
         if transfer_function is None:
@@ -1076,9 +1078,11 @@ class HEALpixCamera(Camera):
         self.transfer_function = transfer_function
 
         if isinstance(self.transfer_function, ProjectionTransferFunction):
-            self._sampler_object = ProjectionSampler
+            self._sampler_object = InterpolatedProjectionSampler
+            self._needs_tf = 0
         else:
             self._sampler_object = VolumeRenderSampler
+            self._needs_tf = 1
 
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -1104,15 +1108,20 @@ class HEALpixCamera(Camera):
     def get_sampler_args(self, image):
         nv = 12 * self.nside ** 2
         vs = arr_pix2vec_nest(self.nside, np.arange(nv))
-        vs *= self.radius
-        vs.shape = nv, 1, 3
+        vs.shape = (nv, 1, 3)
+        vs += 1e-8
         uv = np.ones(3, dtype='float64')
         positions = np.ones((nv, 1, 3), dtype='float64') * self.center
+        dx = min(g.dds.min() for g in self.pf.h.find_point(self.center)[0])
+        positions += self.inner_radius * dx * vs
+        vs *= self.radius
         args = (positions, vs, self.center,
                 (0.0, 1.0, 0.0, 1.0),
                 image, uv, uv,
-                np.zeros(3, dtype='float64'),
-                self.transfer_function, self.sub_samples)
+                np.zeros(3, dtype='float64'))
+        if self._needs_tf:
+            args += (self.transfer_function,)
+        args += (self.sub_samples,)
         return args
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -1187,28 +1196,14 @@ class HEALpixCamera(Camera):
     def save_image(self, image, fn=None, clim=None, label = None):
         if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
-            import matplotlib.figure
-            import matplotlib.backends.backend_agg
-            phi, theta = np.mgrid[0.0:2*np.pi:800j, 0:np.pi:800j]
-            pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
-            image *= self.radius * self.pf['cm']
-            img = np.log10(image[:,0,0][pixi]).reshape((800,800))
-
-            fig = matplotlib.figure.Figure((10, 5))
-            ax = fig.add_subplot(1,1,1,projection='hammer')
-            implot = ax.imshow(img, extent=(-np.pi,np.pi,-np.pi/2,np.pi/2), clip_on=False, aspect=0.5)
-            cb = fig.colorbar(implot, orientation='horizontal')
-
-            if label == None:
-                cb.set_label("Projected %s" % self.fields[0])
+            if label is None:
+                label = "Projected %s" % (self.fields[0])
+            if clim is not None:
+                cmin, cmax = clim
             else:
-                cb.set_label(label)
-            if clim is not None: cb.set_clim(*clim)
-            ax.xaxis.set_ticks(())
-            ax.yaxis.set_ticks(())
-            canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-            canvas.print_figure(fn)
-
+                cmin = cmax = None
+            plot_allsky_healpix(image[:,0,0], self.nside, fn, label, 
+                                cmin = cmin, cmax = cmax)
 
 class AdaptiveHEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
@@ -1349,7 +1344,7 @@ class FisheyeCamera(Camera):
 
 
     def finalize_image(self, image):
-        image.shape = self.resolution, self.resolution, 3
+        image.shape = self.resolution, self.resolution, 4
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
@@ -1361,7 +1356,7 @@ class FisheyeCamera(Camera):
                         raise RuntimeError
         
         view_pos = self.center
-        for brick in self.volume.traverse(view_pos, None, image):
+        for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
@@ -1976,9 +1971,9 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             function=_make_wf(field, weight))
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
-    image = np.zeros((nv,1,3), dtype='float64', order='C')
+    image = np.zeros((nv,1,4), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, np.arange(nv))
-    vs.shape = (nv,1,3)
+    vs.shape = (nv, 1, 3)
     if rotation is not None:
         vs2 = vs.copy()
         for i in range(3):

@@ -45,7 +45,10 @@ from yt.config import ytcfg
 from yt.utilities.performance_counters import \
     yt_counters, time_function
 from yt.utilities.math_utils import periodic_dist, get_rotation_matrix
-from yt.utilities.physical_constants import rho_crit_now, mass_sun_cgs
+from yt.utilities.physical_constants import \
+    rho_crit_now, \
+    mass_sun_cgs, \
+    TINY
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
@@ -59,8 +62,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
-
-TINY = 1.e-40
 
 class Halo(object):
     """
@@ -143,10 +144,10 @@ class Halo(object):
             return self.CoM
         pm = self["ParticleMassMsun"]
         c = {}
-        c[0] = self["particle_position_x"]
-        c[1] = self["particle_position_y"]
-        c[2] = self["particle_position_z"]
-        c_vec = np.zeros(3)
+        # We shift into a box where the origin is the left edge
+        c[0] = self["particle_position_x"] - self.pf.domain_left_edge[0]
+        c[1] = self["particle_position_y"] - self.pf.domain_left_edge[1]
+        c[2] = self["particle_position_z"] - self.pf.domain_left_edge[2]
         com = []
         for i in range(3):
             # A halo is likely periodic around a boundary if the distance 
@@ -159,13 +160,12 @@ class Halo(object):
                 com.append(c[i])
                 continue
             # Now we want to flip around only those close to the left boundary.
-            d_left = c[i] - self.pf.domain_left_edge[i]
-            sel = (d_left <= (self.pf.domain_width[i]/2))
+            sel = (c[i] <= (self.pf.domain_width[i]/2))
             c[i][sel] += self.pf.domain_width[i]
             com.append(c[i])
         com = np.array(com)
         c = (com * pm).sum(axis=1) / pm.sum()
-        return c%self.pf.domain_width
+        return c%self.pf.domain_width + self.pf.domain_left_edge
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to
@@ -1062,7 +1062,7 @@ class HaloList(object):
     def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is set, only run it on the dark matter particles, otherwise
+        *dm_only* is True (default), only run it on the dark matter particles, otherwise
         on all particles.  Returns an iterable collection of *HopGroup* items.
         """
         self._data_source = data_source
@@ -1097,7 +1097,7 @@ class HaloList(object):
     def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
-            return (self._data_source["creation_time"] < 0)
+            return (self._data_source["creation_time"] <= 0)
         elif 'particle_type' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on particle type")
             return (self._data_source["particle_type"] == 1)
@@ -1367,6 +1367,7 @@ class RockstarHaloList(HaloList):
         self._groups = []
         self._max_dens = -1
         self.pf = pf
+        self.redshift = pf.current_redshift
         self.out_list = out_list
         self._data_source = pf.h.all_data()
         mylog.info("Parsing Rockstar halo list")
@@ -1428,7 +1429,7 @@ class RockstarHaloList(HaloList):
         fglob = path.join(basedir, 'halos_%d.*.bin' % n)
         files = glob.glob(fglob)
         halos = self._get_halos_binary(files)
-        #Jc = 1.98892e33/pf['mpchcm']*1e5
+        #Jc = mass_sun_cgs/ pf['mpchcm'] * 1e5
         Jc = 1.0
         length = 1.0 / pf['mpchcm']
         conv = dict(pos = np.array([length, length, length,
@@ -1457,7 +1458,7 @@ class RockstarHaloList(HaloList):
 class HOPHaloList(HaloList):
     """
     Run hop on *data_source* with a given density *threshold*.  If
-    *dm_only* is set, only run it on the dark matter particles, otherwise
+    *dm_only* is True (default), only run it on the dark matter particles, otherwise
     on all particles.  Returns an iterable collection of *HopGroup* items.
     """
     _name = "HOP"
@@ -1656,7 +1657,7 @@ class TextHaloList(HaloList):
 class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     """
     Run hop on *data_source* with a given density *threshold*.  If
-    *dm_only* is set, only run it on the dark matter particles, otherwise
+    *dm_only* is True (default), only run it on the dark matter particles, otherwise
     on all particles.  Returns an iterable collection of *HopGroup* items.
     """
     _name = "parallelHOP"
@@ -2008,12 +2009,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_out("HopAnalysis.out")
         """
-        # if path denoted in filename, assure path exists
-        if len(filename.split('/')) > 1:
-            mkdir_rec('/'.join(filename.split('/')[:-1]))
-
+        ensure_dir_exists(filename)
         f = self.comm.write_on_root(filename)
         HaloList.write_out(self, f, ellipsoid_data)
+
 
     def write_particle_lists_txt(self, prefix):
         r"""Write out the names of the HDF5 files containing halo particle data
@@ -2031,12 +2030,10 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists_txt("halo-parts")
         """
-        # if path denoted in prefix, assure path exists
-        if len(prefix.split('/')) > 1:
-            mkdir_rec('/'.join(prefix.split('/')[:-1]))
-
+        ensure_dir_exists(prefix)
         f = self.comm.write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
+
 
     @parallel_blocking_call
     def write_particle_lists(self, prefix):
@@ -2058,10 +2055,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         --------
         >>> halos.write_particle_lists("halo-parts")
         """
-        # if path denoted in prefix, assure path exists
-        if len(prefix.split('/')) > 1:
-            mkdir_rec('/'.join(prefix.split('/')[:-1]))
-
+        ensure_dir_exists(prefix)
         fn = "%s.h5" % self.comm.get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -2090,15 +2084,12 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         ellipsoid_data : bool.
             Whether to save the ellipsoidal information to the files.
             Default = False.
-        
+
         Examples
         --------
         >>> halos.dump("MyHalos")
         """
-        # if path denoted in basename, assure path exists
-        if len(basename.split('/')) > 1:
-            mkdir_rec('/'.join(basename.split('/')[:-1]))
-
+        ensure_dir_exists(basename)
         self.write_out("%s.out" % basename, ellipsoid_data)
         self.write_particle_lists(basename)
         self.write_particle_lists_txt(basename)
@@ -2131,7 +2122,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     resize : bool
         Turns load-balancing on or off. Default = True.
     kdtree : string
@@ -2460,7 +2451,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
@@ -2565,7 +2556,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         applied.  Default = 0.2.
     dm_only : bool
         If True, only dark matter particles are used when building halos.
-        Default = False.
+        Default = True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number

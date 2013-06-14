@@ -39,8 +39,8 @@ from stat import \
      ST_CTIME
 
 from .definitions import \
-     pluto2enzoDict, \
-     yt2plutoFieldsDict, \
+     chombo2enzoDict, \
+     yt2chomboFieldsDict, \
      parameterDict \
 
 from yt.funcs import *
@@ -251,7 +251,7 @@ class ChomboStaticOutput(StaticOutput):
         seconds = 1 #self["Time"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = seconds / sec_conversion[unit]
-        for key in yt2plutoFieldsDict:
+        for key in yt2chomboFieldsDict:
             self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
@@ -271,29 +271,22 @@ class ChomboStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         """
-        Check to see whether a 'pluto.ini' or 'orion2.ini' file
+        Check to see whether an 'orion2.ini' file
         exists in the plot file directory. If one does, attempt to parse it.
-        Otherwise, assume the left edge starts at 0 and get the right edge
-        from the hdf5 file.
+        Otherwise grab the dimensions from the hdf5 file.
         """
-        if os.path.isfile('pluto.ini'):
-            self._parse_pluto_file('pluto.ini')
-        else:
-            if os.path.isfile('orion2.ini'): self._parse_pluto_file('orion2.ini')
-            self.unique_identifier = \
-                int(os.stat(self.parameter_filename)[ST_CTIME])
-            self.domain_left_edge = self.__calc_left_edge()
-            self.domain_right_edge = self.__calc_right_edge()
-            self.domain_dimensions = self.__calc_domain_dimensions()
-            self.dimensionality = 3
-            self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
+        
+        if os.path.isfile('orion2.ini'): self._parse_inputs_file('orion2.ini')
+        self.unique_identifier = \
+                               int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.domain_left_edge = self.__calc_left_edge()
+        self.domain_right_edge = self.__calc_right_edge()
+        self.domain_dimensions = self.__calc_domain_dimensions()
+        self.dimensionality = 3
+        self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self.periodicity = (True, True, True)
 
-    def _parse_pluto_file(self, ini_filename):
-        """
-        Reads in an inputs file in the 'pluto.ini' format. Probably not
-        especially robust at the moment.
-        """
+    def _parse_inputs_file(self, ini_filename):
         self.fullplotdir = os.path.abspath(self.parameter_filename)
         self.ini_filename = self._localize( \
             self.ini_filename, ini_filename)
@@ -306,8 +299,8 @@ class ChomboStaticOutput(StaticOutput):
                 param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
-            if pluto2enzoDict.has_key(param):
-                paramName = pluto2enzoDict[param]
+            if chombo2enzoDict.has_key(param):
+                paramName = chombo2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
                     self.parameters[paramName] = t[0]
@@ -338,13 +331,14 @@ class ChomboStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        try:
-            fileh = h5py.File(args[0],'r')
-            valid = "Chombo_global" in fileh["/"]
-            fileh.close()
-            return valid
-        except:
-            pass
+        if not os.path.isfile('pluto.ini'):
+            try:
+                fileh = h5py.File(args[0],'r')
+                valid = "Chombo_global" in fileh["/"]
+                fileh.close()
+                return valid
+            except:
+                pass
         return False
 
     @parallel_root_only

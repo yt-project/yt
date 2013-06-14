@@ -31,6 +31,9 @@ import stat
 import string
 import re
 
+from threading import Thread
+import Queue
+
 from itertools import izip
 
 from yt.funcs import *
@@ -56,6 +59,14 @@ from .fields import \
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
+
+def get_field_names_helper(filename, id, results):
+    try:
+        names = hdf5_light_reader.ReadListOfDatasets(
+                    filename, "/Grid%08i" % id)
+        results.put((names, "Grid %s has: %s" % (id, names)))
+    except (exceptions.KeyError, hdf5_light_reader.ReadingError):
+        results.put((None, "Grid %s is a bit funky?" % id))
 
 class EnzoGrid(AMRGridPatch):
     """
@@ -101,6 +112,9 @@ class EnzoGrid(AMRGridPatch):
         """
         Intelligently set the filename.
         """
+        if filename is None:
+            self.filename = filename
+            return
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -301,7 +315,7 @@ class EnzoHierarchy(GridGeometryHandler):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(["-1"])
+            fn.append([None])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             # Below we find out what active particles exist in this grid,
@@ -401,29 +415,23 @@ class EnzoHierarchy(GridGeometryHandler):
         self.max_level = self.grid_levels.max()
 
     def _detect_active_particle_fields(self):
-        select_grids = np.zeros(len(self.grids), dtype='int32')
-        for ptype in self.parameter_file["AppendActiveParticleType"]:
-            select_grids += self.grid_active_particle_count[ptype].flat
-        gs = self.grids[select_grids > 0]
-        grids = sorted((g for g in gs), key = lambda a: a.filename)
-        handle = last = None
         ap_list = self.parameter_file["AppendActiveParticleType"]
         _fields = dict((ap, []) for ap in ap_list)
         fields = []
-        for g in grids:
-            # We inspect every grid, for now, until we have a list of
-            # attributes in a defined location.
-            if last != g.filename:
-                if handle is not None: handle.close()
-                handle = h5py.File(g.filename, "r")
+        for ptype in self.parameter_file["AppendActiveParticleType"]:
+            select_grids = self.grid_active_particle_count[ptype].flat
+            if np.any(select_grids) == False:
+                continue
+            gs = self.grids[select_grids > 0]
+            g = gs[0]
+            handle = h5py.File(g.filename)
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue
                 for field in (str(f) for f in node[ptype]):
                     _fields[ptype].append(field)
                 fields += [(ptype, field) for field in _fields.pop(ptype)]
-            if len(_fields) == 0: break
-        if handle is not None: handle.close()
+            handle.close()
         return set(fields)
 
     def _setup_derived_fields(self):
@@ -448,22 +456,52 @@ class EnzoHierarchy(GridGeometryHandler):
                 mylog.info("Gathering a field list (this may take a moment.)")
                 field_list = set()
                 random_sample = self._generate_random_grids()
-                for grid in random_sample:
-                    if not hasattr(grid, 'filename'): continue
-                    try:
-                        gf = self.io._read_field_names(grid)
-                    except self.io._read_exception:
-                        mylog.debug("Grid %s is a bit funky?", grid.id)
-                        continue
-                    mylog.debug("Grid %s has: %s", grid.id, gf)
-                    field_list = field_list.union(gf)
+                tothread = ytcfg.getboolean("yt","thread_field_detection")
+                if tothread:
+                    jobs = []
+                    result_queue = Queue.Queue()
+                    # Start threads
+                    for grid in random_sample:
+                        if not hasattr(grid, 'filename'): continue
+                        helper = Thread(target = get_field_names_helper, 
+                            args = (grid.filename, grid.id, result_queue))
+                        jobs.append(helper)
+                        helper.start()
+                    # Here we make sure they're finished.
+                    for helper in jobs:
+                        helper.join()
+                    for grid in random_sample:
+                        res = result_queue.get()
+                        mylog.debug(res[1])
+                        if res[0] is not None:
+                            field_list = field_list.union(res[0])
+                else:
+                    for grid in random_sample:
+                        if not hasattr(grid, 'filename'): continue
+                        try:
+                            gf = self.io._read_field_names(grid)
+                        except self.io._read_exception:
+                            mylog.debug("Grid %s is a bit funky?", grid.id)
+                            continue
+                        mylog.debug("Grid %s has: %s", grid.id, gf)
+                        field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.parameter_file.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
         else:
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
-        self.field_list = list(field_list)
+        self.field_list = []
+        # Now we will iterate over all fields, trying to avoid the problem of
+        # particle types not having names.  This should convert all known
+        # particle fields that exist in Enzo outputs into the construction
+        # ("all", field) and should not otherwise affect ActiveParticle
+        # simulations.
+        for field in field_list:
+            if ("all", field) in KnownEnzoFields:
+                self.field_list.append(("all", field))
+            else:
+                self.field_list.append(field)
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
@@ -637,26 +675,26 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, np):
+    def _fill_arrays(self, ei, si, LE, RE, npart):
         self.grid_dimensions[:,:1] = ei
         self.grid_dimensions[:,:1] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge[:,:1] = LE
         self.grid_right_edge[:,:1] = RE
-        self.grid_particle_count.flat[:] = np
+        self.grid_particle_count.flat[:] = npart
         self.grid_left_edge[:,1:] = 0.0
         self.grid_right_edge[:,1:] = 1.0
         self.grid_dimensions[:,1:] = 1
 
 class EnzoHierarchy2D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, np):
+    def _fill_arrays(self, ei, si, LE, RE, npart):
         self.grid_dimensions[:,:2] = ei
         self.grid_dimensions[:,:2] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge[:,:2] = LE
         self.grid_right_edge[:,:2] = RE
-        self.grid_particle_count.flat[:] = np
+        self.grid_particle_count.flat[:] = npart
         self.grid_left_edge[:,2] = 0.0
         self.grid_right_edge[:,2] = 1.0
         self.grid_dimensions[:,2] = 1
@@ -668,7 +706,6 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
-
     def __init__(self, filename, data_style=None,
                  file_style = None,
                  parameter_override = None,
@@ -706,9 +743,9 @@ class EnzoStaticOutput(StaticOutput):
         self._hierarchy_class = EnzoHierarchy2D
         self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
-            np.concatenate([self["DomainLeftEdge"], [0.0]])
+            np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
-            np.concatenate([self["DomainRightEdge"], [1.0]])
+            np.concatenate([self.domain_right_edge, [1.0]])
 
     def get_parameter(self,parameter,type=None):
         """
@@ -761,7 +798,7 @@ class EnzoStaticOutput(StaticOutput):
         data_label_factors = {}
         for line in (l.strip() for l in lines):
             if len(line) < 2: continue
-            param, vals = (i.strip() for i in line.split("="))
+            param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.

@@ -81,8 +81,6 @@ def read_attrs(f, attrs,endian='='):
         s2 = vals.pop(0)
         if s1 != s2:
             size = struct.calcsize(endian + "I" + "".join(n*[t]) + "I")
-            print "S1 = %s ; S2 = %s ; %s %s %s = %s" % (
-                    s1, s2, a, n, t, size)
         assert(s1 == s2)
         if n == 1: v = v[0]
         if type(a)==tuple:
@@ -160,7 +158,7 @@ def skip(f, n=1, endian='='):
     >>> f = open("fort.3", "rb")
     >>> skip(f, 3)
     """
-    skipped = 0
+    skipped = []
     pos = f.tell()
     for i in range(n):
         fmt = endian+"I"
@@ -169,7 +167,7 @@ def skip(f, n=1, endian='='):
         f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
         s2= struct.unpack(fmt, size)[0]
         assert s1==s2 
-        skipped += s1/struct.calcsize(fmt)
+        skipped.append(s1/struct.calcsize(fmt))
     return skipped
 
 def peek_record_size(f,endian='='):
