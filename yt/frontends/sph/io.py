@@ -106,6 +106,7 @@ class IOHandlerOWLS(BaseIOHandler):
             regions.add_data_file(pos, data_file.file_id)
             pos = np.floor((pos - DLE)/dx).astype("uint64")
             morton[ind:ind+pos.shape[0]] = get_morton_indices(pos)
+            ind += pos.shape[0]
         f.close()
         return morton
 

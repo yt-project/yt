@@ -25,8 +25,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from oct_container cimport OctreeContainer, Oct, OctInfo, \
-    visit_icoords_octs, ORDER_MAX
+from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
+    visit_icoords_octs, visit_ires_octs, visit_fcoords_octs
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -117,75 +117,43 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
-        cdef np.float64_t left_edge[3], right_edge[3], dds[3]
         self.visit_all_octs(selector, visit_icoords_octs, &data)
         return coords
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def ires(self, int domain_id,
-                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                np.int64_t cell_count,
-                np.ndarray[np.int64_t, ndim=1] level_counts):
+    def ires(self, SelectorObject selector, np.uint64_t num_cells = -1):
+        if num_cells == -1:
+            num_cells = selector.count_octs(self)
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
-        res = np.empty(cell_count, dtype="int64")
-        cdef int oi, i, ci
-        ci = 0
-        for oi in range(self.nocts):
-            o = self.oct_list[oi]
-            if o.domain != domain_id: continue
-            for i in range(8):
-                if mask[oi, i] == 1:
-                    res[ci] = o.level
-                    ci += 1
+        res = np.empty(num_cells, dtype="int64")
+        cdef OctVisitorData data
+        data.array = <void *> res.data
+        data.index = 0
+        self.visit_all_octs(selector, visit_ires_octs, &data)
         return res
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fcoords(self, int domain_id,
-                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                np.int64_t cell_count,
-                np.ndarray[np.int64_t, ndim=1] level_counts):
+    def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1):
+        if num_cells == -1:
+            num_cells = selector.count_octs(self)
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
-        coords = np.empty((cell_count, 3), dtype="float64")
-        cdef int oi, i, ci
-        cdef np.float64_t base_dx[3], dx[3], pos[3]
+        coords = np.empty((num_cells, 3), dtype="float64")
+        cdef OctVisitorData data
+        data.array = <void *> coords.data
+        data.index = 0
+        self.visit_all_octs(selector, visit_fcoords_octs, &data)
+        cdef int i
+        cdef np.float64_t base_dx
         for i in range(3):
-            # This is the base_dx, but not the base distance from the center
-            # position.  Note that the positions will also all be offset by
-            # dx/2.0.  This is also for *oct grids*, not cells.
-            base_dx[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-        ci = 0
-        cdef int proc
-        for oi in range(self.nocts):
-            proc = 0
-            for i in range(8):
-                if mask[oi, i] == 1:
-                    proc = 1
-                    break
-            if proc == 0: continue
-            o = self.oct_list[oi]
-            if o.domain != domain_id: continue
-            for i in range(3):
-                # This gives the *grid* width for this level
-                dx[i] = base_dx[i] / (1 << o.level)
-                # o.pos is the *grid* index, so pos[i] is the center of the
-                # first cell in the grid
-                pos[i] = self.DLE[i] + o.pos[i]*dx[i] + dx[i]/4.0
-                dx[i] = dx[i] / 2.0 # This is now the *offset* 
-            for i in range(2):
-                for j in range(2):
-                    for k in range(2):
-                        ii = ((k*2)+j)*2+i
-                        if mask[oi, ii] == 0: continue
-                        coords[ci, 0] = pos[0] + dx[0] * i
-                        coords[ci, 1] = pos[1] + dx[1] * j
-                        coords[ci, 2] = pos[2] + dx[2] * k
-                        ci += 1
+            base_dx = (self.DRE[i] - self.DLE[i])/self.nn[i]
+            coords[:,i] *= base_dx
+            coords[:,i] += self.DLE[i]
         return coords
 
     def allocate_domains(self, domain_counts):

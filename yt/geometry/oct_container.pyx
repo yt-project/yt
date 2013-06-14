@@ -836,3 +836,21 @@ cdef void visit_icoords_octs(Oct *o, OctVisitorData *data):
     for i in range(3):
         coords[data.index * 3 + i] = (o.pos[i] << 1) + data.ind[i]
     data.index += 1
+
+cdef void visit_ires_octs(Oct *o, OctVisitorData *data):
+    cdef np.int64_t *ires = <np.int64_t*> data.array
+    ires[data.index] = o.level
+    data.index += 1
+
+cdef void visit_fcoords_octs(Oct *o, OctVisitorData *data):
+    # Note that this does not actually give the correct floating point
+    # coordinates.  It gives them in some unit system where the domain is 1.0
+    # in all directions, and assumes that they will be scaled later.
+    cdef np.float64_t *fcoords = <np.float64_t*> data.array
+    cdef int i
+    cdef np.float64_t c, dx 
+    dx = 1.0 / (2 << o.level)
+    for i in range(3):
+        c = <np.float64_t> ((o.pos[i] << 1 ) + data.ind[i]) 
+        fcoords[data.index * 3 + i] = (c + 0.5) * dx
+    data.index += 1

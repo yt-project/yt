@@ -116,6 +116,7 @@ class ParticleGeometryHandler(GeometryHandler):
             npart = sum(data_file.total_particles.values())
             morton[ind:ind + npart] = \
                 self.io._initialize_index(data_file, self.regions)
+            ind += npart
         morton.sort()
         # Now we add them all at once.
         self.oct_handler.add(morton)
