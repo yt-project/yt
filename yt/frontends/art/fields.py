@@ -281,13 +281,9 @@ for _ptype in _ptypes:
 # Mixed Fluid-Particle Fields
 
 def baryon_density(field, data):
-    pos = np.column_stack([data["stars", "particle_position_%s" % ax]
-        for ax in 'xyz'])
-    pmass = data["stars", "particle_mass"]
-    mass  = data.deposit(pos, [pmass], method = "sum")
-    mass += data["gas", "CellMass"]
-    vol   = data["gas", "CellVolume"]
-    return mass / vol
+    rho = data["deposit", "stars_density"]
+    rho += data["gas", "Density"]
+    return rho
 
 ARTFieldInfo.add_field(("deposit", "baryon_density"),
          function = baryon_density,
@@ -298,14 +294,9 @@ ARTFieldInfo.add_field(("deposit", "baryon_density"),
          projection_conversion = 'cm')
 
 def total_density(field, data):
-    ptype = 'specie0'
     rho = data["deposit", "baryon_density"]
-    pos = np.column_stack([data[ptype, "particle_position_%s" % ax]
-                           for ax in 'xyz'])
-    pmas = data[ptype, "particle_mass"]
-    mass = data.deposit(pos, [pmas], method = "sum")
-    vol  = data["gas", "CellVolume"]
-    return rho + (mass / vol)
+    rho += data["deposit", "specie0_density"]
+    return rho
 
 ARTFieldInfo.add_field(("deposit", "total_density"),
          function = total_density,
@@ -315,16 +306,10 @@ ARTFieldInfo.add_field(("deposit", "total_density"),
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
 
-
 def multimass_density(field, data):
-    ptype = 'darkmatter'
     rho = data["deposit", "baryon_density"]
-    pos = np.column_stack([data[ptype, "particle_position_%s" % ax]
-                           for ax in 'xyz'])
-    pmas = data[ptype, "particle_mass"]
-    mass = data.deposit(pos, [pmas], method = "sum")
-    vol   = data["gas","CellVolume"]
-    return rho + mass / vol
+    rho += data["deposit", "darkmatter_density"]
+    return rho
 
 ARTFieldInfo.add_field(("deposit", "multimass_density"),
          function = multimass_density,
