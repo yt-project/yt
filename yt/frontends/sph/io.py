@@ -92,7 +92,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 f.close()
         return rv
 
-    def _initialize_octree(self, domain, octree):
+    def _initialize_index(self, domain, octree):
         f = h5py.File(domain.domain_filename, "r")
         for key in f.keys():
             if not key.startswith("PartType"): continue
@@ -236,7 +236,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             arr = arr.reshape((count/3, 3), order="C")
         return arr.astype("float64")
 
-    def _initialize_octree(self, domain, octree):
+    def _initialize_index(self, domain, octree):
         count = sum(domain.total_particles.values())
         dt = [("px", "float32"), ("py", "float32"), ("pz", "float32")]
         with open(domain.domain_filename, "rb") as f:
@@ -376,16 +376,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 f.close()
         return rv
 
-    def _initialize_octree(self, data_file, octree):
+    def _initialize_index(self, data_file, octree, regions):
         pf = data_file.pf
         morton = np.empty(sum(data_file.total_particles.values()),
                           dtype="uint64")
         ind = 0
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         dx = (DRE - DLE) / (2**_ORDER_MAX)
-        self.regions = ParticleRegions(
-                pf.domain_left_edge, pf.domain_right_edge,
-                [64, 64, 64], len(self._ptypes))
         with open(data_file.filename, "rb") as f:
             f.seek(pf._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
@@ -411,7 +408,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 fpos[:,0] = pp["Coordinates"]["x"]
                 fpos[:,1] = pp["Coordinates"]["y"]
                 fpos[:,2] = pp["Coordinates"]["z"]
-                self.regions.add_data_file(fpos, iptype)
+                regions.add_data_file(fpos, data_file.file_id)
                 del fpos
                 pos = np.empty((count, 3), dtype="uint64")
                 for axi, ax in enumerate("xyz"):

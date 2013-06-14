@@ -1322,4 +1322,34 @@ cdef class ParticleRegions:
             mask[ind[0],ind[1],ind[2]] |= val
 
     def identify_data_files(self, SelectorObject selector):
-        pass
+        # This is relatively cheap to iterate over.
+        cdef int i, j, k, n
+        cdef np.uint64_t fmask, offset
+        cdef np.float64_t LE[3], RE[3]
+        cdef np.ndarray[np.uint64_t, ndim=3] mask
+        files = []
+        for n in range(len(self.masks)):
+            fmask = 0
+            mask = self.masks[n]
+            LE[0] = self.left_edge[0]
+            RE[0] = LE[0] + self.dds[0]
+            for i in range(self.dims[0]):
+                LE[1] = self.left_edge[1]
+                RE[1] = LE[1] + self.dds[1]
+                for j in range(self.dims[1]):
+                    LE[2] = self.left_edge[2]
+                    RE[2] = LE[2] + self.dds[2]
+                    for k in range(self.dims[2]):
+                        if selector.select_grid(LE, RE, 0) == 0: continue
+                        fmask |= mask[i,j,k]
+                        LE[2] += self.dds[2]
+                        RE[2] += self.dds[2]
+                    LE[1] += self.dds[1]
+                    RE[1] += self.dds[1]
+                LE[0] += self.dds[0]
+                RE[0] += self.dds[0]
+            # Now we iterate through...
+            for i in range(64):
+                if ((fmask >> i) & 1) == 1:
+                    files.append(i + n * 64)
+        return files

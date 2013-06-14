@@ -37,7 +37,7 @@ from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
 from yt.geometry.oct_container import \
-    ParticleOctreeContainer
+    ParticleOctreeContainer, ParticleRegions
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -79,14 +79,17 @@ class ParticleGeometryHandler(GeometryHandler):
                            for i in range(ndoms)]
         total_particles = sum(sum(d.total_particles.values())
                               for d in self.data_files)
+        pf = self.parameter_file
         self.oct_handler = ParticleOctreeContainer(
-            [1, 1, 1],
-            self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge)
+            [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge)
         self.oct_handler.n_ref = 64
         mylog.info("Allocating for %0.3e particles", total_particles)
+        N = len(self.data_files)
+        self.regions = ParticleRegions(
+                pf.domain_left_edge, pf.domain_right_edge,
+                [N, N, N], N)
         for dom in self.data_files:
-            self.io._initialize_octree(dom, self.oct_handler)
+            self.io._initialize_index(dom, self.oct_handler, self.regions)
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
         tot = sum(self.oct_handler.recursively_count().values())
@@ -113,12 +116,10 @@ class ParticleGeometryHandler(GeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
-            counts = self.oct_handler.count_cells(dobj.selector, mask)
-            subsets = [ParticleDomainSubset(d, mask, c)
-                       for d, c in zip(self.domains, counts) if c > 0]
-            dobj._chunk_info = subsets
-            dobj.size = sum(counts)
-            dobj.shape = (dobj.size,)
+            file_ids = self.regions.identify_data_files(dobj.selector)
+            dobj._chunk_info = [self.data_files[i] for i in file_ids]
+            #dobj.size = sum(counts)
+            #dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
