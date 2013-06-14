@@ -42,6 +42,10 @@ import yt.utilities.lib as amr_utils
 from yt.utilities.physical_constants import mass_sun_cgs
 from yt.frontends.art.definitions import *
 
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions
+
 KnownARTFields = FieldInfoContainer()
 add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
@@ -264,115 +268,12 @@ def _ParticleMassMsun(field, data):
 add_field("ParticleMassMsun", function=_ParticleMassMsun, particle_type=True,
           take_log=True, units=r"\rm{Msun}")
 
-# Modeled after the TIPSY / Gadget frontend particle deposit fields
-def _particle_functions(ptype, pname):
-    mass_name = "particle_mass"
-    def particle_pos(data, axes="xyz"):
-        pos = np.column_stack([data[(ptype, "particle_position_%s" % ax)]\
-                                    for ax in axes])
-        if len(axes)==1:
-            return pos[0]
-        return pos
-
-    def particle_vel(data, axes="xyz"):
-        pos = np.column_stack([data[(ptype, "particle_velocity_%s" % ax)]\
-                                    for ax in axes])
-        if len(axes)==1:
-            return pos[0]
-        return pos
-
-    def particle_count(field, data):
-        pos = particle_pos(data)
-        d = data.deposit(pos, method = "count")
-        return d
-    
-    add_field("deposit_%s_count" % ptype,
-             function = particle_count,
-             validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Count}" % pname,
-             projection_conversion = '1')
-
-    def particle_mass(field, data):
-        pos = particle_pos(data)
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        return d
-
-    add_field("deposit_%s_mass" % ptype,
-             function = particle_mass,
-             validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Mass}" % pname,
-             units = r"\mathrm{g}",
-             projected_units = r"\mathrm{g}\/\mathrm{cm}",
-             projection_conversion = 'cm')
-
-    def particle_density(field, data):
-        pos = particle_pos(data)
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d /= data["CellVolume"]
-        return d
-
-    add_field("deposit_%s_density" % ptype,
-             function = particle_density,
-             validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Density}" % pname,
-             units = r"\mathrm{g}/\mathrm{cm}^{3}",
-             projected_units = r"\mathrm{g}/\mathrm{cm}^{-2}",
-             projection_conversion = 'cm')
-
-    def particle_number_density(field, data):
-        pos = particle_pos(data)
-        d = data.deposit(pos, method = "count")
-        d /= data["CellVolume"]
-        return d
-
-    add_field("deposit_%s_number_density" % ptype,
-             function = particle_density,
-             validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Number Density}" % pname,
-             units = r"\mathrm{1}/\mathrm{cm}^{3}",
-             projected_units = r"\mathrm{1}/\mathrm{cm}^{-2}",
-             projection_conversion = 'cm')
-
-
-    for ax in "xyz":
-        def particle_mass_velocity(field, data, ax):
-            pos = particle_pos(data)
-            vel = particle_vel(data, ax) 
-            mass = data[ptype, mass_name]
-            d = data.deposit(pos, [vel, mass], method = "weighted_mean")
-            d[~np.isfinite(d)] = 0.0
-            return d
-
-        add_field("deposit_%s_weighted_velocity_%s" % (ptype, ax),
-                 function = lambda f, d: particle_mass_velocity(f, d, ax),
-                 validators = [ValidateSpatial()],
-                 display_name = "\\mathrm{%s Mass Weighted Velocity %s}" % \
-                                (pname, ax.upper()),
-                 units = r"\mathrm{\mathrm{cm}/\mathrm{s}}",
-                 projected_units = r"\mathrm{\mathrm{cm}/\mathrm{s}}",
-                 projection_conversion = '1',
-                 take_log=False)
-
-    add_field((ptype, "ParticleMass"),
-            function = TranslationFunc((ptype, mass_name)),
-            particle_type = True,
-            units = r"\mathrm{g}")
-
-    def _ParticleMassMsun(field, data):
-        return data[ptype, mass_name].copy()
-    def _conv_Msun(data):
-        return 1.0/mass_sun_cgs
-
-    add_field((ptype, "ParticleMassMsun"),
-            function = _ParticleMassMsun,
-            convert_function = _conv_Msun,
-            particle_type = True,
-            units = r"\mathrm{M}_\odot")
-
 # Particle Deposition Fields
-_ptypes = ["all", "darkmatter", "stars"]
-_pnames  = ["Particle", "Dark Matter", "Stellar"]
+_ptypes = ["all", "darkmatter", "stars", "specie0"]
 
-for _ptype, _pname in zip(_ptypes, _pnames):
-    _particle_functions(_ptype, _pname)
-
+for _ptype in _ptypes:
+    particle_vector_functions(_ptype, ["particle_position_%s" % ax for ax in 'xyz'],
+                                     ["particle_velocity_%s" % ax for ax in 'xyz'],
+                              ARTFieldInfo)
+    particle_deposition_functions(_ptype, "Coordinates", "particle_mass",
+                                   ARTFieldInfo)
