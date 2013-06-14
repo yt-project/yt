@@ -44,7 +44,7 @@ class IOHandlerART(BaseIOHandler):
     tb, ages = None, None
     cache = None
     masks = None
-    caching = False
+    caching = True
 
     def __init__(self):
         self.cache = {}
