@@ -25,6 +25,8 @@ License:
 
 cimport numpy as np
 from fp_utils cimport *
+from selection_routines cimport SelectorObject, \
+    OctVisitorData, oct_visitor_function
 
 cdef int ORDER_MAX
 
@@ -67,8 +69,15 @@ cdef class OctreeContainer:
     # This function must return the offset from global-to-local domains; i.e.,
     # OctAllocationContainer.offset if such a thing exists.
     cdef np.int64_t get_domain_offset(self, int domain_id)
+    cdef void visit_all_octs(self, SelectorObject selector,
+                        oct_visitor_function *func,
+                        OctVisitorData *data)
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
+
+# Now some visitor functions
+
+cdef void visit_icoords_octs(Oct *o, OctVisitorData *data)

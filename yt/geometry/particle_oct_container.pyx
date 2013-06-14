@@ -25,15 +25,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from oct_container cimport OctreeContainer, Oct, OctInfo
+from oct_container cimport OctreeContainer, Oct, OctInfo, \
+    visit_icoords_octs, ORDER_MAX
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
 cimport numpy as np
 import numpy as np
-from oct_container cimport Oct, OctAllocationContainer, \
-    OctreeContainer, ORDER_MAX
-from selection_routines cimport SelectorObject
+from selection_routines cimport SelectorObject, \
+    OctVisitorData, oct_visitor_function
 cimport cython
 
 cdef class ParticleOctreeContainer(OctreeContainer):
@@ -114,33 +114,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             num_cells = selector.count_octs(self)
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
-        cdef int oi, i, ci, ii, eterm[3]
-        ci = 0
+        cdef OctVisitorData data
+        data.array = <void *> coords.data
+        data.index = 0
         cdef np.float64_t left_edge[3], right_edge[3], dds[3]
-        for oi in range(self.nocts):
-            o = self.oct_list[oi]
-            #if o.domain != domain_id: continue
-            if o.children[0][0][0] != NULL: continue
-            self.oct_bounds(o, left_edge, dds)
-            for i in range(3): right_edge[i] = left_edge[i] + dds[i]
-            if not selector.select_grid(left_edge, right_edge, o.level):
-                continue
-            for i in range(3): # Set up cell info
-                dds[i] /= 2.0
-            right_edge[0] = left_edge[0] + dds[0]/2.0
-            for i in range(2):
-                right_edge[1] = left_edge[1] + dds[1]/2.0
-                for j in range(2):
-                    right_edge[2] = left_edge[2] + dds[2]/2.0
-                    for k in range(2):
-                        if selector.select_cell(right_edge, dds, eterm) == 1:
-                            coords[ci, 0] = (o.pos[0] << 1) + i
-                            coords[ci, 1] = (o.pos[1] << 1) + j
-                            coords[ci, 2] = (o.pos[2] << 1) + k
-                            ci += 1
-                        right_edge[2] += dds[2]
-                    right_edge[1] += dds[1]
-                right_edge[0] += dds[0]
+        self.visit_all_octs(selector, visit_icoords_octs, &data)
         return coords
 
     @cython.boundscheck(False)

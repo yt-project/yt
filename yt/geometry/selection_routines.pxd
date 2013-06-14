@@ -28,6 +28,7 @@ cimport numpy as np
 cdef struct Oct
 cdef struct OctVisitorData:
     np.uint64_t index
+    int ind[3]
     void *array
 
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor)

@@ -230,27 +230,9 @@ cdef class SelectorObject:
             spos[0] += sdds[0]
 
     def count_octs(self, OctreeContainer octree):
-        cdef int i, j, k, n
-        cdef np.float64_t pos[3], dds[3]
-        # This dds is the oct-width
-        for i in range(3):
-            dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
-        # Pos is the center of the octs
         cdef OctVisitorData data
         data.index = 0
-        pos[0] = octree.DLE[0] + dds[0]/2.0
-        for i in range(octree.nn[0]):
-            pos[1] = octree.DLE[1] + dds[1]/2.0
-            for j in range(octree.nn[1]):
-                pos[2] = octree.DLE[2] + dds[2]/2.0
-                for k in range(octree.nn[2]):
-                    if octree.root_mesh[i][j][k] == NULL: continue
-                    self.recursively_visit_octs(
-                        octree.root_mesh[i][j][k],
-                        pos, dds, 0, visit_count_octs, &data)
-                    pos[2] += dds[2]
-                pos[1] += dds[1]
-            pos[0] += dds[0]
+        octree.visit_all_octs(self, visit_count_octs, &data)
         return data.index
 
     @cython.boundscheck(False)
@@ -301,7 +283,10 @@ cdef class SelectorObject:
                             ch, spos, sdds, level + 1, func, data)
                     elif this_level == 1 and self.select_cell(
                                     spos, sdds, eterm):
-                        func(ch, data)
+                        data.ind[0] = i
+                        data.ind[1] = j
+                        data.ind[2] = k
+                        func(root, data)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
             spos[0] += sdds[0]

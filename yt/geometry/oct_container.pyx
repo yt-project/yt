@@ -31,7 +31,8 @@ cimport numpy as np
 import numpy as np
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, ORDER_MAX
-from selection_routines cimport SelectorObject
+from selection_routines cimport SelectorObject, \
+    OctVisitorData, oct_visitor_function
 cimport cython
 
 ORDER_MAX = 20
@@ -136,6 +137,29 @@ cdef class OctreeContainer:
                 this = &cur.my_octs[i]
                 yield (this.file_ind, this.domain_ind, this.domain)
             cur = cur.next
+
+    cdef void visit_all_octs(self, SelectorObject selector,
+                        oct_visitor_function *func,
+                        OctVisitorData *data):
+        cdef int i, j, k, n
+        cdef np.float64_t pos[3], dds[3]
+        # This dds is the oct-width
+        for i in range(3):
+            dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
+        # Pos is the center of the octs
+        pos[0] = self.DLE[0] + dds[0]/2.0
+        for i in range(self.nn[0]):
+            pos[1] = self.DLE[1] + dds[1]/2.0
+            for j in range(self.nn[1]):
+                pos[2] = self.DLE[2] + dds[2]/2.0
+                for k in range(self.nn[2]):
+                    if self.root_mesh[i][j][k] == NULL: continue
+                    selector.recursively_visit_octs(
+                        self.root_mesh[i][j][k],
+                        pos, dds, 0, func, data)
+                    pos[2] += dds[2]
+                pos[1] += dds[1]
+            pos[0] += dds[0]
 
     cdef void oct_bounds(self, Oct *o, np.float64_t *corner, np.float64_t *size):
         cdef int i
@@ -804,17 +828,11 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
                             local_filled += 1
         return local_filled
 
+# Now some visitor functions
 
-cdef int compare_octs(void *vo1, void *vo2) nogil:
-    #This only compares if the octs live on the
-    #domain, not if they are actually equal
-    #Used to sort octs into consecutive domains
-    cdef Oct *o1 = (<Oct**> vo1)[0]
-    cdef Oct *o2 = (<Oct**> vo2)[0]
-    if o1.domain < o2.domain: return -1
-    elif o1.domain == o2.domain:
-        if o1.level < o2.level: return -1
-        if o1.level > o2.level: return 1
-        else: return 0
-    elif o1.domain > o2.domain: return 1
-
+cdef void visit_icoords_octs(Oct *o, OctVisitorData *data):
+    cdef np.int64_t *coords = <np.int64_t*> data.array
+    cdef int i
+    for i in range(3):
+        coords[data.index * 3 + i] = (o.pos[i] << 1) + data.ind[i]
+    data.index += 1
