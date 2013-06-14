@@ -120,7 +120,6 @@ class ParticleGeometryHandler(GeometryHandler):
         # Now we add them all at once.
         self.oct_handler.add(morton)
 
-
     def _detect_fields(self):
         # TODO: Add additional fields
         pfl = []

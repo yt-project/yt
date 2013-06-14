@@ -106,34 +106,41 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             o = self.oct_list[oi]
             yield (o.file_ind, o.domain_ind, o.domain)
 
-    @cython.boundscheck(False)
+    #@cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def icoords(self, int domain_id,
-                np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                np.int64_t cell_count,
-                np.ndarray[np.int64_t, ndim=1] level_counts):
-        #Return the integer positions of the cells
-        #Limited to this domain and within the mask
-        #Positions are binary; aside from the root mesh
-        #to each digit we just add a << 1 and a 0 or 1 
-        #for each child recursively
+    def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1):
+        if num_cells == -1:
+            num_cells = selector.count_octs(self)
         cdef np.ndarray[np.int64_t, ndim=2] coords
-        coords = np.empty((cell_count, 3), dtype="int64")
-        cdef int oi, i, ci, ii
+        coords = np.empty((num_cells, 3), dtype="int64")
+        cdef int oi, i, ci, ii, eterm[3]
         ci = 0
+        cdef np.float64_t left_edge[3], right_edge[3], dds[3]
         for oi in range(self.nocts):
             o = self.oct_list[oi]
-            if o.domain != domain_id: continue
+            #if o.domain != domain_id: continue
+            if o.children[0][0][0] != NULL: continue
+            self.oct_bounds(o, left_edge, dds)
+            for i in range(3): right_edge[i] = left_edge[i] + dds[i]
+            if not selector.select_grid(left_edge, right_edge, o.level):
+                continue
+            for i in range(3): # Set up cell info
+                dds[i] /= 2.0
+            right_edge[0] = left_edge[0] + dds[0]/2.0
             for i in range(2):
+                right_edge[1] = left_edge[1] + dds[1]/2.0
                 for j in range(2):
+                    right_edge[2] = left_edge[2] + dds[2]/2.0
                     for k in range(2):
-                        ii = ((k*2)+j)*2+i
-                        if mask[oi, ii] == 1:
+                        if selector.select_cell(right_edge, dds, eterm) == 1:
                             coords[ci, 0] = (o.pos[0] << 1) + i
                             coords[ci, 1] = (o.pos[1] << 1) + j
                             coords[ci, 2] = (o.pos[2] << 1) + k
                             ci += 1
+                        right_edge[2] += dds[2]
+                    right_edge[1] += dds[1]
+                right_edge[0] += dds[0]
         return coords
 
     @cython.boundscheck(False)
@@ -214,7 +221,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0, lpos = 0
-        self.max_level = max_level
         cdef int cur_dom = -1
         # We always need at least 2, and if max_domain is 0, we need 3.
         for i in range(self.nn[0]):
@@ -225,6 +231,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
             self.oct_list[i].file_ind = -1
+            max_level = imax(max_level, self.oct_list[i].level)
+        self.max_level = max_level
 
     cdef visit_assign(self, Oct *o, np.int64_t *lpos):
         cdef int i, j, k
@@ -399,26 +407,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if m == 0: continue
             dmask[o.domain] = 1
         return dmask.astype("bool")
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def count_cells(self, SelectorObject selector,
-              np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
-        #Count how many cells per level there are
-        cdef int i, j, k, oi
-        # pos here is CELL center, not OCT center.
-        cdef np.float64_t pos[3]
-        cdef int n = mask.shape[0]
-        cdef int eterm[3]
-        cdef np.ndarray[np.int64_t, ndim=1] count
-        count = np.zeros(self.max_domain + 1, 'int64')
-        for oi in range(n):
-            o = self.oct_list[oi]
-            if o.domain == -1: continue
-            for i in range(8):
-                count[o.domain] += mask[oi,i]
-        return count
 
     def domain_and(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
                    int domain_id):
