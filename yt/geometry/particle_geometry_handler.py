@@ -46,6 +46,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.data_objects.data_containers import data_object_registry
 
 class ParticleGeometryHandler(GeometryHandler):
+    _global_mesh = False
 
     def __init__(self, pf, data_style):
         self.data_style = data_style
@@ -144,7 +145,7 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+        yield YTDataChunk(dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz, sort = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -160,5 +161,5 @@ class ParticleGeometryHandler(GeometryHandler):
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], -1)
+            yield YTDataChunk(dobj, "io", [subset], None)
 

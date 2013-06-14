@@ -44,6 +44,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 
 class GeometryHandler(ParallelAnalysisInterface):
+    _global_mesh = True
 
     def __init__(self, pf, data_style):
         ParallelAnalysisInterface.__init__(self)
@@ -449,7 +450,7 @@ class GeometryHandler(ParallelAnalysisInterface):
 
 class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size, field_type = None):
+    def __init__(self, dobj, chunk_type, objs, data_size = None, field_type = None):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
@@ -462,9 +463,23 @@ class YTDataChunk(object):
             self._data_size = self._data_size(self.dobj, self.objs)
         return self._data_size
 
+    def _accumulate_values(self, method):
+        # We call this generically.  It's somewhat slower, since we're doing
+        # costly getattr functions, but this allows us to generalize.
+        mname = "select_%s" % method
+        arrs = []
+        for obj in self.objs:
+            f = getattr(obj, mname)
+            arrs.append(f(self.dobj))
+        arrs = np.concatenate(arrs)
+        self._data_size = arrs.shape[0]
+        return arrs
+
     _fcoords = None
     @property
     def fcoords(self):
+        if self.data_size is None:
+            self._fcoords = self._accumulate_values("fcoords")
         if self._fcoords is not None: return self._fcoords
         ci = np.empty((self.data_size, 3), dtype='float64')
         self._fcoords = ci
@@ -480,6 +495,8 @@ class YTDataChunk(object):
     _icoords = None
     @property
     def icoords(self):
+        if self.data_size is None:
+            self._icoords = self._accumulate_values("icoords")
         if self._icoords is not None: return self._icoords
         ci = np.empty((self.data_size, 3), dtype='int64')
         self._icoords = ci
@@ -495,6 +512,8 @@ class YTDataChunk(object):
     _fwidth = None
     @property
     def fwidth(self):
+        if self.data_size is None:
+            self._fwidth = self._accumulate_values("fwidth")
         if self._fwidth is not None: return self._fwidth
         ci = np.empty((self.data_size, 3), dtype='float64')
         self._fwidth = ci
@@ -510,6 +529,8 @@ class YTDataChunk(object):
     _ires = None
     @property
     def ires(self):
+        if self.data_size is None:
+            self._ires = self._accumulate_values("ires")
         if self._ires is not None: return self._ires
         ci = np.empty(self.data_size, dtype='int64')
         self._ires = ci
