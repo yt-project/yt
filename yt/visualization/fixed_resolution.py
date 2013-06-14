@@ -148,7 +148,7 @@ class FixedResolutionBuffer(object):
         fields = getattr(self.data_source, "fields", [])
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
-            if f not in exclude:
+            if f not in exclude and f[0] not in self.data_source.pf.particle_types:
                 self[f]
 
     def _get_info(self, item):
