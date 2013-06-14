@@ -420,8 +420,8 @@ add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3
 def _Convert_Overdensity(data):
     return 1.0 / (rho_crit_now * data.pf.hubble_constant**2 * 
                 (1+data.pf.current_redshift)**3)
-add_field("Overdensity",function=_Matter_Density,
-          convert_function=_Convert_Overdensity, units=r"")
+#add_field("Overdensity",function=_Matter_Density,
+#          convert_function=_Convert_Overdensity, units=r"")
 
 # This is (rho_total - <rho_total>) / <rho_total>.
 def _DensityPerturbation(field, data):
@@ -463,9 +463,9 @@ def _convertConvergence(data):
     return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter * 
                                 (data.pf.hubble_constant / speed_of_light_cgs)**2 *
                                 (1 + data.pf.current_redshift)))
-add_field("WeakLensingConvergence", function=_DensityPerturbation, 
-          convert_function=_convertConvergence, 
-          projection_conversion='mpccm')
+#add_field("WeakLensingConvergence", function=_DensityPerturbation, 
+#          convert_function=_convertConvergence, 
+#          projection_conversion='mpccm')
 
 def _CellVolume(field, data):
     if data['dx'].size == 1:
@@ -950,10 +950,10 @@ for field in ["particle_position_%s" % ax for ax in "xyz"]:
 def _pdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return blank
-    CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                 data["particle_position_y"].astype(np.float64),
-                 data["particle_position_z"].astype(np.float64),
-                 data["ParticleMass"],
+    CICDeposit_3(data["particle_position_x"].astype(np.float64).ravel(),
+                 data["particle_position_y"].astype(np.float64).ravel(),
+                 data["particle_position_z"].astype(np.float64).ravel(),
+                 data["ParticleMass"].ravel(),
                  data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),

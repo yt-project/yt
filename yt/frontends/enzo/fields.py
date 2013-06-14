@@ -365,9 +365,9 @@ def _spdensity(field, data):
     if data["particle_position_x"].size == 0: return blank
     filter = data['creation_time'] > 0.0
     if not filter.any(): return blank
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                           data["particle_position_y"][filter].astype(np.float64),
-                           data["particle_position_z"][filter].astype(np.float64),
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64).ravel(),
+                           data["particle_position_y"][filter].astype(np.float64).ravel(),
+                           data["particle_position_z"][filter].astype(np.float64).ravel(),
                            data["particle_mass"][filter],
                            np.int64(np.where(filter)[0].size),
                            blank, np.array(data.LeftEdge).astype(np.float64),
@@ -387,10 +387,10 @@ def _dmpdensity(field, data):
     else:
         filter = Ellipsis
         num = data["particle_position_x"].size
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                           data["particle_position_y"][filter].astype(np.float64),
-                           data["particle_position_z"][filter].astype(np.float64),
-                           data["particle_mass"][filter],
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64).ravel(),
+                           data["particle_position_y"][filter].astype(np.float64).ravel(),
+                           data["particle_position_z"][filter].astype(np.float64).ravel(),
+                           data["particle_mass"][filter].ravel(),
                            num,
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
@@ -408,10 +408,10 @@ def _cic_particle_field(field, data):
     top = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return top
     particle_field_data = data[particle_field] * data['particle_mass']
-    amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                           data["particle_position_y"].astype(np.float64),
-                           data["particle_position_z"].astype(np.float64),
-                           particle_field_data,
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64).ravel(),
+                           data["particle_position_y"].astype(np.float64).ravel(),
+                           data["particle_position_z"].astype(np.float64).ravel(),
+                           particle_field_data.ravel(),
                            data["particle_position_x"].size,
                            top, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
@@ -419,11 +419,11 @@ def _cic_particle_field(field, data):
     del particle_field_data
 
     bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-    amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                           data["particle_position_y"].astype(np.float64),
-                           data["particle_position_z"].astype(np.float64),
-                           data["particle_mass"],
-                           data["particle_position_x"].size,
+    amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64).ravel(),
+                           data["particle_position_y"].astype(np.float64).ravel(),
+                           data["particle_position_z"].astype(np.float64).ravel(),
+                           data["particle_mass"].ravel(),
+                           data["particle_position_x"].ravel().size,
                            bottom, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            just_one(data['dx']))
@@ -446,12 +446,13 @@ def _star_field(field, data):
     particle_field = field.name[5:]
     top = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return top
-    filter = data['creation_time'] > 0.0
-    if not filter.any(): return top
-    particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                          data["particle_position_y"][filter].astype(np.float64),
-                          data["particle_position_z"][filter].astype(np.float64),
+    filter = np.nonzero(data['creation_time'])
+    if True in [f == np.array([]) for f in filter]: return top
+    particle_field_data = data[particle_field][filter] * \
+        data['particle_mass'][filter]
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64).ravel(),
+                          data["particle_position_y"][filter].astype(np.float64).ravel(),
+                          data["particle_position_z"][filter].astype(np.float64).ravel(),
                           particle_field_data,
                           np.int64(np.where(filter)[0].size),
                           top, np.array(data.LeftEdge).astype(np.float64),
@@ -460,9 +461,9 @@ def _star_field(field, data):
     del particle_field_data
 
     bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                          data["particle_position_y"][filter].astype(np.float64),
-                          data["particle_position_z"][filter].astype(np.float64),
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64).ravel(),
+                          data["particle_position_y"][filter].astype(np.float64).ravel(),
+                          data["particle_position_z"][filter].astype(np.float64).ravel(),
                           data["particle_mass"][filter],
                           np.int64(np.where(filter)[0].size),
                           bottom, np.array(data.LeftEdge).astype(np.float64),
@@ -531,8 +532,8 @@ add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units=r"\rm{Gauss}")
 
 for pf in ["type", "mass"] + \
           ["position_%s" % ax for ax in 'xyz']:
-    add_enzo_field(("all", "particle_%s" % pf), NullFunc, particle_type=True)
-    
+    add_field(("all", "particle_%s" % pf), NullFunc, particle_type=True)
+
 def _convRetainInt(data):
     return 1
 add_enzo_field(("all", "particle_index"), function=NullFunc,
@@ -552,7 +553,7 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
     add_enzo_field(("all", pf), function=NullFunc,
               validators = [ValidateDataField(pf)],
               particle_type=True)
-add_field("particle_mass", function=NullFunc, particle_type=True)
+add_field(('all', "particle_mass"), function=NullFunc, particle_type=True)
 
 def _ParticleAge(field, data):
     current_time = data.pf.current_time
