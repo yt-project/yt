@@ -216,26 +216,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_levels(self, int max_level, int domain_id,
-                     np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
-        cdef np.ndarray[np.int64_t, ndim=1] level_count
-        cdef Oct *o
-        cdef int oi, i
-        level_count = np.zeros(max_level+1, 'int64')
-        cdef np.int64_t ndo, doff
-        ndo = self.dom_offsets[domain_id + 2] \
-            - self.dom_offsets[domain_id + 1]
-        doff = self.dom_offsets[domain_id + 1]
-        for oi in range(ndo):
-            o = self.oct_list[oi + doff]
-            for i in range(8):
-                if mask[o.domain_ind, i] == 0: continue
-                level_count[o.level] += 1
-        return level_count
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def add(self, np.ndarray[np.uint64_t, ndim=1] indices):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
@@ -333,107 +313,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     if o.children[i][j][k] != NULL:
                         self.visit(o.children[i][j][k], counts, level + 1)
         return
-
-    def domain_identify(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
-        #Return an array of length # of domains
-        #Every element is True if there is at least one
-        #fully refined *cell* in that domain that isn't masked out
-        cdef int i, oi, m
-        cdef Oct *o
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] dmask
-        dmask = np.zeros(self.max_domain+1, dtype='uint8')
-        for oi in range(self.nocts):
-            m = 0
-            o = self.oct_list[oi]
-            #if o.sd.np <= 0 or o.domain == -1: continue
-            for i in range(8):
-                if mask[oi, i] == 1:
-                    m = 1
-                    break
-            if m == 0: continue
-            dmask[o.domain] = 1
-        return dmask.astype("bool")
-
-    def domain_and(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                   int domain_id):
-        cdef np.int64_t i, oi, n, use
-        cdef Oct *o
-        cdef np.ndarray[np.uint8_t, ndim=2] m2 = \
-                np.zeros((mask.shape[0], 8), 'uint8')
-        n = mask.shape[0]
-        for oi in range(n):
-            o = self.oct_list[oi]
-            if o.domain != domain_id: continue
-            use = 0
-            for i in range(8):
-                m2[o.domain_ind, i] = mask[o.domain_ind, i]
-        return m2
-
-    def domain_mask(self,
-                    # mask is the base selector's *global* mask
-                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                    int domain_id):
-        # What distinguishes this one from domain_and is that we have a mask,
-        # which covers the whole domain, but our output will only be of a much
-        # smaller subset of octs that belong to a given domain *and* the mask.
-        # Note also that typically when something calls domain_and, they will 
-        # use a logical_any along the oct axis.  Here we don't do that.
-        # Note also that we change the shape of the returned array.
-        cdef np.int64_t i, j, k, oi, n, nm, use
-        cdef Oct *o
-        n = mask.shape[0]
-        nm = 0
-        # This could perhaps be faster if we 
-        for oi in range(n):
-            o = self.oct_list[oi]
-            if o.domain != domain_id: continue
-            use = 0
-            for i in range(8):
-                if mask[o.domain_ind, i] == 1: use = 1
-            nm += use
-        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
-                np.zeros((2, 2, 2, nm), 'uint8')
-        nm = 0
-        for oi in range(n):
-            o = self.oct_list[oi]
-            if o.domain != domain_id: continue
-            use = 0
-            for i in range(2):
-                for j in range(2):
-                    for k in range(2):
-                        ii = ((k*2)+j)*2+i
-                        if mask[o.domain_ind, ii] == 0: continue
-                        use = m2[i, j, k, nm] = 1
-            nm += use
-        return m2.astype("bool")
-
-    def domain_ind(self,
-                    # mask is the base selector's *global* mask
-                    np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                    int domain_id):
-        # Here we once again do something similar to the other functions.  We
-        # need a set of indices into the final reduced, masked values.  The
-        # indices will be domain.n long, and will be of type int64.  This way,
-        # we can get the Oct through a .get() call, then use Oct.file_ind as an
-        # index into this newly created array, then finally use the returned
-        # index into the domain subset array for deposition.
-        cdef np.int64_t i, j, k, oi, noct, n, nm, use, offset
-        cdef Oct *o
-        # For particle octrees, domain 0 is special and means non-leaf nodes.
-        offset = self.dom_offsets[domain_id + 1]
-        noct = self.dom_offsets[domain_id + 2] - offset
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.zeros(noct, 'int64')
-        nm = 0
-        for oi in range(noct):
-            ind[oi] = -1
-            o = self.oct_list[oi + offset]
-            use = 0
-            for i in range(8):
-                if mask[o.domain_ind, i] == 1: use = 1
-            if use == 1:
-                ind[oi] = nm
-            nm += use
-        return ind
 
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]
