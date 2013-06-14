@@ -34,7 +34,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import get_morton_indices
 
-from yt.geometry.oct_container import _ORDER_MAX, ParticleRegions
+from yt.geometry.oct_container import _ORDER_MAX
 
 _vector_fields = ("Coordinates", "Velocity", "Velocities")
 

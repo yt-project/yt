@@ -243,7 +243,7 @@ class YTDataContainer(object):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        rv = np.empty(self.size, dtype="float64")
+        rv = np.empty(self.ires.size, dtype="float64")
         ind = 0
         if ngz == 0:
             for io_chunk in self.chunks([], "io"):

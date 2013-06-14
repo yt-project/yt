@@ -36,7 +36,7 @@ from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
-from yt.geometry.oct_container import \
+from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, ParticleRegions
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
@@ -145,7 +145,7 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, None)
+        yield ParticleDataChunk(self.oct_handler, self.regions, dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz, sort = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -156,10 +156,21 @@ class ParticleGeometryHandler(GeometryHandler):
                 g = og
             size = og.cell_count
             if size == 0: continue
-            yield YTDataChunk(dobj, "spatial", [g], size)
+            yield ParticleDataChunk(self.oct_handler, self.regions,
+                                    dobj, "spatial", [g], size)
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], None)
+            yield ParticleDataChunk(self.oct_handler, self.regions,
+                                    dobj, "io", [subset], None)
 
+class ParticleDataChunk(YTDataChunk):
+    def __init__(self, oct_handler, regions, *args, **kwargs):
+        self.oct_handler = oct_handler
+        self.regions = regions
+        super(ParticleDataChunk, self).__init__(*args, **kwargs)
+
+    def _accumulate_values(self, method):
+        mfunc = getattr(self.oct_handler, "select_%s" % method)
+        return mfunc(self.dobj)

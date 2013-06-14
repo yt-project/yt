@@ -26,6 +26,8 @@ License:
 cimport numpy as np
 from fp_utils cimport *
 
+cdef int ORDER_MAX=20
+
 cdef struct Oct
 cdef struct Oct:
     np.int64_t file_ind     # index with respect to the order in which it was

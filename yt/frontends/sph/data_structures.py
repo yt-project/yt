@@ -59,6 +59,10 @@ from .fields import \
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
+class ParticleOctreeSubset(object):
+    def __init__(self):
+        pass
+
 class ParticleFile(object):
     def __init__(self, pf, io, filename, file_id):
         self.pf = pf
