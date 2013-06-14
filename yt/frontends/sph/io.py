@@ -53,8 +53,8 @@ class IOHandlerOWLS(BaseIOHandler):
         for ftype, fname in fields:
             ptf[ftype].append(fname)
         for chunk in chunks: # Will be OWLS domains
-            for subset in chunk.objs:
-                f = h5py.File(subset.domain.domain_filename, "r")
+            for data_file in chunk.objs:
+                f = h5py.File(data_file.filename, "r")
                 # This double-reads
                 for ptype, field_list in sorted(ptf.items()):
                     coords = f["/%s/Coordinates" % ptype][:].astype("float64")
@@ -73,8 +73,8 @@ class IOHandlerOWLS(BaseIOHandler):
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         for chunk in chunks: # Will be OWLS domains
-            for subset in chunk.objs:
-                f = h5py.File(subset.domain.domain_filename, "r")
+            for data_file in chunk.objs:
+                f = h5py.File(data_file.filename, "r")
                 for ptype, field_list in sorted(ptf.items()):
                     g = f["/%s" % ptype]
                     coords = g["Coordinates"][:].astype("float64")

@@ -84,10 +84,11 @@ class ParticleGeometryHandler(GeometryHandler):
             [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge)
         self.oct_handler.n_ref = 64
         mylog.info("Allocating for %0.3e particles", self.total_particles)
-        N = len(self.data_files)
+        # No more than 256^3 in the region finder.
+        N = min(len(self.data_files), 256) 
         self.regions = ParticleRegions(
                 pf.domain_left_edge, pf.domain_right_edge,
-                [N, N, N], N)
+                [N, N, N], len(self.data_files))
         self._initialize_indices()
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
@@ -139,8 +140,6 @@ class ParticleGeometryHandler(GeometryHandler):
             mask = dobj.selector.select_octs(self.oct_handler)
             file_ids = self.regions.identify_data_files(dobj.selector)
             dobj._chunk_info = [self.data_files[i] for i in file_ids]
-            #dobj.size = sum(counts)
-            #dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
@@ -161,5 +160,5 @@ class ParticleGeometryHandler(GeometryHandler):
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+            yield YTDataChunk(dobj, "io", [subset], -1)
 
