@@ -1064,7 +1064,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def add(self, np.ndarray[np.uint64_t, ndim=1] indices, np.int64_t domain_id):
+    def add(self, np.ndarray[np.uint64_t, ndim=1] indices):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
@@ -1092,10 +1092,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     self.filter_particles(cur, data, p)
                 else:
                     cur = cur.children[ind[0]][ind[1]][ind[2]]
-                    if domain_id > 0:
-                        cur.file_ind = 0
-                        self.filter_particles(cur, data, p)
-            if p >= self.n_ref: domain_id = 0
             cur.file_ind += 1
 
     @cython.boundscheck(False)

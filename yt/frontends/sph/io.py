@@ -92,7 +92,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 f.close()
         return rv
 
-    def _initialize_index(self, data_file, octree, regions):
+    def _initialize_index(self, data_file, regions):
         f = h5py.File(data_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
         morton = np.empty(pcount, dtype='uint64')
@@ -107,8 +107,7 @@ class IOHandlerOWLS(BaseIOHandler):
             pos = np.floor((pos - DLE)/dx).astype("uint64")
             morton[ind:ind+pos.shape[0]] = get_morton_indices(pos)
         f.close()
-        morton.sort()
-        #octree.add(morton, data_file.file_id)
+        return morton
 
     def _count_particles(self, data_file):
         f = h5py.File(data_file.filename, "r")
@@ -386,7 +385,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 f.close()
         return rv
 
-    def _initialize_index(self, data_file, octree, regions):
+    def _initialize_index(self, data_file, regions):
         pf = data_file.pf
         morton = np.empty(sum(data_file.total_particles.values()),
                           dtype="uint64")
@@ -428,8 +427,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 morton[ind:ind+count] = get_morton_indices(pos)
                 del pp, pos
         mylog.info("Adding %0.3e particles", morton.size)
-        morton.sort()
-        octree.add(morton, data_file.file_id)
+        return morton
 
     def _count_particles(self, domain):
         npart = {

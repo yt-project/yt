@@ -77,23 +77,44 @@ class ParticleGeometryHandler(GeometryHandler):
         cls = self.parameter_file._file_class
         self.data_files = [cls(self.parameter_file, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
-        total_particles = sum(sum(d.total_particles.values())
-                              for d in self.data_files)
+        self.total_particles = sum(
+                sum(d.total_particles.values()) for d in self.data_files)
         pf = self.parameter_file
         self.oct_handler = ParticleOctreeContainer(
             [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge)
         self.oct_handler.n_ref = 64
-        mylog.info("Allocating for %0.3e particles", total_particles)
+        mylog.info("Allocating for %0.3e particles", self.total_particles)
         N = len(self.data_files)
         self.regions = ParticleRegions(
                 pf.domain_left_edge, pf.domain_right_edge,
                 [N, N, N], N)
-        for dom in self.data_files:
-            self.io._initialize_index(dom, self.oct_handler, self.regions)
+        self._initialize_indices()
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
         tot = sum(self.oct_handler.recursively_count().values())
         mylog.info("Identified %0.3e octs", tot)
+
+    def _initialize_indices(self):
+        # This will be replaced with a parallel-aware iteration step.
+        # Roughly outlined, what we will do is:
+        #   * Generate Morton indices on each set of files that belong to
+        #     an individual processor
+        #   * Create a global, accumulated histogram
+        #   * Cut based on estimated load balancing
+        #   * Pass particles to specific processors, along with NREF buffer
+        #   * Broadcast back a serialized octree to join
+        #
+        # For now we will do this in serial.
+        morton = np.empty(self.total_particles, dtype="uint64")
+        ind = 0
+        for data_file in self.data_files:
+            npart = sum(data_file.total_particles.values())
+            morton[ind:ind + npart] = \
+                self.io._initialize_index(data_file, self.regions)
+        morton.sort()
+        # Now we add them all at once.
+        self.oct_handler.add(morton)
+
 
     def _detect_fields(self):
         # TODO: Add additional fields
