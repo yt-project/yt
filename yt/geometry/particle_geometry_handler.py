@@ -180,5 +180,7 @@ class ParticleDataChunk(YTDataChunk):
 
     def _accumulate_values(self, method):
         mfunc = getattr(self.oct_handler, method)
-        return mfunc(self.dobj.selector)
+        rv = mfunc(self.dobj.selector)
+        self._data_size = rv.shape[0]
+        return rv
 
