@@ -113,7 +113,10 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
     else:
         raise RuntimeError
 
-# Inclined Box
+# Now our visitor functions
+
+cdef void visit_count_octs(Oct *o, OctVisitorData *data):
+    data.index += 1
 
 cdef class SelectorObject:
 
@@ -229,11 +232,12 @@ cdef class SelectorObject:
     def count_octs(self, OctreeContainer octree):
         cdef int i, j, k, n
         cdef np.float64_t pos[3], dds[3]
-        cdef np.int64_t count = 0
         # This dds is the oct-width
         for i in range(3):
             dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
         # Pos is the center of the octs
+        cdef OctVisitorData data
+        data.index = 0
         pos[0] = octree.DLE[0] + dds[0]/2.0
         for i in range(octree.nn[0]):
             pos[1] = octree.DLE[1] + dds[1]/2.0
@@ -241,20 +245,22 @@ cdef class SelectorObject:
                 pos[2] = octree.DLE[2] + dds[2]/2.0
                 for k in range(octree.nn[2]):
                     if octree.root_mesh[i][j][k] == NULL: continue
-                    self.recursively_count_octs(
+                    self.recursively_visit_octs(
                         octree.root_mesh[i][j][k],
-                        pos, dds, 0, &count) 
+                        pos, dds, 0, visit_count_octs, &data)
                     pos[2] += dds[2]
                 pos[1] += dds[1]
             pos[0] += dds[0]
-        return count
+        return data.index
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void recursively_count_octs(self, Oct *root,
+    cdef void recursively_visit_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
-                        int level, np.int64_t *count):
+                        int level, 
+                        oct_visitor_function *func,
+                        OctVisitorData *data):
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res, ii
         cdef Oct *ch
@@ -291,10 +297,11 @@ cdef class SelectorObject:
                     ii = ((k*2)+j)*2+i
                     ch = root.children[i][j][k]
                     if next_level == 1 and ch != NULL:
-                        self.recursively_count_octs(
-                            ch, spos, sdds, level + 1, count)
-                    elif this_level == 1:
-                        count[0] += self.select_cell(spos, sdds, eterm)
+                        self.recursively_visit_octs(
+                            ch, spos, sdds, level + 1, func, data)
+                    elif this_level == 1 and self.select_cell(
+                                    spos, sdds, eterm):
+                        func(ch, data)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
             spos[0] += sdds[0]
