@@ -83,3 +83,4 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 cdef void visit_icoords_octs(Oct *o, OctVisitorData *data)
 cdef void visit_ires_octs(Oct *o, OctVisitorData *data)
 cdef void visit_fcoords_octs(Oct *o, OctVisitorData *data)
+cdef void visit_fwidth_octs(Oct *o, OctVisitorData *data)

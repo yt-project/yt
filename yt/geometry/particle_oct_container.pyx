@@ -26,7 +26,8 @@ License:
 """
 
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
-    visit_icoords_octs, visit_ires_octs, visit_fcoords_octs
+    visit_icoords_octs, visit_ires_octs, \
+    visit_fcoords_octs, visit_fwidth_octs
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -134,6 +135,24 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         data.index = 0
         self.visit_all_octs(selector, visit_ires_octs, &data)
         return res
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1):
+        if num_cells == -1:
+            num_cells = selector.count_octs(self)
+        cdef np.ndarray[np.float64_t, ndim=2] fwidth
+        fwidth = np.empty((num_cells, 3), dtype="float64")
+        cdef OctVisitorData data
+        data.array = <void *> fwidth.data
+        data.index = 0
+        self.visit_all_octs(selector, visit_fwidth_octs, &data)
+        cdef np.float64_t base_dx
+        for i in range(3):
+            base_dx = (self.DRE[i] - self.DLE[i])/self.nn[i]
+            fwidth[:,i] *= base_dx
+        return fwidth
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
