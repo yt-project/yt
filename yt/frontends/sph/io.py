@@ -52,16 +52,24 @@ class IOHandlerOWLS(BaseIOHandler):
         chunks = list(chunks)
         for ftype, fname in fields:
             ptf[ftype].append(fname)
-        for chunk in chunks: # Will be OWLS domains
-            for data_file in chunk.objs:
-                f = h5py.File(data_file.filename, "r")
-                # This double-reads
-                for ptype, field_list in sorted(ptf.items()):
-                    coords = f["/%s/Coordinates" % ptype][:].astype("float64")
-                    psize[ptype] += selector.count_points(
-                        coords[:,0], coords[:,1], coords[:,2])
-                    del coords
-                f.close()
+        # For this type of file, we actually have something slightly different.
+        # We are given a list of ParticleDataChunks, which is composed of
+        # individual ParticleOctreeSubsets.  The data_files attribute on these
+        # may in fact overlap.  So we will iterate over a union of all the
+        # data_files.
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            f = h5py.File(data_file.filename, "r")
+            # This double-reads
+            for ptype, field_list in sorted(ptf.items()):
+                coords = f["/%s/Coordinates" % ptype][:].astype("float64")
+                psize[ptype] += selector.count_points(
+                    coords[:,0], coords[:,1], coords[:,2])
+                del coords
+            f.close()
         # Now we have all the sizes, and we can allocate
         ind = {}
         for field in fields:
@@ -72,24 +80,23 @@ class IOHandlerOWLS(BaseIOHandler):
                 shape = psize[field[0]]
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
-        for chunk in chunks: # Will be OWLS domains
-            for data_file in chunk.objs:
-                f = h5py.File(data_file.filename, "r")
-                for ptype, field_list in sorted(ptf.items()):
-                    g = f["/%s" % ptype]
-                    coords = g["Coordinates"][:].astype("float64")
-                    mask = selector.select_points(
-                                coords[:,0], coords[:,1], coords[:,2])
-                    del coords
-                    if mask is None: continue
-                    for field in field_list:
-                        data = g[field][:][mask,...]
-                        my_ind = ind[ptype, field]
-                        mylog.debug("Filling from %s to %s with %s",
-                            my_ind, my_ind+data.shape[0], field)
-                        rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                        ind[ptype, field] += data.shape[0]
-                f.close()
+        for data_file in data_files:
+            f = h5py.File(data_file.filename, "r")
+            for ptype, field_list in sorted(ptf.items()):
+                g = f["/%s" % ptype]
+                coords = g["Coordinates"][:].astype("float64")
+                mask = selector.select_points(
+                            coords[:,0], coords[:,1], coords[:,2])
+                del coords
+                if mask is None: continue
+                for field in field_list:
+                    data = g[field][:][mask,...]
+                    my_ind = ind[ptype, field]
+                    mylog.debug("Filling from %s to %s with %s",
+                        my_ind, my_ind+data.shape[0], field)
+                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
+                    ind[ptype, field] += data.shape[0]
+            f.close()
         return rv
 
     def _initialize_index(self, data_file, regions):

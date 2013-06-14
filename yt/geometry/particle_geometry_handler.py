@@ -44,6 +44,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 
 from yt.data_objects.data_containers import data_object_registry
+from yt.data_objects.octree_subset import ParticleOctreeSubset
 
 class ParticleGeometryHandler(GeometryHandler):
     _global_mesh = False
@@ -141,9 +142,10 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            mask = dobj.selector.select_octs(self.oct_handler)
             file_ids = self.regions.identify_data_files(dobj.selector)
-            dobj._chunk_info = [self.data_files[i] for i in file_ids]
+            subset = [ParticleOctreeSubset([self.data_files[i] for i in file_ids],
+                                          self.parameter_file)]
+            dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
@@ -152,15 +154,17 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _chunk_spatial(self, dobj, ngz, sort = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i,og in enumerate(sobjs):
-            if ngz > 0:
-                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
-            else:
-                g = og
-            size = og.cell_count
-            if size == 0: continue
-            yield ParticleDataChunk(self.oct_handler, self.regions,
-                                    dobj, "spatial", [g], size)
+        # We actually do not really use the data files except as input to the
+        # ParticleOctreeSubset.
+        # This is where we will perform cutting of the Octree and
+        # load-balancing.  That may require a specialized selector object to
+        # cut based on some space-filling curve index.
+        osubset = ParticleOctreeSubset(sobjs, self.parameter_file)
+                                       
+        if ngz > 0:
+            raise NotImplementedError
+        yield ParticleDataChunk(self.oct_handler, self.regions,
+                                dobj, "spatial", [osubset])
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -175,5 +179,6 @@ class ParticleDataChunk(YTDataChunk):
         super(ParticleDataChunk, self).__init__(*args, **kwargs)
 
     def _accumulate_values(self, method):
-        mfunc = getattr(self.oct_handler, "select_%s" % method)
-        return mfunc(self.dobj)
+        mfunc = getattr(self.oct_handler, method)
+        return mfunc(self.dobj.selector)
+

@@ -1213,3 +1213,50 @@ cdef class OctreeSubsetSelector(SelectorObject):
 
 octree_subset_selector = OctreeSubsetSelector
 
+cdef class ParticleOctreeSubsetSelector(SelectorObject):
+    # This is a numpy array, which will be a bool of ndim 1
+    cdef np.uint64_t min_ind
+    cdef np.uint64_t max_ind
+
+    def __init__(self, dobj):
+        self.min_ind = dobj.min_ind
+        self.max_ind = dobj.max_ind
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_octs(self, OctreeContainer octree):
+        # There has to be a better way to do this.
+        cdef np.ndarray[np.uint8_t, ndim=2, cast=True] m2
+        m2 = np.ones((octree.nocts, 8), dtype="uint8")
+        # This is where we'll -- in the future -- cut up based on indices of
+        # the octs.
+        return m2.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        check[0] = 0
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges,
+                     np.ndarray[np.int32_t, ndim=2] levels):
+        raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        return 1
+
+particle_octree_subset_selector = ParticleOctreeSubsetSelector
+

@@ -168,3 +168,74 @@ class OctreeSubset(YTSelectionContainer):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x,y,z)
         return mask
+
+class ParticleOctreeSubset(OctreeSubset):
+    # Subclassing OctreeSubset is somewhat dubious.
+    # This is some subset of an octree.  Note that the sum of subsets of an
+    # octree may multiply include data files.  While we can attempt to mitigate
+    # this, it's unavoidable for many types of data storage on disk.
+    _type_name = 'particle_octree_subset'
+    _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
+    def __init__(self, data_files, pf, min_ind = 0, max_ind = 0):
+        # The first attempt at this will not work in parallel.
+        self.data_files = data_files
+        self.field_data = YTFieldData()
+        self.field_parameters = {}
+        self.pf = pf
+        self.hierarchy = self.pf.hierarchy
+        self.oct_handler = pf.h.oct_handler
+        self.min_ind = min_ind
+        self.max_ind = max_ind
+        if max_ind == 0: max_ind = (1 << 63)
+        self._last_mask = None
+        self._last_selector_id = None
+        self._current_particle_type = 'all'
+        self._current_fluid_type = self.pf.default_fluid_type
+
+    def select_icoords(self, dobj):
+        return self.oct_handler.icoords(dobj)
+
+    def select_fcoords(self, dobj):
+        return self.oct_handler.fcoords(dobj)
+
+    def select_fwidth(self, dobj):
+        # Recall domain_dimensions is the number of cells, not octs
+        base_dx = (self.domain.pf.domain_width /
+                   self.domain.pf.domain_dimensions)
+        widths = np.empty((self.cell_count, 3), dtype="float64")
+        dds = (2**self.select_ires(dobj))
+        for i in range(3):
+            widths[:,i] = base_dx[i] / dds
+        return widths
+
+    def select_ires(self, dobj):
+        return self.oct_handler.ires(dobj)
+
+    def select(self, selector):
+        if id(selector) == self._last_selector_id:
+            return self._last_mask
+        m1 = self.selector.select_octs(self.oct_handler)
+        m2 = selector.select_octs(self.oct_handler)
+        np.logical_and(m1, m2, m1)
+        del m2
+        self._last_mask = m1
+        if self._last_mask.sum() == 0: return None
+        self._last_selector_id = id(selector)
+        return self._last_mask
+
+    def count(self, selector):
+        if id(selector) == self._last_selector_id:
+            if self._last_mask is None: return 0
+            return self._last_mask.sum()
+        self.select(selector)
+        return self.count(selector)
+
+    def count_particles(self, selector, x, y, z):
+        # We don't cache the selector results
+        count = selector.count_points(x,y,z)
+        return count
+
+    def select_particles(self, selector, x, y, z):
+        mask = selector.select_points(x,y,z)
+        return mask
+
