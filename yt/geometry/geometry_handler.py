@@ -188,7 +188,10 @@ class GeometryHandler(ParallelAnalysisInterface):
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
-            except YTFieldNotFound as e:
+            except Exception as e:
+                if type(e) != YTFieldNotFound:
+                    mylog.debug("Exception %s raised during field detection" %
+                                str(type(e)))
                 continue
             missing = False
             # This next bit checks that we can't somehow generate everything.
