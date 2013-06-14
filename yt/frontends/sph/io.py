@@ -92,23 +92,33 @@ class IOHandlerOWLS(BaseIOHandler):
                 f.close()
         return rv
 
-    def _initialize_index(self, domain, octree):
-        f = h5py.File(domain.domain_filename, "r")
+    def _initialize_index(self, data_file, octree, regions):
+        f = h5py.File(data_file.filename, "r")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+        morton = np.empty(pcount, dtype='uint64')
+        DLE = data_file.pf.domain_left_edge
+        DRE = data_file.pf.domain_right_edge
+        dx = (DRE - DLE) / 2**_ORDER_MAX
+        ind = 0
         for key in f.keys():
             if not key.startswith("PartType"): continue
             pos = f[key]["Coordinates"][:].astype("float64")
-            octree.add(pos, domain.domain_id)
+            regions.add_data_file(pos, data_file.file_id)
+            pos = np.floor((pos - DLE)/dx).astype("uint64")
+            morton[ind:ind+pos.shape[0]] = get_morton_indices(pos)
         f.close()
+        morton.sort()
+        #octree.add(morton, data_file.file_id)
 
-    def _count_particles(self, domain):
-        f = h5py.File(domain.domain_filename, "r")
-        np = f["/Header"].attrs["NumPart_ThisFile"][:]
+    def _count_particles(self, data_file):
+        f = h5py.File(data_file.filename, "r")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
-        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(np)) 
+        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount)) 
         return npart
 
-    def _identify_fields(self, domain):
-        f = h5py.File(domain.domain_filename, "r")
+    def _identify_fields(self, data_file):
+        f = h5py.File(data_file.filename, "r")
         fields = []
         for key in f.keys():
             if not key.startswith("PartType"): continue
