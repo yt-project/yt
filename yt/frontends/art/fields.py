@@ -286,7 +286,7 @@ def baryon_density(field, data):
     pmass = data["stars", "particle_mass"]
     mass  = data.deposit(pos, [pmass], method = "sum")
     mass += data["gas", "CellMass"]
-    vol   = data["CellVolume"]
+    vol   = data["gas", "CellVolume"]
     return mass / vol
 
 ARTFieldInfo.add_field(("deposit", "baryon_density"),
@@ -323,11 +323,11 @@ def multimass_density(field, data):
                            for ax in 'xyz'])
     pmas = data[ptype, "particle_mass"]
     mass = data.deposit(pos, [pmas], method = "sum")
-    vol   = data["gas", "CellVolume"]
+    vol   = data["gas","CellVolume"]
     return rho + mass / vol
 
 ARTFieldInfo.add_field(("deposit", "multimass_density"),
-         function = total_density,
+         function = multimass_density,
          validators = [ValidateSpatial()],
          display_name = "\\mathrm{Multimass Density}",
          units = r"\mathrm{g}/\mathrm{cm}^{3}",
