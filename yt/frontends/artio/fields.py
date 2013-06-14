@@ -295,12 +295,12 @@ add_field(('nbody', "ParticleMassMsun"),
 
 #add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field, data):
-    pa = b2t(data['creation_time'])
+    pa = b2t(data['stars','creation_time'])
 #    tr = np.zeros(pa.shape,dtype='float')-1.0
 #    tr[pa>0] = pa[pa>0]
     tr = pa
     return tr
-add_field("particle_age", function=_particle_age, units=r"\rm{s}",
+add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
           particle_type=True)
 
 
@@ -416,10 +416,10 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
 
 def b2t(tb, n=1e2, logger=None, **kwargs):
     tb = np.array(tb)
-    if isinstance(tb, 1.1):
+    if len(np.atleast_1d(tb)) == 1: 
         return a2t(b2a(tb))
     if tb.shape == ():
-        return a2t(b2a(tb))
+        return None 
     if len(tb) < n:
         n = len(tb)
     age_min = a2t(b2a(tb.max(), **kwargs), **kwargs)
@@ -434,7 +434,7 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
     ages = np.array(ages)
     fb2t = np.interp(tb, tbs, ages)
     #fb2t = interp1d(tbs,ages)
-    return fb2t
+    return fb2t*1e9*31556926
 
 
 def spread_ages(ages, logger=None, spread=.0e7*365*24*3600):

@@ -443,7 +443,7 @@ void smMergeHash(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	    /* Else, this slot was full, go to the next one */
 	    hp++;
 	    if (hp>=smx->hash+smx->nHashLength) hp = smx->hash;
-	    if (++count>1000) {
+	    if (++count>1000000) {
 		fprintf(stderr,"Hash Table is too full.\n");
 		exit(1);
 	    }
