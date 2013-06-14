@@ -66,7 +66,10 @@ class ParticleGeometryHandler(GeometryHandler):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        raise NotImplementedError
+        dx = 1.0/(2**self.oct_handler.max_level)
+        dx *= (self.parameter_file.domain_right_edge -
+               self.parameter_file.domain_left_edge)
+        return dx.min()
 
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]

@@ -26,7 +26,7 @@ License:
 cimport numpy as np
 from fp_utils cimport *
 
-cdef int ORDER_MAX=20
+cdef int ORDER_MAX
 
 cdef struct Oct
 cdef struct Oct:

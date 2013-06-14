@@ -34,6 +34,7 @@ from oct_container cimport Oct, OctAllocationContainer, \
 from selection_routines cimport SelectorObject
 cimport cython
 
+ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX
 
 cdef extern from "stdlib.h":
