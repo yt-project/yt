@@ -407,6 +407,8 @@ class YTDataContainer(object):
                     ftype = self._current_particle_type
                 else:
                     ftype = self._current_fluid_type
+                    if (ftype, fname) not in self.pf.field_info:
+                        ftype = "gas"
             if finfo.particle_type and ftype not in self.pf.particle_types:
                 raise YTFieldTypeNotFound(ftype)
             elif not finfo.particle_type and ftype not in self.pf.fluid_types:
