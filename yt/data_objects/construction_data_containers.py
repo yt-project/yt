@@ -311,7 +311,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.multiply(py, self.pf.domain_width[y_dict[self.axis]], py)
         np.add(py, oy, py)
         np.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
-
         if self.weight_field is not None:
             np.divide(nvals, nwvals[:,None], nvals)
         if self.weight_field is None:
@@ -336,8 +335,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _initialize_chunk(self, chunk, tree):
         icoords = chunk.icoords
-        i1 = icoords[:,0]
-        i2 = icoords[:,1]
+        i1 = icoords[:,x_dict[self.axis]]
+        i2 = icoords[:,y_dict[self.axis]]
         ilevel = chunk.ires
         tree.initialize_chunk(i1, i2, ilevel)
 

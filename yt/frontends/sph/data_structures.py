@@ -145,9 +145,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
                     ('unused', 16, 'i') )
 
     def __init__(self, filename, data_style="gadget_binary",
-                 additional_fields = (), root_dimensions = 64,
+                 additional_fields = (),
                  unit_base = None):
-        self._root_dimensions = root_dimensions
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -180,7 +179,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+        self.domain_dimensions = np.ones(3, "int32") * 2
         self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
@@ -258,11 +257,9 @@ class OWLSStaticOutput(GadgetStaticOutput):
     _fieldinfo_known = KnownOWLSFields
     _header_spec = None # Override so that there's no confusion
 
-    def __init__(self, filename, data_style="OWLS", root_dimensions = 64):
-        self._root_dimensions = root_dimensions
+    def __init__(self, filename, data_style="OWLS"):
         self.storage_filename = None
         super(OWLSStaticOutput, self).__init__(filename, data_style,
-                                               root_dimensions,
                                                unit_base = None)
 
     def __repr__(self):
@@ -283,7 +280,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
         self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+        self.domain_dimensions = np.ones(3, "int32") * 2
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]
@@ -346,14 +343,13 @@ class TipsyStaticOutput(ParticleStaticOutput):
                     ('dummy',   'i'))
 
     def __init__(self, filename, data_style="tipsy",
-                 root_dimensions = 64, endian = ">",
+                 endian = ">",
                  field_dtypes = None,
                  domain_left_edge = None,
                  domain_right_edge = None,
                  unit_base = None,
                  cosmology_parameters = None):
         self.endian = endian
-        self._root_dimensions = root_dimensions
         self.storage_filename = None
         if domain_left_edge is None:
             domain_left_edge = np.zeros(3, "float64") - 0.5
@@ -399,7 +395,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
         # NOTE: These are now set in the main initializer.
         #self.domain_left_edge = np.zeros(3, "float64") - 0.5
         #self.domain_right_edge = np.ones(3, "float64") + 0.5
-        self.domain_dimensions = np.ones(3, "int32") * self._root_dimensions
+        self.domain_dimensions = np.ones(3, "int32") * 2
         self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1

@@ -329,9 +329,9 @@ def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
     morton_indices = np.zeros(left_index.shape[0], 'uint64')
     for i in range(left_index.shape[0]):
         mi = 0
-        mi |= spread_bits(left_index[i,0])<<0
+        mi |= spread_bits(left_index[i,2])<<0
         mi |= spread_bits(left_index[i,1])<<1
-        mi |= spread_bits(left_index[i,2])<<2
+        mi |= spread_bits(left_index[i,0])<<2
         morton_indices[i] = mi
     return morton_indices
 
