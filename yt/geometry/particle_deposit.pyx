@@ -72,14 +72,18 @@ cdef class ParticleDepositOperation:
                 field_vals[j] = field_pointers[j][i]
             for j in range(3):
                 pos[j] = positions[i, j]
+            # This line should be modified to have it return the index into an
+            # array based on whatever cutting of the domain we have done.  This
+            # may or may not include the domain indices that we have
+            # previously generated.  This way we can support not knowing the
+            # full octree structure.  All we *really* care about is some
+            # arbitrary offset into a field value for deposition.
             oct = octree.get(pos, &oi)
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
-            #print oct.domain, domain_id
             if oct.domain != domain_id: continue
             # Note that this has to be our local index, not our in-file index.
             offset = dom_ind[oct.domain_ind - moff] * 8
-            #print domain_id, offset, oct.domain_ind, oct.file_ind, oct.domain, oct.pos[0], oct.pos[1], oct.pos[2]
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
