@@ -1217,10 +1217,12 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     # This is a numpy array, which will be a bool of ndim 1
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
+    cdef SelectorObject base_selector
 
     def __init__(self, dobj):
         self.min_ind = dobj.min_ind
         self.max_ind = dobj.max_ind
+        self.base_selector = dobj.base_selector
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1228,9 +1230,18 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     def select_octs(self, OctreeContainer octree):
         # There has to be a better way to do this.
         cdef np.ndarray[np.uint8_t, ndim=2, cast=True] m2
-        m2 = np.ones((octree.nocts, 8), dtype="uint8")
+        m2 = self.base_selector.select_octs(octree)
         # This is where we'll -- in the future -- cut up based on indices of
         # the octs.
+        cdef np.int64_t nm, i
+        cdef np.uint8_t use, k
+        nm = m2.shape[0]
+        for i in range(nm):
+            use = 0
+            for k in range(8):
+                if m2[i,k] == 1: use = 1
+            for k in range(8):
+                m2[i,k] = use
         return m2.astype("bool")
 
     @cython.boundscheck(False)

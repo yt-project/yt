@@ -28,6 +28,7 @@ cimport numpy as np
 cdef struct Oct
 cdef struct OctVisitorData:
     np.uint64_t index
+    np.uint64_t last
     int ind[3]
     void *array
 

@@ -142,8 +142,12 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            data_files = getattr(dobj, "data_files", self.data_files)
-            subset = [ParticleOctreeSubset(data_files, self.parameter_file)]
+            data_files = getattr(dobj, "data_files", None)
+            if data_files is None:
+                data_files = [self.data_files[i] for i in
+                              self.regions.identify_data_files(dobj.selector)]
+            subset = [ParticleOctreeSubset(dobj.selector, data_files, 
+                        self.parameter_file)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 

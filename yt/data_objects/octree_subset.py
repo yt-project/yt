@@ -176,7 +176,7 @@ class ParticleOctreeSubset(OctreeSubset):
     # this, it's unavoidable for many types of data storage on disk.
     _type_name = 'particle_octree_subset'
     _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
-    def __init__(self, data_files, pf, min_ind = 0, max_ind = 0):
+    def __init__(self, base_selector, data_files, pf, min_ind = 0, max_ind = 0):
         # The first attempt at this will not work in parallel.
         self.data_files = data_files
         self.field_data = YTFieldData()
@@ -191,34 +191,54 @@ class ParticleOctreeSubset(OctreeSubset):
         self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
+        self.base_selector = base_selector
+    
+    _domain_ind = None
 
+    @property
+    def domain_ind(self):
+        if self._domain_ind is None:
+            mask = self.selector.select_octs(self.oct_handler)
+            di = self.oct_handler.domain_ind(mask)
+            self._domain_ind = di
+        return self._domain_ind
+
+    def deposit(self, positions, fields = None, method = None):
+        # Here we perform our particle deposition.
+        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        if cls is None:
+            raise YTParticleDepositionNotImplemented(method)
+        nvals = (self.domain_ind >= 0).sum() * 8
+        op = cls(nvals) # We allocate number of zones, not number of octs
+        op.initialize()
+        op.process_octree(self.oct_handler, self.domain_ind, positions, fields, 0)
+        vals = op.finalize()
+        return self._reshape_vals(vals)
+    
     def select_icoords(self, dobj):
-        return self.oct_handler.icoords(dobj)
+        return self.oct_handler.icoords(dobj.selector)
 
     def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(dobj)
+        return self.oct_handler.fcoords(dobj.selector)
 
     def select_fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
-        base_dx = (self.domain.pf.domain_width /
-                   self.domain.pf.domain_dimensions)
-        widths = np.empty((self.cell_count, 3), dtype="float64")
+        base_dx = (self.pf.domain_width /
+                   self.pf.domain_dimensions)
         dds = (2**self.select_ires(dobj))
+        widths = np.empty((dds.shape[0], 3), dtype="float64")
         for i in range(3):
             widths[:,i] = base_dx[i] / dds
         return widths
 
     def select_ires(self, dobj):
-        return self.oct_handler.ires(dobj)
+        return self.oct_handler.ires(dobj.selector)
 
     def select(self, selector):
         if id(selector) == self._last_selector_id:
             return self._last_mask
-        m1 = self.selector.select_octs(self.oct_handler)
-        m2 = selector.select_octs(self.oct_handler)
-        np.logical_and(m1, m2, m1)
-        del m2
-        self._last_mask = m1
+        self._last_mask = self.oct_handler.domain_mask(
+                self.selector)
         if self._last_mask.sum() == 0: return None
         self._last_selector_id = id(selector)
         return self._last_mask

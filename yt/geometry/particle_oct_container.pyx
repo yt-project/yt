@@ -27,7 +27,9 @@ License:
 
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     visit_icoords_octs, visit_ires_octs, \
-    visit_fcoords_octs, visit_fwidth_octs
+    visit_fcoords_octs, visit_fwidth_octs, \
+    visit_count_octs, visit_count_total_octs, \
+    visit_mark_octs
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -187,7 +189,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0, lpos = 0
         cdef int cur_dom = -1
-        # We always need at least 2, and if max_domain is 0, we need 3.
+        # Note that we now assign them in the same order they will be visited
+        # by recursive visitors.
         for i in range(self.nn[0]):
             for j in range(self.nn[1]):
                 for k in range(self.nn[2]):
@@ -195,6 +198,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
+            if self.oct_list[i].children[0][0][0] != NULL:
+                self.oct_list[i].domain = -1
             self.oct_list[i].file_ind = -1
             max_level = imax(max_level, self.oct_list[i].level)
         self.max_level = max_level
@@ -211,7 +216,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         return
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
-        return self.dom_offsets[domain_id + 1]
+        return 0
 
     cdef Oct* allocate_oct(self):
         #Allocate the memory, set to NULL or -1
@@ -333,6 +338,34 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         self.visit(o.children[i][j][k], counts, level + 1)
         return
 
+    def domain_ind(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+        cdef np.ndarray[np.int64_t, ndim=1] ind
+        ind = np.empty(mask.shape[0], 'int64')
+        # Here's where we grab the masked items.
+        nm = 0
+        for oi in range(mask.shape[0]):
+            ind[oi] = -1
+            use = 0
+            for i in range(8):
+                if mask[oi, i] == 1: use = 1
+            if use == 1:
+                ind[oi] = nm
+            nm += use
+        return ind
+
+    def domain_mask(self, SelectorObject selector):
+        cdef OctVisitorData data
+        data.index = 0
+        data.last = -1
+        self.visit_all_octs(selector, visit_count_total_octs, &data)
+        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
+                np.zeros((2, 2, 2, data.index), 'uint8')
+        data.index = 0
+        data.last = -1
+        data.array = m2.data
+        self.visit_all_octs(selector, visit_mark_octs, &data)
+        return m2.astype("bool")
+
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t dds[3]
@@ -399,3 +432,4 @@ cdef class ParticleRegions:
                 if ((fmask >> i) & 1) == 1:
                     files.append(i + n * 64)
         return files
+
