@@ -199,7 +199,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
             if self.oct_list[i].children[0][0][0] != NULL:
-                self.oct_list[i].domain = -1
+                self.oct_list[i].domain = 0
+            else:
+                self.oct_list[i].domain = 0
             self.oct_list[i].file_ind = -1
             max_level = imax(max_level, self.oct_list[i].level)
         self.max_level = max_level

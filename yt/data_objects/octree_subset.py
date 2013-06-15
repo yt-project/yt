@@ -223,13 +223,7 @@ class ParticleOctreeSubset(OctreeSubset):
 
     def select_fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
-        base_dx = (self.pf.domain_width /
-                   self.pf.domain_dimensions)
-        dds = (2**self.select_ires(dobj))
-        widths = np.empty((dds.shape[0], 3), dtype="float64")
-        for i in range(3):
-            widths[:,i] = base_dx[i] / dds
-        return widths
+        return self.oct_handler.fwidth(dobj.selector)
 
     def select_ires(self, dobj):
         return self.oct_handler.ires(dobj.selector)

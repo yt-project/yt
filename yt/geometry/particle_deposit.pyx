@@ -75,10 +75,11 @@ cdef class ParticleDepositOperation:
             oct = octree.get(pos, &oi)
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
+            #print oct.domain, domain_id
             if oct.domain != domain_id: continue
-            #print domain_id, oct.local_ind, oct.ind, oct.domain, oct.pos[0], oct.pos[1], oct.pos[2]
             # Note that this has to be our local index, not our in-file index.
             offset = dom_ind[oct.domain_ind - moff] * 8
+            #print domain_id, offset, oct.domain_ind, oct.file_ind, oct.domain, oct.pos[0], oct.pos[1], oct.pos[2]
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
