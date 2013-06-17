@@ -29,7 +29,7 @@ from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     visit_icoords_octs, visit_ires_octs, \
     visit_fcoords_octs, visit_fwidth_octs, \
     visit_count_octs, visit_count_total_octs, \
-    visit_mark_octs
+    visit_mark_octs, visit_index_octs
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -337,19 +337,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         self.visit(o.children[i][j][k], counts, level + 1)
         return
 
-    def domain_ind(self, np.ndarray[np.uint8_t, ndim=2, cast=True] mask):
+    def domain_ind(self, selector):
         cdef np.ndarray[np.int64_t, ndim=1] ind
-        ind = np.empty(mask.shape[0], 'int64')
         # Here's where we grab the masked items.
-        nm = 0
-        for oi in range(mask.shape[0]):
-            ind[oi] = -1
-            use = 0
-            for i in range(8):
-                if mask[oi, i] == 1: use = 1
-            if use == 1:
-                ind[oi] = nm
-            nm += use
+        ind = np.zeros(self.nocts, 'int64') - 1
+        cdef OctVisitorData data
+        data.array = ind.data
+        data.last = -1
+        data.index = 0
+        self.visit_all_octs(selector, visit_index_octs, &data)
         return ind
 
     def domain_mask(self, SelectorObject selector):

@@ -850,6 +850,15 @@ cdef void visit_mark_octs(Oct *o, OctVisitorData *data):
             arr[data.index * 8 + i] = 1
         data.index += 1
 
+cdef void visit_index_octs(Oct *o, OctVisitorData *data):
+    cdef int i
+    cdef np.int64_t *arr
+    if data.last != o.domain_ind:
+        data.last = o.domain_ind
+        arr = <np.int64_t *> data.array
+        arr[o.domain_ind] = data.index
+        data.index += 1
+
 cdef void visit_icoords_octs(Oct *o, OctVisitorData *data):
     cdef np.int64_t *coords = <np.int64_t*> data.array
     cdef int i

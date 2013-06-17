@@ -1271,8 +1271,9 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level) nogil:
-        # This is where we'll want to add a check for the min/max index.
-        return 1
+        # Because visitors now use select_grid, we should be explicitly
+        # checking this.
+        return self.base_selector.select_grid(left_edge, right_edge, level)
 
 particle_octree_subset_selector = ParticleOctreeSubsetSelector
 

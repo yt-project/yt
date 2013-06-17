@@ -198,8 +198,7 @@ class ParticleOctreeSubset(OctreeSubset):
     @property
     def domain_ind(self):
         if self._domain_ind is None:
-            mask = self.selector.select_octs(self.oct_handler)
-            di = self.oct_handler.domain_ind(mask)
+            di = self.oct_handler.domain_ind(self.base_selector)
             self._domain_ind = di
         return self._domain_ind
 
@@ -214,7 +213,7 @@ class ParticleOctreeSubset(OctreeSubset):
         op.process_octree(self.oct_handler, self.domain_ind, positions, fields, 0)
         vals = op.finalize()
         return self._reshape_vals(vals)
-    
+
     def select_icoords(self, dobj):
         return self.oct_handler.icoords(dobj.selector)
 
