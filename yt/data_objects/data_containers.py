@@ -3121,6 +3121,8 @@ class InLineExtractedRegionBase(AMR3DData):
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.
     """
+    _type_name = "cut_region"
+    _con_args = ("_base_region", "_field_cuts")
     def __init__(self, base_region, field_cuts, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
