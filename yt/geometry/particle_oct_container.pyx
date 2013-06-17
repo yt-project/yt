@@ -355,7 +355,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.visit_all_octs(selector, visit_count_total_octs, &data)
         cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
                 np.zeros((2, 2, 2, data.index), 'uint8')
-        data.index = 0
+        data.index = -1
         data.last = -1
         data.array = m2.data
         self.visit_all_octs(selector, visit_mark_octs, &data)

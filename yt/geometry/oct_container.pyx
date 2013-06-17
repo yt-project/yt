@@ -842,13 +842,13 @@ cdef void visit_count_total_octs(Oct *o, OctVisitorData *data):
 
 cdef void visit_mark_octs(Oct *o, OctVisitorData *data):
     cdef int i
-    cdef np.uint8_t *arr
+    cdef np.uint8_t *arr = <np.uint8_t *> data.array
     if data.last != o.domain_ind:
         data.last = o.domain_ind
-        arr = <np.uint8_t *> data.array
-        for i in range(8):
-            arr[data.index * 8 + i] = 1
         data.index += 1
+    cdef np.int64_t index = data.index * 8
+    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    arr[index] = 1
 
 cdef void visit_index_octs(Oct *o, OctVisitorData *data):
     cdef int i

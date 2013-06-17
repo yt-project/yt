@@ -198,7 +198,7 @@ class ParticleOctreeSubset(OctreeSubset):
     @property
     def domain_ind(self):
         if self._domain_ind is None:
-            di = self.oct_handler.domain_ind(self.base_selector)
+            di = self.oct_handler.domain_ind(self.selector)
             self._domain_ind = di
         return self._domain_ind
 
@@ -231,7 +231,7 @@ class ParticleOctreeSubset(OctreeSubset):
         if id(selector) == self._last_selector_id:
             return self._last_mask
         self._last_mask = self.oct_handler.domain_mask(
-                self.selector)
+                self.base_selector)
         if self._last_mask.sum() == 0: return None
         self._last_selector_id = id(selector)
         return self._last_mask
