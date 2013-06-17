@@ -32,7 +32,8 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 from yt.utilities.fortran_utils import read_record
-from yt.utilities.lib.geometry_utils import get_morton_indices
+from yt.utilities.lib.geometry_utils import get_morton_indices, \
+    get_morton_indices_unravel
 
 from yt.geometry.oct_container import _ORDER_MAX
 
@@ -186,26 +187,28 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         ptall = []
         psize = defaultdict(lambda: 0)
         chunks = list(chunks)
-        pf = chunks[0].objs[0].domain.pf
         ptypes = set()
         for ftype, fname in fields:
             ptf[ftype].append(fname)
             ptypes.add(ftype)
         ptypes = list(ptypes)
         ptypes.sort(key = lambda a: self._ptypes.index(a))
+        data_files = set([])
         for chunk in chunks:
-            for subset in chunk.objs:
-                poff = subset.domain.field_offsets
-                tp = subset.domain.total_particles
-                f = open(subset.domain.domain_filename, "rb")
-                for ptype in ptypes:
-                    f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                    pos = self._read_field_from_file(f,
-                                tp[ptype], "Coordinates")
-                    psize[ptype] += selector.count_points(
-                        pos[:,0], pos[:,1], pos[:,2])
-                    del pos
-                f.close()
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            poff = data_file.field_offsets
+            tp = data_file.total_particles
+            f = open(data_file.filename, "rb")
+            for ptype in ptypes:
+                f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
+                pos = self._read_field_from_file(f,
+                            tp[ptype], "Coordinates")
+                psize[ptype] += selector.count_points(
+                    pos[:,0], pos[:,1], pos[:,2])
+                del pos
+            f.close()
         ind = {}
         for field in fields:
             mylog.debug("Allocating %s values for %s", psize[field[0]], field)
@@ -215,29 +218,28 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 shape = psize[field[0]]
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
-        for chunk in chunks: 
-            for subset in chunk.objs:
-                poff = subset.domain.field_offsets
-                tp = subset.domain.total_particles
-                f = open(subset.domain.domain_filename, "rb")
-                for ptype, field_list in sorted(ptf.items()):
-                    f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                    pos = self._read_field_from_file(f,
-                                tp[ptype], "Coordinates")
-                    mask = selector.select_points(
-                        pos[:,0], pos[:,1], pos[:,2])
-                    del pos
-                    if mask is None: continue
-                    for field in field_list:
-                        f.seek(poff[ptype, field], os.SEEK_SET)
-                        data = self._read_field_from_file(f, tp[ptype], field)
-                        data = data[mask]
-                        my_ind = ind[ptype, field]
-                        mylog.debug("Filling from %s to %s with %s",
-                            my_ind, my_ind+data.shape[0], field)
-                        rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                        ind[ptype, field] += data.shape[0]
-                f.close()
+        for data_file in data_files:
+            poff = data_file.field_offsets
+            tp = data_file.total_particles
+            f = open(data_file.filename, "rb")
+            for ptype, field_list in sorted(ptf.items()):
+                f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
+                pos = self._read_field_from_file(f,
+                            tp[ptype], "Coordinates")
+                mask = selector.select_points(
+                    pos[:,0], pos[:,1], pos[:,2])
+                del pos
+                if mask is None: continue
+                for field in field_list:
+                    f.seek(poff[ptype, field], os.SEEK_SET)
+                    data = self._read_field_from_file(f, tp[ptype], field)
+                    data = data[mask]
+                    my_ind = ind[ptype, field]
+                    mylog.debug("Filling from %s to %s with %s",
+                        my_ind, my_ind+data.shape[0], field)
+                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
+                    ind[ptype, field] += data.shape[0]
+            f.close()
         return rv
 
     def _read_field_from_file(self, f, count, name):
@@ -253,19 +255,27 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             arr = arr.reshape((count/3, 3), order="C")
         return arr.astype("float64")
 
-    def _initialize_index(self, domain, octree):
-        count = sum(domain.total_particles.values())
+    def _initialize_index(self, data_file, regions):
+        count = sum(data_file.total_particles.values())
         dt = [("px", "float32"), ("py", "float32"), ("pz", "float32")]
-        with open(domain.domain_filename, "rb") as f:
+        DLE = data_file.pf.domain_left_edge
+        DRE = data_file.pf.domain_right_edge
+        dx = (DRE - DLE) / 2**_ORDER_MAX
+        with open(data_file.filename, "rb") as f:
             f.seek(self._header_offset)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = dt, count = count)
-        pos = np.empty((count, 3), dtype="float64")
-        pos[:,0] = pp['px']
-        pos[:,1] = pp['py']
-        pos[:,2] = pp['pz']
+        pos = np.column_stack([pp['px'], pp['py'], pp['pz']]).astype("float64")
         del pp
-        octree.add(pos, domain.domain_id)
+        regions.add_data_file(pos, data_file.file_id)
+        lx = np.floor((pos[:,0] - DLE[0])/dx[0]).astype("uint64")
+        ly = np.floor((pos[:,1] - DLE[1])/dx[1]).astype("uint64")
+        lz = np.floor((pos[:,2] - DLE[2])/dx[2]).astype("uint64")
+        del pos
+        morton = get_morton_indices_unravel(lx, ly, lz)
+        del lx, ly, lz
+        return morton
+        
 
     def _count_particles(self, domain):
         npart = dict((self._ptypes[i], v)

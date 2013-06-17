@@ -335,6 +335,23 @@ def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
         morton_indices[i] = mi
     return morton_indices
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
+                               np.ndarray[np.uint64_t, ndim=1] left_y,
+                               np.ndarray[np.uint64_t, ndim=1] left_z,):
+    cdef np.int64_t i, mi
+    cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    morton_indices = np.zeros(left_x.shape[0], 'uint64')
+    for i in range(left_x.shape[0]):
+        mi = 0
+        mi |= spread_bits(left_z[i])<<0
+        mi |= spread_bits(left_y[i])<<1
+        mi |= spread_bits(left_x[i])<<2
+        morton_indices[i] = mi
+    return morton_indices
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
