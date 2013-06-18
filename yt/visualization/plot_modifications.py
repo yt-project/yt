@@ -129,7 +129,16 @@ class VelocityCallback(PlotCallback):
         else:
             xv = "%s-velocity" % (x_names[plot.data.axis])
             yv = "%s-velocity" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
+
+            bv = plot.data.get_field_parameter("bulk_velocity")
+            if bv is not None:
+                bv_x = bv[x_dict[plot.data.axis]]
+                bv_y = bv[y_dict[plot.data.axis]]
+            else: bv_x = bv_y = 0
+
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+                                 scale_units=self.scale_units, 
+                                 normalize=self.normalize, bv_x=bv_x, bv_y=bv_y)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
@@ -174,11 +183,12 @@ class QuiverCallback(PlotCallback):
     (see matplotlib.axes.Axes.quiver for more info)
     """
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False):
+    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False, bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.bv_x = self.bv_y = 0
+        self.bv_x = bv_x
+        self.bv_y = bv_y
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
