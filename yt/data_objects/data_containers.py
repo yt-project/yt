@@ -248,7 +248,6 @@ class YTDataContainer(object):
         if ngz == 0:
             for io_chunk in self.chunks([], "io"):
                 for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
-                    print self.selector
                     ind += self._current_chunk.objs[0].select(
                             self.selector, self[field], rv, ind)
         else:
