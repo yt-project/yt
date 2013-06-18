@@ -81,9 +81,6 @@ def _convertCellMassMsun(data):
 def _ConvertNumberDensity(data):
     return 1.0/mh
 
-def _ConvertNone(data):
-    return 1.0*mh
-
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
@@ -319,6 +316,10 @@ add_field("RadiationAcceleration",
 
 def _convertDensity(data):
     return data.convert("Density")
+
+def _convertCmToKpc(data):
+    return (3.08567758e21)**3
+
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
         ["SN_Colour"]:
     KnownEnzoFields[field]._units = r"\rm{g}/\rm{cm}^3"
@@ -371,26 +372,33 @@ def _spdensity(field, data):
     return blank
 
 add_field("star_density", function=_spdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          units = r"\rm{g}/\rm{cm}^3",
+          projected_units = r"\rm{g}/\rm{cm}^2",
+          display_name = "Stellar\/Density")
 
-def _tpdensity(field, data):
+def _tpdensity(field, data): 
     blank = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return blank
-    filter = data['particle_type'] == 3
+    filter = data['particle_type'] == 3 # tracer particles
     if not filter.any(): return blank
-    data["particle_mass"][filter] = 1.0
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),
                            data["particle_position_z"][filter].astype(np.float64),
-                           data["particle_mass"][filter],
+                           np.ones(filter.sum(), dtype="float64"),
                            np.int64(np.where(filter)[0].size),
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
+    blank /= data['CellVolume']
     return blank
 
-add_field("tracer_density", function=_tpdensity,
-          validators=[ValidateSpatial(0)], convert_function=_ConvertNone)
+add_field("tracer_number_density", function=_tpdensity,
+          validators=[ValidateSpatial(0)], convert_function=_convertCmToKpc,
+          units = r"\rm{particles}/\rm{kpc}^3",
+          projected_units = r"\rm{particles}/\rm{kpc}^2",
+          display_name = "Tracer\/Particle\/Number\/Density",
+          projection_conversion='kpc')
 
 def _dmpdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float64')
@@ -411,8 +419,12 @@ def _dmpdensity(field, data):
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
     return blank
+
 add_field("dm_density", function=_dmpdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          units = r"\rm{g}/\rm{cm}^3",
+          projected_units = r"\rm{g}/\rm{cm}^2",
+          display_name = "Dark\/Matter\/Density")
 
 def _cic_particle_field(field, data):
     """
