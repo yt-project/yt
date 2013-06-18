@@ -25,11 +25,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
-    visit_icoords_octs, visit_ires_octs, \
-    visit_fcoords_octs, visit_fwidth_octs, \
-    visit_count_total_octs, \
-    visit_mark_octs, visit_index_octs, visit_copy_array
+from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX
+cimport oct_visitors
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -120,7 +117,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
-        self.visit_all_octs(selector, visit_icoords_octs, &data)
+        self.visit_all_octs(selector, oct_visitors.icoords_octs, &data)
         return coords
 
     @cython.boundscheck(False)
@@ -135,7 +132,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef OctVisitorData data
         data.array = <void *> res.data
         data.index = 0
-        self.visit_all_octs(selector, visit_ires_octs, &data)
+        self.visit_all_octs(selector, oct_visitors.ires_octs, &data)
         return res
 
     @cython.boundscheck(False)
@@ -149,7 +146,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef OctVisitorData data
         data.array = <void *> fwidth.data
         data.index = 0
-        self.visit_all_octs(selector, visit_fwidth_octs, &data)
+        self.visit_all_octs(selector, oct_visitors.fwidth_octs, &data)
         cdef np.float64_t base_dx
         for i in range(3):
             base_dx = (self.DRE[i] - self.DLE[i])/self.nn[i]
@@ -168,7 +165,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
-        self.visit_all_octs(selector, visit_fcoords_octs, &data)
+        self.visit_all_octs(selector, oct_visitors.fcoords_octs, &data)
         cdef int i
         cdef np.float64_t base_dx
         for i in range(3):
@@ -345,25 +342,34 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         data.array = ind.data
         data.index = 0
         data.last = -1
-        self.visit_all_octs(selector, visit_index_octs, &data)
+        self.visit_all_octs(selector, oct_visitors.index_octs, &data)
         return ind
 
     def selector_fill(self, SelectorObject selector,
-                      np.ndarray[np.float64_t, ndim=4] source,
-                      np.ndarray[np.float64_t, ndim=1] dest,
-                      np.int64_t offset):
+                      np.ndarray source,
+                      np.ndarray dest = None,
+                      np.int64_t offset = 0, int dims = 1):
         # This is actually not correct.  The hard part is that we need to
         # iterate the same way visit_all_octs does, but we need to track the
         # number of octs total visited.
         cdef OctVisitorData data
         data.index = offset
         # We only need this so we can continue calculating the offset
-        data.last = -1
+        data.last = dims
         cdef void *p[2]
         p[0] = source.data
         p[1] = dest.data
         data.array = &p
-        self.visit_all_octs(selector, visit_copy_array, &data)
+        cdef oct_visitor_function *func
+        if source.dtype != dest.dtype:
+            raise RuntimeError
+        if source.dtype == np.int64:
+            func = oct_visitors.copy_array_i64
+        elif source.dtype == np.float64:
+            func = oct_visitors.copy_array_f64
+        else:
+            raise NotImplementedError
+        self.visit_all_octs(selector, func, &data)
         return data.index - offset
 
 cdef class ParticleRegions:

@@ -29,8 +29,8 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
 from selection_routines cimport SelectorObject
-from oct_container cimport OctreeContainer, OctAllocationContainer, Oct, \
-    visit_mark_octs, visit_count_total_octs, visit_mask_octs
+from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+cimport oct_visitors
 #from geometry_utils cimport point_to_hilbert
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
@@ -114,11 +114,6 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
     else:
         raise RuntimeError
 
-# Now our visitor functions
-
-cdef void visit_count_cells(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    data.index += selected
-
 cdef class SelectorObject:
 
     def __cinit__(self, dobj):
@@ -155,7 +150,7 @@ cdef class SelectorObject:
         data.index = 0
         data.last = -1
         data.global_index = -1
-        octree.visit_all_octs(self, visit_count_total_octs, &data)
+        octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
         cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
                 np.zeros((2, 2, 2, data.index), 'uint8', order='C')
         # This is where we'll -- in the future -- cut up based on indices of
@@ -163,7 +158,7 @@ cdef class SelectorObject:
         data.index = -1
         data.last = -1
         data.array = m2.data
-        octree.visit_all_octs(self, visit_mask_octs, &data)
+        octree.visit_all_octs(self, oct_visitors.mask_octs, &data)
         return m2.astype("bool")
 
     @cython.boundscheck(False)
@@ -228,7 +223,7 @@ cdef class SelectorObject:
     def count_octs(self, OctreeContainer octree):
         cdef OctVisitorData data
         data.index = 0
-        octree.visit_all_octs(self, visit_count_cells, &data)
+        octree.visit_all_octs(self, oct_visitors.count_total_cells, &data)
         return data.index
 
     @cython.boundscheck(False)
@@ -1232,7 +1227,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
         cdef OctVisitorData data
         data.index = 0
         data.last = -1
-        octree.visit_all_octs(self, visit_count_total_octs, &data)
+        octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
         cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
                 np.zeros((2, 2, 2, data.index), 'uint8', order='C')
         # This is where we'll -- in the future -- cut up based on indices of
@@ -1240,7 +1235,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
         data.index = -1
         data.last = -1
         data.array = m2.data
-        octree.visit_all_octs(self, visit_mark_octs, &data)
+        octree.visit_all_octs(self, oct_visitors.mark_octs, &data)
         return m2.astype("bool")
 
     @cython.boundscheck(False)
