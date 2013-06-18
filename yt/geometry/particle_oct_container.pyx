@@ -28,7 +28,7 @@ License:
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     visit_icoords_octs, visit_ires_octs, \
     visit_fcoords_octs, visit_fwidth_octs, \
-    visit_count_octs, visit_count_total_octs, \
+    visit_count_total_octs, \
     visit_mark_octs, visit_index_octs, visit_copy_array
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor

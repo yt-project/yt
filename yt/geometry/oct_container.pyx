@@ -831,25 +831,24 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
 
 # Now some visitor functions
 
-cdef void visit_copy_array(Oct *o, OctVisitorData *data):
+cdef void visit_copy_array(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We should always have global_index less than our source.
+    if selected == 0: return
     cdef np.int64_t index = data.global_index * 8
     cdef np.float64_t **p = <np.float64_t**> data.array
     index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
     p[1][data.index] = p[0][index]
     data.index += 1
 
-cdef void visit_count_octs(Oct *o, OctVisitorData *data):
-    # Number of cells visited
-    data.index += 1
-
-cdef void visit_count_total_octs(Oct *o, OctVisitorData *data):
+cdef void visit_count_total_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # Count even if not selected.
     # Number of *octs* visited.
     if data.last != o.domain_ind:
         data.index += 1
         data.last = o.domain_ind
 
-cdef void visit_mark_octs(Oct *o, OctVisitorData *data):
+cdef void visit_mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # We mark them even if they are not selected
     cdef int i
     cdef np.uint8_t *arr = <np.uint8_t *> data.array
     if data.last != o.domain_ind:
@@ -859,14 +858,16 @@ cdef void visit_mark_octs(Oct *o, OctVisitorData *data):
     index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
     arr[index] = 1
 
-cdef void visit_mask_octs(Oct *o, OctVisitorData *data):
+cdef void visit_mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    if selected == 0: return
     cdef int i
     cdef np.uint8_t *arr = <np.uint8_t *> data.array
-    cdef np.int64_t index = data.index * 8
+    cdef np.int64_t index = data.global_index * 8
     index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
     arr[index] = 1
 
-cdef void visit_index_octs(Oct *o, OctVisitorData *data):
+cdef void visit_index_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # Note that we provide an index even if the cell is not selected.
     cdef int i
     cdef np.int64_t *arr
     if data.last != o.domain_ind:
@@ -875,22 +876,25 @@ cdef void visit_index_octs(Oct *o, OctVisitorData *data):
         arr[o.domain_ind] = data.index
         data.index += 1
 
-cdef void visit_icoords_octs(Oct *o, OctVisitorData *data):
+cdef void visit_icoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    if selected == 0: return
     cdef np.int64_t *coords = <np.int64_t*> data.array
     cdef int i
     for i in range(3):
         coords[data.index * 3 + i] = (o.pos[i] << 1) + data.ind[i]
     data.index += 1
 
-cdef void visit_ires_octs(Oct *o, OctVisitorData *data):
+cdef void visit_ires_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    if selected == 0: return
     cdef np.int64_t *ires = <np.int64_t*> data.array
     ires[data.index] = o.level
     data.index += 1
 
-cdef void visit_fcoords_octs(Oct *o, OctVisitorData *data):
+cdef void visit_fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that this does not actually give the correct floating point
     # coordinates.  It gives them in some unit system where the domain is 1.0
     # in all directions, and assumes that they will be scaled later.
+    if selected == 0: return
     cdef np.float64_t *fcoords = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t c, dx 
@@ -900,10 +904,11 @@ cdef void visit_fcoords_octs(Oct *o, OctVisitorData *data):
         fcoords[data.index * 3 + i] = (c + 0.5) * dx
     data.index += 1
 
-cdef void visit_fwidth_octs(Oct *o, OctVisitorData *data):
+cdef void visit_fwidth_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that this does not actually give the correct floating point
     # coordinates.  It gives them in some unit system where the domain is 1.0
     # in all directions, and assumes that they will be scaled later.
+    if selected == 0: return
     cdef np.float64_t *fwidth = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t dx 

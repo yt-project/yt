@@ -80,7 +80,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 # Now some visitor functions
 
-cdef oct_visitor_function visit_count_octs
 cdef oct_visitor_function visit_count_total_octs
 cdef oct_visitor_function visit_mark_octs
 cdef oct_visitor_function visit_mask_octs

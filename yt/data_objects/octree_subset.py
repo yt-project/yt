@@ -122,7 +122,8 @@ class OctreeSubset(YTSelectionContainer):
         if len(arr.shape) == 4: return arr
         nz = self._num_zones + 2*self._num_ghost_zones
         n_oct = arr.shape[0] / (nz**3.0)
-        arr = arr.reshape((nz, nz, nz, n_oct), order="C")
+        arr = arr.reshape((nz, nz, nz, n_oct), order="F")
+        arr = np.asfortranarray(arr)
         return arr
 
     _domain_ind = None

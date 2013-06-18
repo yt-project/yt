@@ -30,7 +30,7 @@ from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
 from selection_routines cimport SelectorObject
 from oct_container cimport OctreeContainer, OctAllocationContainer, Oct, \
-    visit_mark_octs, visit_count_total_octs
+    visit_mark_octs, visit_count_total_octs, visit_mask_octs
 #from geometry_utils cimport point_to_hilbert
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
@@ -116,8 +116,8 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
 
 # Now our visitor functions
 
-cdef void visit_count_octs(Oct *o, OctVisitorData *data):
-    data.index += 1
+cdef void visit_count_cells(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    data.index += selected
 
 cdef class SelectorObject:
 
@@ -150,27 +150,21 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
-        cdef int i, j, k, n
-        cdef np.ndarray[np.uint8_t, ndim=2] mask = np.zeros((octree.nocts, 8), dtype='uint8')
-        cdef np.float64_t pos[3], dds[3]
-        # This dds is the oct-width
-        for i in range(3):
-            dds[i] = (octree.DRE[i] - octree.DLE[i]) / octree.nn[i]
-        # Pos is the center of the octs
-        pos[0] = octree.DLE[0] + dds[0]/2.0
-        for i in range(octree.nn[0]):
-            pos[1] = octree.DLE[1] + dds[1]/2.0
-            for j in range(octree.nn[1]):
-                pos[2] = octree.DLE[2] + dds[2]/2.0
-                for k in range(octree.nn[2]):
-                    if octree.root_mesh[i][j][k] == NULL: continue
-                    self.recursively_select_octs(
-                        octree.root_mesh[i][j][k],
-                        pos, dds, mask, 0) 
-                    pos[2] += dds[2]
-                pos[1] += dds[1]
-            pos[0] += dds[0]
-        return mask.astype("bool")
+        # There has to be a better way to do this.
+        cdef OctVisitorData data
+        data.index = 0
+        data.last = -1
+        data.global_index = -1
+        octree.visit_all_octs(self, visit_count_total_octs, &data)
+        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
+                np.zeros((2, 2, 2, data.index), 'uint8', order='C')
+        # This is where we'll -- in the future -- cut up based on indices of
+        # the octs.
+        data.index = -1
+        data.last = -1
+        data.array = m2.data
+        octree.visit_all_octs(self, visit_mask_octs, &data)
+        return m2.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -234,7 +228,7 @@ cdef class SelectorObject:
     def count_octs(self, OctreeContainer octree):
         cdef OctVisitorData data
         data.index = 0
-        octree.visit_all_octs(self, visit_count_octs, &data)
+        octree.visit_all_octs(self, visit_count_cells, &data)
         return data.index
 
     @cython.boundscheck(False)
@@ -248,6 +242,7 @@ cdef class SelectorObject:
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res, ii
         cdef Oct *ch
+        cdef np.uint8_t selected
         # Remember that pos is the *center* of the oct, and dds is the oct
         # width.  So to get to the edges, we add/subtract half of dds.
         for i in range(3):
@@ -270,7 +265,7 @@ cdef class SelectorObject:
             this_level = 0
         if res == 0 and this_level == 1:
             return
-        data.global_index += 1
+        cdef int increment = 1
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
         spos[0] = pos[0] - sdds[0]/2.0
@@ -284,12 +279,14 @@ cdef class SelectorObject:
                     if next_level == 1 and ch != NULL:
                         self.recursively_visit_octs(
                             ch, spos, sdds, level + 1, func, data)
-                    elif this_level == 1 and self.select_cell(
-                                    spos, sdds, eterm):
+                    elif this_level == 1:
+                        data.global_index += increment
+                        increment = 0
+                        selected = self.select_cell(spos, sdds, eterm)
                         data.ind[0] = i
                         data.ind[1] = j
                         data.ind[2] = k
-                        func(root, data)
+                        func(root, data, selected)
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
             spos[0] += sdds[0]

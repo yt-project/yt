@@ -33,7 +33,8 @@ cdef struct OctVisitorData:
     int ind[3]
     void *array
 
-ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor)
+ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
+                                   np.uint8_t selected)
 
 cdef class SelectorObject:
     cdef public np.int32_t min_level
