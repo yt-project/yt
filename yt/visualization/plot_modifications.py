@@ -229,7 +229,7 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     """
-    annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
+    annotate_contour(self, field, ncont=5, factor=4, take_log=None, clim=None,
                      plot_args = None):
 
     Add contours in *field* to the plot.  *ncont* governs the number of
@@ -239,7 +239,7 @@ class ContourCallback(PlotCallback):
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args = None, label = False, take_log = False, 
+                 plot_args = None, label = False, take_log = None, 
                  label_args = None):
         PlotCallback.__init__(self)
         self.ncont = ncont
@@ -315,6 +315,9 @@ class ContourCallback(PlotCallback):
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         
+        if self.take_log is None:
+            self.take_log = plot.pf.field_info[self.field].take_log
+
         if self.take_log: zi=np.log10(zi)
 
         if self.take_log and self.clim is not None: 
