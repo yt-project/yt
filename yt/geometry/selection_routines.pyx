@@ -29,7 +29,8 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip
 from selection_routines cimport SelectorObject
-from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from oct_container cimport OctreeContainer, OctAllocationContainer, Oct, \
+    visit_mark_octs, visit_count_total_octs
 #from geometry_utils cimport point_to_hilbert
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
@@ -178,6 +179,7 @@ cdef class SelectorObject:
                         np.float64_t pos[3], np.float64_t dds[3],
                         np.ndarray[np.uint8_t, ndim=2] mask,
                         int level = 0):
+
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res, ii
         cdef Oct *ch
@@ -268,6 +270,7 @@ cdef class SelectorObject:
             this_level = 0
         if res == 0 and this_level == 1:
             return
+        data.global_index += 1
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
         spos[0] = pos[0] - sdds[0]/2.0
@@ -1229,19 +1232,18 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
         # There has to be a better way to do this.
-        cdef np.ndarray[np.uint8_t, ndim=2, cast=True] m2
-        m2 = self.base_selector.select_octs(octree)
+        cdef OctVisitorData data
+        data.index = 0
+        data.last = -1
+        octree.visit_all_octs(self, visit_count_total_octs, &data)
+        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
+                np.zeros((2, 2, 2, data.index), 'uint8', order='C')
         # This is where we'll -- in the future -- cut up based on indices of
         # the octs.
-        cdef np.int64_t nm, i
-        cdef np.uint8_t use, k
-        nm = m2.shape[0]
-        for i in range(nm):
-            use = 0
-            for k in range(8):
-                if m2[i,k] == 1: use = 1
-            for k in range(8):
-                m2[i,k] = use
+        data.index = -1
+        data.last = -1
+        data.array = m2.data
+        octree.visit_all_octs(self, visit_mark_octs, &data)
         return m2.astype("bool")
 
     @cython.boundscheck(False)

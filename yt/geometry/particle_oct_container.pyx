@@ -343,18 +343,21 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         ind = np.zeros(self.nocts, 'int64') - 1
         cdef OctVisitorData data
         data.array = ind.data
-        data.last = -1
         data.index = 0
+        data.last = -1
         self.visit_all_octs(selector, visit_index_octs, &data)
         return ind
 
     def domain_mask(self, SelectorObject selector):
+        # This is actually not correct.  The hard part is that we need to
+        # iterate the same way visit_all_octs does, but we need to track the
+        # number of octs total visited.
         cdef OctVisitorData data
         data.index = 0
         data.last = -1
         self.visit_all_octs(selector, visit_count_total_octs, &data)
         cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
-                np.zeros((2, 2, 2, data.index), 'uint8')
+                np.zeros((2, 2, 2, data.index), 'uint8', order='F')
         data.index = -1
         data.last = -1
         data.array = m2.data

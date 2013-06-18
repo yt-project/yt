@@ -176,7 +176,7 @@ class ParticleOctreeSubset(OctreeSubset):
     # this, it's unavoidable for many types of data storage on disk.
     _type_name = 'particle_octree_subset'
     _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
-    def __init__(self, base_selector, data_files, pf, min_ind = 0, max_ind = 0):
+    def __init__(self, base_region, data_files, pf, min_ind = 0, max_ind = 0):
         # The first attempt at this will not work in parallel.
         self.data_files = data_files
         self.field_data = YTFieldData()
@@ -191,8 +191,9 @@ class ParticleOctreeSubset(OctreeSubset):
         self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
-        self.base_selector = base_selector
-    
+        self.base_region = base_region
+        self.base_selector = base_region.selector
+
     _domain_ind = None
 
     @property
@@ -230,6 +231,8 @@ class ParticleOctreeSubset(OctreeSubset):
     def select(self, selector):
         if id(selector) == self._last_selector_id:
             return self._last_mask
+        # This is where things get confused.  I believe the data is differently
+        # ordered than the mask.
         self._last_mask = self.oct_handler.domain_mask(
                 self.base_selector)
         if self._last_mask.sum() == 0: return None

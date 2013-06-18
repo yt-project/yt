@@ -142,6 +142,7 @@ cdef class OctreeContainer:
                         oct_visitor_function *func,
                         OctVisitorData *data):
         cdef int i, j, k, n
+        data.global_index = -1
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
@@ -846,6 +847,13 @@ cdef void visit_mark_octs(Oct *o, OctVisitorData *data):
     if data.last != o.domain_ind:
         data.last = o.domain_ind
         data.index += 1
+    cdef np.int64_t index = data.index * 8
+    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    arr[index] = 1
+
+cdef void visit_mask_octs(Oct *o, OctVisitorData *data):
+    cdef int i
+    cdef np.uint8_t *arr = <np.uint8_t *> data.array
     cdef np.int64_t index = data.index * 8
     index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
     arr[index] = 1

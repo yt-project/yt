@@ -146,7 +146,7 @@ class ParticleGeometryHandler(GeometryHandler):
             if data_files is None:
                 data_files = [self.data_files[i] for i in
                               self.regions.identify_data_files(dobj.selector)]
-            subset = [ParticleOctreeSubset(dobj.selector, data_files, 
+            subset = [ParticleOctreeSubset(dobj, data_files, 
                         self.parameter_file)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
@@ -181,10 +181,3 @@ class ParticleDataChunk(YTDataChunk):
         self.oct_handler = oct_handler
         self.regions = regions
         super(ParticleDataChunk, self).__init__(*args, **kwargs)
-
-    def _accumulate_values(self, method):
-        mfunc = getattr(self.oct_handler, method)
-        rv = mfunc(self.dobj.selector)
-        self._data_size = rv.shape[0]
-        return rv
-
