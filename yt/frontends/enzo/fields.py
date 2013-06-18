@@ -77,8 +77,12 @@ def _SpeciesNumberDensity(field, data):
 
 def _convertCellMassMsun(data):
     return 5.027854e-34 # g^-1
+
 def _ConvertNumberDensity(data):
     return 1.0/mh
+
+def _ConvertNone(data):
+    return 1.0*mh
 
 for species in _speciesList:
     add_field("%s_Fraction" % species,
@@ -365,8 +369,28 @@ def _spdensity(field, data):
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
     return blank
+
 add_field("star_density", function=_spdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _tpdensity(field, data):
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
+    if data["particle_position_x"].size == 0: return blank
+    filter = data['particle_type'] == 3
+    if not filter.any(): return blank
+    data["particle_mass"][filter] = 1.0
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
+                           data["particle_position_y"][filter].astype(np.float64),
+                           data["particle_position_z"][filter].astype(np.float64),
+                           data["particle_mass"][filter],
+                           np.int64(np.where(filter)[0].size),
+                           blank, np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
+    return blank
+
+add_field("tracer_density", function=_tpdensity,
+          validators=[ValidateSpatial(0)], convert_function=_ConvertNone)
 
 def _dmpdensity(field, data):
     blank = np.zeros(data.ActiveDimensions, dtype='float64')
