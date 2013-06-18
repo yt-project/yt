@@ -1267,6 +1267,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
         return 1
+        return self.base_selector.select_cell(pos, dds, eterm)
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level) nogil:
