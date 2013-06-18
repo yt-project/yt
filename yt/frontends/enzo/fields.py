@@ -37,7 +37,8 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    mh
+    mh, \
+    kpc_per_cm
 from yt.funcs import *
 
 import yt.utilities.lib as amr_utils
@@ -318,7 +319,7 @@ def _convertDensity(data):
     return data.convert("Density")
 
 def _convertCmToKpc(data):
-    return (3.08567758e21)**3
+    return 1/(kpc_per_cm)**3
 
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
         ["SN_Colour"]:
