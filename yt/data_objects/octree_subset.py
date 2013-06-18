@@ -75,6 +75,8 @@ class OctreeSubset(YTSelectionContainer):
             return self._current_chunk.fwidth[:,1]
         elif field == "dz":
             return self._current_chunk.fwidth[:,2]
+        else:
+            raise RuntimeError
 
     def select_icoords(self, dobj):
         return self.oct_handler.icoords(self.domain.domain_id, self.mask,
@@ -117,9 +119,10 @@ class OctreeSubset(YTSelectionContainer):
         return tr
 
     def _reshape_vals(self, arr):
+        if len(arr.shape) == 4: return arr
         nz = self._num_zones + 2*self._num_ghost_zones
         n_oct = arr.shape[0] / (nz**3.0)
-        arr = arr.reshape((nz, nz, nz, n_oct), order="F")
+        arr = arr.reshape((nz, nz, nz, n_oct), order="C")
         return arr
 
     _domain_ind = None
@@ -185,8 +188,8 @@ class ParticleOctreeSubset(OctreeSubset):
         self.hierarchy = self.pf.hierarchy
         self.oct_handler = pf.h.oct_handler
         self.min_ind = min_ind
-        self.max_ind = max_ind
         if max_ind == 0: max_ind = (1 << 63)
+        self.max_ind = max_ind
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
@@ -228,16 +231,9 @@ class ParticleOctreeSubset(OctreeSubset):
     def select_ires(self, dobj):
         return self.oct_handler.ires(dobj.selector)
 
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        # This is where things get confused.  I believe the data is differently
-        # ordered than the mask.
-        self._last_mask = self.oct_handler.domain_mask(
-                self.base_selector)
-        if self._last_mask.sum() == 0: return None
-        self._last_selector_id = id(selector)
-        return self._last_mask
+    def select(self, selector, source, dest, offset):
+        n = self.oct_handler.selector_fill(selector, source, dest, offset)
+        return n
 
     def count(self, selector):
         if id(selector) == self._last_selector_id:
@@ -254,4 +250,3 @@ class ParticleOctreeSubset(OctreeSubset):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x,y,z)
         return mask
-

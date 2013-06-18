@@ -831,6 +831,14 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
 
 # Now some visitor functions
 
+cdef void visit_copy_array(Oct *o, OctVisitorData *data):
+    # We should always have global_index less than our source.
+    cdef np.int64_t index = data.global_index * 8
+    cdef np.float64_t **p = <np.float64_t**> data.array
+    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    p[1][data.index] = p[0][index]
+    data.index += 1
+
 cdef void visit_count_octs(Oct *o, OctVisitorData *data):
     # Number of cells visited
     data.index += 1

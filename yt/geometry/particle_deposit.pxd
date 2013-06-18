@@ -38,7 +38,7 @@ cdef extern from "alloca.h":
     void *alloca(int)
 
 cdef inline int gind(int i, int j, int k, int dims[3]):
-    return ((k*dims[1])+j)*dims[0]+i
+    return ((i*dims[1])+j)*dims[2]+k
 
 
 ####################################################

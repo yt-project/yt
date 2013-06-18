@@ -29,7 +29,7 @@ from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     visit_icoords_octs, visit_ires_octs, \
     visit_fcoords_octs, visit_fwidth_octs, \
     visit_count_octs, visit_count_total_octs, \
-    visit_mark_octs, visit_index_octs
+    visit_mark_octs, visit_index_octs, visit_copy_array
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -348,21 +348,23 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         self.visit_all_octs(selector, visit_index_octs, &data)
         return ind
 
-    def domain_mask(self, SelectorObject selector):
+    def selector_fill(self, SelectorObject selector,
+                      np.ndarray[np.float64_t, ndim=4] source,
+                      np.ndarray[np.float64_t, ndim=1] dest,
+                      np.int64_t offset):
         # This is actually not correct.  The hard part is that we need to
         # iterate the same way visit_all_octs does, but we need to track the
         # number of octs total visited.
         cdef OctVisitorData data
-        data.index = 0
+        data.index = offset
+        # We only need this so we can continue calculating the offset
         data.last = -1
-        self.visit_all_octs(selector, visit_count_total_octs, &data)
-        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
-                np.zeros((2, 2, 2, data.index), 'uint8', order='F')
-        data.index = -1
-        data.last = -1
-        data.array = m2.data
-        self.visit_all_octs(selector, visit_mark_octs, &data)
-        return m2.astype("bool")
+        cdef void *p[2]
+        p[0] = source.data
+        p[1] = dest.data
+        data.array = &p
+        self.visit_all_octs(selector, visit_copy_array, &data)
+        return data.index - offset
 
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]

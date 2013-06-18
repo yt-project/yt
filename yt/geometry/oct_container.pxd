@@ -80,12 +80,13 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 # Now some visitor functions
 
-cdef void visit_count_octs(Oct *o, OctVisitorData *data)
-cdef void visit_count_total_octs(Oct *o, OctVisitorData *data)
-cdef void visit_mark_octs(Oct *o, OctVisitorData *data)
-cdef void visit_mask_octs(Oct *o, OctVisitorData *data)
-cdef void visit_index_octs(Oct *o, OctVisitorData *data)
-cdef void visit_icoords_octs(Oct *o, OctVisitorData *data)
-cdef void visit_ires_octs(Oct *o, OctVisitorData *data)
-cdef void visit_fcoords_octs(Oct *o, OctVisitorData *data)
-cdef void visit_fwidth_octs(Oct *o, OctVisitorData *data)
+cdef oct_visitor_function visit_count_octs
+cdef oct_visitor_function visit_count_total_octs
+cdef oct_visitor_function visit_mark_octs
+cdef oct_visitor_function visit_mask_octs
+cdef oct_visitor_function visit_index_octs
+cdef oct_visitor_function visit_icoords_octs
+cdef oct_visitor_function visit_ires_octs
+cdef oct_visitor_function visit_fcoords_octs
+cdef oct_visitor_function visit_fwidth_octs
+cdef oct_visitor_function visit_copy_array

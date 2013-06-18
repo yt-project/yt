@@ -248,28 +248,19 @@ class YTDataContainer(object):
         if ngz == 0:
             for io_chunk in self.chunks([], "io"):
                 for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
-                    mask = self._current_chunk.objs[0].select(self.selector)
-                    if mask is None: continue
-                    data = self[field]
-                    if len(data.shape) == 4:
-                        # This is how we keep it consistent between oct ordering
-                        # and grid ordering.
-                        data = data.T[mask.T]
-                    else:
-                        data = data[mask]
-                    rv[ind:ind+data.size] = data
-                    ind += data.size
+                    print self.selector
+                    ind += self._current_chunk.objs[0].select(
+                            self.selector, self[field], rv, ind)
         else:
             chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
                     wogz = gz._base_grid
-                    mask = wogz.select(self.selector)
-                    if mask is None: continue
-                    data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz][mask]
-                    rv[ind:ind+data.size] = data
-                    ind += data.size
+                    ind += wogz.select(
+                        self.selector,
+                        gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                        rv, ind)
         return rv
 
     def _generate_particle_field(self, field):
