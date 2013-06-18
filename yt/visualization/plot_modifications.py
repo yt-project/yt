@@ -229,7 +229,8 @@ class ContourCallback(PlotCallback):
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args = None, label = False, label_args = None):
+                 plot_args = None, label = False, take_log = False, 
+                 label_args = None):
         PlotCallback.__init__(self)
         self.ncont = ncont
         self.field = field
@@ -237,6 +238,7 @@ class ContourCallback(PlotCallback):
         from yt.utilities.delaunay.triangulate import Triangulation as triang
         self.triang = triang
         self.clim = clim
+        self.take_log = take_log
         if plot_args is None: plot_args = {'colors':'k'}
         self.plot_args = plot_args
         self.label = label
@@ -303,9 +305,9 @@ class ContourCallback(PlotCallback):
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         
-        if plot.pf.field_info[self.field].take_log: zi=np.log10(zi)
+        if self.take_log: zi=np.log10(zi)
 
-        if plot.pf.field_info[self.field].take_log and self.clim is not None: 
+        if self.take_log and self.clim is not None: 
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
         if self.clim is not None: 
