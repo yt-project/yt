@@ -352,6 +352,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # This is actually not correct.  The hard part is that we need to
         # iterate the same way visit_all_octs does, but we need to track the
         # number of octs total visited.
+        cdef np.int64_t num_cells = -1
+        if dest is None:
+            num_cells = selector.count_octs(self)
+            if dims > 1:
+                dest = np.zeros((num_cells, dims), dtype=source.dtype,
+                    order='C')
+            else:
+                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
+            dest = dest - 10000
         cdef OctVisitorData data
         data.index = offset
         # We only need this so we can continue calculating the offset
@@ -370,6 +379,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         else:
             raise NotImplementedError
         self.visit_all_octs(selector, func, &data)
+        if num_cells >= 0:
+            return dest
         return data.index - offset
 
 cdef class ParticleRegions:

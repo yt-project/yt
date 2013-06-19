@@ -220,17 +220,25 @@ class ParticleOctreeSubset(OctreeSubset):
         return self._reshape_vals(vals)
 
     def select_icoords(self, dobj):
-        return self.oct_handler.icoords(dobj.selector)
+        d = self.oct_handler.icoords(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
+        return tr
 
     def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(dobj.selector)
+        d = self.oct_handler.fcoords(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
+        return tr
 
     def select_fwidth(self, dobj):
         # Recall domain_dimensions is the number of cells, not octs
-        return self.oct_handler.fwidth(dobj.selector)
+        d = self.oct_handler.fwidth(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
+        return tr
 
     def select_ires(self, dobj):
-        return self.oct_handler.ires(dobj.selector)
+        d = self.oct_handler.ires(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 1)
+        return tr
 
     def select(self, selector, source, dest, offset):
         n = self.oct_handler.selector_fill(selector, source, dest, offset)
