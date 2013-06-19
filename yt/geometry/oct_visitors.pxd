@@ -40,3 +40,10 @@ cdef oct_visitor_function fcoords_octs
 cdef oct_visitor_function fwidth_octs
 cdef oct_visitor_function copy_array_f64
 cdef oct_visitor_function copy_array_i64
+
+cdef inline int oind(OctVisitorData *data):
+    return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
+
+cdef inline int rind(OctVisitorData *data):
+    #return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
+    return (((data.ind[2]*2)+data.ind[1])*2+data.ind[0])

@@ -50,6 +50,7 @@ cdef class ParticleDepositOperation:
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None, int domain_id = -1):
         cdef int nf, i, j
+        self.bad_indices = 0
         if fields is None:
             fields = []
         nf = len(fields)
@@ -127,7 +128,7 @@ cdef class CountParticles(ParticleDepositOperation):
     cdef public object ocount
     def initialize(self):
         # Create a numpy array accessible to python
-        self.ocount = np.zeros(self.nvals, dtype="int64")
+        self.ocount = np.zeros(self.nvals, dtype="int64", order='F')
         cdef np.ndarray arr = self.ocount
         # alias the C-view for use in cython
         self.count = <np.int64_t*> arr.data
@@ -161,10 +162,10 @@ cdef class SimpleSmooth(ParticleDepositOperation):
     cdef public object otemp
 
     def initialize(self):
-        self.odata = np.zeros(self.nvals, dtype="float64")
+        self.odata = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray arr = self.odata
         self.data = <np.float64_t*> arr.data
-        self.otemp = np.zeros(self.nvals, dtype="float64")
+        self.otemp = np.zeros(self.nvals, dtype="float64", order='F')
         arr = self.otemp
         self.temp = <np.float64_t*> arr.data
 
@@ -217,7 +218,7 @@ cdef class SumParticleField(ParticleDepositOperation):
     cdef np.float64_t *sum
     cdef public object osum
     def initialize(self):
-        self.osum = np.zeros(self.nvals, dtype="float64")
+        self.osum = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray arr = self.osum
         self.sum = <np.float64_t*> arr.data
 

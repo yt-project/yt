@@ -38,7 +38,7 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef int i
     cdef np.int64_t index = (data.global_index * 8)*data.last
     cdef np.float64_t **p = <np.float64_t**> data.array
-    index += (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])*data.last
+    index += oind(data)*data.last
     for i in range(data.last):
         p[1][data.index + i] = p[0][index + i]
     data.index += data.last
@@ -50,7 +50,7 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef int i
     cdef np.int64_t index = (data.global_index * 8)*data.last
     cdef np.int64_t **p = <np.int64_t**> data.array
-    index += (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])*data.last
+    index += oind(data)*data.last
     for i in range(data.last):
         p[1][data.index + i] = p[0][index + i]
     data.index += data.last
@@ -75,7 +75,7 @@ cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
         data.last = o.domain_ind
         data.index += 1
     cdef np.int64_t index = data.index * 8
-    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    index += oind(data)
     arr[index] = 1
 
 cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
@@ -83,11 +83,12 @@ cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef int i
     cdef np.uint8_t *arr = <np.uint8_t *> data.array
     cdef np.int64_t index = data.global_index * 8
-    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    index += oind(data)
     arr[index] = 1
 
 cdef void index_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that we provide an index even if the cell is not selected.
+    if selected == 0: return
     cdef int i
     cdef np.int64_t *arr
     if data.last != o.domain_ind:
