@@ -230,7 +230,6 @@ class ParticleOctreeSubset(OctreeSubset):
         return tr
 
     def select_fwidth(self, dobj):
-        # Recall domain_dimensions is the number of cells, not octs
         d = self.oct_handler.fwidth(self.selector)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
         return tr

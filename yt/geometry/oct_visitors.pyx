@@ -38,7 +38,7 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef int i
     cdef np.int64_t index = (data.global_index * 8)*data.last
     cdef np.float64_t **p = <np.float64_t**> data.array
-    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    index += (((data.ind[2]*2)+data.ind[1])*2+data.ind[0])*data.last
     for i in range(data.last):
         p[1][data.index + i] = p[0][index + i]
     data.index += data.last
@@ -50,7 +50,7 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef int i
     cdef np.int64_t index = (data.global_index * 8)*data.last
     cdef np.int64_t **p = <np.int64_t**> data.array
-    index += ((data.ind[2]*2)+data.ind[1])*2+data.ind[0] 
+    index += (((data.ind[2]*2)+data.ind[1])*2+data.ind[0])*data.last
     for i in range(data.last):
         p[1][data.index + i] = p[0][index + i]
     data.index += data.last
