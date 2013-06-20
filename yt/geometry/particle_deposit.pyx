@@ -234,6 +234,7 @@ cdef class SumParticleField(ParticleDepositOperation):
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
         self.sum[gind(ii[0], ii[1], ii[2], dim) + offset] += fields[0]
+        return
         
     def finalize(self):
         return self.osum
@@ -305,10 +306,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t *field
     cdef public object ofield
     def initialize(self):
-        self.ofield = np.zeros(self.nvals, dtype="float64")
+        self.ofield = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray arr = self.ofield
         self.field = <np.float64_t *> arr.data
 
+    @cython.cdivision(True)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],

@@ -212,12 +212,12 @@ class ParticleOctreeSubset(OctreeSubset):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        nvals = (self.domain_ind >= 0).sum() * 8
+        nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
         op = cls(nvals) # We allocate number of zones, not number of octs
         op.initialize()
         op.process_octree(self.oct_handler, self.domain_ind, positions, fields, 0)
         vals = op.finalize()
-        return self._reshape_vals(vals)
+        return np.asfortranarray(vals)
 
     def select_icoords(self, dobj):
         d = self.oct_handler.icoords(self.selector)

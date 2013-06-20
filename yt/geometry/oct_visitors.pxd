@@ -45,5 +45,4 @@ cdef inline int oind(OctVisitorData *data):
     return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
 
 cdef inline int rind(OctVisitorData *data):
-    #return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
     return (((data.ind[2]*2)+data.ind[1])*2+data.ind[0])

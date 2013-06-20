@@ -36,6 +36,7 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
     cdef int i
+    # There are this many records between "octs"
     cdef np.int64_t index = (data.global_index * 8)*data.last
     cdef np.float64_t **p = <np.float64_t**> data.array
     index += oind(data)*data.last
@@ -88,7 +89,6 @@ cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
 
 cdef void index_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that we provide an index even if the cell is not selected.
-    if selected == 0: return
     cdef int i
     cdef np.int64_t *arr
     if data.last != o.domain_ind:
