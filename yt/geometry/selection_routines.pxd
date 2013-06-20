@@ -40,10 +40,6 @@ cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
 
-    cdef void recursively_select_octs(self, Oct *root,
-                        np.float64_t pos[3], np.float64_t dds[3],
-                        np.ndarray[np.uint8_t, ndim=2] mask,
-                        int level = ?)
     cdef void recursively_visit_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
                         int level,
