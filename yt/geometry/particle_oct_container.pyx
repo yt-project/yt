@@ -379,6 +379,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         else:
             raise NotImplementedError
         self.visit_all_octs(selector, func, &data)
+        assert ((data.global_index + 1)*8*dims == source.size)
+        assert (dest.size == data.index)
         if num_cells >= 0:
             return dest
         return data.index - offset

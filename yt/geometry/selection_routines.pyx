@@ -1165,19 +1165,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
         # There has to be a better way to do this.
-        cdef OctVisitorData data
-        data.index = 0
-        data.last = -1
-        octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
-        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
-                np.zeros((2, 2, 2, data.index), 'uint8', order='C')
-        # This is where we'll -- in the future -- cut up based on indices of
-        # the octs.
-        data.index = -1
-        data.last = -1
-        data.array = m2.data
-        octree.visit_all_octs(self, oct_visitors.mark_octs, &data)
-        return m2.astype("bool")
+        raise RuntimeError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1203,7 +1191,6 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
         return 1
-        return self.base_selector.select_cell(pos, dds, eterm)
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level) nogil:
