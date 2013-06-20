@@ -91,6 +91,7 @@ class RAMSESDomainFile(object):
         hydro_offset = np.zeros(n_levels, dtype='int64')
         hydro_offset -= 1
         level_count = np.zeros(n_levels, dtype='int64')
+        skipped = []
         for level in range(self.amr_header['nlevelmax']):
             for cpu in range(self.amr_header['nboundary'] +
                              self.amr_header['ncpu']):
@@ -101,13 +102,15 @@ class RAMSESDomainFile(object):
                 except AssertionError:
                     print "You are running with the wrong number of fields."
                     print "Please specify these in the load command."
+                    print "We are looking for %s fields." % self.nvar
+                    print "The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
                 if cpu + 1 == self.domain_id and level >= min_level:
                     hydro_offset[level - min_level] = f.tell()
                     level_count[level - min_level] = hvals['file_ncache']
-                fpu.skip(f, 8 * self.nvar)
+                skipped = fpu.skip(f, 8 * self.nvar)
         self._hydro_offset = hydro_offset
         self._level_count = level_count
         return self._hydro_offset
