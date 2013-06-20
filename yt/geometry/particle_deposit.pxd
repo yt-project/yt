@@ -38,8 +38,11 @@ cdef extern from "alloca.h":
     void *alloca(int)
 
 cdef inline int gind(int i, int j, int k, int dims[3]):
+    # The ordering is such that we want i to vary the slowest in this instance,
+    # even though in other instances it varies the fastest.  To see this in
+    # action, try looking at the results of an n_ref=256 particle CIC plot,
+    # which shows it the most clearly.
     return ((i*dims[1])+j)*dims[2]+k
-    #return ((k*dims[1])+j)*dims[0]+i
 
 
 ####################################################
