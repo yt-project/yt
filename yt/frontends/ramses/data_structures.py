@@ -345,10 +345,10 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            mask = dobj.selector.select_octs(self.oct_handler)
             base_region = getattr(dobj, "base_region", dobj)
             # Note that domain_ids will be ONE INDEXED
             domain_ids = self.oct_handler.domain_identify(dobj.selector)
+            mylog.debug("Identified %s intersecting domains", len(domain_ids))
             subsets = [RAMSESDomainSubset(base_region, self.domains[did - 1],
                                           self.parameter_file)
                        for did in domain_ids]

@@ -118,25 +118,25 @@ class OctreeSubset(YTSelectionContainer):
         return np.asfortranarray(vals)
 
     def select_icoords(self, dobj):
-        d = self.oct_handler.icoords(self.selector)
+        d = self.oct_handler.icoords(self.selector, domain_id = self.domain_id)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
                                             domain_id = self.domain_id)
         return tr
 
     def select_fcoords(self, dobj):
-        d = self.oct_handler.fcoords(self.selector)
+        d = self.oct_handler.fcoords(self.selector, domain_id = self.domain_id)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
                                             domain_id = self.domain_id)
         return tr
 
     def select_fwidth(self, dobj):
-        d = self.oct_handler.fwidth(self.selector)
+        d = self.oct_handler.fwidth(self.selector, domain_id = self.domain_id)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
                                             domain_id = self.domain_id)
         return tr
 
     def select_ires(self, dobj):
-        d = self.oct_handler.ires(self.selector)
+        d = self.oct_handler.ires(self.selector, domain_id = self.domain_id)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 1,
                                             domain_id = self.domain_id)
         return tr

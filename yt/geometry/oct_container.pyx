@@ -307,43 +307,49 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1):
+    def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
+                int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self)
+            num_cells = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
+        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.icoords_octs, &data)
         return coords
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def ires(self, SelectorObject selector, np.uint64_t num_cells = -1):
+    def ires(self, SelectorObject selector, np.uint64_t num_cells = -1,
+                int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self)
+            num_cells = selector.count_octs(self, domain_id)
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.empty(num_cells, dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> res.data
         data.index = 0
+        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.ires_octs, &data)
         return res
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1):
+    def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1,
+                int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self)
+            num_cells = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.float64_t, ndim=2] fwidth
         fwidth = np.empty((num_cells, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> fwidth.data
         data.index = 0
+        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.fwidth_octs, &data)
         cdef np.float64_t base_dx
         for i in range(3):
@@ -354,15 +360,17 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1):
+    def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
+                int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self)
+            num_cells = selector.count_octs(self, domain_id)
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
+        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.fcoords_octs, &data)
         cdef int i
         cdef np.float64_t base_dx
@@ -382,7 +390,7 @@ cdef class OctreeContainer:
         # number of octs total visited.
         cdef np.int64_t num_cells = -1
         if dest is None:
-            num_cells = selector.count_octs(self)
+            num_cells = selector.count_octs(self, domain_id)
             if dims > 1:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
                     order='C')
@@ -407,6 +415,14 @@ cdef class OctreeContainer:
         else:
             raise NotImplementedError
         self.visit_all_octs(selector, func, &data)
+        if (data.global_index + 1) * 8 * data.dims > source.size:
+            print "GLOBAL INDEX RAN AHEAD.",
+            print (data.global_index + 1) * 8 * data.dims - source.size
+            raise RuntimeError
+        if data.index > dest.size:
+            print "DEST INDEX RAN AHEAD.",
+            print data.index - dest.size
+            raise RuntimeError
         if num_cells >= 0:
             return dest
         return data.index - offset
@@ -418,6 +434,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         domain_mask = np.zeros(self.max_domain, dtype="uint8")
         cdef OctVisitorData data
         data.array = domain_mask.data
+        data.domain = -1
         self.visit_all_octs(selector, oct_visitors.identify_octs, &data)
         cdef int i
         domain_ids = []
@@ -425,7 +442,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             if domain_mask[i] == 1:
                 domain_ids.append(i+1)
         return domain_ids
-
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
         cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
@@ -560,11 +576,12 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             local_filled += 1
         return local_filled
 
-    def domain_ind(self, selector):
+    def domain_ind(self, selector, int domain_id = -1):
         cdef np.ndarray[np.int64_t, ndim=1] ind
         # Here's where we grab the masked items.
         ind = np.zeros(self.nocts, 'int64') - 1
         cdef OctVisitorData data
+        data.domain = domain_id
         data.array = ind.data
         data.index = 0
         data.last = -1

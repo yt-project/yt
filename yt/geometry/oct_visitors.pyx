@@ -62,6 +62,7 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
 cdef void count_total_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Count even if not selected.
     # Number of *octs* visited.
+    if data.domain > 0 and o.domain != data.domain: return
     if data.last != o.domain_ind:
         data.index += 1
         data.last = o.domain_ind

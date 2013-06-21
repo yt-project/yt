@@ -146,6 +146,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     def select_octs(self, OctreeContainer octree):
         # There has to be a better way to do this.
+        raise RuntimeError
         cdef OctVisitorData data
         data.index = 0
         data.last = -1
@@ -161,9 +162,10 @@ cdef class SelectorObject:
         octree.visit_all_octs(self, oct_visitors.mask_octs, &data)
         return m2.astype("bool")
 
-    def count_octs(self, OctreeContainer octree):
+    def count_octs(self, OctreeContainer octree, int domain_id = -1):
         cdef OctVisitorData data
         data.index = 0
+        data.domain = domain_id
         octree.visit_all_octs(self, oct_visitors.count_total_cells, &data)
         return data.index
 
@@ -188,28 +190,29 @@ cdef class SelectorObject:
             RE[i] = pos[i] + dds[i]/2.0
         #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
         res = self.select_grid(LE, RE, level, root)
+        if res == 1 and data.domain > 0 and root.domain != data.domain:
+            res = -1
         cdef int eterm[3] 
+        cdef int increment = 1
         eterm[0] = eterm[1] = eterm[2] = 0
         cdef int next_level, this_level
         # next_level: an int that says whether or not we can progress to children
         # this_level: an int that says whether or not we can select from this
         # level
         next_level = this_level = 1
+        if res == -1:
+            # This happens when we do domain selection but the oct has
+            # children.  This would allow an oct to pass to its children but
+            # not get accessed itself.
+            next_level = 1
+            this_level = 0
+            increment = 0
         if level == self.max_level:
             next_level = 0
         if level < self.min_level or level > self.max_level:
             this_level = 0
         if res == 0 and this_level == 1:
             return
-        if res == -1: 
-            # This happens when we do domain selection but the oct has
-            # children.  This would allow an oct to pass to its children but
-            # not get accessed itself.
-            next_level = 1
-            this_level = 0
-        cdef int increment = 1
-        if data.domain > 0 and root.domain != data.domain:
-            increment = 0
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
         spos[0] = pos[0] - sdds[0]/2.0
@@ -1150,13 +1153,12 @@ cdef class OctreeSubsetSelector(SelectorObject):
                          Oct *o = NULL) nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
-        cdef int any_children = 0
-        cdef int i, j, k
-        if o == NULL: return 0
         cdef int res
+        if o == NULL: return 0
         res = self.base_selector.select_grid(left_edge, right_edge, level, o)
-        if res == 1 and o.domain != self.domain_id: return -1
-        return 1
+        if res != 0 and o.domain != self.domain_id:
+            res = -1
+        return res
 
 octree_subset_selector = OctreeSubsetSelector
 
