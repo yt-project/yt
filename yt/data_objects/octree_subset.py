@@ -53,7 +53,7 @@ class OctreeSubset(YTSelectionContainer):
         self.domain_id = domain.domain_id
         self.pf = domain.pf
         self.hierarchy = self.pf.hierarchy
-        self.oct_handler = domain.pf.h.oct_handler
+        self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'

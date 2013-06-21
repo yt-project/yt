@@ -28,6 +28,7 @@ from fp_utils cimport *
 from selection_routines cimport SelectorObject, \
     OctVisitorData, oct_visitor_function
 from oct_visitors cimport *
+from libc.stdlib cimport bsearch, qsort
 
 cdef int ORDER_MAX
 
@@ -65,6 +66,7 @@ cdef class OctreeContainer:
     cdef public int nocts
     cdef public int max_domain
     cdef Oct* get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
+    cdef Oct *get_root(self, int ind[3])
     cdef void neighbors(self, Oct *, Oct **)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
@@ -76,6 +78,8 @@ cdef class OctreeContainer:
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
+    cdef Oct **root_nodes
+    cdef int num_root
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 

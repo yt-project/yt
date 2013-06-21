@@ -69,6 +69,7 @@ class RAMSESDomainFile(object):
             setattr(self, "%s_fn" % t, basename % t)
         self._read_amr_header()
         self._read_particle_header()
+        self._read_amr()
 
     _hydro_offset = None
     _level_count = None
@@ -183,21 +184,26 @@ class RAMSESDomainFile(object):
         self.amr_header = hvals
         self.amr_offset = f.tell()
         self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
+        self.total_oct_count = hvals['numbl'][self.pf.min_level:,:].sum(axis=0)
 
-    def _read_amr(self, oct_handler):
+    def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain 
            are needed - its position in the octree is found automatically.
            The most important is finding all the information to feed
            oct_handler.add
         """
+        self.oct_handler = RAMSESOctreeContainer(self.pf.domain_dimensions/2,
+                self.pf.domain_left_edge, self.pf.domain_right_edge)
+        root_nodes = self.amr_header['numbl'][self.pf.min_level,:].sum()
+        self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
         f = cStringIO.StringIO()
         f.write(fb.read())
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
-            self.domain_id, self.local_oct_count, self.ngridbound.sum())
+            self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
         def _ng(c, l):
             if c < self.amr_header['ncpu']:
                 ng = self.amr_header['numbl'][l, c]
@@ -236,26 +242,18 @@ class RAMSESDomainFile(object):
                 #    rmap[:,i] = fpu.read_vector(f, "I")
                 # We don't want duplicate grids.
                 # Note that we're adding *grids*, not individual cells.
-                if level >= min_level and cpu + 1 >= self.domain_id: 
+                if level >= min_level:
                     assert(pos.shape[0] == ng)
                     if cpu + 1 == self.domain_id:
                         total += ng
-                    oct_handler.add(cpu + 1, level - min_level, ng, pos, 
-                                    self.domain_id)
+                    self.oct_handler.add(cpu + 1, level - min_level,
+                                         pos, self.domain_id)
+        self.oct_handler.finalize()
+        #raise RuntimeError
 
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = selector.fill_mask(self)
-        self._last_selector_id = id(selector)
-        return self._last_mask
-
-    def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
+    def included(self, selector):
+        domain_ids = self.oct_handler.domain_identify(selector)
+        return self.domain_id in domain_ids
 
 class RAMSESDomainSubset(OctreeSubset):
 
@@ -314,21 +312,6 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.num_grids = total_octs
-        #this merely allocates space for the oct tree
-        #and nothing else
-        self.oct_handler = RAMSESOctreeContainer(
-            self.parameter_file.domain_dimensions/2,
-            self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge)
-        mylog.debug("Allocating %s octs", total_octs)
-        self.oct_handler.allocate_domains(
-            [dom.local_oct_count #+ dom.ngridbound.sum()
-             for dom in self.domains])
-        #this actually reads every oct and loads it into the octree
-        for dom in self.domains:
-            dom._read_amr(self.oct_handler)
-        #for dom in self.domains:
-        #    self.oct_handler.check(dom.domain_id)
 
     def _detect_fields(self):
         # TODO: Add additional fields
@@ -347,11 +330,11 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         if getattr(dobj, "_chunk_info", None) is None:
             base_region = getattr(dobj, "base_region", dobj)
             # Note that domain_ids will be ONE INDEXED
-            domain_ids = self.oct_handler.domain_identify(dobj.selector)
+            domains = [dom for dom in self.domains if
+                       dom.included(dobj.selector)]
             mylog.debug("Identified %s intersecting domains", len(domain_ids))
-            subsets = [RAMSESDomainSubset(base_region, self.domains[did - 1],
-                                          self.parameter_file)
-                       for did in domain_ids]
+            subsets = [RAMSESDomainSubset(base_region, domain, self.parameter_file)
+                       for domain in domains]
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
