@@ -441,14 +441,14 @@ class AMRGridPatch(YTSelectionContainer):
         return new_field
 
     def select_icoords(self, dobj):
-        mask = self.select(dobj.selector)
+        mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='int64')
         coords = convert_mask_to_indices(mask, mask.sum())
         coords += self.get_global_startindex()[None, :]
         return coords
 
     def select_fcoords(self, dobj):
-        mask = self.select(dobj.selector)
+        mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
         coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
         coords += 0.5
@@ -457,15 +457,15 @@ class AMRGridPatch(YTSelectionContainer):
         return coords
 
     def select_fwidth(self, dobj):
-        mask = self.select(dobj.selector)
-        if mask is None: return np.empty((0,3), dtype='float64')
-        coords = np.empty((mask.sum(), 3), dtype='float64')
+        count = self.count(dobj.selector)
+        if count == 0: return np.empty((0,3), dtype='float64')
+        coords = np.empty((count, 3), dtype='float64')
         for axis in range(3):
             coords[:,axis] = self.dds[axis]
         return coords
 
     def select_ires(self, dobj):
-        mask = self.select(dobj.selector)
+        mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty(0, dtype='int64')
         coords = np.empty(mask.sum(), dtype='int64')
         coords[:] = self.Level
@@ -484,21 +484,27 @@ class AMRGridPatch(YTSelectionContainer):
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="F")
+        return vals.reshape(self.ActiveDimensions, order="C")
 
-    def select(self, selector):
+    def _get_selector_mask(self, selector):
         if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = selector.fill_mask(self)
-        self._last_selector_id = id(selector)
-        return self._last_mask
+            mask = self._last_mask
+        else:
+            self._last_mask = mask = selector.fill_mask(self)
+            self._last_selector_id = id(selector)
+        return mask
+
+    def select(self, selector, source, dest, offset):
+        mask = self._get_selector_mask(selector)
+        count = self.count(selector)
+        if count == 0: return
+        dest[offset:offset+count] = source[mask]
+        return count
 
     def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
+        mask = self._get_selector_mask(selector)
+        if mask is None: return 0
+        return mask.sum()
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
