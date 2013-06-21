@@ -412,7 +412,7 @@ cdef class ParticleRegions:
         cdef int ind[3], i
         cdef np.ndarray[np.uint64_t, ndim=3] mask
         mask = self.masks[file_id/64]
-        val = 1 << (file_id - (file_id/64)*64)
+        cdef np.int64_t val = 1 << (file_id - (file_id/64)*64)
         for p in range(no):
             # Now we locate the particle
             for i in range(3):

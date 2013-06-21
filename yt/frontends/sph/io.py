@@ -275,11 +275,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         morton = get_morton_indices_unravel(lx, ly, lz)
         del lx, ly, lz
         return morton
-        
 
-    def _count_particles(self, domain):
+    def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
-            for i, v in enumerate(domain.header["Npart"])) 
+            for i, v in enumerate(data_file.header["Npart"])) 
         return npart
 
     _header_offset = 256
@@ -384,23 +383,26 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             ptypes.add(ftype)
         ptypes = list(ptypes)
         ptypes.sort(key = lambda a: self._ptypes.index(a))
+        data_files = set([])
         for chunk in chunks:
-            for subset in chunk.objs:
-                poff = subset.domain.field_offsets
-                tp = subset.domain.total_particles
-                f = open(subset.domain.domain_filename, "rb")
-                for ptype in ptypes:
-                    f.seek(poff[ptype], os.SEEK_SET)
-                    p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
-                    mask = selector.select_points(
-                        p['Coordinates']['x'].astype("float64"),
-                        p['Coordinates']['y'].astype("float64"),
-                        p['Coordinates']['z'].astype("float64"))
-                    tf = self._fill_fields(ptf[ptype], p, mask)
-                    for field in tf:
-                        rv[ptype, field] = tf[field]
-                    del p, tf
-                f.close()
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            poff = data_file.field_offsets
+            tp = data_file.total_particles
+            f = open(data_file.filename, "rb")
+            for ptype in ptypes:
+                f.seek(poff[ptype], os.SEEK_SET)
+                p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
+                mask = selector.select_points(
+                    p['Coordinates']['x'].astype("float64"),
+                    p['Coordinates']['y'].astype("float64"),
+                    p['Coordinates']['z'].astype("float64"))
+                tf = self._fill_fields(ptf[ptype], p, mask)
+                for field in tf:
+                    rv[ptype, field] = tf[field]
+                del p, tf
+            f.close()
         return rv
 
     def _initialize_index(self, data_file, regions):
@@ -447,26 +449,26 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         mylog.info("Adding %0.3e particles", morton.size)
         return morton
 
-    def _count_particles(self, domain):
+    def _count_particles(self, data_file):
         npart = {
-            "Gas": domain.pf.parameters['nsph'],
-            "Stars": domain.pf.parameters['nstar'],
-            "DarkMatter": domain.pf.parameters['ndark']
+            "Gas": data_file.pf.parameters['nsph'],
+            "Stars": data_file.pf.parameters['nstar'],
+            "DarkMatter": data_file.pf.parameters['ndark']
         }
         return npart
 
-    def _create_dtypes(self, domain):
+    def _create_dtypes(self, data_file):
         # We can just look at the particle counts.
-        self._header_offset = domain.pf._header_offset
+        self._header_offset = data_file.pf._header_offset
         self._pdtypes = {}
         pds = {}
         field_list = []
-        tp = domain.total_particles
+        tp = data_file.total_particles
         for ptype, field in self._fields:
             pfields = []
             if tp[ptype] == 0: continue
-            dtbase = domain.pf._field_dtypes.get(field, 'f')
-            ff = "%s%s" % (domain.pf.endian, dtbase)
+            dtbase = data_file.pf._field_dtypes.get(field, 'f')
+            ff = "%s%s" % (data_file.pf.endian, dtbase)
             if field in _vector_fields:
                 dt = (field, [('x', ff), ('y', ff), ('z', ff)])
             else:
@@ -478,15 +480,15 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         self._field_list = field_list
         return self._field_list
 
-    def _identify_fields(self, domain):
+    def _identify_fields(self, data_file):
         return self._field_list
 
-    def _calculate_particle_offsets(self, domain):
+    def _calculate_particle_offsets(self, data_file):
         field_offsets = {}
-        pos = domain.pf._header_offset
+        pos = data_file.pf._header_offset
         for ptype in self._ptypes:
             field_offsets[ptype] = pos
-            if domain.total_particles[ptype] == 0: continue
+            if data_file.total_particles[ptype] == 0: continue
             size = self._pdtypes[ptype].itemsize
-            pos += domain.total_particles[ptype] * size
+            pos += data_file.total_particles[ptype] * size
         return field_offsets
