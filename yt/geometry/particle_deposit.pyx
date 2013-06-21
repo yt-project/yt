@@ -45,6 +45,8 @@ cdef class ParticleDepositOperation:
     def finalize(self, *args):
         raise NotImplementedError
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def process_octree(self, OctreeContainer octree,
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
@@ -90,6 +92,8 @@ cdef class ParticleDepositOperation:
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
         
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def process_grid(self, gobj,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None):

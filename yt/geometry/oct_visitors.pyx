@@ -25,6 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+cimport cython
 cimport numpy
 import numpy
 from fp_utils cimport *
@@ -111,6 +112,7 @@ cdef void ires_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     ires[data.index] = o.level
     data.index += 1
 
+@cython.cdivision(True)
 cdef void fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that this does not actually give the correct floating point
     # coordinates.  It gives them in some unit system where the domain is 1.0
@@ -125,6 +127,7 @@ cdef void fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
         fcoords[data.index * 3 + i] = (c + 0.5) * dx
     data.index += 1
 
+@cython.cdivision(True)
 cdef void fwidth_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that this does not actually give the correct floating point
     # coordinates.  It gives them in some unit system where the domain is 1.0

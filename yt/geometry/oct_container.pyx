@@ -137,6 +137,7 @@ cdef class OctreeContainer:
                 yield (this.file_ind, this.domain_ind, this.domain)
             cur = cur.next
 
+    @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data):
