@@ -43,28 +43,23 @@ class OctreeSubset(YTSelectionContainer):
     _num_zones = 2
     _type_name = 'octree_subset'
     _skip_add = True
-    _con_args = ('domain', 'mask', 'cell_count')
+    _con_args = ('base_region', 'domain', 'pf')
     _container_fields = ("dx", "dy", "dz")
 
-    def __init__(self, domain, mask, cell_count):
+    def __init__(self, base_region, domain, pf):
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.mask = mask
         self.domain = domain
+        self.domain_id = domain.domain_id
         self.pf = domain.pf
         self.hierarchy = self.pf.hierarchy
         self.oct_handler = domain.pf.h.oct_handler
-        self.cell_count = cell_count
-        level_counts = self.oct_handler.count_levels(
-            self.domain.pf.max_level, self.domain.domain_id, mask)
-        assert(level_counts.sum() == cell_count)
-        level_counts[1:] = level_counts[:-1]
-        level_counts[0] = 0
-        self.level_counts = np.add.accumulate(level_counts)
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
+        self.base_region = base_region
+        self.base_selector = base_region.selector
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
@@ -77,31 +72,6 @@ class OctreeSubset(YTSelectionContainer):
             return self._current_chunk.fwidth[:,2]
         else:
             raise RuntimeError
-
-    def select_icoords(self, dobj):
-        return self.oct_handler.icoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
-
-    def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(self.domain.domain_id, self.mask,
-                                        self.cell_count,
-                                        self.level_counts.copy())
-
-    def select_fwidth(self, dobj):
-        # Recall domain_dimensions is the number of cells, not octs
-        base_dx = (self.domain.pf.domain_width /
-                   self.domain.pf.domain_dimensions)
-        widths = np.empty((self.cell_count, 3), dtype="float64")
-        dds = (2**self.select_ires(dobj))
-        for i in range(3):
-            widths[:,i] = base_dx[i] / dds
-        return widths
-
-    def select_ires(self, dobj):
-        return self.oct_handler.ires(self.domain.domain_id, self.mask,
-                                     self.cell_count,
-                                     self.level_counts.copy())
 
     def __getitem__(self, key):
         tr = super(OctreeSubset, self).__getitem__(key)
@@ -140,22 +110,41 @@ class OctreeSubset(YTSelectionContainer):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        nvals = (self.domain_ind >= 0).sum() * 8
+        nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
         op = cls(nvals) # We allocate number of zones, not number of octs
         op.initialize()
-        op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
-                          self.domain.domain_id)
+        op.process_octree(self.oct_handler, self.domain_ind, positions, fields, 0)
         vals = op.finalize()
-        return self._reshape_vals(vals)
+        return np.asfortranarray(vals)
 
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = self.oct_handler.domain_mask(
-                self.mask, self.domain.domain_id)
-        if self._last_mask.sum() == 0: return None
-        self._last_selector_id = id(selector)
-        return self._last_mask
+    def select_icoords(self, dobj):
+        d = self.oct_handler.icoords(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
+                                            domain_id = self.domain_id)
+        return tr
+
+    def select_fcoords(self, dobj):
+        d = self.oct_handler.fcoords(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
+                                            domain_id = self.domain_id)
+        return tr
+
+    def select_fwidth(self, dobj):
+        d = self.oct_handler.fwidth(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
+                                            domain_id = self.domain_id)
+        return tr
+
+    def select_ires(self, dobj):
+        d = self.oct_handler.ires(self.selector)
+        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 1,
+                                            domain_id = self.domain_id)
+        return tr
+
+    def select(self, selector, source, dest, offset):
+        n = self.oct_handler.selector_fill(selector, source, dest, offset,
+                                           domain_id = self.domain_id)
+        return n
 
     def count(self, selector):
         if id(selector) == self._last_selector_id:
@@ -180,6 +169,7 @@ class ParticleOctreeSubset(OctreeSubset):
     # this, it's unavoidable for many types of data storage on disk.
     _type_name = 'particle_octree_subset'
     _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
+    domain_id = -1
     def __init__(self, base_region, data_files, pf, min_ind = 0, max_ind = 0):
         # The first attempt at this will not work in parallel.
         self.data_files = data_files
@@ -206,55 +196,3 @@ class ParticleOctreeSubset(OctreeSubset):
             di = self.oct_handler.domain_ind(self.selector)
             self._domain_ind = di
         return self._domain_ind
-
-    def deposit(self, positions, fields = None, method = None):
-        # Here we perform our particle deposition.
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
-        if cls is None:
-            raise YTParticleDepositionNotImplemented(method)
-        nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
-        op = cls(nvals) # We allocate number of zones, not number of octs
-        op.initialize()
-        op.process_octree(self.oct_handler, self.domain_ind, positions, fields, 0)
-        vals = op.finalize()
-        return np.asfortranarray(vals)
-
-    def select_icoords(self, dobj):
-        d = self.oct_handler.icoords(self.selector)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
-        return tr
-
-    def select_fcoords(self, dobj):
-        d = self.oct_handler.fcoords(self.selector)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
-        return tr
-
-    def select_fwidth(self, dobj):
-        d = self.oct_handler.fwidth(self.selector)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3)
-        return tr
-
-    def select_ires(self, dobj):
-        d = self.oct_handler.ires(self.selector)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 1)
-        return tr
-
-    def select(self, selector, source, dest, offset):
-        n = self.oct_handler.selector_fill(selector, source, dest, offset)
-        return n
-
-    def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
-
-    def count_particles(self, selector, x, y, z):
-        # We don't cache the selector results
-        count = selector.count_points(x,y,z)
-        return count
-
-    def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
-        return mask

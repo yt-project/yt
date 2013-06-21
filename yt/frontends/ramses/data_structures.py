@@ -346,17 +346,18 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             mask = dobj.selector.select_octs(self.oct_handler)
-            counts = self.oct_handler.count_cells(dobj.selector, mask)
-            subsets = [RAMSESDomainSubset(d, mask, c)
-                       for d, c in zip(self.domains, counts) if c > 0]
+            base_region = getattr(dobj, "base_region", dobj)
+            # Note that domain_ids will be ONE INDEXED
+            domain_ids = self.oct_handler.domain_identify(dobj.selector)
+            subsets = [RAMSESDomainSubset(base_region, self.domains[did - 1],
+                                          self.parameter_file)
+                       for did in domain_ids]
             dobj._chunk_info = subsets
-            dobj.size = sum(counts)
-            dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+        yield YTDataChunk(dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz, sort = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -372,7 +373,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+            yield YTDataChunk(dobj, "io", [subset], None)
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESGeometryHandler

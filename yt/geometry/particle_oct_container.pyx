@@ -106,74 +106,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             o = self.oct_list[oi]
             yield (o.file_ind, o.domain_ind, o.domain)
 
-    #@cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self)
-        cdef np.ndarray[np.int64_t, ndim=2] coords
-        coords = np.empty((num_cells, 3), dtype="int64")
-        cdef OctVisitorData data
-        data.array = <void *> coords.data
-        data.index = 0
-        self.visit_all_octs(selector, oct_visitors.icoords_octs, &data)
-        return coords
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def ires(self, SelectorObject selector, np.uint64_t num_cells = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self)
-        #Return the 'resolution' of each cell; ie the level
-        cdef np.ndarray[np.int64_t, ndim=1] res
-        res = np.empty(num_cells, dtype="int64")
-        cdef OctVisitorData data
-        data.array = <void *> res.data
-        data.index = 0
-        self.visit_all_octs(selector, oct_visitors.ires_octs, &data)
-        return res
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self)
-        cdef np.ndarray[np.float64_t, ndim=2] fwidth
-        fwidth = np.empty((num_cells, 3), dtype="float64")
-        cdef OctVisitorData data
-        data.array = <void *> fwidth.data
-        data.index = 0
-        self.visit_all_octs(selector, oct_visitors.fwidth_octs, &data)
-        cdef np.float64_t base_dx
-        for i in range(3):
-            base_dx = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            fwidth[:,i] *= base_dx
-        return fwidth
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self)
-        #Return the floating point unitary position of every cell
-        cdef np.ndarray[np.float64_t, ndim=2] coords
-        coords = np.empty((num_cells, 3), dtype="float64")
-        cdef OctVisitorData data
-        data.array = <void *> coords.data
-        data.index = 0
-        self.visit_all_octs(selector, oct_visitors.fcoords_octs, &data)
-        cdef int i
-        cdef np.float64_t base_dx
-        for i in range(3):
-            base_dx = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            coords[:,i] *= base_dx
-            coords[:,i] += self.DLE[i]
-        return coords
-
     def allocate_domains(self, domain_counts):
         pass
 
@@ -333,57 +265,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     if o.children[i][j][k] != NULL:
                         self.visit(o.children[i][j][k], counts, level + 1)
         return
-
-    def domain_ind(self, selector):
-        cdef np.ndarray[np.int64_t, ndim=1] ind
-        # Here's where we grab the masked items.
-        ind = np.zeros(self.nocts, 'int64') - 1
-        cdef OctVisitorData data
-        data.array = ind.data
-        data.index = 0
-        data.last = -1
-        self.visit_all_octs(selector, oct_visitors.index_octs, &data)
-        return ind
-
-    def selector_fill(self, SelectorObject selector,
-                      np.ndarray source,
-                      np.ndarray dest = None,
-                      np.int64_t offset = 0, int dims = 1):
-        # This is actually not correct.  The hard part is that we need to
-        # iterate the same way visit_all_octs does, but we need to track the
-        # number of octs total visited.
-        cdef np.int64_t num_cells = -1
-        if dest is None:
-            num_cells = selector.count_octs(self)
-            if dims > 1:
-                dest = np.zeros((num_cells, dims), dtype=source.dtype,
-                    order='C')
-            else:
-                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
-            dest = dest - 10000
-        cdef OctVisitorData data
-        data.index = offset
-        # We only need this so we can continue calculating the offset
-        data.last = dims
-        cdef void *p[2]
-        p[0] = source.data
-        p[1] = dest.data
-        data.array = &p
-        cdef oct_visitor_function *func
-        if source.dtype != dest.dtype:
-            raise RuntimeError
-        if source.dtype == np.int64:
-            func = oct_visitors.copy_array_i64
-        elif source.dtype == np.float64:
-            func = oct_visitors.copy_array_f64
-        else:
-            raise NotImplementedError
-        self.visit_all_octs(selector, func, &data)
-        assert ((data.global_index + 1)*8*dims == source.size)
-        assert (dest.size == data.index)
-        if num_cells >= 0:
-            return dest
-        return data.index - offset
 
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]

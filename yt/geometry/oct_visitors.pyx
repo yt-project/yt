@@ -36,26 +36,28 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We should always have global_index less than our source.
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
+    if data.domain > 0 and o.domain != data.domain: return
     cdef int i
     # There are this many records between "octs"
-    cdef np.int64_t index = (data.global_index * 8)*data.last
+    cdef np.int64_t index = (data.global_index * 8)*data.dims
     cdef np.float64_t **p = <np.float64_t**> data.array
-    index += oind(data)*data.last
-    for i in range(data.last):
+    index += oind(data)*data.dims
+    for i in range(data.dims):
         p[1][data.index + i] = p[0][index + i]
-    data.index += data.last
+    data.index += data.dims
 
 cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We should always have global_index less than our source.
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
+    if data.domain > 0 and o.domain != data.domain: return
     cdef int i
-    cdef np.int64_t index = (data.global_index * 8)*data.last
+    cdef np.int64_t index = (data.global_index * 8)*data.dims
     cdef np.int64_t **p = <np.int64_t**> data.array
-    index += oind(data)*data.last
-    for i in range(data.last):
+    index += oind(data)*data.dims
+    for i in range(data.dims):
         p[1][data.index + i] = p[0][index + i]
-    data.index += data.last
+    data.index += data.dims
 
 cdef void count_total_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Count even if not selected.
@@ -140,3 +142,11 @@ cdef void fwidth_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     for i in range(3):
         fwidth[data.index * 3 + i] = dx
     data.index += 1
+
+cdef void identify_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # We assume that our domain has *already* been selected by, which means
+    # we'll get all cells within the domain for a by-domain selector and all
+    # cells within the domain *and* selector for the selector itself.
+    if selected == 0: return
+    cdef np.uint8_t *arr = <np.uint8_t *> data.array
+    arr[o.domain - 1] = 1

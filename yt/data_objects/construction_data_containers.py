@@ -281,9 +281,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
         # We do this once
-        if self.pf.h._global_mesh:
-            for chunk in self.data_source.chunks(None, "io"):
-                self._initialize_chunk(chunk, tree)
+        for chunk in self.data_source.chunks(None, "io"):
+            self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
         for chunk in parallel_objects(self.data_source.chunks(
                 chunk_fields, "io")): 

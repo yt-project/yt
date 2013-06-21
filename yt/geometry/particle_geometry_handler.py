@@ -154,7 +154,7 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield ParticleDataChunk(self.oct_handler, self.regions, dobj, "all", oobjs, None)
+        yield YTDataChunk(dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz, sort = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -168,14 +168,12 @@ class ParticleGeometryHandler(GeometryHandler):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
-            yield ParticleDataChunk(self.oct_handler, self.regions, dobj,
-                                    "spatial", [g])
+            yield YTDataChunk(dobj, "spatial", [g])
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield ParticleDataChunk(self.oct_handler, self.regions,
-                                    dobj, "io", [subset], None)
+            yield YTDataChunk(dobj, "io", [subset], None)
 
 class ParticleDataChunk(YTDataChunk):
     def __init__(self, oct_handler, regions, *args, **kwargs):

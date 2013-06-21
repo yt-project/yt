@@ -32,6 +32,8 @@ cdef struct OctVisitorData:
     np.uint64_t global_index
     int ind[3]
     void *array
+    int dims
+    int domain
 
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
                                    np.uint8_t selected)
@@ -47,7 +49,7 @@ cdef class SelectorObject:
                         OctVisitorData *data)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
-                               np.int32_t level) nogil
+                               np.int32_t level, Oct *o = ?) nogil
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil
     cdef void set_bounds(self,
