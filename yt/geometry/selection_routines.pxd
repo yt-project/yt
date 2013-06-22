@@ -29,7 +29,7 @@ cdef struct Oct
 cdef struct OctVisitorData:
     np.uint64_t index
     np.uint64_t last
-    np.uint64_t global_index
+    np.int64_t global_index
     int ind[3]
     void *array
     int dims
