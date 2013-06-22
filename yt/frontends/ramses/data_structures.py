@@ -245,7 +245,6 @@ class RAMSESDomainFile(object):
                     assert(pos.shape[0] == ng)
                     self.oct_handler.add(cpu + 1, level - min_level, pos)
         self.oct_handler.finalize()
-        #raise RuntimeError
 
     def included(self, selector):
         domain_ids = self.oct_handler.domain_identify(selector)
@@ -459,7 +458,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax'] - rheader['levelmin']
+        self.max_level = rheader['levelmax'] - self.min_level
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

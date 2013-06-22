@@ -46,6 +46,10 @@ cdef struct Oct:
     Oct *children[2][2][2]
     Oct *parent
 
+cdef struct OctKey:
+    np.int64_t key
+    Oct *node
+
 cdef struct OctInfo:
     np.float64_t left_edge[3]
     np.float64_t dds[3]
@@ -65,8 +69,8 @@ cdef class OctreeContainer:
     cdef np.float64_t DLE[3], DRE[3]
     cdef public int nocts
     cdef public int max_domain
-    cdef Oct* get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
-    cdef Oct *get_root(self, int ind[3])
+    cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
+    cdef int get_root(self, int ind[3], Oct **o)
     cdef void neighbors(self, Oct *, Oct **)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
@@ -78,8 +82,25 @@ cdef class OctreeContainer:
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef OctAllocationContainer **domains
-    cdef Oct **root_nodes
+    cdef OctKey *root_nodes
+    cdef void *tree_root
     cdef int num_root
+    cdef int max_root
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
+cdef extern from "search.h" nogil:
+    void *tsearch(const void *key, void **rootp,
+                    int (*compar)(const void *, const void *))
+    void *tfind(const void *key, const void **rootp,
+                    int (*compar)(const void *, const void *))
+    void *tdelete(const void *key, void **rootp,
+                    int (*compar)(const void *, const void *))
+
+cdef inline np.int64_t oct_key(Oct *o):
+    cdef int i
+    if o.level != 0: return -1
+    cdef np.int64_t key = 0
+    for i in range(3):
+        key |= (o.pos[i] << 20 * (2 - i))
+    return key

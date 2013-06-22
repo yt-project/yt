@@ -173,8 +173,9 @@ cdef class OctreeContainer:
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
 
-    cdef Oct *get_root(self, int ind[3]):
-        return self.root_mesh[ind[0]][ind[1]][ind[2]]
+    cdef int get_root(self, int ind[3], Oct **o):
+        o[0] = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        return 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -184,13 +185,13 @@ cdef class OctreeContainer:
         #refined oct at that time
         cdef int ind[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
-        cdef Oct *cur
+        cdef Oct *cur, *next
         cdef int i
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
-        next = self.get_root(ind)
+        self.get_root(ind, &next)
         # We want to stop recursing when there's nowhere else to go
         while next != NULL:
             cur = next
@@ -430,32 +431,13 @@ cdef class OctreeContainer:
             return dest
         return data.index - offset
 
-cdef int root_key_compare(void *key, void *member) nogil:
-    cdef int i
-    cdef np.int64_t vkey = 0
-    cdef Oct *o = <Oct*>member
-    cdef np.int64_t fkey = (<np.int64_t *>key)[0]
-    for i in range(3):
-        vkey |= (o.pos[i] << 20 * (2 - i))
-    if vkey < fkey:
-        return -1
-    elif vkey == fkey:
-        return 0
-    else:
-        return 1
-
 cdef int root_node_compare(void *a, void *b) nogil:
-    cdef int i
-    cdef np.int64_t akey, bkey
-    cdef Oct *ao, *bo
-    ao = <Oct *>a
-    bo = <Oct *>b
-    for i in range(3):
-        akey |= (ao.pos[i] << 20 * (2 - i))
-        bkey |= (bo.pos[i] << 20 * (2 - i))
-    if akey < bkey:
+    cdef OctKey *ao, *bo
+    ao = <OctKey *>a
+    bo = <OctKey *>b
+    if ao.key < bo.key:
         return -1
-    elif akey == bkey:
+    elif ao.key == bo.key:
         return 0
     else:
         return 1
@@ -470,26 +452,29 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         self.nocts = 0 # Increment when initialized
         self.root_mesh = NULL
         self.root_nodes = NULL
+        self.tree_root = NULL
         self.num_root = 0
         # We don't initialize the octs yet
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
 
-    def __dealloc__(self):
-        free_octs(self.cont)
-
     def finalize(self):
         return
 
-    cdef Oct *get_root(self, int ind[3]):
+    cdef int get_root(self, int ind[3], Oct **o):
+        o[0] = NULL
         cdef int i
         cdef np.int64_t key = 0
         for i in range(3):
             key |= (ind[i] << 20 * (2 - i))
-        cdef Oct *o = <Oct *> bsearch(&key, self.root_nodes[0],
-                self.num_root, sizeof(Oct *), root_key_compare)
-        return o
+        cdef OctKey okey, *oresult
+        okey.key = key
+        okey.node = NULL
+        oresult = <OctKey *> tfind(<void*>&okey,
+            &self.tree_root, root_node_compare)
+        if oresult != NULL:
+            o[0] = oresult.node
 
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
@@ -504,7 +489,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # Pos is the center of the octs
         cdef Oct *o
         for i in range(self.num_root):
-            o = self.root_nodes[i]
+            o = self.root_nodes[i].node
             for j in range(3):
                 pos[0] = self.DLE[0] + (o.pos[0] + 0.5) * dds[0]
                 selector.recursively_visit_octs(
@@ -531,22 +516,23 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         # We assume that 20 bits is enough for each index.
         cdef int i
-        next = self.get_root(ind)
+        cdef Oct *next
+        self.get_root(ind, &next)
         if next != NULL: return next
-        # Otherwise, we'll have to insert and then qsort
         cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
-        if cont.n_assigned >= cont.n: raise RuntimeError
+        if cont.n_assigned >= cont.n: return NULL
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
-        self.root_nodes[self.num_root] = next
-        self.num_root += 1
         next.parent = NULL
         next.level = 0
         for i in range(3):
             next.pos[i] = ind[i]
         self.nocts += 1
-        qsort(self.root_nodes, self.num_root, sizeof(Oct *),
-              root_node_compare)
+        self.root_nodes[self.num_root].key = oct_key(next)
+        self.root_nodes[self.num_root].node = next
+        tsearch(<void*>&self.root_nodes[self.num_root], &self.tree_root,
+                root_node_compare)
+        self.num_root += 1
         return next
 
     cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
@@ -575,13 +561,16 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             cur = allocate_octs(count, cur)
             if self.cont == NULL: self.cont = cur
             self.domains[i] = cur
-        self.root_nodes = <Oct**> malloc(sizeof(Oct*) * root_nodes)
+        self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * root_nodes)
+        self.max_root = root_nodes
         for i in range(root_nodes):
-            self.root_nodes[i] = NULL
+            self.root_nodes[i].key = -1
+            self.root_nodes[i].node = NULL
         
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
+        free_octs(self.cont)
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
 
@@ -613,6 +602,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                     in_boundary = 1
             if skip_boundary == in_boundary == 1: continue
             cur = self.next_root(curdom, ind)
+            if cur == NULL: raise RuntimeError
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
             for level in range(curlevel):
