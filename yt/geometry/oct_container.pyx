@@ -467,7 +467,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef int i
         cdef np.int64_t key = 0
         for i in range(3):
-            key |= (ind[i] << 20 * (2 - i))
+            key |= ((<np.int64_t>ind[i]) << 20 * (2 - i))
         cdef OctKey okey, **oresult
         okey.key = key
         okey.node = NULL
@@ -520,8 +520,11 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         self.get_root(ind, &next)
         if next != NULL: return next
         cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
-        if cont.n_assigned >= cont.n: return NULL
+        if cont.n_assigned >= cont.n:
+            print "Too many assigned."
+            return NULL
         if self.num_root >= self.max_root:
+            print "Too many roots."
             return NULL
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
@@ -531,7 +534,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
         for i in range(3):
             next.pos[i] = ind[i]
-            key |= (ind[i] << 20 * (2 - i))
+            key |= ((<np.int64_t>ind[i]) << 20 * (2 - i))
         self.root_nodes[self.num_root].key = key
         self.root_nodes[self.num_root].node = next
         tsearch(<void*>ikey, &self.tree_root, root_node_compare)
