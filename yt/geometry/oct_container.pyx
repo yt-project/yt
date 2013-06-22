@@ -491,9 +491,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for i in range(self.num_root):
             o = self.root_nodes[i].node
             for j in range(3):
-                pos[0] = self.DLE[0] + (o.pos[0] + 0.5) * dds[0]
-                selector.recursively_visit_octs(
-                    o, pos, dds, 0, func, data)
+                pos[j] = self.DLE[j] + (o.pos[j] + 0.5) * dds[j]
+            selector.recursively_visit_octs(
+                o, pos, dds, 0, func, data)
 
     def domain_identify(self, SelectorObject selector):
         cdef np.ndarray[np.uint8_t, ndim=1] domain_mask
