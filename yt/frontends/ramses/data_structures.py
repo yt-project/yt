@@ -212,7 +212,6 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.pf.min_level
-        total = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -244,10 +243,7 @@ class RAMSESDomainFile(object):
                 # Note that we're adding *grids*, not individual cells.
                 if level >= min_level:
                     assert(pos.shape[0] == ng)
-                    if cpu + 1 == self.domain_id:
-                        total += ng
-                    self.oct_handler.add(cpu + 1, level - min_level,
-                                         pos, self.domain_id)
+                    self.oct_handler.add(cpu + 1, level - min_level, pos)
         self.oct_handler.finalize()
         #raise RuntimeError
 
