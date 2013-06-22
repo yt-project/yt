@@ -214,6 +214,8 @@ class GDFStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
+        self.data_software = \
+                self._handle['gridded_data_format'].attrs['data_software']
         sp = self._handle["/simulation_parameters"].attrs
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
