@@ -96,11 +96,3 @@ cdef extern from "search.h" nogil:
                     int (*compar)(const void *, const void *))
     void *tdelete(const void *key, void **rootp,
                     int (*compar)(const void *, const void *))
-
-cdef inline np.int64_t oct_key(Oct *o):
-    cdef int i
-    if o.level != 0: return -1
-    cdef np.int64_t key = 0
-    for i in range(3):
-        key |= (o.pos[i] << 20 * (2 - i))
-    return key

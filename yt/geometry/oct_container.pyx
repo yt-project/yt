@@ -117,13 +117,13 @@ cdef class OctreeContainer:
 
     def __dealloc__(self):
         free_octs(self.cont)
+        if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
             for j in range(self.nn[1]):
                 if self.root_mesh[i][j] == NULL: continue
                 free(self.root_mesh[i][j])
             if self.root_mesh[i] == NULL: continue
             free(self.root_mesh[i])
-        if self.root_mesh == NULL: return
         free(self.root_mesh)
 
     def __iter__(self):
@@ -468,13 +468,13 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         cdef np.int64_t key = 0
         for i in range(3):
             key |= (ind[i] << 20 * (2 - i))
-        cdef OctKey okey, *oresult
+        cdef OctKey okey, **oresult
         okey.key = key
         okey.node = NULL
-        oresult = <OctKey *> tfind(<void*>&okey,
+        oresult = <OctKey **> tfind(<void*>&okey,
             &self.tree_root, root_node_compare)
         if oresult != NULL:
-            o[0] = oresult.node
+            o[0] = oresult[0].node
 
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
@@ -521,18 +521,22 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         if next != NULL: return next
         cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
         if cont.n_assigned >= cont.n: return NULL
+        if self.num_root >= self.max_root:
+            return NULL
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
         next.parent = NULL
         next.level = 0
+        cdef np.int64_t key = 0
+        cdef OctKey *ikey = &self.root_nodes[self.num_root]
         for i in range(3):
             next.pos[i] = ind[i]
-        self.nocts += 1
-        self.root_nodes[self.num_root].key = oct_key(next)
+            key |= (ind[i] << 20 * (2 - i))
+        self.root_nodes[self.num_root].key = key
         self.root_nodes[self.num_root].node = next
-        tsearch(<void*>&self.root_nodes[self.num_root], &self.tree_root,
-                root_node_compare)
+        tsearch(<void*>ikey, &self.tree_root, root_node_compare)
         self.num_root += 1
+        self.nocts += 1
         return next
 
     cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
@@ -570,7 +574,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
-        free_octs(self.cont)
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
 

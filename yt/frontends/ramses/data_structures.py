@@ -327,7 +327,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             # Note that domain_ids will be ONE INDEXED
             domains = [dom for dom in self.domains if
                        dom.included(dobj.selector)]
-            mylog.debug("Identified %s intersecting domains", len(domain_ids))
+            mylog.debug("Identified %s intersecting domains", len(domains))
             subsets = [RAMSESDomainSubset(base_region, domain, self.parameter_file)
                        for domain in domains]
             dobj._chunk_info = subsets
