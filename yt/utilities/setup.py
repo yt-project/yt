@@ -27,13 +27,15 @@ def get_default_dirs():
     add_from_path("CPATH", default_header_dirs)
     add_from_path("C_INCLUDE_PATH", default_header_dirs)
     add_from_flags("CPPFLAGS", "-I", default_header_dirs)
-    default_header_dirs.extend(['/usr/include', '/usr/local/include'])
+    default_header_dirs.extend(
+        ['/usr/include', '/usr/local/include', '/usr/X11']
+    )
 
     default_library_dirs = []
     add_from_flags("LDFLAGS", "-L", default_library_dirs)
     default_library_dirs.extend(
         os.path.join(_tree, _arch)
-        for _tree in ('/', '/usr', '/usr/local')
+        for _tree in ('/', '/usr', '/usr/local', '/usr/X11')
         for _arch in ('lib64', 'lib')
     )
     return default_header_dirs, default_library_dirs
@@ -89,6 +91,7 @@ def check_for_hdf5():
     # Next up, we try hdf5.cfg
     elif os.path.exists("hdf5.cfg"):
         return get_location_from_cfg("hdf5.cfg")
+    # Now we see if ctypes can help us
     if os.name == 'posix':
         hdf5_inc, hdf5_lib = get_location_from_ctypes("hdf5.h", "hdf5")
     if None not in (hdf5_inc, hdf5_lib):
@@ -98,24 +101,6 @@ def check_for_hdf5():
         )
         return (hdf5_inc, hdf5_lib)
 
-    # Now we see if ctypes can help us on non posix platform
-    try:
-        import ctypes.util
-        hdf5_libfile = ctypes.util.find_library("hdf5")
-        if hdf5_libfile is not None and os.path.isfile(hdf5_libfile):
-            # Now we've gotten a library, but we'll need to figure out the
-            # includes if this is going to work.  It feels like there is a
-            # better way to pull off two directory names.
-            hdf5_dir = os.path.dirname(os.path.dirname(hdf5_libfile))
-            if os.path.isdir(os.path.join(hdf5_dir, "include")) and \
-               os.path.isfile(os.path.join(hdf5_dir, "include", "hdf5.h")):
-                hdf5_inc = os.path.join(hdf5_dir, "include")
-                hdf5_lib = os.path.join(hdf5_dir, "lib")
-                print "HDF5_LOCATION: HDF5 found in: %s, %s" % (hdf5_inc,
-                                                                hdf5_lib)
-                return (hdf5_inc, hdf5_lib)
-    except ImportError:
-        pass
     print "Reading HDF5 location from hdf5.cfg failed."
     print "Please place the base directory of your"
     print "HDF5 install in hdf5.cfg and restart."
