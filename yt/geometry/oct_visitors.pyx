@@ -36,7 +36,6 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We should always have global_index less than our source.
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
-    if data.domain > 0 and o.domain != data.domain: return
     cdef int i
     # There are this many records between "octs"
     cdef np.int64_t index = (data.global_index * 8)*data.dims
@@ -50,7 +49,6 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We should always have global_index less than our source.
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
-    if data.domain > 0 and o.domain != data.domain: return
     cdef int i
     cdef np.int64_t index = (data.global_index * 8)*data.dims
     cdef np.int64_t **p = <np.int64_t**> data.array
@@ -62,7 +60,6 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
 cdef void count_total_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Count even if not selected.
     # Number of *octs* visited.
-    if data.domain > 0 and o.domain != data.domain: return
     if data.last != o.domain_ind:
         data.index += 1
         data.last = o.domain_ind
@@ -70,7 +67,6 @@ cdef void count_total_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
 cdef void count_total_cells(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Count even if not selected.
     # Number of *octs* visited.
-    if data.domain > 0 and o.domain != data.domain: return
     data.index += selected
 
 cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
@@ -96,7 +92,6 @@ cdef void index_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that we provide an index even if the cell is not selected.
     cdef int i
     cdef np.int64_t *arr
-    if data.domain > 0 and data.domain != o.domain: return
     if data.last != o.domain_ind:
         data.last = o.domain_ind
         arr = <np.int64_t *> data.array

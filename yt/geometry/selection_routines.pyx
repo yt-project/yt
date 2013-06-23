@@ -207,9 +207,9 @@ cdef class SelectorObject:
             next_level = 1
             this_level = 0
             increment = 0
-        if level == self.max_level:
+        elif level == self.max_level:
             next_level = 0
-        if level < self.min_level or level > self.max_level:
+        elif level < self.min_level or level > self.max_level:
             this_level = 0
         if res == 0 and this_level == 1:
             return
@@ -227,9 +227,9 @@ cdef class SelectorObject:
                         self.recursively_visit_octs(
                             ch, spos, sdds, level + 1, func, data)
                     elif this_level == 1:
+                        selected = self.select_cell(spos, sdds, eterm)
                         data.global_index += increment
                         increment = 0
-                        selected = self.select_cell(spos, sdds, eterm)
                         data.ind[0] = i
                         data.ind[1] = j
                         data.ind[2] = k
@@ -1110,11 +1110,9 @@ cdef class GridSelector(SelectorObject):
 grid_selector = GridSelector
 
 cdef class OctreeSubsetSelector(SelectorObject):
-    cdef int domain_id
     cdef SelectorObject base_selector
 
     def __init__(self, dobj):
-        self.domain_id = dobj.domain.domain_id
         self.base_selector = dobj.base_selector
 
     @cython.boundscheck(False)
@@ -1153,12 +1151,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
                          Oct *o = NULL) nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
-        cdef int res
-        if o == NULL: return 0
-        res = self.base_selector.select_grid(left_edge, right_edge, level, o)
-        if res != 0 and o.domain != self.domain_id:
-            res = -1
-        return res
+        return self.base_selector.select_grid(left_edge, right_edge, level, o)
 
 octree_subset_selector = OctreeSubsetSelector
 
