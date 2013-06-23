@@ -84,29 +84,33 @@ def get_location_from_ctypes(header, library):
     return (target_inc, target_libdir)
 
 
-def check_for_hdf5():
-    # First up: HDF5_DIR in environment
-    if "HDF5_DIR" in os.environ:
-        return get_location_from_env("HDF5_DIR")
-    # Next up, we try hdf5.cfg
-    elif os.path.exists("hdf5.cfg"):
-        return get_location_from_cfg("hdf5.cfg")
+def check_for_dependencies(env, cfg, header, library):
+    # First up: check in environment
+    if env in os.environ:
+        return get_location_from_env(env)
+    # Next up, we try config file
+    elif os.path.exists(cfg):
+        return get_location_from_cfg(cfg)
     # Now we see if ctypes can help us
     if os.name == 'posix':
-        hdf5_inc, hdf5_lib = get_location_from_ctypes("hdf5.h", "hdf5")
-    if None not in (hdf5_inc, hdf5_lib):
+        target_inc, target_lib = get_location_from_ctypes(header, library)
+    if None not in (target_inc, target_lib):
         print(
-            "HDF5_LOCATION: HDF5 found via ctypes in: %s, %s"
-            % (hdf5_inc, hdf5_lib)
+            "%s_LOCATION: %s found via ctypes in: %s, %s"
+            % (env.split('_')[0], env.split('_')[0], target_inc, target_lib)
         )
-        return (hdf5_inc, hdf5_lib)
+        return (target_inc, target_lib)
 
-    print "Reading HDF5 location from hdf5.cfg failed."
-    print "Please place the base directory of your"
-    print "HDF5 install in hdf5.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > hdf5.cfg\" )"
+    print("Reading %s location from %s failed." % (env.split('_')[0], cfg))
+    print("Please place the base directory of your")
+    print("%s install in %s and restart." % (env.split('_')[0], cfg))
+    print("(ex: \"echo '/usr/local/' > %s\" )" % cfg)
+    print("You can locate the path by looking for %s" % header)
     sys.exit(1)
 
+
+def check_for_hdf5():
+    return check_for_dependencies("HDF5_DIR", "hdf5.cfg", "hdf5.h", "hdf5")
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration

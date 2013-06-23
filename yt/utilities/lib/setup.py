@@ -3,53 +3,18 @@ import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
 from yt.utilities.setup import \
-    get_location_from_env, get_location_from_cfg, get_location_from_ctypes
+    check_for_dependencies
+
 
 def check_for_png():
-    # First up: HDF5_DIR in environment
-    if "PNG_DIR" in os.environ:
-        return get_location_from_env("PNG_DIR")
-    # Next up, we try png.cfg
-    elif os.path.exists("png.cfg"):
-        return get_location_from_cfg("png.cfg")
-    # Now we see if ctypes can help us
-    if os.name == 'posix':
-        png_inc, png_lib = get_location_from_ctypes("png.h", "png")
-    if None not in (png_inc, png_lib):
-        print(
-            "PNG_LOCATION: PNG found via ctypes in: %s, %s" \
-                % (png_inc, png_lib)
-        )
-        return (png_inc, png_lib)
+    return check_for_dependencies("PNG_DIR", "png.cfg", "png.h", "png")
 
-    print "Reading png location from png.cfg failed."
-    print "Please place the base directory of your png install in png.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > png.cfg\" )"
-    sys.exit(1)
 
 def check_for_freetype():
-    # First up: environment
-    if "FTYPE_DIR" in os.environ:
-        return get_location_from_env("FTYPE_DIR")
-    # Next up, we try freetype.cfg
-    elif os.path.exists("freetype.cfg"):
-        return get_location_from_cfg("freetype.cfg")
-    # Now we see if ctypes can help us
-    if os.name == 'posix':
-        freetype_inc, freetype_lib = \
-                get_location_from_ctypes("ft2build.h", "freetype")
-    if None not in (freetype_inc, freetype_lib):
-        print(
-            "FTYPE_LOCATION: freetype found via ctypes in: %s, %s" \
-                % (freetype_inc, freetype_lib)
-        )
-        return (freetype_inc, freetype_lib)
+    return check_for_dependencies(
+        "FTYPE_DIR", "freetype.cfg", "ft2build.h", "freetype"
+    )
 
-    print "Reading freetype location from freetype.cfg failed."
-    print "Please place the base directory of your freetype install in freetype.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > freetype.cfg\" )"
-    print "You can locate this by looking for the file ft2build.h"
-    sys.exit(1)
 
 def check_for_openmp():
     # Create a temporary directory
