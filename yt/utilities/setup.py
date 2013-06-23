@@ -39,50 +39,64 @@ def get_default_dirs():
     return default_header_dirs, default_library_dirs
 
 
-def get_hdf5_include(header_dirs):
-    for inc_prefix in header_dirs:
-        if os.path.isfile(os.path.join(inc_prefix, "hdf5.h")):
-            return inc_prefix
-    return None
+def get_location_from_env(env):
+    env_dir = os.environ[env]
+    env_inc = os.path.join(env_dir, "include")
+    env_lib = os.path.join(env_dir, "lib")
+    print "%s_LOCATION: %s: %s, %s" \
+        % (env.split('_')[0], env, env_inc, env_lib)
+    return (env_inc, env_lib)
 
 
-def get_hdf5_lib(lib_dirs):
-    import ctypes
-    hdf5_libfile = ctypes.util.find_library("hdf5")
-    if os.path.isfile(hdf5_libfile):
-        return os.path.dirname(hdf5_libfile)
-    for lib_dir in lib_dirs:
+def get_location_from_cfg(cfg):
+    cfg_dir = open(cfg).read().strip()
+    cfg_inc = os.path.join(cfg_dir, "include")
+    cfg_lib = os.path.join(cfg_dir, "lib")
+    print "%s_LOCATION: %s: %s, %s" \
+        % (cfg.split('.')[0].upper(), cfg, cfg_inc, cfg_lib)
+    return (cfg_inc, cfg_lib)
+
+
+def get_location_from_ctypes(header, library):
+    try:
+        import ctypes
+        import ctypes.util
+    except ImportError:
+        return (None, None)
+
+    target_libfile = ctypes.util.find_library(library)
+    default_header_dirs, default_library_dirs = get_default_dirs()
+    target_inc, target_libdir = None, None
+    for inc_prefix in default_header_dirs:
+        if os.path.isfile(os.path.join(inc_prefix, header)):
+            target_inc = inc_prefix
+
+    if os.path.isfile(target_libfile):
+        return os.path.dirname(target_libfile)
+    for lib_dir in default_library_dirs:
         try:
-            ctypes.CDLL(os.path.join(lib_dir, hdf5_libfile))
-            return lib_dir
+            ctypes.CDLL(os.path.join(lib_dir, target_libfile))
+            target_libdir = lib_dir
         except OSError:
             pass
-    return None
+    return (target_inc, target_libdir)
 
 
 def check_for_hdf5():
     # First up: HDF5_DIR in environment
     if "HDF5_DIR" in os.environ:
-        hdf5_dir = os.environ["HDF5_DIR"]
-        hdf5_inc = os.path.join(hdf5_dir, "include")
-        hdf5_lib = os.path.join(hdf5_dir, "lib")
-        print "HDF5_LOCATION: HDF5_DIR: %s, %s" % (hdf5_inc, hdf5_lib)
-        return (hdf5_inc, hdf5_lib)
+        return get_location_from_env("HDF5_DIR")
     # Next up, we try hdf5.cfg
     elif os.path.exists("hdf5.cfg"):
-        hdf5_dir = open("hdf5.cfg").read().strip()
-        hdf5_inc = os.path.join(hdf5_dir, "include")
-        hdf5_lib = os.path.join(hdf5_dir, "lib")
-        print "HDF5_LOCATION: hdf5.cfg: %s, %s" % (hdf5_inc, hdf5_lib)
-        return (hdf5_inc, hdf5_lib)
+        return get_location_from_cfg("hdf5.cfg")
     if os.name == 'posix':
-        default_header_dirs, default_library_dirs = get_default_dirs()
-        hdf5_inc = get_hdf5_include(default_header_dirs)
-        hdf5_lib = get_hdf5_lib(default_library_dirs)
-        if None not in (hdf5_inc, hdf5_lib):
-            print(
-                "HDF5_LOCATION: HDF5 found in: %s, %s" % (hdf5_inc, hdf5_lib))
-            return (hdf5_inc, hdf5_lib)
+        hdf5_inc, hdf5_lib = get_location_from_ctypes("hdf5.h", "hdf5")
+    if None not in (hdf5_inc, hdf5_lib):
+        print(
+            "HDF5_LOCATION: HDF5 found via ctypes in: %s, %s"
+            % (hdf5_inc, hdf5_lib)
+        )
+        return (hdf5_inc, hdf5_lib)
 
     # Now we see if ctypes can help us on non posix platform
     try:

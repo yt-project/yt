@@ -1,24 +1,27 @@
 #!/usr/bin/env python
 import setuptools
 import os, sys, os.path, glob, \
-  tempfile, subprocess, shutil
+    tempfile, subprocess, shutil
+from yt.utilities.setup import \
+    get_location_from_env, get_location_from_cfg, get_location_from_ctypes
 
 def check_for_png():
     # First up: HDF5_DIR in environment
     if "PNG_DIR" in os.environ:
-        png_dir = os.environ["PNG_DIR"]
-        png_inc = os.path.join(png_dir, "include")
-        png_lib = os.path.join(png_dir, "lib")
-        print "PNG_LOCATION: PNG_DIR: %s, %s" % (png_inc, png_lib)
-        return (png_inc, png_lib)
+        return get_location_from_env("PNG_DIR")
     # Next up, we try png.cfg
     elif os.path.exists("png.cfg"):
-        png_dir = open("png.cfg").read().strip()
-        png_inc = os.path.join(png_dir, "include")
-        png_lib = os.path.join(png_dir, "lib")
-        print "PNG_LOCATION: png.cfg: %s, %s" % (png_inc, png_lib)
+        return get_location_from_cfg("png.cfg")
+    if os.name == 'posix':
+        png_inc, png_lib = get_location_from_ctypes("png.h", "png")
+    if None not in (png_inc, png_lib):
+        print(
+            "PNG_LOCATION: PNG found via ctypes in: %s, %s" \
+                % (png_inc, png_lib)
+        )
         return (png_inc, png_lib)
-    # Now we see if ctypes can help us:
+
+    # Now we see if ctypes can help us on non posix platform
     try:
         import ctypes.util
         png_libfile = ctypes.util.find_library("png")
@@ -53,19 +56,20 @@ def check_for_png():
 def check_for_freetype():
     # First up: environment
     if "FTYPE_DIR" in os.environ:
-        freetype_dir = os.environ["FTYPE_DIR"]
-        freetype_inc = os.path.join(freetype_dir, "include")
-        freetype_lib = os.path.join(freetype_dir, "lib")
-        print "FTYPE_LOCATION: FTYPE_DIR: %s, %s" % (freetype_inc, freetype_lib)
-        return (freetype_inc, freetype_lib)
+        return get_location_from_env("FTYPE_DIR")
     # Next up, we try freetype.cfg
     elif os.path.exists("freetype.cfg"):
-        freetype_dir = open("freetype.cfg").read().strip()
-        freetype_inc = os.path.join(freetype_dir, "include")
-        freetype_lib = os.path.join(freetype_dir, "lib")
-        print "FTYPE_LOCATION: freetype.cfg: %s, %s" % (freetype_inc, freetype_lib)
+        return get_location_from_cfg("freetype.cfg")
+    if os.name == 'posix':
+        freetype_inc, freetype_lib = \
+                get_location_from_ctypes("ft2build.h", "freetype")
+    if None not in (freetype_inc, freetype_lib):
+        print(
+            "FTYPE_LOCATION: freetype found via ctypes in: %s, %s" \
+                % (freetype_inc, freetype_lib)
+        )
         return (freetype_inc, freetype_lib)
-    # Now we see if ctypes can help us:
+    # Now we see if ctypes can help us on non posix platform
     try:
         import ctypes.util
         freetype_libfile = ctypes.util.find_library("freetype")
@@ -122,7 +126,7 @@ def check_for_openmp():
     with open(os.devnull, 'w') as fnull:
         exit_code = subprocess.call([compiler, '-fopenmp', filename],
                                     stdout=fnull, stderr=fnull)
-        
+
     # Clean up
     file.close()
     os.chdir(curdir)
