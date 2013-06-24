@@ -166,6 +166,13 @@ cdef class SelectorObject:
         cdef OctVisitorData data
         data.index = 0
         data.domain = domain_id
+        octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
+        return data.index
+
+    def count_oct_cells(self, OctreeContainer octree, int domain_id = -1):
+        cdef OctVisitorData data
+        data.index = 0
+        data.domain = domain_id
         octree.visit_all_octs(self, oct_visitors.count_total_cells, &data)
         return data.index
 
@@ -176,7 +183,8 @@ cdef class SelectorObject:
                         np.float64_t pos[3], np.float64_t dds[3],
                         int level, 
                         oct_visitor_function *func,
-                        OctVisitorData *data):
+                        OctVisitorData *data,
+                        int visit_covered = 0):
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res, ii
         cdef Oct *ch
@@ -206,7 +214,6 @@ cdef class SelectorObject:
             # not get accessed itself.
             next_level = 1
             this_level = 0
-            increment = 0
         elif level == self.max_level:
             next_level = 0
         elif level < self.min_level or level > self.max_level:
@@ -223,7 +230,7 @@ cdef class SelectorObject:
                 for k in range(2):
                     ii = ((k*2)+j)*2+i
                     ch = root.children[i][j][k]
-                    if next_level == 1 and ch != NULL:
+                    if visit_covered == 0 and next_level == 1 and ch != NULL:
                         self.recursively_visit_octs(
                             ch, spos, sdds, level + 1, func, data)
                     elif this_level == 1:
@@ -237,6 +244,11 @@ cdef class SelectorObject:
                     spos[2] += sdds[2]
                 spos[1] += sdds[1]
             spos[0] += sdds[0]
+        if visit_covered == 1:
+            # On our first pass through, we always only look at the current
+            # level.  So we make a second pass to go downwards.
+            self.recursively_visit_octs(root, pos, dds, level, func,
+                                        data, 0)
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],

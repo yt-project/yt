@@ -243,7 +243,8 @@ class RAMSESDomainFile(object):
                 # Note that we're adding *grids*, not individual cells.
                 if level >= min_level:
                     assert(pos.shape[0] == ng)
-                    self.oct_handler.add(cpu + 1, level - min_level, pos)
+                    n = self.oct_handler.add(cpu + 1, level - min_level, pos)
+                    assert(n == ng)
         self.oct_handler.finalize()
 
     def included(self, selector):

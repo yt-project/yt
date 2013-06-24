@@ -65,8 +65,7 @@ cdef void count_total_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
         data.last = o.domain_ind
 
 cdef void count_total_cells(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    # Count even if not selected.
-    # Number of *octs* visited.
+    # Number of *cells* visited and selected.
     data.index += selected
 
 cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):

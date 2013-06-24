@@ -97,6 +97,7 @@ cdef class OctreeContainer:
 
     def __init__(self, oct_domain_dimensions, domain_left_edge, domain_right_edge):
         # This will just initialize the root mesh octs
+        self.partial_coverage = 0
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
@@ -143,7 +144,8 @@ cdef class OctreeContainer:
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data):
-        cdef int i, j, k, n
+        cdef int i, j, k, n, vc
+        vc = self.partial_coverage
         data.global_index = -1
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
@@ -159,7 +161,7 @@ cdef class OctreeContainer:
                     if self.root_mesh[i][j][k] == NULL: continue
                     selector.recursively_visit_octs(
                         self.root_mesh[i][j][k],
-                        pos, dds, 0, func, data)
+                        pos, dds, 0, func, data, vc)
                     pos[2] += dds[2]
                 pos[1] += dds[1]
             pos[0] += dds[0]
@@ -314,7 +316,7 @@ cdef class OctreeContainer:
     def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+            num_cells = selector.count_oct_cells(self, domain_id)
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef OctVisitorData data
@@ -330,7 +332,7 @@ cdef class OctreeContainer:
     def ires(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+            num_cells = selector.count_octs(self, domain_id) * 8
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.empty(num_cells, dtype="int64")
@@ -347,7 +349,7 @@ cdef class OctreeContainer:
     def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+            num_cells = selector.count_octs(self, domain_id) * 8
         cdef np.ndarray[np.float64_t, ndim=2] fwidth
         fwidth = np.empty((num_cells, 3), dtype="float64")
         cdef OctVisitorData data
@@ -367,7 +369,7 @@ cdef class OctreeContainer:
     def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+            num_cells = selector.count_octs(self, domain_id) * 8
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="float64")
@@ -392,14 +394,17 @@ cdef class OctreeContainer:
         # This is actually not correct.  The hard part is that we need to
         # iterate the same way visit_all_octs does, but we need to track the
         # number of octs total visited.
-        cdef np.int64_t num_cells = -1
+        cdef np.int64_t num_octs = -1
         if dest is None:
-            num_cells = selector.count_octs(self, domain_id)
+            # Note that RAMSES can have partial refinement inside an Oct.  This
+            # means we actually do want the number of Octs, not the number of
+            # cells.
+            num_cells = selector.count_oct_cells(self, domain_id)
             if dims > 1:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
                     order='C')
             else:
-                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
+                dest = np.zeros(num_cells * 8, dtype=source.dtype, order='C')
         cdef OctVisitorData data
         data.index = offset
         data.domain = domain_id
@@ -422,6 +427,7 @@ cdef class OctreeContainer:
         if (data.global_index + 1) * 8 * data.dims > source.size:
             print "GLOBAL INDEX RAN AHEAD.",
             print (data.global_index + 1) * 8 * data.dims - source.size
+            print dest.size, source.size, num_cells
             raise RuntimeError
         if data.index > dest.size:
             print "DEST INDEX RAN AHEAD.",
@@ -446,6 +452,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
         cdef int i, j, k, p
+        self.partial_coverage = 1
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
         self.max_domain = -1
@@ -480,8 +487,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data):
-        cdef int i, j, k, n
+        cdef int i, j, k, n, vc
         data.global_index = -1
+        vc = self.partial_coverage
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):

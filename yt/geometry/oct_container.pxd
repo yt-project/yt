@@ -65,6 +65,7 @@ cdef struct OctAllocationContainer:
 cdef class OctreeContainer:
     cdef OctAllocationContainer *cont
     cdef Oct ****root_mesh
+    cdef int partial_coverage
     cdef int nn[3]
     cdef np.float64_t DLE[3], DRE[3]
     cdef public int nocts

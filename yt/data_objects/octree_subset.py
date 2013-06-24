@@ -101,7 +101,7 @@ class OctreeSubset(YTSelectionContainer):
     @property
     def domain_ind(self):
         if self._domain_ind is None:
-            di = self.oct_handler.domain_ind(self.mask, self.domain.domain_id)
+            di = self.oct_handler.domain_ind(self.selector)
             self._domain_ind = di
         return self._domain_ind
 
@@ -188,11 +188,3 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
-    _domain_ind = None
-
-    @property
-    def domain_ind(self):
-        if self._domain_ind is None:
-            di = self.oct_handler.domain_ind(self.selector)
-            self._domain_ind = di
-        return self._domain_ind
