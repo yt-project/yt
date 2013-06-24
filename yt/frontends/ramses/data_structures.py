@@ -253,6 +253,8 @@ class RAMSESDomainFile(object):
 
 class RAMSESDomainSubset(OctreeSubset):
 
+    _domain_offset = 1
+
     def fill(self, content, fields):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.

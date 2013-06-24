@@ -45,6 +45,7 @@ class OctreeSubset(YTSelectionContainer):
     _skip_add = True
     _con_args = ('base_region', 'domain', 'pf')
     _container_fields = ("dx", "dy", "dz")
+    _domain_offset = 0
 
     def __init__(self, base_region, domain, pf):
         self.field_data = YTFieldData()
@@ -113,7 +114,8 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
         op = cls(nvals) # We allocate number of zones, not number of octs
         op.initialize()
-        op.process_octree(self.oct_handler, self.domain_ind, positions, fields, 0)
+        op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
+            self.domain_id, self._domain_offset)
         vals = op.finalize()
         return np.asfortranarray(vals)
 

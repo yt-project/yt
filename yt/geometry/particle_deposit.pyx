@@ -50,7 +50,8 @@ cdef class ParticleDepositOperation:
     def process_octree(self, OctreeContainer octree,
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
-                     fields = None, int domain_id = -1):
+                     fields = None, int domain_id = -1,
+                     int domain_offset = 0):
         cdef int nf, i, j
         self.bad_indices = 0
         if fields is None:
@@ -68,7 +69,7 @@ cdef class ParticleDepositOperation:
         cdef OctInfo oi
         cdef np.int64_t offset, moff
         cdef Oct *oct
-        moff = octree.get_domain_offset(domain_id)
+        moff = octree.get_domain_offset(domain_id + domain_offset)
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
