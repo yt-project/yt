@@ -38,10 +38,7 @@ cdef struct Oct:
                             # added
     np.int64_t domain_ind   # index within the global set of domains
     np.int64_t domain       # (opt) addl int index
-    np.int64_t pos[3]       # position in ints
-    np.int8_t level
     Oct **children          # Up to 8 long
-    #Oct *parent
 
 cdef struct OctKey:
     np.int64_t key

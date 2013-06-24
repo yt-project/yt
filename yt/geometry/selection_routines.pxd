@@ -30,10 +30,12 @@ cdef struct OctVisitorData:
     np.uint64_t index
     np.uint64_t last
     np.int64_t global_index
-    int ind[3]
+    np.int64_t pos[3]       # position in ints
+    np.uint8_t ind[3]              # cell position
     void *array
     int dims
-    int domain
+    np.int32_t domain
+    np.int8_t level
 
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
                                    np.uint8_t selected)

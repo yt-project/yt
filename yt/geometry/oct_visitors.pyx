@@ -102,13 +102,13 @@ cdef void icoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.int64_t *coords = <np.int64_t*> data.array
     cdef int i
     for i in range(3):
-        coords[data.index * 3 + i] = (o.pos[i] << 1) + data.ind[i]
+        coords[data.index * 3 + i] = (data.pos[i] << 1) + data.ind[i]
     data.index += 1
 
 cdef void ires_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef np.int64_t *ires = <np.int64_t*> data.array
-    ires[data.index] = o.level
+    ires[data.index] = data.level
     data.index += 1
 
 @cython.cdivision(True)
@@ -120,9 +120,9 @@ cdef void fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.float64_t *fcoords = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t c, dx 
-    dx = 1.0 / (2 << o.level)
+    dx = 1.0 / (2 << data.level)
     for i in range(3):
-        c = <np.float64_t> ((o.pos[i] << 1 ) + data.ind[i]) 
+        c = <np.float64_t> ((data.pos[i] << 1 ) + data.ind[i]) 
         fcoords[data.index * 3 + i] = (c + 0.5) * dx
     data.index += 1
 
@@ -135,7 +135,7 @@ cdef void fwidth_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.float64_t *fwidth = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t dx 
-    dx = 1.0 / (2 << o.level)
+    dx = 1.0 / (2 << data.level)
     for i in range(3):
         fwidth[data.index * 3 + i] = dx
     data.index += 1

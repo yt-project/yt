@@ -170,7 +170,7 @@ cdef class SelectorObject:
         # we visit *this* oct, then we make a second pass to check any child
         # octs.
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
-        cdef int i, j, k, res, ii
+        cdef int i, j, k, res, ii, mi
         cdef Oct *ch
         cdef np.uint8_t selected
         # Remember that pos is the *center* of the oct, and dds is the oct
@@ -219,9 +219,17 @@ cdef class SelectorObject:
                         if root.children != NULL:
                             ch = root.children[cind(i,j,k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
+                            data.pos[0] = (data.pos[0] << 1) + i
+                            data.pos[1] = (data.pos[1] << 1) + j
+                            data.pos[2] = (data.pos[2] << 1) + k
+                            data.level += 1
                             self.recursively_visit_octs(
                                 ch, spos, sdds, level + 1, func, data,
                                 visit_covered)
+                            data.pos[0] = (data.pos[0] >> 1)
+                            data.pos[1] = (data.pos[1] >> 1)
+                            data.pos[2] = (data.pos[2] >> 1)
+                            data.level -= 1
                         elif this_level == 1:
                             selected = self.select_cell(spos, sdds, eterm)
                             data.global_index += increment

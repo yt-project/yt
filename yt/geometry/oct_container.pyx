@@ -63,10 +63,8 @@ cdef OctAllocationContainer *allocate_octs(
     n_cont.n_assigned = 0
     for n in range(n_octs):
         oct = &n_cont.my_octs[n]
-        #oct.parent = NULL
         oct.file_ind = oct.domain = -1
         oct.domain_ind = n + n_cont.offset
-        oct.level = -1
         oct.children = NULL
     if prev != NULL:
         prev.next = n_cont
@@ -149,6 +147,7 @@ cdef class OctreeContainer:
         cdef int i, j, k, n, vc
         vc = self.partial_coverage
         data.global_index = -1
+        data.level = 0
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
@@ -161,6 +160,9 @@ cdef class OctreeContainer:
                 pos[2] = self.DLE[2] + dds[2]/2.0
                 for k in range(self.nn[2]):
                     if self.root_mesh[i][j][k] == NULL: continue
+                    data.pos[0] = i
+                    data.pos[1] = j
+                    data.pos[2] = k
                     selector.recursively_visit_octs(
                         self.root_mesh[i][j][k],
                         pos, dds, 0, func, data, vc)
@@ -170,9 +172,9 @@ cdef class OctreeContainer:
 
     cdef void oct_bounds(self, Oct *o, np.float64_t *corner, np.float64_t *size):
         cdef int i
-        for i in range(3):
-            size[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i] << o.level)
-            corner[i] = o.pos[i] * size[i] + self.DLE[i]
+        #for i in range(3):
+        #    size[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i] << o.level)
+        #    corner[i] = o.pos[i] * size[i] + self.DLE[i]
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
@@ -241,63 +243,64 @@ cdef class OctreeContainer:
         cdef Oct* candidate
         for i in range(27): neighbors[i] = NULL
         nn = 0
-        for ni in range(3):
-            for nj in range(3):
-                for nk in range(3):
-                    if ni == nj == nk == 1:
-                        neighbors[nn] = o
-                        nn += 1
-                        continue
-                    npos[0] = o.pos[0] + (ni - 1)
-                    npos[1] = o.pos[1] + (nj - 1)
-                    npos[2] = o.pos[2] + (nk - 1)
-                    for i in range(3):
-                        # Periodicity
-                        if npos[i] == -1:
-                            npos[i] = (self.nn[i]  << o.level) - 1
-                        elif npos[i] == (self.nn[i] << o.level):
-                            npos[i] = 0
-                        curopos[i] = o.pos[i]
-                        curnpos[i] = npos[i] 
-                    # Now we have our neighbor position and a safe place to
-                    # keep it.  curnpos will be the root index of the neighbor
-                    # at a given level, and npos will be constant.  curopos is
-                    # the candidate root at a level.
-                    candidate = o
-                    while candidate != NULL:
-                        if ((curopos[0] == curnpos[0]) and 
-                            (curopos[1] == curnpos[1]) and
-                            (curopos[2] == curnpos[2])):
-                            break
-                        # This one doesn't meet it, so we pop up a level.
-                        # First we update our positions, then we update our
-                        # candidate.
-                        for i in range(3):
-                            # We strip a digit off the right
-                            curopos[i] = (curopos[i] >> 1)
-                            curnpos[i] = (curnpos[i] >> 1)
-                        # Now we update to the candidate's parent, which should
-                        # have a matching position to curopos[]
-                        # TODO: This has not survived the transition to
-                        # mostly-stateless Octs!
-                        raise RuntimeError
-                        #candidate = candidate.parent
-                    if candidate == NULL:
-                        # Worst case scenario
-                        for i in range(3):
-                            ind[i] = (npos[i] >> (o.level))
-                        candidate = self.root_mesh[ind[0]][ind[1]][ind[2]]
-                    # Now we have the common root, which may be NULL
-                    while candidate.level < o.level:
-                        dl = o.level - (candidate.level + 1)
-                        for i in range(3):
-                            ind[i] = (npos[i] >> dl) & 1
-                        if candidate.children[cind(ind[0],ind[1],ind[2])] \
-                                == NULL:
-                            break
-                        candidate = candidate.children[cind(ind[0],ind[1],ind[2])]
-                    neighbors[nn] = candidate
-                    nn += 1
+        raise RuntimeError
+        #for ni in range(3):
+        #    for nj in range(3):
+        #        for nk in range(3):
+        #            if ni == nj == nk == 1:
+        #                neighbors[nn] = o
+        #                nn += 1
+        #                continue
+        #            npos[0] = o.pos[0] + (ni - 1)
+        #            npos[1] = o.pos[1] + (nj - 1)
+        #            npos[2] = o.pos[2] + (nk - 1)
+        #            for i in range(3):
+        #                # Periodicity
+        #                if npos[i] == -1:
+        #                    npos[i] = (self.nn[i]  << o.level) - 1
+        #                elif npos[i] == (self.nn[i] << o.level):
+        #                    npos[i] = 0
+        #                curopos[i] = o.pos[i]
+        #                curnpos[i] = npos[i] 
+        #            # Now we have our neighbor position and a safe place to
+        #            # keep it.  curnpos will be the root index of the neighbor
+        #            # at a given level, and npos will be constant.  curopos is
+        #            # the candidate root at a level.
+        #            candidate = o
+        #            while candidate != NULL:
+        #                if ((curopos[0] == curnpos[0]) and 
+        #                    (curopos[1] == curnpos[1]) and
+        #                    (curopos[2] == curnpos[2])):
+        #                    break
+        #                # This one doesn't meet it, so we pop up a level.
+        #                # First we update our positions, then we update our
+        #                # candidate.
+        #                for i in range(3):
+        #                    # We strip a digit off the right
+        #                    curopos[i] = (curopos[i] >> 1)
+        #                    curnpos[i] = (curnpos[i] >> 1)
+        #                # Now we update to the candidate's parent, which should
+        #                # have a matching position to curopos[]
+        #                # TODO: This has not survived the transition to
+        #                # mostly-stateless Octs!
+        #                raise RuntimeError
+        #                candidate = candidate.parent
+        #            if candidate == NULL:
+        #                # Worst case scenario
+        #                for i in range(3):
+        #                    ind[i] = (npos[i] >> (o.level))
+        #                candidate = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        #            # Now we have the common root, which may be NULL
+        #            while candidate.level < o.level:
+        #                dl = o.level - (candidate.level + 1)
+        #                for i in range(3):
+        #                    ind[i] = (npos[i] >> dl) & 1
+        #                if candidate.children[cind(ind[0],ind[1],ind[2])] \
+        #                        == NULL:
+        #                    break
+        #                candidate = candidate.children[cind(ind[0],ind[1],ind[2])]
+        #            neighbors[nn] = candidate
+        #            nn += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -314,6 +317,7 @@ cdef class OctreeContainer:
         cdef np.float64_t corner[3], size[3]
         bounds = np.zeros((27,6), dtype="float64")
         tnp = 0
+        raise RuntimeError
         for i in range(27):
             self.oct_bounds(neighbors[i], corner, size)
             for ii in range(3):
@@ -504,7 +508,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         oct_visitor_function *func,
                         OctVisitorData *data):
         cdef int i, j, k, n, vc
+        cdef np.int64_t key, ukey
         data.global_index = -1
+        data.level = 0
         vc = self.partial_coverage
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
@@ -512,10 +518,15 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
         # Pos is the center of the octs
         cdef Oct *o
+        ukey = 0
+        for i in range(20):
+            ukey |= (1 << i)
         for i in range(self.num_root):
             o = self.root_nodes[i].node
+            key = self.root_nodes[i].key
             for j in range(3):
-                pos[j] = self.DLE[j] + (o.pos[j] + 0.5) * dds[j]
+                pos[j] = self.DLE[j] + \
+                    ((key >> 20 * (2 - j) & ukey) + 0.5) * dds[j]
             selector.recursively_visit_octs(
                 o, pos, dds, 0, func, data, vc)
 
@@ -551,12 +562,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             return NULL
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
-        #next.parent = NULL
-        next.level = 0
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
         for i in range(3):
-            next.pos[i] = ind[i]
             key |= ((<np.int64_t>ind[i]) << 20 * (2 - i))
         self.root_nodes[self.num_root].key = key
         self.root_nodes[self.num_root].node = next
@@ -580,10 +588,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
         parent.children[cind(ind[0],ind[1],ind[2])] = next
-        #next.parent = parent
-        next.level = parent.level + 1
-        for i in range(3):
-            next.pos[i] = ind[i] + (parent.pos[i] << 1)
         self.nocts += 1
         return next
 
@@ -658,7 +662,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             # Now we should be at the right level
             cur.domain = curdom
             cur.file_ind = p
-            cur.level = curlevel
         return cont.n_assigned - initial
 
     @cython.boundscheck(False)
@@ -685,9 +688,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.domain_ind, ii] == 0: continue
-                            if o.level == level:
-                                dest[local_filled] = \
-                                    source[o.file_ind, ii]
+                            # TODO: Uncomment this!
+                            #if o.level == level:
+                            #    dest[local_filled] = \
+                            #        source[o.file_ind, ii]
                             local_filled += 1
         return local_filled
 
@@ -729,7 +733,8 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
             for n in range(dom.n):
                 o = &dom.my_octs[n]
                 index = o.file_ind-subchunk_offset
-                if o.level != level: continue
+                # TODO: Uncomment this!
+                #if o.level != level: continue
                 if index < 0: continue
                 if index >= subchunk_max: 
                     #if we hit the end of the array,
@@ -759,6 +764,9 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
         #As a result, source is 3D grid with 8 times as many
         #elements as the number of octs on this level in this domain
         #and with the shape of an equal-sided cube
+        #
+        # TODO: Convert to a recrusive function.
+        # Note that the .pos[0] etc calls need to be uncommented.
         cdef np.ndarray[np.float64_t, ndim=3] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctAllocationContainer *dom = self.domains[domain - 1]
@@ -774,15 +782,16 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
             source = source_fields[key]
             for n in range(dom.n):
                 o = &dom.my_octs[n]
-                if o.level != level: continue
+                # TODO: Uncomment this!
+                #if o.level != level: continue
                 for i in range(2):
                     for j in range(2):
                         for k in range(2):
                             ii = ((k*2)+j)*2+i
                             if mask[o.domain_ind, ii] == 0: continue
-                            ox = (o.pos[0] << 1) + i
-                            oy = (o.pos[1] << 1) + j
-                            oz = (o.pos[2] << 1) + k
+                            #ox = (o.pos[0] << 1) + i
+                            #oy = (o.pos[1] << 1) + j
+                            #oz = (o.pos[2] << 1) + k
                             dest[local_filled + offset] = source[ox,oy,oz]
                             local_filled += 1
         return local_filled

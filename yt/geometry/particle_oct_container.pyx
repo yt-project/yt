@@ -52,11 +52,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             for j in range(self.nn[1]):
                 for k in range(self.nn[2]):
                     cur = self.allocate_oct()
-                    cur.level = 0
-                    cur.pos[0] = i
-                    cur.pos[1] = j
-                    cur.pos[2] = k
-                    #cur.parent = NULL
                     self.root_mesh[i][j][k] = cur
 
     def __dealloc__(self):
@@ -127,25 +122,27 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nn[0]):
             for j in range(self.nn[1]):
                 for k in range(self.nn[2]):
-                    self.visit_assign(self.root_mesh[i][j][k], &lpos)
+                    self.visit_assign(self.root_mesh[i][j][k], &lpos,
+                                      0, &max_level)
         assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
             self.oct_list[i].domain = 0
             self.oct_list[i].file_ind = -1
-            max_level = imax(max_level, self.oct_list[i].level)
         self.max_level = max_level
 
-    cdef visit_assign(self, Oct *o, np.int64_t *lpos):
+    cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level):
         cdef int i, j, k
         self.oct_list[lpos[0]] = o
         lpos[0] += 1
+        max_level[0] = imax(max_level[0], level)
         for i in range(2):
             for j in range(2):
                 for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
-                        self.visit_assign(o.children[cind(i,j,k)], lpos)
+                        self.visit_assign(o.children[cind(i,j,k)], lpos,
+                                level + 1, max_level)
         return
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
@@ -161,10 +158,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         my_oct.domain = -1
         my_oct.file_ind = 0
         my_oct.domain_ind = self.nocts - 1
-        my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
-        my_oct.level = -1
         my_oct.children = NULL
-        #my_oct.parent = NULL
         return my_oct
 
     @cython.boundscheck(False)
@@ -195,8 +189,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
                 if cur.children == NULL or \
                    cur.children[cind(ind[0],ind[1],ind[2])] == NULL:
-                    cur = self.refine_oct(cur, index)
-                    self.filter_particles(cur, data, p)
+                    cur = self.refine_oct(cur, index, level)
+                    self.filter_particles(cur, data, p, level + 1)
                 else:
                     cur = cur.children[cind(ind[0],ind[1],ind[2])]
             cur.file_ind += 1
@@ -204,7 +198,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *refine_oct(self, Oct *o, np.uint64_t index):
+    cdef Oct *refine_oct(self, Oct *o, np.uint64_t index, int level):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
@@ -218,31 +212,27 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     noct = self.allocate_oct()
                     noct.domain = o.domain
                     noct.file_ind = 0
-                    noct.level = o.level + 1
-                    noct.pos[0] = (o.pos[0] << 1) + i
-                    noct.pos[1] = (o.pos[1] << 1) + j
-                    noct.pos[2] = (o.pos[2] << 1) + k
-                    #noct.parent = o
                     o.children[cind(i,j,k)] = noct
         o.file_ind = self.n_ref + 1
         for i in range(3):
-            ind[i] = (index >> ((ORDER_MAX - (o.level + 1))*3 + (2 - i))) & 1
+            ind[i] = (index >> ((ORDER_MAX - (level + 1))*3 + (2 - i))) & 1
         noct = o.children[cind(ind[0],ind[1],ind[2])]
         return noct
 
-    cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p):
+    cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p,
+                               int level):
         # Now we look at the last nref particles to decide where they go.
         cdef int n = imin(p, self.n_ref)
         cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
         # Now we figure out our prefix, which is the oct address at this level.
         # As long as we're actually in Morton order, we do not need to worry
         # about *any* of the other children of the oct.
-        prefix1 = data[p] >> (ORDER_MAX - o.level)*3
+        prefix1 = data[p] >> (ORDER_MAX - level)*3
         for i in range(n):
-            prefix2 = arr[i] >> (ORDER_MAX - o.level)*3
+            prefix2 = arr[i] >> (ORDER_MAX - level)*3
             if (prefix1 == prefix2):
                 o.file_ind += 1
-        #print ind[0], ind[1], ind[2], o.file_ind, o.level
+        #print ind[0], ind[1], ind[2], o.file_ind, level
 
     def recursively_count(self):
         #Visit every cell, accumulate the # of cells per level
