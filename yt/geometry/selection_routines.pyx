@@ -141,27 +141,6 @@ cdef class SelectorObject:
                 gridi[n] = self.select_grid(LE, RE, levels[n,0])
         return gridi.astype("bool")
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def select_octs(self, OctreeContainer octree):
-        # There has to be a better way to do this.
-        raise RuntimeError
-        cdef OctVisitorData data
-        data.index = 0
-        data.last = -1
-        data.global_index = -1
-        octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
-        cdef np.ndarray[np.uint8_t, ndim=4] m2 = \
-                np.zeros((2, 2, 2, data.index), 'uint8', order='C')
-        # This is where we'll -- in the future -- cut up based on indices of
-        # the octs.
-        data.index = -1
-        data.last = -1
-        data.array = m2.data
-        octree.visit_all_octs(self, oct_visitors.mask_octs, &data)
-        return m2.astype("bool")
-
     def count_octs(self, OctreeContainer octree, int domain_id = -1):
         cdef OctVisitorData data
         data.index = 0
@@ -1136,12 +1115,6 @@ cdef class OctreeSubsetSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def select_octs(self, OctreeContainer octree):
-        raise RuntimeError
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef void set_bounds(self,
                          np.float64_t left_edge[3], np.float64_t right_edge[3],
                          np.float64_t dds[3], int ind[3][2], int *check):
@@ -1191,13 +1164,6 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def select_octs(self, OctreeContainer octree):
-        # There has to be a better way to do this.
-        raise RuntimeError
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef void set_bounds(self,
                          np.float64_t left_edge[3], np.float64_t right_edge[3],
                          np.float64_t dds[3], int ind[3][2], int *check):
@@ -1233,12 +1199,6 @@ cdef class AlwaysSelector(SelectorObject):
 
     def __init__(self, dobj):
         pass
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def select_octs(self, OctreeContainer octree):
-        raise RuntimeError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
