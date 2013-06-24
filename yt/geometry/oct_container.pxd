@@ -37,14 +37,11 @@ cdef struct Oct:
     np.int64_t file_ind     # index with respect to the order in which it was
                             # added
     np.int64_t domain_ind   # index within the global set of domains
-                            # note that moving to a local index will require
-                            # moving to split-up masks, which is part of a
-                            # bigger refactor
     np.int64_t domain       # (opt) addl int index
     np.int64_t pos[3]       # position in ints
     np.int8_t level
     Oct **children          # Up to 8 long
-    Oct *parent
+    #Oct *parent
 
 cdef struct OctKey:
     np.int64_t key

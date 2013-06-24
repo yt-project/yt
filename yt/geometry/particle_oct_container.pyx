@@ -56,7 +56,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     cur.pos[0] = i
                     cur.pos[1] = j
                     cur.pos[2] = k
-                    cur.parent = NULL
+                    #cur.parent = NULL
                     self.root_mesh[i][j][k] = cur
 
     def __dealloc__(self):
@@ -164,7 +164,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
         my_oct.children = NULL
-        my_oct.parent = NULL
+        #my_oct.parent = NULL
         return my_oct
 
     @cython.boundscheck(False)
@@ -222,7 +222,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     noct.pos[0] = (o.pos[0] << 1) + i
                     noct.pos[1] = (o.pos[1] << 1) + j
                     noct.pos[2] = (o.pos[2] << 1) + k
-                    noct.parent = o
+                    #noct.parent = o
                     o.children[cind(i,j,k)] = noct
         o.file_ind = self.n_ref + 1
         for i in range(3):

@@ -63,7 +63,7 @@ cdef OctAllocationContainer *allocate_octs(
     n_cont.n_assigned = 0
     for n in range(n_octs):
         oct = &n_cont.my_octs[n]
-        oct.parent = NULL
+        #oct.parent = NULL
         oct.file_ind = oct.domain = -1
         oct.domain_ind = n + n_cont.offset
         oct.level = -1
@@ -278,7 +278,10 @@ cdef class OctreeContainer:
                             curnpos[i] = (curnpos[i] >> 1)
                         # Now we update to the candidate's parent, which should
                         # have a matching position to curopos[]
-                        candidate = candidate.parent
+                        # TODO: This has not survived the transition to
+                        # mostly-stateless Octs!
+                        raise RuntimeError
+                        #candidate = candidate.parent
                     if candidate == NULL:
                         # Worst case scenario
                         for i in range(3):
@@ -548,7 +551,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             return NULL
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
-        next.parent = NULL
+        #next.parent = NULL
         next.level = 0
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
@@ -577,7 +580,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
         parent.children[cind(ind[0],ind[1],ind[2])] = next
-        next.parent = parent
+        #next.parent = parent
         next.level = parent.level + 1
         for i in range(3):
             next.pos[i] = ind[i] + (parent.pos[i] << 1)
