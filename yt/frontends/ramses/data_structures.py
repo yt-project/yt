@@ -248,8 +248,8 @@ class RAMSESDomainFile(object):
         self.oct_handler.finalize()
 
     def included(self, selector):
-        if getattr(selector, "domain_id", -1) == self.domain_id:
-            return [self.domain_id]
+        if getattr(selector, "domain_id", None) is not None:
+            return selector.domain_id == self.domain_id
         domain_ids = self.oct_handler.domain_identify(selector)
         return self.domain_id in domain_ids
 
