@@ -316,7 +316,7 @@ cdef class OctreeContainer:
     def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_oct_cells(self, domain_id)
+            num_cells = selector.count_octs(self, domain_id) * 8
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef OctVisitorData data
@@ -404,7 +404,7 @@ cdef class OctreeContainer:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
                     order='C')
             else:
-                dest = np.zeros(num_cells * 8, dtype=source.dtype, order='C')
+                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
         cdef OctVisitorData data
         data.index = offset
         data.domain = domain_id
@@ -501,7 +501,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             for j in range(3):
                 pos[j] = self.DLE[j] + (o.pos[j] + 0.5) * dds[j]
             selector.recursively_visit_octs(
-                o, pos, dds, 0, func, data)
+                o, pos, dds, 0, func, data, vc)
 
     def domain_identify(self, SelectorObject selector):
         cdef np.ndarray[np.uint8_t, ndim=1] domain_mask

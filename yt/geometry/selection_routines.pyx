@@ -185,6 +185,10 @@ cdef class SelectorObject:
                         oct_visitor_function *func,
                         OctVisitorData *data,
                         int visit_covered = 0):
+        # visit_covered tells us whether this octree supports partial
+        # refinement.  If it does, we need to handle this specially -- first
+        # we visit *this* oct, then we make a second pass to check any child
+        # octs.
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
         cdef int i, j, k, res, ii
         cdef Oct *ch
@@ -222,33 +226,33 @@ cdef class SelectorObject:
             return
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
-        spos[0] = pos[0] - sdds[0]/2.0
-        for i in range(2):
-            spos[1] = pos[1] - sdds[1]/2.0
-            for j in range(2):
-                spos[2] = pos[2] - sdds[2]/2.0
-                for k in range(2):
-                    ii = ((k*2)+j)*2+i
-                    ch = root.children[i][j][k]
-                    if visit_covered == 0 and next_level == 1 and ch != NULL:
-                        self.recursively_visit_octs(
-                            ch, spos, sdds, level + 1, func, data)
-                    elif this_level == 1:
-                        selected = self.select_cell(spos, sdds, eterm)
-                        data.global_index += increment
-                        increment = 0
-                        data.ind[0] = i
-                        data.ind[1] = j
-                        data.ind[2] = k
-                        func(root, data, selected)
-                    spos[2] += sdds[2]
-                spos[1] += sdds[1]
-            spos[0] += sdds[0]
-        if visit_covered == 1:
-            # On our first pass through, we always only look at the current
-            # level.  So we make a second pass to go downwards.
-            self.recursively_visit_octs(root, pos, dds, level, func,
-                                        data, 0)
+        cdef int iter = 1 - visit_covered # 2 if 1, 1 if 0.
+        while iter < 2:
+            spos[0] = pos[0] - sdds[0]/2.0
+            for i in range(2):
+                spos[1] = pos[1] - sdds[1]/2.0
+                for j in range(2):
+                    spos[2] = pos[2] - sdds[2]/2.0
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        ch = root.children[i][j][k]
+                        if iter == 1 and next_level == 1 and ch != NULL:
+                            self.recursively_visit_octs(
+                                ch, spos, sdds, level + 1, func, data,
+                                visit_covered)
+                        elif this_level == 1:
+                            selected = self.select_cell(spos, sdds, eterm)
+                            data.global_index += increment
+                            increment = 0
+                            data.ind[0] = i
+                            data.ind[1] = j
+                            data.ind[2] = k
+                            func(root, data, selected)
+                        spos[2] += sdds[2]
+                    spos[1] += sdds[1]
+                spos[0] += sdds[0]
+            this_level = 0 # We turn this off for the second pass.
+            iter += 1
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
