@@ -67,7 +67,7 @@ cdef class ParticleDepositOperation:
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 2
         cdef OctInfo oi
-        cdef np.int64_t offset, moff, missed = 0
+        cdef np.int64_t offset, moff
         cdef Oct *oct
         cdef np.int64_t numpart = positions.shape[0]
         moff = octree.get_domain_offset(domain_id + domain_offset)
@@ -84,21 +84,23 @@ cdef class ParticleDepositOperation:
             # full octree structure.  All we *really* care about is some
             # arbitrary offset into a field value for deposition.
             oct = octree.get(pos, &oi)
-            if oct == NULL:
-                missed += 1
-                continue
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
-            if oct.domain != domain_id: continue
+            # For the distributed-memory octrees, this will manifest as a NULL
+            # oct.  For the non-distributed memory octrees, we'll simply see
+            # this as a domain_id that is not the current domain id.  Note that
+            # this relies on the idea that all the particles in a region are
+            # all fed to sequential domain subsets, which will not be true with
+            # RAMSES, where we *will* miss particles that live in ghost
+            # regions on other processors.  Addressing this is on the TODO
+            # list.
+            if oct == NULL or oct.domain != domain_id: continue
             # Note that this has to be our local index, not our in-file index.
             offset = dom_ind[oct.domain_ind - moff] * 8
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
-        if missed > 0:
-            print "MISSED %s out of %s on domain %s" % (
-                missed, positions.shape[0], domain_id)
         
     @cython.boundscheck(False)
     @cython.wraparound(False)

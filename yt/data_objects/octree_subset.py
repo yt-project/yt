@@ -36,6 +36,7 @@ from .field_info_container import \
     NeedsProperty, \
     NeedsParameter
 import yt.geometry.particle_deposit as particle_deposit
+from yt.funcs import *
 
 class OctreeSubset(YTSelectionContainer):
     _spatial = True
@@ -114,6 +115,8 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
         op = cls(nvals) # We allocate number of zones, not number of octs
         op.initialize()
+        mylog.debug("Depositing %s particles into %s Octs",
+            positions.shape[0], nvals[-1])
         op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
             self.domain_id, self._domain_offset)
         vals = op.finalize()

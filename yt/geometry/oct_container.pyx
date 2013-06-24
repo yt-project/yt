@@ -396,7 +396,7 @@ cdef class OctreeContainer:
         # This is actually not correct.  The hard part is that we need to
         # iterate the same way visit_all_octs does, but we need to track the
         # number of octs total visited.
-        cdef np.int64_t num_octs = -1
+        cdef np.int64_t num_cells = -1
         if dest is None:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of

@@ -1127,9 +1127,11 @@ grid_selector = GridSelector
 
 cdef class OctreeSubsetSelector(SelectorObject):
     cdef SelectorObject base_selector
+    cdef public np.int64_t domain_id
 
     def __init__(self, dobj):
         self.base_selector = dobj.base_selector
+        self.domain_id = dobj.domain_id
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1167,7 +1169,11 @@ cdef class OctreeSubsetSelector(SelectorObject):
                          Oct *o = NULL) nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
-        return self.base_selector.select_grid(left_edge, right_edge, level, o)
+        cdef int res
+        res = self.base_selector.select_grid(left_edge, right_edge, level, o)
+        if res == 1 and o != NULL and o.domain != self.domain_id:
+            return -1
+        return res
 
 octree_subset_selector = OctreeSubsetSelector
 

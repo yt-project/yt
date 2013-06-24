@@ -248,6 +248,8 @@ class RAMSESDomainFile(object):
         self.oct_handler.finalize()
 
     def included(self, selector):
+        if getattr(selector, "domain_id", -1) == self.domain_id:
+            return [self.domain_id]
         domain_ids = self.oct_handler.domain_identify(selector)
         return self.domain_id in domain_ids
 
@@ -326,11 +328,11 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            base_region = getattr(dobj, "base_region", dobj)
-            # Note that domain_ids will be ONE INDEXED
             domains = [dom for dom in self.domains if
                        dom.included(dobj.selector)]
-            mylog.debug("Identified %s intersecting domains", len(domains))
+            base_region = getattr(dobj, "base_region", dobj)
+            if len(domains) > 1:
+                mylog.debug("Identified %s intersecting domains", len(domains))
             subsets = [RAMSESDomainSubset(base_region, domain, self.parameter_file)
                        for domain in domains]
             dobj._chunk_info = subsets
