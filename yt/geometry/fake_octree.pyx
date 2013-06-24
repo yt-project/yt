@@ -27,6 +27,7 @@ License:
 
 from libc.stdlib cimport malloc, free, rand, RAND_MAX
 cimport numpy as np
+from oct_visitors cimport cind
 import numpy as np
 cimport cython
 
@@ -68,7 +69,7 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
                     long max_noct, long max_level, float fsubdivide,
                     np.ndarray[np.uint8_t, ndim=2] mask):
     print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
-    cdef int ddr[3]
+    cdef int ddr[3], ii
     cdef long i,j,k
     cdef float rf #random float from 0-1
     if cur_level >= max_level: 
@@ -80,7 +81,8 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
         ddr[i] = 2
     rf = rand() * 1.0 / RAND_MAX
     if rf > fsubdivide:
-        if parent.children[ind[0]][ind[1]][ind[2]] == NULL:
+        ii = cind(ind[0], ind[1], ind[2])
+        if parent.children[ii] == NULL:
             cur_leaf += 7 
         oct = oct_handler.next_child(1, ind, parent)
         oct.domain = 1

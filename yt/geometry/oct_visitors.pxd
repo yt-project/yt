@@ -43,6 +43,9 @@ cdef oct_visitor_function copy_array_i64
 cdef oct_visitor_function identify_octs
 cdef oct_visitor_function assign_domain_ind
 
+cdef inline int cind(int i, int j, int k):
+    return (((i*2)+j)*2+k)
+
 cdef inline int oind(OctVisitorData *data):
     return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
 

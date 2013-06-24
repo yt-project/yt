@@ -35,6 +35,7 @@ from selection_routines cimport SelectorObject, \
     OctVisitorData, oct_visitor_function
 import selection_routines
 cimport oct_visitors
+from oct_visitors cimport cind
 cimport cython
 
 ORDER_MAX = 20
@@ -66,10 +67,7 @@ cdef OctAllocationContainer *allocate_octs(
         oct.file_ind = oct.domain = -1
         oct.domain_ind = n + n_cont.offset
         oct.level = -1
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    oct.children[i][j][k] = NULL
+        oct.children = NULL
     if prev != NULL:
         prev.next = n_cont
     n_cont.next = NULL
@@ -80,6 +78,9 @@ cdef void free_octs(
     cdef OctAllocationContainer *cur
     while first != NULL:
         cur = first
+        for i in range(cur.n):
+            if cur.my_octs[i].children != NULL:
+                free(cur.my_octs[i].children)
         free(first.my_octs)
         first = cur.next
         free(cur)
@@ -207,7 +208,10 @@ cdef class OctreeContainer:
                 else:
                     ind[i] = 1
                     cp[i] += dds[i]/2.0
-            next = cur.children[ind[0]][ind[1]][ind[2]]
+            if cur.children != NULL:
+                next = cur.children[cind(ind[0],ind[1],ind[2])]
+            else:
+                next = NULL
         if oinfo == NULL: return cur
         for i in range(3):
             # This will happen *after* we quit out, so we need to back out the
@@ -285,8 +289,10 @@ cdef class OctreeContainer:
                         dl = o.level - (candidate.level + 1)
                         for i in range(3):
                             ind[i] = (npos[i] >> dl) & 1
-                        if candidate.children[0][0][0] == NULL: break
-                        candidate = candidate.children[ind[0]][ind[1]][ind[2]]
+                        if candidate.children[cind(ind[0],ind[1],ind[2])] \
+                                == NULL:
+                            break
+                        candidate = candidate.children[cind(ind[0],ind[1],ind[2])]
                     neighbors[nn] = candidate
                     nn += 1
 
@@ -557,13 +563,20 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return next
 
     cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
-        cdef Oct *next = parent.children[ind[0]][ind[1]][ind[2]]
+        cdef int i
+        cdef Oct *next = NULL
+        if parent.children != NULL:
+            next = parent.children[cind(ind[0],ind[1],ind[2])]
+        else:
+            parent.children = <Oct **> malloc(sizeof(Oct *) * 8)
+            for i in range(8):
+                parent.children[i] = NULL
         if next != NULL: return next
         cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
         if cont.n_assigned >= cont.n: raise RuntimeError
         next = &cont.my_octs[cont.n_assigned]
         cont.n_assigned += 1
-        parent.children[ind[0]][ind[1]][ind[2]] = next
+        parent.children[cind(ind[0],ind[1],ind[2])] = next
         next.parent = parent
         next.level = parent.level + 1
         for i in range(3):

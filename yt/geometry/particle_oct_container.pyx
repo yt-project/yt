@@ -27,6 +27,7 @@ License:
 
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX
 cimport oct_visitors
+from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
@@ -75,8 +76,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    if o.children[i][j][k] == NULL: continue
-                    self.visit_free(o.children[i][j][k])
+                    if o.children != NULL \
+                       and o.children[cind(i,j,k)] != NULL:
+                        self.visit_free(o.children[cind(i,j,k)])
+        free(o.children)
         free(o)
 
     def clear_fileind(self):
@@ -93,8 +96,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    if o.children[i][j][k] == NULL: continue
-                    self.visit_clear(o.children[i][j][k])
+                    if o.children != NULL \
+                       and o.children[cind(i,j,k)] != NULL:
+                        self.visit_clear(o.children[cind(i,j,k)])
 
     def __iter__(self):
         #Get the next oct, will traverse domains
@@ -139,8 +143,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    if o.children[i][j][k] != NULL:
-                        self.visit_assign(o.children[i][j][k], lpos)
+                    if o.children != NULL \
+                       and o.children[cind(i,j,k)] != NULL:
+                        self.visit_assign(o.children[cind(i,j,k)], lpos)
         return
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
@@ -158,10 +163,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         my_oct.domain_ind = self.nocts - 1
         my_oct.pos[0] = my_oct.pos[1] = my_oct.pos[2] = -1
         my_oct.level = -1
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    my_oct.children[i][j][k] = NULL
+        my_oct.children = NULL
         my_oct.parent = NULL
         return my_oct
 
@@ -191,11 +193,12 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 level += 1
                 for i in range(3):
                     ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
-                if cur.children[ind[0]][ind[1]][ind[2]] == NULL:
+                if cur.children == NULL or \
+                   cur.children[cind(ind[0],ind[1],ind[2])] == NULL:
                     cur = self.refine_oct(cur, index)
                     self.filter_particles(cur, data, p)
                 else:
-                    cur = cur.children[ind[0]][ind[1]][ind[2]]
+                    cur = cur.children[cind(ind[0],ind[1],ind[2])]
             cur.file_ind += 1
 
     @cython.boundscheck(False)
@@ -208,6 +211,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int i, j, k, m, n, ind[3]
         cdef Oct *noct
         cdef np.uint64_t prefix1, prefix2
+        o.children = <Oct **> malloc(sizeof(Oct *)*8)
         for i in range(2):
             for j in range(2):
                 for k in range(2):
@@ -219,11 +223,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     noct.pos[1] = (o.pos[1] << 1) + j
                     noct.pos[2] = (o.pos[2] << 1) + k
                     noct.parent = o
-                    o.children[i][j][k] = noct
+                    o.children[cind(i,j,k)] = noct
         o.file_ind = self.n_ref + 1
         for i in range(3):
             ind[i] = (index >> ((ORDER_MAX - (o.level + 1))*3 + (2 - i))) & 1
-        noct = o.children[ind[0]][ind[1]][ind[2]]
+        noct = o.children[cind(ind[0],ind[1],ind[2])]
         return noct
 
     cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p):
@@ -262,8 +266,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    if o.children[i][j][k] != NULL:
-                        self.visit(o.children[i][j][k], counts, level + 1)
+                    if o.children != NULL \
+                       and o.children[cind(i,j,k)] != NULL:
+                        self.visit(o.children[cind(i,j,k)], counts, level + 1)
         return
 
 cdef class ParticleRegions:

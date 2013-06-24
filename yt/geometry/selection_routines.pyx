@@ -31,6 +31,7 @@ from fp_utils cimport fclip, iclip
 from selection_routines cimport SelectorObject
 from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
+from oct_visitors cimport cind
 #from geometry_utils cimport point_to_hilbert
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
@@ -214,7 +215,9 @@ cdef class SelectorObject:
                     spos[2] = pos[2] - sdds[2]/2.0
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
-                        ch = root.children[i][j][k]
+                        ch = NULL
+                        if root.children != NULL:
+                            ch = root.children[cind(i,j,k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
                             self.recursively_visit_octs(
                                 ch, spos, sdds, level + 1, func, data,
