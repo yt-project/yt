@@ -344,9 +344,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
-            size = og.cell_count
-            if size == 0: continue
-            yield YTDataChunk(dobj, "spatial", [g], size)
+            yield YTDataChunk(dobj, "spatial", [g], None)
 
     def _chunk_io(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
