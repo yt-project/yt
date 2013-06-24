@@ -147,3 +147,7 @@ cdef void identify_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef np.uint8_t *arr = <np.uint8_t *> data.array
     arr[o.domain - 1] = 1
+
+cdef void assign_domain_ind(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    o.domain_ind = data.global_index
+    data.index += 1

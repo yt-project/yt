@@ -33,6 +33,7 @@ from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, ORDER_MAX
 from selection_routines cimport SelectorObject, \
     OctVisitorData, oct_visitor_function
+import selection_routines
 cimport oct_visitors
 cimport cython
 
@@ -188,6 +189,7 @@ cdef class OctreeContainer:
         cdef int ind[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef Oct *cur, *next
+        cur = next = NULL
         cdef int i
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
@@ -467,7 +469,12 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             self.DRE[i] = domain_right_edge[i] #num_grid
 
     def finalize(self):
-        return
+        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef OctVisitorData data
+        data.index = 0
+
+        self.visit_all_octs(selector, oct_visitors.assign_domain_ind, &data)
+        assert ((data.global_index+1)*8 == data.index)
 
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL
@@ -518,8 +525,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return domain_ids
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
-        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
-        return cont.offset
+        return 0 # We no longer have a domain offset.
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         # We assume that 20 bits is enough for each index.

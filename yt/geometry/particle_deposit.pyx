@@ -67,8 +67,9 @@ cdef class ParticleDepositOperation:
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 2
         cdef OctInfo oi
-        cdef np.int64_t offset, moff
+        cdef np.int64_t offset, moff, missed = 0
         cdef Oct *oct
+        cdef np.int64_t numpart = positions.shape[0]
         moff = octree.get_domain_offset(domain_id + domain_offset)
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
@@ -83,6 +84,9 @@ cdef class ParticleDepositOperation:
             # full octree structure.  All we *really* care about is some
             # arbitrary offset into a field value for deposition.
             oct = octree.get(pos, &oi)
+            if oct == NULL:
+                missed += 1
+                continue
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
             if oct.domain != domain_id: continue
@@ -92,6 +96,9 @@ cdef class ParticleDepositOperation:
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
+        if missed > 0:
+            print "MISSED %s out of %s on domain %s" % (
+                missed, positions.shape[0], domain_id)
         
     @cython.boundscheck(False)
     @cython.wraparound(False)
