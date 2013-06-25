@@ -331,7 +331,7 @@ cdef class OctreeContainer:
     def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id) * 8
+            num_cells = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef OctVisitorData data
@@ -347,7 +347,7 @@ cdef class OctreeContainer:
     def ires(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id) * 8
+            num_cells = selector.count_octs(self, domain_id)
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.empty(num_cells, dtype="int64")
@@ -364,7 +364,7 @@ cdef class OctreeContainer:
     def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id) * 8
+            num_cells = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.float64_t, ndim=2] fwidth
         fwidth = np.empty((num_cells, 3), dtype="float64")
         cdef OctVisitorData data
@@ -384,7 +384,7 @@ cdef class OctreeContainer:
     def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
                 int domain_id = -1):
         if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id) * 8
+            num_cells = selector.count_octs(self, domain_id)
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="float64")
