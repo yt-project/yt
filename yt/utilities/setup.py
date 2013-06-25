@@ -74,7 +74,7 @@ def get_location_from_ctypes(header, library):
             target_inc = inc_prefix
 
     if os.path.isfile(target_libfile):
-        return os.path.dirname(target_libfile)
+        return (target_inc, os.path.dirname(target_libfile))
     for lib_dir in default_library_dirs:
         try:
             ctypes.CDLL(os.path.join(lib_dir, target_libfile))
