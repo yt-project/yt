@@ -328,12 +328,12 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def icoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
+    def icoords(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.int64_t, ndim=2] coords
-        coords = np.empty((num_cells, 3), dtype="int64")
+        coords = np.empty((num_octs, 3), dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
@@ -344,13 +344,13 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def ires(self, SelectorObject selector, np.uint64_t num_cells = -1,
+    def ires(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
-        res = np.empty(num_cells, dtype="int64")
+        res = np.empty(num_octs, dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> res.data
         data.index = 0
@@ -361,12 +361,12 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fwidth(self, SelectorObject selector, np.uint64_t num_cells = -1,
+    def fwidth(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.float64_t, ndim=2] fwidth
-        fwidth = np.empty((num_cells, 3), dtype="float64")
+        fwidth = np.empty((num_octs, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> fwidth.data
         data.index = 0
@@ -381,13 +381,13 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fcoords(self, SelectorObject selector, np.uint64_t num_cells = -1,
+    def fcoords(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
-        if num_cells == -1:
-            num_cells = selector.count_octs(self, domain_id)
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
-        coords = np.empty((num_cells, 3), dtype="float64")
+        coords = np.empty((num_octs, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
