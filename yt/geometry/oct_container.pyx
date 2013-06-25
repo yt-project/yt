@@ -525,8 +525,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
             o = self.root_nodes[i].node
             key = self.root_nodes[i].key
             for j in range(3):
-                pos[j] = self.DLE[j] + \
-                    ((key >> 20 * (2 - j) & ukey) + 0.5) * dds[j]
+                data.pos[2 - j] = (key & ukey)
+                key = key >> 20
+            for j in range(3):
+                pos[j] = self.DLE[j] + (data.pos[j] + 0.5) * dds[j]
             selector.recursively_visit_octs(
                 o, pos, dds, 0, func, data, vc)
 
