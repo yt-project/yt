@@ -24,10 +24,28 @@ License:
 """
 
 cimport numpy as np
-from selection_routines cimport \
-    OctVisitorData, oct_visitor_function
-from oct_container cimport \
-    Oct
+
+cdef struct Oct
+cdef struct Oct:
+    np.int64_t file_ind     # index with respect to the order in which it was
+                            # added
+    np.int64_t domain_ind   # index within the global set of domains
+    np.int64_t domain       # (opt) addl int index
+    Oct **children          # Up to 8 long
+
+cdef struct OctVisitorData:
+    np.uint64_t index
+    np.uint64_t last
+    np.int64_t global_index
+    np.int64_t pos[3]       # position in ints
+    np.uint8_t ind[3]              # cell position
+    void *array
+    int dims
+    np.int32_t domain
+    np.int8_t level
+
+ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
+                                   np.uint8_t selected)
 
 cdef oct_visitor_function count_total_octs
 cdef oct_visitor_function count_total_cells

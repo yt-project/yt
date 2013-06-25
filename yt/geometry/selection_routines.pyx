@@ -170,7 +170,7 @@ cdef class SelectorObject:
         # we visit *this* oct, then we make a second pass to check any child
         # octs.
         cdef np.float64_t LE[3], RE[3], sdds[3], spos[3]
-        cdef int i, j, k, res, ii, mi
+        cdef int i, j, k, res, mi
         cdef Oct *ch
         cdef np.uint8_t selected
         # Remember that pos is the *center* of the oct, and dds is the oct
@@ -214,7 +214,6 @@ cdef class SelectorObject:
                 for j in range(2):
                     spos[2] = pos[2] - sdds[2]/2.0
                     for k in range(2):
-                        ii = ((k*2)+j)*2+i
                         ch = NULL
                         if root.children != NULL:
                             ch = root.children[cind(i,j,k)]

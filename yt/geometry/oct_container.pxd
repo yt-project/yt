@@ -25,20 +25,13 @@ License:
 
 cimport numpy as np
 from fp_utils cimport *
-from selection_routines cimport SelectorObject, \
-    OctVisitorData, oct_visitor_function
-from oct_visitors cimport *
+from selection_routines cimport SelectorObject
+from oct_visitors cimport \
+    OctVisitorData, oct_visitor_function, Oct
 from libc.stdlib cimport bsearch, qsort
 
 cdef int ORDER_MAX
 
-cdef struct Oct
-cdef struct Oct:
-    np.int64_t file_ind     # index with respect to the order in which it was
-                            # added
-    np.int64_t domain_ind   # index within the global set of domains
-    np.int64_t domain       # (opt) addl int index
-    Oct **children          # Up to 8 long
 
 cdef struct OctKey:
     np.int64_t key
