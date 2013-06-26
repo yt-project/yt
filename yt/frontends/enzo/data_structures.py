@@ -874,6 +874,7 @@ class EnzoStaticOutput(StaticOutput):
             self.periodicity += (False, False)
 
         self.current_time = self.parameters["InitialTime"]
+        self.gamma = self.parameters["Gamma"]
         # To be enabled when we can break old pickles:
         #if "MetaDataSimulationUUID" in self.parameters:
         #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
@@ -925,6 +926,12 @@ class EnzoStaticOutput(StaticOutput):
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         for unit in sec_conversion.keys():
             self.time_units[unit] = self["Time"] / sec_conversion[unit]
+
+    def set_code_units(self):
+        from yt.utilities.units import length, mass, time
+        self.unit_registry.add("code_length", self.parameters["LengthUnits"], length)
+        self.unit_registry.add("code_mass", self.parameters["MassUnits"], mass)
+        self.unit_registry.add("code_time", self.parameters["TimeUnits"], time)
 
     def _setup_comoving_units(self):
         z = self["CosmologyCurrentRedshift"]

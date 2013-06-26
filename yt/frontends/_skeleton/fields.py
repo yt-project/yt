@@ -92,11 +92,11 @@ for f,v in translation_dict.items():
     pfield = f.startswith("particle")
     add_field(f, TranslationFunc(v),
               take_log=KnownSkeletonFields[v].take_log,
-              units = ff._units, display_name=dname,
+              units = ff.units, display_name=dname,
               particle_type = pfield)
 
 # Here's an example of adding a new field:
 
 add_skeleton_field("dens", function=NullFunc, take_log=True,
                 convert_function=_get_convert("dens"),
-                units=r"\rm{g}/\rm{cm}^3")
+                units=r"g / cm**3")

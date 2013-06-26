@@ -163,6 +163,7 @@ class ParticleGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
 
+        self.gamma = 5./3.
 class GadgetBinaryDomainFile(ParticleDomainFile):
     def __init__(self, pf, io, domain_filename, domain_id):
         with open(domain_filename, "rb") as f:

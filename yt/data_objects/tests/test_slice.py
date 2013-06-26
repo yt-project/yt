@@ -61,12 +61,12 @@ def test_slice():
         for ax, an in enumerate("xyz"):
             xax = x_dict[ax]
             yax = y_dict[ax]
-            for wf in ["Density", None]:
+            for wf in ["density", None]:
                 fns = []
                 slc = pf.h.slice(ax, slc_pos)
-                yield assert_equal, slc["Ones"].sum(), slc["Ones"].size
-                yield assert_equal, slc["Ones"].min(), 1.0
-                yield assert_equal, slc["Ones"].max(), 1.0
+                yield assert_equal, slc["ones"].sum(), slc["ones"].size
+                yield assert_equal, slc["ones"].min(), 1.0
+                yield assert_equal, slc["ones"].max(), 1.0
                 yield assert_equal, np.unique(slc["px"]), uc[xax]
                 yield assert_equal, np.unique(slc["py"]), uc[yax]
                 yield assert_equal, np.unique(slc["pdx"]), 0.5 / dims[xax]
@@ -74,7 +74,7 @@ def test_slice():
                 pw = slc.to_pw()
                 fns += pw.save()
                 frb = slc.to_frb((1.0, 'unitary'), 64)
-                for slc_field in ['Ones', 'Density']:
+                for slc_field in ['ones', 'density']:
                     yield assert_equal, frb[slc_field].info['data_source'], \
                         slc.__str__()
                     yield assert_equal, frb[slc_field].info['axis'], \
@@ -99,15 +99,15 @@ def test_slice():
 
 
 def test_slice_over_edges():
-    pf = fake_random_pf(64, nprocs=8, fields=["Density"], negative=[False])
+    pf = fake_random_pf(64, nprocs=8, fields=["density"], negative=[False])
     slc = pf.h.slice(0, 0.0)
-    slc["Density"]
+    slc["density"]
     slc = pf.h.slice(1, 0.5)
-    slc["Density"]
+    slc["density"]
 
 
 def test_slice_over_outer_boundary():
-    pf = fake_random_pf(64, nprocs=8, fields=["Density"], negative=[False])
+    pf = fake_random_pf(64, nprocs=8, fields=["density"], negative=[False])
     slc = pf.h.slice(2, 1.0)
-    slc["Density"]
-    yield assert_equal, slc["Density"].size, 0
+    slc["density"]
+    yield assert_equal, slc["density"].size, 0

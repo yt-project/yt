@@ -62,10 +62,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              function = particle_mass,
              validators = [ValidateSpatial()],
              display_name = "\\mathrm{%s Mass}" % ptype,
-             units = r"\mathrm{g}",
-             projected_units = r"\mathrm{g}\/\mathrm{cm}",
-             projection_conversion = 'cm')
-
+             units = "g")
+             
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
@@ -76,9 +74,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              function = particle_density,
              validators = [ValidateSpatial()],
              display_name = "\\mathrm{%s Density}" % ptype,
-             units = r"\mathrm{g}/\mathrm{cm}^{3}",
-             projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
-             projection_conversion = 'cm')
+             units = "g/cm**3")
 
     def particle_cic(field, data):
         pos = data[ptype, coord_name]
@@ -90,16 +86,14 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              function = particle_cic,
              validators = [ValidateSpatial()],
              display_name = "\\mathrm{%s CIC Density}" % ptype,
-             units = r"\mathrm{g}/\mathrm{cm}^{3}",
-             projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
-             projection_conversion = 'cm')
+             units = "g/cm**3")
 
     # Now some translation functions.
 
     registry.add_field((ptype, "ParticleMass"),
             function = TranslationFunc((ptype, mass_name)),
             particle_type = True,
-            units = r"\mathrm{g}")
+            units = "g")
 
     def _ParticleMassMsun(field, data):
         return data[ptype, mass_name].copy()
@@ -110,7 +104,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             function = _ParticleMassMsun,
             convert_function = _conv_Msun,
             particle_type = True,
-            units = r"\mathrm{M}_\odot")
+            units = "Msun")
 
 def particle_scalar_functions(ptype, coord_name, vel_name, registry):
 

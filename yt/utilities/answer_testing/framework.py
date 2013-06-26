@@ -484,7 +484,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = self.create_obj(self.pf, self.obj_type)
         else:
             obj = None
-        proj = self.pf.h.proj(self.field, self.axis, 
+        proj = self.pf.h.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)

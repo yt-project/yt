@@ -78,20 +78,19 @@ add_field("dz", function=dz)
 
 def _convertDensity(data):
     return data.convert("Density")
-KnownRAMSESFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
-KnownRAMSESFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+KnownRAMSESFields["Density"].units = "g / cm**3"
 KnownRAMSESFields["Density"]._convert_function=_convertDensity
 
 def _convertPressure(data):
     return data.convert("Pressure")
-KnownRAMSESFields["Pressure"]._units=r"\rm{dyne}/\rm{cm}^{2}/\mu"
+KnownRAMSESFields["Pressure"]._units="dyne/cm**2"
 KnownRAMSESFields["Pressure"]._convert_function=_convertPressure
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = KnownRAMSESFields["%s-velocity" % ax]
-    f._units = r"\rm{cm}/\rm{s}"
+    f.units = "cm / s"
     f._convert_function = _convertVelocity
     f.take_log = False
 
@@ -122,13 +121,13 @@ def _convertParticleMass(data):
 
 KnownRAMSESFields["all", "particle_mass"]._convert_function = \
         _convertParticleMass
-KnownRAMSESFields["all", "particle_mass"]._units = r"\mathrm{g}"
+KnownRAMSESFields["all", "particle_mass"]._units = "g"
 
 def _Temperature(field, data):
     rv = data["Pressure"]/data["Density"]
     rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
     return rv
-add_field("Temperature", function=_Temperature, units=r"\rm{K}")
+add_field("Temperature", function=_Temperature, units="K")
 
 # We'll add a bunch of species fields here.  In the not too distant future,
 # we'll be moving all of these to a unified field location, so they can be
@@ -174,8 +173,7 @@ for species in _speciesList:
              function = NullFunc,
              display_name = "%s\/Density" % species,
              convert_function = _convertDensity,
-             units = r"\rm{g}/\rm{cm}^3",
-             projected_units = r"\rm{g}/\rm{cm}^2")
+             units = "g/cm**3")
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
              validators=ValidateDataField("%s_Density" % species),
@@ -184,11 +182,11 @@ for species in _speciesList:
              function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species),
              display_name="Comoving\/%s\/Density" % species)
-    add_field("%s_Mass" % species, units=r"\rm{g}", 
+    add_field("%s_Mass" % species, units="g", 
               function=_SpeciesMass, 
               validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
-    add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
+    add_field("%s_MassMsun" % species, units="Msun",
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
               validators=ValidateDataField("%s_Density" % species),

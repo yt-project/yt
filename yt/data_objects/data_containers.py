@@ -1,4 +1,4 @@
-""" 
+"""
 The base classes for selecting and returning data.
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -38,6 +38,7 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.definitions import  x_dict, y_dict
@@ -61,7 +62,7 @@ def force_array(item, shape):
             return np.zeros(shape, dtype='bool')
 
 def restore_field_information_state(func):
-    """ 
+    """
     A decorator that takes a function with the API of (self, grid, field)
     and ensures that after the function is called, the field_parameters will
     be returned to normal.
@@ -75,14 +76,14 @@ def restore_field_information_state(func):
     return save_state
 
 class YTFieldData(dict):
-    """ 
+    """
     A Container object for field data, instead of just having it be a dict.
     """
     pass
-        
+
 
 class YTDataContainer(object):
-    """ 
+    """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
@@ -100,7 +101,7 @@ class YTDataContainer(object):
                 data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, field_parameters):
-        """ 
+        """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
         sets its initial set of fields, and the remainder of the arguments
@@ -191,13 +192,22 @@ class YTDataContainer(object):
         """
         Returns a single field.  Will add if necessary.
         """
-        f = self._determine_fields(key)[0]
-        if f not in self.field_data:
-            if f in self._container_fields:
-                self.field_data[f] = self._generate_container_field(f)
-                return self.field_data[f]
-            else:
-                self.get_data(f)
+        f = self._determine_fields([key])[0]
+        if f in self.field_data:
+            return self.field_data[f]
+        elif f in self._container_fields:
+            self.field_data[f] = \
+                YTArray(self._generate_container_field(f), input_units='1')
+            return self.field_data[f]
+
+        # At this time, we have returned
+        self.get_data(f)
+        fi = self.pf._get_field_info(*f)
+
+        # fi.units is the unit expression string. We depend on the registry
+        # hanging off the dataset to define this unit object.
+        self.field_data[f] = YTArray(self.field_data[f], fi.units,
+                                     self.pf.unit_registry)
         return self.field_data[f]
 
     def __setitem__(self, key, val):
@@ -470,7 +480,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
         return fields_to_get
-    
+
     def get_data(self, fields=None):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -534,7 +544,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 index += 1
                 if field in self.field_data: continue
                 try:
-                    self.field_data[field] = self._generate_field(field)
+                    fd = self._generate_field(field)
+                    if type(fd) != YTArray:
+                        fd = YTArray(fd, self.pf._get_field_info(*field).units,
+                                     self.pf.unit_registry)
+                    self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
@@ -610,7 +624,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         super(YTSelectionContainer2D, self).__init__(
             pf, field_parameters)
         self.set_field_parameter("axis", axis)
-        
+
     def _convert_field_name(self, field):
         return field
 
@@ -624,7 +638,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
+        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer,
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
         return pw
@@ -668,13 +682,13 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
         """
-        
+
         if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
             (self.pf.geometry == "polar" and self.axis == 2):
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
             frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
-        
+
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
@@ -718,9 +732,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def cut_region(self, field_cuts):
         """
         Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.  It is very useful for applying 
+        fly with a set of field_cuts.  It is very useful for applying
         conditions to the fields in your data object.
-        
+
         Examples
         --------
         To find the total mass of gas above 10^6 K in your volume:
@@ -754,7 +768,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         useful for calculating, for instance, total isocontour area, or
         visualizing in an external program (such as `MeshLab
         <http://meshlab.sf.net>`_.)
-        
+
         Parameters
         ----------
         field : string
@@ -868,7 +882,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field : string
@@ -924,7 +938,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
                      [field_x, field_y, field_z]]
         return march_cubes_grid_flux(value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
@@ -1240,7 +1254,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         self._get_all_regions()
         self._make_overlaps()
         self._get_list_of_grids()
-    
+
     def _get_all_regions(self):
         # Before anything, we simply find out which regions are involved in all
         # of this process, uniquely.
@@ -1250,7 +1264,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             # So cut_masks don't get messed up.
             item._boolean_touched = True
         self._all_regions = np.unique(self._all_regions)
-    
+
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
@@ -1284,7 +1298,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                     continue
             pbar.update(i)
         pbar.finish()
-    
+
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.pf)
@@ -1297,7 +1311,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
-    
+
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)
 
@@ -1308,8 +1322,8 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid, field=None):
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
-                and grid.id in self._cut_masks:
+        if not isinstance(grid, (FakeGridForParticles,)) \
+             and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.
         return self._get_level_mask(self.regions, grid)

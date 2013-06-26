@@ -438,7 +438,10 @@ class AthenaStaticOutput(StaticOutput):
             self.periodicity = ensure_tuple(self.specified_parameters['periodicity'])
         else:
             self.periodicity = (True,)*self.dimensionality
-
+        if 'gamma' in self.specified_parameters:
+            self.gamma = float(self.specified_parameters['gamma'])
+        else:
+            self.gamma = 5./3.
         dname = self.parameter_filename
         gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
         if 'id0' in dname :

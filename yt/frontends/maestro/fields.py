@@ -44,20 +44,20 @@ add_field = MaestroFieldInfo.add_field
 
 add_field("density", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("density")],
-          units=r"\rm{g}/\rm{cm}^3")
-MaestroFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+          units="g/cm**3")
 
-translation_dict = {"x-velocity": "x_vel",
-                    "y-velocity": "y_vel",
-                    "z-velocity": "z_vel",
-                    "Density": "density",
-                    "Temperature": "tfromp"
-                   }
+translation_dict = {
+    "x-velocity": "x_vel",
+    "y-velocity": "y_vel",
+    "z-velocity": "z_vel",
+    "Density":    "density",
+    "Temperature": "tfromp"
+}
 
 def _generate_translation(mine, theirs):
     add_field(theirs, function=lambda a, b: b[mine], take_log=True)
 
-for f,v in translation_dict.items():
+for f, v in translation_dict.items():
     if v not in MaestroFieldInfo:
         add_field(v, function=lambda a,b: None, take_log=False,
                   validators = [ValidateDataField(v)])

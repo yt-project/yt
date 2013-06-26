@@ -43,49 +43,39 @@ add_field = ChomboFieldInfo.add_field
 
 add_chombo_field("density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("density")],
-                 units=r"\rm{g}/\rm{cm}^3")
-
-KnownChomboFields["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+                 units="g/cm**3")
 
 add_chombo_field("X-momentum", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("X-Momentum")],
-                 units=r"",display_name=r"M_x")
-KnownChomboFields["X-momentum"]._projected_units=r""
+                 units="g/cm**2/s",display_name=r"M_x")
 
 add_chombo_field("Y-momentum", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("Y-Momentum")],
-                 units=r"",display_name=r"M_y")
-KnownChomboFields["Y-momentum"]._projected_units=r""
+                 units="g/cm**2/s",display_name=r"M_y")
 
 add_chombo_field("Z-momentum", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("Z-Momentum")],
-                 units=r"",display_name=r"M_z")
-KnownChomboFields["Z-momentum"]._projected_units=r""
+                 units="g/cm**2/s",display_name=r"M_z")
 
 add_chombo_field("X-magnfield", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("X-Magnfield")],
-                 units=r"",display_name=r"B_x")
-KnownChomboFields["X-magnfield"]._projected_units=r""
+                 units="gauss",display_name=r"B_x")
 
 add_chombo_field("Y-magnfield", function=NullFunc, take_log=False,
                  validators = [ValidateDataField("Y-Magnfield")],
-                 units=r"",display_name=r"B_y")
-KnownChomboFields["Y-magnfield"]._projected_units=r""
+                 units="gauss",display_name=r"B_y")
 
 add_chombo_field("Z-magnfield", function=NullFunc, take_log=False,
                   validators = [ValidateDataField("Z-Magnfield")],
-                  units=r"",display_name=r"B_z")
-KnownChomboFields["Z-magnfield"]._projected_units=r""
+                  units="gauss",display_name=r"B_z")
 
 add_chombo_field("energy-density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("energy-density")],
-                 units=r"\rm{erg}/\rm{cm}^3")
-KnownChomboFields["energy-density"]._projected_units =r""
+                 units="erg/cm**3")
 
 add_chombo_field("radiation-energy-density", function=NullFunc, take_log=True,
                  validators = [ValidateDataField("radiation-energy-density")],
-                 units=r"\rm{erg}/\rm{cm}^3")
-KnownChomboFields["radiation-energy-density"]._projected_units =r""
+                 units="erg/cm**3")
 
 def _Density(field,data):
     """A duplicate of the density field. This is needed because when you try 
@@ -96,36 +86,35 @@ def _Density(field,data):
     """
     return data["density"]
 add_field("Density",function=_Density, take_log=True,
-          units=r'\rm{g}/\rm{cm^3}')
+          units='g/cm**3')
 
 def _Bx(field,data):
     return data["X-magnfield"]
 add_field("Bx", function=_Bx, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_x")
+          units="gauss", display_name=r"B_x")
 
 def _By(field,data):
     return data["Y-magnfield"]
 add_field("By", function=_By, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_y")
+          units="gauss", display_name=r"B_y")
 
 def _Bz(field,data):
     return data["Z-magnfield"]
 add_field("Bz", function=_Bz, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_z")
+          units="gauss", display_name=r"B_z")
 
 def _MagneticEnergy(field,data):
     return (data["X-magnfield"]**2 +
             data["Y-magnfield"]**2 +
             data["Z-magnfield"]**2)/2.
 add_field("MagneticEnergy", function=_MagneticEnergy, take_log=True,
-          units=r"", display_name=r"B^2 / 8 \pi")
-ChomboFieldInfo["MagneticEnergy"]._projected_units=r""
+          units=r"erg/cm**3", display_name=r"B^2 / 8 \pi")
 
 def _xVelocity(field, data):
     """ Generate x-velocity from x-momentum and density. """
     return data["X-momentum"]/data["density"]
 add_field("x-velocity",function=_xVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
+          units='cm/s')
 
 def _yVelocity(field,data):
     """ Generate y-velocity from y-momentum and density. """
@@ -134,13 +123,13 @@ def _yVelocity(field,data):
     #except KeyError:
     return data["Y-momentum"]/data["density"]
 add_field("y-velocity",function=_yVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
+          units='cm/s')
 
 def _zVelocity(field,data):
     """ Generate z-velocity from z-momentum and density. """
     return data["Z-momentum"]/data["density"]
 add_field("z-velocity",function=_zVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
+          units='cm/s')
 
 def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):

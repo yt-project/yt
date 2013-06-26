@@ -35,6 +35,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.utilities.units import Unit, UnitRegistry, dimensionless
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.minimal_representation import \
@@ -121,6 +122,8 @@ class StaticOutput(object):
         self.print_key_parameters()
 
         self.create_field_info()
+
+        self.set_units()
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
@@ -277,8 +280,42 @@ class StaticOutput(object):
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
+    def set_units(self):
+        """
+        Creates the unit registry for this dataset.
+
+        """
+        self.unit_registry = UnitRegistry()
+
+        self.set_code_units()
+
+        if hasattr(self, "cosmological_simulation") \
+           and getattr(self, "cosmological_simulation"):
+            # this dataset is cosmological, so add cosmological units.
+            self.unit_registry.add("h", self.hubble_constant, dimensionless)
+            # Comoving lengths: pc, AU, m... anything else?
+            #self.unit_registry.add("pccm", ...)
+
+        # @todo: Can we remove this now?
+        for field in self.field_info.values():
+            field.unit_obj = self.get_unit_from_registry(field.units)
+
+    def get_unit_from_registry(self, unit_str):
+        """
+        Creates a unit object matching the string expression, using this
+        dataset's unit registry.
+
+        Parameters
+        ----------
+        unit_str : str
+            string that we can parse for a sympy Expr.
+
+        """
+        new_unit = Unit(unit_str, registry=self.unit_registry)
+        return new_unit
+
+
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
     return pf
-

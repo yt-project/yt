@@ -27,7 +27,7 @@ License:
 
 import ConfigParser, os, os.path, types
 
-ytcfgDefaults = dict(
+ytcfg_defaults = dict(
     serialize = 'True',
     onlydeserialize = 'False',
     timefunctions = 'False',
@@ -65,7 +65,8 @@ ytcfgDefaults = dict(
     gold_standard_filename = 'gold008',
     local_standard_filename = 'local001',
     sketchfab_api_key = 'None',
-    thread_field_detection = 'False'
+    thread_field_detection = 'False',
+    ignore_invalid_unit_operation_errors = 'False'
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten
@@ -82,13 +83,13 @@ if os.path.exists(__fn):
         cp = ConfigParser.ConfigParser()
         cp.read(__fn)
         # NOTE: To avoid having the 'DEFAULT' section here,
-        # we are not passing in ytcfgDefaults to the constructor.
+        # we are not passing in ytcfg_defaults to the constructor.
         new_cp = ConfigParser.ConfigParser()
         new_cp.add_section("yt")
         for section in cp.sections():
             for option in cp.options(section):
                 # We changed them all to lowercase
-                if option.lower() in ytcfgDefaults:
+                if option.lower() in ytcfg_defaults:
                     new_cp.set("yt", option, cp.get(section, option))
                     print "Setting %s to %s" % (option, cp.get(section, option))
         open(__fn + ".old", "w").write(f)
@@ -99,7 +100,7 @@ if os.path.exists(__fn):
 #            print "yt is creating a new directory, ~/.yt ."
 #            os.mkdir(os.path.exists("~/.yt/"))
 #    # Now we can read in and write out ...
-#    new_cp = Configparser.ConfigParser(ytcfgDefaults)
+#    new_cp = Configparser.ConfigParser(ytcfg_defaults)
 #    new_cp.write(__fn)
 
 class YTConfigParser(ConfigParser.ConfigParser):
@@ -107,10 +108,10 @@ class YTConfigParser(ConfigParser.ConfigParser):
         self.set(key[0], key[1], val)
 
 if os.path.exists(os.path.expanduser("~/.yt/config")):
-    ytcfg = YTConfigParser(ytcfgDefaults)
+    ytcfg = YTConfigParser(ytcfg_defaults)
     ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])
 else:
-    ytcfg = YTConfigParser(ytcfgDefaults)
+    ytcfg = YTConfigParser(ytcfg_defaults)
     ytcfg.read(['yt.cfg'])
 if not ytcfg.has_section("yt"):
     ytcfg.add_section("yt")

@@ -171,7 +171,7 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/geometry_utils.pyx"],
                extra_compile_args=omp_args,
                extra_link_args=omp_args,
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Interpolators", 
                 ["yt/utilities/lib/Interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
