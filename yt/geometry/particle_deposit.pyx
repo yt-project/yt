@@ -94,7 +94,8 @@ cdef class ParticleDepositOperation:
             # RAMSES, where we *will* miss particles that live in ghost
             # regions on other processors.  Addressing this is on the TODO
             # list.
-            if oct == NULL or oct.domain != domain_id: continue
+            if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
+                continue
             # Note that this has to be our local index, not our in-file index.
             offset = dom_ind[oct.domain_ind - moff] * 8
             if offset < 0: continue
