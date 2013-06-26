@@ -148,7 +148,7 @@ cdef class SelectorObject:
         data.last = -1
         data.domain = domain_id
         octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
-        return data.index * 8
+        return data.index
 
     def count_oct_cells(self, OctreeContainer octree, int domain_id = -1):
         cdef OctVisitorData data

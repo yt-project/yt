@@ -333,7 +333,7 @@ cdef class OctreeContainer:
         if num_octs == -1:
             num_octs = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.int64_t, ndim=2] coords
-        coords = np.empty((num_octs, 3), dtype="int64")
+        coords = np.empty((num_octs * 8, 3), dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
@@ -350,7 +350,7 @@ cdef class OctreeContainer:
             num_octs = selector.count_octs(self, domain_id)
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
-        res = np.empty(num_octs, dtype="int64")
+        res = np.empty(num_octs * 8, dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> res.data
         data.index = 0
@@ -366,7 +366,7 @@ cdef class OctreeContainer:
         if num_octs == -1:
             num_octs = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.float64_t, ndim=2] fwidth
-        fwidth = np.empty((num_octs, 3), dtype="float64")
+        fwidth = np.empty((num_octs * 8, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> fwidth.data
         data.index = 0
@@ -387,7 +387,7 @@ cdef class OctreeContainer:
             num_octs = selector.count_octs(self, domain_id)
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
-        coords = np.empty((num_octs, 3), dtype="float64")
+        coords = np.empty((num_octs * 8, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
         data.index = 0
@@ -451,6 +451,18 @@ cdef class OctreeContainer:
         if num_cells >= 0:
             return dest
         return data.index - offset
+
+    def domain_ind(self, selector, int domain_id = -1):
+        cdef np.ndarray[np.int64_t, ndim=1] ind
+        # Here's where we grab the masked items.
+        ind = np.zeros(self.nocts, 'int64') - 1
+        cdef OctVisitorData data
+        data.domain = domain_id
+        data.array = ind.data
+        data.index = 0
+        data.last = -1
+        self.visit_all_octs(selector, oct_visitors.index_octs, &data)
+        return ind
 
 cdef int root_node_compare(void *a, void *b) nogil:
     cdef OctKey *ao, *bo
@@ -696,18 +708,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             #        source[o.file_ind, ii]
                             local_filled += 1
         return local_filled
-
-    def domain_ind(self, selector, int domain_id = -1):
-        cdef np.ndarray[np.int64_t, ndim=1] ind
-        # Here's where we grab the masked items.
-        ind = np.zeros(self.nocts, 'int64') - 1
-        cdef OctVisitorData data
-        data.domain = domain_id
-        data.array = ind.data
-        data.index = 0
-        data.last = -1
-        self.visit_all_octs(selector, oct_visitors.index_octs, &data)
-        return ind
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
 
