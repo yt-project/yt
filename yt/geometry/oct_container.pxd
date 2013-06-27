@@ -51,6 +51,7 @@ cdef struct OctAllocationContainer:
 
 cdef class OctreeContainer:
     cdef OctAllocationContainer *cont
+    cdef OctAllocationContainer **domains
     cdef Oct ****root_mesh
     cdef int partial_coverage
     cdef int nn[3]
@@ -67,15 +68,14 @@ cdef class OctreeContainer:
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data)
+    cdef Oct *next_root(self, int domain_id, int ind[3])
+    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
 cdef class RAMSESOctreeContainer(OctreeContainer):
-    cdef OctAllocationContainer **domains
     cdef OctKey *root_nodes
     cdef void *tree_root
     cdef int num_root
     cdef int max_root
-    cdef Oct *next_root(self, int domain_id, int ind[3])
-    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
 cdef extern from "search.h" nogil:
     void *tsearch(const void *key, void **rootp,

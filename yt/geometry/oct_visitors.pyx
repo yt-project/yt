@@ -151,3 +151,11 @@ cdef void identify_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
 cdef void assign_domain_ind(Oct *o, OctVisitorData *data, np.uint8_t selected):
     o.domain_ind = data.global_index
     data.index += 1
+
+cdef void fill_from_file(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    if selected == 0: return
+    # There are this many records between "octs"
+    cdef np.float64_t **p = <np.float64_t**> data.array
+    p[1][data.index] = p[0][o.file_ind + oind(data)]
+    data.index += 1
+

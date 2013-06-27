@@ -480,6 +480,97 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, oct_visitors.index_octs, &data)
         return ind
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def add(self, int curdom, int curlevel,
+            np.ndarray[np.float64_t, ndim=2] pos,
+            int skip_boundary = 1):
+        cdef int level, no, p, i, j, k, ind[3]
+        cdef Oct *cur, *next = NULL
+        cdef np.float64_t pp[3], cp[3], dds[3]
+        no = pos.shape[0] #number of octs
+        if curdom > self.max_domain: return 0
+        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
+        cdef int initial = cont.n_assigned
+        cdef int in_boundary = 0
+        # How do we bootstrap ourselves?
+        for p in range(no):
+            #for every oct we're trying to add find the 
+            #floating point unitary position on this level
+            in_boundary = 0
+            for i in range(3):
+                pp[i] = pos[p, i]
+                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
+                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
+                cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
+                if ind[i] < 0 or ind[i] >= self.nn[i]:
+                    in_boundary = 1
+            if skip_boundary == in_boundary == 1: continue
+            cur = self.next_root(curdom, ind)
+            if cur == NULL: raise RuntimeError
+            # Now we find the location we want
+            # Note that RAMSES I think 1-findiceses levels, but we don't.
+            for level in range(curlevel):
+                # At every level, find the cell this oct
+                # lives inside
+                for i in range(3):
+                    #as we get deeper, oct size halves
+                    dds[i] = dds[i] / 2.0
+                    if cp[i] > pp[i]: 
+                        ind[i] = 0
+                        cp[i] -= dds[i]/2.0
+                    else:
+                        ind[i] = 1
+                        cp[i] += dds[i]/2.0
+                # Check if it has not been allocated
+                cur = self.next_child(curdom, ind, cur)
+            # Now we should be at the right level
+            cur.domain = curdom
+            cur.file_ind = p
+        return cont.n_assigned - initial
+
+    def allocate_domains(self, domain_counts):
+        cdef int count, i
+        cdef OctAllocationContainer *cur = self.cont
+        assert(cur == NULL)
+        self.max_domain = len(domain_counts) # 1-indexed
+        self.domains = <OctAllocationContainer **> malloc(
+            sizeof(OctAllocationContainer *) * len(domain_counts))
+        for i, count in enumerate(domain_counts):
+            cur = allocate_octs(count, cur)
+            if self.cont == NULL: self.cont = cur
+            self.domains[i] = cur
+
+    cdef Oct* next_root(self, int domain_id, int ind[3]):
+        cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        self.root_mesh[ind[0]][ind[1]][ind[2]] = next
+        self.nocts += 1
+        return next
+
+    cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
+        cdef int i
+        cdef Oct *next = NULL
+        if parent.children != NULL:
+            next = parent.children[cind(ind[0],ind[1],ind[2])]
+        else:
+            parent.children = <Oct **> malloc(sizeof(Oct *) * 8)
+            for i in range(8):
+                parent.children[i] = NULL
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        parent.children[cind(ind[0],ind[1],ind[2])] = next
+        self.nocts += 1
+        return next
+
 cdef int root_node_compare(void *a, void *b) nogil:
     cdef OctKey *ao, *bo
     ao = <OctKey *>a
@@ -589,35 +680,8 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         self.nocts += 1
         return next
 
-    cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
-        cdef int i
-        cdef Oct *next = NULL
-        if parent.children != NULL:
-            next = parent.children[cind(ind[0],ind[1],ind[2])]
-        else:
-            parent.children = <Oct **> malloc(sizeof(Oct *) * 8)
-            for i in range(8):
-                parent.children[i] = NULL
-        if next != NULL: return next
-        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
-        if cont.n_assigned >= cont.n: raise RuntimeError
-        next = &cont.my_octs[cont.n_assigned]
-        cont.n_assigned += 1
-        parent.children[cind(ind[0],ind[1],ind[2])] = next
-        self.nocts += 1
-        return next
-
     def allocate_domains(self, domain_counts, int root_nodes):
-        cdef int count, i
-        cdef OctAllocationContainer *cur = self.cont
-        assert(cur == NULL)
-        self.max_domain = len(domain_counts) # 1-indexed
-        self.domains = <OctAllocationContainer **> malloc(
-            sizeof(OctAllocationContainer *) * len(domain_counts))
-        for i, count in enumerate(domain_counts):
-            cur = allocate_octs(count, cur)
-            if self.cont == NULL: self.cont = cur
-            self.domains[i] = cur
+        OctreeContainer.allocate_domains(domain_counts)
         self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * root_nodes)
         self.max_root = root_nodes
         for i in range(root_nodes):
@@ -629,56 +693,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def add(self, int curdom, int curlevel,
-            np.ndarray[np.float64_t, ndim=2] pos,
-            int skip_boundary = 1):
-        cdef int level, no, p, i, j, k, ind[3]
-        cdef Oct *cur, *next = NULL
-        cdef np.float64_t pp[3], cp[3], dds[3]
-        no = pos.shape[0] #number of octs
-        if curdom > self.max_domain: return 0
-        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
-        cdef int initial = cont.n_assigned
-        cdef int in_boundary = 0
-        # How do we bootstrap ourselves?
-        for p in range(no):
-            #for every oct we're trying to add find the 
-            #floating point unitary position on this level
-            in_boundary = 0
-            for i in range(3):
-                pp[i] = pos[p, i]
-                dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-                ind[i] = <np.int64_t> ((pp[i] - self.DLE[i])/dds[i])
-                cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
-                if ind[i] < 0 or ind[i] >= self.nn[i]:
-                    in_boundary = 1
-            if skip_boundary == in_boundary == 1: continue
-            cur = self.next_root(curdom, ind)
-            if cur == NULL: raise RuntimeError
-            # Now we find the location we want
-            # Note that RAMSES I think 1-findiceses levels, but we don't.
-            for level in range(curlevel):
-                # At every level, find the cell this oct
-                # lives inside
-                for i in range(3):
-                    #as we get deeper, oct size halves
-                    dds[i] = dds[i] / 2.0
-                    if cp[i] > pp[i]: 
-                        ind[i] = 0
-                        cp[i] -= dds[i]/2.0
-                    else:
-                        ind[i] = 1
-                        cp[i] += dds[i]/2.0
-                # Check if it has not been allocated
-                cur = self.next_child(curdom, ind, cur)
-            # Now we should be at the right level
-            cur.domain = curdom
-            cur.file_ind = p
-        return cont.n_assigned - initial
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -711,11 +725,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                             local_filled += 1
         return local_filled
 
-cdef class ARTOctreeContainer(RAMSESOctreeContainer):
-
-    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
-        OctreeContainer.__init__(self, domain_dimensions,
-            domain_left_edge, domain_right_edge)
+cdef class ARTOctreeContainer(OctreeContainer):
 
     @cython.boundscheck(True)
     @cython.wraparound(False)
@@ -758,14 +768,11 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
                             local_filled += 1
         return local_filled
 
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_level_from_grid(self, int domain, int level, dest_fields, 
-                             source_fields, 
-                             np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                             int offset):
+    def fill_level_from_grid(self, SelectorObject selector,
+                             int domain_id, source_fields):
         #Fill  level, but instead of assuming that the source
         #order is that of the oct order, we look up the oct position
         #and fill its children from the the source field
@@ -777,32 +784,21 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
         # Note that the .pos[0] etc calls need to be uncommented.
         cdef np.ndarray[np.float64_t, ndim=3] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef OctAllocationContainer *dom = self.domains[domain - 1]
-        cdef Oct *o
-        cdef int n
-        cdef int i, j, k, ii
-        cdef int local_pos, local_filled
-        cdef np.float64_t val
-        cdef np.int64_t ox,oy,oz
-        for key in dest_fields:
+        cdef OctVisitorData data
+        cdef void *p[2]
+        num_cells = selector.count_oct_cells(self, domain_id)
+        dest_fields = {}
+        for key in source_fields:
+            dest_fields[key] = dest = \
+                np.zeros(num_cells, dtype="float64")
+            data.index = 0
             local_filled = 0
-            dest = dest_fields[key]
             source = source_fields[key]
-            for n in range(dom.n):
-                o = &dom.my_octs[n]
-                # TODO: Uncomment this!
-                #if o.level != level: continue
-                for i in range(2):
-                    for j in range(2):
-                        for k in range(2):
-                            ii = ((k*2)+j)*2+i
-                            if mask[o.domain_ind, ii] == 0: continue
-                            #ox = (o.pos[0] << 1) + i
-                            #oy = (o.pos[1] << 1) + j
-                            #oz = (o.pos[2] << 1) + k
-                            dest[local_filled + offset] = source[ox,oy,oz]
-                            local_filled += 1
-        return local_filled
+            p[0] = source.data
+            p[1] = dest.data
+            data.array = &p
+            self.visit_all_octs(selector, oct_visitors.fill_from_file, &data)
+        return dest_fields
 
     def allocate_domains(self, domain_counts):
         cdef int count, i
@@ -816,13 +812,3 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
             if self.cont == NULL: self.cont = cur
             self.domains[i] = cur
 
-    cdef Oct* next_root(self, int domain_id, int ind[3]):
-        cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
-        if next != NULL: return next
-        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
-        if cont.n_assigned >= cont.n: raise RuntimeError
-        next = &cont.my_octs[cont.n_assigned]
-        cont.n_assigned += 1
-        self.root_mesh[ind[0]][ind[1]][ind[2]] = next
-        self.nocts += 1
-        return next

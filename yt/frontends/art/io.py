@@ -30,6 +30,7 @@ import struct
 import os
 import os.path
 
+from yt.funcs import *
 from yt.utilities.io_handler import \
     BaseIOHandler
 import yt.utilities.lib as au
@@ -47,7 +48,7 @@ class IOHandlerART(BaseIOHandler):
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
-        tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
+        tr = defaultdict(list)
         cp = 0
         for chunk in chunks:
             for subset in chunk.objs:
@@ -60,13 +61,16 @@ class IOHandlerART(BaseIOHandler):
                 else:
                     rv = subset.fill_level(f, fields)
                 for ft, f in fields:
+                    d = rv.pop(f)
                     mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
-                                subset.domain_level,
-                                f, subset.cell_count, rv[f].min(), rv[f].max(),
-                                cp, cp+subset.cell_count)
-                    tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
+                                subset.domain_level, f, d.size, d.min(), d.max(),
+                                cp, cp+d.size)
+                    tr[(ft, f)].append(d)
                 cp += subset.cell_count
-        return tr
+        d = {}
+        for k in tr.keys():
+            d[k] = np.concatenate(tr.pop(k))
+        return d
 
     def _read_particle_selection(self, chunks, selector, fields):
         tr = {}

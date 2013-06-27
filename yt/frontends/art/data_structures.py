@@ -452,22 +452,18 @@ class ARTDomainSubset(OctreeSubset):
         oct_handler = self.oct_handler
         all_fields = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in ftfields]
-        level_offset = 0
         field_idxs = [all_fields.index(f) for f in fields]
-        dest = {}
-        for field in fields:
-            dest[field] = np.zeros(self.cell_count, 'float64')-1.
         level = self.domain_level
         source = {}
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
+
         for field, i in zip(fields, field_idxs):
             temp = np.reshape(data[i, :], self.domain.pf.domain_dimensions,
                               order='F').astype('float64').T
             source[field] = temp
-        level_offset += oct_handler.fill_level_from_grid(
-            self.domain.domain_id,
-            level, dest, source, self.mask, level_offset)
+        dest = oct_handler.fill_level_from_grid(
+            self.selector, self.domain_id, source)
         return dest
 
     def fill_level(self, content, ftfields):
@@ -595,21 +591,6 @@ class ARTDomainFile(object):
         assert(oct_handler.nocts == root_fc.shape[0])
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     root_octs_side**3, 0, oct_handler.nocts)
-
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = selector.fill_mask(self)
-        self._last_selector_id = id(selector)
-        return self._last_mask
-
-    def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None:
-                return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
 
     def included(self, selector):
         return True
