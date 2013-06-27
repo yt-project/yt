@@ -681,7 +681,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         return next
 
     def allocate_domains(self, domain_counts, int root_nodes):
-        OctreeContainer.allocate_domains(domain_counts)
+        OctreeContainer.allocate_domains(self, domain_counts)
         self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * root_nodes)
         self.max_root = root_nodes
         for i in range(root_nodes):
