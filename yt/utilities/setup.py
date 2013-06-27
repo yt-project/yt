@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import setuptools
 import os
 import sys
 import os.path
@@ -66,14 +65,14 @@ def get_location_from_ctypes(header, library):
     except ImportError:
         return (None, None)
 
-    target_libfile = ctypes.util.find_library(library)
     default_header_dirs, default_library_dirs = get_default_dirs()
     target_inc, target_libdir = None, None
     for inc_prefix in default_header_dirs:
         if os.path.isfile(os.path.join(inc_prefix, header)):
             target_inc = inc_prefix
 
-    if os.path.isfile(target_libfile):
+    target_libfile = ctypes.util.find_library(library)
+    if target_libfile is not None and os.path.isfile(target_libfile):
         return (target_inc, os.path.dirname(target_libfile))
     for lib_dir in default_library_dirs:
         try:
