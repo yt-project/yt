@@ -783,9 +783,6 @@ cdef class ARTOctreeContainer(OctreeContainer):
         #As a result, source is 3D grid with 8 times as many
         #elements as the number of octs on this level in this domain
         #and with the shape of an equal-sided cube
-        #
-        # TODO: Convert to a recrusive function.
-        # Note that the .pos[0] etc calls need to be uncommented.
         cdef np.ndarray[np.float64_t, ndim=3] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef OctVisitorData data

@@ -66,7 +66,7 @@ class IOHandlerART(BaseIOHandler):
                                 subset.domain_level, f, d.size, d.min(), d.max(),
                                 cp, cp+d.size)
                     tr[(ft, f)].append(d)
-                cp += subset.cell_count
+                cp += d.size
         d = {}
         for k in tr.keys():
             d[k] = np.concatenate(tr.pop(k))

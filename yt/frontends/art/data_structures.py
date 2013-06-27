@@ -110,9 +110,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_dimensions/2,  # dd is # of root cells
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
-        self.domains = [ARTDomainFile(self.parameter_file, l+1, nv, l,
-                                      self.oct_handler)
-                        for l in range(self.pf.max_level)]
+        self.domains = [ARTDomainFile(self.parameter_file, 0, nv, l,
+                                      self.oct_handler)]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
         mylog.debug("Allocating %s octs", self.total_octs)
@@ -439,8 +438,6 @@ class ARTStaticOutput(StaticOutput):
 class ARTDomainSubset(OctreeSubset):
     def __init__(self, base_region, domain, pf):
         super(ARTDomainSubset, self).__init__(base_region, domain, pf)
-        self.min_level = domain.domain_level
-        self.max_level = domain.domain_level
         self.domain_level = domain.domain_level
 
     def fill_root(self, content, ftfields):
@@ -455,7 +452,6 @@ class ARTDomainSubset(OctreeSubset):
         all_fields = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in ftfields]
         field_idxs = [all_fields.index(f) for f in fields]
-        level = self.domain_level
         source = {}
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
@@ -503,11 +499,10 @@ class ARTDomainFile(object):
     _last_mask = None
     _last_seletor_id = None
 
-    def __init__(self, pf, domain_id, nvar, level, oct_handler):
+    def __init__(self, pf, nvar, level, oct_handler):
         self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
-        self.domain_level = level
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
@@ -519,7 +514,7 @@ class ARTDomainFile(object):
         if self._level_count is not None:
             return self._level_count
         self.level_offsets
-        return self._level_count[self.domain_level]
+        return self._level_count
 
     @property
     def level_child_offsets(self):
@@ -559,25 +554,25 @@ class ARTDomainFile(object):
         """
         self.level_offsets
         f = open(self.pf._file_amr, "rb")
-        level = self.domain_level
-        unitary_center, fl, iocts, nocts, root_level = _read_art_level_info(
-            f,
-            self._level_oct_offsets, level,
-            coarse_grid=self.pf.domain_dimensions[0],
-            root_level=self.pf.root_level)
-        nocts_check = oct_handler.add(self.domain_id, level, unitary_center)
-        assert(nocts_check == nocts)
-        mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
-                    nocts, level, oct_handler.nocts)
+        for level in range(self.pf.max_level + 1):
+            unitary_center, fl, iocts, nocts, root_level = \
+                _read_art_level_info( f,
+                    self._level_oct_offsets, level,
+                    coarse_grid=self.pf.domain_dimensions[0],
+                    root_level=self.pf.root_level)
+            nocts_check = oct_handler.add(self.domain_id, level,
+                                          unitary_center)
+            assert(nocts_check == nocts)
+            mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
+                        nocts, level, oct_handler.nocts)
 
     def _read_amr_root(self, oct_handler):
         self.level_offsets
         f = open(self.pf._file_amr, "rb")
         # add the root *cell* not *oct* mesh
-        level = self.domain_level
         root_octs_side = self.pf.domain_dimensions[0]/2
         NX = np.ones(3)*root_octs_side
-        octs_side = NX*2**level
+        octs_side = NX*2 # Level == 0
         LE = np.array([0.0, 0.0, 0.0], dtype='float64')
         RE = np.array([1.0, 1.0, 1.0], dtype='float64')
         root_dx = (RE - LE) / NX
@@ -588,8 +583,7 @@ class ARTDomainFile(object):
                            LL[1]:RL[1]:NX[1]*1j,
                            LL[2]:RL[2]:NX[2]*1j]
         root_fc = np.vstack([p.ravel() for p in root_fc]).T
-        nocts_check = oct_handler.add(self.domain_id, level,
-                                      root_fc)
+        nocts_check = oct_handler.add(self.domain_id, 0, root_fc)
         assert(oct_handler.nocts == root_fc.shape[0])
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     root_octs_side**3, 0, oct_handler.nocts)
