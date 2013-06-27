@@ -20,7 +20,7 @@ License:
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-.
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -575,8 +575,7 @@ class ARTDomainFile(object):
             self._level_oct_offsets, level,
             coarse_grid=self.pf.domain_dimensions[0],
             root_level=self.pf.root_level)
-        nocts_check = oct_handler.add(self.domain_id, level, nocts,
-                                      unitary_center, self.domain_id)
+        nocts_check = oct_handler.add(self.domain_id, level, unitary_center)
         assert(nocts_check == nocts)
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     nocts, level, oct_handler.nocts)
@@ -600,8 +599,7 @@ class ARTDomainFile(object):
                            LL[2]:RL[2]:NX[2]*1j]
         root_fc = np.vstack([p.ravel() for p in root_fc]).T
         nocts_check = oct_handler.add(self.domain_id, level,
-                                      root_octs_side**3,
-                                      root_fc, self.domain_id)
+                                      root_fc)
         assert(oct_handler.nocts == root_fc.shape[0])
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     root_octs_side**3, 0, oct_handler.nocts)

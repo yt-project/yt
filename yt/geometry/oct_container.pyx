@@ -104,6 +104,12 @@ cdef class OctreeContainer:
         self.max_domain = -1
         p = 0
         self.nocts = 0 # Increment when initialized
+        for i in range(3):
+            self.DLE[i] = domain_left_edge[i] #0
+            self.DRE[i] = domain_right_edge[i] #num_grid
+        self._initialize_root_mesh()
+
+    def _initialize_root_mesh(self):
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
         for i in range(self.nn[0]):
             self.root_mesh[i] = <Oct ***> malloc(sizeof(void*) * self.nn[1])
@@ -111,10 +117,6 @@ cdef class OctreeContainer:
                 self.root_mesh[i][j] = <Oct **> malloc(sizeof(void*) * self.nn[2])
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = NULL
-        # We don't initialize the octs yet
-        for i in range(3):
-            self.DLE[i] = domain_left_edge[i] #0
-            self.DRE[i] = domain_right_edge[i] #num_grid
 
     def __dealloc__(self):
         free_octs(self.cont)
@@ -621,7 +623,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for i in range(root_nodes):
             self.root_nodes[i].key = -1
             self.root_nodes[i].node = NULL
-        
+
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
@@ -711,6 +713,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 cdef class ARTOctreeContainer(RAMSESOctreeContainer):
 
+    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
+        OctreeContainer.__init__(self, domain_dimensions,
+            domain_left_edge, domain_right_edge)
+
     @cython.boundscheck(True)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -798,3 +804,25 @@ cdef class ARTOctreeContainer(RAMSESOctreeContainer):
                             local_filled += 1
         return local_filled
 
+    def allocate_domains(self, domain_counts):
+        cdef int count, i
+        cdef OctAllocationContainer *cur = self.cont
+        assert(cur == NULL)
+        self.max_domain = len(domain_counts) # 1-indexed
+        self.domains = <OctAllocationContainer **> malloc(
+            sizeof(OctAllocationContainer *) * len(domain_counts))
+        for i, count in enumerate(domain_counts):
+            cur = allocate_octs(count, cur)
+            if self.cont == NULL: self.cont = cur
+            self.domains[i] = cur
+
+    cdef Oct* next_root(self, int domain_id, int ind[3]):
+        cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
+        if next != NULL: return next
+        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        if cont.n_assigned >= cont.n: raise RuntimeError
+        next = &cont.my_octs[cont.n_assigned]
+        cont.n_assigned += 1
+        self.root_mesh[ind[0]][ind[1]][ind[2]] = next
+        self.nocts += 1
+        return next
