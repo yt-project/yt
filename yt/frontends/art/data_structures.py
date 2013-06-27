@@ -439,6 +439,8 @@ class ARTStaticOutput(StaticOutput):
 class ARTDomainSubset(OctreeSubset):
     def __init__(self, base_region, domain, pf):
         super(ARTDomainSubset, self).__init__(base_region, domain, pf)
+        self.min_level = domain.domain_level
+        self.max_level = domain.domain_level
         self.domain_level = domain.domain_level
 
     def fill_root(self, content, ftfields):

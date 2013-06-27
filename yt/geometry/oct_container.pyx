@@ -727,6 +727,10 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
 
 cdef class ARTOctreeContainer(OctreeContainer):
 
+    def __init__(self, *args, **kwargs):
+        self.partial_coverage = 1
+        OctreeContainer.__init__(self, *args, **kwargs)
+
     @cython.boundscheck(True)
     @cython.wraparound(False)
     @cython.cdivision(True)
