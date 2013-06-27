@@ -230,6 +230,20 @@ cdef class OctreeContainer:
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
         return cur
 
+    def domain_identify(self, SelectorObject selector):
+        cdef np.ndarray[np.uint8_t, ndim=1] domain_mask
+        domain_mask = np.zeros(self.max_domain, dtype="uint8")
+        cdef OctVisitorData data
+        data.array = domain_mask.data
+        data.domain = -1
+        self.visit_all_octs(selector, oct_visitors.identify_octs, &data)
+        cdef int i
+        domain_ids = []
+        for i in range(self.max_domain):
+            if domain_mask[i] == 1:
+                domain_ids.append(i+1)
+        return domain_ids
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -545,20 +559,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
                 pos[j] = self.DLE[j] + (data.pos[j] + 0.5) * dds[j]
             selector.recursively_visit_octs(
                 o, pos, dds, 0, func, data, vc)
-
-    def domain_identify(self, SelectorObject selector):
-        cdef np.ndarray[np.uint8_t, ndim=1] domain_mask
-        domain_mask = np.zeros(self.max_domain, dtype="uint8")
-        cdef OctVisitorData data
-        data.array = domain_mask.data
-        data.domain = -1
-        self.visit_all_octs(selector, oct_visitors.identify_octs, &data)
-        cdef int i
-        domain_ids = []
-        for i in range(self.max_domain):
-            if domain_mask[i] == 1:
-                domain_ids.append(i+1)
-        return domain_ids
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0 # We no longer have a domain offset.

@@ -106,14 +106,15 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         allocate the requisite memory in the oct tree
         """
         nv = len(self.fluid_field_list)
-        self.domains = [ARTDomainFile(self.parameter_file, l+1, nv, l)
-                        for l in range(self.pf.max_level)]
-        self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
-        self.total_octs = sum(self.octs_per_domain)
         self.oct_handler = ARTOctreeContainer(
             self.parameter_file.domain_dimensions/2,  # dd is # of root cells
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
+        self.domains = [ARTDomainFile(self.parameter_file, l+1, nv, l,
+                                      self.oct_handler)
+                        for l in range(self.pf.max_level)]
+        self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
+        self.total_octs = sum(self.octs_per_domain)
         mylog.debug("Allocating %s octs", self.total_octs)
         self.oct_handler.allocate_domains(self.octs_per_domain)
         for domain in self.domains:
@@ -150,28 +151,21 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         """
         if getattr(dobj, "_chunk_info", None) is None:
             # Get all octs within this oct handler
-            mask = dobj.selector.select_octs(self.oct_handler)
-            if mask.sum() == 0:
-                mylog.debug("Warning: selected zero octs")
-            counts = self.oct_handler.count_cells(dobj.selector, mask)
-            # For all domains, figure out how many counts we have
-            # and build a subset=mask of domains
-            subsets = []
-            for d, c in zip(self.domains, counts):
-                if c < 1:
-                    continue
-                subset = ARTDomainSubset(d, mask, c, d.domain_level)
-                subsets.append(subset)
+            domains = [dom for dom in self.domains if
+                       dom.included(dobj.selector)]
+            base_region = getattr(dobj, "base_region", dobj)
+            if len(domains) > 1:
+                mylog.debug("Identified %s intersecting domains", len(domains))
+            subsets = [ARTDomainSubset(base_region, domain, self.parameter_file)
+                       for domain in domains]
             dobj._chunk_info = subsets
-            dobj.size = sum(counts)
-            dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # We pass the chunk both the current chunk and list of chunks,
         # as well as the referring data source
-        yield YTDataChunk(dobj, "all", oobjs, dobj.size)
+        yield YTDataChunk(dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz, sort = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -180,9 +174,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
-            size = og.cell_count
-            if size == 0: continue
-            yield YTDataChunk(dobj, "spatial", [g], size)
+            yield YTDataChunk(dobj, "spatial", [g], None)
 
     def _chunk_io(self, dobj):
         """
@@ -193,7 +185,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         """
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], subset.cell_count)
+            yield YTDataChunk(dobj, "io", [subset], None)
 
 
 class ARTStaticOutput(StaticOutput):
@@ -445,9 +437,9 @@ class ARTStaticOutput(StaticOutput):
         return False
 
 class ARTDomainSubset(OctreeSubset):
-    def __init__(self, domain, mask, cell_count, domain_level):
-        super(ARTDomainSubset, self).__init__(domain, mask, cell_count)
-        self.domain_level = domain_level
+    def __init__(self, base_region, domain, pf):
+        super(ARTDomainSubset, self).__init__(base_region, domain, pf)
+        self.domain_level = domain.domain_level
 
     def fill_root(self, content, ftfields):
         """
@@ -503,7 +495,6 @@ class ARTDomainSubset(OctreeSubset):
                                                nocts_filling)
         return dest
 
-
 class ARTDomainFile(object):
     """
     Read in the AMR, left/right edges, fill out the octhandler
@@ -514,7 +505,7 @@ class ARTDomainFile(object):
     _last_mask = None
     _last_seletor_id = None
 
-    def __init__(self, pf, domain_id, nvar, level):
+    def __init__(self, pf, domain_id, nvar, level, oct_handler):
         self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
@@ -522,6 +513,7 @@ class ARTDomainFile(object):
         self._level_count = None
         self._level_oct_offsets = None
         self._level_child_offsets = None
+        self.oct_handler = oct_handler
 
     @property
     def level_count(self):
@@ -618,3 +610,10 @@ class ARTDomainFile(object):
             return self._last_mask.sum()
         self.select(selector)
         return self.count(selector)
+
+    def included(self, selector):
+        return True
+        if getattr(selector, "domain_id", None) is not None:
+            return selector.domain_id == self.domain_id
+        domain_ids = self.pf.h.oct_handler.domain_identify(selector)
+        return self.domain_id in domain_ids
