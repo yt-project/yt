@@ -43,6 +43,14 @@ from yt.utilities.physical_constants import sec_per_year
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
     tb, ages = None, None
+    cache = None
+    masks = None
+    caching = True
+
+    def __init__(self):
+        self.cache = {}
+        self.masks = {}
+        super(IOHandlerART, self).__init__()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -69,85 +77,103 @@ class IOHandlerART(BaseIOHandler):
             d[field] = np.concatenate(tr.pop(field))
         return d
 
-    def _read_particle_selection(self, chunks, selector, fields):
+    def _get_mask(self, selector, ftype):
+        key = (selector, ftype)
+        if key in self.masks.keys() and self.caching:
+            return self.masks[key]
+        pf = self.pf
+        ptmax = self.ws[-1]
+        pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
+        pstr = 'particle_position_%s'
+        x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
+        mask = selector.select_points(x, y, z)
+        if self.caching:
+            self.masks[key] = mask
+            return self.masks[key]
+        else:
+            return mask
+
+    def _get_field(self,  field):
+        if field in self.cache.keys() and self.caching:
+            mylog.debug("Cached %s", str(field))
+            return self.cache[field]
+        mylog.debug("Reading %s", str(field))
         tr = {}
-        fields_read = []
-        for chunk in chunks:
-            level = chunk.objs[0].domain.domain_level
-            pf = chunk.objs[0].domain.pf
-            masks = {}
-            ws, ls = pf.parameters["wspecies"], pf.parameters["lspecies"]
-            sizes = np.diff(np.concatenate(([0], ls)))
-            ptmax = ws[-1]
-            npt = ls[-1]
-            nstars = ls[-1]-ls[-2]
-            file_particle = pf._file_particle_data
-            file_stars = pf._file_particle_stars
-            ftype_old = None
-            for field in fields:
-                if field in fields_read:
-                    continue
-                ftype, fname = field
-                pbool, idxa, idxb = _determine_field_size(pf, ftype, ls, ptmax)
-                npa = idxb-idxa
-                if not ftype_old == ftype:
-                    Nrow = pf.parameters["Nrow"]
-                    rp = lambda ax: read_particles(
-                        file_particle, Nrow, idxa=idxa,
-                        idxb=idxb, field=ax)
-                    x, y, z = (rp(ax) for ax in 'xyz')
-                    dd = pf.domain_dimensions[0]
-                    off = 1.0/dd
-                    x, y, z = (t.astype('f8')/dd - off for t in (x, y, z))
-                    mask = selector.select_points(x, y, z)
-                    size = mask.sum()
-                for i, ax in enumerate('xyz'):
-                    if fname.startswith("particle_position_%s" % ax):
-                        tr[field] = vars()[ax]
-                    if fname.startswith("particle_velocity_%s" % ax):
-                        tr[field] = rp('v'+ax)
-                if fname == "particle_mass":
-                    a = 0
-                    data = np.zeros(npa, dtype='f8')
-                    for ptb, size, m in zip(pbool, sizes, ws):
-                        if ptb:
-                            data[a:a+size] = m
-                            a += size
-                    tr[field] = data
-                elif fname == "particle_index":
-                    tr[field] = np.arange(idxa, idxb).astype('int64')
-                elif fname == "particle_type":
-                    a = 0
-                    data = np.zeros(npa, dtype='int')
-                    for i, (ptb, size) in enumerate(zip(pbool, sizes)):
-                        if ptb:
-                            data[a:a+size] = i
-                            a += size
-                    tr[field] = data
-                if pbool[-1] and fname in particle_star_fields:
-                    data = read_star_field(file_stars, field=fname)
-                    temp = tr.get(field, np.zeros(npa, 'f8'))
-                    if nstars > 0:
-                        temp[-nstars:] = data
-                    tr[field] = temp
-                if fname == "particle_creation_time":
-                    self.tb, self.ages, data = interpolate_ages(
-                        tr[field][-nstars:],
-                        file_stars,
-                        self.tb,
-                        self.ages,
-                        pf.current_time)
-                    temp = tr.get(field, np.zeros(npa, 'f8'))
-                    temp[-nstars:] = data
-                    tr[field] = temp
-                    del data
-                tr[field] = tr[field][mask].astype('f8')
-                ftype_old = ftype
-                fields_read.append(field)
+        ftype, fname = field
+        ptmax = self.ws[-1]
+        pbool, idxa, idxb = _determine_field_size(self.pf, ftype, 
+                                                  self.ls, ptmax)
+        npa = idxb - idxa
+        sizes = np.diff(np.concatenate(([0], self.ls)))
+        rp = lambda ax: read_particles(
+            self.file_particle, self.Nrow, idxa=idxa,
+            idxb=idxb, fields=ax)
+        for i, ax in enumerate('xyz'):
+            if fname.startswith("particle_position_%s" % ax):
+                dd = self.pf.domain_dimensions[0]
+                off = 1.0/dd
+                tr[field] = rp([ax])[0]/dd - off
+            if fname.startswith("particle_velocity_%s" % ax):
+                tr[field], = rp(['v'+ax])
+        if fname == "particle_mass":
+            a = 0
+            data = np.zeros(npa, dtype='f8')
+            for ptb, size, m in zip(pbool, sizes, self.ws):
+                if ptb:
+                    data[a:a+size] = m
+                    a += size
+            tr[field] = data
+        elif fname == "particle_index":
+            tr[field] = np.arange(idxa, idxb)
+        elif fname == "particle_type":
+            a = 0
+            data = np.zeros(npa, dtype='int')
+            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+                if ptb:
+                    data[a: a + size] = i
+                    a += size
+            tr[field] = data
+        if pbool[-1] and fname in particle_star_fields:
+            data = read_star_field(self.file_stars, field=fname)
+            temp = tr.get(field, np.zeros(npa, 'f8'))
+            nstars = self.ls[-1]-self.ls[-2]
+            if nstars > 0:
+                temp[-nstars:] = data
+            tr[field] = temp
+        if fname == "particle_creation_time":
+            self.tb, self.ages, data = interpolate_ages(
+                tr[field][-nstars:],
+                self.file_stars,
+                self.tb,
+                self.ages,
+                self.pf.current_time)
+            temp = tr.get(field, np.zeros(npa, 'f8'))
+            temp[-nstars:] = data
+            tr[field] = temp
+            del data
         if tr == {}:
             tr = dict((f, np.array([])) for f in fields)
-        return tr
+        if self.caching:
+            self.cache[field] = tr[field]
+            return self.cache[field]
+        else:
+            return tr[field]
 
+    def _read_particle_selection(self, chunks, selector, fields):
+        chunk = chunks.next()
+        self.pf = chunk.objs[0].domain.pf
+        self.ws = self.pf.parameters["wspecies"]
+        self.ls = self.pf.parameters["lspecies"]
+        self.file_particle = self.pf._file_particle_data
+        self.file_stars = self.pf._file_particle_stars
+        self.Nrow = self.pf.parameters["Nrow"]
+        data = {f:np.array([]) for f in fields}
+        for f in fields:
+            ftype, fname = f
+            mask = self._get_mask(selector, ftype)
+            arr = self._get_field(f)[mask].astype('f8')
+            data[f] = np.concatenate((arr, data[f]))
+        return data
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
@@ -362,27 +388,29 @@ def get_ranges(skip, count, field, words=6, real_size=4, np_per_page=4096**2,
     return ranges
 
 
-def read_particles(file, Nrow, idxa, idxb, field):
+def read_particles(file, Nrow, idxa, idxb, fields):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
     np_per_page = Nrow**2  # defined in ART a_setup.h, # of particles/page
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
-    data = np.array([], 'f4')
     fh = open(file, 'r')
     skip, count = idxa, idxb - idxa
     kwargs = dict(words=words, real_size=real_size, 
                   np_per_page=np_per_page, num_pages=num_pages)
-    ranges = get_ranges(skip, count, field, **kwargs)
-    data = None
-    for seek, this_count in ranges:
-        fh.seek(seek)
-        temp = np.fromfile(fh, count=this_count, dtype='>f4')
-        if data is None:
-            data = temp
-        else:
-            data = np.concatenate((data, temp))
+    arrs = []
+    for field in fields:
+        ranges = get_ranges(skip, count, field, **kwargs)
+        data = None
+        for seek, this_count in ranges:
+            fh.seek(seek)
+            temp = np.fromfile(fh, count=this_count, dtype='>f4')
+            if data is None:
+                data = temp
+            else:
+                data = np.concatenate((data, temp))
+        arrs.append(data.astype('f8'))
     fh.close()
-    return data
+    return arrs
 
 
 def read_star_field(file, field=None):

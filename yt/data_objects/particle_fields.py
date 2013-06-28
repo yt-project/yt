@@ -46,6 +46,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
         return d
+
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],

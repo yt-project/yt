@@ -124,9 +124,9 @@ class ARTGeometryHandler(OctreeGeometryHandler):
 
     def _detect_fields(self):
         self.particle_field_list = particle_fields
-        self.field_list = set(fluid_fields + particle_fields +
-                              particle_star_fields)
-        self.field_list = list(self.field_list)
+        self.field_list = [("gas", f) for f in fluid_fields]
+        self.field_list += set(particle_fields + particle_star_fields \
+                               + fluid_fields)
         # now generate all of the possible particle fields
         if "wspecies" in self.parameter_file.parameters.keys():
             wspecies = self.parameter_file.parameters['wspecies']
@@ -136,6 +136,10 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                 self.parameter_file.particle_types.append("specie%i" % specie)
         else:
             self.parameter_file.particle_types = []
+        for ptype in self.parameter_file.particle_types:
+            for pfield in self.particle_field_list:
+                pfn = (ptype, pfield)
+                self.field_list.append(pfn)
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()

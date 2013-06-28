@@ -281,7 +281,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
         # We do this once
-        for chunk in self.data_source.chunks(None, "io"):
+        for chunk in self.data_source.chunks([], "io"):
             self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
         for chunk in parallel_objects(self.data_source.chunks(
@@ -429,6 +429,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self._data_source.max_level = self.level
 
     def get_data(self, fields = None):
+        if fields is None: return
         fields = self._determine_fields(ensure_list(fields))
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)

@@ -42,6 +42,7 @@ from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
+from yt.utilities.exceptions import YTFieldNotFound
 
 class GeometryHandler(ParallelAnalysisInterface):
     _global_mesh = True
@@ -189,6 +190,9 @@ class GeometryHandler(ParallelAnalysisInterface):
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
             except Exception as e:
+                if type(e) != YTFieldNotFound:
+                    mylog.debug("Exception %s raised during field detection" %
+                                str(type(e)))
                 continue
             missing = False
             # This next bit checks that we can't somehow generate everything.
