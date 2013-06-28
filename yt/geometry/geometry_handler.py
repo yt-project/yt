@@ -189,11 +189,11 @@ class GeometryHandler(ParallelAnalysisInterface):
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
             except Exception as e:
-                #if field == "SomethingYouWantToDebug":
-                #    raise
+                if field == "cylindrical_theta":
+                    raise
                 if type(e) != YTFieldNotFound:
-                    mylog.debug("Exception %s raised during field detection" %
-                                str(type(e)))
+                    mylog.debug("Exception %s raised during field detection for field %s" %
+                                (str(type(e)), field))
                 continue
             missing = False
             # This next bit checks that we can't somehow generate everything.

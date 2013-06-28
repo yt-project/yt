@@ -33,6 +33,7 @@ import copy
 from yt.funcs import *
 
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
+from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
 from field_info_container import \
     add_field, \
@@ -114,7 +115,7 @@ add_field("CellsPerBin", function=_ones,
           display_field = False)
 
 def _sound_speed(field, data):
-    if data.pf["eos_type"] == 1:
+    if data.pf["EOSType"] == 1:
         return ( np.ones(data["density"].shape, dtype=np.float64)
                  * data.pf["eos_sound_speed"] )
     return np.sqrt( data.pf.gamma * data["pressure"] / data["density"] )
@@ -199,8 +200,8 @@ add_field("entropy", units="erg/K", function=_entropy)
 ### spherical coordinates: r (radius)
 def _spherical_r(field, data):
     center = data.get_field_parameter("center")
-    coords = obtain_rvec(data).transpose()
-    return get_sph_r(vectors, center)
+    coords = obtain_rvec(data).transpose() - center
+    return get_sph_r(coords)
 
 def _convert_spherical_r_cgs(data):
    return data.convert("cm")
@@ -213,7 +214,7 @@ add_field("spherical_r", function=_spherical_r,
 def _spherical_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data).transpose() - center
     return get_sph_theta(coords, normal)
 
 add_field("spherical_theta", function=_spherical_theta,
@@ -223,7 +224,7 @@ add_field("spherical_theta", function=_spherical_theta,
 def _spherical_phi(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data).transpose() - center
     return get_sph_phi(coords, normal)
 
 add_field("spherical_phi", function=_spherical_phi,
@@ -233,7 +234,7 @@ add_field("spherical_phi", function=_spherical_phi,
 def _cylindrical_r(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data).transpose() - center
     return get_cyl_r(coords, normal)
 
 def _convert_cylindrical_r_cgs(data):
@@ -249,7 +250,7 @@ add_field("cylindrical_r_code", function=_cylindrical_r,
 def _cylindrical_z(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data).transpose() - center
     return get_cyl_z(coords, normal)
 
 def _convert_cylindrical_z_cgs(data):
@@ -263,7 +264,7 @@ add_field("cylindrical_z", function=_cylindrical_z,
 def _cylindrical_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose()
+    coords = obtain_rvec(data).transpose() - center
     return get_cyl_theta(coords, normal)
 
 add_field("cylindrical_theta", function=_cylindrical_theta,
@@ -302,7 +303,7 @@ add_field("height_au", function=_height, convert_function=_convert_height_au,
 def _cylindrical_radial_velocity(field, data):
     normal = data.get_field_parameter("normal")
     velocities = obtain_rv_vec(data).transpose()
-    theta = np.tile(data['cylindrical_theta'], (3, 1)).transpose()
+    theta = resize_vector(data['cylindrical_theta'], velocities)
     return get_cyl_r_component(velocities, theta, normal)
 
 def _cylindrical_radial_velocity_absolute(field, data):
@@ -590,17 +591,20 @@ def obtain_velocities(data):
 
 def _specific_angular_momentum_x(field, data):
     xv, yv, zv = obtain_velocities(data)
-    rv = obtain_rvec(data)
+    center = data.get_field_parameter('center')
+    rv = obtain_rvec(data) - center
     return yv * rv[2, :] - zv * rv[1, :]
 
 def _specific_angular_momentum_y(field, data):
     xv, yv, zv = obtain_velocities(data)
-    rv = obtain_rvec(data)
+    center = data.get_field_parameter('center')
+    rv = obtain_rvec(data) - center
     return - (xv * rv[2, :] - zv * rv[0, :])
 
 def _specific_angular_momentum_z(field, data):
     xv, yv, zv = obtain_velocities(data)
-    rv = obtain_rvec(data)
+    center = data.get_field_parameter('center')
+    rv = obtain_rvec(data) - center
     return xv * rv[1, :] - yv * rv[0, :]
 
 add_field("specific_angular_momentum_x", function=_specific_angular_momentum_x,
@@ -828,9 +832,10 @@ add_field("RadiusCode", function=_Radius,
 def _RadialVelocity(field, data):
     normal = data.get_field_parameter("normal")
     velocities = obtain_rv_vec(data).transpose()
-    theta = np.tile(data['sph_theta'], (3, 1)).transpose()
-    phi   = np.tile(data['sph_phi'], (3, 1)).transpose()
-
+    theta = data['sph_theta'].copy()
+    phi = data['sph_phi'].copy()
+    theta = np.tile(theta, (3,) + (1,)*len(theta.shape)).transpose()
+    phi   = np.tile(phi, (3,) + (1,)*len(phi.shape)).transpose()
     return get_sph_r_component(velocities, theta, phi, normal)
 
 def _RadialVelocityABS(field, data):
