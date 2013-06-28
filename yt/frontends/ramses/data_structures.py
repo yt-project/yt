@@ -257,17 +257,18 @@ class RAMSESDomainSubset(OctreeSubset):
 
     _domain_offset = 1
 
-    def fill(self, content, fields):
+    def fill(self, content, fields, selector):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
         all_fields = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
-        filled = pos = level_offset = 0
-        min_level = self.domain.pf.min_level
+        cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
+        levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
+            selector, self.domain_id, cell_count)
         for field in fields:
-            tr[field] = np.zeros(self.cell_count, 'float64')
+            tr[field] = np.zeros(cell_count, 'float64')
         for level, offset in enumerate(self.domain.hydro_offset):
             if offset == -1: continue
             content.seek(offset)
@@ -278,17 +279,10 @@ class RAMSESDomainSubset(OctreeSubset):
             for i in range(8):
                 for field in all_fields:
                     if field not in fields:
-                        #print "Skipping %s in %s : %s" % (field, level,
-                        #        self.domain.domain_id)
                         fpu.skip(content)
                     else:
-                        #print "Reading %s in %s : %s" % (field, level,
-                        #        self.domain.domain_id)
                         temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            level_offset += oct_handler.fill_level(self.domain.domain_id, level,
-                                   tr, temp, self.mask, level_offset)
-            #print "FILL (%s : %s) %s" % (self.domain.domain_id, level, level_offset)
-        #print "DONE (%s) %s of %s" % (self.domain.domain_id, level_offset, self.cell_count)
+            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
         return tr
 
 class RAMSESGeometryHandler(OctreeGeometryHandler):

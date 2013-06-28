@@ -156,9 +156,11 @@ cdef void fill_file_indices(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We fill these arrays, then inside the level filler we use these as
     # indices as we fill a second array from the data.
     if selected == 0: return
-    cdef void **p = data.array
+    cdef void **p = <void **> data.array
     cdef np.uint8_t *level_arr = <np.uint8_t *> p[0]
     cdef np.int64_t *find_arr = <np.int64_t *> p[1]
+    cdef np.uint8_t *cell_arr = <np.uint8_t *> p[2]
     level_arr[data.index] = data.level
-    level_arr[data.index] = o.file_ind * 8 + oind(data)
+    find_arr[data.index] = o.file_ind
+    cell_arr[data.index] = rind(data)
     data.index +=1
