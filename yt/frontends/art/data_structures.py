@@ -120,6 +120,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         domain = self.domains[0]
         domain._read_amr_root(self.oct_handler)
         domain._read_amr_level(self.oct_handler)
+        self.oct_handler.finalize()
 
     def _detect_fields(self):
         self.particle_field_list = particle_fields
@@ -448,7 +449,7 @@ class ARTDomainSubset(OctreeSubset):
         all_fields = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in ftfields]
         field_idxs = [all_fields.index(f) for f in fields]
-        tr = {}
+        source, tr = {}, {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
@@ -456,11 +457,14 @@ class ARTDomainSubset(OctreeSubset):
             tr[field] = np.zeros(cell_count, 'float64')
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
+        ns = (8, self.domain.pf.domain_dimensions.prod() / 8)
         for field, i in zip(fields, field_idxs):
-            temp = np.reshape(data[i, :], self.domain.pf.domain_dimensions,
-                              order='F')
+            source[field] = data[i, :]
+            source[field].shape = ns
+            source[field] = np.array(source[field], dtype="float64", order='F')
             # Need it to be ordered correctly; this is expensive, though ...
-            oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, temp)
+        oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
+        del source
         # Now we continue with the additional levels.
         for level in range(1, self.pf.max_level + 1):
             no = self.domain.level_count[level]
@@ -472,9 +476,8 @@ class ARTDomainSubset(OctreeSubset):
                 self.domain.pf.domain_dimensions,
                 self.domain.pf.parameters['ncell0'],
                 noct_range=noct_range)
-            for field, i in zip(fields, field_idxs):
-                # Need it to be ordered correctly; this is expensive, though ...
-                oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
+            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr,
+                source)
         return tr
 
 class ARTDomainFile(object):

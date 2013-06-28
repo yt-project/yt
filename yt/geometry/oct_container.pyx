@@ -161,7 +161,8 @@ cdef class OctreeContainer:
             for j in range(self.nn[1]):
                 pos[2] = self.DLE[2] + dds[2]/2.0
                 for k in range(self.nn[2]):
-                    if self.root_mesh[i][j][k] == NULL: continue
+                    if self.root_mesh[i][j][k] == NULL:
+                        raise RuntimeError
                     data.pos[0] = i
                     data.pos[1] = j
                     data.pos[2] = k
@@ -619,6 +620,13 @@ cdef class OctreeContainer:
                 if levels[i] != level: continue
                 dest[i] = source[file_inds[i], cell_inds[i]]
 
+    def finalize(self):
+        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef OctVisitorData data
+        data.index = 0
+        data.domain = 1
+        self.visit_all_octs(selector, oct_visitors.assign_domain_ind, &data)
+        assert ((data.global_index+1)*8 == data.index)
 
 cdef int root_node_compare(void *a, void *b) nogil:
     cdef OctKey *ao, *bo
@@ -648,14 +656,6 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
-
-    def finalize(self):
-        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
-        cdef OctVisitorData data
-        data.index = 0
-
-        self.visit_all_octs(selector, oct_visitors.assign_domain_ind, &data)
-        assert ((data.global_index+1)*8 == data.index)
 
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL

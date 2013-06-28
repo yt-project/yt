@@ -59,8 +59,8 @@ class IOHandlerART(BaseIOHandler):
                 rv = subset.fill(f, fields, selector)
                 for ft, f in fields:
                     d = rv.pop(f)
-                    mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
-                                subset.domain_level, f, d.size, d.min(), d.max(),
+                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                                f, d.size, d.min(), d.max(),
                                 cp, cp+d.size)
                     tr[(ft, f)].append(d)
                 cp += d.size
