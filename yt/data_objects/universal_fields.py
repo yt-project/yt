@@ -74,14 +74,20 @@ from yt.utilities.math_utils import \
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
 
+def _grid_level(field, data):
+    return np.ones(data.ActiveDimensions)*(data.Level)
+add_field("grid_level", function=_grid_level,
+          validators=[ValidateGridType(),
+                      ValidateSpatial(0)])
+
 def _GridIndices(field, data):
-    return np.ones(data["Ones"].shape)*(data.id-data._id_offset)
+    return np.ones(data["ones"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
-    return np.ones(data["Ones"].shape,
+    return np.ones(data["ones"].shape,
                    dtype=data["Density"].dtype)/data['dx']
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
@@ -100,6 +106,10 @@ def _ones(field, data):
 
 add_field("zeros", function=_zeros, projection_conversion="unitary",
           display_field=False)
+
+add_field("ones", function=_ones, projection_conversion="unitary",
+          display_field=False)
+
 add_field("CellsPerBin", function=_ones,
           display_field = False)
 

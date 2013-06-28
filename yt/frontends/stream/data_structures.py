@@ -300,6 +300,12 @@ class StreamStaticOutput(StaticOutput):
     def _set_units(self):
         pass
 
+    def set_code_units(self):
+        from yt.utilities.units import length, mass, time
+        self.unit_registry.add("code_length", 1.0, length)
+        self.unit_registry.add("code_mass", 1.0, mass)
+        self.unit_registry.add("code_time", 1.0, time)
+    
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False

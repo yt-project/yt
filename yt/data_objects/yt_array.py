@@ -36,7 +36,7 @@ from numpy import add, subtract, multiply, divide, \
     less_equal, greater_equal, less, \
     bitwise_or, bitwise_not, bitwise_and
 
-from yt.utilities.units import Unit
+from yt.utilities.units import Unit, dimensionless
 
 def sqrt_unit(unit):
     return unit**0.5
@@ -373,6 +373,55 @@ class YTArray(np.ndarray):
         """ See __div__. """
         return np.divide(self, other, out=self)
 
+    def __truediv__(self, right_object):
+        return YTArray(super(YTArray, self).__truediv__(right_object))
+
+    def __rtruediv__(self, left_object):
+        """ See __div__. """
+        return YTArray(super(YTArray, self).__rtruediv__(left_object))
+
+    def __itruediv__(self, other):
+        """ See __div__. """
+        return np.true_divide(self, other, out=self)
+
+    def __floordiv__(self, right_object):
+        return YTArray(super(YTArray, self).__floordiv__(right_object))
+
+    def __rfloordiv__(self, left_object):
+        """ See __div__. """
+        return YTArray(super(YTArray, self).__rfloordiv__(left_object))
+
+    def __ifloordiv__(self, other):
+        """ See __div__. """
+        return np.floor_divide(self, other, out=self)
+    
+    def __or__(self, right_object):
+        return YTArray(super(YTArray, self).__or__(right_object))
+
+    def __ror__(self, left_object):
+        return YTArray(super(YTArray, self).__ror__(left_object))
+
+    def __ior__(self, other):
+        return np.bitwise_or(self, other, out=self)
+
+    def __xor__(self, right_object):
+        return YTArray(super(YTArray, self).__xor__(right_object))
+
+    def __rxor__(self, left_object):
+        return YTArray(super(YTArray, self).__rxor__(left_object))
+
+    def __ixor__(self, other):
+        return np.bitwise_xor(self, other, out=self)
+
+    def __and__(self, right_object):
+        return YTArray(super(YTArray, self).__and__(right_object))
+
+    def __rand__(self, left_object):
+        return YTArray(super(YTArray, self).__rand__(left_object))
+
+    def __iand__(self, other):
+        return np.bitwise_and(self, other, out=self)
+
     def __pow__(self, power):
         """
         Raise this YTArray to some power.
@@ -389,7 +438,7 @@ class YTArray(np.ndarray):
                     "dimensionless. (%s)**(%s) is ill-defined." % (self, power))
 
         return YTArray(super(YTArray, self).__pow__(power))
-
+    
     def __abs__(self):
         """ Return a YTArray with the abs of the data. """
         return YTArray(super(YTArray, self).__abs__())
@@ -428,9 +477,9 @@ class YTArray(np.ndarray):
                     "YTArrays with units %s and %s is not well defined."
                     % (self.units, other.units))
 
-            return super(YTArray, self).__lt__(other.in_units(self.units))
+            return np.array(self).__lt__(np.array(other.in_units(self.units)))
 
-        return super(YTArray, self).__lt__(other)
+        return np.array(self).__lt__(np.array(other))
 
     def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
@@ -441,9 +490,9 @@ class YTArray(np.ndarray):
                     "YTArrays with units %s and %s is not well defined."
                     % (self.units, other.units))
 
-            return super(YTArray, self).__le__(right_object.in_units(self.units))
+            return np.array(self).__le__(np.array(other.in_units(self.units)))
 
-        return super(YTArray, self).__le__(other)
+        return np.array(self).__le__(np.array(other))
 
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
@@ -454,9 +503,9 @@ class YTArray(np.ndarray):
                     "YTArrays with units %s and %s is not well defined."
                     % (self.units, other.units))
 
-            return super(YTArray, self).__eq__(other.in_units(self.units))
+            return np.array(self).__eq__(np.array(other.in_units(self.units)))
 
-        return super(YTArray, self).__eq__(other)
+        return np.array(self).__eq__(np.array(other))
 
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
@@ -467,9 +516,9 @@ class YTArray(np.ndarray):
                     "YTArrays with units %s and %s is not well defined."
                     % (self.units, other.units))
 
-            return super(YTArray, self).__ne__(other.in_units(self.units))
+            return np.array(self).__ne__(np.array(other.in_units(self.units)))
 
-        return super(YTArray, self).__ne__(other)
+        return np.array(self).__ne__(np.array(other))
 
     def __ge__(self, other):
         """ Test if this is greater than or equal to other. """
@@ -480,9 +529,9 @@ class YTArray(np.ndarray):
                     "YTArrays with units %s and %s is not well defined."
                     % (self.units, other.units))
 
-            return super(YTArray, self).__ge__(other.in_units(self.units))
+            return np.array(self).__ge__(np.array(other.in_units(self.units)))
 
-        return super(YTArray, self).__ge__(other)
+        return np.array(self).__ge__(np.array(other))
 
     def __gt__(self, other):
         """ Test if this is greater than the object on the right. """
@@ -493,9 +542,9 @@ class YTArray(np.ndarray):
                     "YTArrays with units %s and %s is not well defined."
                     % (self.units, other.units))
 
-            return super(YTArray, self).__gt__(other.in_units(self.units))
+            return np.array(self).__gt__(np.array(other.in_units(self.units)))
 
-        return super(YTArray, self).__gt__(other)
+        return np.array(self).__gt__(np.array(other))
 
     #
     # End comparison operators
