@@ -120,6 +120,7 @@ cdef class SelectorObject:
     def __cinit__(self, dobj):
         self.min_level = getattr(dobj, "min_level", 0)
         self.max_level = getattr(dobj, "max_level", 99)
+        self.overlap_cells = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -232,6 +233,8 @@ cdef class SelectorObject:
                             data.level -= 1
                         elif this_level == 1:
                             selected = self.select_cell(spos, sdds, eterm)
+                            if ch != NULL:
+                                selected *= self.overlap_cells
                             data.global_index += increment
                             increment = 0
                             data.ind[0] = i
@@ -1122,6 +1125,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
     def __init__(self, dobj):
         self.base_selector = dobj.base_selector
         self.domain_id = dobj.domain_id
+        self.overlap_cells = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1209,7 +1213,7 @@ particle_octree_subset_selector = ParticleOctreeSubsetSelector
 cdef class AlwaysSelector(SelectorObject):
 
     def __init__(self, dobj):
-        pass
+        self.overlap_cells = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

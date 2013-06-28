@@ -30,6 +30,7 @@ from oct_visitors cimport Oct, OctVisitorData, \
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
+    cdef int overlap_cells
 
     cdef void recursively_visit_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
