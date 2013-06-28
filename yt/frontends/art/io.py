@@ -56,10 +56,7 @@ class IOHandlerART(BaseIOHandler):
                 f = open(subset.domain.pf._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                if subset.domain_level == 0:
-                    rv = subset.fill_root(f, fields)
-                else:
-                    rv = subset.fill_level(f, fields)
+                rv = subset.fill(f, fields, selector)
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
@@ -68,8 +65,8 @@ class IOHandlerART(BaseIOHandler):
                     tr[(ft, f)].append(d)
                 cp += d.size
         d = {}
-        for k in tr.keys():
-            d[k] = np.concatenate(tr.pop(k))
+        for field in fields:
+            d[field] = np.concatenate(tr.pop(field))
         return d
 
     def _read_particle_selection(self, chunks, selector, fields):

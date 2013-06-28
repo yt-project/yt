@@ -571,6 +571,55 @@ cdef class OctreeContainer:
         self.nocts += 1
         return next
 
+    def file_index_octs(self, SelectorObject selector, int domain_id,
+                        num_cells = -1):
+        # We create oct arrays of the correct size
+        cdef np.int64_t i
+        cdef np.ndarray[np.uint8_t, ndim=1] levels
+        cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
+        cdef np.ndarray[np.int64_t, ndim=1] file_inds
+        if num_cells < 0:
+            num_cells = selector.count_oct_cells(self, domain_id)
+        levels = np.zeros(num_cells, dtype="uint8")
+        file_inds = np.zeros(num_cells, dtype="int64")
+        cell_inds = np.zeros(num_cells, dtype="uint8")
+        for i in range(num_cells):
+            levels[i] = 100
+            file_inds[i] = -1
+            cell_inds[i] = 9
+        cdef OctVisitorData data
+        data.index = 0
+        cdef void *p[3]
+        p[0] = levels.data
+        p[1] = file_inds.data
+        p[2] = cell_inds.data
+        data.array = p
+        data.domain = domain_id
+        self.visit_all_octs(selector, oct_visitors.fill_file_indices, &data)
+        return levels, cell_inds, file_inds
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_level(self, int level,
+                   np.ndarray[np.uint8_t, ndim=1] levels,
+                   np.ndarray[np.uint8_t, ndim=1] cell_inds,
+                   np.ndarray[np.int64_t, ndim=1] file_inds,
+                   dest_fields, source_fields):
+        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef int n
+        cdef int i, di
+        cdef int local_pos, local_filled
+        cdef np.float64_t val
+        for key in dest_fields:
+            dest = dest_fields[key]
+            source = source_fields[key]
+            for i in range(levels.shape[0]):
+                if levels[i] != level: continue
+                dest[i] = source[file_inds[i], cell_inds[i]]
+
+
 cdef int root_node_compare(void *a, void *b) nogil:
     cdef OctKey *ao, *bo
     ao = <OctKey *>a
@@ -694,129 +743,11 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
 
-    def file_index_octs(self, SelectorObject selector, int domain_id,
-                        num_cells = -1):
-        # We create oct arrays of the correct size
-        cdef np.int64_t i
-        cdef np.ndarray[np.uint8_t, ndim=1] levels
-        cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
-        cdef np.ndarray[np.int64_t, ndim=1] file_inds
-        if num_cells < 0:
-            num_cells = selector.count_oct_cells(self, domain_id)
-        levels = np.zeros(num_cells, dtype="uint8")
-        file_inds = np.zeros(num_cells, dtype="int64")
-        cell_inds = np.zeros(num_cells, dtype="uint8")
-        for i in range(num_cells):
-            levels[i] = 100
-            file_inds[i] = -1
-            cell_inds[i] = 9
-        cdef OctVisitorData data
-        data.index = 0
-        cdef void *p[3]
-        p[0] = levels.data
-        p[1] = file_inds.data
-        p[2] = cell_inds.data
-        data.array = p
-        data.domain = domain_id
-        self.visit_all_octs(selector, oct_visitors.fill_file_indices, &data)
-        return levels, cell_inds, file_inds
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fill_level(self, int level,
-                   np.ndarray[np.uint8_t, ndim=1] levels,
-                   np.ndarray[np.uint8_t, ndim=1] cell_inds,
-                   np.ndarray[np.int64_t, ndim=1] file_inds,
-                   dest_fields, source_fields):
-        cdef np.ndarray[np.float64_t, ndim=2] source
-        cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int n
-        cdef int i, di
-        cdef int local_pos, local_filled
-        cdef np.float64_t val
-        for key in dest_fields:
-            dest = dest_fields[key]
-            source = source_fields[key]
-            for i in range(levels.shape[0]):
-                if levels[i] != level: continue
-                dest[i] = source[file_inds[i], cell_inds[i]]
-
 cdef class ARTOctreeContainer(OctreeContainer):
 
     def __init__(self, *args, **kwargs):
         self.partial_coverage = 1
         OctreeContainer.__init__(self, *args, **kwargs)
-
-    @cython.boundscheck(True)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fill_level(self, int domain, int level, dest_fields, source_fields,
-                   np.ndarray[np.uint8_t, ndim=2, cast=True] mask, int offset,
-                   np.int64_t subchunk_offset, np.int64_t subchunk_max):
-        #Only minorly different from the RAMSES version
-        #The source array is in chunks, just stop when we hit the end
-        cdef np.ndarray[np.float64_t, ndim=2] source
-        cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef OctAllocationContainer *dom = self.domains[domain - 1]
-        cdef Oct *o
-        cdef int n
-        cdef int i, j, k, ii
-        cdef int local_pos, local_filled
-        cdef np.float64_t val
-        cdef np.int64_t index
-        for key in dest_fields:
-            local_filled = 0
-            dest = dest_fields[key]
-            source = source_fields[key]
-            for n in range(dom.n):
-                o = &dom.my_octs[n]
-                index = o.file_ind-subchunk_offset
-                # TODO: Uncomment this!
-                #if o.level != level: continue
-                if index < 0: continue
-                if index >= subchunk_max: 
-                    #if we hit the end of the array,
-                    #immeditely discontinue
-                    return local_filled
-                for i in range(2):
-                    for j in range(2):
-                        for k in range(2):
-                            ii = ((k*2)+j)*2+i
-                            if mask[o.domain_ind, ii] == 0: continue
-                            dest[local_filled + offset] = \
-                                source[index,ii]
-                            local_filled += 1
-        return local_filled
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fill_level_from_grid(self, SelectorObject selector,
-                             int domain_id, source_fields):
-        #Fill  level, but instead of assuming that the source
-        #order is that of the oct order, we look up the oct position
-        #and fill its children from the the source field
-        #As a result, source is 3D grid with 8 times as many
-        #elements as the number of octs on this level in this domain
-        #and with the shape of an equal-sided cube
-        cdef np.ndarray[np.float64_t, ndim=3] source
-        cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef OctVisitorData data
-        cdef void *p[2]
-        num_cells = selector.count_oct_cells(self, domain_id)
-        dest_fields = {}
-        for key in source_fields:
-            dest_fields[key] = dest = \
-                np.zeros(num_cells, dtype="float64")
-            data.index = 0
-            local_filled = 0
-            source = source_fields[key]
-            p[0] = source.data
-            p[1] = dest.data
-            data.array = &p
-            #self.visit_all_octs(selector, oct_visitors.fill_from_file, &data)
-        return dest_fields
 
     def allocate_domains(self, domain_counts):
         cdef int count, i

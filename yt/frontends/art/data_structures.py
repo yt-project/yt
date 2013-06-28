@@ -110,17 +110,16 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.domain_dimensions/2,  # dd is # of root cells
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge)
-        self.domains = [ARTDomainFile(self.parameter_file, 0, nv, l,
-                                      self.oct_handler)]
+        # The 1 here refers to domain_id == 1 always for ARTIO.
+        self.domains = [ARTDomainFile(self.parameter_file, nv, 
+                                      self.oct_handler, 1)]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
         mylog.debug("Allocating %s octs", self.total_octs)
         self.oct_handler.allocate_domains(self.octs_per_domain)
-        for domain in self.domains:
-            if domain.domain_level == 0:
-                domain._read_amr_root(self.oct_handler)
-            else:
-                domain._read_amr_level(self.oct_handler)
+        domain = self.domains[0]
+        domain._read_amr_root(self.oct_handler)
+        domain._read_amr_level(self.oct_handler)
 
     def _detect_fields(self):
         self.particle_field_list = particle_fields
@@ -436,11 +435,8 @@ class ARTStaticOutput(StaticOutput):
         return False
 
 class ARTDomainSubset(OctreeSubset):
-    def __init__(self, base_region, domain, pf):
-        super(ARTDomainSubset, self).__init__(base_region, domain, pf)
-        self.domain_level = domain.domain_level
 
-    def fill_root(self, content, ftfields):
+    def fill(self, content, ftfields, selector):
         """
         This is called from IOHandler. It takes content
         which is a binary stream, reads the requested field
@@ -452,42 +448,34 @@ class ARTDomainSubset(OctreeSubset):
         all_fields = self.domain.pf.h.fluid_field_list
         fields = [f for ft, f in ftfields]
         field_idxs = [all_fields.index(f) for f in fields]
-        source = {}
+        tr = {}
+        cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
+        levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
+            selector, self.domain_id, cell_count)
+        for field in fields:
+            tr[field] = np.zeros(cell_count, 'float64')
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
-
         for field, i in zip(fields, field_idxs):
             temp = np.reshape(data[i, :], self.domain.pf.domain_dimensions,
-                              order='F').astype('float64').T
-            source[field] = temp
-        dest = oct_handler.fill_level_from_grid(
-            self.selector, self.domain_id, source)
-        return dest
-
-    def fill_level(self, content, ftfields):
-        oct_handler = self.oct_handler
-        fields = [f for ft, f in ftfields]
-        level_offset = 0
-        dest = {}
-        for field in fields:
-            dest[field] = np.zeros(self.cell_count, 'float64')-1.
-        level = self.domain_level
-        no = self.domain.level_count[level]
-        noct_range = [0, no]
-        source = _read_child_level(
-            content, self.domain.level_child_offsets,
-            self.domain.level_offsets,
-            self.domain.level_count, level, fields,
-            self.domain.pf.domain_dimensions,
-            self.domain.pf.parameters['ncell0'],
-            noct_range=noct_range)
-        nocts_filling = noct_range[1]-noct_range[0]
-        level_offset += oct_handler.fill_level(self.domain.domain_id,
-                                               level, dest, source,
-                                               self.mask, level_offset,
-                                               noct_range[0],
-                                               nocts_filling)
-        return dest
+                              order='F')
+            # Need it to be ordered correctly; this is expensive, though ...
+            oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, temp)
+        # Now we continue with the additional levels.
+        for level in range(1, self.pf.max_level + 1):
+            no = self.domain.level_count[level]
+            noct_range = [0, no]
+            source = _read_child_level(
+                content, self.domain.level_child_offsets,
+                self.domain.level_offsets,
+                self.domain.level_count, level, fields,
+                self.domain.pf.domain_dimensions,
+                self.domain.pf.parameters['ncell0'],
+                noct_range=noct_range)
+            for field, i in zip(fields, field_idxs):
+                # Need it to be ordered correctly; this is expensive, though ...
+                oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
+        return tr
 
 class ARTDomainFile(object):
     """
@@ -499,7 +487,7 @@ class ARTDomainFile(object):
     _last_mask = None
     _last_seletor_id = None
 
-    def __init__(self, pf, nvar, level, oct_handler):
+    def __init__(self, pf, nvar, oct_handler, domain_id):
         self.nvar = nvar
         self.pf = pf
         self.domain_id = domain_id
@@ -554,7 +542,7 @@ class ARTDomainFile(object):
         """
         self.level_offsets
         f = open(self.pf._file_amr, "rb")
-        for level in range(self.pf.max_level + 1):
+        for level in range(1, self.pf.max_level + 1):
             unitary_center, fl, iocts, nocts, root_level = \
                 _read_art_level_info( f,
                     self._level_oct_offsets, level,
