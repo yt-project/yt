@@ -522,26 +522,22 @@ def parallel_ring(objects, generator_func, mutable = False):
             yield obj, generator_func(obj)
         return
     generate_endpoints = len(objects) != my_size
-    # gforw means: should we expect one from forwards?
-    # gback means: do we send this object backwards?
-    if len(objects) > my_size:
+    # gback False: send the object backwards
+    # gforw False: receive an object from forwards
+    if len(objects) == my_size:
+        generate_endpoints = False
+        gback = False
+        gforw = False
+    else:
         # In this case, the first processor (my_rank == 0) will generate.
         generate_endpoints = True
-        gback = (my_rank > 0)
-        gforw = (my_rank + 1 < my_size)
-    elif len(objects) > my_size:
-        generate_endpoints = True
-        gback = (my_rank > 0)
-        gforw = (my_rank + 1 < len(objects))
-    else: # Length of objects is equal to my_size
-        generate_endpoints = False
-        gback = True
-        gforw = True
+        gback = (my_rank == 0)
+        gforw = (my_rank == my_size - 1)
     if generate_endpoints and mutable:
         raise NotImplementedError
     # Now we need to do pairwise sends
-    source = (my_rank - 1) % my_size
-    dest = (my_rank + 1) % my_size
+    source = (my_rank + 1) % my_size
+    dest = (my_rank - 1) % my_size
     oiter = itertools.islice(itertools.cycle(objects),
                              my_rank, my_rank+len(objects))
     idata = None
