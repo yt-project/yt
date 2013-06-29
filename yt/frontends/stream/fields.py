@@ -42,7 +42,6 @@ StreamFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = StreamFieldInfo.add_field
 
 add_stream_field("density", function = NullFunc)
-add_field("Density", function = TranslationFunc("density"))
 
 add_stream_field("particle_position_x", function = NullFunc, particle_type=True)
 add_stream_field("particle_position_y", function = NullFunc, particle_type=True)
@@ -52,9 +51,6 @@ add_stream_field("particle_gas_density", function = NullFunc, particle_type=True
 add_stream_field("particle_gas_temperature", function = NullFunc, particle_type=True)
 add_stream_field("particle_mass", function = NullFunc, particle_type=True)
 
-add_field("particle_mass", function = TranslationFunc("particle_mass"),
-          particle_type=True)
-
 add_stream_field(("all", "particle_position_x"), function = NullFunc, particle_type=True)
 add_stream_field(("all", "particle_position_y"), function = NullFunc, particle_type=True)
 add_stream_field(("all", "particle_position_z"), function = NullFunc, particle_type=True)
@@ -62,6 +58,3 @@ add_stream_field(("all", "particle_index"), function = NullFunc, particle_type=T
 add_stream_field(("all", "particle_gas_density"), function = NullFunc, particle_type=True)
 add_stream_field(("all", "particle_gas_temperature"), function = NullFunc, particle_type=True)
 add_stream_field(("all", "particle_mass"), function = NullFunc, particle_type=True)
-
-add_field(("all", "particle_mass"), function = TranslationFunc("particle_mass"),
-          particle_type=True)
