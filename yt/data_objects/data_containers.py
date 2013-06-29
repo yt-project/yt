@@ -408,9 +408,10 @@ class YTDataContainer(object):
     def blocks(self):
         for io_chunk in self.chunks([], "io"):
             for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
-                mask = self._current_chunk.objs[0].select(self.selector)
+                g = self._current_chunk.objs[0]
+                mask = g._get_selector_mask(self.selector)
                 if mask is None: continue
-                yield self._current_chunk.objs[0], mask
+                yield g, mask
 
 class GenerationInProgress(Exception):
     def __init__(self, fields):
