@@ -300,6 +300,7 @@ def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
             positions[i, j] = p[j]
     return positions
 
+# yt did not invent these! :)
 cdef np.uint64_t _const20 = 0x000001FFC00003FF
 cdef np.uint64_t _const10 = 0x0007E007C00F801F
 cdef np.uint64_t _const04 = 0x00786070C0E181C3
