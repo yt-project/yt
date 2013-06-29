@@ -162,5 +162,5 @@ cdef void fill_file_indices(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.uint8_t *cell_arr = <np.uint8_t *> p[2]
     level_arr[data.index] = data.level
     find_arr[data.index] = o.file_ind
-    cell_arr[data.index] = rind(data)
+    cell_arr[data.index] = oind(data)
     data.index +=1

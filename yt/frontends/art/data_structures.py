@@ -462,12 +462,17 @@ class ARTDomainSubset(OctreeSubset):
             tr[field] = np.zeros(cell_count, 'float64')
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
-        ns = (8, self.domain.pf.domain_dimensions.prod() / 8)
-        for field, i in zip(fields, field_idxs):
-            source[field] = data[i, :]
-            source[field].shape = ns
-            source[field] = np.array(source[field], dtype="float64", order='F')
-            # Need it to be ordered correctly; this is expensive, though ...
+        ns = (self.domain.pf.domain_dimensions.prod() / 8, 8)
+        for field, fi in zip(fields, field_idxs):
+            source[field] = np.empty(ns, dtype="float64", order="C")
+            dt = data[fi,:].reshape(self.domain.pf.domain_dimensions,
+                                    order="F")
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
+                        ii = ((k*2)+j)*2+i
+                        source[field][:,ii] = \
+                            dt[i::2,j::2,k::2].ravel(order="F")
         oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
         del source
         # Now we continue with the additional levels.

@@ -743,3 +743,46 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
+
+cdef class ARTOctreeContainer(OctreeContainer):
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_level_from_grid(self, int domain, int level, dest_fields, 
+                             source_fields, 
+                             np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
+                             int offset):
+        #Fill  level, but instead of assuming that the source
+        #order is that of the oct order, we look up the oct position
+        #and fill its children from the the source field
+        #As a result, source is 3D grid with 8 times as many
+        #elements as the number of octs on this level in this domain
+        #and with the shape of an equal-sided cube
+        cdef np.ndarray[np.float64_t, ndim=3] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef OctAllocationContainer *dom = self.domains[domain - 1]
+        cdef Oct *o
+        cdef int n
+        cdef int i, j, k, ii
+        cdef int local_pos, local_filled
+        cdef np.float64_t val
+        cdef np.int64_t ox,oy,oz
+        for key in dest_fields:
+            local_filled = 0
+            dest = dest_fields[key]
+            source = source_fields[key]
+            for n in range(dom.n):
+                o = &dom.my_octs[n]
+                #if o.level != level: continue
+                for i in range(2):
+                    for j in range(2):
+                        for k in range(2):
+                            ii = ((k*2)+j)*2+i
+                            if mask[o.domain_ind, ii] == 0: continue
+                            #ox = (o.pos[0] << 1) + i
+                            #oy = (o.pos[1] << 1) + j
+                            #oz = (o.pos[2] << 1) + k
+                            dest[local_filled + offset] = source[ox,oy,oz]
+                            local_filled += 1
+        return local_filled
