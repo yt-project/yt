@@ -83,19 +83,19 @@ add_field("grid_level", function=_grid_level,
 
 def _grid_indices(field, data):
     return np.ones(data["ones"].shape)*(data.id-data._id_offset)
-add_field("grid_indices", function=_GridIndices,
+add_field("grid_indices", function=_grid_indices,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _ones_over_dx(field, data):
     return np.ones(data["ones"].shape,
                    dtype=data["density"].dtype)/data['dx']
-add_field("ones_over_dx", function=_OnesOverDx,
+add_field("ones_over_dx", function=_ones_over_dx,
           display_field=False)
 
 def _zeros(field, data):
     return np.zeros(data.shape, dtype='float64')
-add_field("zeros", function=_Zeros,
+add_field("zeros", function=_zeros,
           projection_conversion="unitary",
           display_field = False)
 
@@ -505,7 +505,7 @@ def _averaged_density(field, data):
 add_field("averaged_density", function=_averaged_density,
           validators=[ValidateSpatial(1, ["density"])])
 
-def _velocity_diverdence(field, data):
+def _velocity_divergence(field, data):
     # We need to set up stencils.
     # This is based on enzo parameters and should probably be changed.
     if data.pf["HydroMethod"] == 2:
@@ -674,7 +674,7 @@ add_field("particle_angular_momentum_x", function=_particle_angular_momentum_x,
          validators=[ValidateParameter('center')])
 def _particle_angular_momentum_y(field, data):
     return data["cell_mass"] * data["particle_specific_angular_momentum_y"]
-add_field("particle_angular_momentum_y", function=_particle_angular_momentum_z,
+add_field("particle_angular_momentum_y", function=_particle_angular_momentum_y,
          units="g*cm**2/s", particle_type=True,
          validators=[ValidateParameter('center')])
 def _particle_angular_momentum_z(field, data):
@@ -707,11 +707,11 @@ def _particle_radius(field, data):
 def _radius(field, data):
     return get_radius(data, "")
 
-add_field("particle_radius", function=_ParticleRadius,
+add_field("particle_radius", function=_particle_radius,
           validators=[ValidateParameter("center")],
           units="cm", particle_type = True,
           display_name = "Particle Radius")
-add_field("radius", function=_Radius,
+add_field("radius", function=_radius,
           validators=[ValidateParameter("center")],
           units="cm")
 
@@ -749,7 +749,7 @@ def _cutting_plane_velocity_x(field, data):
     v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
     return np.sum(x_vec * v_vec, axis=-1)
 add_field("cutting_plane_velocity_x",
-          function=_CuttingPlaneVelocityX,
+          function=_cutting_plane_velocity_x,
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units="km/s")
 def _cutting_plane_velocity_y(field, data):
@@ -763,7 +763,7 @@ def _cutting_plane_velocity_y(field, data):
     v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
     return np.sum(y_vec * v_vec, axis=-1)
 add_field("cutting_plane_velocity_y",
-          function=_CuttingPlaneVelocityY,
+          function=_cutting_plane_velocity_y,
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units="km/s")
 
@@ -776,7 +776,7 @@ add_field("cutting_plane_magnetic_field_x",
           function=_cutting_plane_magnetic_field_x,
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units="gauss")
-def _cutting_plane_mangetic_field_y(field, data):
+def _cutting_plane_magnetic_field_y(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
     b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
@@ -808,7 +808,7 @@ add_field("particle_density", function=_pdensity,
 def _magnetic_energy(field,data):
     """This assumes that your front end has provided Bx, By, Bz in
     units of Gauss. If you use MKS, make sure to write your own
-    MagneticEnergy field to deal with non-unitary \mu_0.
+    magnetic_energy field to deal with non-unitary \mu_0.
     """
     return (data["magnetic_field_x"]**2 +
             data["magnetic_field_y"]**2 +
@@ -820,13 +820,13 @@ add_field("magnetic_energy",function=_magnetic_energy,
 def _magnetic_field_magnitude(field,data):
     """This assumes that your front end has provided Bx, By, Bz in
     units of Gauss. If you use MKS, make sure to write your own
-    BMagnitude field to deal with non-unitary \mu_0.
+    magnetic_field_magnitude field to deal with non-unitary \mu_0.
     """
     return np.sqrt((data["magnetic_field_x"]**2 +
                     data["magnetic_field_y"]**2 +
                     data["magnetic_field_z"]**2))
 add_field("magnetic_field_magnitude",
-          function=_BMagnitude,
+          function=_magnetic_field_magnitude,
           display_name=r"|B|", units="gauss")
 
 def _plasma_beta(field,data):
@@ -836,7 +836,7 @@ def _plasma_beta(field,data):
     """
     return data['pressure']/data['magnetic_energy']
 add_field("plasma_beta",
-          function=_PlasmaBeta,
+          function=_plasma_beta,
           display_name=r"\rm{Plasma}\/\beta", units="")
 
 def _magnetic_pressure(field,data):
@@ -876,7 +876,7 @@ def _magnetic_field_toroidal(field,data):
     
     return get_sph_phi_component(Bfields, phi, normal)
 
-add_field("magnetic_field_toroidal", function=_BToroidal,
+add_field("magnetic_field_toroidal", function=_magnetic_field_toroidal,
           units="gauss",
           validators=[ValidateParameter("normal")])
 
@@ -893,7 +893,7 @@ def _magnetic_field_radial(field,data):
     
     return get_sph_r_component(Bfields, theta, phi, normal)
 
-add_field("magnetic_field_radial", function=_BPoloidal,
+add_field("magnetic_field_radial", function=_magnetic_field_toroidal,
           units="gauss",
           validators=[ValidateParameter("normal")])
 
@@ -1000,7 +1000,7 @@ def _pressure_gradient_magnitude(field, data):
     return np.sqrt(data["pressure_gradient_x"]**2 +
                    data["pressure_gradient_y"]**2 +
                    data["pressure_gradient_z"]**2)
-add_field("pressure_gradient_magnitude", function=_pressure_gradient_magnitude
+add_field("pressure_gradient_magnitude", function=_pressure_gradient_magnitude,
           validators=[ValidateSpatial(1, ["pressure"])],
           units="dyne/cm**3")
 
@@ -1060,7 +1060,7 @@ def _density_gradient_magnitude(field, data):
     return np.sqrt(data["density_gradient_x"]**2 +
                    data["density_gradient_y"]**2 +
                    data["density_gradient_z"]**2)
-add_field("density_gradient_magnitude", function=_density_gradient_magnitude
+add_field("density_gradient_magnitude", function=_density_gradient_magnitude,
           validators=[ValidateSpatial(1, ["density"])],
           units="g/cm**4")
 
@@ -1172,7 +1172,7 @@ for ax in 'xyz':
     n = "vorticity_stretching_%s" % ax
     add_field(n, function=eval("_%s" % n),
               validators=[ValidateSpatial(0)])
-def _vorticity_stretching_Magnitude(field, data):
+def _vorticity_stretching_magnitude(field, data):
     return np.sqrt(data["vorticity_stretching_x"]**2 +
                    data["vorticity_stretching_y"]**2 +
                    data["vorticity_stretching_z"]**2)

@@ -52,7 +52,7 @@ add_stream_field("particle_gas_density", function = NullFunc, particle_type=True
 add_stream_field("particle_gas_temperature", function = NullFunc, particle_type=True)
 add_stream_field("particle_mass", function = NullFunc, particle_type=True)
 
-add_field("ParticleMass", function = TranslationFunc("particle_mass"),
+add_field("particle_mass", function = TranslationFunc("particle_mass"),
           particle_type=True)
 
 add_stream_field(("all", "particle_position_x"), function = NullFunc, particle_type=True)
@@ -63,5 +63,5 @@ add_stream_field(("all", "particle_gas_density"), function = NullFunc, particle_
 add_stream_field(("all", "particle_gas_temperature"), function = NullFunc, particle_type=True)
 add_stream_field(("all", "particle_mass"), function = NullFunc, particle_type=True)
 
-add_field(("all", "ParticleMass"), function = TranslationFunc("particle_mass"),
+add_field(("all", "particle_mass"), function = TranslationFunc("particle_mass"),
           particle_type=True)
