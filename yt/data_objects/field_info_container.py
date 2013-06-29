@@ -280,7 +280,7 @@ class FieldDetector(defaultdict):
                 vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
-                nfd = FieldDetector(self.nd + ngz * 2)
+                nfd = FieldDetector(self.nd + ngz * 2, pf = self.pf)
                 nfd._num_ghost_zones = ngz
                 vv = finfo(nfd)
                 if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]
