@@ -92,7 +92,7 @@ add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
 def _Zeros(field, data):
-    return np.zeros(data.shape, dtype='float64')
+    return np.zeros(data["Ones"].shape, dtype='float64')
 add_field("Zeros", function=_Zeros,
           projection_conversion="unitary",
           display_field = False)

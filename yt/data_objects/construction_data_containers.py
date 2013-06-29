@@ -418,6 +418,34 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
 
+    @property
+    def icoords(self):
+        ic = np.indices(self.ActiveDimensions).astype("int64")
+        return np.column_stack([i.ravel() + gi for i, gi in
+            zip(ic, self.get_global_startindex())])
+
+    @property
+    def fwidth(self):
+        fw = np.ones((self.ActiveDimensions.prod(), 3), dtype="float64")
+        fw *= self.dds
+        return fw
+
+    @property
+    def fcoords(self):
+        LE = self.LeftEdge + self.dds/2.0
+        RE = self.RightEdge - self.dds/2.0
+        N = self.ActiveDimensions
+        fc = np.mgrid[LE[0]:RE[0]:N[0]*1j,
+                      LE[1]:RE[1]:N[1]*1j,
+                      LE[2]:RE[2]:N[2]*1j]
+        return np.column_stack([f.ravel() for f in fc])
+
+    @property
+    def ires(self):
+        tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
+        tr *= self.level
+        return tr
+
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
         return arr.reshape(self.ActiveDimensions, order="C")

@@ -264,6 +264,11 @@ class FieldDetector(defaultdict):
                 lambda: np.ones((nd * nd * nd), dtype='float64')
                 + 1e-4*np.random.random((nd * nd * nd)))
 
+    def _reshape_vals(self, arr):
+        if not self._spatial: return arr
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     def __missing__(self, item):
         if hasattr(self.pf, "field_info") and isinstance(item, tuple):
             finfo = self.pf._get_field_info(*item)
