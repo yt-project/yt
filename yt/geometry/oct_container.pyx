@@ -95,9 +95,10 @@ cdef void free_octs(
 
 cdef class OctreeContainer:
 
-    def __init__(self, oct_domain_dimensions, domain_left_edge, domain_right_edge):
+    def __init__(self, oct_domain_dimensions, domain_left_edge,
+                 domain_right_edge, partial_coverage = 0):
         # This will just initialize the root mesh octs
-        self.partial_coverage = 0
+        self.partial_coverage = partial_coverage
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
@@ -742,22 +743,3 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
-
-cdef class ARTOctreeContainer(OctreeContainer):
-
-    def __init__(self, *args, **kwargs):
-        self.partial_coverage = 1
-        OctreeContainer.__init__(self, *args, **kwargs)
-
-    def allocate_domains(self, domain_counts):
-        cdef int count, i
-        cdef OctAllocationContainer *cur = self.cont
-        assert(cur == NULL)
-        self.max_domain = len(domain_counts) # 1-indexed
-        self.domains = <OctAllocationContainer **> malloc(
-            sizeof(OctAllocationContainer *) * len(domain_counts))
-        for i, count in enumerate(domain_counts):
-            cur = allocate_octs(count, cur)
-            if self.cont == NULL: self.cont = cur
-            self.domains[i] = cur
-

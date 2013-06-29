@@ -43,7 +43,7 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
-    ARTOctreeContainer
+    OctreeContainer
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import \
@@ -106,10 +106,11 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         allocate the requisite memory in the oct tree
         """
         nv = len(self.fluid_field_list)
-        self.oct_handler = ARTOctreeContainer(
+        self.oct_handler = OctreeContainer(
             self.parameter_file.domain_dimensions/2,  # dd is # of root cells
             self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge)
+            self.parameter_file.domain_right_edge,
+            1)
         # The 1 here refers to domain_id == 1 always for ARTIO.
         self.domains = [ARTDomainFile(self.parameter_file, nv, 
                                       self.oct_handler, 1)]
