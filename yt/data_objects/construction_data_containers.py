@@ -541,7 +541,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="F")
+        return vals.reshape(self.ActiveDimensions, order="C")
 
 class YTArbitraryGridBase(YTCoveringGridBase):
     """A 3D region with arbitrary bounds and dimensions.
