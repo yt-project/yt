@@ -70,12 +70,8 @@ class IOHandlerStream(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    mask = g.select(selector) # caches
-                    if mask is None: continue
                     ds = self.fields[g.id][fname]
-                    data = ds[mask]
-                    rv[field][ind:ind+data.size] = data
-                    ind += data.size
+                    ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
 
     def _read_particle_selection(self, chunks, selector, fields):

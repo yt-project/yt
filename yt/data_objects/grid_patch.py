@@ -497,7 +497,7 @@ class AMRGridPatch(YTSelectionContainer):
     def select(self, selector, source, dest, offset):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
-        if count == 0: return
+        if count == 0: return 0
         dest[offset:offset+count] = source[mask]
         return count
 

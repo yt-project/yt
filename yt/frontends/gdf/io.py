@@ -84,13 +84,8 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for grid in chunk.objs:
-                    mask = grid.select(selector)  # caches
-                    if mask is None:
-                        continue
+                    data = fhandle[field_dname(grid.id, fname)][:]
                     if self.pf.field_ordering == 1:
-                        data = fhandle[field_dname(grid.id, fname)][:].swapaxes(0, 2)[mask]
-                    else:
-                        data = fhandle[field_dname(grid.id, fname)][mask]
-                    rv[field][ind:ind + data.size] = data
-                    ind += data.size
+                        data = data.swapaxes(0, 2)
+                    ind += g.select(selector, data, rv[field], ind) # caches
         return rv
