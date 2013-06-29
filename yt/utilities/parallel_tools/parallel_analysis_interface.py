@@ -524,8 +524,8 @@ def parallel_ring(objects, generator_func, mutable = False):
     generate_endpoints = len(objects) != my_size
     if generate_endpoints and mutable:
         raise NotImplementedError
-    gforw = generate_endpoints and my_rank == 0
-    gback = generate_endpoints and my_rank == my_size - 1
+    gforw = generate_endpoints and my_rank == my_size - 1
+    gback = generate_endpoints and my_rank == 0
     # Now we need to do pairwise sends
     source = (my_rank - 1) % my_size
     dest = (my_rank + 1) % my_size
