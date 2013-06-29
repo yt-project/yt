@@ -331,7 +331,7 @@ class Unit(Expr):
     def __mul__(self, u):
         """ Multiply Unit with u (Unit object). """
         if not isinstance(u, Unit):
-            raise UnitOperationError("Tried to multiply a Unit object with '%s' (type %s). This behavior is undefined." % (u, type(u)) )
+            raise InvalidUnitOperation("Tried to multiply a Unit object with '%s' (type %s). This behavior is undefined." % (u, type(u)) )
 
         return Unit(self.expr * u.expr,
                     cgs_value=(self.cgs_value * u.cgs_value),
@@ -341,7 +341,7 @@ class Unit(Expr):
     def __div__(self, u):
         """ Divide Unit by u (Unit object). """
         if not isinstance(u, Unit):
-            raise UnitOperationError("Tried to divide a Unit object by '%s' (type %s). This behavior is undefined." % (u, type(u)) )
+            raise InvalidUnitOperation("Tried to divide a Unit object by '%s' (type %s). This behavior is undefined." % (u, type(u)) )
 
         return Unit(self.expr / u.expr,
                     cgs_value=(self.cgs_value / u.cgs_value),
@@ -353,7 +353,7 @@ class Unit(Expr):
         try:
             p = sympify(p)
         except ValueError:
-            raise UnitOperationError("Tried to take a Unit object to the power '%s' (type %s). Failed to cast it to a float." % (p, type(p)) )
+            raise InvalidUnitOperation("Tried to take a Unit object to the power '%s' (type %s). Failed to cast it to a float." % (p, type(p)) )
 
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
                     dimensions=(self.dimensions**p), registry=self.registry)
@@ -361,7 +361,7 @@ class Unit(Expr):
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
-            raise UnitOperationError("Tried to test equality between a Unit object and '%s' (type %s). This behavior is undefined." % (u, type(u)) )
+            raise InvalidUnitOperation("Tried to test equality between a Unit object and '%s' (type %s). This behavior is undefined." % (u, type(u)) )
 
         return (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
@@ -425,7 +425,7 @@ def get_conversion_factor(old_units, new_units):
         new_units = Unit(new_units)
 
     if not old_units.same_dimensions_as(new_units):
-        raise UnitOperationError("Cannot convert from %s to %s because the dimensions do not match: %s and %s" % (old_units, new_units, old_units.dimensions, new_units.dimensions))
+        raise InvalidUnitOperation("Cannot convert from %s to %s because the dimensions do not match: %s and %s" % (old_units, new_units, old_units.dimensions, new_units.dimensions))
 
     return old_units.cgs_value / new_units.cgs_value
 

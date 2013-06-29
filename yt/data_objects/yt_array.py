@@ -36,7 +36,23 @@ from numpy import add, subtract, multiply, divide, \
     less_equal, greater_equal, less, \
     bitwise_or, bitwise_not, bitwise_and
 
-from yt.utilities.units import Unit, dimensionless
+from yt.utilities.units import Unit
+
+def ensure_unitless(func):
+    def wrapped(unit):
+        if unit != Unit():
+            raise InvalidUnitOperation(
+                "Arguments of %s must be unitless" % str(func)
+                )
+        return func(unit)
+            
+def ensure_same_units(func):
+    def wrapped(unit1, unit2):
+        if unit1 != unit2:
+            raise InvalidUnitOperation(
+                "Arguments of %s must have the same units" % str(func)
+                )
+        return func(unit1, unit2)
 
 def sqrt_unit(unit):
     return unit**0.5
@@ -60,10 +76,10 @@ def ones_like_units(unit):
     return unit
 
 def isnan_unit(unit):
-    return dimensionless
+    return None
 
 def isinf_unit(unit):
-    return dimensionless
+    return None
 
 def negative_unit(unit):
     return unit
@@ -71,41 +87,47 @@ def negative_unit(unit):
 def absolute_unit(unit):
     return unit
 
+@ensure_unitless
 def cos_unit(unit):
-    return dimensionless
+    return Unit()
 
+@ensure_unitless
 def sin_unit(unit):
-    return dimensionless
+    return Unit()
 
+@ensure_unitless
 def log10_unit(unit):
-    return sympy.log(unit, 10)
+    return Unit()
 
 def greater_unit(unit1, unit2):
-    return dimensionless
+    return None
 
 def less_unit(unit1, unit2):
-    return dimensionless
+    return None
 
 def greater_equal_unit(unit1, unit2):
-    return dimensionless
+    return None
 
 def less_equal_unit(unit1, unit2):
-    return dimensionless
+    return None
 
 def equal_unit(unit1, unit2):
-    return dimensionless
+    return None
 
 def not_equal_unit(unit1, unit2):
-    return dimensionless
+    return None
 
+@ensure_same_units
 def bitwise_and_unit(unit1, unit2):
-    return dimensionless
+    return unit1
 
+@ensure_same_units
 def bitwise_or_unit(unit1, unit2):
-    return dimensionless
+    return unit1
 
+@ensure_same_units
 def bitwise_not_unit(unit1, unit2):
-    return dimensionless
+    return unit1
 
 class YTArray(np.ndarray):
     """
@@ -452,17 +474,6 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).sqrt(),
                        input_units=self.units**0.5)
 
-    def exp(self):
-        """
-        Return exp of this YTArray. Checks that the YTArray is dimensionless.
-
-        """
-        if not self.units.is_dimensionless:
-            raise UnitOperationError("The argument of an exponential must be "
-                "dimensionless. exp(%s) is ill-defined." % self)
-
-        return YTArray(super(YTArray, self).exp())
-
     #
     # Start comparison operators.
     #
@@ -555,7 +566,11 @@ class YTArray(np.ndarray):
             pass
         elif len(context[1]) == 1:
             # unary operators
-            out_arr.units = self._ufunc_registry[context[0]](context[1][0].units)
+            unit = self._ufunc_registry[context[0]](context[1][0].units)
+            if unit is None:
+                out_arr = np.array(out_arr)
+            else:
+                out_arr.units = unit
         elif len(context[1]) == 2:
             # binary operators
             try:
@@ -569,7 +584,11 @@ class YTArray(np.ndarray):
                     unit2 = context[1][1]
                 else:
                     unit2 = Unit()
-            out_arr.units = self._ufunc_registry[context[0]](unit1, unit2)
+            unit = self._ufunc_registry[context[0]](unit1, unit2)
+            if unit is None:
+                out_arr = np.array(out_arr)
+            else:
+                out_arr.units = unit
         else:
             raise RuntimeError("Only unary and binary operators are allowed.")
         if out_arr.size == 1 and out_arr.size != self.size:

@@ -189,9 +189,9 @@ class GeometryHandler(ParallelAnalysisInterface):
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
             except Exception as e:
-                if field == "cylindrical_theta":
-                    raise
                 if type(e) != YTFieldNotFound:
+                    if field not in ('WeakLensingConvergence', 'Overdensity'):
+                        raise
                     mylog.debug("Exception %s raised during field detection for field %s" %
                                 (str(type(e)), field))
                 continue

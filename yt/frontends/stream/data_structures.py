@@ -1,3 +1,4 @@
+
 """
 Data structures for Streaming, in-memory datasets
 
@@ -287,6 +288,8 @@ class StreamStaticOutput(StaticOutput):
         self.current_time = self.stream_handler.simulation_time
         self.gamma = 5./3.
         self.parameters['EOSType'] = -1
+        self.parameters['CosmologyHubbleConstantNow'] = 1.0
+        self.parameters['CosmologyCurrentRedshift'] = 1.0
         if self.stream_handler.cosmology_simulation:
             self.cosmological_simulation = 1
             self.current_redshift = self.stream_handler.current_redshift

@@ -1,12 +1,14 @@
 from yt.testing import *
 from yt.data_objects.api import add_field
+from yt.data_objects.yt_array import YTArray
 
 def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     def _ID(field, data):
         width = data.pf.domain_right_edge - data.pf.domain_left_edge
-        min_dx = 1.0/8192
+        min_dx = YTArray(1.0/8192, input_units='code_length',
+                         registry=data.pf.unit_registry)
         delta = width / min_dx
         x = data['x'] - min_dx / 2.
         y = data['y'] - min_dx / 2.

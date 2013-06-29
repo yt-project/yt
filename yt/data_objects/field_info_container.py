@@ -34,6 +34,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.units import Unit
+from yt.data_objects.yt_array import YTArray
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -316,7 +317,8 @@ class FieldDetector(defaultdict):
         if field_name in FI and FI[field_name].particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
-        return defaultdict.__missing__(self, field_name)
+        return YTArray(defaultdict.__missing__(self, field_name),
+                       input_units=FI[field_name].units)
 
     def get_field_parameter(self, param, default = None):
         self.requested_parameters.append(param)
