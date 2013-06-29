@@ -113,6 +113,10 @@ class AMRGridPatch(YTSelectionContainer):
     def shape(self):
         return self.ActiveDimensions
 
+    def _reshape_vals(self, arr):
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)

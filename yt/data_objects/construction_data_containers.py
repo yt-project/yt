@@ -418,6 +418,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
 
+    def _reshape_vals(self, arr):
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     @property
     def shape(self):
         return tuple(self.ActiveDimensions.tolist())

@@ -98,7 +98,10 @@ add_field("Zeros", function=_Zeros,
           display_field = False)
 
 def _Ones(field, data):
-    return np.ones(data.ires.shape, dtype='float64')
+    tr = np.ones(data.ires.shape, dtype="float64")
+    if data._spatial:
+        return data._reshape_vals(tr)
+    return tr
 add_field("Ones", function=_Ones,
           projection_conversion="unitary",
           display_field = False)
