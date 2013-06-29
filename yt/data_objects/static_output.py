@@ -60,6 +60,7 @@ class StaticOutput(object):
     geometry = "cartesian"
     coordinates = None
     max_level = 99
+    storage_filename = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
