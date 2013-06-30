@@ -183,6 +183,9 @@ class TransferFunctionHelper(object):
             except KeyError:
                 self.setup_profile(profile_field, profile_weight)
                 prof = self.profiles[self.field]
+            if profile_field not in prof.keys():
+                prof.add_fields([profile_field], fractional=False,
+                                weight=profile_weight)
             ax.plot(prof[self.field], prof[profile_field]*tf.funcs[3].y.max() /
                     prof[profile_field].max(), color='w', linewidth=3)
             ax.plot(prof[self.field], prof[profile_field]*tf.funcs[3].y.max() /
