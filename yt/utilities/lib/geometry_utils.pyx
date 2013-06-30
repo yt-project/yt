@@ -353,6 +353,51 @@ def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
         morton_indices[i] = mi
     return morton_indices
 
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
+cdef position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
+                        np.ndarray[anyfloat, ndim=1] pos_y,
+                        np.ndarray[anyfloat, ndim=1] pos_z,
+                        np.float64_t dds[3], np.float64_t DLE[3],
+                        np.ndarray[np.uint64_t, ndim=1] ind):
+    cdef np.uint64_t mi, ii[3]
+    cdef np.float64_t p[3]
+    cdef np.int64_t i, j
+    for i in range(pos_x.shape[0]):
+        p[0] = <np.float64_t> pos_x[i]
+        p[1] = <np.float64_t> pos_y[i]
+        p[2] = <np.float64_t> pos_z[i]
+        for j in range(3):
+            ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
+        mi = 0
+        mi |= spread_bits(ii[2])<<0
+        mi |= spread_bits(ii[1])<<1
+        mi |= spread_bits(ii[0])<<2
+        ind[i] = mi
+
+DEF ORDER_MAX=20
+        
+def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
+                   domain_left_edge, domain_right_edge):
+    cdef int i
+    cdef np.float64_t dds[3], DLE[3], DRE[3]
+    for i in range(3):
+        DLE[i] = domain_left_edge[i]
+        DRE[i] = domain_right_edge[i]
+        dds[i] = (DRE[i] - DLE[i]) / (1 << ORDER_MAX)
+    cdef np.ndarray[np.uint64_t, ndim=1] ind
+    ind = np.zeros(pos_x.shape[0], dtype="uint64")
+    if pos_x.dtype == np.float32:
+        position_to_morton[np.float32_t](pos_x, pos_y, pos_z, dds, DLE, ind)
+    elif pos_x.dtype == np.float64:
+        position_to_morton[np.float64_t](pos_x, pos_y, pos_z, dds, DLE, ind)
+    else:
+        print "Could not identify dtype.", pos_x.dtype
+        raise NotImplementedError
+    return ind
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
