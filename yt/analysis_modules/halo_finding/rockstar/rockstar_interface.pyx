@@ -190,8 +190,6 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     else:
         local_parts = TOTAL_PARTICLES
 
-    print "local_parts", local_parts
-
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
     conv[0] = conv[1] = conv[2] = pf["mpchcm"]
@@ -237,7 +235,6 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
             fi += 1
         pi += npart
     num_p[0] = local_parts
-    print "finished read"
 
 cdef class RockstarInterface:
 
