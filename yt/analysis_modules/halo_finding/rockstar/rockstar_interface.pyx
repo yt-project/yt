@@ -190,7 +190,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     else:
         local_parts = TOTAL_PARTICLES
 
-    #print "local_parts", local_parts
+    print "local_parts", local_parts
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
@@ -201,8 +201,12 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     left_edge[2] = pf.domain_left_edge[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
-    for g in pf.h._get_objs("grids"):
-        if g.NumberOfParticles == 0: continue
+    if "grids" in dir(pf.h):
+        sources = pf.h._get_objs("grids")
+    else:
+        sources = [pf.h.all_data()]
+    for g in sources:
+        if len(g['particle_position_x']) == 0: continue
         if (rh.dm_only or (not has_particle_type)):
             if rh.hires_only:
                 iddm = (g['ParticleMassMsun'] < PARTICLE_MASS*1.1)
@@ -233,6 +237,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
             fi += 1
         pi += npart
     num_p[0] = local_parts
+    print "finished read"
 
 cdef class RockstarInterface:
 

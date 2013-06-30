@@ -244,15 +244,34 @@ def _StarAngularMomentumVector(data):
     j_mag = [amx.sum(), amy.sum(), amz.sum()]
     return [j_mag]
 
+def _ParticleAngularMomentumVector(data):
+    """
+    This function returns the mass-weighted average angular momentum vector 
+    for all particles.
+    """
+    mass = data["ParticleMass"]
+    sLx = data["ParticleSpecificAngularMomentumX"]
+    sLy = data["ParticleSpecificAngularMomentumY"]
+    sLz = data["ParticleSpecificAngularMomentumZ"]
+    amx = sLx * mass
+    amy = sLy * mass
+    amz = sLz * mass
+    j_mag = [amx.sum(), amy.sum(), amz.sum()]
+    return [j_mag]
+
 def _combAngularMomentumVector(data, j_mag):
     if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
     L_vec = j_mag.sum(axis=0)
     L_vec_norm = L_vec / np.sqrt((L_vec**2.0).sum())
     return L_vec_norm
+
 add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 add_quantity("StarAngularMomentumVector", function=_StarAngularMomentumVector,
+             combine_function=_combAngularMomentumVector, n_ret=1)
+
+add_quantity("ParticleAngularMomentumVector", function=_ParticleAngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 def _BaryonSpinParameter(data):

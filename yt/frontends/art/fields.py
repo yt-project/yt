@@ -51,6 +51,8 @@ add_art_field = KnownARTFields.add_field
 ARTFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = ARTFieldInfo.add_field
 
+_ptypes = ["all", "darkmatter", "stars", "specie0"]
+
 for f in fluid_fields:
     add_art_field(f, function=NullFunc, take_log=True,
                   validators=[ValidateDataField(f)])
@@ -224,7 +226,6 @@ add_art_field("particle_mass_initial", function=NullFunc, take_log=True,
               particle_type=True,
               convert_function=lambda x: x.convert("particle_mass"))
 
-
 def _particle_age(field, data):
     tr = data["particle_creation_time"]
     return data.pf.current_time - tr
@@ -269,8 +270,6 @@ add_field("ParticleMassMsun", function=_ParticleMassMsun, particle_type=True,
           take_log=True, units=r"\rm{Msun}")
 
 # Particle Deposition Fields
-_ptypes = ["all", "darkmatter", "stars", "specie0"]
-
 for _ptype in _ptypes:
     particle_vector_functions(_ptype, ["particle_position_%s" % ax for ax in 'xyz'],
                                      ["particle_velocity_%s" % ax for ax in 'xyz'],
@@ -293,6 +292,19 @@ ARTFieldInfo.add_field(("deposit", "baryon_density"),
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
 
+def baryon_mass(field, data):
+    rho = data["deposit", "stars_density"]
+    rho += data["gas", "Density"]
+    return rho * data["CellVolume"]
+
+ARTFieldInfo.add_field(("deposit", "baryon_mass"),
+         function = baryon_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Baryon Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
 def total_density(field, data):
     rho = data["deposit", "baryon_density"]
     rho += data["deposit", "specie0_density"]
@@ -306,6 +318,19 @@ ARTFieldInfo.add_field(("deposit", "total_density"),
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
 
+def total_mass(field, data):
+    rho = data["deposit", "baryon_density"]
+    rho += data["deposit", "specie0_density"]
+    return rho * data["CellVolume"]
+
+ARTFieldInfo.add_field(("deposit", "total_mass"),
+         function = total_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Total Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
 def multimass_density(field, data):
     rho = data["deposit", "baryon_density"]
     rho += data["deposit", "darkmatter_density"]
@@ -315,6 +340,19 @@ ARTFieldInfo.add_field(("deposit", "multimass_density"),
          function = multimass_density,
          validators = [ValidateSpatial()],
          display_name = "\\mathrm{Multimass Density}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
+def multimass_mass(field, data):
+    rho = data["deposit", "baryon_density"]
+    rho += data["deposit", "darkmatter_density"]
+    return rho * data["CellVolume"]
+
+ARTFieldInfo.add_field(("deposit", "multimass_mass"),
+         function = multimass_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Multimass Mass}",
          units = r"\mathrm{g}/\mathrm{cm}^{3}",
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
