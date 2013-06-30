@@ -69,7 +69,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d /= data["CellVolume"]
+        d /= data["gas","CellVolume"]
         return d
 
     registry.add_field(("deposit", "%s_density" % ptype),
@@ -83,7 +83,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_cic(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
-        d /= data["CellVolume"]
+        d /= data["gas","CellVolume"]
         return d
 
     registry.add_field(("deposit", "%s_cic" % ptype),

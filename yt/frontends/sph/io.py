@@ -235,8 +235,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                     data = self._read_field_from_file(f, tp[ptype], field)
                     data = data[mask]
                     my_ind = ind[ptype, field]
-                    mylog.debug("Filling from %s to %s with %s",
-                        my_ind, my_ind+data.shape[0], field)
+                    mylog.debug("Filling (%s, %s) from %s to %s",
+                        ptype, field, my_ind, my_ind+data.shape[0])
                     rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
                     ind[ptype, field] += data.shape[0]
             f.close()
