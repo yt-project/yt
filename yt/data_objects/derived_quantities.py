@@ -742,3 +742,25 @@ def _combParticleDensityCenter(data,densities,centers):
 
 add_quantity("ParticleDensityCenter",function=_ParticleDensityCenter,
              combine_function=_combParticleDensityCenter,n_ret=2)
+
+def _HalfMass(data, field):
+    """
+    Cumulative sum the given mass field and find 
+    at what radius the half mass is. Simple but 
+    memory-expensive method.
+    """
+    d = data[field]
+    r = data['Radius']
+    return d, r
+
+def _combHalfMass(data, field_vals, radii):
+    fv = np.concatenate(field_vals).ravel()
+    r  = np.concatenate(radii).ravel()
+    idx = np.argsort(r)
+    r = r[idx]
+    fv = np.cumsum(fv[idx])
+    idx = np.where(fv / fv[-1] > fv[1] / 2.0)[0][0]
+    return r[idx]
+
+add_quantity("HalfMass",function=_HalfMass,
+             combine_function=_combHalfMass,n_ret=2)
