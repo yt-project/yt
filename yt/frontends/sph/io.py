@@ -245,7 +245,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     def _read_field_from_file(self, f, count, name):
         if count == 0: return
         if name == "ParticleIDs":
-            dt = "int32"
+            dt = "uint32"
         else:
             dt = "float32"
         if name in _vector_fields:
@@ -281,24 +281,36 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             for i, v in enumerate(data_file.header["Npart"])) 
         return npart
 
-    _header_offset = 256
+    # header is 256, but we have 4 at beginning and end for ints
+    _header_offset = 256 + 8
     _field_size = 4
-    def _calculate_field_offsets(self, field_list, pcount):
+    def _calculate_field_offsets(self, field_list, pcount,
+                                 file_size = None):
         # field_list is (ftype, fname) but the blocks are ordered
         # (fname, ftype) in the file.
-        pos = self._header_offset # 256 bytes for the header
+        pos = self._header_offset
         fs = self._field_size
         offsets = {}
         for field in self._fields:
             if not isinstance(field, types.StringTypes):
                 field = field[0]
+            if not any( (ptype, field) in field_list
+                        for ptype in self._ptypes):
+                continue
+            pos += 4
             for ptype in self._ptypes:
-                if (ptype, field) not in field_list: continue
+                if (ptype, field) not in field_list:
+                    continue
                 offsets[(ptype, field)] = pos
                 if field in _vector_fields:
                     pos += 3 * pcount[ptype] * fs
                 else:
                     pos += pcount[ptype] * fs
+            pos += 4
+        if file_size is not None:
+            if file_size != pos:
+                mylog.warning("Your Gadget-2 file may have extra " +
+                              "columns or different precision!")
         return offsets
 
     def _identify_fields(self, domain):

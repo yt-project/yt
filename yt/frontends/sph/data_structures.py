@@ -81,13 +81,16 @@ class GadgetBinaryFile(ParticleFile):
         with open(filename, "rb") as f:
             self.header = read_record(f, pf._header_spec)
             self._position_offset = f.tell()
+            f.seek(0, os.SEEK_END)
+            self._file_size = f.tell()
 
         super(GadgetBinaryFile, self).__init__(pf, io,
                 filename, file_id)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(
-                field_list, self.total_particles)
+                field_list, self.total_particles,
+                self._file_size)
 
 class ParticleStaticOutput(StaticOutput):
     _unit_base = None
