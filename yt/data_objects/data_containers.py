@@ -234,6 +234,7 @@ class YTDataContainer(object):
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
+            gen_obj.field_parameters = self.field_parameters
         try:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
