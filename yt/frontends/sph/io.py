@@ -261,8 +261,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         DLE = data_file.pf.domain_left_edge
         DRE = data_file.pf.domain_right_edge
         dx = (DRE - DLE) / 2**_ORDER_MAX
+        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
-            f.seek(self._header_offset)
+            # We add on an additionally 4 for the first record.
+            f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = dt, count = count)
         pos = np.column_stack([pp['px'], pp['py'], pp['pz']]).astype("float64")
@@ -282,13 +284,12 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints
-    _header_offset = 256 + 8
     _field_size = 4
     def _calculate_field_offsets(self, field_list, pcount,
-                                 file_size = None):
+                                 offset, file_size = None):
         # field_list is (ftype, fname) but the blocks are ordered
         # (fname, ftype) in the file.
-        pos = self._header_offset
+        pos = offset
         fs = self._field_size
         offsets = {}
         for field in self._fields:

@@ -90,7 +90,7 @@ class GadgetBinaryFile(ParticleFile):
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(
                 field_list, self.total_particles,
-                self._file_size)
+                self._position_offset, self._file_size)
 
 class ParticleStaticOutput(StaticOutput):
     _unit_base = None
