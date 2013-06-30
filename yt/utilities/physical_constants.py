@@ -6,27 +6,29 @@
 # http://maia.usno.navy.mil/NSFA/IAU2009_consts.html
 # http://goldbook.iupac.org/list_goldbook_phys_constants_defs.html
 
+from yt.data_objects.yt_array import YTQuantity
+
 # Masses
-mass_hydrogen_cgs = 1.674534e-24  # g
-mass_electron_cgs = 9.1093898e-28  # g
-amu_cgs           = 1.6605402e-24  # g
-mass_sun_cgs = 1.98841586e33  # g
+mass_hydrogen_cgs = YTQuantity(1.674534e-24, 'g')
+mass_electron_cgs = YTQuantity(9.1093898e-28, 'g')
+amu_cgs           = YTQuantity(1.6605402e-24, 'g')
+mass_sun_cgs = YTQuantity(1.98841586e33, 'g')
 # Velocities
-speed_of_light_cgs = 2.99792458e10  # cm/s, exact
+speed_of_light_cgs = YTQuantity(2.99792458e10, 'cm/s')
 
 # Cross Sections
 # 8*pi/3 (alpha*hbar*c/(2*pi))**2
-cross_section_thompson_cgs = 6.65245854533e-25  # cm^2
+cross_section_thompson_cgs = YTQuantity(6.65245854533e-25, 'cm**2')
 
 # Charge
-charge_proton_cgs = 4.8032056e-10  # esu = 1.602176487e-19  Coulombs
+charge_proton_cgs = YTQuantity(4.8032056e-10, 'esu')
 
 # Physical Constants
-boltzmann_constant_cgs = 1.3806504e-16  # erg K^-1
-gravitational_constant_cgs  = 6.67428e-8  # cm^3 g^-1 s^-2
-planck_constant_cgs   = 6.62606896e-27  # erg s
-stefan_boltzmann_constant_cgs = 5.67051e-5 # erg cm^-2 s^-1 K^-4
-rho_crit_now = 1.8788e-29  # g times h^2 (critical mass for closure, Cosmology)
+boltzmann_constant_cgs = YTQuantity(1.3806504e-16, 'erg/K')
+gravitational_constant_cgs  = YTQuantity(6.67428e-8, 'cm**3/g/s**2')
+planck_constant_cgs   = YTQuantity(6.62606896e-27, 'erg*s')
+stefan_boltzmann_constant_cgs = YTQuantity(5.67051e-5, 'erg/cm**2/s**1/K**4')
+rho_crit_now = YTQuantity(1.8788e-29, 'g/cm**3/h**2') # (cosmology critical density)
 
 # Misc. Approximations
 mass_mean_atomic_cosmology = 1.22

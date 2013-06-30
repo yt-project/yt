@@ -154,7 +154,8 @@ class GeometryHandler(ParallelAnalysisInterface):
                 # and 3D fields.
                 self.pf.field_info.add_field(
                         field, NullFunc, particle_type=particle_type,
-                        convert_function=cf, take_log=False)
+                        convert_function=cf, take_log=False,
+                        units=self.parameter_file.field_units[field])
             else:
                 mylog.debug("Adding known field %s to list of fields", field)
                 self.parameter_file.field_info[field] = known_fields[field]

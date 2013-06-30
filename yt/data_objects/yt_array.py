@@ -37,6 +37,7 @@ from numpy import add, subtract, multiply, divide, \
     bitwise_or, bitwise_not, bitwise_and
 
 from yt.utilities.units import Unit
+import numbers.Number as numeric_type
 
 def ensure_unitless(func):
     def wrapped(unit):
@@ -594,3 +595,9 @@ class YTArray(np.ndarray):
         if out_arr.size == 1 and out_arr.size != self.size:
             return out_arr[0]
         return super(YTArray, self).__array_wrap__(out_arr, context)
+
+class YTQuantity(YTArray)
+    def __new__(cls, input, input_units=None, registry=None)
+        if not isinstance(input, numeric_type)
+            raise RuntimeError('Quantity values must be numeric')
+        super(YTQuantity, self).__new__(cls, input, input_units, registry)
