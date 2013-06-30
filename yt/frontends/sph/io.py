@@ -37,6 +37,8 @@ from yt.utilities.lib.geometry_utils import get_morton_indices, \
 
 from yt.geometry.oct_container import _ORDER_MAX
 
+CHUNKSIZE = 10000000
+
 _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
 class IOHandlerOWLS(BaseIOHandler):
@@ -426,34 +428,33 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0: continue
-                pp = np.fromfile(f, dtype = self._pdtypes[ptype],
-                                 count = count)
-                mis = np.empty(3, dtype="float64")
-                mas = np.empty(3, dtype="float64")
-                for axi, ax in enumerate('xyz'):
-                    mi = pp["Coordinates"][ax].min()
-                    ma = pp["Coordinates"][ax].max()
-                    mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
-                    mis[axi] = mi
-                    mas[axi] = ma
-                if np.any(mis < pf.domain_left_edge) or \
-                   np.any(mas > pf.domain_right_edge):
-                    raise YTDomainOverflow(mis, mas,
-                                           pf.domain_left_edge,
-                                           pf.domain_right_edge)
-                fpos = np.empty((count, 3), dtype="float64")
-                fpos[:,0] = pp["Coordinates"]["x"]
-                fpos[:,1] = pp["Coordinates"]["y"]
-                fpos[:,2] = pp["Coordinates"]["z"]
-                regions.add_data_file(fpos, data_file.file_id)
-                del fpos
-                pos = np.empty((count, 3), dtype="uint64")
-                for axi, ax in enumerate("xyz"):
-                    coords = pp['Coordinates'][ax].astype("float64")
-                    coords = np.floor((coords - DLE[axi])/dx[axi])
-                    pos[:,axi] = coords
-                morton[ind:ind+count] = get_morton_indices(pos)
-                del pp, pos
+                start, stop = ind, ind + count
+                while ind < stop:
+                    c = min(CHUNKSIZE, stop - ind)
+                    pp = np.fromfile(f, dtype = self._pdtypes[ptype],
+                                     count = c)
+                    mis = np.empty(3, dtype="float64")
+                    mas = np.empty(3, dtype="float64")
+                    for axi, ax in enumerate('xyz'):
+                        mi = pp["Coordinates"][ax].min()
+                        ma = pp["Coordinates"][ax].max()
+                        mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
+                        mis[axi] = mi
+                        mas[axi] = ma
+                    if np.any(mis < pf.domain_left_edge) or \
+                       np.any(mas > pf.domain_right_edge):
+                        raise YTDomainOverflow(mis, mas,
+                                               pf.domain_left_edge,
+                                               pf.domain_right_edge)
+                    pos = np.empty((pp.size, 3), dtype="float64")
+                    pos[:,0] = pp["Coordinates"]["x"]
+                    pos[:,1] = pp["Coordinates"]["y"]
+                    pos[:,2] = pp["Coordinates"]["z"]
+                    regions.add_data_file(pos, data_file.file_id)
+                    morton[ind:ind+c] = compute_morton(
+                        pos[:,0], pos[:,1], pos[:,2],
+                        DLE, DRE)
+                    ind += c
         mylog.info("Adding %0.3e particles", morton.size)
         return morton
 
