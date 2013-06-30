@@ -32,8 +32,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 from yt.utilities.fortran_utils import read_record
-from yt.utilities.lib.geometry_utils import get_morton_indices, \
-    get_morton_indices_unravel, compute_morton
+from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
 
