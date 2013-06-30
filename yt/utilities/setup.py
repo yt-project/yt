@@ -44,8 +44,8 @@ def get_location_from_env(env):
     env_dir = os.environ[env]
     env_inc = os.path.join(env_dir, "include")
     env_lib = os.path.join(env_dir, "lib")
-    print "%s_LOCATION: %s: %s, %s" \
-        % (env.split('_')[0], env, env_inc, env_lib)
+    print("%s_LOCATION: %s: %s, %s"
+          % (env.split('_')[0], env, env_inc, env_lib))
     return (env_inc, env_lib)
 
 
@@ -53,9 +53,19 @@ def get_location_from_cfg(cfg):
     cfg_dir = open(cfg).read().strip()
     cfg_inc = os.path.join(cfg_dir, "include")
     cfg_lib = os.path.join(cfg_dir, "lib")
-    print "%s_LOCATION: %s: %s, %s" \
-        % (cfg.split('.')[0].upper(), cfg, cfg_inc, cfg_lib)
+    print("%s_LOCATION: %s: %s, %s"
+          % (cfg.split('.')[0].upper(), cfg, cfg_inc, cfg_lib))
     return (cfg_inc, cfg_lib)
+
+
+def check_prefix(inc_dir, lib_dir):
+    prefix = os.path.commonprefix([inc_dir, lib_dir]).rstrip('/\\')
+    if prefix is not '' and prefix == os.path.dirname(inc_dir):
+        return (inc_dir, lib_dir)
+    else:
+        print("It seems that include prefix is different from lib prefix")
+        print("Please use either env variable or cfg to set proper path")
+        return (None, None)
 
 
 def get_location_from_ctypes(header, library):
@@ -73,14 +83,14 @@ def get_location_from_ctypes(header, library):
 
     target_libfile = ctypes.util.find_library(library)
     if target_libfile is not None and os.path.isfile(target_libfile):
-        return (target_inc, os.path.dirname(target_libfile))
+        return check_prefix(target_inc, os.path.dirname(target_libfile))
     for lib_dir in default_library_dirs:
         try:
             ctypes.CDLL(os.path.join(lib_dir, target_libfile))
             target_libdir = lib_dir
         except OSError:
             pass
-    return (target_inc, target_libdir)
+    return check_prefix(target_inc, target_libdir)
 
 
 def check_for_dependencies(env, cfg, header, library):
@@ -110,6 +120,7 @@ def check_for_dependencies(env, cfg, header, library):
 
 def check_for_hdf5():
     return check_for_dependencies("HDF5_DIR", "hdf5.cfg", "hdf5.h", "hdf5")
+
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
