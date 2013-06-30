@@ -1009,7 +1009,7 @@ add_field("JeansMassMsun",function=_JeansMassMsun,
 for field in ["particle_position_%s" % ax for ax in "xyz"]:
     # This marker should let everyone know not to use the fields, but NullFunc
     # should do that, too.
-    add_field(field, function=NullFunc, particle_type = True,
+    add_field(("all", field), function=NullFunc, particle_type = True,
         units=r"UNDEFINED")
 
 def _pdensity(field, data):
