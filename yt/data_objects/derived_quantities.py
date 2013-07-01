@@ -759,8 +759,11 @@ def _combHalfMass(data, field_vals, radii, frac=0.5):
     idx = np.argsort(r)
     r = r[idx]
     fv = np.cumsum(fv[idx])
-    idx = np.where(fv / fv[-1] > frac)[0][0]
-    return r[idx]
+    idx, = np.where(fv / fv[-1] > frac)
+    if len(idx) > 0:
+        return r[idx[0]]
+    else:
+        return np.nan
 
 add_quantity("HalfMass",function=_HalfMass,
              combine_function=_combHalfMass,n_ret=2)
