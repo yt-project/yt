@@ -882,10 +882,9 @@ def _ParticleRadiusSpherical(field, data):
     bv = data.get_field_parameter("bulk_velocity")
     pos = "particle_position_%s"
     pos = np.array([data[pos % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
-    vel = vel - np.reshape(bv, (3, 1))
     sphr = get_sph_r_component(pos, theta, phi, normal)
     return sphr
 
@@ -900,12 +899,11 @@ def _ParticleThetaSpherical(field, data):
     bv = data.get_field_parameter("bulk_velocity")
     pos = "particle_position_%s"
     pos = np.array([data[pos % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
-    vel = vel - np.reshape(bv, (3, 1))
     spht = get_sph_theta_component(pos, theta, phi, normal)
-    return sphrt
+    return spht
 
 add_field("ParticleThetaSpherical", function=_ParticleThetaSpherical,
           particle_type=True, units=r"\rm{cm}/\rm{s}",
@@ -918,12 +916,12 @@ def _ParticlePhiSpherical(field, data):
     bv = data.get_field_parameter("bulk_velocity")
     pos = "particle_position_%s"
     pos = np.array([data[pos % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     sphp = get_sph_phi_component(pos, theta, phi, normal)
-    return sphrp
+    return sphp
 
 add_field("ParticlePhiSpherical", function=_ParticleThetaSpherical,
           particle_type=True, units=r"\rm{cm}/\rm{s}",
@@ -938,8 +936,8 @@ def _ParticleRadialVelocity(field, data):
     pos = np.array([data[pos % ax] for ax in "xyz"])
     vel = "particle_velocity_%s"
     vel = np.array([data[vel % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     sphr = get_sph_r_component(vel, theta, phi, normal)
@@ -958,12 +956,12 @@ def _ParticleThetaVelocity(field, data):
     pos = np.array([data[pos % ax] for ax in "xyz"])
     vel = "particle_velocity_%s"
     vel = np.array([data[vel % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     spht = get_sph_theta_component(vel, theta, phi, normal)
-    return sphrt
+    return spht
 
 add_field("ParticleThetaVelocity", function=_ParticleThetaVelocity,
           particle_type=True, units=r"\rm{cm}/\rm{s}",
@@ -978,12 +976,12 @@ def _ParticlePhiVelocity(field, data):
     pos = np.array([data[pos % ax] for ax in "xyz"])
     vel = "particle_velocity_%s"
     vel = np.array([data[vel % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     sphp = get_sph_phi_component(vel, theta, phi, normal)
-    return sphrp
+    return sphp
 
 add_field("ParticlePhiVelocity", function=_ParticleThetaVelocity,
           particle_type=True, units=r"\rm{cm}/\rm{s}",
