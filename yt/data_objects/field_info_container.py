@@ -273,9 +273,11 @@ class FieldDetector(defaultdict):
         if hasattr(self.pf, "field_info"):
             if not isinstance(item, tuple):
                 field = ("unknown", item)
+                finfo = self.pf._get_field_info(*field)
+                mylog.debug("Guessing field %s is %s", item, finfo.name)
             else:
                 field = item
-            finfo = self.pf._get_field_info(*field)
+                finfo = self.pf._get_field_info(*field)
         else:
             FI = getattr(self.pf, "field_info", FieldInfo)
             if item in FI:
