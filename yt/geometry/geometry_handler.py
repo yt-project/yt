@@ -403,8 +403,9 @@ class GeometryHandler(ParallelAnalysisInterface):
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(
-                    self._chunk_io(dobj), selector,
-                    fields_to_read)
+            self._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
             finfo = self.pf._get_field_info(*field)
@@ -425,10 +426,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
-                                                   selector,
-                                                   fields_to_read,
-                                                   chunk_size)
+        fields_to_return = self.io._read_fluid_selection(
+            self._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read,
+            chunk_size)
         for field in fields_to_read:
             ftype, fname = field
             conv_factor = self.pf.field_info[fname]._convert_function(self)
@@ -470,7 +472,7 @@ def cached_property(func):
 class YTDataChunk(object):
 
     def __init__(self, dobj, chunk_type, objs, data_size = None,
-                 field_type = None, cache = True):
+                 field_type = None, cache = False):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
