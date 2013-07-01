@@ -278,9 +278,8 @@ class FieldDetector(defaultdict):
             finfo = self.pf._get_field_info(*field)
         else:
             FI = getattr(self.pf, "field_info", FieldInfo)
-            field = item
-            if field in FI:
-                finfo = FI[field]
+            if item in FI:
+                finfo = FI[item]
             else:
                 finfo = None
         if finfo is not None and finfo._function.func_name != 'NullFunc':
@@ -298,23 +297,23 @@ class FieldDetector(defaultdict):
                     if i not in self.requested_parameters:
                         self.requested_parameters.append(i)
             if vv is not None:
-                if not self.flat: self[field] = vv
-                else: self[field] = vv.ravel()
-                return self[field]
+                if not self.flat: self[item] = vv
+                else: self[item] = vv.ravel()
+                return self[item]
         elif finfo is not None and finfo.particle_type:
-            if field == "Coordinates" or field[1] == "Coordinates" or \
-               field == "Velocities" or field[1] == "Velocities":
+            if item == "Coordinates" or item[1] == "Coordinates" or \
+               item == "Velocities" or item[1] == "Velocities":
                 # A vector
-                self[field] = np.ones((self.NumberOfParticles, 3))
+                self[item] = np.ones((self.NumberOfParticles, 3))
             else:
                 # Not a vector
-                self[field] = np.ones(self.NumberOfParticles)
-            self.requested.append(field)
-            return self[field]
-        self.requested.append(field)
-        if field not in self:
-            self[field] = self._read_data(field)
-        return self[field]
+                self[item] = np.ones(self.NumberOfParticles)
+            self.requested.append(item)
+            return self[item]
+        self.requested.append(item)
+        if item not in self:
+            self[item] = self._read_data(item)
+        return self[item]
 
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))

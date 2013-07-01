@@ -42,6 +42,10 @@ StreamFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = StreamFieldInfo.add_field
 
 add_stream_field("density", function = NullFunc)
+add_stream_field("x-velocity", function = NullFunc)
+add_stream_field("y-velocity", function = NullFunc)
+add_stream_field("z-velocity", function = NullFunc)
+
 add_field("Density", function = TranslationFunc("density"))
 
 add_stream_field("particle_position_x", function = NullFunc, particle_type=True)
