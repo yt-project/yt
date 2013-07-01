@@ -249,6 +249,9 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("GridTree", 
     ["yt/utilities/lib/GridTree.pyx"],
         libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("amr_kdtools", 
+                         ["yt/utilities/lib/amr_kdtools.pyx"],
+                         libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
