@@ -244,15 +244,34 @@ def _StarAngularMomentumVector(data):
     j_mag = [amx.sum(), amy.sum(), amz.sum()]
     return [j_mag]
 
+def _ParticleAngularMomentumVector(data):
+    """
+    This function returns the mass-weighted average angular momentum vector 
+    for all particles.
+    """
+    mass = data["ParticleMass"]
+    sLx = data["ParticleSpecificAngularMomentumX"]
+    sLy = data["ParticleSpecificAngularMomentumY"]
+    sLz = data["ParticleSpecificAngularMomentumZ"]
+    amx = sLx * mass
+    amy = sLy * mass
+    amz = sLz * mass
+    j_mag = [amx.sum(), amy.sum(), amz.sum()]
+    return [j_mag]
+
 def _combAngularMomentumVector(data, j_mag):
     if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
     L_vec = j_mag.sum(axis=0)
     L_vec_norm = L_vec / np.sqrt((L_vec**2.0).sum())
     return L_vec_norm
+
 add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 add_quantity("StarAngularMomentumVector", function=_StarAngularMomentumVector,
+             combine_function=_combAngularMomentumVector, n_ret=1)
+
+add_quantity("ParticleAngularMomentumVector", function=_ParticleAngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 def _BaryonSpinParameter(data):
@@ -723,3 +742,25 @@ def _combParticleDensityCenter(data,densities,centers):
 
 add_quantity("ParticleDensityCenter",function=_ParticleDensityCenter,
              combine_function=_combParticleDensityCenter,n_ret=2)
+
+def _HalfMass(data, field):
+    """
+    Cumulative sum the given mass field and find 
+    at what radius the half mass is. Simple but 
+    memory-expensive method.
+    """
+    d = np.nan_to_num(data[field])
+    r = data['Radius']
+    return d, r
+
+def _combHalfMass(data, field_vals, radii, frac=0.5):
+    fv = np.concatenate(field_vals.tolist()).ravel()
+    r = np.concatenate(radii.tolist()).ravel()
+    idx = np.argsort(r)
+    r = r[idx]
+    fv = np.cumsum(fv[idx])
+    idx = np.where(fv / fv[-1] > frac)[0][0]
+    return r[idx]
+
+add_quantity("HalfMass",function=_HalfMass,
+             combine_function=_combHalfMass,n_ret=2)
