@@ -45,11 +45,15 @@ cdef class ParticleDepositOperation:
     def finalize(self, *args):
         raise NotImplementedError
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def process_octree(self, OctreeContainer octree,
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
-                     fields = None, int domain_id = -1):
+                     fields = None, int domain_id = -1,
+                     int domain_offset = 0):
         cdef int nf, i, j
+        self.bad_indices = 0
         if fields is None:
             fields = []
         nf = len(fields)
@@ -65,18 +69,33 @@ cdef class ParticleDepositOperation:
         cdef OctInfo oi
         cdef np.int64_t offset, moff
         cdef Oct *oct
-        moff = octree.get_domain_offset(domain_id)
+        cdef np.int64_t numpart = positions.shape[0]
+        moff = octree.get_domain_offset(domain_id + domain_offset)
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
                 field_vals[j] = field_pointers[j][i]
             for j in range(3):
                 pos[j] = positions[i, j]
+            # This line should be modified to have it return the index into an
+            # array based on whatever cutting of the domain we have done.  This
+            # may or may not include the domain indices that we have
+            # previously generated.  This way we can support not knowing the
+            # full octree structure.  All we *really* care about is some
+            # arbitrary offset into a field value for deposition.
             oct = octree.get(pos, &oi)
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
-            if oct.domain != domain_id: continue
-            #print domain_id, oct.local_ind, oct.ind, oct.domain, oct.pos[0], oct.pos[1], oct.pos[2]
+            # For the distributed-memory octrees, this will manifest as a NULL
+            # oct.  For the non-distributed memory octrees, we'll simply see
+            # this as a domain_id that is not the current domain id.  Note that
+            # this relies on the idea that all the particles in a region are
+            # all fed to sequential domain subsets, which will not be true with
+            # RAMSES, where we *will* miss particles that live in ghost
+            # regions on other processors.  Addressing this is on the TODO
+            # list.
+            if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
+                continue
             # Note that this has to be our local index, not our in-file index.
             offset = dom_ind[oct.domain_ind - moff] * 8
             if offset < 0: continue
@@ -84,6 +103,8 @@ cdef class ParticleDepositOperation:
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
         
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def process_grid(self, gobj,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None):
@@ -122,7 +143,7 @@ cdef class CountParticles(ParticleDepositOperation):
     cdef public object ocount
     def initialize(self):
         # Create a numpy array accessible to python
-        self.ocount = np.zeros(self.nvals, dtype="int64")
+        self.ocount = np.zeros(self.nvals, dtype="int64", order='F')
         cdef np.ndarray arr = self.ocount
         # alias the C-view for use in cython
         self.count = <np.int64_t*> arr.data
@@ -156,10 +177,10 @@ cdef class SimpleSmooth(ParticleDepositOperation):
     cdef public object otemp
 
     def initialize(self):
-        self.odata = np.zeros(self.nvals, dtype="float64")
+        self.odata = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray arr = self.odata
         self.data = <np.float64_t*> arr.data
-        self.otemp = np.zeros(self.nvals, dtype="float64")
+        self.otemp = np.zeros(self.nvals, dtype="float64", order='F')
         arr = self.otemp
         self.temp = <np.float64_t*> arr.data
 
@@ -212,7 +233,7 @@ cdef class SumParticleField(ParticleDepositOperation):
     cdef np.float64_t *sum
     cdef public object osum
     def initialize(self):
-        self.osum = np.zeros(self.nvals, dtype="float64")
+        self.osum = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray arr = self.osum
         self.sum = <np.float64_t*> arr.data
 
@@ -228,6 +249,7 @@ cdef class SumParticleField(ParticleDepositOperation):
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
         self.sum[gind(ii[0], ii[1], ii[2], dim) + offset] += fields[0]
+        return
         
     def finalize(self):
         return self.osum
@@ -299,10 +321,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t *field
     cdef public object ofield
     def initialize(self):
-        self.ofield = np.zeros(self.nvals, dtype="float64")
+        self.ofield = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray arr = self.ofield
         self.field = <np.float64_t *> arr.data
 
+    @cython.cdivision(True)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],

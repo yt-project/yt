@@ -14,6 +14,20 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/geometry/oct_container.pxd",
                          "yt/geometry/selection_routines.pxd"])
+    config.add_extension("oct_visitors", 
+                ["yt/geometry/oct_visitors.pyx"],
+                include_dirs=["yt/utilities/lib/"],
+                libraries=["m"],
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/geometry/oct_container.pxd",
+                         "yt/geometry/selection_routines.pxd"])
+    config.add_extension("particle_oct_container", 
+                ["yt/geometry/particle_oct_container.pyx"],
+                include_dirs=["yt/utilities/lib/"],
+                libraries=["m"],
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/geometry/oct_container.pxd",
+                         "yt/geometry/selection_routines.pxd"])
     config.add_extension("selection_routines", 
                 ["yt/geometry/selection_routines.pyx"],
                 include_dirs=["yt/utilities/lib/"],

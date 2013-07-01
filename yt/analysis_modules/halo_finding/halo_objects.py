@@ -2495,7 +2495,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             if dm_only:
                 select = self._get_dm_indices()
                 total_mass = \
-                    self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
+                    self.comm.mpi_allreduce((self._data_source['all', "ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
             else:
                 total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0], op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles

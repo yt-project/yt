@@ -153,13 +153,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         for chunk in chunks:
             data = self._read_chunk_data(chunk, fields)
             for g in chunk.objs:
-                mask = g.select(selector)
-                if mask is None: continue
-                nd = mask.sum()
                 for field in fields:
                     ftype, fname = field
-                    gdata = data[g.id].pop(fname).swapaxes(0,2)
-                    nd = mask_fill(rv[field], ind, mask, gdata)
+                    ds = data[g.id].pop(fname).swapaxes(0,2)
+                    nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
                 data.pop(g.id)
         return rv

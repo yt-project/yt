@@ -243,33 +243,23 @@ class YTDataContainer(object):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        rv = np.empty(self.size, dtype="float64")
+        rv = np.empty(self.ires.size, dtype="float64")
         ind = 0
         if ngz == 0:
             for io_chunk in self.chunks([], "io"):
                 for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
-                    mask = self._current_chunk.objs[0].select(self.selector)
-                    if mask is None: continue
-                    data = self[field]
-                    if len(data.shape) == 4:
-                        # This is how we keep it consistent between oct ordering
-                        # and grid ordering.
-                        data = data.T[mask.T]
-                    else:
-                        data = data[mask]
-                    rv[ind:ind+data.size] = data
-                    ind += data.size
+                    ind += self._current_chunk.objs[0].select(
+                            self.selector, self[field], rv, ind)
         else:
             chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
                     wogz = gz._base_grid
-                    mask = wogz.select(self.selector)
-                    if mask is None: continue
-                    data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz][mask]
-                    rv[ind:ind+data.size] = data
-                    ind += data.size
+                    ind += wogz.select(
+                        self.selector,
+                        gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                        rv, ind)
         return rv
 
     def _generate_particle_field(self, field):
@@ -418,9 +408,10 @@ class YTDataContainer(object):
     def blocks(self):
         for io_chunk in self.chunks([], "io"):
             for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
-                mask = self._current_chunk.objs[0].select(self.selector)
+                g = self._current_chunk.objs[0]
+                mask = g._get_selector_mask(self.selector)
                 if mask is None: continue
-                yield self._current_chunk.objs[0], mask
+                yield g, mask
 
 class GenerationInProgress(Exception):
     def __init__(self, fields):
@@ -432,8 +423,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _sort_by = None
     _selector = None
     _current_chunk = None
-    size = None
-    shape = None
 
     def __init__(self, *args, **kwargs):
         super(YTSelectionContainer, self).__init__(*args, **kwargs)
@@ -551,16 +540,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # There are several items that need to be swapped out
         # field_data, size, shape
         old_field_data, self.field_data = self.field_data, YTFieldData()
-        old_size, self.size = self.size, chunk.data_size
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
-        if not self._spatial:
-            self.shape = (self.size,)
         yield
         self.field_data = old_field_data
-        self.size = old_size
-        if not self._spatial:
-            self.shape = (old_size,)
         self._current_chunk = old_chunk
         self._locked = old_locked
 

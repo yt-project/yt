@@ -31,6 +31,7 @@ from exceptions import IOError, TypeError
 from types import ClassType
 import numpy as np
 import abc
+import copy
 
 from yt.funcs import *
 from yt.config import ytcfg
@@ -45,6 +46,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.exceptions import YTFieldNotFound
 
 class GeometryHandler(ParallelAnalysisInterface):
+    _global_mesh = True
 
     def __init__(self, pf, data_style):
         ParallelAnalysisInterface.__init__(self)
@@ -165,8 +167,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         # First we construct our list of fields to check
         fields_to_check = []
         fields_to_allcheck = []
-        fields_to_add = []
-        for field in fi:
+        for field in fi.keys():
             finfo = fi[field]
             # Explicitly defined
             if isinstance(field, tuple):
@@ -178,20 +179,21 @@ class GeometryHandler(ParallelAnalysisInterface):
                 fields_to_check.append(field)
                 continue
             # We do a special case for 'all' later
-            new_fields = [(pt, field) for pt in
-                          self.parameter_file.particle_types]
+            new_fields = []
+            for pt in self.parameter_file.particle_types:
+                new_fi = copy.copy(finfo)
+                new_fi.name = (pt, new_fi.name)
+                fi[new_fi.name] = new_fi
+                new_fields.append(new_fi.name)
             fields_to_check += new_fields
-            fields_to_add.extend( (new_field, fi[field]) for
-                                   new_field in new_fields )
             fields_to_allcheck.append(field)
-        fi.update(fields_to_add)
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
             except Exception as e:
                 if type(e) != YTFieldNotFound:
-                    mylog.debug("Exception %s raised during field detection" %
-                                str(type(e)))
+                    mylog.debug("Raises %s during field %s detection.",
+                                str(type(e)), field)
                 continue
             missing = False
             # This next bit checks that we can't somehow generate everything.
@@ -453,7 +455,7 @@ class GeometryHandler(ParallelAnalysisInterface):
 
 class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size, field_type = None):
+    def __init__(self, dobj, chunk_type, objs, data_size = None, field_type = None):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
@@ -466,9 +468,23 @@ class YTDataChunk(object):
             self._data_size = self._data_size(self.dobj, self.objs)
         return self._data_size
 
+    def _accumulate_values(self, method):
+        # We call this generically.  It's somewhat slower, since we're doing
+        # costly getattr functions, but this allows us to generalize.
+        mname = "select_%s" % method
+        arrs = []
+        for obj in self.objs:
+            f = getattr(obj, mname)
+            arrs.append(f(self.dobj))
+        arrs = np.concatenate(arrs)
+        self._data_size = arrs.shape[0]
+        return arrs
+
     _fcoords = None
     @property
     def fcoords(self):
+        if self.data_size is None:
+            self._fcoords = self._accumulate_values("fcoords")
         if self._fcoords is not None: return self._fcoords
         ci = np.empty((self.data_size, 3), dtype='float64')
         self._fcoords = ci
@@ -484,6 +500,8 @@ class YTDataChunk(object):
     _icoords = None
     @property
     def icoords(self):
+        if self.data_size is None:
+            self._icoords = self._accumulate_values("icoords")
         if self._icoords is not None: return self._icoords
         ci = np.empty((self.data_size, 3), dtype='int64')
         self._icoords = ci
@@ -499,6 +517,8 @@ class YTDataChunk(object):
     _fwidth = None
     @property
     def fwidth(self):
+        if self.data_size is None:
+            self._fwidth = self._accumulate_values("fwidth")
         if self._fwidth is not None: return self._fwidth
         ci = np.empty((self.data_size, 3), dtype='float64')
         self._fwidth = ci
@@ -514,6 +534,8 @@ class YTDataChunk(object):
     _ires = None
     @property
     def ires(self):
+        if self.data_size is None:
+            self._ires = self._accumulate_values("ires")
         if self._ires is not None: return self._ires
         ci = np.empty(self.data_size, dtype='int64')
         self._ires = ci

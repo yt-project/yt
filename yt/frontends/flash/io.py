@@ -92,9 +92,6 @@ class IOHandlerFLASH(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    mask = g.select(selector) # caches
-                    if mask is None: continue
                     data = ds[g.id - g._id_offset,:,:,:].transpose()[mask]
-                    rv[field][ind:ind+data.size] = data
-                    ind += data.size
+                    ind += g.select(selector, data, rv[field], ind) # caches
         return rv

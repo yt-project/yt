@@ -264,9 +264,18 @@ class FieldDetector(defaultdict):
                 lambda: np.ones((nd * nd * nd), dtype='float64')
                 + 1e-4*np.random.random((nd * nd * nd)))
 
+    def _reshape_vals(self, arr):
+        if not self._spatial: return arr
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     def __missing__(self, item):
-        if hasattr(self.pf, "field_info") and isinstance(item, tuple):
-            finfo = self.pf._get_field_info(*item)
+        if hasattr(self.pf, "field_info"):
+            if not isinstance(item, tuple):
+                field = ("unknown", item)
+            else:
+                field = item
+            finfo = self.pf._get_field_info(*field)
         else:
             FI = getattr(self.pf, "field_info", FieldInfo)
             if item in FI:
@@ -278,7 +287,7 @@ class FieldDetector(defaultdict):
                 vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
-                nfd = FieldDetector(self.nd + ngz * 2)
+                nfd = FieldDetector(self.nd + ngz * 2, pf = self.pf)
                 nfd._num_ghost_zones = ngz
                 vv = finfo(nfd)
                 if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]

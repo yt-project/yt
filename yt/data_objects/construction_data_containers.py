@@ -286,7 +286,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         # This needs to be parallel_objects-ified
         for chunk in parallel_objects(self.data_source.chunks(
                 chunk_fields, "io")): 
-            mylog.debug("Adding chunk (%s) to tree", chunk.size)
+            mylog.debug("Adding chunk (%s) to tree", chunk.ires.size)
             self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
@@ -310,7 +310,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.multiply(py, self.pf.domain_width[y_dict[self.axis]], py)
         np.add(py, oy, py)
         np.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
-
         if self.weight_field is not None:
             np.divide(nvals, nwvals[:,None], nvals)
         if self.weight_field is None:
@@ -345,7 +344,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             dl = 1.0
         else:
             dl = chunk.fwidth[:, self.axis]
-        v = np.empty((chunk.size, len(fields)), dtype="float64")
+        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i in range(len(fields)):
             v[:,i] = chunk[fields[i]] * dl
         if self.weight_field is not None:
@@ -353,7 +352,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
         else:
-            w = np.ones(chunk.size, dtype="float64")
+            w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
         i1 = icoords[:,x_dict[self.axis]]
         i2 = icoords[:,y_dict[self.axis]]
@@ -418,6 +417,38 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
+
+    @property
+    def icoords(self):
+        ic = np.indices(self.ActiveDimensions).astype("int64")
+        return np.column_stack([i.ravel() + gi for i, gi in
+            zip(ic, self.get_global_startindex())])
+
+    @property
+    def fwidth(self):
+        fw = np.ones((self.ActiveDimensions.prod(), 3), dtype="float64")
+        fw *= self.dds
+        return fw
+
+    @property
+    def fcoords(self):
+        LE = self.LeftEdge + self.dds/2.0
+        RE = self.RightEdge - self.dds/2.0
+        N = self.ActiveDimensions
+        fc = np.mgrid[LE[0]:RE[0]:N[0]*1j,
+                      LE[1]:RE[1]:N[1]*1j,
+                      LE[2]:RE[2]:N[2]*1j]
+        return np.column_stack([f.ravel() for f in fc])
+
+    @property
+    def ires(self):
+        tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
+        tr *= self.level
+        return tr
+
+    def _reshape_vals(self, arr):
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
 
     @property
     def shape(self):
@@ -510,7 +541,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="F")
+        return vals.reshape(self.ActiveDimensions, order="C")
 
 class YTArbitraryGridBase(YTCoveringGridBase):
     """A 3D region with arbitrary bounds and dimensions.

@@ -265,6 +265,8 @@ class StaticOutput(object):
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
         if fname == self._last_freq[1]:
+            mylog.debug("Guessing field %s is (%s, %s)", fname,
+                        self._last_freq[0], self._last_freq[1])
             return self._last_finfo
         if fname in self.field_info:
             self._last_freq = field
@@ -275,6 +277,8 @@ class StaticOutput(object):
         if guessing_type and ("all", fname) in self.field_info:
             self._last_freq = ("all", fname)
             self._last_finfo = self.field_info["all", fname]
+            mylog.debug("Guessing field %s is (%s, %s)", fname,
+                        "all", fname)
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 

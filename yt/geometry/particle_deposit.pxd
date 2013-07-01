@@ -38,7 +38,11 @@ cdef extern from "alloca.h":
     void *alloca(int)
 
 cdef inline int gind(int i, int j, int k, int dims[3]):
-    return ((k*dims[1])+j)*dims[0]+i
+    # The ordering is such that we want i to vary the slowest in this instance,
+    # even though in other instances it varies the fastest.  To see this in
+    # action, try looking at the results of an n_ref=256 particle CIC plot,
+    # which shows it the most clearly.
+    return ((i*dims[1])+j)*dims[2]+k
 
 
 ####################################################
@@ -57,7 +61,8 @@ cdef inline np.float64_t sph_kernel(np.float64_t x) nogil:
 
 cdef class ParticleDepositOperation:
     # We assume each will allocate and define their own temporary storage
-    cdef np.int64_t nvals
+    cdef public object nvals
+    cdef public int bad_indices
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.int64_t offset,
                       np.float64_t ppos[3], np.float64_t *fields)

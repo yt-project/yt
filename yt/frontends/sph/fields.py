@@ -234,3 +234,13 @@ for iname, oname in [("Coordinates", "particle_position_"),
         func = _field_concat_slice(iname, axi)
         OWLSFieldInfo.add_field(("all", oname + ax), function=func,
                 particle_type = True)
+
+def SmoothedGas(field, data):
+    pos = data["PartType0", "Coordinates"]
+    sml = data["PartType0", "SmoothingLength"]
+    dens = data["PartType0", "Density"]
+    rv = data.deposit(pos, [sml, dens], method="simple_smooth")
+    return rv
+OWLSFieldInfo.add_field(("deposit", "PartType0_simple_smooth"),
+                function = SmoothedGas, validators = [ValidateSpatial()])
+

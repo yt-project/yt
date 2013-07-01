@@ -507,7 +507,9 @@ for ax in 'xyz':
     add_enzo_field(("all", pf), function=NullFunc, convert_function=cfunc,
               particle_type=True)
 
-for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
+for pf in ["creation_time", "dynamical_time", "metallicity_fraction"] \
+        + ["particle_position_%s" % ax for ax in 'xyz'] \
+        + ["particle_velocity_%s" % ax for ax in 'xyz']:
     add_enzo_field(pf, function=NullFunc,
               validators = [ValidateDataField(pf)],
               particle_type=True)

@@ -30,6 +30,7 @@ import struct
 import os
 import os.path
 
+from yt.funcs import *
 from yt.utilities.io_handler import \
     BaseIOHandler
 import yt.utilities.lib as au
@@ -55,7 +56,7 @@ class IOHandlerART(BaseIOHandler):
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
-        tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
+        tr = defaultdict(list)
         cp = 0
         for chunk in chunks:
             for subset in chunk.objs:
@@ -63,18 +64,18 @@ class IOHandlerART(BaseIOHandler):
                 f = open(subset.domain.pf._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                if subset.domain_level == 0:
-                    rv = subset.fill_root(f, fields)
-                else:
-                    rv = subset.fill_level(f, fields)
+                rv = subset.fill(f, fields, selector)
                 for ft, f in fields:
-                    mylog.debug("Filling L%i %s with %s (%0.3e %0.3e) (%s:%s)",
-                                subset.domain_level,
-                                f, subset.cell_count, rv[f].min(), rv[f].max(),
-                                cp, cp+subset.cell_count)
-                    tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
-                cp += subset.cell_count
-        return tr
+                    d = rv.pop(f)
+                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                                f, d.size, d.min(), d.max(),
+                                cp, cp+d.size)
+                    tr[(ft, f)].append(d)
+                cp += d.size
+        d = {}
+        for field in fields:
+            d[field] = np.concatenate(tr.pop(field))
+        return d
 
     def _get_mask(self, selector, ftype):
         key = (selector, ftype)

@@ -5,6 +5,8 @@ native.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: Chris Moody <chrisemoody@gmail.com>
+Affiliation: UCSC
 Homepage: http://yt-project.org/
 License:
   Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
@@ -90,13 +92,16 @@ add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
 
 def _Zeros(field, data):
-    return np.zeros(data.shape, dtype='float64')
+    return np.zeros(data["Ones"].shape, dtype='float64')
 add_field("Zeros", function=_Zeros,
           projection_conversion="unitary",
           display_field = False)
 
 def _Ones(field, data):
-    return np.ones(data.shape, dtype='float64')
+    tr = np.ones(data.ires.shape, dtype="float64")
+    if data._spatial:
+        return data._reshape_vals(tr)
+    return tr
 add_field("Ones", function=_Ones,
           projection_conversion="unitary",
           display_field = False)
@@ -871,6 +876,66 @@ add_field("RadialVelocityKMS", function=_RadialVelocity,
 add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}")
 
+def _ParticleRadialVelocity(field, data):
+    normal = data.get_field_parameter('normal')
+    center = data.get_field_parameter('center')
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = "particle_position_%s"
+    pos = np.array([data[pos % ax] for ax in "xyz"])
+    vel = "particle_velocity_%s"
+    vel = np.array([data[vel % ax] for ax in "xyz"])
+    theta = get_sph_theta(pos.copy(), center)
+    phi = get_sph_phi(pos.copy(), center)
+    pos = pos - np.reshape(center, (3, 1))
+    vel = vel - np.reshape(bv, (3, 1))
+    sphr = get_sph_r_component(vel, theta, phi, normal)
+    return sphr
+
+add_field("ParticleRadialVelocity", function=_ParticleRadialVelocity,
+          particle_type=True, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal"), 
+                      ValidateParameter("center")])
+
+def _ParticleThetaVelocity(field, data):
+    normal = data.get_field_parameter('normal')
+    center = data.get_field_parameter('center')
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = "particle_position_%s"
+    pos = np.array([data[pos % ax] for ax in "xyz"])
+    vel = "particle_velocity_%s"
+    vel = np.array([data[vel % ax] for ax in "xyz"])
+    theta = get_sph_theta(pos.copy(), center)
+    phi = get_sph_phi(pos.copy(), center)
+    pos = pos - np.reshape(center, (3, 1))
+    vel = vel - np.reshape(bv, (3, 1))
+    spht = get_sph_theta_component(vel, theta, phi, normal)
+    return sphrt
+
+add_field("ParticleThetaVelocity", function=_ParticleThetaVelocity,
+          particle_type=True, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal"), 
+                      ValidateParameter("center")])
+
+def _ParticlePhiVelocity(field, data):
+    normal = data.get_field_parameter('normal')
+    center = data.get_field_parameter('center')
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = "particle_position_%s"
+    pos = np.array([data[pos % ax] for ax in "xyz"])
+    vel = "particle_velocity_%s"
+    vel = np.array([data[vel % ax] for ax in "xyz"])
+    theta = get_sph_theta(pos.copy(), center)
+    phi = get_sph_phi(pos.copy(), center)
+    pos = pos - np.reshape(center, (3, 1))
+    vel = vel - np.reshape(bv, (3, 1))
+    sphp = get_sph_phi_component(vel, theta, phi, normal)
+    return sphrp
+
+add_field("ParticlePhiVelocity", function=_ParticleThetaVelocity,
+          particle_type=True, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal"), 
+                      ValidateParameter("center")])
+
 def _TangentialVelocity(field, data):
     return np.sqrt(data["VelocityMagnitude"]**2.0
                  - data["RadialVelocity"]**2.0)
@@ -939,13 +1004,6 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
-
-# We add these fields so that the field detector can use them
-for field in ["particle_position_%s" % ax for ax in "xyz"]:
-    # This marker should let everyone know not to use the fields, but NullFunc
-    # should do that, too.
-    add_field(field, function=NullFunc, particle_type = True,
-        units=r"UNDEFINED")
 
 def _pdensity(field, data):
     pmass = data[('deposit','all_mass')]
