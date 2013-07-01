@@ -131,7 +131,7 @@ cdef class QuadTree:
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
-        cdef np.float64_t *vals = <np.float64_t *> alloca(
+        cdef np.float64_t *vals = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*nvals)
         cdef np.float64_t weight_val = 0.0
         self.nvals = nvals
@@ -160,6 +160,7 @@ cdef class QuadTree:
                 self.root_nodes[i][j] = QTN_initialize(
                     pos, nvals, vals, weight_val)
         self.num_cells = self.top_grid_dims[0] * self.top_grid_dims[1]
+        free(vals)
 
     cdef int count_total_cells(self, QuadTreeNode *root):
         cdef int total = 0
@@ -373,7 +374,7 @@ cdef class QuadTree:
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
         cdef np.float64_t wtoadd
-        cdef np.float64_t *vtoadd = <np.float64_t *> alloca(
+        cdef np.float64_t *vtoadd = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*self.nvals)
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -381,6 +382,7 @@ cdef class QuadTree:
                 wtoadd = 0.0
                 curpos += self.fill(self.root_nodes[i][j],
                     curpos, px, py, pdx, pdy, vdata, wdata, vtoadd, wtoadd, 0)
+        free(vtoadd)
         return opx, opy, opdx, opdy, nvals, nwvals
 
     cdef int count(self, QuadTreeNode *node):
@@ -406,7 +408,7 @@ cdef class QuadTree:
                         np.int64_t level):
         cdef int i, j, n
         cdef np.float64_t *vorig
-        vorig = <np.float64_t *> alloca(sizeof(np.float64_t) * self.nvals)
+        vorig = <np.float64_t *> malloc(sizeof(np.float64_t) * self.nvals)
         if node.children[0][0] == NULL:
             if self.merged == -1:
                 for i in range(self.nvals):
@@ -444,6 +446,7 @@ cdef class QuadTree:
             for i in range(self.nvals):
                 vtoadd[i] = vorig[i]
             wtoadd -= node.weight_val
+        free(vorig)
         return added
 
     @cython.boundscheck(False)
