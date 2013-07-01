@@ -31,6 +31,7 @@ from exceptions import IOError, TypeError
 from types import ClassType
 import numpy as np
 import abc
+import copy
 
 from yt.funcs import *
 from yt.config import ytcfg
@@ -166,7 +167,6 @@ class GeometryHandler(ParallelAnalysisInterface):
         # First we construct our list of fields to check
         fields_to_check = []
         fields_to_allcheck = []
-        fields_to_add = []
         for field in fi:
             finfo = fi[field]
             # Explicitly defined
@@ -179,13 +179,14 @@ class GeometryHandler(ParallelAnalysisInterface):
                 fields_to_check.append(field)
                 continue
             # We do a special case for 'all' later
-            new_fields = [(pt, field) for pt in
-                          self.parameter_file.particle_types]
+            new_fields = []
+            for pt in self.parameter_file.particle_types:
+                new_fi = copy.copy(finfo)
+                new_fi.name = (pt, new_fi.name)
+                fi[new_fi.name] = new_fi
+                new_fields.append(new_fi.name)
             fields_to_check += new_fields
-            fields_to_add.extend( (new_field, fi[field]) for
-                                   new_field in new_fields )
             fields_to_allcheck.append(field)
-        fi.update(fields_to_add)
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
