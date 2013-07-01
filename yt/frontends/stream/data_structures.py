@@ -378,16 +378,15 @@ def assign_particle_data(pf, pdata) :
         
     pf.h.update_data(grid_pdata)
                                         
-def load_uniform_grid(data, domain_dimensions, length_unit= sim_unit_to_cm=None, bbox=None,
+def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, periodicity=(True, True, True),
-                      units=None):
+                      sim_unit_to_cm=None):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
     This should allow a uniform grid of data to be loaded directly into yt and
     analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
+        * Units will be incorrect unless the unit system is explicitly specified.
         * Some functions may behave oddly, and parallelism will be
           disappointing or non-existent in most cases.
         * Particles may be difficult to integrate.
@@ -450,8 +449,18 @@ Parameters
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
-    if units is None:
+    if isinstance(data, ndrray):
         units = {((field, '') for field in data.keys())}
+    else:
+        # This can raise YTInvalidData
+        self.sanitize_input_data()
+
+        data  = {(f,data[f][0] for f in data)}
+        units = {(f,data[f][1] for f in data)}
+
+    # This can raise YTInvalidUnit
+    self.check_units()
+
     sfh = StreamDictFieldHandler()
     
     if data.has_key("number_of_particles") :
