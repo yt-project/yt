@@ -1159,10 +1159,11 @@ cdef class OctreeSubsetSelector(SelectorObject):
                          Oct *o = NULL) nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
-        return self.base_selector.select_grid(left_edge, right_edge, level, o)
-
-    def get_base(self):
-        return self.base_selector
+        cdef int res
+        res = self.base_selector.select_grid(left_edge, right_edge, level, o)
+        if res == 1 and o != NULL and o.domain != self.domain_id:
+            return -1
+        return res
 
 octree_subset_selector = OctreeSubsetSelector
 
