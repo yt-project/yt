@@ -167,7 +167,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         # First we construct our list of fields to check
         fields_to_check = []
         fields_to_allcheck = []
-        for field in fi:
+        for field in fi.keys():
             finfo = fi[field]
             # Explicitly defined
             if isinstance(field, tuple):
