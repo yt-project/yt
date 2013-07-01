@@ -74,6 +74,9 @@ class RAMSESDomainFile(object):
     _hydro_offset = None
     _level_count = None
 
+    def __repr__(self):
+        return "RAMSESDomainFile: %i" % self.domain_id
+
     @property
     def level_count(self):
         if self._level_count is not None: return self._level_count
@@ -398,6 +401,8 @@ class RAMSESStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = unit_l * mpc_conversion[unit] / mpc_conversion["cm"]
             self.units['%sh' % unit] = self.units[unit] * self.hubble_constant
+            self.units['%scm' % unit] = (self.units[unit] /
+                                          (1 + self.current_redshift))
             self.units['%shcm' % unit] = (self.units['%sh' % unit] /
                                           (1 + self.current_redshift))
         for unit in sec_conversion.keys():

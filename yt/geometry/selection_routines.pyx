@@ -1124,6 +1124,8 @@ cdef class OctreeSubsetSelector(SelectorObject):
 
     def __init__(self, dobj):
         self.base_selector = dobj.base_selector
+        self.min_level = self.base_selector.min_level
+        self.max_level = self.base_selector.max_level
         self.domain_id = dobj.domain_id
         self.overlap_cells = 1
 
@@ -1157,11 +1159,10 @@ cdef class OctreeSubsetSelector(SelectorObject):
                          Oct *o = NULL) nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
-        cdef int res
-        res = self.base_selector.select_grid(left_edge, right_edge, level, o)
-        if res == 1 and o != NULL and o.domain != self.domain_id:
-            return -1
-        return res
+        return self.base_selector.select_grid(left_edge, right_edge, level, o)
+
+    def get_base(self):
+        return self.base_selector
 
 octree_subset_selector = OctreeSubsetSelector
 
@@ -1175,6 +1176,8 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
         self.min_ind = dobj.min_ind
         self.max_ind = dobj.max_ind
         self.base_selector = dobj.base_selector
+        self.min_level = self.base_selector.min_level
+        self.max_level = self.base_selector.max_level
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
