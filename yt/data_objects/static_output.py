@@ -259,13 +259,15 @@ class StaticOutput(object):
             used = False
             for f in filter_registry[filter]:
                 used = self.h._setup_filtered_type(f)
-                if used: break
-            if not used: return
-            filter = f
+                if used:
+                    filter = f
+                    break
         else:
             used = self.h._setup_filtered_type(filter)
-        if not used: return
+        if not used:
+            return False
         self.known_filters[filter.name] = filter
+        return True
 
     _last_freq = (None, None)
     _last_finfo = None
