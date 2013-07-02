@@ -98,7 +98,17 @@ class SetConfigOption(argparse.Action):
         if param == "loglevel": # special case
             mylog.setLevel(int(val))
 
-parser = argparse.ArgumentParser(description = 'yt command line arguments')
+class YTParser(argparse.ArgumentParser):
+    def error(self, message):
+        """error(message: string)
+
+        Prints a help message that is more detailed than the argparse default
+        and then exits.
+        """
+        self.print_help(sys.stderr)
+        self.exit(2, '%s: error: %s\n' % (self.prog, message))
+
+parser = YTParser(description = 'yt command line arguments')
 parser.add_argument("--config", action=SetConfigOption,
     help = "Set configuration option, in the form param=value")
 parser.add_argument("--paste", action=SetExceptionHandling,

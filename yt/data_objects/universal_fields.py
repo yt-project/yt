@@ -1082,7 +1082,7 @@ def _BRadial(field,data):
 
     return get_sph_r_component(Bfields, theta, phi, normal)
 
-add_field("BRadial", function=_BPoloidal,
+add_field("BRadial", function=_BRadial,
           units=r"\rm{Gauss}",
           validators=[ValidateParameter("normal")])
 
