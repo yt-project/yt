@@ -706,6 +706,9 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
+    _particle_mass_name = "ParticleMass"
+    _particle_coordinates_name = "Coordinates"
+
     def __init__(self, filename, data_style=None,
                  file_style = None,
                  parameter_override = None,

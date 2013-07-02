@@ -39,6 +39,8 @@ from yt.data_objects.data_containers import \
     data_object_registry
 from yt.data_objects.field_info_container import \
     NullFunc
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -166,28 +168,36 @@ class GeometryHandler(ParallelAnalysisInterface):
         self.filtered_particle_types = []
         fc, fac = self._derived_fields_to_check()
         self._derived_fields_add(fc, fac)
-        # Now we do a special case for all filters.
-        kf = self.parameter_file.known_filters
+
+    def _setup_filtered_type(self, filter):
+        if not filter.available(self.derived_field_list):
+            return False
         fi = self.parameter_file.field_info
         fd = self.parameter_file.field_dependencies
-        for filter_name in kf:
-            filter = kf[filter_name]
-            if not filter.available(self.derived_field_list):
-                continue
-            # Only fields whose dependencies have been reached get added here.
-            available = False
-            for fn in self.derived_field_list:
-                if fn[0] == filter.filtered_type:
-                    # Now we can add this
-                    available = True
-                    self.derived_field_list.append(
-                        (filter.name, fn[1]))
-                    fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
-                    # Now we append the dependencies
-                    fd[filter.name, fn[1]] = fd[fn]
-            if available:
-                self.parameter_file.particle_types += (filter_name,)
-                self.filtered_particle_types.append(filter_name)
+        available = False
+        for fn in self.derived_field_list:
+            if fn[0] == filter.filtered_type:
+                # Now we can add this
+                available = True
+                self.derived_field_list.append(
+                    (filter.name, fn[1]))
+                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
+                # Now we append the dependencies
+                fd[filter.name, fn[1]] = fd[fn]
+        if available:
+            self.parameter_file.particle_types += (filter.name,)
+            self.filtered_particle_types.append(filter.name)
+            self._setup_particle_fields(filter.name, True)
+        return available
+
+    def _setup_particle_fields(self, ptype, filtered = False):
+        pf = self.parameter_file
+        pmass = self.parameter_file._particle_mass_name
+        pcoord = self.parameter_file._particle_coordinates_name
+        if pmass is None or pcoord is None: return
+        df = particle_deposition_functions(ptype,
+            pcoord, pmass, self.parameter_file.field_info)
+        self._derived_fields_add(df)
 
     def _derived_fields_to_check(self):
         fi = self.parameter_file.field_info

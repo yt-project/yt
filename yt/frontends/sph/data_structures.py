@@ -129,6 +129,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
     _file_class = GadgetBinaryFile
     _fieldinfo_fallback = GadgetFieldInfo
     _fieldinfo_known = KnownGadgetFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
     _header_spec = (('Npart', 6, 'i'),
                     ('Massarr', 6, 'd'),
                     ('Time', 1, 'd'),

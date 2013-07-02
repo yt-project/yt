@@ -37,6 +37,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.data_objects.particle_filters import \
+    filter_registry
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
 
@@ -60,6 +62,8 @@ class StaticOutput(object):
     geometry = "cartesian"
     coordinates = None
     max_level = 99
+    _particle_mass_name = None
+    _particle_coordinates_name = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -251,6 +255,16 @@ class StaticOutput(object):
             raise YTGeometryNotSupported(self.geometry)
 
     def add_particle_filter(self, filter):
+        if isinstance(filter, types.StringTypes):
+            used = False
+            for f in filter_registry[filter]:
+                used = self.h._setup_filtered_type(f)
+                if used: break
+            if not used: return
+            filter = f
+        else:
+            used = self.h._setup_filtered_type(filter)
+        if not used: return
         self.known_filters[filter.name] = filter
 
     _last_freq = (None, None)
