@@ -32,31 +32,28 @@ from yt.funcs import *
 # One to many mapping
 filter_registry = defaultdict(list)
 
+class DummyFieldInfo(object):
+    particle_type = True
+dfi = DummyFieldInfo()
+
 class ParticleFilter(object):
-    def __init__(self, name, function, requires):
+    def __init__(self, name, function, requires, filtered_type):
         self.name = name
         self.function = function
         self.requires = requires[:]
-        pt = []
-        for r in requires:
-            if not isinstance(r, types.TupleType):
-                raise RuntimeError
-            if r[0] not in pt:
-                pt.append(r[0])
-        if len(pt) > 1:
-            raise RuntimeError
-        self.particle_type = pt[0]
+        self.particle_type = filtered_type
 
     @contextmanager
     def apply(self, dobj):
         with dobj._chunked_read(dobj._current_chunk):
-            # We won't be storing the field data from the whole read, so we
-            # start by filtering now.
-            filter = self.function(self, dobj)
-            yield
-            # Retain a reference here, and we'll filter all appropriate fields
-            # later.
-            fd = dobj.field_data
+            with dobj._field_type_state(self.particle_type, dfi):
+                # We won't be storing the field data from the whole read, so we
+                # start by filtering now.
+                filter = self.function(self, dobj)
+                yield
+                # Retain a reference here, and we'll filter all appropriate fields
+                # later.
+                fd = dobj.field_data
         for f, tr in fd.items():
             if f[0] != self.particle_type: continue
             if tr.shape != filter.shape:
@@ -69,13 +66,13 @@ class ParticleFilter(object):
         # fields are implicitly "all" or something.
         return all(field in field_list for field in self.requires)
 
-def add_particle_filter(name, function, requires = None):
+def add_particle_filter(name, function, requires = None, filtered_type = "all"):
     if requires is None: requires = []
-    filter = ParticleFilter(name, function, requires)
+    filter = ParticleFilter(name, function, requires, filtered_type)
     filter_registry[name].append(filter)
 
-def particle_filter(name, requires = None):
+def particle_filter(name, requires = None, filtered_type = "all"):
     def _pfilter(func):
-        add_particle_filter(name, func, requires)
+        add_particle_filter(name, func, requires, filtered_type)
         return func
     return _pfilter
