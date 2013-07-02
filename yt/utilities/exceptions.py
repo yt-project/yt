@@ -28,8 +28,8 @@ License:
 import os.path
 
 class YTException(Exception):
-    def __init__(self, pf = None):
-        Exception.__init__(self)
+    def __init__(self, message = None, pf = None):
+        Exception.__init__(self, message)
         self.pf = pf
 
 # Data access exceptions:
@@ -45,7 +45,7 @@ class YTOutputNotIdentified(YTException):
 
 class YTSphereTooSmall(YTException):
     def __init__(self, pf, radius, smallest_cell):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
         self.radius = radius
         self.smallest_cell = smallest_cell
 
@@ -125,7 +125,7 @@ class InvalidSimulationTimeSeries(YTException):
             
 class MissingParameter(YTException):
     def __init__(self, pf, parameter):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
         self.parameter = parameter
 
     def __str__(self):
@@ -134,7 +134,7 @@ class MissingParameter(YTException):
 
 class NoStoppingCondition(YTException):
     def __init__(self, pf):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
 
     def __str__(self):
         return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
@@ -168,6 +168,34 @@ class YTUnitNotRecognized(YTException):
     def __str__(self):
         return "This parameter file doesn't recognize %s" % self.unit
 
+class YTUnitOperationError(YTException):
+    def __init__(self, operation, unit1, unit2=None):
+        self.operation = operation
+        self.unit1 = unit1
+        self.unit2 = unit2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "The %s operator for\n" + "YTArrays with units (%s) "
+        if self.unit2 is not None:
+            err += "and (%s) "
+        err += "is not well defined."
+        return err % (self.operation, self.unit1, self.unit2)
+
+class YTUnitConversionError(YTException):
+    def __init__(self, unit1, dimension1, unit2, dimension2):
+        self.unit1 = unit1
+        self.unit2 = unit2
+        self.dimension1 = dimension1
+        self.dimension2 = dimension2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "Unit dimensionalities do not match. Tried to convert between " \
+          "%s (dim %s) and %s (dim %s)." \
+          % (self.unit1, self.dimension1, self.unit2, self.dimension2)
+
+
 class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \
@@ -199,7 +227,7 @@ class YTCloudError(YTException):
 
 class YTEllipsoidOrdering(YTException):
     def __init__(self, pf, A, B, C):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
         self._A = A
         self._B = B
         self._C = C

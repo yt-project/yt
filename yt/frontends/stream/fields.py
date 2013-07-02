@@ -42,6 +42,14 @@ StreamFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = StreamFieldInfo.add_field
 
 add_field("density", function = NullFunc, units='g/cm**3')
+add_field("pressure", function = NullFunc, units='dyne/cm**2')
+add_field("temperature", function = NullFunc, units='K')
+add_field("x-velocity", function = NullFunc, units='cm/s')
+add_field("y-velocity", function = NullFunc, units='cm/s')
+add_field("z-velocity", function = NullFunc, units='cm/s')
+add_field("magnetic_field_x", function = NullFunc, units='gauss')
+add_field("magnetic_field_y", function = NullFunc, units='gauss')
+add_field("magnetic_field_z", function = NullFunc, units='gauss')
 
 add_field(
     "particle_position_x", function = NullFunc, particle_type=True, units='cm')

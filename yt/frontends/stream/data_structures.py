@@ -1,4 +1,3 @@
-
 """
 Data structures for Streaming, in-memory datasets
 
@@ -28,6 +27,8 @@ import weakref
 import numpy as np
 import uuid
 
+from numbers import Number as numeric_type
+
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
 from yt.config import ytcfg
@@ -44,6 +45,7 @@ from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.decompose import \
     decompose_array, get_psize
+from yt.data_objects.yt_array import YTQuantity, YTArray
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.flagging_methods import \
@@ -379,8 +381,7 @@ def assign_particle_data(pf, pdata) :
     pf.h.update_data(grid_pdata)
                                         
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
-                      nprocs=1, sim_time=0.0, periodicity=(True, True, True),
-                      sim_unit_to_cm=None):
+                      nprocs=1, sim_time=0.0, periodicity=(True, True, True)):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -401,11 +402,11 @@ Parameters
         keys are the field names.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
+    length_unit : string
+        Unit to use for lengths.  Defaults to unitless.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units specified by length_unit.
         Defaults to a cubic unit-length domain.
-    length_unit : string
-        Unit to use for lengths.  Defaults to unitless.
     nprocs: integer, optional
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
@@ -415,27 +416,25 @@ Parameters
         each axis
     units : dict
         Specification for units of fields in the data.
-    sim_unit_to_cm : float
-        Conversion to centimeters.  Only applied if length_unit is unset.
 
     Examples
     --------
 
     >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
-    >>> arr = np.random.random((128, 128, 129))
+    >>> arr = np.random.random((128, 128, 128))
 
     >>> data = dict(Density = arr)
     >>> pf = load_uniform_grid(data, arr.shape, length_unit='cm',
-                               field_units=units, bbox=bbox, nprocs=12)
-    >>> pf.h.all_data()
+                               bbox=bbox, nprocs=12)
+    >>> dd = pf.h.all_data()
     >>> dd['Density']
 
     #FIXME
     YTArray[123.2856, 123.854, ..., 123.456, 12.42] (code_mass/code_length^3)
 
     >>> data = dict(Density = (arr, 'g/cm**3'))
-    >>> pf = load_uniform_grid(data, arr.shape, sim_unit_to_cm=3.03e24, field_units=units, bbox=bbox, nprocs=12)
-    >>> pf.h.all_data()
+    >>> pf = load_uniform_grid(data, arr.shape, 3.03e24, bbox=bbox, nprocs=12)
+    >>> dd = pf.h.all_data()
     >>> dd['Density']
 
     #FIXME
@@ -446,26 +445,36 @@ Parameters
     domain_dimensions = np.array(domain_dimensions)
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
-    domain_left_edge = np.array(bbox[:, 0], 'float64')
-    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    domain_left_edge = YTArray(np.array(bbox[:, 0], 'float64'))
+    domain_right_edge = YTArray(np.array(bbox[:, 1], 'float64'))
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
-    if isinstance(data, ndrray):
-        units = {((field, '') for field in data.keys())}
+    if all([isinstance(val, np.ndarray) for val in data.values()]):
+        field_units = {field:'' for field in data.keys()}
+    elif all([(len(val) == 2) for val in data.values()]):
+        data, field_units = {}, {}
+        for field in data:
+            try:
+                assert isinstance(field, basestring), \
+                  "Field name is not a string!"
+                assert isinstance(data[f][0], np.ndarray), \
+                  "Field data is not an ndarray!"
+                assert isinstance(data[f][1], basestring), \
+                  "Unit specification is not a sring!"
+                field_units[field] = data[field][1]
+                data[field] = data[field][0]
+            except AssertionError, e:
+                raise RuntimeError("The data dict appears to be invalid.\n" +
+                                   str(e))
     else:
-        # This can raise YTInvalidData
-        self.sanitize_input_data()
-
-        data  = {(f,data[f][0] for f in data)}
-        units = {(f,data[f][1] for f in data)}
-
-    # This can raise YTInvalidUnit
-    self.check_units()
+        raise RuntimeError("The data dict appears to be invalid. "
+                           "The data dictionary must map from field "
+                           "names to (numpy array, unit spec) tuples. ")
 
     sfh = StreamDictFieldHandler()
     
     if data.has_key("number_of_particles") :
         number_of_particles = data.pop("number_of_particles")
-    else :
+    else:
         number_of_particles = int(0)
     
     if number_of_particles > 0 :
@@ -508,7 +517,7 @@ Parameters
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
-        units,
+        field_units,
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -523,15 +532,15 @@ Parameters
     handler.cosmology_simulation = 0
 
     spf = StreamStaticOutput(handler)
-    spf.units["cm"] = sim_unit_to_cm
-    spf.units['1'] = 1.0
-    spf.units["unitary"] = 1.0
-    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
-    for unit in mpc_conversion.keys():
-        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+
+    if isinstance(length_unit, basestring):
+        spf.length_unit = YTQuantity(1.0, length_unit)
+    elif isinstance(length_unit, numeric_type):
+        spf.length_unit = YTQuantity(length_unit, 'cm')
+    else:
+        raise RuntimeError("Length unit (%s) unrecognized" % length_unit)
 
     # Now figure out where the particles go
-
     if number_of_particles > 0 :
         if ("all", "particle_position_x") not in pdata:
             pdata_ftype = {}
@@ -545,37 +554,45 @@ Parameters
     
     return spf
 
-def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
-                   sim_time=0.0):
+def load_amr_grids(grid_data, domain_dimensions, length_units=None,
+                   field_units=None, bbox=None, sim_time=0.0,
+                   periodicity=(True, True, True)):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
-
     This should allow a sequence of grids of varying resolution of data to be
     loaded directly into yt and analyzed as would any others.  This comes with
     several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
+        * Units will be incorrect unless the unit system is explicitly specified.
         * Some functions may behave oddly, and parallelism will be
           disappointing or non-existent in most cases.
         * Particles may be difficult to integrate.
         * No consistency checks are performed on the hierarchy
-
-    Parameters
+Parameters
     ----------
     grid_data : list of dicts
-        This is a list of dicts.  Each dict must have entries "left_edge",
+        This is a list of dicts. Each dict must have entries "left_edge",
         "right_edge", "dimensions", "level", and then any remaining entries are
-        assumed to be fields.  They also may include a particle count, otherwise
-        assumed to be zero. This will be modified in place and can't be
-        assumed to be static.
+        assumed to be fields. Field entries must map to an NDArray. The grid_data
+        may also include a particle count. If no particle count is supplied, the
+        dataset is understood to contain no particles. The grid_data will be
+        modified in place and can't be assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
+    length_unit : string or float
+        Unit to use for lengths.  Defaults to unitless.  If set to be a string, the bbox
+        dimensions are assumed to be in the corresponding units.  If set to a float, the
+        value is a assumed to be the conversion from bbox dimensions to centimeters.
+    field_units : dict
+        A dictionary mapping string field names to string unit specifications.  The field
+        names must correspond to the fields in grid_data.
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units specified by length_unit.
+        Defaults to a cubic unit-length domain.
     sim_time : float, optional
         The simulation time in seconds
+    periodicity : tuple of booleans
+        Determines whether the data will be treated as periodic along
+        each axis
 
     Examples
     --------
@@ -596,6 +613,7 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     >>> for g in grid_data:
     ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
+    >>> units = dict(Density='g/cm**3')
     >>> pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
     """
 
@@ -619,7 +637,13 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
         if g.has_key("number_of_particles") :
             number_of_particles[i,:] = g.pop("number_of_particles")  
         sfh[i] = g
-            
+
+    if units == None:
+        # Assume the first grid contains all fields
+        g = grid_data[0]
+        nfields = len(g.keys())
+        units = {(field, '') for field in g.keys()}
+
     handler = StreamHandler(
         grid_left_edges,
         grid_right_edges,
@@ -629,6 +653,7 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
         number_of_particles,
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
+        units,
         particle_types=set_particle_types(grid_data[0])
     )
 
@@ -642,10 +667,13 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     handler.cosmology_simulation = 0
 
     spf = StreamStaticOutput(handler)
-    spf.units["cm"] = sim_unit_to_cm
+    if isinstance(length_unit, basestring):
+        #fixme
+        raise NotImplementedError
+    spf.units["cm"] = length_unit
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
-    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    box_in_mpc = length_unit / mpc_conversion['cm']
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
     return spf

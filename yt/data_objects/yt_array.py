@@ -3,6 +3,8 @@ YTArray class.
 
 Author: Casey W. Stark <caseywstark@gmail.com>
 Affiliation: UC Berkeley
+Author: Nathan Goldbaum <goldbaum@ucolick.org>
+Affiliartion: UCSC
 
 Homepage: http://yt-project.org/
 License:
@@ -37,7 +39,8 @@ from numpy import add, subtract, multiply, divide, \
     bitwise_or, bitwise_not, bitwise_and
 
 from yt.utilities.units import Unit
-import numbers.Number as numeric_type
+from yt.utilities.exceptions import YTUnitOperationError, YTUnitConversionError
+from numbers import Number as numeric_type
 
 def ensure_unitless(func):
     def wrapped(unit):
@@ -207,7 +210,8 @@ class YTArray(np.ndarray):
             units = Unit(units)
 
         if not self.units.same_dimensions_as(units):
-            raise UnitOperationError("Unit dimensionalities do not match. Tried to convert between %s (dim %s) and %s (dim %s)." % (self.units, self.units.dimensions, units, units.dimensions))
+            raise YTUnitConversionError(
+                self.units, self.units.dimensions, units, units.dimensions)
 
         return units
 
@@ -287,16 +291,14 @@ class YTArray(np.ndarray):
         # attribute.
         if isinstance(right_object, YTArray):
             if not self.units.same_dimensions_as(right_object.units):
-                raise UnitOperationError("You cannot add these YTArrays "
-                    "because the unit dimensions do not match. `%s + %s` is "
-                    "ill-defined." % (self.units, right_object.units))
+                raise YTUnitOperationError('addition', self.units,
+                                           right_object.units)
         # If the other object is not a YTArray, the only valid case is adding
         # dimensionless things.
         else:
             if not self.units.is_dimensionless:
-                raise UnitOperationError("You cannot add a pure number to a "
-                    "dimensional YTArray. `%s + %s` is ill-defined."
-                    % (self, right_object))
+                raise YTUnitOperationError('addition', self.units,
+                                           right_object.units)
 
         return YTArray(super(YTArray, self).__add__(right_object))
 
@@ -304,14 +306,12 @@ class YTArray(np.ndarray):
         """ See __add__. """
         if isinstance(left_object, YTArray):
             if not self.units.same_dimensions_as(left_object.units):
-                raise UnitOperationError("You cannot add these YTArrays "
-                    "because the unit dimensions do not match. `%s + %s` is "
-                    "ill-defined." % (left_object.units, self.units))
+                raise YTUnitOperationError('addition', left_object.units,
+                                           self.units)
         else:
             if not self.units.is_dimensionless:
-                raise UnitOperationError("You cannot add a pure number to a "
-                    "dimensional YTArray. `%s + %s` is ill-defined."
-                    % (left_object, self))
+                raise YTUnitOperationError('addition', left_object.units,
+                                           self.units)
 
         return YTArray(super(YTArray, self).__radd__(left_object))
 
@@ -329,31 +329,25 @@ class YTArray(np.ndarray):
         # attribute.
         if isinstance(right_object, YTArray):
             if not self.units.same_dimensions_as(right_object.units):
-                raise UnitOperationError("You cannot subtract these YTArrays "
-                    "because the unit dimensions do not match. `%s + %s` is "
-                    "ill-defined." % (self.units, right_object.units))
+                raise YTUnitOperationError('subtraction', self.units,
+                                           right_object.units)
         # If the other object is not a YTArray, the only valid case is adding
         # dimensionless things.
         else:
             if not self.units.is_dimensionless:
-                raise UnitOperationError("You cannot subtract a pure number "
-                    "from a dimensional YTArray. `%s + %s` is ill-defined."
-                    % (self, right_object))
+                raise YTUnitOperationError('subtraction', self.units,
+                                           right_object.units)
 
         return YTArray(super(YTArray, self).__sub__(right_object))
 
     def __rsub__(self, left_object):
         """ See __sub__. """
         if isinstance(left_object, YTArray):
-            if not self.units.same_dimensions_as(left_object.units):
-                raise UnitOperationError("You cannot subtract these YTArrays "
-                    "because the unit dimensions do not match. `%s - %s` is "
-                    "ill-defined." % (left_object.units, self.units))
+                raise YTUnitOperationError('subtraction', left_object.units,
+                                           self.units)
         else:
-            if not self.units.is_dimensionless:
-                raise UnitOperationError("You cannot subtract a dimensional "
-                    "from a pure number. `%s - %s` is ill-defined."
-                    % (left_object, self))
+                raise YTUnitOperationError('subtraction', left_object.units,
+                                           self.units)
 
         return YTArray(super(YTArray, self).__rsub__(left_object))
 
@@ -418,6 +412,7 @@ class YTArray(np.ndarray):
         """ See __div__. """
         return np.floor_divide(self, other, out=self)
     
+    #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):
         return YTArray(super(YTArray, self).__or__(right_object))
 
@@ -457,8 +452,7 @@ class YTArray(np.ndarray):
         """
         if isinstance(power, YTArray):
             if not power.units.is_dimensionless:
-                raise UnitOperationError("The power argument must be "
-                    "dimensionless. (%s)**(%s) is ill-defined." % (self, power))
+                raise YTUnitOperationError('power', power.unit)
 
         return YTArray(super(YTArray, self).__pow__(power))
     
@@ -485,9 +479,7 @@ class YTArray(np.ndarray):
         # Check that other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise UnitOperationError("The less than operator for "
-                    "YTArrays with units %s and %s is not well defined."
-                    % (self.units, other.units))
+                raise YTUnitOperationError('less than', self.units, other.units)
 
             return np.array(self).__lt__(np.array(other.in_units(self.units)))
 
@@ -498,9 +490,7 @@ class YTArray(np.ndarray):
         # Check that other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise UnitOperationError("The less than or equal operator for "
-                    "YTArrays with units %s and %s is not well defined."
-                    % (self.units, other.units))
+                raise YTUnitOperationError('less than or equal', self.units, other.units)
 
             return np.array(self).__le__(np.array(other.in_units(self.units)))
 
@@ -511,9 +501,7 @@ class YTArray(np.ndarray):
         # Check that other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise UnitOperationError("The equal operator for "
-                    "YTArrays with units %s and %s is not well defined."
-                    % (self.units, other.units))
+                raise YTUnitOperationError("equal", self.units, other.units)
 
             return np.array(self).__eq__(np.array(other.in_units(self.units)))
 
@@ -524,9 +512,7 @@ class YTArray(np.ndarray):
         # Check that the other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise Exception("The not equal operator for "
-                    "YTArrays with units %s and %s is not well defined."
-                    % (self.units, other.units))
+                raise YTUnitOperationError("not equal", self.units, other.units)
 
             return np.array(self).__ne__(np.array(other.in_units(self.units)))
 
@@ -537,9 +523,7 @@ class YTArray(np.ndarray):
         # Check that the other is a YTArray.
         if isinstance(right_object, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise Exception("The greater than or equal operator for "
-                    "YTArrays with units %s and %s is not well defined."
-                    % (self.units, other.units))
+                raise YTUnitOperationError("greater than or equal", self.units, other.units)
 
             return np.array(self).__ge__(np.array(other.in_units(self.units)))
 
@@ -550,9 +534,7 @@ class YTArray(np.ndarray):
         # Check that the other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise Exception("The greater than operator for "
-                    "YTArrays with units %s and %s is not well defined."
-                    % (self.units, other.units))
+                raise YTUnitOperationError("greater than", self.units, other.units)
 
             return np.array(self).__gt__(np.array(other.in_units(self.units)))
 
@@ -596,8 +578,8 @@ class YTArray(np.ndarray):
             return out_arr[0]
         return super(YTArray, self).__array_wrap__(out_arr, context)
 
-class YTQuantity(YTArray)
-    def __new__(cls, input, input_units=None, registry=None)
-        if not isinstance(input, numeric_type)
+class YTQuantity(YTArray):
+    def __new__(cls, input, input_units=None, registry=None):
+        if not isinstance(input, numeric_type):
             raise RuntimeError('Quantity values must be numeric')
-        super(YTQuantity, self).__new__(cls, input, input_units, registry)
+        return YTArray.__new__(cls, input, input_units, registry)

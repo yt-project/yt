@@ -58,7 +58,7 @@ from yt.utilities.physical_constants import \
     G, \
     rho_crit_now, \
     speed_of_light_cgs, \
-    km_per_cm, keV_per_K
+    km_per_cm
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \

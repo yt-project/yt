@@ -76,8 +76,6 @@ day_per_year = 365.25
 # temperature / energy
 erg_per_eV = 1.602176487e-12 # http://goldbook.iupac.org/E02014.html
 erg_per_keV = erg_per_eV * 1.0e3
-K_per_keV = erg_per_keV / boltzmann_constant_cgs
-keV_per_K = 1.0 / K_per_keV
 
 #Short cuts
 G = gravitational_constant_cgs
