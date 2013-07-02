@@ -468,14 +468,20 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self.hierarchy._identify_base_chunk(self)
         if fields is None: return
         nfields = []
+        apply_fields = defaultdict(list)
         for field in self._determine_fields(fields):
             if field[0] in self.pf.h.filtered_particle_types:
                 f = self.pf.known_filters[field[0]]
-                with f.apply(self):
-                    self.get_data([(f.filtered_type, field[1])])
+                apply_fields[field[0]].append(
+                    (f.filtered_type, field[1]))
             else:
                 nfields.append(field)
+        for filter_type in apply_fields:
+            f = self.pf.known_filters[filter_type]
+            with f.apply(self):
+                self.get_data(apply_fields[filter_type])
         fields = nfields
+        if len(fields) == 0: return
         # Now we collect all our fields
         # Here is where we need to perform a validation step, so that if we
         # have a field requested that we actually *can't* yet get, we put it

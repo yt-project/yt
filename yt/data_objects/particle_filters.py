@@ -59,9 +59,18 @@ class ParticleFilter(object):
                 fd = dobj.field_data
         for f, tr in fd.items():
             if f[0] != self.filtered_type: continue
-            if tr.shape != filter.shape:
+            if tr.shape != filter.shape and tr.shape[0] != filter.shape[0]:
                 raise YTIllDefinedFilter(self, tr.shape, filter.shape)
-            dobj.field_data[self.name, f[1]] = tr[filter]
+            elif filter.size == 0:
+                # Filtering empty set.  This keeps our dimensions correct.
+                # Otherwise we end up with out-of-axis and shape problems.
+                d = tr.copy() 
+            elif len(tr.shape) > len(filter.shape):
+                # Filter must always be 1D
+                d = tr[filter,:]
+            else:
+                d = tr[filter]
+            dobj.field_data[self.name, f[1]] = d
 
     def available(self, field_list):
         # Note that this assumes that all the fields in field_list have the
