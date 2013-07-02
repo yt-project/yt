@@ -232,11 +232,12 @@ class ARTIOGeometryHandler(GeometryHandler):
     def _chunk_spatial(self, dobj, ngz):
         raise NotImplementedError
 
-    def _chunk_io(self, dobj):
+    def _chunk_io(self, dobj, cache = True):
         # _current_chunk is made from identify_base_chunk
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for chunk in oobjs:
-            yield YTDataChunk(dobj, "io", [chunk], self._data_size)
+            yield YTDataChunk(dobj, "io", [chunk], self._data_size,
+                              cache = cache)
 
     def _read_fluid_fields(self, fields, dobj, chunk=None):
         if len(fields) == 0:

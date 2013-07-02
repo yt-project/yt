@@ -403,8 +403,9 @@ class GeometryHandler(ParallelAnalysisInterface):
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(
-                    self._chunk_io(dobj), selector,
-                    fields_to_read)
+            self._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
             finfo = self.pf._get_field_info(*field)
@@ -425,10 +426,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
-                                                   selector,
-                                                   fields_to_read,
-                                                   chunk_size)
+        fields_to_return = self.io._read_fluid_selection(
+            self._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read,
+            chunk_size)
         for field in fields_to_read:
             ftype, fname = field
             conv_factor = self.pf.field_info[fname]._convert_function(self)
@@ -453,20 +455,30 @@ class GeometryHandler(ParallelAnalysisInterface):
         else:
             raise NotImplementedError
 
+def cached_property(func):
+    n = '_%s' % func.func_name
+    def cached_func(self):
+        if self._cache and getattr(self, n, None) is not None:
+            return getattr(self, n)
+        if self.data_size is None:
+            tr = self._accumulate_values(n[1:])
+        else:
+            tr = func(self)
+        if self._cache:
+            setattr(self, n, tr)
+        return tr
+    return property(cached_func)
+
 class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size = None, field_type = None):
+    def __init__(self, dobj, chunk_type, objs, data_size = None,
+                 field_type = None, cache = False):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
-        self._data_size = data_size
+        self.data_size = data_size
         self._field_type = field_type
-
-    @property
-    def data_size(self):
-        if callable(self._data_size):
-            self._data_size = self._data_size(self.dobj, self.objs)
-        return self._data_size
+        self._cache = cache
 
     def _accumulate_values(self, method):
         # We call this generically.  It's somewhat slower, since we're doing
@@ -477,35 +489,25 @@ class YTDataChunk(object):
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
         arrs = np.concatenate(arrs)
-        self._data_size = arrs.shape[0]
+        self.data_size = arrs.shape[0]
         return arrs
 
-    _fcoords = None
-    @property
+    @cached_property
     def fcoords(self):
-        if self.data_size is None:
-            self._fcoords = self._accumulate_values("fcoords")
-        if self._fcoords is not None: return self._fcoords
         ci = np.empty((self.data_size, 3), dtype='float64')
-        self._fcoords = ci
-        if self.data_size == 0: return self._fcoords
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_fcoords(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
-        return self._fcoords
+        return ci
 
-    _icoords = None
-    @property
+    @cached_property
     def icoords(self):
-        if self.data_size is None:
-            self._icoords = self._accumulate_values("icoords")
-        if self._icoords is not None: return self._icoords
         ci = np.empty((self.data_size, 3), dtype='int64')
-        self._icoords = ci
-        if self.data_size == 0: return self._icoords
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_icoords(self.dobj)
@@ -514,15 +516,10 @@ class YTDataChunk(object):
             ind += c.shape[0]
         return ci
 
-    _fwidth = None
-    @property
+    @cached_property
     def fwidth(self):
-        if self.data_size is None:
-            self._fwidth = self._accumulate_values("fwidth")
-        if self._fwidth is not None: return self._fwidth
         ci = np.empty((self.data_size, 3), dtype='float64')
-        self._fwidth = ci
-        if self.data_size == 0: return self._fwidth
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_fwidth(self.dobj)
@@ -531,15 +528,10 @@ class YTDataChunk(object):
             ind += c.shape[0]
         return ci
 
-    _ires = None
-    @property
+    @cached_property
     def ires(self):
-        if self.data_size is None:
-            self._ires = self._accumulate_values("ires")
-        if self._ires is not None: return self._ires
         ci = np.empty(self.data_size, dtype='int64')
-        self._ires = ci
-        if self.data_size == 0: return self._ires
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_ires(self.dobj)
@@ -548,22 +540,17 @@ class YTDataChunk(object):
             ind += c.size
         return ci
 
-    _tcoords = None
-    @property
+    @cached_property
     def tcoords(self):
-        if self._tcoords is None:
-            self.dtcoords
+        self.dtcoords
         return self._tcoords
 
-    _dtcoords = None
-    @property
+    @cached_property
     def dtcoords(self):
-        if self._dtcoords is not None: return self._dtcoords
         ct = np.empty(self.data_size, dtype='float64')
         cdt = np.empty(self.data_size, dtype='float64')
-        self._tcoords = ct
-        self._dtcoords = cdt
-        if self.data_size == 0: return self._dtcoords
+        self._tcoords = ct # Se this for tcoords
+        if self.data_size == 0: return cdt
         ind = 0
         for obj in self.objs:
             gdt, gt = obj.tcoords(self.dobj)

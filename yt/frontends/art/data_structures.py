@@ -180,7 +180,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g], None)
 
-    def _chunk_io(self, dobj):
+    def _chunk_io(self, dobj, cache = True):
         """
         Since subsets are calculated per domain,
         i.e. per file, yield each domain at a time to
@@ -189,7 +189,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         """
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], None)
+            yield YTDataChunk(dobj, "io", [subset], None,
+                              cache = cache)
 
 
 class ARTStaticOutput(StaticOutput):

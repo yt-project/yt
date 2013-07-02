@@ -36,6 +36,8 @@ import h5py
 import numpy as np
 from yt.funcs import *
 
+_convert_mass = ("particle_mass",)
+
 class IOHandlerPackedHDF5(BaseIOHandler):
 
     _data_style = "enzo_packed_3d"
@@ -81,6 +83,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 for field in set(fields):
                     ftype, fname = field
                     gdata = data[g.id].pop(fname)[mask]
+                    if fname == "particle_mass":
+                        gdata *= g.dds.prod()
                     rv[field][ind:ind+gdata.size] = gdata
                 ind += gdata.size
                 data.pop(g.id)
@@ -130,6 +134,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 for field in set(fields):
                     ftype, fname = field
                     gdata = data[g.id].pop(fname)[mask]
+                    if fname == "particle_mass":
+                        gdata *= g.dds.prod()
                     rv[field][ind:ind+gdata.size] = gdata
                 ind += gdata.size
         return rv
