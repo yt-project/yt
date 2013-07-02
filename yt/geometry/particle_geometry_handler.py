@@ -170,10 +170,10 @@ class ParticleGeometryHandler(GeometryHandler):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g])
 
-    def _chunk_io(self, dobj):
+    def _chunk_io(self, dobj, cache = True):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], None)
+            yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
 class ParticleDataChunk(YTDataChunk):
     def __init__(self, oct_handler, regions, *args, **kwargs):

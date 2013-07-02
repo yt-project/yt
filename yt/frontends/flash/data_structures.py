@@ -212,12 +212,13 @@ class FLASHHierarchy(GridGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-    def _chunk_io(self, dobj):
+    def _chunk_io(self, dobj, cache = True):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # We'll take the max of 128 and the number of processors
         nl = max(16, ytcfg.getint("yt", "__topcomm_parallel_size"))
         for gs in list_chunks(gobjs, nl):
-            yield YTDataChunk(dobj, "io", gs, self._count_selection)
+            yield YTDataChunk(dobj, "io", gs, self._count_selection,
+                              cache = cache)
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
