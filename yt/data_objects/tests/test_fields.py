@@ -85,13 +85,17 @@ class TestFieldAccess(object):
 
 def test_all_fields():
     for field in FieldInfo:
-        if field.startswith("CuttingPlane"): continue
-        if field.startswith("particle"): continue
-        if field.startswith("CIC"): continue
-        if field.startswith("WeakLensingConvergence"): continue
-        if field.startswith("DensityPerturbation"): continue
-        if field.startswith("Matter_Density"): continue
-        if field.startswith("Overdensity"): continue
+        if isinstance(field, types.TupleType):
+            fname = field[0]
+        else:
+            fname = field
+        if fname.startswith("CuttingPlane"): continue
+        if fname.startswith("particle"): continue
+        if fname.startswith("CIC"): continue
+        if fname.startswith("WeakLensingConvergence"): continue
+        if fname.startswith("DensityPerturbation"): continue
+        if fname.startswith("Matter_Density"): continue
+        if fname.startswith("Overdensity"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
             yield TestFieldAccess(field, nproc)

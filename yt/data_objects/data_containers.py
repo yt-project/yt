@@ -219,11 +219,14 @@ class YTDataContainer(object):
         finfo = self.pf._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
-                return self._generate_container_field(field)
+                tr = self._generate_container_field(field)
             if finfo.particle_type:
-                return self._generate_particle_field(field)
+                tr = self._generate_particle_field(field)
             else:
-                return self._generate_fluid_field(field)
+                tr = self._generate_fluid_field(field)
+            if tr is None:
+                raise YTCouldNotGenerateField(field, self.pf)
+            return tr
 
     def _generate_fluid_field(self, field):
         # First we check the validator
@@ -246,7 +249,7 @@ class YTDataContainer(object):
         rv = np.empty(self.ires.size, dtype="float64")
         ind = 0
         if ngz == 0:
-            for io_chunk in self.chunks([], "io"):
+            for io_chunk in self.chunks([], "io", cache = False):
                 for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
                     ind += self._current_chunk.objs[0].select(
                             self.selector, self[field], rv, ind)
@@ -279,8 +282,8 @@ class YTDataContainer(object):
             size = self._count_particles(ftype)
             rv = np.empty(size, dtype="float64")
             ind = 0
-            for io_chunk in self.chunks([], "io"):
-                for i,chunk in enumerate(self.chunks(field, "spatial")):
+            for io_chunk in self.chunks([], "io", cache = False):
+                for i, chunk in enumerate(self.chunks(field, "spatial")):
                     x, y, z = (self[ftype, 'particle_position_%s' % ax]
                                for ax in 'xyz')
                     if x.size == 0: continue
@@ -301,7 +304,7 @@ class YTDataContainer(object):
             if f1 == ftype:
                 return val.size
         size = 0
-        for io_chunk in self.chunks([], "io"):
+        for io_chunk in self.chunks([], "io", cache = False):
             for i,chunk in enumerate(self.chunks([], "spatial")):
                 x, y, z = (self[ftype, 'particle_position_%s' % ax]
                             for ax in 'xyz')

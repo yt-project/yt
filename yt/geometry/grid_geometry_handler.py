@@ -245,16 +245,16 @@ class GridGeometryHandler(GeometryHandler):
             dobj.size = self._count_selection(dobj)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
-        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+        dobj._current_chunk = list(self._chunk_all(dobj, cache = False))[0]
 
     def _count_selection(self, dobj, grids = None):
         if grids is None: grids = dobj._chunk_info
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
-    def _chunk_all(self, dobj):
+    def _chunk_all(self, dobj, cache = True):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", gobjs, dobj.size)
+        yield YTDataChunk(dobj, "all", gobjs, dobj.size, cache)
         
     def _chunk_spatial(self, dobj, ngz, sort = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -271,13 +271,16 @@ class GridGeometryHandler(GeometryHandler):
                 g = og
             size = self._count_selection(dobj, [og])
             if size == 0: continue
-            yield YTDataChunk(dobj, "spatial", [g], size)
+            # We don't want to cache any of the masks or icoords or fcoords for
+            # individual grids.
+            yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
-    def _chunk_io(self, dobj):
+    def _chunk_io(self, dobj, cache = True):
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for g in gobjs:
             gfiles[g.filename].append(g)
         for fn in sorted(gfiles):
             gs = gfiles[fn]
-            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs))
+            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
+                              cache = cache)

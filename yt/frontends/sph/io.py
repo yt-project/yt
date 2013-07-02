@@ -32,10 +32,11 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 from yt.utilities.fortran_utils import read_record
-from yt.utilities.lib.geometry_utils import get_morton_indices, \
-    get_morton_indices_unravel
+from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
+
+CHUNKSIZE = 10000000
 
 _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
@@ -104,16 +105,18 @@ class IOHandlerOWLS(BaseIOHandler):
         f = h5py.File(data_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
         morton = np.empty(pcount, dtype='uint64')
-        DLE = data_file.pf.domain_left_edge
-        DRE = data_file.pf.domain_right_edge
-        dx = (DRE - DLE) / 2**_ORDER_MAX
         ind = 0
         for key in f.keys():
             if not key.startswith("PartType"): continue
-            pos = f[key]["Coordinates"][:].astype("float64")
+            ds = f[key]["Coordinates"]
+            dt = ds.dtype.newbyteorder("N") # Native
+            pos = np.empty(ds.shape, dtype=dt)
+            pos[:] = ds
             regions.add_data_file(pos, data_file.file_id)
-            pos = np.floor((pos - DLE)/dx).astype("uint64")
-            morton[ind:ind+pos.shape[0]] = get_morton_indices(pos)
+            morton[ind:ind+pos.shape[0]] = compute_morton(
+                pos[:,0], pos[:,1], pos[:,2],
+                data_file.pf.domain_left_edge,
+                data_file.pf.domain_right_edge)
             ind += pos.shape[0]
         f.close()
         return morton
@@ -257,7 +260,6 @@ class IOHandlerGadgetBinary(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         count = sum(data_file.total_particles.values())
-        dt = [("px", "float32"), ("py", "float32"), ("pz", "float32")]
         DLE = data_file.pf.domain_left_edge
         DRE = data_file.pf.domain_right_edge
         dx = (DRE - DLE) / 2**_ORDER_MAX
@@ -266,16 +268,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype = dt, count = count)
-        pos = np.column_stack([pp['px'], pp['py'], pp['pz']]).astype("float64")
-        del pp
-        regions.add_data_file(pos, data_file.file_id)
-        lx = np.floor((pos[:,0] - DLE[0])/dx[0]).astype("uint64")
-        ly = np.floor((pos[:,1] - DLE[1])/dx[1]).astype("uint64")
-        lz = np.floor((pos[:,2] - DLE[2])/dx[2]).astype("uint64")
-        del pos
-        morton = get_morton_indices_unravel(lx, ly, lz)
-        del lx, ly, lz
+            pp = np.fromfile(f, dtype = 'float32', count = count*3)
+            pp.shape = (count, 3)
+        regions.add_data_file(pp, data_file.file_id)
+        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
         return morton
 
     def _count_particles(self, data_file):
@@ -431,34 +427,33 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0: continue
-                pp = np.fromfile(f, dtype = self._pdtypes[ptype],
-                                 count = count)
-                mis = np.empty(3, dtype="float64")
-                mas = np.empty(3, dtype="float64")
-                for axi, ax in enumerate('xyz'):
-                    mi = pp["Coordinates"][ax].min()
-                    ma = pp["Coordinates"][ax].max()
-                    mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
-                    mis[axi] = mi
-                    mas[axi] = ma
-                if np.any(mis < pf.domain_left_edge) or \
-                   np.any(mas > pf.domain_right_edge):
-                    raise YTDomainOverflow(mis, mas,
-                                           pf.domain_left_edge,
-                                           pf.domain_right_edge)
-                fpos = np.empty((count, 3), dtype="float64")
-                fpos[:,0] = pp["Coordinates"]["x"]
-                fpos[:,1] = pp["Coordinates"]["y"]
-                fpos[:,2] = pp["Coordinates"]["z"]
-                regions.add_data_file(fpos, data_file.file_id)
-                del fpos
-                pos = np.empty((count, 3), dtype="uint64")
-                for axi, ax in enumerate("xyz"):
-                    coords = pp['Coordinates'][ax].astype("float64")
-                    coords = np.floor((coords - DLE[axi])/dx[axi])
-                    pos[:,axi] = coords
-                morton[ind:ind+count] = get_morton_indices(pos)
-                del pp, pos
+                start, stop = ind, ind + count
+                while ind < stop:
+                    c = min(CHUNKSIZE, stop - ind)
+                    pp = np.fromfile(f, dtype = self._pdtypes[ptype],
+                                     count = c)
+                    mis = np.empty(3, dtype="float64")
+                    mas = np.empty(3, dtype="float64")
+                    for axi, ax in enumerate('xyz'):
+                        mi = pp["Coordinates"][ax].min()
+                        ma = pp["Coordinates"][ax].max()
+                        mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
+                        mis[axi] = mi
+                        mas[axi] = ma
+                    if np.any(mis < pf.domain_left_edge) or \
+                       np.any(mas > pf.domain_right_edge):
+                        raise YTDomainOverflow(mis, mas,
+                                               pf.domain_left_edge,
+                                               pf.domain_right_edge)
+                    pos = np.empty((pp.size, 3), dtype="float64")
+                    pos[:,0] = pp["Coordinates"]["x"]
+                    pos[:,1] = pp["Coordinates"]["y"]
+                    pos[:,2] = pp["Coordinates"]["z"]
+                    regions.add_data_file(pos, data_file.file_id)
+                    morton[ind:ind+c] = compute_morton(
+                        pos[:,0], pos[:,1], pos[:,2],
+                        DLE, DRE)
+                    ind += c
         mylog.info("Adding %0.3e particles", morton.size)
         return morton
 

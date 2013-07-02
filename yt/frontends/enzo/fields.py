@@ -388,14 +388,16 @@ def _cic_particle_field(field, data):
     """
     particle_field = field.name[4:]
     pos = data[('all', 'Coordinates')]
+    # Get back into density
+    pden = data['all', 'particle_mass'] / data["CellVolume"] 
     top = data.deposit(
         pos,
-        [data[('all', particle_field)]*data[('all', 'particle_mass')]],
+        [data[('all', particle_field)]*pden],
         method = 'cic'
         )
     bottom = data.deposit(
         pos,
-        [data[('all', 'particle_mass')]],
+        [pden],
         method = 'cic'
         )
     top[bottom == 0] = 0.0
@@ -507,11 +509,28 @@ for ax in 'xyz':
     add_enzo_field(("all", pf), function=NullFunc, convert_function=cfunc,
               particle_type=True)
 
-for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
+for pf in ["creation_time", "dynamical_time", "metallicity_fraction"] \
+        + ["particle_position_%s" % ax for ax in 'xyz'] \
+        + ["particle_velocity_%s" % ax for ax in 'xyz']:
     add_enzo_field(pf, function=NullFunc,
               validators = [ValidateDataField(pf)],
               particle_type=True)
-add_field(('all', "particle_mass"), function=NullFunc, particle_type=True)
+
+def _convertParticleMass(data):
+    return data.convert("Density")*(data.convert("cm")**3.0)
+def _convertParticleMassMsun(data):
+    return data.convert("Density")*((data.convert("cm")**3.0)/mass_sun_cgs)
+# We have now multiplied by grid.dds.prod() inside the IO function.
+# So here we multiply just by the conversion to density.
+add_field(('all', "particle_mass"), function=NullFunc, 
+          particle_type=True, convert_function = _convertParticleMass)
+
+add_field("ParticleMass",
+          function=TranslationFunc("particle_mass"),
+          particle_type=True, convert_function=_convertParticleMass)
+add_field("ParticleMassMsun",
+          function=TranslationFunc("particle_mass"),
+          particle_type=True, convert_function=_convertParticleMassMsun)
 
 def _ParticleAge(field, data):
     current_time = data.pf.current_time
@@ -522,32 +541,6 @@ add_field("ParticleAge", function=_ParticleAge,
           validators=[ValidateDataField("creation_time")],
           particle_type=True, convert_function=_convertParticleAge)
 
-def _ParticleMass(field, data):
-    particles = data['all', "particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
-
-def _convertParticleMass(data):
-    return data.convert("Density")*(data.convert("cm")**3.0)
-def _IOLevelParticleMass(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
-    return cf
-def _convertParticleMassMsun(data):
-    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
-def _IOLevelParticleMassMsun(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
-    return cf
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass,
-          particle_convert_function=_IOLevelParticleMass)
-add_field("ParticleMassMsun",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          particle_convert_function=_IOLevelParticleMassMsun)
 
 #
 # Now we do overrides for 2D fields

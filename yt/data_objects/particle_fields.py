@@ -146,3 +146,4 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
     registry.add_field((ptype, "Velocities"),
                        function=_get_vec_func(ptype, vel_names),
                        particle_type=True)
+

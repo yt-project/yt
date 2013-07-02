@@ -1124,6 +1124,8 @@ cdef class OctreeSubsetSelector(SelectorObject):
 
     def __init__(self, dobj):
         self.base_selector = dobj.base_selector
+        self.min_level = self.base_selector.min_level
+        self.max_level = self.base_selector.max_level
         self.domain_id = dobj.domain_id
         self.overlap_cells = 1
 
@@ -1175,6 +1177,8 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
         self.min_ind = dobj.min_ind
         self.max_ind = dobj.max_ind
         self.base_selector = dobj.base_selector
+        self.min_level = self.base_selector.min_level
+        self.max_level = self.base_selector.max_level
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

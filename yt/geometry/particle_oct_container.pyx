@@ -261,6 +261,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         self.visit(o.children[cind(i,j,k)], counts, level + 1)
         return
 
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t dds[3]
@@ -282,7 +286,14 @@ cdef class ParticleRegions:
         for i in range(nfiles/64 + 1):
             self.masks.append(np.zeros(dims, dtype="uint64"))
 
-    def add_data_file(self, np.ndarray[np.float64_t, ndim=2] pos, int file_id):
+    def add_data_file(self, np.ndarray pos, int file_id):
+        if pos.dtype == np.float32:
+            self._mask_positions[np.float32_t](pos, file_id)
+        elif pos.dtype == np.float64:
+            self._mask_positions[np.float64_t](pos, file_id)
+
+    cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
+                              int file_id):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
         cdef int ind[3], i
