@@ -219,11 +219,14 @@ class YTDataContainer(object):
         finfo = self.pf._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
-                return self._generate_container_field(field)
+                tr = self._generate_container_field(field)
             if finfo.particle_type:
-                return self._generate_particle_field(field)
+                tr = self._generate_particle_field(field)
             else:
-                return self._generate_fluid_field(field)
+                tr = self._generate_fluid_field(field)
+            if tr is None:
+                raise YTCouldNotGenerateField(field, self.pf)
+            return tr
 
     def _generate_fluid_field(self, field):
         # First we check the validator
