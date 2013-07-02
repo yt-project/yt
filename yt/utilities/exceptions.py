@@ -77,6 +77,10 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.pf)
 
+class YTCouldNotGenerateField(YTFieldNotFound):
+    def __str__(self):
+        return "Could field '%s' in %s could not be generated." % (self.fname, self.pf)
+
 class YTFieldTypeNotFound(YTException):
     def __init__(self, fname):
         self.fname = fname
