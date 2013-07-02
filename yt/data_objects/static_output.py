@@ -88,6 +88,7 @@ class StaticOutput(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
+        self.known_filters = {}
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -248,6 +249,9 @@ class StaticOutput(object):
             self.coordinates = PolarCoordinateHandler(self)
         else:
             raise YTGeometryNotSupported(self.geometry)
+
+    def add_particle_filter(self, filter):
+        self.known_filters[filter.name] = filter
 
     _last_freq = (None, None)
     _last_finfo = None

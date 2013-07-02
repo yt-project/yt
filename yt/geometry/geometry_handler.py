@@ -162,8 +162,35 @@ class GeometryHandler(ParallelAnalysisInterface):
                 self.parameter_file.field_info[field] = known_fields[field]
 
     def _setup_derived_fields(self):
-        fi = self.parameter_file.field_info
         self.derived_field_list = []
+        self.filtered_particle_types = []
+        fc, fac = self._derived_fields_to_check()
+        self._derived_fields_add(fc, fac)
+        # Now we do a special case for all filters.
+        kf = self.parameter_file.known_filters
+        fi = self.parameter_file.field_info
+        fd = self.parameter_file.field_dependencies
+        for filter_name in kf:
+            filter = kf[filter_name]
+            if not filter.available(self.derived_field_list):
+                continue
+            # Only fields whose dependencies have been reached get added here.
+            available = False
+            for fn in self.derived_field_list:
+                if fn[0] == filter.filtered_type:
+                    # Now we can add this
+                    available = True
+                    self.derived_field_list.append(
+                        (filter.name, fn[1]))
+                    fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
+                    # Now we append the dependencies
+                    fd[filter.name, fn[1]] = fd[fn]
+            if available:
+                self.parameter_file.particle_types += (filter_name,)
+                self.filtered_particle_types.append(filter_name)
+
+    def _derived_fields_to_check(self):
+        fi = self.parameter_file.field_info
         # First we construct our list of fields to check
         fields_to_check = []
         fields_to_allcheck = []
@@ -187,6 +214,15 @@ class GeometryHandler(ParallelAnalysisInterface):
                 new_fields.append(new_fi.name)
             fields_to_check += new_fields
             fields_to_allcheck.append(field)
+        return fields_to_check, fields_to_allcheck
+
+    def _derived_fields_add(self, fields_to_check = None,
+                            fields_to_allcheck = None):
+        if fields_to_check is None:
+            fields_to_check = []
+        if fields_to_allcheck is None:
+            fields_to_allcheck = []
+        fi = self.parameter_file.field_info
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)

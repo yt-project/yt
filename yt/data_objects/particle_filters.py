@@ -24,8 +24,11 @@ License:
 """
 
 import numpy as np
+import copy
 from contextlib import contextmanager
 
+from yt.data_objects.field_info_container import \
+    NullFunc, TranslationFunc
 from yt.utilities.exceptions import YTIllDefinedFilter
 from yt.funcs import *
 
@@ -41,12 +44,12 @@ class ParticleFilter(object):
         self.name = name
         self.function = function
         self.requires = requires[:]
-        self.particle_type = filtered_type
+        self.filtered_type = filtered_type
 
     @contextmanager
     def apply(self, dobj):
         with dobj._chunked_read(dobj._current_chunk):
-            with dobj._field_type_state(self.particle_type, dfi):
+            with dobj._field_type_state(self.filtered_type, dfi):
                 # We won't be storing the field data from the whole read, so we
                 # start by filtering now.
                 filter = self.function(self, dobj)
@@ -55,7 +58,7 @@ class ParticleFilter(object):
                 # later.
                 fd = dobj.field_data
         for f, tr in fd.items():
-            if f[0] != self.particle_type: continue
+            if f[0] != self.filtered_type: continue
             if tr.shape != filter.shape:
                 raise YTIllDefinedFilter(self, tr.shape, filter.shape)
             dobj.field_data[self.name, f[1]] = tr[filter]
@@ -64,7 +67,12 @@ class ParticleFilter(object):
         # Note that this assumes that all the fields in field_list have the
         # same form as the 'requires' attributes.  This won't be true if the
         # fields are implicitly "all" or something.
-        return all(field in field_list for field in self.requires)
+        return all((self.filtered_type, field) in field_list for field in self.requires)
+
+    def wrap_func(self, field_name, old_fi):
+        new_fi = copy.copy(old_fi)
+        new_fi.name = (self.filtered_type, field_name[1])
+        return new_fi
 
 def add_particle_filter(name, function, requires = None, filtered_type = "all"):
     if requires is None: requires = []
