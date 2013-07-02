@@ -55,7 +55,7 @@ from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
-    fix_axis, get_image_suffix
+    ensure_tuple, fix_axis, get_image_suffix
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
@@ -784,6 +784,7 @@ class PWViewerMPL(PWViewer):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
+        self.plot_fields = ensure_list(kwargs.pop("fields"))
         font_size = kwargs.pop("fontsize", 18)
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=font_size, fname=font_path)
@@ -816,8 +817,9 @@ class PWViewerMPL(PWViewer):
             return 0.0, 0.0
         else:
             mylog.warn("origin = {0}".format(origin))
-            msg = ('origin keyword "{0}" not recognized, must declare "domain" '
-                   'or "center" as the last term in origin.').format(self.origin)
+            msg = \
+              ('origin keyword "{0}" not recognized, must declare "domain" '
+               'or "center" as the last term in origin.').format(self.origin)
             raise RuntimeError(msg)
 
         if origin[0] == 'lower':
@@ -854,13 +856,21 @@ class PWViewerMPL(PWViewer):
         else:
             fields = self._frb.keys()
         self._colorbar_valid = True
-        for f in self.fields:
+        for f in self.plot_fields:
+            if isinstance(f, tuple):
+                pass
+            else:
+                for ftup in self.fields:
+                    if isinstance(ftup, tuple):
+                        if f == ftup[1]:
+                             f = ftup
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
 
             if self._axes_unit_names is None:
-                unit = get_smallest_appropriate_unit(self.xlim[1] - self.xlim[0], self.pf)
+                unit = get_smallest_appropriate_unit(
+                    self.xlim[1] - self.xlim[0], self.pf)
                 (unit_x, unit_y) = (unit, unit)
             else:
                 (unit_x, unit_y) = self._axes_unit_names
@@ -875,15 +885,18 @@ class PWViewerMPL(PWViewer):
             else:
                 zlim = (None, None)
 
-            plot_aspect = (self.xlim[1] - self.xlim[0]) / (self.ylim[1] - self.ylim[0])
+            plot_aspect = \
+              (self.xlim[1] - self.xlim[0]) / (self.ylim[1] - self.ylim[0])
 
             # This sets the size of the figure, and defaults to making one of the dimensions smaller.
             # This should protect against giant images in the case of a very large aspect ratio.
             cbar_frac = 0.0
             if plot_aspect > 1.0:
-                size = (self.window_size*(1.+cbar_frac), self.window_size/plot_aspect)
+                size = (self.window_size*(1.+cbar_frac),
+                        self.window_size/plot_aspect)
             else:
-                size = (plot_aspect*self.window_size*(1.+cbar_frac), self.window_size)
+                size = (plot_aspect*self.window_size*(1.+cbar_frac),
+                        self.window_size)
 
             # Correct the aspect ratio in case unit_x and unit_y are different
             aspect = self.pf[unit_x]/self.pf[unit_y]
@@ -1244,7 +1257,7 @@ class SlicePlot(PWViewerMPL):
         slc = pf.h.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
         slc.get_data(fields)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin,
+        PWViewerMPL.__init__(self, slc, bounds, fields=fields, origin=origin,
                              fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
@@ -1363,8 +1376,9 @@ class ProjectionPlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
-                         center=center, data_source=data_source, field_parameters = field_parameters)
-        PWViewerMPL.__init__(self,proj,bounds,origin=origin,
+                         center=center, data_source=data_source,
+                         field_parameters = field_parameters)
+        PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
@@ -1426,8 +1440,9 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self,cutting,bounds,origin='center-window',periodic=False,oblique=True,
-                             fontsize=fontsize)
+        PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
+                             origin='center-window',periodic=False,
+                             oblique=True, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
@@ -1530,18 +1545,23 @@ class OffAxisProjectionPlot(PWViewerMPL):
                  depth=(1, '1'), axes_unit=None, weight_field=None,
                  max_level=None, north_vector=None, volume=None, no_ghost=False,
                  le=None, re=None, interpolated=False, fontsize=18):
-        (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
+        (bounds, center_rot, units) = \
+          GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
         if axes_unit is None and units != ('1', '1', '1'):
             axes_unit = units[:2]
         fields = ensure_list(fields)[:]
-        width = np.array((bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4]))
-        OffAxisProj = OffAxisProjectionDummyDataSource(center_rot, pf, normal, width, fields, interpolated,
-                                                       weight=weight_field,  volume=volume, no_ghost=no_ghost,
-                                                       le=le, re=re, north_vector=north_vector)
+        width = np.array((bounds[1] - bounds[0],
+                          bounds[3] - bounds[2],
+                          bounds[5] - bounds[4]))
+        OffAxisProj = OffAxisProjectionDummyDataSource(
+            center_rot, pf, normal, width, fields, interpolated,
+            weight=weight_field,  volume=volume, no_ghost=no_ghost,
+            le=le, re=re, north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self, OffAxisProj, bounds, origin='center-window', periodic=False,
-                             oblique=True, fontsize=fontsize)
+        PWViewerMPL.__init__(
+            self, OffAxisProj, bounds, fields=fields, origin='center-window',
+            periodic=False, oblique=True, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
 
 _metadata_template = """
