@@ -75,7 +75,8 @@ from yt.data_objects.time_series import \
 # included in matplotlib (not in gentoo, yes in everything else)
 # Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    if version.LooseVersion(matplotlib.__version__) < version.LooseVersion("1.2.0"):
+    if version.LooseVersion(matplotlib.__version__) <
+        version.LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
         from matplotlib.pyparsing_py2 import ParseFatalException
@@ -197,7 +198,8 @@ def StandardWidth(axis, width, depth, pf):
         width = validate_iterable_width(width)
     else:
         try:
-            assert isinstance(width, Number), "width (%s) is invalid" % str(width)
+            assert isinstance(width, Number), \
+              "width (%s) is invalid" % str(width)
         except AssertionError, e:
             raise YTInvalidWidthError(e)
         width = ((width, '1'), (width, '1'))
@@ -208,7 +210,8 @@ def StandardWidth(axis, width, depth, pf):
             assert_valid_width_tuple(depth)
         else:
             try:
-                assert isinstance(depth, Number), "width (%s) is invalid" % str(depth)
+                assert isinstance(depth, Number), \
+                  "width (%s) is invalid" % str(depth)
             except AssertionError, e:
                 raise YTInvalidWidthError(e)
             depth = ((depth, '1'),)
@@ -270,7 +273,8 @@ class PlotWindow(object):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
+    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or
+                  :class:`yt.data_objects.data_containers.AMRSliceBase`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -294,7 +298,8 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, window_size=10.0):
+                 periodic=True, origin='center-window', oblique=False,
+                 window_size=10.0):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
@@ -311,7 +316,8 @@ class PlotWindow(object):
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
-            center = [self.data_source.center[i] for i in range(len(self.data_source.center))
+            center = [self.data_source.center[i] for i in
+                      range(len(self.data_source.center))
                       if i != self.data_source.axis]
             self.set_center(center)
         self._initfinished = True
@@ -461,9 +467,10 @@ class PlotWindow(object):
 
         parameters
         ----------
-        width : float, array of floats, (float, unit) tuple, or tuple of (float, unit) tuples.
-             Width can have four different formats to support windows with variable
-             x and y widths.  They are:
+        width : float, array of floats, (float, unit) tuple, or tuple of
+                (float, unit) tuples.
+             Width can have four different formats to support windows with
+             variable x and y widths.  They are:
 
              ==================================     =======================
              format                                 example
@@ -474,13 +481,14 @@ class PlotWindow(object):
              (float, float)                         (0.2, 0.3)
              ==================================     =======================
 
-             For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-             wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window
-             that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along
-             the y axis.  In the other two examples, code units are assumed, for example
-             (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3
-             in code units.  If units are provided the resulting plot axis labels will
-             use the supplied units.
+             For example, (10, 'kpc') requests a plot window that is 10
+             kiloparsecs wide in the x and y directions,
+             ((10,'kpc'),(15,'kpc')) requests a window that is 10 kiloparsecs
+             wide along the x axis and 15 kiloparsecs wide along the y axis.
+             In the other two examples, code units are assumed, for example
+             (0.2, 0.3) requests a plot that has an x width of 0.2 and a y
+             width of 0.3 in code units.  If units are provided the resulting
+             plot axis labels will use the supplied units.
         unit : str
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
@@ -734,9 +742,9 @@ class PWViewer(PlotWindow):
             image extents will be displayed in.  If set to None, any previous
             units will be reset.  If the unit is None, the default is chosen.
             If unit_name is '1', 'u', or 'unitary', it will not display the
-            units, and only show the axes name. If unit_name is a tuple, the first
-            element is assumed to be the unit for the x axis and the second element
-            the unit for the y axis.
+            units, and only show the axes name. If unit_name is a tuple, the
+            first element is assumed to be the unit for the x axis and the
+            second element the unit for the y axis.
 
         Raises
         ------
@@ -881,8 +889,9 @@ class PWViewerMPL(PWViewer):
             plot_aspect = \
               (self.xlim[1] - self.xlim[0]) / (self.ylim[1] - self.ylim[0])
 
-            # This sets the size of the figure, and defaults to making one of the dimensions smaller.
-            # This should protect against giant images in the case of a very large aspect ratio.
+            # This sets the size of the figure, and defaults to making one of
+            # the dimensions smaller.  This should protect against giant images
+            # in the case of a very large aspect ratio.
             cbar_frac = 0.0
             if plot_aspect > 1.0:
                 size = (self.window_size*(1.+cbar_frac),
@@ -896,7 +905,8 @@ class PWViewerMPL(PWViewer):
 
             image = self._frb[f]
 
-            if image.max() == image.min() and self._field_transform[f] == log_transform:
+            if image.max() == image.min():
+              if self._field_transform[f] == log_transform:
                 mylog.warning("Plot image for field %s has zero dynamic " \
                               "range. Min = Max = %d." % \
                               (f, image.max()))
@@ -984,8 +994,8 @@ class PWViewerMPL(PWViewer):
         :py:class:`matplotlib.font_manager.FontProperties`.
 
         Possible keys include
-        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
-          'monospace'.
+        * family - The font family. Can be serif, sans-serif, cursive,
+          fantasy, monospace, or a specific font name.
         * style - The font style. Either normal, italic or oblique.
         * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
           'orange'.
@@ -1134,8 +1144,8 @@ class PWViewerMPL(PWViewer):
             raise YTNotInsideNotebook
 
     def display(self, name=None, mpl_kwargs=None):
-        """Will attempt to show the plot in in an IPython notebook.  Failing that, the 
-        plot will be saved to disk."""
+        """Will attempt to show the plot in in an IPython notebook.  Failing
+        that, the plot will be saved to disk."""
         try:
             return self.show()
         except YTNotInsideNotebook:
@@ -1161,7 +1171,8 @@ class SlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
+    center : two or three-element vector of sequence floats, 'c', or 'center',
+             or 'max'
          The coordinate of the center of the image.  If left blank,
          the image centers on the location of the maximum density
          cell.  If set to 'c' or 'center', the plot is centered on
@@ -1181,12 +1192,12 @@ class SlicePlot(PWViewerMPL):
          ==================================     =======================
 
          For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window
-         that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along
-         the y axis.  In the other two examples, code units are assumed, for example
-         (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3
-         in code units.  If units are provided the resulting plot axis labels will
-         use the supplied units.
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -1197,14 +1208,15 @@ class SlicePlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain' space,
-         plot 'window' space or 'native' simulation coordinate system is given.
-         For example, both 'upper-right-domain' and ['upper', 'right', 'domain']
-         both place the origin in the upper right hand corner of domain space.
-         If x or y are not given, a value is inffered.  For instance, 'left-domain'
-         corresponds to the lower-left hand corner of the simulation domain,
-         'center-domain' corresponds to the center of the simulation domain,
-         or 'center-window' for the center of the plot window. Further examples:
+         'center'.  Finally, the whether the origin is applied in 'domain'
+         space, plot 'window' space or 'native' simulation coordinate system
+         is given. For example, both 'upper-right-domain' and ['upper',
+         'right', 'domain'] both place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inffered.
+         For instance, 'left-domain' corresponds to the lower-left hand corner
+         of the simulation domain, 'center-domain' corresponds to the center
+         of the simulation domain, or 'center-window' for the center of the
+         plot window. Further examples:
 
          ==================================     ============================
          format                                 example
@@ -1221,7 +1233,8 @@ class SlicePlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived fields.
+         A dictionary of field parameters than can be accessed by derived
+         fields.
 
     Examples
     --------
@@ -1274,7 +1287,8 @@ class ProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string
         The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
+    center : two or three-element vector of sequence floats, 'c', or 'center',
+             or 'max'
          The coordinate of the center of the image.  If left blank,
          the image centers on the location of the maximum density
          cell.  If set to 'c' or 'center', the plot is centered on
@@ -1294,12 +1308,12 @@ class ProjectionPlot(PWViewerMPL):
          ==================================     =======================
 
          For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window
-         that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along
-         the y axis.  In the other two examples, code units are assumed, for example
-         (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3
-         in code units.  If units are provided the resulting plot axis labels will
-         use the supplied units.
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -1310,14 +1324,15 @@ class ProjectionPlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain' space,
-         plot 'window' space or 'native' simulation coordinate system is given.
-         For example, both 'upper-right-domain' and ['upper', 'right', 'domain']
-         both place the origin in the upper right hand corner of domain space.
-         If x or y are not given, a value is inffered.  For instance, 'left-domain'
-         corresponds to the lower-left hand corner of the simulation domain,
-         'center-domain' corresponds to the center of the simulation domain,
-         or 'center-window' for the center of the plot window. Further examples:
+         'center'.  Finally, the whether the origin is applied in 'domain'
+         space, plot 'window' space or 'native' simulation coordinate system
+         is given. For example, both 'upper-right-domain' and ['upper',
+         'right', 'domain'] both place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inffered.
+         For instance, 'left-domain' corresponds to the lower-left hand corner
+         of the simulation domain, 'center-domain' corresponds to the center
+         of the simulation domain, or 'center-window' for the center of the
+         plot window. Further examples:
 
          ==================================     ============================
          format                                 example
@@ -1333,8 +1348,8 @@ class ProjectionPlot(PWViewerMPL):
          ==================================     ============================
 
     data_source : AMR3DData Object
-         Object to be used for data selection.  Defaults to a region covering the
-         entire simulation.
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
     max_level: int
@@ -1342,7 +1357,8 @@ class ProjectionPlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived fields.
+         A dictionary of field parameters than can be accessed by derived
+         fields.
 
     Examples
     --------
@@ -1358,8 +1374,8 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window', fontsize=18, 
-                 field_parameters=None, data_source=None):
+                 weight_field=None, max_level=None, origin='center-window',
+                 fontsize=18, field_parameters=None, data_source=None):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1415,7 +1431,8 @@ class OffAxisSlicePlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived fields.
+         A dictionary of field parameters than can be accessed by derived
+         fields.
     """
 
     _plot_type = 'OffAxisSlice'
@@ -1424,7 +1441,8 @@ class OffAxisSlicePlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, fontsize=18,
                  field_parameters=None):
-        (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf)
+        (bounds, center_rot, units) = \
+          GetObliqueWindowParameters(normal,center,width,pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
@@ -1504,12 +1522,12 @@ class OffAxisProjectionPlot(PWViewerMPL):
          ==================================     =======================
 
          For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a window
-         that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide along
-         the y axis.  In the other two examples, code units are assumed, for example
-         (0.2, 0.3) requests a plot that has an x width of 0.2 and a y width of 0.3
-         in code units.  If units are provided the resulting plot axis labels will
-         use the supplied units.
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
         A tuple containing the depth to project thourhg and the string
         key of the unit: (width, 'unit').  If set to a float, code units
@@ -1797,13 +1815,15 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size, fontsize):
+    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size,
+                 fontsize):
         fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
-            mylog.warning('The axis ratio of the requested plot is very narrow.  '
-                          'There is a good chance the plot will not look very good, '
-                          'consider making the plot manually using FixedResolutionBuffer '
-                          'and matplotlib.')
+            msg = 'The axis ratio of the requested plot is very narrow. ' \
+                  'There is a good chance the plot will not look very good, '
+                  'consider making the plot manually using '
+                  'FixedResolutionBuffer and matplotlib.')
+            mylog.warn(msg)
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
         ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
