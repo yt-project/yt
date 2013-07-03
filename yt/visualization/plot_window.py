@@ -75,7 +75,7 @@ from yt.data_objects.time_series import \
 # included in matplotlib (not in gentoo, yes in everything else)
 # Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    if version.LooseVersion(matplotlib.__version__) <
+    if version.LooseVersion(matplotlib.__version__) < \
         version.LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
@@ -1820,9 +1820,9 @@ class WindowPlotMPL(ImagePlotMPL):
         fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             msg = 'The axis ratio of the requested plot is very narrow. ' \
-                  'There is a good chance the plot will not look very good, '
-                  'consider making the plot manually using '
-                  'FixedResolutionBuffer and matplotlib.')
+                  'There is a good chance the plot will not look very good, ' \
+                  'consider making the plot manually using ' \
+                  'FixedResolutionBuffer and matplotlib.'
             mylog.warn(msg)
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
