@@ -856,14 +856,7 @@ class PWViewerMPL(PWViewer):
         else:
             fields = self._frb.keys()
         self._colorbar_valid = True
-        for f in self.plot_fields:
-            if isinstance(f, tuple):
-                pass
-            else:
-                for ftup in self.fields:
-                    if isinstance(ftup, tuple):
-                        if f == ftup[1]:
-                             f = ftup
+        for f in self.data_source._determine_fields(self.plot_fields):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
