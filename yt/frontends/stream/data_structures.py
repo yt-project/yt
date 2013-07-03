@@ -34,6 +34,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
+from yt.geometry.particle_geometry_handler import \
+    ParticleGeometryHandler
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.logger import ytLogger as mylog
@@ -47,6 +49,8 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.flagging_methods import \
     FlaggingGrid
+from yt.frontends.sph.data_structures import \
+    ParticleFile
 
 from .fields import \
     StreamFieldInfo, \
@@ -704,3 +708,122 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
         assign_particle_data(pf, pdata)
     
     return pf
+
+class StreamParticleGeometryHandler(ParticleGeometryHandler):
+
+    
+    def __init__(self, pf, data_style = None):
+        self.stream_handler = pf.stream_handler
+        super(StreamParticleGeometryHandler, self).__init__(pf, data_style)
+
+    def _setup_data_io(self):
+        if self.stream_handler.io is not None:
+            self.io = self.stream_handler.io
+        else:
+            self.io = io_registry[self.data_style](self.stream_handler)
+
+class StreamParticleFile(ParticleFile):
+    pass
+
+class StreamParticlesStaticOutput(StreamStaticOutput):
+    _hierarchy_class = StreamParticleGeometryHandler
+    _file_class = StreamParticleFile
+    _fieldinfo_fallback = StreamFieldInfo
+    _fieldinfo_known = KnownStreamFields
+    _data_style = "stream_particles"
+    file_count = 1
+    filename_template = "stream_file"
+
+def load_particles(data, sim_unit_to_cm, bbox=None,
+                      sim_time=0.0, periodicity=(True, True, True)):
+    r"""Load a set of particles into yt as a
+    :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
+
+    This should allow a collection of particle data to be loaded directly into
+    yt and analyzed as would any others.  This comes with several caveats:
+        * Units will be incorrect unless the data has already been converted to
+          cgs.
+        * Some functions may behave oddly, and parallelism will be
+          disappointing or non-existent in most cases.
+
+    This will initialize an Octree of data.  Note that fluid fields will not
+    work yet, or possibly ever.
+    
+    Parameters
+    ----------
+    data : dict
+        This is a dict of numpy arrays, where the keys are the field names.
+        Particles positions must be named "particle_position_x",
+        "particle_position_y", "particle_position_z".
+    sim_unit_to_cm : float
+        Conversion factor from simulation units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units sim_unit_to_cm
+    sim_time : float, optional
+        The simulation time in seconds
+    periodicity : tuple of booleans
+        Determines whether the data will be treated as periodic along
+        each axis
+
+    Examples
+    --------
+
+    >>> pos = [np.random.random(128*128*128) for i in range(3)]
+    >>> data = dict(particle_position_x = pos[0],
+    ...             particle_position_y = pos[1],
+    ...             particle_position_z = pos[2])
+    >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
+    >>> pf = load_particles(data, 3.08e24, bbox=bbox)
+
+    """
+
+    domain_dimensions = np.ones(3, "int32") * 2
+    nprocs = 1
+    if bbox is None:
+        bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    domain_left_edge = np.array(bbox[:, 0], 'float64')
+    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+
+    sfh = StreamDictFieldHandler()
+    
+    particle_types = set_particle_types(data)
+    
+    sfh.update({'stream_file':data})
+    grid_left_edges = domain_left_edge
+    grid_right_edges = domain_right_edge
+    grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+
+    # I'm not sure we need any of this.
+    handler = StreamHandler(
+        grid_left_edges,
+        grid_right_edges,
+        grid_dimensions,
+        grid_levels,
+        -np.ones(nprocs, dtype='int64'),
+        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
+        np.zeros(nprocs).reshape((nprocs,1)),
+        sfh,
+        particle_types=particle_types,
+        periodicity=periodicity
+    )
+
+    handler.name = "ParticleData"
+    handler.domain_left_edge = domain_left_edge
+    handler.domain_right_edge = domain_right_edge
+    handler.refine_by = 2
+    handler.dimensionality = 3
+    handler.domain_dimensions = domain_dimensions
+    handler.simulation_time = sim_time
+    handler.cosmology_simulation = 0
+
+    spf = StreamParticlesStaticOutput(handler)
+    spf.units["cm"] = sim_unit_to_cm
+    spf.units['1'] = 1.0
+    spf.units["unitary"] = 1.0
+    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    for unit in mpc_conversion.keys():
+        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+
+    return spf
+
