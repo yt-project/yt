@@ -150,11 +150,11 @@ class GeometryHandler(ParallelAnalysisInterface):
                         return _convert_function
                     cf = external_wrapper(field)
                 # Note that we call add_field on the field_info directly.  This
-                # will allow the same field detection mechanism to work for 1D, 2D
-                # and 3D fields.
+                # will allow the same field detection mechanism to work for 1D,
+                # 2D and 3D fields.
                 self.pf.field_info.add_field(
                         field, NullFunc, particle_type=particle_type,
-                        convert_function=cf, take_log=False,
+                        take_log=False,
                         units=self.parameter_file.field_units[field])
             else:
                 mylog.debug("Adding known field %s to list of fields", field)

@@ -333,9 +333,6 @@ class FieldDetector(defaultdict):
     def has_field_parameter(self, param):
         return True
 
-    def convert(self, item):
-        return 1
-
     @property
     def fcoords(self):
         fc = np.array(np.mgrid[0:1:self.nd*1j,
@@ -387,8 +384,6 @@ class DerivedField(object):
     function : callable
        A function handle that defines the field.  Should accept
        arguments (field, data)
-    convert_function : callable
-       A function that converts to CGS, **only if necessary**
     units : str
        A plain text string encoding the unit.  Powers must be in
        python syntax (** instead of ^).
@@ -409,8 +404,7 @@ class DerivedField(object):
     projection_conversion : unit
        which unit should we multiply by in a projection?
     """
-    def __init__(self, name, function, convert_function=None,
-                 particle_convert_function=None, units=None,
+    def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None,
@@ -424,11 +418,6 @@ class DerivedField(object):
         self.vector_field = vector_field
 
         self._function = function
-        if not convert_function:
-            convert_function = lambda a: 1.0
-        self._convert_function = convert_function
-        self.particle_convert_function = particle_convert_function
-        self.projection_conversion = projection_conversion
 
         if validators:
             self.validators = ensure_list(validators)
@@ -443,13 +432,13 @@ class DerivedField(object):
         elif isinstance(units, Unit):
             self.units = str(units)
         else:
-            raise FieldUnitsError("Cannot handle units '%s' (type %s). Please provide a string or Unit object." % (units, type(units)) )
+            raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
+                                  "Please provide a string or Unit " \
+                                  "object." % (units, type(units)) )
 
     def _copy_def(self):
         dd = {}
         dd['name'] = self.name
-        dd['convert_function'] = self._convert_function
-        dd['particle_convert_function'] = self._particle_convert_function
         dd['units'] = self.units
         dd['take_log'] = self.take_log
         dd['validators'] = self.validators.copy()
@@ -493,8 +482,6 @@ class DerivedField(object):
         ii = self.check_available(data)
         original_fields = data.keys() # Copy
         dd = self._function(self, data)
-        if dd is not None:
-            dd *= self._convert_function(data)
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
@@ -528,11 +515,6 @@ class DerivedField(object):
 
         data_label += r"$"
         return data_label
-
-    def particle_convert(self, data):
-        if self._particle_convert_function is not None:
-            return self._particle_convert_function(data)
-        return None
 
 class FieldValidator(object):
     pass

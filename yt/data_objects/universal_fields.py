@@ -32,6 +32,7 @@ import copy
 
 from yt.funcs import *
 
+from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
@@ -348,23 +349,22 @@ def _comoving_density(field, data):
 add_field("comoving_density", function=_comoving_density, units="g/cm**3")
 
 # This is rho_total / rho_cr(z).
-def _convert_overdensity(data):
-    return 1 / (rho_crit_now * data.pf.hubble_constant**2 *
+def _overdensity(field, data):
+    return data["matter_density"] / (rho_crit_now * data.pf.hubble_constant**2 *
                 (1+data.pf.current_redshift)**3)
-add_field("overdensity",function=_matter_density,
-          convert_function=_convert_overdensity, units="")
+add_field("overdensity", function=_overdensity)
 
 # This is rho_matter / <rho_matter> - 1.0
-def _overdensity(field, data):
+def _density_perturbation(field, data):
     omega_m = data.pf.omega_matter
     h = data.pf.hubble_constant
     z = data.pf.current_redshift
     rho_m = rho_crit_now * h**2 * omega_m * (1.0 + z)**3
     return data["matter_density"] / rho_m - 1.0
 
-add_field("overdensity", function=_overdensity)
+add_field("density_perturbation", function=_overdensity)
 
-# This is rho_baryon / <rho_baryon> - 1.0.
+# This is rho_baryon / <rho_baryon>
 def _baryon_overdensity(field, data):
     # @todo: should we provide this field if the dataset doesn't have omega_b?
     if data.pf.has_key('omega_baryon_now'):
@@ -379,29 +379,31 @@ def _baryon_overdensity(field, data):
 
 add_field("baryon_overdensity", function=_baryon_overdensity)
 
+#FIXME
+
 # Weak lensing convergence.
 # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
-def _convertConvergence(data):
-    if not data.pf.parameters.has_key('cosmology_calculator'):
-        data.pf.parameters['cosmology_calculator'] = Cosmology(
-            HubbleConstantNow=(100.*data.pf.hubble_constant),
-            OmegaMatterNow=data.pf.omega_matter, OmegaLambdaNow=data.pf.omega_lambda)
-    # observer to lens
-    DL = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-        data.pf.parameters['observer_redshift'], data.pf.current_redshift)
-    # observer to source
-    DS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-        data.pf.parameters['observer_redshift'], data.pf.parameters['lensing_source_redshift'])
-    # lens to source
-    DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-        data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
-    # TODO: convert 1.5e14 to constants
-    return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter *
-                                (data.pf.hubble_constant / speed_of_light_cgs)**2 *
-                                (1 + data.pf.current_redshift)))
-add_field("weak_lensing_convergence", function=_overdensity,
-          convert_function=_convertConvergence,
-          projection_conversion='mpccm')
+#def _convertConvergence(data):
+#    if not data.pf.parameters.has_key('cosmology_calculator'):
+#        data.pf.parameters['cosmology_calculator'] = Cosmology(
+#            HubbleConstantNow=(100.*data.pf.hubble_constant),
+#            OmegaMatterNow=data.pf.omega_matter, OmegaLambdaNow=data.pf.omega_lambda)
+#    # observer to lens
+#    DL = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+#        data.pf.parameters['observer_redshift'], data.pf.current_redshift)
+#    # observer to source
+#    DS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+#        data.pf.parameters['observer_redshift'], data.pf.parameters['lensing_source_redshift'])
+#    # lens to source
+#    DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
+#        data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
+#    # TODO: convert 1.5e14 to constants
+#    return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter *
+#                                (data.pf.hubble_constant / speed_of_light_cgs)**2 *
+#                                (1 + data.pf.current_redshift)))
+#add_field("weak_lensing_convergence", function=_overdensity,
+#          convert_function=_convertConvergence,
+#          projection_conversion='mpccm')
 
 def _cell_volume(field, data):
     if data["dx"].size == 1:
@@ -446,9 +448,9 @@ def _chandra_emissivity(field, data):
 def _convert_chandra_emissivity(data):
     return 1.0  # 1.0e-23*0.76**2
 
-add_field("chandra_emissivity", function=_chandra_emissivity,
-          convert_function=_convert_chandra_emissivity,
-          projection_conversion="1")
+#add_field("chandra_emissivity", function=_chandra_emissivity,
+#          convert_function=_convert_chandra_emissivity,
+#          projection_conversion="1")
 
 def _xray_emissivity(field, data):
     return ( data["density"].astype(np.float64)**2
@@ -457,9 +459,9 @@ def _xray_emissivity(field, data):
 def _convert_xray_emissivity(data):
     return 2.168e60  #TODO: cnvert me to constants
 
-add_field("xray_emissivity", function=_xray_emissivity,
-          convert_function=_convert_xray_emissivity,
-          projection_conversion="1")
+#add_field("xray_emissivity", function=_xray_emissivity,
+#          convert_function=_convert_xray_emissivity,
+#          projection_conversion="1")
 
 def _sz_kinetic(field, data):
     vel_axis = data.get_field_parameter("axis")
@@ -471,9 +473,9 @@ def _sz_kinetic(field, data):
 def _convert_sz_kinetic(data):
     return 0.88 * sigma_thompson / mh / clight
 
-add_field("sz_kinetic", function=_sz_kinetic,
-          convert_function=_convert_sz_kinetic,
-          validators=[ValidateParameter("axis")])
+#add_field("sz_kinetic", function=_sz_kinetic,
+#          convert_function=_convert_sz_kinetic,
+#          validators=[ValidateParameter("axis")])
 
 def _szy(field, data):
     return data["density"] * data["temperature"]
@@ -482,7 +484,7 @@ def _convert_szy(data):
     conv = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
     return conv
 
-add_field("szy", function=_szy, convert_function=_convert_szy)
+#add_field("szy", function=_szy, convert_function=_convert_szy)
 
 ### End block that should probably be in an analysis module ###
 
@@ -527,7 +529,8 @@ def _velocity_divergence(field, data):
         ds = div_fac * data["dz"].flat[0]
         f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
         f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
-    new_field = np.zeros(data["x-velocity"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["x-velocity"].shape,
+                                 dtype=np.float64), 'cm/s')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
 
@@ -542,7 +545,7 @@ def _velocity_divergence_absolute(field, data):
 add_field("velocity_divergence_absolute", function=_velocity_divergence_absolute, units="1/s")
 
 def _contours(field, data):
-    return -np.ones_like(data["ones"])
+    return -YTArray(np.ones_like(data["ones"]))
 
 add_field("contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_contours)
