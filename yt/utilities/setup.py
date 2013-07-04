@@ -37,7 +37,8 @@ def get_default_dirs():
     if platform.system() == 'Linux':
         distname, version, did = platform.linux_distribution()
         if distname in ('Ubuntu', 'Debian'):
-            _archs.extend(['lib/x86_64-linux-gnu', 'lib/i686-linux-gnu'])
+            _archs.extend(
+                ['lib/x86_64-linux-gnu', 'lib/i686-linux-gnu', 'lib/i386-linux-gnu'])
 
     add_from_flags("LDFLAGS", "-L", default_library_dirs)
     default_library_dirs.extend(
