@@ -228,7 +228,6 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = np.ones(3, "float64")
-        self['dx'] = self['dy'] = self['dz'] = np.array([1.0])
         class fake_parameter_file(defaultdict):
             pass
 
@@ -297,10 +296,12 @@ class FieldDetector(defaultdict):
             if item == "Coordinates" or item[1] == "Coordinates" or \
                item == "Velocities" or item[1] == "Velocities":
                 # A vector
-                self[item] = np.ones((self.NumberOfParticles, 3))
+                self[item] = YTArray(np.ones((self.NumberOfParticles, 3)),
+                                     finfo.units)
             else:
                 # Not a vector
-                self[item] = np.ones(self.NumberOfParticles)
+                self[item] = YTArray(np.ones(self.NumberOfParticles),
+                                     finfo.units)
             self.requested.append(item)
             return self[item]
         self.requested.append(item)
@@ -320,10 +321,16 @@ class FieldDetector(defaultdict):
         return YTArray(defaultdict.__missing__(self, field_name),
                        input_units=FI[field_name].units)
 
+    fp_units = {
+        'bulk_velocity' : 'cm/s',
+        'center' : 'cm',
+        'normal' : ''
+        }
+
     def get_field_parameter(self, param, default = None):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
-            return np.random.random(3) * 1e-2
+            return YTArray(np.random.random(3) * 1e-2, self.fp_units[param])
         else:
             return 0.0
 

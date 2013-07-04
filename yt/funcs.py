@@ -584,11 +584,11 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, pf):
+def fix_length(length):
     if isinstance(length, (list, tuple)) and len(length) == 2 and \
        isinstance(length[1], types.StringTypes):
-       length = length[0]/pf[length[1]]
-    return length
+       return YTArray(length[0], length[1])
+    return YTArray(length, 'code_length')
 
 @contextlib.contextmanager
 def parallel_profile(prefix):

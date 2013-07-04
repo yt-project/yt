@@ -500,7 +500,7 @@ def _averaged_density(field, data):
         weight_field += data["cell_mass"][sl]
 
     # Now some fancy footwork
-    new_field2 = np.zeros((nx, ny, nz))
+    new_field2 = YTArray(np.zeros((nx, ny, nz)), 'g/cm**3')
     new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
     return new_field2
 
@@ -530,7 +530,7 @@ def _velocity_divergence(field, data):
         f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
         f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = YTArray(np.zeros(data["x-velocity"].shape,
-                                 dtype=np.float64), 'cm/s')
+                                 dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = f
     return new_field
 
@@ -689,7 +689,8 @@ add_field("particle_angular_momentum_z", function=_particle_angular_momentum_z,
 def get_radius(data, field_prefix):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data[field_prefix+"x"].shape, dtype='float64')
+    radius = YTArray(np.zeros(data[field_prefix+"x"].shape, dtype='float64'),
+                     'cm')
     r = radius.copy()
     if any(data.pf.periodicity):
         rdw = radius.copy()
@@ -773,7 +774,7 @@ add_field("cutting_plane_velocity_y",
 def _cutting_plane_magnetic_field_x(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
-    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    b_vec = np.array([data["magnetic_field_%s" % ax] for ax in 'xyz'])
     return np.dot(x_vec, b_vec)
 add_field("cutting_plane_magnetic_field_x",
           function=_cutting_plane_magnetic_field_x,
@@ -782,7 +783,7 @@ add_field("cutting_plane_magnetic_field_x",
 def _cutting_plane_magnetic_field_y(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
-    b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
+    b_vec = np.array([data["magnetic_field_%s" % ax] for ax in 'xyz'])
     return np.dot(y_vec, b_vec)
 add_field("cutting_plane_magnetic_field_y",
           function=_cutting_plane_magnetic_field_y,
@@ -911,7 +912,7 @@ def _vorticity_squared(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["x-velocity"].shape)
+    new_field = YTArray(np.zeros(data["x-velocity"].shape), 'cm/s')
     dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
              data["z-velocity"][1:-1,sl_left,1:-1]) \
              / (div_fac*data["dy"].flat[0])
@@ -955,7 +956,8 @@ def _pressure_gradient_x(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["pressure"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["pressure"].shape, dtype=np.float64),
+                        'dyne/cm**3')
     ds = div_fac * data['dx'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["pressure"][sl_right,1:-1,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["pressure"][sl_left ,1:-1,1:-1]/ds
@@ -971,7 +973,8 @@ def _pressure_gradient_y(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["pressure"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["pressure"].shape, dtype=np.float64),
+                        'dyne/cm**3')
     ds = div_fac * data['dy'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["pressure"][1:-1,sl_right,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["pressure"][1:-1,sl_left ,1:-1]/ds
@@ -987,7 +990,8 @@ def _pressure_gradient_z(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["pressure"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["pressure"].shape, dtype=np.float64),
+                        'dyne/cm**3')
     ds = div_fac * data['dz'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["pressure"][1:-1,1:-1,sl_right]/ds
     new_field[1:-1,1:-1,1:-1] -= data["pressure"][1:-1,1:-1,sl_left ]/ds
@@ -1017,7 +1021,8 @@ def _density_gradient_x(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["density"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["density"].shape, dtype=np.float64),
+                        'g/cm**4')
     ds = div_fac * data['dx'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["density"][sl_right,1:-1,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["density"][sl_left ,1:-1,1:-1]/ds
@@ -1032,7 +1037,8 @@ def _density_gradient_y(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["density"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["density"].shape, dtype=np.float64),
+                        'g/cm**4')
     ds = div_fac * data['dy'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["density"][1:-1,sl_right,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["density"][1:-1,sl_left ,1:-1]/ds
@@ -1047,7 +1053,8 @@ def _density_gradient_z(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["density"].shape, dtype=np.float64)
+    new_field = YTArray(np.zeros(data["density"].shape, dtype=np.float64),
+                        'g/cm**4')
     ds = div_fac * data['dz'].flat[0]
     new_field[1:-1,1:-1,1:-1]  = data["density"][1:-1,1:-1,sl_right]/ds
     new_field[1:-1,1:-1,1:-1] -= data["density"][1:-1,1:-1,sl_left ]/ds
@@ -1104,7 +1111,8 @@ def _vorticity_x(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["z-velocity"].shape, dtype=np.float64)
+    new_field = \
+      YTArray(np.zeros(data["z-velocity"].shape, dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["z-velocity"][1:-1,sl_right,1:-1] -
                                  data["z-velocity"][1:-1,sl_left,1:-1]) \
                                  / (div_fac*data["dy"].flat[0])
@@ -1122,7 +1130,8 @@ def _vorticity_y(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["z-velocity"].shape, dtype=np.float64)
+    new_field = \
+      YTArray(np.zeros(data["z-velocity"].shape, dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["x-velocity"][1:-1,1:-1,sl_right] -
                                  data["x-velocity"][1:-1,1:-1,sl_left]) \
                                  / (div_fac*data["dz"].flat[0])
@@ -1140,7 +1149,8 @@ def _vorticity_z(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    new_field = np.zeros(data["x-velocity"].shape, dtype=np.float64)
+    new_field = \
+      YTArray(np.zeros(data["z-velocity"].shape, dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["y-velocity"][sl_right,1:-1,1:-1] -
                                  data["y-velocity"][sl_left,1:-1,1:-1]) \
                                  / (div_fac*data["dx"].flat[0])
@@ -1201,7 +1211,7 @@ def _vorticity_growth_magnitude(field, data):
     result = np.sqrt(data["vorticity_growth_x"]**2 +
                      data["vorticity_growth_y"]**2 +
                      data["vorticity_growth_z"]**2)
-    dot = np.zeros(result.shape)
+    dot = YTArray(np.zeros(result.shape), '1/s')
     for ax in "xyz":
         dot += data["vorticity_%s" % ax] * data["vorticity_growth_%s" % ax]
     result = np.sign(dot) * result
@@ -1236,16 +1246,16 @@ add_field("vorticity_growth_timescale", function=_vorticity_growth_timescale,
 
 def _vorticity_radiation_pressure_x(field, data):
     rho = data["density"].astype(np.float64)
-    return (data["radiation_acceleration_y"] * data["gradDensity_z"] -
-            data["radiation_acceleration_z"] * data["gradDensity_y"]) / rho
+    return (data["radiation_acceleration_y"] * data["density_gradient_z"] -
+            data["radiation_acceleration_z"] * data["density_gradient_y"]) / rho
 def _vorticity_radiation_pressure_y(field, data):
     rho = data["density"].astype(np.float64)
-    return (data["radiation_acceleration_z"] * data["gradDensity_x"] -
-            data["radiation_acceleration_x"] * data["gradDensity_z"]) / rho
+    return (data["radiation_acceleration_z"] * data["density_gradient_x"] -
+            data["radiation_acceleration_x"] * data["density_gradient_z"]) / rho
 def _vorticity_radiation_pressure_z(field, data):
     rho = data["density"].astype(np.float64)
-    return (data["radiation_acceleration_x"] * data["gradDensity_y"] -
-            data["radiation_acceleration_y"] * data["gradDensity_x"]) / rho
+    return (data["radiation_acceleration_x"] * data["density_gradient_y"] -
+            data["radiation_acceleration_y"] * data["density_gradient_x"]) / rho
 
 for ax in 'xyz':
     n = "vorticity_radiation_pressure_%s" % ax
@@ -1292,7 +1302,7 @@ def _vorticity_radiation_pressure_growth_magnitude(field, data):
     result = np.sqrt(data["vorticity_radiation_pressure_growth_x"]**2 +
                      data["vorticity_radiation_pressure_growth_y"]**2 +
                      data["vorticity_radiation_pressure_growth_z"]**2)
-    dot = np.zeros(result.shape)
+    dot = YTArray(np.zeros(result.shape), '1/s')
     for ax in "xyz":
         dot += data["Vorticity%s" % ax] * data["vorticity_growth_%s" % ax]
     result = np.sign(dot) * result

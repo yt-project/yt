@@ -50,6 +50,9 @@ add_field("z-velocity", function = NullFunc, units='cm/s')
 add_field("magnetic_field_x", function = NullFunc, units='gauss')
 add_field("magnetic_field_y", function = NullFunc, units='gauss')
 add_field("magnetic_field_z", function = NullFunc, units='gauss')
+add_field("radiation_acceleration_x", function = NullFunc, units='cm/s**2')
+add_field("radiation_acceleration_y", function = NullFunc, units='cm/s**2')
+add_field("radiation_acceleration_z", function = NullFunc, units='cm/s**2')
 
 add_field(
     "particle_position_x", function = NullFunc, particle_type=True, units='cm')

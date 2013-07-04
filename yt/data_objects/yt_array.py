@@ -499,6 +499,9 @@ class YTArray(np.ndarray):
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
         # Check that other is a YTArray.
+        if other == None:
+            # self is a YTArray, so it can't be None.
+            return False
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
                 raise YTUnitOperationError("equal", self.units, other.units)
@@ -510,6 +513,8 @@ class YTArray(np.ndarray):
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
         # Check that the other is a YTArray.
+        if other == None:
+            return True
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
                 raise YTUnitOperationError("not equal", self.units, other.units)
@@ -573,7 +578,8 @@ class YTArray(np.ndarray):
             else:
                 out_arr.units = unit
         else:
-            raise RuntimeError("Only unary and binary operators are allowed.")
+            raise RuntimeError("Operation is not defined.\n"
+                               "context: %s" % str(context))
         if out_arr.size == 1 and out_arr.size != self.size:
             return out_arr[0]
         return super(YTArray, self).__array_wrap__(out_arr, context)

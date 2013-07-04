@@ -24,6 +24,7 @@ License:
 """
 
 import numpy as np
+from yt.data_objects.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
@@ -440,7 +441,7 @@ def obtain_rvec(data):
         xf = data['x']
         yf = data['y']
         zf = data['z']
-        rf = np.empty((3, xf.shape[0]), 'float64')
+        rf = YTArray(np.empty((3, xf.shape[0]), 'float64'), xf.units)
         for i in range(xf.shape[0]):
             rf[0, i] = xf[i] - c[0]
             rf[1, i] = yf[i] - c[1]
@@ -451,7 +452,9 @@ def obtain_rvec(data):
         xg = data['x']
         yg = data['y']
         zg = data['z']
-        rg = np.empty((3, xg.shape[0], xg.shape[1], xg.shape[2]), 'float64')
+        shape = (3, xg.shape[0], xg.shape[1], xg.shape[2])
+        rg = YTArray(np.empty(shape, 'float64'), xg.units)
+        rg = YTArray(rg, xg.units)
         for i in range(xg.shape[0]):
             for j in range(xg.shape[1]):
                 for k in range(xg.shape[2]):
@@ -485,7 +488,7 @@ def obtain_rv_vec(data):
         vxf = data['x-velocity'].astype("float64")
         vyf = data['y-velocity'].astype("float64")
         vzf = data['z-velocity'].astype("float64")
-        rvf = np.empty((3, vxf.shape[0]), 'float64')
+        rvf = YTArray(np.empty((3, vxf.shape[0]), 'float64'), vxf.units)
         for i in range(vxf.shape[0]):
             rvf[0, i] = vxf[i] - bv[0]
             rvf[1, i] = vyf[i] - bv[1]
@@ -496,7 +499,8 @@ def obtain_rv_vec(data):
         vxg = data['x-velocity'].astype("float64")
         vyg = data['y-velocity'].astype("float64")
         vzg = data['z-velocity'].astype("float64")
-        rvg = np.empty((3, vxg.shape[0], vxg.shape[1], vxg.shape[2]), 'float64')
+        shape = (3, vxg.shape[0], vxg.shape[1], vxg.shape[2])
+        rvg = YTArray(np.empty(shape, 'float64'), vxg.units)
         for i in range(vxg.shape[0]):
             for j in range(vxg.shape[1]):
                 for k in range(vxg.shape[2]):

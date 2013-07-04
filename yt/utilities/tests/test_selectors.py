@@ -21,7 +21,7 @@ def test_sphere_selector():
         data.get_data()
         # WARNING: this value has not be externally verified
         dd = pf.h.all_data()
-        dd.set_field_parameter("center", center)
+        dd.set_field_parameter("center", YTArray(center, 'code_length'))
         n_outside = (dd["RadiusCode"] >= 0.25).sum()
         assert_equal( data.size + n_outside, dd.size)
 

@@ -136,8 +136,10 @@ class YTRayBase(YTSelectionContainer1D):
     _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, pf=None, field_parameters=None):
         super(YTRayBase, self).__init__(pf, field_parameters)
-        self.start_point = np.array(start_point, dtype='float64')
-        self.end_point = np.array(end_point, dtype='float64')
+        self.start_point = \
+          YTArray(np.array(start_point, dtype='float64'), 'code_length')
+        self.end_point = \
+          YTArray(np.array(end_point, dtype='float64'), 'code_length')
         self.vec = self.end_point - self.start_point
         #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
@@ -366,7 +368,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     def __init__(self, normal, center, pf = None,
                  north_vector = None, field_parameters = None):
         YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
-        self._set_center(center)
+        self._set_center(YTArray(center, 'code_length'))
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -570,7 +572,7 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         # Taken from Cutting Plane
         #
         YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
-        self._set_center(center)
+        self._set_center(YTArray(center, 'code_length'))
         self.width = width
         self.dims = dims
         self.dds = self.width / self.dims
@@ -749,8 +751,8 @@ class YTDiskBase(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
-        self._height = fix_length(height, self.pf)
-        self._radius = fix_length(radius, self.pf)
+        self._height = fix_length(height)
+        self._radius = fix_length(radius)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
     def _get_list_of_grids(self):
@@ -923,7 +925,7 @@ class YTSphereBase(YTSelectionContainer3D):
     def __init__(self, center, radius, pf = None, field_parameters = None):
         super(YTSphereBase, self).__init__(center, pf, field_parameters)
         # Unpack the radius, if necessary
-        radius = fix_length(radius, self.pf)
+        radius = fix_length(radius)
         if radius < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
@@ -971,9 +973,9 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         # make sure the smallest side is not smaller than dx
         if C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
-        self._A = A
-        self._B = B
-        self._C = C
+        self._A = YTArray(A, 'code_length')
+        self._B = YTArray(B, 'code_length')
+        self._C = YTArray(C, 'code_length')
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         
