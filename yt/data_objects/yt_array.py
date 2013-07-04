@@ -46,8 +46,8 @@ def ensure_unitless(func):
     def wrapped(unit):
         if unit != Unit():
             raise RuntimeError(
-                "Arguments of %s ufunc must be unitless" % \
-                  str(func)[10:str(func).find('_unit')]
+                "Argument with unit (%s) is incompatible with the %s ufunc" % \
+                (unit, str(func)[10:str(func).find('_unit')])
                 )
         return func(unit)
     return wrapped
@@ -56,8 +56,9 @@ def ensure_same_units(func):
     def wrapped(unit1, unit2):
         if unit1 != unit2:
             raise RuntimeError(
-                "Both arguments of %s ufunc must have the same units" % \
-                  str(func)[10:str(func).find('_unit')]
+                "Arguments with units (%s) and (%s) are" \
+                "incompatible with the %s ufunc" % \
+                (unit1, unit2, str(func)[10:str(func).find('_unit')])
                 )
         return func(unit1, unit2)
     return wrapped
