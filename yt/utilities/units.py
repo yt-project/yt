@@ -316,7 +316,7 @@ class Unit(Expr):
 
     def __str__(self):
         if self.expr == sympy_one:
-            return "(dimensionless)"
+            return "dimensionless"
         # @todo: don't use dunder method?
         return self.expr.__str__()
 

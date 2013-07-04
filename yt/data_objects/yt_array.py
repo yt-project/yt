@@ -34,8 +34,8 @@ import sympy
 
 from numpy import add, subtract, multiply, divide, \
     negative, absolute, sqrt, square, power, reciprocal, ones_like, \
-    isnan, isinf, cos, sin, log10, greater, equal, not_equal, \
-    less_equal, greater_equal, less, \
+    isnan, isinf, cos, sin, tan, arccos, arcsin, arctan, arctan2, \
+    log10, greater, equal, not_equal, less_equal, greater_equal, less, \
     bitwise_or, bitwise_not, bitwise_and
 
 from yt.utilities.units import Unit
@@ -45,18 +45,22 @@ from numbers import Number as numeric_type
 def ensure_unitless(func):
     def wrapped(unit):
         if unit != Unit():
-            raise InvalidUnitOperation(
-                "Arguments of %s must be unitless" % str(func)
+            raise RuntimeError(
+                "Arguments of %s ufunc must be unitless" % \
+                  str(func)[10:str(func).find('_unit')]
                 )
         return func(unit)
-            
+    return wrapped
+
 def ensure_same_units(func):
     def wrapped(unit1, unit2):
         if unit1 != unit2:
-            raise InvalidUnitOperation(
-                "Arguments of %s must have the same units" % str(func)
+            raise RuntimeError(
+                "Both arguments of %s ufunc must have the same units" % \
+                  str(func)[10:str(func).find('_unit')]
                 )
         return func(unit1, unit2)
+    return wrapped
 
 def sqrt_unit(unit):
     return unit**0.5
@@ -96,7 +100,27 @@ def cos_unit(unit):
     return Unit()
 
 @ensure_unitless
+def arccos_unit(unit):
+    return Unit()
+
+@ensure_unitless
 def sin_unit(unit):
+    return Unit()
+
+@ensure_unitless
+def arcsin_unit(unit):
+    return Unit()
+
+@ensure_unitless
+def tan_unit(unit):
+    return Unit()
+
+@ensure_unitless
+def arctan_unit(unit):
+    return Unit()
+
+@ensure_unitless
+def arctan2_unit(unit):
     return Unit()
 
 @ensure_unitless
@@ -137,18 +161,37 @@ class YTArray(np.ndarray):
     """
 
     """
-    _ufunc_registry = {sqrt: sqrt_unit, multiply: multiply_units,
-                       add: preserve_unit, subtract: preserve_unit,
-                       power: power_unit, divide: divide_units,
-                       square: square_unit, ones_like: ones_like_units,
-                       isnan: isnan_unit, isinf: isinf_unit,
-                       negative: negative_unit, absolute: absolute_unit,
-                       cos: cos_unit, sin: sin_unit, log10: log10_unit, equal:
-                       equal_unit, greater: greater_unit, greater_equal:
-                       greater_equal_unit, less: less_unit, less_equal:
-                       less_equal_unit, not_equal: not_equal_unit, bitwise_or:
-                       bitwise_or_unit, bitwise_not: bitwise_not_unit,
-                       bitwise_and: bitwise_and_unit}
+    _ufunc_registry = {
+        sqrt: sqrt_unit,
+        multiply: multiply_units,
+        add: preserve_unit,
+        subtract: preserve_unit,
+        power: power_unit,
+        divide: divide_units,
+        square: square_unit,
+        ones_like: ones_like_units,
+        isnan: isnan_unit,
+        isinf: isinf_unit,
+        negative: negative_unit,
+        absolute: absolute_unit,
+        cos: cos_unit,
+        sin: sin_unit,
+        tan: tan_unit,
+        arccos: arccos_unit,
+        arcsin: arcsin_unit,
+        arctan: arctan_unit,
+        arctan2: arctan2_unit,
+        log10: log10_unit,
+        equal: equal_unit,
+        greater: greater_unit,
+        greater_equal: greater_equal_unit,
+        less: less_unit,
+        less_equal: less_equal_unit,
+        not_equal: not_equal_unit,
+        bitwise_or: bitwise_or_unit,
+        bitwise_not: bitwise_not_unit,
+        bitwise_and: bitwise_and_unit
+        }
 
     def __new__(cls, input_array, input_units=None, registry=None):
         if isinstance(input_array, YTArray):

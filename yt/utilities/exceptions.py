@@ -176,7 +176,7 @@ class YTUnitOperationError(YTException):
         YTException.__init__(self)
 
     def __str__(self):
-        err = "The %s operator for\n" + "YTArrays with units (%s) "
+        err = "The %s operator for YTArrays with units (%s) "
         if self.unit2 is not None:
             err += "and (%s) "
         err += "is not well defined."
