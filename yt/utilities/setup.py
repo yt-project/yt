@@ -38,7 +38,10 @@ def get_default_dirs():
         distname, version, did = platform.linux_distribution()
         if distname in ('Ubuntu', 'Debian'):
             _archs.extend(
-                ['lib/x86_64-linux-gnu', 'lib/i686-linux-gnu', 'lib/i386-linux-gnu'])
+                ['lib/x86_64-linux-gnu',
+                 'lib/i686-linux-gnu',
+                 'lib/i386-linux-gnu']
+            )
 
     add_from_flags("LDFLAGS", "-L", default_library_dirs)
     default_library_dirs.extend(
@@ -72,7 +75,7 @@ def check_prefix(inc_dir, lib_dir):
         distname, version, did = platform.linux_distribution()
         if distname in ('Ubuntu', 'Debian'):
             print("Since you are using multiarch distro it's hard to detect")
-            print("whether library mathes the header file. We will assume")
+            print("whether library matches the header file. We will assume")
             print("it does. If you encounter any build failures please use")
             print("proper cfg files to provide path to the dependencies")
             return (inc_dir, lib_dir)
@@ -88,7 +91,7 @@ def check_prefix(inc_dir, lib_dir):
 def get_location_from_ctypes(header, library):
     yt_inst = os.environ.get('YT_DEST')
     if yt_inst is not None:
-        # since we preffer installation via scirpt, make sure
+        # since we prefer installation via script, make sure
         # that YT_DEST path take precedence above all else
         return (os.path.join(yt_inst, 'include'), os.path.join(yt_inst, 'lib'))
 
