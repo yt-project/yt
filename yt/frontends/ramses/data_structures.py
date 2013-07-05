@@ -393,11 +393,16 @@ class RAMSESStaticOutput(StaticOutput):
         self.conversion_factors["y-velocity"] = vel_u
         self.conversion_factors["z-velocity"] = vel_u
         # Necessary to get the length units in, which are needed for Mass
-        self.conversion_factors['mass'] = rho_u * self.parameters['unit_l']**3
+        # We also have to multiply by the boxlength here to scale into our
+        # domain.
+        self.conversion_factors['mass'] = rho_u * \
+                self.parameters['unit_l']**3 * self.parameters['boxlen']
 
     def _setup_nounits_units(self):
         # Note that unit_l *already* converts to proper!
-        unit_l = self.parameters['unit_l']
+        # Also note that unit_l must be multiplied by the boxlen parameter to
+        # ensure we are correctly set up for the current domain.
+        unit_l = self.parameters['unit_l'] * self.parameters['boxlen']
         for unit in mpc_conversion.keys():
             self.units[unit] = unit_l * mpc_conversion[unit] / mpc_conversion["cm"]
             self.units['%sh' % unit] = self.units[unit] * self.hubble_constant
