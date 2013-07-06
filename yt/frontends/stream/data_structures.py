@@ -423,7 +423,7 @@ Parameters
     >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
 
-    >>> data = dict(Density = arr)
+    >>> data = dict(density = arr)
     >>> pf = load_uniform_grid(data, arr.shape, length_unit='cm',
                                bbox=bbox, nprocs=12)
     >>> dd = pf.h.all_data()
@@ -432,7 +432,7 @@ Parameters
     #FIXME
     YTArray[123.2856, 123.854, ..., 123.456, 12.42] (code_mass/code_length^3)
 
-    >>> data = dict(Density = (arr, 'g/cm**3'))
+    >>> data = dict(density = (arr, 'g/cm**3'))
     >>> pf = load_uniform_grid(data, arr.shape, 3.03e24, bbox=bbox, nprocs=12)
     >>> dd = pf.h.all_data()
     >>> dd['Density']

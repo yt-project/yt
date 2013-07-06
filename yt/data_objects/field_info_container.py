@@ -296,12 +296,14 @@ class FieldDetector(defaultdict):
             if item == "Coordinates" or item[1] == "Coordinates" or \
                item == "Velocities" or item[1] == "Velocities":
                 # A vector
-                self[item] = YTArray(np.ones((self.NumberOfParticles, 3)),
-                                     finfo.units)
+                self[item] = \
+                  YTArray(np.ones((self.NumberOfParticles, 3)),
+                          finfo.units, registry=self.pf.unit_registry)
             else:
                 # Not a vector
-                self[item] = YTArray(np.ones(self.NumberOfParticles),
-                                     finfo.units)
+                self[item] = \
+                  YTArray(np.ones(self.NumberOfParticles),
+                          finfo.units, registry=self.pf.unit_registry)
             self.requested.append(item)
             return self[item]
         self.requested.append(item)
@@ -319,7 +321,8 @@ class FieldDetector(defaultdict):
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return YTArray(defaultdict.__missing__(self, field_name),
-                       input_units=FI[field_name].units)
+                       input_units=FI[field_name].units,
+                       registry=self.pf.unit_registry)
 
     fp_units = {
         'bulk_velocity' : 'cm/s',

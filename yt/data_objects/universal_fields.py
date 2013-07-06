@@ -137,9 +137,9 @@ def _mach_number(field, data):
 add_field("mach_number", function=_mach_number)
 
 def _courant_time_step(field, data):
-    t1 = data["dx"] / (data["sound_speed"] + np.abs(data["velocity_x"]))
-    t2 = data["dy"] / (data["sound_speed"] + np.abs(data["velocity_y"]))
-    t3 = data["dz"] / (data["sound_speed"] + np.abs(data["velocity_z"]))
+    t1 = data["dx"] / (data["sound_speed"] + np.abs(data["x-velocity"]))
+    t2 = data["dy"] / (data["sound_speed"] + np.abs(data["y-velocity"]))
+    t3 = data["dz"] / (data["sound_speed"] + np.abs(data["z-velocity"]))
     return np.minimum(np.minimum(t1, t2), t3)
 
 add_field("courant_time_step", function=_courant_time_step,
@@ -535,8 +535,8 @@ def _velocity_divergence(field, data):
     return new_field
 
 add_field("velocity_divergence", function=_velocity_divergence,
-          validators=[ValidateSpatial(1, ["velocity_x", "velocity_y",
-                                          "velocity_z"])],
+          validators=[ValidateSpatial(1, ["x-velocity", "y-velocity",
+                                          "z-velocity"])],
           units="1/s", take_log=False)
 
 def _velocity_divergence_absolute(field, data):
@@ -588,17 +588,17 @@ add_field("specific_angular_momentum_z", function=_specific_angular_momentum_z,
           units="cm**2/s", validators=[ValidateParameter("center")])
 
 def _angular_momentum_x(field, data):
-    return data["CellMass"] * data["specific_angular_momentum_x"]
+    return data["cell_mass"] * data["specific_angular_momentum_x"]
 add_field("angular_momentum_x", function=_angular_momentum_x,
          units="g * cm**2 / s", vector_field=False,
          validators=[ValidateParameter('center')])
 def _angular_momentum_y(field, data):
-    return data["CellMass"] * data["specific_angular_momentum_y"]
+    return data["cell_mass"] * data["specific_angular_momentum_y"]
 add_field("angular_momentum_y", function=_angular_momentum_y,
          units="g * cm**2 / s", vector_field=False,
          validators=[ValidateParameter('center')])
 def _angular_momentum_z(field, data):
-    return data["CellMass"] * data["specific_angular_momentum_z"]
+    return data["cell_mass"] * data["specific_angular_momentum_z"]
 add_field("angular_momentum_z", function=_angular_momentum_z,
          units="g * cm**2 / s", vector_field=False,
          validators=[ValidateParameter('center')])
@@ -1094,9 +1094,9 @@ for ax in 'xyz':
           units="1/s")
 
 def _baroclinic_vorticity_Magnitude(field, data):
-    return np.sqrt(data["baroclinic_vorticity_X"]**2 +
-                   data["baroclinic_vorticity_Y"]**2 +
-                   data["baroclinic_vorticity_Z"]**2)
+    return np.sqrt(data["baroclinic_vorticity_x"]**2 +
+                   data["baroclinic_vorticity_y"]**2 +
+                   data["baroclinic_vorticity_z"]**2)
 add_field("baroclinic_vorticity_Magnitude",
           function=_baroclinic_vorticity_Magnitude,
           validators=[ValidateSpatial(1, ["density", "pressure"])],
@@ -1168,9 +1168,9 @@ for ax in 'xyz':
               units="1/s")
 
 def _vorticity_magnitude(field, data):
-    return np.sqrt(data["vorticity_X"]**2 +
-                   data["vorticity_Y"]**2 +
-                   data["vorticity_Z"]**2)
+    return np.sqrt(data["vorticity_x"]**2 +
+                   data["vorticity_y"]**2 +
+                   data["vorticity_z"]**2)
 add_field("vorticity_magnitude", function=_vorticity_magnitude,
           validators=[ValidateSpatial(1,
                       ["x-velocity", "y-velocity", "z-velocity"])],
@@ -1235,7 +1235,7 @@ def _vorticity_growth_timescale(field, data):
     domegax_dt = data["vorticity_x"] / data["vorticity_growth_x"]
     domegay_dt = data["vorticity_y"] / data["vorticity_growth_y"]
     domegaz_dt = data["vorticity_z"] / data["vorticity_growth_z"]
-    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt)
+    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
 add_field("vorticity_growth_timescale", function=_vorticity_growth_timescale,
           validators=[ValidateSpatial(1,
                       ["x-velocity", "y-velocity", "z-velocity"])],

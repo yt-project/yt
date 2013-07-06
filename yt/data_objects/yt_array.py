@@ -588,6 +588,13 @@ class YTArray(np.ndarray):
     # End comparison operators
     #
 
+    def __getitem__(self, item):
+        ret = super(YTArray, self).__getitem__(item)
+        if ret.shape == ():
+            return YTQuantity(ret, self.units)
+        else:
+            return ret
+
     def __array_wrap__(self, out_arr, context=None):
         if context is None:
             pass

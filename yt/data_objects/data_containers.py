@@ -140,7 +140,7 @@ class YTDataContainer(object):
             center = self.pf.h.find_max(center[4:])[1]
         else:
             center = np.array(center, dtype='float64')
-        self.center = YTArray(center, 'code_length')
+        self.center = YTArray(center, 'code_length', registry=self.pf.unit_registry)
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):
