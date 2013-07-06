@@ -695,7 +695,8 @@ def get_radius(data, field_prefix):
     if any(data.pf.periodicity):
         rdw = radius.copy()
     for i, ax in enumerate('xyz'):
-        np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
+        np.subtract(data["%s%s" % (field_prefix, ax)],
+                    YTArray(center[i], center.units), r)
         if data.pf.periodicity[i] == True:
             np.abs(r, r)
             np.subtract(r, DW[i], rdw)

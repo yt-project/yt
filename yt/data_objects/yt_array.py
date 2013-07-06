@@ -32,11 +32,18 @@ import copy
 import numpy as np
 import sympy
 
-from numpy import add, subtract, multiply, divide, \
-    negative, absolute, sqrt, square, power, reciprocal, ones_like, \
-    isnan, isinf, cos, sin, tan, arccos, arcsin, arctan, arctan2, \
-    log10, greater, equal, not_equal, less_equal, greater_equal, less, \
-    bitwise_or, bitwise_not, bitwise_and
+from numpy import \
+     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
+     floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
+     sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
+     reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
+     hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
+     bitwise_and, bitwise_or, bitwise_xor, invert, left_shift, right_shift, \
+     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
+     logical_or, logical_xor, logical_not, maximum, minimum, isreal, \
+     iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, modf, \
+     ldexp, frexp, fmod, floor, ceil, trunc
+
 
 from yt.utilities.units import Unit
 from yt.utilities.exceptions import YTUnitOperationError, YTUnitConversionError
@@ -46,20 +53,17 @@ def ensure_unitless(func):
     def wrapped(unit):
         if unit != Unit():
             raise RuntimeError(
-                "Argument with unit (%s) is incompatible with the %s ufunc" % \
-                (unit, str(func)[10:str(func).find('_unit')])
+                "This operation is only defined for unitless quantities. " \
+                "Received unit (%s)" % unit
                 )
         return func(unit)
     return wrapped
 
 def ensure_same_units(func):
     def wrapped(unit1, unit2):
-        if unit1 != unit2:
-            raise RuntimeError(
-                "Arguments with units (%s) and (%s) are" \
-                "incompatible with the %s ufunc" % \
-                (unit1, unit2, str(func)[10:str(func).find('_unit')])
-                )
+        if unit1.dimensions != unit2.dimensions:
+            raise RuntimeError("(%s) and (%s) must be equivalent units" \
+                               % unit1, unit2)
         return func(unit1, unit2)
     return wrapped
 
@@ -69,7 +73,8 @@ def sqrt_unit(unit):
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
-def preserve_unit(unit1, unit2):
+@ensure_same_units
+def preserve_units(unit1, unit2):
     return unit1
 
 def power_unit(unit, power):
@@ -81,81 +86,32 @@ def square_unit(unit):
 def divide_units(unit1, unit2):
     return unit1/unit2
 
-def ones_like_units(unit):
+def reciprocal_unit(unit):
+    return 1/unit
+
+def passthrough_unit(unit):
     return unit
 
-def isnan_unit(unit):
+def return_without_unit(unit):
     return None
 
-def isinf_unit(unit):
-    return None
-
-def negative_unit(unit):
-    return unit
-
-def absolute_unit(unit):
-    return unit
-
 @ensure_unitless
-def cos_unit(unit):
+def unitless(unit):
     return Unit()
 
-@ensure_unitless
-def arccos_unit(unit):
+def sign_unit(unit):
     return Unit()
 
-@ensure_unitless
-def sin_unit(unit):
+@ensure_same_units
+def arctan2_unit(unit1, unit2):
     return Unit()
 
-@ensure_unitless
-def arcsin_unit(unit):
-    return Unit()
-
-@ensure_unitless
-def tan_unit(unit):
-    return Unit()
-
-@ensure_unitless
-def arctan_unit(unit):
-    return Unit()
-
-@ensure_unitless
-def arctan2_unit(unit):
-    return Unit()
-
-@ensure_unitless
-def log10_unit(unit):
-    return Unit()
-
-def greater_unit(unit1, unit2):
-    return None
-
-def less_unit(unit1, unit2):
-    return None
-
-def greater_equal_unit(unit1, unit2):
-    return None
-
-def less_equal_unit(unit1, unit2):
-    return None
-
-def equal_unit(unit1, unit2):
-    return None
-
-def not_equal_unit(unit1, unit2):
+@ensure_same_units
+def comparison_unit(unit1, unit2):
     return None
 
 @ensure_same_units
-def bitwise_and_unit(unit1, unit2):
-    return unit1
-
-@ensure_same_units
-def bitwise_or_unit(unit1, unit2):
-    return unit1
-
-@ensure_same_units
-def bitwise_not_unit(unit1, unit2):
+def bitwise_comparison_unit(unit1, unit2):
     return unit1
 
 class YTArray(np.ndarray):
@@ -163,35 +119,74 @@ class YTArray(np.ndarray):
 
     """
     _ufunc_registry = {
-        sqrt: sqrt_unit,
+        add: preserve_units,
+        subtract: preserve_units,
         multiply: multiply_units,
-        add: preserve_unit,
-        subtract: preserve_unit,
-        power: power_unit,
         divide: divide_units,
+        logaddexp: unitless,
+        logaddexp2: unitless,
+        true_divide: divide_units,
+        floor_divide: divide_units,
+        negative: passthrough_unit,
+        power: power_unit,
+        remainder: preserve_units,
+        mod: preserve_units,
+        fmod: preserve_units,
+        absolute: passthrough_unit,
+        rint: passthrough_unit,
+        sign: sign_unit,
+        conj: passthrough_unit,
+        exp: unitless,
+        exp2: unitless,
+        log: unitless,
+        log2: unitless,
+        log10: unitless,
+        expm1: unitless,
+        log1p: unitless,
+        sqrt: sqrt_unit,
         square: square_unit,
-        ones_like: ones_like_units,
-        isnan: isnan_unit,
-        isinf: isinf_unit,
-        negative: negative_unit,
-        absolute: absolute_unit,
-        cos: cos_unit,
-        sin: sin_unit,
-        tan: tan_unit,
-        arccos: arccos_unit,
-        arcsin: arcsin_unit,
-        arctan: arctan_unit,
+        reciprocal: reciprocal_unit,
+        ones_like: passthrough_unit,
+        sin: unitless,
+        cos: unitless,
+        tan: unitless,
+        arcsin: unitless,
+        arccos: unitless,
+        arctan: unitless,
         arctan2: arctan2_unit,
-        log10: log10_unit,
-        equal: equal_unit,
-        greater: greater_unit,
-        greater_equal: greater_equal_unit,
-        less: less_unit,
-        less_equal: less_equal_unit,
-        not_equal: not_equal_unit,
-        bitwise_or: bitwise_or_unit,
-        bitwise_not: bitwise_not_unit,
-        bitwise_and: bitwise_and_unit
+        hypot: preserve_units,
+        deg2rad: unitless,
+        rad2deg: unitless,
+        bitwise_and: bitwise_comparison_unit,
+        bitwise_or: bitwise_comparison_unit,
+        bitwise_xor: bitwise_comparison_unit,
+        invert: bitwise_comparison_unit,
+        left_shift: passthrough_unit,
+        right_shift: passthrough_unit,
+        greater: comparison_unit,
+        greater_equal: comparison_unit,
+        less: comparison_unit,
+        less_equal: comparison_unit,
+        not_equal: comparison_unit,
+        equal: comparison_unit,
+        logical_and: ensure_same_units,
+        logical_or: ensure_same_units,
+        logical_xor: ensure_same_units,
+        logical_not: ensure_same_units,
+        maximum: passthrough_unit,
+        minimum: passthrough_unit,
+        isreal: return_without_unit,
+        iscomplex: return_without_unit,
+        isfinite: return_without_unit,
+        isinf: return_without_unit,
+        isnan: return_without_unit,
+        signbit: return_without_unit,
+        copysign: preserve_units,
+        nextafter: preserve_units,
+        modf: passthrough_unit,
+        floor: passthrough_unit,
+        ceil: passthrough_unit,
+        trunc: passthrough_unit
         }
 
     def __new__(cls, input_array, input_units=None, registry=None):
@@ -603,7 +598,12 @@ class YTArray(np.ndarray):
                 out_arr = np.array(out_arr)
             else:
                 out_arr.units = unit
-        elif len(context[1]) == 2:
+        elif len(context[1]) in (2,3):
+            if context[1] == 3:
+                # note we use `is`, not ==.
+                # They should be at the same location in memory
+                if out_arr is not context[1][2]:
+                    raise RuntimeError("Operation is not defined.")
             # binary operators
             try:
                 unit1 = context[1][0].units
@@ -622,8 +622,7 @@ class YTArray(np.ndarray):
             else:
                 out_arr.units = unit
         else:
-            raise RuntimeError("Operation is not defined.\n"
-                               "context: %s" % str(context))
+            raise RuntimeError("Operation is not defined.")
         if out_arr.size == 1 and out_arr.size != self.size:
             return out_arr[0]
         return super(YTArray, self).__array_wrap__(out_arr, context)
