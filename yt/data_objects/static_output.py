@@ -62,6 +62,7 @@ class StaticOutput(object):
     geometry = "cartesian"
     coordinates = None
     max_level = 99
+    storage_filename = None
     _particle_mass_name = None
     _particle_coordinates_name = None
 

@@ -271,15 +271,15 @@ cdef class StdParticleField(ParticleDepositOperation):
         # per cell, M_k, and Q_k and also the number of particles
         # deposited into each one
         # the M_k term
-        self.omk= np.zeros(self.nvals, dtype="float64")
+        self.omk= np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray omkarr= self.omk
         self.mk= <np.float64_t*> omkarr.data
         # the Q_k term
-        self.oqk= np.zeros(self.nvals, dtype="float64")
+        self.oqk= np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray oqkarr= self.oqk
         self.qk= <np.float64_t*> oqkarr.data
         # particle count
-        self.oi = np.zeros(self.nvals, dtype="float64")
+        self.oi = np.zeros(self.nvals, dtype="float64", order='F')
         cdef np.ndarray oiarr = self.oi
         self.i = <np.float64_t*> oiarr.data
 
@@ -368,11 +368,11 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
     cdef np.float64_t *w
     cdef public object ow
     def initialize(self):
-        self.owf = np.zeros(self.nvals, dtype='float64')
+        self.owf = np.zeros(self.nvals, dtype='float64', order='F')
         cdef np.ndarray wfarr = self.owf
         self.wf = <np.float64_t*> wfarr.data
         
-        self.ow = np.zeros(self.nvals, dtype='float64')
+        self.ow = np.zeros(self.nvals, dtype='float64', order='F')
         cdef np.ndarray warr = self.ow
         self.w = <np.float64_t*> warr.data
     
