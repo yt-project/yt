@@ -35,7 +35,7 @@ import numpy as np
 
 class TransferFunctionHelper(object):
 
-    profiles = {}
+    profiles = None
 
     def __init__(self, pf):
         r"""A transfer function helper.
@@ -59,6 +59,7 @@ class TransferFunctionHelper(object):
         self.tf = None
         self.bounds = None
         self.grey_opacity = True
+        self.profiles = {}
 
     def set_bounds(self, bounds=None):
         """
@@ -73,8 +74,8 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            self.bounds = \
-                self.pf.h.all_data().quantities['Extrema'](self.field)[0]
+            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)[0]
+        self.bounds = bounds
 
         # Do some error checking.
         assert(len(self.bounds) == 2)
@@ -175,7 +176,7 @@ class TransferFunctionHelper(object):
         canvas = FigureCanvasAgg(fig)
         ax = fig.add_axes([0.2, 0.2, 0.75, 0.75])
         ax.bar(x, tf.funcs[3].y, w, edgecolor=[0.0, 0.0, 0.0, 0.0],
-               log=True, color=colors)
+               log=True, color=colors, bottom=[0])
 
         if profile_field is not None:
             try:
