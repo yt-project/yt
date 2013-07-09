@@ -545,9 +545,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 if field in self.field_data: continue
                 try:
                     fd = self._generate_field(field)
-                    if type(fd) != YTArray:
+                    if type(fd) == np.ndarray:
                         fd = YTArray(fd, self.pf._get_field_info(*field).units,
                                      self.pf.unit_registry)
+                    if fd == None:
+                        raise RuntimeError
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:

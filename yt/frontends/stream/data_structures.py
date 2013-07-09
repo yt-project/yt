@@ -54,7 +54,7 @@ from yt.utilities.flagging_methods import \
 from .fields import \
     StreamFieldInfo, \
     add_stream_field, \
-    KnownStreamFields
+    StreamFieldInfo
 
 class StreamGrid(AMRGridPatch):
     """
@@ -260,7 +260,7 @@ class StreamHierarchy(GridGeometryHandler):
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
+    _fieldinfo_known = StreamFieldInfo
     _data_style = 'stream'
 
     def __init__(self, stream_handler, storage_filename = None):
@@ -451,17 +451,18 @@ Parameters
     if all([isinstance(val, np.ndarray) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
     elif all([(len(val) == 2) for val in data.values()]):
-        data, field_units = {}, {}
+        new_data, field_units = {}, {}
         for field in data:
             try:
                 assert isinstance(field, basestring), \
                   "Field name is not a string!"
-                assert isinstance(data[f][0], np.ndarray), \
+                assert isinstance(data[field][0], np.ndarray), \
                   "Field data is not an ndarray!"
-                assert isinstance(data[f][1], basestring), \
+                assert isinstance(data[field][1], basestring), \
                   "Unit specification is not a sring!"
                 field_units[field] = data[field][1]
-                data[field] = data[field][0]
+                new_data[field] = data[field][0]
+                data = new_data
             except AssertionError, e:
                 raise RuntimeError("The data dict appears to be invalid.\n" +
                                    str(e))
@@ -471,7 +472,7 @@ Parameters
                            "names to (numpy array, unit spec) tuples. ")
 
     sfh = StreamDictFieldHandler()
-    
+
     if data.has_key("number_of_particles") :
         number_of_particles = data.pop("number_of_particles")
     else:
@@ -533,8 +534,11 @@ Parameters
 
     spf = StreamStaticOutput(handler)
 
+    if length_unit is None:
+        length_unit = 'code_length'
+
     if isinstance(length_unit, basestring):
-        spf.length_unit = YTQuantity(1.0, length_unit)
+        spf.length_unit = YTQuantity(1.0, length_unit, registry=spf.unit_registry)
     elif isinstance(length_unit, numeric_type):
         spf.length_unit = YTQuantity(length_unit, 'cm')
     else:

@@ -491,7 +491,11 @@ class DerivedField(object):
         """ Return the value of the field in a given *data* object. """
         ii = self.check_available(data)
         original_fields = data.keys() # Copy
-        dd = self._function(self, data)
+        if self._function is not NullFunc:
+            dd = self._function(self, data)
+        else:
+            raise RuntimeError(
+                "Something has gone terribly wrong, _function is NullFunc")
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]

@@ -69,9 +69,11 @@ class StaticOutput(object):
             mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename=None, *args, **kwargs):
+        from yt.frontends.stream.data_structures import StreamHandler
         if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
-            obj.__init__(filename, *args, **kwargs)
+            if not isinstance(filename, StreamHandler):
+                obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
