@@ -123,7 +123,7 @@ cdef class SelectorObject:
         self.overlap_cells = 0
 
         for i in range(3) :
-            if dobj.pf.periodicity[i] and self.domain_left_edge[i] != 0.0 :
+            if dobj.pf.periodicity[i] and self.pf.domain_left_edge[i] != 0.0 :
                 print "SelectorObject periodicity assumes left_edge == 0"
                 raise RuntimeError
 
