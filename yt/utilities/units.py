@@ -94,6 +94,12 @@ default_unit_symbol_lut = {
     "s":  (1.0, time),
     "K":  (1.0, temperature),
 
+    # "code" units, default to CGS conversion.
+    # This can be overriden by modifying the lut
+    "code_length" : (1.0, length),
+    "code_mass" : (1.0, mass),
+    "code_time" : (1.0, time),
+
     # other cgs
     "dyne": (1.0, force),
     "erg":  (1.0, energy),
@@ -176,7 +182,8 @@ class UnitRegistry:
         """
         # Validate
         if not isinstance(cgs_value, float):
-            raise UnitParseError("cgs_value must be a float, got a %s." % type(cgs_value))
+            raise UnitParseError("cgs_value must be a float, got a %s." \
+                                 % type(cgs_value))
 
         _validate_dimensions(dimensions)
 
@@ -189,10 +196,24 @@ class UnitRegistry:
 
         """
         if symbol not in self.lut:
-            raise SymbolNotFoundError("Tried to remove the symbol '%s', but it does not exist in this registry." % symbol)
+            raise SymbolNotFoundError(
+                "Tried to remove the symbol '%s', but it does not exist" \
+                "in this registry." % symbol)
 
         del self.lut[symbol]
 
+    def modify(self, symbol, cgs_value):
+        """
+        Change the cgs value of a dimension.  Useful for adjusting code units
+        after parsing parameters."
+
+        """
+        if symbol not in self.lut:
+            raise SymbolNotFoundError(
+                "Tried to remove the symbol '%s', but it does not exist" \
+                "in this registry." % symbol)
+
+        self.lut[symbol] = (cgs_value, self.lut[symbol][1])
 
 default_unit_registry = UnitRegistry()
 
@@ -243,7 +264,9 @@ class Unit(Expr):
             unit_expr = parse_expr(unit_expr)
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
-            raise UnitParseError("Unit representation must be a string or sympy Expr. %s has type %s." % (unit_expr, type(unit_expr)))
+            raise UnitParseError("Unit representation must be a string or " \
+                                 "sympy Expr. %s has type %s." \
+                                 % (unit_expr, type(unit_expr)))
 
         if registry is None:
             # Caller did not set the registry, so use the default.
@@ -270,7 +293,9 @@ class Unit(Expr):
             try:
                 cgs_value = float(cgs_value)
             except ValueError:
-                raise UnitParseError("Could not use cgs_value as a float. cgs_value is '%s' (type %s)." % (cgs_value, type(cgs_value)) )
+                raise UnitParseError("Could not use cgs_value as a float. " \
+                                     "cgs_value is '%s' (type %s)." \
+                                     % (cgs_value, type(cgs_value)) )
 
             # check that dimensions is valid
             _validate_dimensions( sympify(dimensions) )
@@ -343,9 +368,9 @@ class Unit(Expr):
     def __div__(self, u):
         """ Divide Unit by u (Unit object). """
         if not isinstance(u, Unit):
-            raise InvalidUnitOperation("Tried to divide a Unit object by '%s' " \
-                                       "(type %s). This behavior is undefined." \
-                                       % (u, type(u)) )
+            raise InvalidUnitOperation("Tried to divide a Unit object by '%s' "\
+                                       "(type %s). This behavior is "
+                                       "undefined." % (u, type(u)) )
 
         return Unit(self.expr / u.expr,
                     cgs_value=(self.cgs_value / u.cgs_value),
@@ -367,20 +392,22 @@ class Unit(Expr):
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
-            raise InvalidUnitOperation("Tried to test equality between a Unit " \
-                                       "object and '%s' (type %s). This " \
+            raise InvalidUnitOperation("Tried to test equality between a Unit" \
+                                       " object and '%s' (type %s). This " \
                                        "behavior is undefined." % (u, type(u)) )
 
-        return (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
+        return \
+          (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
     def __ne__(self, u):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
-            raise InvalidUnitOperation("Tried to test equality between a Unit " \
-                                       "object and '%s' (type %s). This " \
+            raise InvalidUnitOperation("Tried to test equality between a Unit" \
+                                       " object and '%s' (type %s). This " \
                                        "behavior is undefined." % (u, type(u)) )
 
-        return (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
+        return \
+          (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
 
 
     #
@@ -443,7 +470,10 @@ def get_conversion_factor(old_units, new_units):
         new_units = Unit(new_units)
 
     if not old_units.same_dimensions_as(new_units):
-        raise InvalidUnitOperation("Cannot convert from %s to %s because the dimensions do not match: %s and %s" % (old_units, new_units, old_units.dimensions, new_units.dimensions))
+        raise InvalidUnitOperation(
+            "Cannot convert from %s to %s because the dimensions do not "
+            "match: %s and %s" % (old_units, new_units, old_units.dimensions,
+                                  new_units.dimensions))
 
     return old_units.cgs_value / new_units.cgs_value
 
@@ -503,7 +533,8 @@ def _validate_dimensions(d):
         if d in base_dimensions:
             return d
         else:
-            raise UnitParseError("dimensionality expression contains an unknown symbol '%s'." % d)
+            raise UnitParseError("dimensionality expression contains an "
+                                 "unknown symbol '%s'." % d)
 
     # validate args of a Pow or Mul separately
     elif isinstance(d, Pow):
@@ -558,7 +589,9 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
 
         return (float(cgs_value), dimensions)
 
-    raise UnitParseError("Cannot parse for unit data from '%s'. Please supply an expression of only Unit, Symbol, Pow, and Mul objects." % str(unit_expr))
+    raise UnitParseError("Cannot parse for unit data from '%s'. Please supply" \
+                         " an expression of only Unit, Symbol, Pow, and Mul" \
+                         "objects." % str(unit_expr))
 
 
 def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
@@ -573,7 +606,6 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
         Dictionary with symbols as keys and unit data tuples as values.
 
     """
-
     if symbol_str in unit_symbol_lut:
         # lookup successful, return the tuple directly
         return unit_symbol_lut[symbol_str]
@@ -593,4 +625,5 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
             return (unit_data[0] * prefix_value, unit_data[1])
 
     # no dice
-    raise UnitParseError("Could not find unit symbol '%s' in the provided symbols. Please define this unit symbol." % symbol_str)
+    raise UnitParseError("Could not find unit symbol '%s' in the provided " \
+                         "symbols." % symbol_str)

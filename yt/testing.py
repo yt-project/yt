@@ -164,10 +164,10 @@ def fake_random_pf(
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-    data = dict((field, (np.random.random(ndims) - offset) * peak_value)
-                 for field,offset in zip(fields,offsets))
-    ug = load_uniform_grid(
-        data, ndims, 1.0, nprocs=nprocs, units=dict(zip(fields, units)))
+            data = dict( \
+                (field, (((np.random.random(ndims) - offset) * peak_value),u)) \
+                 for field, offset, u in zip(fields,offsets,units) )
+    ug = load_uniform_grid(data, ndims, 1.0, nprocs=nprocs)
     return ug
 
 def expand_keywords(keywords, full=False):

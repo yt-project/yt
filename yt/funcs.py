@@ -30,12 +30,14 @@ import warnings, struct, subprocess
 import numpy as np
 from distutils import version
 from math import floor, ceil
+from numbers import Number as numeric_type
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.utilities.progressbar as pb
 import yt.utilities.rpdb as rpdb
+from yt.data_objects.yt_array import YTArray
 from collections import defaultdict
 from functools import wraps
 
@@ -585,10 +587,16 @@ def get_yt_supp():
     return supp_path
 
 def fix_length(length):
-    if isinstance(length, (list, tuple)) and len(length) == 2 and \
-       isinstance(length[1], types.StringTypes):
-       return YTArray(length[0], length[1])
-    return YTArray(length, 'code_length')
+    length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
+    unit_is_string = isinstance(length[1], types.StringTypes)
+    if length_valid_tuple and unit_is_string:
+        if length[1] == 'unitary':
+            length = (length[0], 'code_length')
+        return YTArray(*length)
+    elif isinstance(length, numeric_type):
+        return YTArray(length, 'code_length')
+    else:
+        raise RuntimeError("Length %s is invalid" % str(length))
 
 @contextlib.contextmanager
 def parallel_profile(prefix):

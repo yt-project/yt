@@ -123,9 +123,12 @@ class YTDataContainer(object):
 
     def _set_default_field_parameters(self):
         self.field_parameters = {}
-        self.set_field_parameter("center",YTArray(np.zeros(3,dtype='float64'),'cm'))
-        self.set_field_parameter("bulk_velocity",YTArray(np.zeros(3,dtype='float64'),'cm/s'))
-        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
+        self.set_field_parameter(
+            "center",YTArray(np.zeros(3,dtype='float64'),'cm'))
+        self.set_field_parameter(
+            "bulk_velocity",YTArray(np.zeros(3,dtype='float64'),'cm/s'))
+        self.set_field_parameter(
+            "normal",np.array([0,0,1],dtype='float64'))
 
     def _set_center(self, center):
         if center is None:
@@ -140,7 +143,7 @@ class YTDataContainer(object):
             center = self.pf.h.find_max(center[4:])[1]
         else:
             center = np.array(center, dtype='float64')
-        self.center = YTArray(center, 'code_length', registry=self.pf.unit_registry)
+        self.center = YTArray(center, 'code_length')
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):

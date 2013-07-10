@@ -529,7 +529,8 @@ class YTArray(np.ndarray):
         # Check that other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise YTUnitOperationError('less than or equal', self.units, other.units)
+                raise YTUnitOperationError('less than or equal', self.units,
+                                           other.units)
 
             return np.array(self).__le__(np.array(other.in_units(self.units)))
 
@@ -567,7 +568,8 @@ class YTArray(np.ndarray):
         # Check that the other is a YTArray.
         if isinstance(right_object, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise YTUnitOperationError("greater than or equal", self.units, other.units)
+                raise YTUnitOperationError("greater than or equal",
+                                           self.units, other.units)
 
             return np.array(self).__ge__(np.array(other.in_units(self.units)))
 
@@ -578,7 +580,8 @@ class YTArray(np.ndarray):
         # Check that the other is a YTArray.
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
-                raise YTUnitOperationError("greater than", self.units, other.units)
+                raise YTUnitOperationError("greater than", self.units,
+                                           other.units)
 
             return np.array(self).__gt__(np.array(other.in_units(self.units)))
 
