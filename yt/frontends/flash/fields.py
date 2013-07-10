@@ -368,3 +368,15 @@ add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 def _abar(field, data):
     return 1.0 / data['sumy']
 add_field('abar', function=_abar, take_log=False)
+	
+
+def _NumberDensity(fields,data) :
+    try:
+        return data["nele"]+data["nion"]
+    except:
+        pass
+    return data['pres']/(data['temp']*Na*kboltz*mh)
+add_field("NumberDensity", function=_NumberDensity,
+        units=r'\rm{cm}^{-3}')
+
+
