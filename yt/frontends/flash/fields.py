@@ -375,7 +375,7 @@ def _NumberDensity(fields,data) :
         return data["nele"]+data["nion"]
     except:
         pass
-    return data['pres']/(data['temp']*Na*kboltz*mh)
+    return data['pres']/(data['temp']*Na*kboltz*mh/1.00794)
 add_field("NumberDensity", function=_NumberDensity,
         units=r'\rm{cm}^{-3}')
 
