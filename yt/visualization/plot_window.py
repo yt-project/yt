@@ -37,11 +37,9 @@ from distutils import version
 from functools import wraps
 from numbers import Number
 
-from ._mpl_imports import \
-    FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
+from ._mpl_imports import FigureCanvasAgg
 from .color_maps import yt_colormaps, is_colormap
-from .image_writer import \
-    write_image, apply_colormap
+from .image_writer import apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
@@ -52,21 +50,20 @@ from .tick_locators import LogLocator, LinearLocator
 from .base_plot_types import ImagePlotMPL
 
 from yt.utilities.delaunay.triangulate import Triangulation as triang
-from yt.config import ytcfg
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
     fix_axis, get_image_suffix
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
+    x_dict, y_dict, \
     axis_names, axis_labels, \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    GroupOwnership
-from yt.utilities.exceptions import YTUnitNotRecognized, YTInvalidWidthError
+from yt.utilities.exceptions import \
+     YTUnitNotRecognized, YTInvalidWidthError, YTCannotParseUnitDisplayName, \
+     YTNotInsideNotebook
+
 from yt.data_objects.time_series import \
     TimeSeriesData
 
@@ -539,12 +536,6 @@ class PlotWindow(object):
             self.center = new_center
         self.set_window(self.bounds)
 
-    @property
-    def width(self):
-        Wx = self.xlim[1] - self.xlim[0]
-        Wy = self.ylim[1] - self.ylim[0]
-        return (Wx, Wy)
-
     @invalidate_data
     def set_antialias(self,aa):
         self.antialias = aa
@@ -839,10 +830,6 @@ class PWViewerMPL(PWViewer):
         return xc, yc
 
     def _setup_plots(self):
-        if self._current_field is not None:
-            fields = [self._current_field]
-        else:
-            fields = self._frb.keys()
         self._colorbar_valid = True
         for f in self.fields:
             axis_index = self.data_source.axis
@@ -1087,7 +1074,6 @@ class PWViewerMPL(PWViewer):
             # IPython v0.14+
             from IPython.core.display import display
         for k, v in sorted(self.plots.iteritems()):
-            canvas = FigureCanvasAgg(v.figure)
             display(v.figure)
 
     def show(self):
