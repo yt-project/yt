@@ -1,15 +1,16 @@
 #
 # Physical Constants and Units Conversion Factors
 #
-# Values for these constants are drawn from IAU and IUPAC data 
-# unless otherwise noted:
+# Values for these constants, unless otherwise noted, are drawn from IAU,
+# IUPAC, and NIST data, whichever is newer.
 # http://maia.usno.navy.mil/NSFA/IAU2009_consts.html
 # http://goldbook.iupac.org/list_goldbook_phys_constants_defs.html
+# http://physics.nist.gov/cuu/Constants/index.html
 
 # Masses
-mass_hydrogen_cgs = 1.674534e-24  # g
-mass_electron_cgs = 9.1093898e-28  # g
-amu_cgs           = 1.6605402e-24  # g
+mass_electron_cgs = 9.109382-28  # g
+amu_cgs           = 1.660538921e-24  # g
+mass_hydrogen_cgs = 1.007947*amu_cgs  # g
 mass_sun_cgs = 1.98841586e33  # g
 # Velocities
 speed_of_light_cgs = 2.99792458e10  # cm/s, exact
@@ -22,10 +23,10 @@ cross_section_thompson_cgs = 6.65245854533e-25  # cm^2
 charge_proton_cgs = 4.8032056e-10  # esu = 1.602176487e-19  Coulombs
 
 # Physical Constants
-boltzmann_constant_cgs = 1.3806504e-16  # erg K^-1
-gravitational_constant_cgs  = 6.67428e-8  # cm^3 g^-1 s^-2
-planck_constant_cgs   = 6.62606896e-27  # erg s
-stefan_boltzmann_constant_cgs = 5.67051e-5 # erg cm^-2 s^-1 K^-4
+boltzmann_constant_cgs = 1.3806488e-16  # erg K^-1
+gravitational_constant_cgs  = 6.67384e-8  # cm^3 g^-1 s^-2
+planck_constant_cgs   = 6.62606957e-27  # erg s
+stefan_boltzmann_constant_cgs = 5.670373e-5 # erg cm^-2 s^-1 K^-4
 # The following value was calcualted assuming H = 100 km/s/Mpc.
 # To get the correct value for your cosmological parameters, 
 # you'll need to multiply through by h^2
@@ -69,16 +70,17 @@ pc_per_km     = 1.0 / km_per_pc
 cm_per_pc     = 1.0 / pc_per_cm
 
 # time
+# "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
 sec_per_Gyr  = 31.5576e15
 sec_per_Myr  = 31.5576e12
 sec_per_kyr  = 31.5576e9
-sec_per_year = 31.5576e6   # "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
+sec_per_year = 31.5576e6   
 sec_per_day  = 86400.0
 sec_per_hr   = 3600.0
 day_per_year = 365.25
 
 # temperature / energy
-erg_per_eV = 1.602176487e-12 # http://goldbook.iupac.org/E02014.html
+erg_per_eV = 1.602176562e-12
 erg_per_keV = erg_per_eV * 1.0e3
 K_per_keV = erg_per_keV / boltzmann_constant_cgs
 keV_per_K = 1.0 / K_per_keV
