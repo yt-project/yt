@@ -684,7 +684,7 @@ def _TotalQuantity(data, fields):
         if data[field].size < 1:
             totals.append(np.zeros(1,dtype=data[field].dtype)[0])
             continue
-        totals.append(data[field].sum(dtype=prec_accum(data[field].dtype))
+        totals.append(data[field].sum(dtype=prec_accum(data[field].dtype)))
     return len(fields), totals
 def _combTotalQuantity(data, n_fields, totals):
     totals = np.atleast_2d(totals)
