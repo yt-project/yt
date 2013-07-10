@@ -30,6 +30,25 @@ License:
 import numpy as np
 import math
 
+prec_accum = {
+    np.int:        np.int64,
+    np.int8:       np.int64,
+    np.int16:      np.int64,
+    np.int32:      np.int64,
+    np.int64:      np.int64,
+    np.uint8:      np.uint64,
+    np.uint16:     np.uint64,
+    np.uint32:     np.uint64,
+    np.uint64:     np.uint64,
+    np.float:      np.float64,
+    np.float16:    np.float64,
+    np.float32:    np.float64,
+    np.float64:    np.float64,
+    np.complex:    np.complex128,
+    np.complex64:  np.complex128,
+    np.complex128: np.complex128,
+}
+
 def periodic_position(pos, pf):
     r"""Assuming periodicity, find the periodic position within the domain.
 
