@@ -40,7 +40,7 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
     mass_sun_cgs, \
     HUGE
-
+from yt.utilities.math_utils import prec_accum
 
 __CUDA_BLOCK_SIZE = 256
 
