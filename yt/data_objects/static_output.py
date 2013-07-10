@@ -55,10 +55,13 @@ class StaticOutput(object):
             mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename=None, *args, **kwargs):
-        from yt.frontends.stream.data_structures import StreamHandler
         if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
-            if not isinstance(filename, StreamHandler):
+            # The Stream frontend uses a StreamHandler object to pass metadata
+            # to __init__.
+            is_stream = (hasattr(filename, 'get_fields') and
+                         hasattr(filename, 'get_particle_type'))
+            if not is_stream:
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
