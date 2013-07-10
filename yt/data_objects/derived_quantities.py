@@ -679,9 +679,16 @@ def _TotalQuantity(data, fields):
     totals = []
     for field in fields:
         if data[field].size < 1:
-            totals.append(0.0)
+            totals.append(np.zeros(1,dtype=data[field].dtype)[0])
             continue
-        totals.append(data[field].sum())
+        if data[field].dtype in (np.int,np.int8,np.int16,np.int32,np.int64):
+            totals.append(data[field].sum(dtype=np.int64))
+        elif data[field].dtype in (np.uint8,np.uint16,np.uint32,np.uint64):
+            totals.append(data[field].sum(dtype=np.uint64))
+        elif data[field].dtype in (np.float,np.float16,np.float32,np.float64):
+            totals.append(data[field].sum(dtype=np.float64))
+        else:
+            totals.append(data[field].sum())
     return len(fields), totals
 def _combTotalQuantity(data, n_fields, totals):
     totals = np.atleast_2d(totals)
