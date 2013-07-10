@@ -158,22 +158,21 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             elif (x0 >= nx-thick+1 and sx == 1): break
             elif (y0 < thick and sy == -1): break
             elif (y0 >= ny-thick+1 and sy == 1): break
-            if (x0 < thick or x0 >= nx-thick or y0 < thick or y0 >= ny-thick):
-                break
-            for xi in range(x0-thick/2, x0+(1+thick)/2):
-                for yi in range(y0-thick/2, y0+(1+thick)/2):
-                    if has_alpha:
-                        image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3]) 
-                        if outa != 0.0:
-                            outa = 1.0/outa
-                        for i in range(3):
-                            image[xi, yi, i] = \
-                                    ((1.-alpha[3])*image[xi, yi, i]*image[xi, yi, 3] 
-                                     + alpha[3]*alpha[i])*outa
-                    else:
-                        for i in range(3):
-                            image[xi, yi, i] = \
-                                    (1.-alpha[i])*image[xi,yi,i] + alpha[i]
+            if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
+                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                    for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if has_alpha:
+                            image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3])
+                            if outa != 0.0:
+                                outa = 1.0/outa
+                            for i in range(3):
+                                image[xi, yi, i] = \
+                                        ((1.-alpha[3])*image[xi, yi, i]*image[xi, yi, 3]
+                                         + alpha[3]*alpha[i])*outa
+                        else:
+                            for i in range(3):
+                                image[xi, yi, i] = \
+                                        (1.-alpha[i])*image[xi,yi,i] + alpha[i]
 
             if (x0 == x1 and y0 == y1):
                 break
