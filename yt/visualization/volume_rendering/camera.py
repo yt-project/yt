@@ -164,7 +164,7 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  min_level=None, max_level=None, no_ghost=True,
-                 data_source=None,
+                 source=None,
                  use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
@@ -196,13 +196,13 @@ class Camera(ParallelAnalysisInterface):
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
 
-        if data_source is None:
-            data_source = self.pf.h.all_data()
-        self.data_source = data_source
+        if source is None:
+            source = self.pf.h.all_data()
+        self.source = source
 
         if volume is None:
             volume = AMRKDTree(self.pf, min_level=min_level, 
-                               max_level=max_level, data_source=self.data_source)
+                               max_level=max_level, source=self.source)
         self.volume = volume        
 
     def _setup_box_properties(self, width, center, unit_vectors):
