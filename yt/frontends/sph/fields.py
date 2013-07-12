@@ -72,7 +72,9 @@ def _field_concat(fname):
     def _AllFields(field, data):
         v = []
         for ptype in data.pf.particle_types:
-            if ptype == "all": continue
+            if ptype == "all" or \
+                ptype in data.pf.known_filters:
+                  continue
             v.append(data[ptype, fname].copy())
         rv = np.concatenate(v, axis=0)
         return rv
@@ -82,7 +84,9 @@ def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
         for ptype in data.pf.particle_types:
-            if ptype == "all": continue
+            if ptype == "all" or \
+                ptype in data.pf.known_filters:
+                  continue
             v.append(data[ptype, fname][:,axi])
         rv = np.concatenate(v, axis=0)
         return rv

@@ -465,7 +465,7 @@ class FLASHStaticOutput(StaticOutput):
         try: 
             self.parameters["usecosmology"]
             self.cosmological_simulation = 1
-            self.current_redshift = self.parameters['redshift']
+            self.current_redshift = 1.0/self.parameters['scalefactor'] - 1.0
             self.omega_lambda = self.parameters['cosmologicalconstant']
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']

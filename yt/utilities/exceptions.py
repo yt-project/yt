@@ -277,3 +277,13 @@ class YTDomainOverflow(YTException):
     def __str__(self):
         return "Particle bounds %s and %s exceed domain bounds %s and %s" % (
             self.mi, self.ma, self.dle, self.dre)
+
+class YTIllDefinedFilter(YTException):
+    def __init__(self, filter, s1, s2):
+        self.filter = filter
+        self.s1 = s1
+        self.s2 = s2
+
+    def __str__(self):
+        return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
+            self.filter, self.s1, self.s2)

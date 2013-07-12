@@ -129,6 +129,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
     _file_class = GadgetBinaryFile
     _fieldinfo_fallback = GadgetFieldInfo
     _fieldinfo_known = KnownGadgetFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
     _header_spec = (('Npart', 6, 'i'),
                     ('Massarr', 6, 'd'),
                     ('Time', 1, 'd'),
@@ -258,6 +260,8 @@ class OWLSStaticOutput(GadgetStaticOutput):
     _file_class = ParticleFile
     _fieldinfo_fallback = OWLSFieldInfo # For now we have separate from Gadget
     _fieldinfo_known = KnownOWLSFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
     _header_spec = None # Override so that there's no confusion
 
     def __init__(self, filename, data_style="OWLS"):
@@ -337,6 +341,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
     _file_class = TipsyFile
     _fieldinfo_fallback = TipsyFieldInfo
     _fieldinfo_known = KnownTipsyFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
     _header_spec = (('time',    'd'),
                     ('nbodies', 'i'),
                     ('ndim',    'i'),

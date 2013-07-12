@@ -467,7 +467,21 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
         if fields is None: return
-        fields = self._determine_fields(fields)
+        nfields = []
+        apply_fields = defaultdict(list)
+        for field in self._determine_fields(fields):
+            if field[0] in self.pf.h.filtered_particle_types:
+                f = self.pf.known_filters[field[0]]
+                apply_fields[field[0]].append(
+                    (f.filtered_type, field[1]))
+            else:
+                nfields.append(field)
+        for filter_type in apply_fields:
+            f = self.pf.known_filters[filter_type]
+            with f.apply(self):
+                self.get_data(apply_fields[filter_type])
+        fields = nfields
+        if len(fields) == 0: return
         # Now we collect all our fields
         # Here is where we need to perform a validation step, so that if we
         # have a field requested that we actually *can't* yet get, we put it
@@ -1166,6 +1180,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
 
 class YTValueCutExtractionBase(YTSelectionContainer3D):
     _type_name = "cut_region"
+    _con_args = ("_base_region", "_field_cuts")
     """
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.

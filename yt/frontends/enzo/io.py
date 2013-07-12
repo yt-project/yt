@@ -36,7 +36,9 @@ import h5py
 import numpy as np
 from yt.funcs import *
 
-_convert_mass = ("particle_mass",)
+_convert_mass = ("particle_mass","mass")
+
+_particle_position_names = {}
 
 class IOHandlerPackedHDF5(BaseIOHandler):
 
@@ -56,7 +58,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         ptypes = list(set([ftype for ftype, fname in fields]))
         fields = list(set(fields))
         if len(ptypes) > 1: raise NotImplementedError
-        pfields = [(ptypes[0], "particle_position_%s" % ax) for ax in 'xyz']
+        pn = _particle_position_names.get(ptypes[0], r"particle_position_%s")
+        pfields = [(ptypes[0], pn % ax) for ax in 'xyz']
         size = 0
         for chunk in chunks:
             data = self._read_chunk_data(chunk, pfields, 'active', 
@@ -83,7 +86,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 for field in set(fields):
                     ftype, fname = field
                     gdata = data[g.id].pop(fname)[mask]
-                    if fname == "particle_mass":
+                    if fname in _convert_mass:
                         gdata *= g.dds.prod()
                     rv[field][ind:ind+gdata.size] = gdata
                 ind += gdata.size
@@ -134,7 +137,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 for field in set(fields):
                     ftype, fname = field
                     gdata = data[g.id].pop(fname)[mask]
-                    if fname == "particle_mass":
+                    if fname in _convert_mass:
                         gdata *= g.dds.prod()
                     rv[field][ind:ind+gdata.size] = gdata
                 ind += gdata.size

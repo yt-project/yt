@@ -67,6 +67,7 @@ class AMRGridPatch(YTSelectionContainer):
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
         self._last_mask = None
+        self._last_count = -1
         self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
@@ -447,14 +448,14 @@ class AMRGridPatch(YTSelectionContainer):
     def select_icoords(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='int64')
-        coords = convert_mask_to_indices(mask, mask.sum())
+        coords = convert_mask_to_indices(mask, self._last_count)
         coords += self.get_global_startindex()[None, :]
         return coords
 
     def select_fcoords(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
-        coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
+        coords = convert_mask_to_indices(mask, self._last_count).astype("float64")
         coords += 0.5
         coords *= self.dds[None, :]
         coords += self.LeftEdge[None, :]
@@ -471,7 +472,7 @@ class AMRGridPatch(YTSelectionContainer):
     def select_ires(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty(0, dtype='int64')
-        coords = np.empty(mask.sum(), dtype='int64')
+        coords = np.empty(self._last_count, dtype='int64')
         coords[:] = self.Level
         return coords
 
@@ -496,6 +497,10 @@ class AMRGridPatch(YTSelectionContainer):
         else:
             self._last_mask = mask = selector.fill_mask(self)
             self._last_selector_id = id(selector)
+            if mask is None:
+                self._last_count = 0
+            else:
+                self._last_count = mask.sum()
         return mask
 
     def select(self, selector, source, dest, offset):
@@ -508,7 +513,7 @@ class AMRGridPatch(YTSelectionContainer):
     def count(self, selector):
         mask = self._get_selector_mask(selector)
         if mask is None: return 0
-        return mask.sum()
+        return self._last_count
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results

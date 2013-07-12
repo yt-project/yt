@@ -169,8 +169,8 @@ class Streamlines(ParallelAnalysisInterface):
                    np.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
 
-            if np.any(stream[-step+1,:] < node.left_edge) | \
-                   np.any(stream[-step+1,:] >= node.right_edge):
+            if np.any(stream[-step+1,:] < node.get_left_edge()) | \
+                   np.any(stream[-step+1,:] >= node.get_right_edge()):
                 return step-1
             step -= 1
         return step
