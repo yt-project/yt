@@ -1180,6 +1180,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
 
 class YTValueCutExtractionBase(YTSelectionContainer3D):
     _type_name = "cut_region"
+    _con_args = ("_base_region", "_field_cuts")
     """
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.

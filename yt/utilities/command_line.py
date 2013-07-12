@@ -1401,7 +1401,7 @@ class YTRenderCmd(YTCommand):
         tf = ColorTransferFunction((mi-2, ma+2))
         tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
 
-        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf, fields=[field])
         image = cam.snapshot()
 
         if args.enhance:
