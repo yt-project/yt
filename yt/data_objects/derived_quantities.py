@@ -682,7 +682,7 @@ def _TotalQuantity(data, fields):
     totals = []
     for field in fields:
         if data[field].size < 1:
-            totals.append(np.zeros(1,dtype=data[field].dtype)[0])
+            totals.append(np.zeros(1,dtype=prec_accum[data[field].dtype])[0])
             continue
         totals.append(data[field].sum(dtype=prec_accum[data[field].dtype]))
     return len(fields), totals
