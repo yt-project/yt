@@ -395,8 +395,7 @@ class RAMSESStaticOutput(StaticOutput):
         # Necessary to get the length units in, which are needed for Mass
         # We also have to multiply by the boxlength here to scale into our
         # domain.
-        self.conversion_factors['mass'] = rho_u * \
-                (self.parameters['unit_l'] * self.parameters['boxlen'])**3
+        self.conversion_factors['mass'] = rho_u * self.parameters['unit_l']**3
 
     def _setup_nounits_units(self):
         # Note that unit_l *already* converts to proper!
