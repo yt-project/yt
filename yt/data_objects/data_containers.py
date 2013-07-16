@@ -219,11 +219,14 @@ class YTDataContainer(object):
         finfo = self.pf._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
-                return self._generate_container_field(field)
+                tr = self._generate_container_field(field)
             if finfo.particle_type:
-                return self._generate_particle_field(field)
+                tr = self._generate_particle_field(field)
             else:
-                return self._generate_fluid_field(field)
+                tr = self._generate_fluid_field(field)
+            if tr is None:
+                raise YTCouldNotGenerateField(field, self.pf)
+            return tr
 
     def _generate_fluid_field(self, field):
         # First we check the validator
@@ -467,7 +470,21 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
         if fields is None: return
-        fields = self._determine_fields(fields)
+        nfields = []
+        apply_fields = defaultdict(list)
+        for field in self._determine_fields(fields):
+            if field[0] in self.pf.h.filtered_particle_types:
+                f = self.pf.known_filters[field[0]]
+                apply_fields[field[0]].append(
+                    (f.filtered_type, field[1]))
+            else:
+                nfields.append(field)
+        for filter_type in apply_fields:
+            f = self.pf.known_filters[filter_type]
+            with f.apply(self):
+                self.get_data(apply_fields[filter_type])
+        fields = nfields
+        if len(fields) == 0: return
         # Now we collect all our fields
         # Here is where we need to perform a validation step, so that if we
         # have a field requested that we actually *can't* yet get, we put it
@@ -603,14 +620,15 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
         axis = self.axis
         self.fields = [k for k in self.field_data.keys()
-                       if k not in self._container_fields]
+                       if k not in self._key_fields]
         from yt.visualization.plot_window import \
             GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
         (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
-        pw = PWViewerMPL(self, bounds, origin=origin, frb_generator=FixedResolutionBuffer, 
+        pw = PWViewerMPL(self, bounds, fields=list(self.fields), origin=origin,
+                         frb_generator=FixedResolutionBuffer,
                          plot_type=plot_type)
         pw.set_axes_unit(axes_unit)
         return pw
@@ -1165,6 +1183,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
 
 class YTValueCutExtractionBase(YTSelectionContainer3D):
     _type_name = "cut_region"
+    _con_args = ("_base_region", "_field_cuts")
     """
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.

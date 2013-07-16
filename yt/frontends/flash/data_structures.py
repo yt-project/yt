@@ -212,14 +212,6 @@ class FLASHHierarchy(GridGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-    def _chunk_io(self, dobj, cache = True):
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        # We'll take the max of 128 and the number of processors
-        nl = max(16, ytcfg.getint("yt", "__topcomm_parallel_size"))
-        for gs in list_chunks(gobjs, nl):
-            yield YTDataChunk(dobj, "io", gs, self._count_selection,
-                              cache = cache)
-
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo
@@ -473,7 +465,7 @@ class FLASHStaticOutput(StaticOutput):
         try: 
             self.parameters["usecosmology"]
             self.cosmological_simulation = 1
-            self.current_redshift = self.parameters['redshift']
+            self.current_redshift = 1.0/self.parameters['scalefactor'] - 1.0
             self.omega_lambda = self.parameters['cosmologicalconstant']
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']

@@ -34,6 +34,9 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions
 
 KnownStreamFields = FieldInfoContainer()
 add_stream_field = KnownStreamFields.add_field
@@ -69,3 +72,9 @@ add_stream_field(("all", "particle_mass"), function = NullFunc, particle_type=Tr
 
 add_field(("all", "ParticleMass"), function = TranslationFunc("particle_mass"),
           particle_type=True)
+
+particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
+                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
+                          StreamFieldInfo)
+particle_deposition_functions("all", "Coordinates", "ParticleMass",
+                               StreamFieldInfo)

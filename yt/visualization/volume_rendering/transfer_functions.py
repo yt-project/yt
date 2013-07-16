@@ -641,6 +641,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
             self.x_bounds[0]))
+        rel0 = max(rel0, 0)
+        rel1 = min(rel1, self.nbins-1)
         tomap = np.linspace(0.,1.,num=rel1-rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)

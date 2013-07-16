@@ -164,7 +164,7 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  min_level=None, max_level=None, no_ghost=True,
-                 data_source=None,
+                 source=None,
                  use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
@@ -196,13 +196,13 @@ class Camera(ParallelAnalysisInterface):
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
 
-        if data_source is None:
-            data_source = self.pf.h.all_data()
-        self.data_source = data_source
+        if source is None:
+            source = self.pf.h.all_data()
+        self.source = source
 
         if volume is None:
             volume = AMRKDTree(self.pf, min_level=min_level, 
-                               max_level=max_level, data_source=self.data_source)
+                               max_level=max_level, source=self.source)
         self.volume = volume        
 
     def _setup_box_properties(self, width, center, unit_vectors):
@@ -297,6 +297,62 @@ class Camera(ParallelAnalysisInterface):
        
         lines(nim, px, py, colors, 24)
         return nim
+
+    def draw_coordinate_vectors(self, im, length=0.05, thickness=1):
+        r"""Draws three coordinate vectors in the corner of a rendering.
+
+        Modifies an existing image to have three lines corresponding to the
+        coordinate directions colored by {x,y,z} = {r,g,b}.  Currently only
+        functional for plane-parallel volume rendering.
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera,
+            which will be painted by grid lines.
+        length: float, optional
+            The length of the lines, as a fraction of the image size.
+            Default : 0.05
+        thickness : int, optional
+            Thickness in pixels of the line to be drawn.
+
+        Returns
+        -------
+        None
+
+        Modifies
+        --------
+        im: The original image.
+
+        Examples
+        --------
+        >>> im = cam.snapshot()
+        >>> cam.draw__coordinate_vectors(im)
+        >>> im.write_png('render_with_grids.png')
+
+        """
+        length_pixels = length * self.resolution[0]
+        # Put the starting point in the lower left
+        px0 = int(length * self.resolution[0])
+        # CS coordinates!
+        py0 = int((1.0-length) * self.resolution[1])
+
+        alpha = im[:, :, 3].max()
+        if alpha == 0.0:
+            alpha = 1.0
+
+        coord_vectors = [np.array([length_pixels, 0.0, 0.0]),
+                         np.array([0.0, length_pixels, 0.0]),
+                         np.array([0.0, 0.0, length_pixels])]
+        colors = [np.array([1.0, 0.0, 0.0, alpha]),
+                  np.array([0.0, 1.0, 0.0, alpha]),
+                  np.array([0.0, 0.0, 1.0, alpha])]
+
+        for vec, color in zip(coord_vectors, colors):
+            dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
+            dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
+            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
+                  np.array([color, color]), 1, thickness)
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -1031,19 +1087,22 @@ class PerspectiveCamera(Camera):
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
-        view_pos = self.front_center
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
 
         pbar.finish()
-        image = sampler.aimage
-        self.finalize_image(image)
+        image = self.finalize_image(sampler.aimage)
         return image
 
     def finalize_image(self, image):
+        view_pos = self.front_center
         image.shape = self.resolution[0], self.resolution[0], 4
+        image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
+        return image
 
 def corners(left_edge, right_edge):
     return np.array([

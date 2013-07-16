@@ -37,6 +37,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.data_objects.particle_filters import \
+    filter_registry
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
 
@@ -61,6 +63,8 @@ class StaticOutput(object):
     coordinates = None
     max_level = 99
     storage_filename = None
+    _particle_mass_name = None
+    _particle_coordinates_name = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -71,7 +75,12 @@ class StaticOutput(object):
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
-            obj.__init__(filename, *args, **kwargs)
+            # The Stream frontend uses a StreamHandler object to pass metadata
+            # to __init__.
+            is_stream = (hasattr(filename, 'get_fields') and
+                         hasattr(filename, 'get_particle_type'))
+            if not is_stream:
+                obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
@@ -89,6 +98,7 @@ class StaticOutput(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
+        self.known_filters = {}
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -249,6 +259,21 @@ class StaticOutput(object):
             self.coordinates = PolarCoordinateHandler(self)
         else:
             raise YTGeometryNotSupported(self.geometry)
+
+    def add_particle_filter(self, filter):
+        if isinstance(filter, types.StringTypes):
+            used = False
+            for f in filter_registry[filter]:
+                used = self.h._setup_filtered_type(f)
+                if used:
+                    filter = f
+                    break
+        else:
+            used = self.h._setup_filtered_type(filter)
+        if not used:
+            return False
+        self.known_filters[filter.name] = filter
+        return True
 
     _last_freq = (None, None)
     _last_finfo = None

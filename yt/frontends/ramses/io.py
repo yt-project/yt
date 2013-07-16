@@ -98,9 +98,13 @@ class IOHandlerRAMSES(BaseIOHandler):
         f = open(subset.domain.part_fn, "rb")
         foffsets = subset.domain.particle_field_offsets
         tr = {}
-        #for field in sorted(fields, key=lambda a:foffsets[a]):
+        # We do *all* conversion into boxlen here.
+        # This means that no other conversions need to be applied to convert
+        # positions into the same domain as the octs themselves.
         for field in fields:
             f.seek(foffsets[field])
             dt = subset.domain.particle_field_types[field]
             tr[field] = fpu.read_vector(f, dt)
+            if field[1].startswith("particle_position"):
+                np.divide(tr[field], subset.domain.pf["boxlen"], tr[field])
         return tr

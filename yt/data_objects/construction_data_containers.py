@@ -409,7 +409,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.left_edge = np.array(left_edge)
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
-        self.dds = self.pf.domain_width/rdx.astype("float64")
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
+        self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones

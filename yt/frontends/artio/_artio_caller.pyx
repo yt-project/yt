@@ -341,7 +341,7 @@ cdef class artio_fileset :
                             if selected_mass[ispec] :
                                 count = len(data[selected_mass[ispec]])
                                 data[selected_mass[ispec]].resize(count+1)
-                                data[selected_mass[ispec]][count] = self.parameters["particle_species_mass"][0]
+                                data[selected_mass[ispec]][count] = self.parameters["particle_species_mass"][ispec]
                         
                     status = artio_particle_read_species_end( self.handle )
                     check_artio_status(status)

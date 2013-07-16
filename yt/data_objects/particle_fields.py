@@ -42,6 +42,7 @@ from yt.utilities.physical_constants import \
     mh
 
 def particle_deposition_functions(ptype, coord_name, mass_name, registry):
+    orig = set(registry.keys())
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
@@ -112,6 +113,9 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             particle_type = True,
             units = r"\mathrm{M}_\odot")
 
+    return list(set(registry.keys()).difference(orig))
+
+
 def particle_scalar_functions(ptype, coord_name, vel_name, registry):
 
     # Now we have to set up the various velocity and coordinate things.  In the
@@ -119,6 +123,8 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     # elsewhere, and stop using these.
     
     # Note that we pass in _ptype here so that it's defined inside the closure.
+    orig = set(registry.keys())
+
     def _get_coord_funcs(axi, _ptype):
         def _particle_velocity(field, data):
             return data[_ptype, vel_name][:,axi]
@@ -132,9 +138,12 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
         registry.add_field((ptype, "particle_position_%s" % ax),
             particle_type = True, function = p)
 
+    return list(set(registry.keys()).difference(orig))
+
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
     # This will column_stack a set of scalars to create vector fields.
+    orig = set(registry.keys())
 
     def _get_vec_func(_ptype, names):
         def particle_vectors(field, data):
@@ -147,3 +156,4 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
                        function=_get_vec_func(ptype, vel_names),
                        particle_type=True)
 
+    return list(set(registry.keys()).difference(orig))

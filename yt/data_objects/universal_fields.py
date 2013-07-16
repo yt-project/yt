@@ -1139,7 +1139,7 @@ def _BRadial(field,data):
 
     return get_sph_r_component(Bfields, theta, phi, normal)
 
-add_field("BRadial", function=_BPoloidal,
+add_field("BRadial", function=_BRadial,
           units=r"\rm{Gauss}",
           validators=[ValidateParameter("normal")])
 
@@ -1472,7 +1472,7 @@ def _VorticityGrowthTimescale(field, data):
     domegax_dt = data["VorticityX"] / data["VorticityGrowthX"]
     domegay_dt = data["VorticityY"] / data["VorticityGrowthY"]
     domegaz_dt = data["VorticityZ"] / data["VorticityGrowthZ"]
-    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt)
+    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
 add_field("VorticityGrowthTimescale", function=_VorticityGrowthTimescale,
           validators=[ValidateSpatial(1, 
                       ["x-velocity", "y-velocity", "z-velocity"])],

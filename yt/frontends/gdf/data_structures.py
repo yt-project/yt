@@ -76,8 +76,9 @@ class GDFGrid(AMRGridPatch):
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = np.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        if self.pf.data_software != "piernik":
+            if self.pf.dimensionality < 2: self.dds[1] = 1.0
+            if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     @property
@@ -235,6 +236,11 @@ class GDFStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
+        if 'data_software' in self._handle['gridded_data_format'].attrs:
+            self.data_software = \
+                self._handle['gridded_data_format'].attrs['data_software']
+        else:
+            self.data_software = "unknown"
         sp = self._handle["/simulation_parameters"].attrs
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
