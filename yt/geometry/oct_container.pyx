@@ -640,7 +640,7 @@ cdef int root_node_compare(void *a, void *b) nogil:
     else:
         return 1
 
-cdef class RAMSESOctreeContainer(OctreeContainer):
+cdef class SparseOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
         cdef int i, j, k, p
@@ -743,6 +743,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
+
+cdef class RAMSESOctreeContainer(SparseOctreeContainer):
+    pass
 
 cdef class ARTOctreeContainer(OctreeContainer):
 

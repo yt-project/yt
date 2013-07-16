@@ -71,11 +71,14 @@ cdef class OctreeContainer:
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
-cdef class RAMSESOctreeContainer(OctreeContainer):
+cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
     cdef void *tree_root
     cdef int num_root
     cdef int max_root
+
+cdef class RAMSESOctreeContainer(SparseOctreeContainer):
+    pass
 
 cdef extern from "search.h" nogil:
     void *tsearch(const void *key, void **rootp,
