@@ -653,7 +653,6 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
         nadded = 0
-        free(mask)
         cdef np.int64_t si, ei
         si = 0
         for level in range(max_level + 1):
@@ -667,6 +666,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 raise RuntimeError
             si = ei
         artio_grid_clear_sfc_cache(handle)
+        free(mask)
         free(num_octs_per_level)
         free(tot_octs_per_level)
         free(ind_octs_per_level)
