@@ -537,6 +537,8 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
                  int64_t sfc_start, int64_t sfc_end, artio_fileset artio_handle):
+        if sfc_start % 8 != 0 or sfc_end % 8 != 0:
+            raise RuntimeError
         self.root_octs = NULL
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
@@ -572,28 +574,23 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         check_artio_status(status) 
         status = artio_grid_count_octs_in_sfc_range(
                 handle, self.sfc_start, self.sfc_end, &tot_octs )
-        tot_octs += ((self.sfc_end + 1) - self.sfc_start) # Root octs
         # Now we iterate and create them, level by level.
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             status = artio_grid_read_root_cell_begin( handle, sfc, 
                     dpos, NULL, &num_oct_levels, num_octs_per_level )
             check_artio_status(status) 
             tot_octs_per_level[0] += 1
-            for level in range(num_oct_levels):
+            for level in range(1, num_oct_levels+1):
                 # Now we are simply counting so we can pre-allocate arrays.
                 # Because the grids have all been cached this should be fine.
-                tot_octs_per_level[level + 1] += num_octs_per_level[level]
+                tot_octs_per_level[level] += num_octs_per_level[level-1]
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
         cdef np.int64_t tot = 0
         for i in range(max_level + 1):
+            ind_octs_per_level[i] = tot
             tot += tot_octs_per_level[i]
-            if i > 0:
-                ind_octs_per_level[i] = \
-                    ind_octs_per_level[i-1] + tot_octs_per_level[i-1]
-            else:
-                ind_octs_per_level[i] = 0
-        self.allocate_domains([tot])
+        self.allocate_domains([tot*2])
         self.root_octs = <Oct **> malloc(sizeof(Oct *) * tot_octs_per_level[0])
         for i in range(tot_octs_per_level[0]):
             self.root_octs[i] = NULL
@@ -622,12 +619,16 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
                 check_artio_status(status)
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
-        nadded = self.add(1, 0, pos[:tot_octs_per_level[0], :])
-        for level in range(1, max_level + 1):
+        nadded = 0
+        cdef np.int64_t si, ei
+        si = 0
+        for level in range(max_level + 1):
+            ei = si + tot_octs_per_level[level]
             if tot_octs_per_level[level] == 0: break
-            nadded += self.add(1, level,
-                pos[nadded:nadded+tot_octs_per_level[level], :])
-        assert(tot - nadded == 0)
+            nadded = self.add(1, level, pos[si:ei, :])
+            assert(nadded == (ei-si))
+            si = ei
+        artio_grid_clear_sfc_cache(handle)
         free(num_octs_per_level)
         free(tot_octs_per_level)
         free(ind_octs_per_level)
@@ -648,6 +649,7 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
             artio_sfc_coords(self.artio_handle.handle, index, coords)
             for j in range(3):
                 pos[j] = self.DLE[j] + (coords[j] + 0.5) * dds[j]
+            o = self.root_octs[index - self.sfc_start]
             selector.recursively_visit_octs(
                 o, pos, dds, 0, func, data, vc)
     
@@ -657,7 +659,12 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         # NOTE: We don't care about domain_id here.
-        cdef np.int64_t index = artio_sfc_index(self.artio_handle.handle, ind)
+        cdef int i, i2[3]
+        for i in range(3):
+            i2[i] = ind[2-i]
+        cdef np.int64_t index = artio_sfc_index(self.artio_handle.handle, i2)
+        assert(index <= self.sfc_end)
+        assert(index >= self.sfc_start)
         cdef Oct *next = self.root_octs[index - self.sfc_start]
         if next != NULL: return next
         cdef OctAllocationContainer *cont = self.domains[0]
@@ -669,7 +676,10 @@ cdef class ARTIOOctreeContainer(OctreeContainer):
         return next
 
     cdef int get_root(self, int ind[3], Oct **o):
-        cdef np.int64_t index = artio_sfc_index(self.artio_handle.handle, ind)
+        cdef int i, i2[3]
+        for i in range(3):
+            i2[i] = ind[2-i]
+        cdef np.int64_t index = artio_sfc_index(self.artio_handle.handle, i2)
         o[0] = self.root_octs[index - self.sfc_start]
         return 1
 
