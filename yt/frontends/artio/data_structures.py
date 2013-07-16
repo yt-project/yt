@@ -288,6 +288,15 @@ class ARTIOStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = self.parameters['unit_l']\
                 * mpc_conversion[unit] / mpc_conversion["cm"]
+        if self.cosmological_simulation:
+            for unit in mpc_conversion:
+                self.units["%sh" % unit] = self.units[unit] * \
+                    self.hubble_constant
+                self.units["%shcm" % unit] = \
+                    (self.units["%sh" % unit] /
+                        (1 + self.current_redshift))
+                self.units["%scm" % unit] = \
+                    self.units[unit] / (1 + self.current_redshift)
 
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t']\

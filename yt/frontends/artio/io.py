@@ -49,4 +49,7 @@ class IOHandlerARTIO(BaseIOHandler):
         for onechunk in chunks:
             for artchunk in onechunk.objs:
                 artchunk.fill_particles(tr, fields)
+        for ftype, fname in tr.keys():
+            if fname == "particle_mass":
+                tr[ftype, fname] = tr[ftype, fname].astype("float64")
         return tr
