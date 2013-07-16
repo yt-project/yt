@@ -366,7 +366,11 @@ def _nion(field, data):
 add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 
 def _abar(field, data):
-    return 1.0 / data['sumy']
+    try:
+        return 1.0 / data['sumy']
+    except:
+        pass
+    return data['dens']*Na*kboltz*data['temp']/data['pres']
 add_field('abar', function=_abar, take_log=False)
 	
 
