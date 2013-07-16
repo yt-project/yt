@@ -394,7 +394,7 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
-
+        return self
 
     @invalidate_data
     def pan(self, deltas):
@@ -408,6 +408,7 @@ class PlotWindow(object):
         """
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
+        return self
 
     @invalidate_data
     def pan_rel(self, deltas):
@@ -422,6 +423,7 @@ class PlotWindow(object):
         Wx, Wy = self.width
         self.xlim = (self.xlim[0] + Wx*deltas[0], self.xlim[1] + Wx*deltas[0])
         self.ylim = (self.ylim[0] + Wy*deltas[1], self.ylim[1] + Wy*deltas[1])
+        return self
 
     @invalidate_data
     def set_window(self, bounds):
@@ -1109,6 +1111,11 @@ class PWViewerMPL(PWViewer):
             return self.show()
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
+
+    def __repr__(self):
+        if "__IPYTHON__" in dir(__builtin__):
+            self.show()
+        return super(PWViewerMPL, self).__repr__()
 
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
