@@ -57,7 +57,12 @@ class StaticOutput(object):
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
-            obj.__init__(filename, *args, **kwargs)
+            # The Stream frontend uses a StreamHandler object to pass metadata
+            # to __init__.
+            is_stream = (hasattr(filename, 'get_fields') and
+                         hasattr(filename, 'get_particle_type'))
+            if not is_stream:
+                obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
