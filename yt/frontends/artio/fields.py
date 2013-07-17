@@ -34,6 +34,9 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions
 import numpy as np
 
 KnownARTIOFields = FieldInfoContainer()
@@ -247,51 +250,20 @@ for ax in 'xyz':
     pf = "particle_velocity_%s" % ax
     add_artio_field(pf, function=NullFunc,
                     particle_type=True)
-add_artio_field("particle_mass", function=NullFunc, particle_type=True)
-add_artio_field("particle_index", function=NullFunc, particle_type=True)
 
 for ax in 'xyz':
     pf = "particle_position_%s" % ax
     add_artio_field(pf, function=NullFunc,
                     particle_type=True)
 
-
-def ParticleMass(field, data):
-    return data['particle_mass']
-
-
-def _convertParticleMass(field, data):
-    return data.convert('particle_mass')
-add_field("ParticleMass",
-          function=ParticleMass,
+def _convertParticleMass(data):
+    return np.float64(data.convert('particle_mass'))
+add_field("particle_mass",
+          function=NullFunc,
           convert_function=_convertParticleMass,
           units=r"\rm{g}",
           particle_type=True)
-
-
-def ParticleMassMsunAll(field, data):
-    return data['all', 'particle_mass'] * \
-        data.pf.conversion_factors['particle_mass_msun']
-add_field(('all', "ParticleMassMsun"),
-          function=ParticleMassMsunAll,
-          units=r"\rm{M\odot}", particle_type=True)
-
-
-def ParticleMassMsunStars(field, data):
-    return data['stars', 'particle_mass'] * \
-        data.pf.conversion_factors['particle_mass_msun']
-add_field(('stars', "ParticleMassMsun"),
-          function=ParticleMassMsunStars,
-          units=r"\rm{M\odot}", particle_type=True)
-
-
-def ParticleMassMsunNbody(field, data):
-    return data['nbody', 'particle_mass'] * \
-        data.pf.conversion_factors['particle_mass_msun']
-add_field(('nbody', "ParticleMassMsun"),
-          function=ParticleMassMsunNbody,
-          units=r"\rm{M\odot}", particle_type=True)
-
+add_artio_field("particle_index", function=NullFunc, particle_type=True)
 
 #add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field, data):
@@ -303,6 +275,15 @@ def _particle_age(field, data):
 add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
           particle_type=True)
 
+# We can now set up particle vector and particle deposition fields.
+
+for ptype in ("all", "nbody", "stars"):
+    particle_vector_functions(ptype,
+        ["particle_position_%s" % ax for ax in 'xyz'],
+        ["particle_velocity_%s" % ax for ax in 'xyz'],
+        ARTIOFieldInfo)
+    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
+        ARTIOFieldInfo)
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')
