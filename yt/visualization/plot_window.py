@@ -1100,12 +1100,15 @@ class PWViewerMPL(PWViewer):
 
     def _send_zmq(self):
         try:
-            # pre-IPython v0.14
+            # pre-IPython v1.0
             from IPython.zmq.pylab.backend_inline import send_figure as display
         except ImportError:
-            # IPython v0.14+
+            # IPython v1.0+
             from IPython.core.display import display
         for k, v in sorted(self.plots.iteritems()):
+            # Due to a quirk in the matplotlib API, we need to create
+            # a dummy canvas variable here that is never used.
+            canvas = FigureCanvasAgg(v.figure)  # NOQA
             display(v.figure)
 
     def show(self):
