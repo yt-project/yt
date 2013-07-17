@@ -1092,6 +1092,9 @@ cdef class RaySelector(SelectorObject):
         # not implemented
         return 0        
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         cdef int i, ax
