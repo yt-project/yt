@@ -450,6 +450,11 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] mask 
         mask = np.zeros(x.shape[0], dtype='uint8')
 
+        # this is to allow selectors to optimize the point vs
+        # 0-radius sphere case.  These two may have different 
+        # effects for 0-volume selectors, however (collision 
+        # between a ray and a point is null, while ray and a
+        # sphere is allowed)
         if radius == 0.0 :
             with nogil:
                 for i in range(x.shape[0]) :
@@ -459,13 +464,13 @@ cdef class SelectorObject:
                     mask[i] = self.select_point(pos)
                     count += mask[i]
         else :
-              with nogil:
-                    for i in range(x.shape[0]):
-                        pos[0] = x[i]
-                        pos[1] = y[i]
-                        pos[2] = z[i]
-                        mask[i] = self.select_sphere(pos, radius)
-                        count += mask[i]
+            with nogil:
+                for i in range(x.shape[0]):
+                    pos[0] = x[i]
+                    pos[1] = y[i]
+                    pos[2] = z[i]
+                    mask[i] = self.select_sphere(pos, radius)
+                    count += mask[i]
         if count == 0: return None
         return mask.astype("bool")
 
@@ -1305,6 +1310,10 @@ cdef class GridSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
+        return 1
+
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        # we apparently don't check if the point actually lies in the grid..
         return 1
 
 grid_selector = GridSelector
