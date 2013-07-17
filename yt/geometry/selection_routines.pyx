@@ -1167,7 +1167,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
 
 octree_subset_selector = OctreeSubsetSelector
 
-cdef class ParticleOctreeSubsetSelector(SelectorObject):
+cdef class IndexedOctreeSubsetSelector(SelectorObject):
     # This is a numpy array, which will be a bool of ndim 1
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
@@ -1212,7 +1212,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
         # checking this.
         return self.base_selector.select_grid(left_edge, right_edge, level, o)
 
-particle_octree_subset_selector = ParticleOctreeSubsetSelector
+indexed_octree_subset_selector = IndexedOctreeSubsetSelector
 
 cdef class AlwaysSelector(SelectorObject):
 

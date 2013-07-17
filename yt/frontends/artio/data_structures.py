@@ -52,7 +52,7 @@ class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = 1
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
-    _type_name = 'particle_octree_subset'
+    _type_name = 'indexed_octree_subset'
 
     def __init__(self, base_region, sfc_start, sfc_end, pf):
         self.field_data = YTFieldData()
