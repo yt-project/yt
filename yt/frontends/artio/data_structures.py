@@ -87,6 +87,12 @@ class ARTIOOctreeSubset(OctreeSubset):
     def max_ind(self):
         return self.sfc_end
 
+    def fill(self, fields):
+        raise NotImplementedError
+
+    def fill_particles(self, field_data, fields):
+        raise NotImplementedError
+
 class ARTIOChunk(object):
 
     def __init__(self, pf, selector, sfc_start, sfc_end):
@@ -447,10 +453,10 @@ class ARTIOStaticOutput(StaticOutput):
                         "species_%02d_secondary_variable_labels"
                         % (species, )])
 
-        self.particle_types = ["all"]
-        self.particle_types.extend(
-            list(set(art_to_yt[s] for s in
-                     self.artio_parameters["particle_species_labels"])))
+        self.particle_types = ("all",) + tuple(
+            set(art_to_yt[s] for s in
+                self.artio_parameters["particle_species_labels"]))
+        self.particle_types = tuple(self.particle_types)
 
         self.current_time = b2t(self.artio_parameters["tl"][0])
 

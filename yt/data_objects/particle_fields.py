@@ -41,6 +41,30 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs, \
     mh
 
+def _field_concat(fname):
+    def _AllFields(field, data):
+        v = []
+        for ptype in data.pf.particle_types:
+            if ptype == "all" or \
+                ptype in data.pf.known_filters:
+                  continue
+            v.append(data[ptype, fname].copy())
+        rv = np.concatenate(v, axis=0)
+        return rv
+    return _AllFields
+
+def _field_concat_slice(fname, axi):
+    def _AllFields(field, data):
+        v = []
+        for ptype in data.pf.particle_types:
+            if ptype == "all" or \
+                ptype in data.pf.known_filters:
+                  continue
+            v.append(data[ptype, fname][:,axi])
+        rv = np.concatenate(v, axis=0)
+        return rv
+    return _AllFields
+
 def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     orig = set(registry.keys())
     def particle_count(field, data):
