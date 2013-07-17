@@ -577,8 +577,6 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         status = artio_grid_cache_sfc_range(handle,
             self.sfc_start, self.sfc_end )
         check_artio_status(status) 
-        status = artio_grid_count_octs_in_sfc_range(
-                handle, self.sfc_start, self.sfc_end, &tot_octs )
         # Now we iterate and create them, level by level.
         # Note that we are doing a bit of magic to figure out how many root
         # nodes we will need at most

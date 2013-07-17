@@ -29,7 +29,7 @@ import cStringIO
 
 from .definitions import yt_to_art, art_to_yt, ARTIOconstants
 from _artio_caller import \
-    artio_is_valid, artio_fileset
+    artio_is_valid, artio_fileset, ARTIOOctreeContainer
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
@@ -39,10 +39,53 @@ from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.data_objects.octree_subset import \
+    OctreeSubset
+from yt.data_objects.data_containers import \
+    YTFieldData
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
+
+class ARTIOOctreeSubset(OctreeSubset):
+    _domain_offset = 0
+    domain_id = 1
+    _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
+    _type_name = 'particle_octree_subset'
+
+    def __init__(self, base_region, sfc_start, sfc_end, pf):
+        self.field_data = YTFieldData()
+        self.field_parameters = {}
+        self.sfc_start = sfc_start
+        self.sfc_end = sfc_end
+        self.pf = pf
+        self.hierarchy = self.pf.hierarchy
+        self._last_mask = None
+        self._last_selector_id = None
+        self._current_particle_type = 'all'
+        self._current_fluid_type = self.pf.default_fluid_type
+        self.base_region = base_region
+        self.base_selector = base_region.selector
+
+    _oct_handler = None
+
+    @property
+    def oct_handler(self):
+        if self._oct_handler is None: 
+            self._oct_handler = ARTIOOctreeContainer(
+                self.pf.domain_dimensions/2, # Octs, not cells
+                self.pf.domain_left_edge, self.pf.domain_right_edge,
+                self.sfc_start, self.sfc_end, self.pf._handle)
+        return self._oct_handler
+
+    @property
+    def min_ind(self):
+        return self.sfc_start
+
+    @property
+    def max_ind(self):
+        return self.sfc_end
 
 class ARTIOChunk(object):
 
@@ -230,7 +273,15 @@ class ARTIOGeometryHandler(GeometryHandler):
         yield YTDataChunk(dobj, "all", oobjs, self._data_size)
 
     def _chunk_spatial(self, dobj, ngz):
-        raise NotImplementedError
+        if ngz > 0:
+            raise NotImplementedError
+        sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        # These are ARTIOChunk objects
+        for i,og in enumerate(sobjs):
+            g = ARTIOOctreeSubset(dobj, og.sfc_start, og.sfc_end, self.pf)
+            if ngz > 0:
+                g = g.retrieve_ghost_zones(ngz, [], smoothed=True)
+            yield YTDataChunk(dobj, "spatial", [g], None)
 
     def _chunk_io(self, dobj, cache = True):
         # _current_chunk is made from identify_base_chunk
