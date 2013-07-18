@@ -50,7 +50,10 @@ from yt.data_objects.field_info_container import \
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
-from .fields import RAMSESFieldInfo, KnownRAMSESFields
+from .fields import \
+    RAMSESFieldInfo, \
+    KnownRAMSESFields, \
+    create_cooling_fields
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -317,6 +320,10 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
         self.field_list = self.fluid_field_list + self.particle_field_list
+
+    def _setup_derived_fields(self):
+        self._parse_cooling()
+        super(RAMSESGeometryHandler, self)._setup_derived_fields()
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -352,6 +359,14 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
+
+    def _parse_cooling(self):
+        pf = self.parameter_file
+        num = os.path.basename(pf.parameter_filename).split("."
+                )[0].split("_")[1]
+        basename = "%s/cooling_%05i.out" % (
+            os.path.dirname(pf.parameter_filename), int(num))
+        create_cooling_fields(basename, pf.field_info)
 
 class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESGeometryHandler

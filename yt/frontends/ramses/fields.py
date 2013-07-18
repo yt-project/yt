@@ -23,6 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import os
+
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
@@ -42,6 +44,10 @@ from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, \
     mass_sun_cgs, \
     mh
+from yt.utilities.linear_interpolators import \
+    BilinearFieldInterpolator
+import yt.utilities.fortran_utils as fpu
+from yt.funcs import mylog
 import numpy as np
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
@@ -205,3 +211,42 @@ particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
                           RAMSESFieldInfo)
 particle_deposition_functions("all", "Coordinates", "particle_mass",
                                RAMSESFieldInfo)
+_cool_axes = ("lognH", "logT", "logTeq")
+_cool_arrs = ("metal", "cool", "heat", "metal_prime", "cool_prime",
+              "heat_prime", "mu", "abundances")
+_cool_species = ("Electron_Fraction", "HI_Fraction", "HII_Fraction",
+                 "HeI_Fraction", "HeII_Fraction", "HeIII_Fraction")
+
+def create_cooling_fields(filename, field_info):
+    if not os.path.exists(filename): return
+    def _create_field(name, interp_object):
+        def _func(field, data):
+            shape = data["Temperature"].shape
+            d = {'lognH': np.log10(data["Density"]/mh).ravel(),
+                 'logT' : np.log10(data["Temperature"]).ravel()}
+            rv = 10**interp_object(d).reshape(shape)
+            return rv
+        field_info.add_field(name = name, function=_func,
+                             units = r"\rm{g}/\rm{cm}^3",
+                             projected_units = r"\rm{g}/\rm{cm}^2")
+    avals = {}
+    tvals = {}
+    with open(filename, "rb") as f:
+        n1, n2 = fpu.read_vector(f, 'i')
+        n = n1 * n2
+        for ax in _cool_axes:
+            avals[ax] = fpu.read_vector(f, 'd')
+        for tname in _cool_arrs:
+            var = fpu.read_vector(f, 'd')
+            if var.size == n1*n2:
+                tvals[tname] = var.reshape((n1, n2), order='F')
+            else:
+                var = var.reshape((n1, n2, var.size / (n1*n2)), order='F')
+                for i in range(var.shape[-1]):
+                    tvals[_cool_species[i]] = var[:,:,i]
+    
+    for n in tvals:
+        interp = BilinearFieldInterpolator(tvals[n],
+                    (avals["lognH"], avals["logT"]),
+                    ["lognH", "logT"], truncate = True)
+        _create_field(n, interp)
