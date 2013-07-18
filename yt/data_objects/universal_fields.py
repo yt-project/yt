@@ -686,7 +686,6 @@ def _convertSpecificAngularMomentumKMSMPC(data):
 #          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
 def _ParticleSpecificAngularMomentumX(field, data):
-    print 'x'
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = np.zeros(3, dtype='float64')
@@ -704,7 +703,6 @@ add_field("ParticleSpecificAngularMomentumX_KMSMPC", function=_ParticleSpecificA
           convert_function=_convertSpecificAngularMomentumKMSMPC,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 def _ParticleSpecificAngularMomentumY(field, data):
-    print 'y'
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = np.zeros(3, dtype='float64')
@@ -722,7 +720,6 @@ add_field("ParticleSpecificAngularMomentumY_KMSMPC", function=_ParticleSpecificA
           convert_function=_convertSpecificAngularMomentumKMSMPC,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 def _ParticleSpecificAngularMomentumZ(field, data):
-    print 'z'
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = np.zeros(3, dtype='float64')
