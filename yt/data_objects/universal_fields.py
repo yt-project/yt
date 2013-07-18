@@ -686,6 +686,7 @@ def _convertSpecificAngularMomentumKMSMPC(data):
 #          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
 def _ParticleSpecificAngularMomentumX(field, data):
+    print 'x'
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = np.zeros(3, dtype='float64')
@@ -695,7 +696,15 @@ def _ParticleSpecificAngularMomentumX(field, data):
     yv = data["particle_velocity_y"] - bv[1]
     zv = data["particle_velocity_z"] - bv[2]
     return yv*z - zv*y
+add_field("ParticleSpecificAngularMomentumX", 
+          function=_ParticleSpecificAngularMomentumX, particle_type=True,
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumX_KMSMPC", function=_ParticleSpecificAngularMomentumX, particle_type=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 def _ParticleSpecificAngularMomentumY(field, data):
+    print 'y'
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = np.zeros(3, dtype='float64')
@@ -705,7 +714,15 @@ def _ParticleSpecificAngularMomentumY(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     zv = data["particle_velocity_z"] - bv[2]
     return -(xv*z - zv*x)
+add_field("ParticleSpecificAngularMomentumY", 
+          function=_ParticleSpecificAngularMomentumY, particle_type=True,
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumY_KMSMPC", function=_ParticleSpecificAngularMomentumY, particle_type=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 def _ParticleSpecificAngularMomentumZ(field, data):
+    print 'z'
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = np.zeros(3, dtype='float64')
@@ -715,16 +732,13 @@ def _ParticleSpecificAngularMomentumZ(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     yv = data["particle_velocity_y"] - bv[1]
     return xv*y - yv*x
-def with_axis(ax):
-    n = "ParticleSpecificAngularMomentum%s" % ax
-    add_field(n, function=eval("_%s" % n), particle_type=True,
-              convert_function=_convertSpecificAngularMomentum,
-              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
-    add_field(n + "KMSMPC", function=eval("_%s" % n), particle_type=True,
-              convert_function=_convertSpecificAngularMomentumKMSMPC,
-              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
-for ax in 'XYZ':
-    with_axis(ax)
+add_field("ParticleSpecificAngularMomentumZ", 
+          function=_ParticleSpecificAngularMomentumZ, particle_type=True,
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumZ_KMSMPC", function=_ParticleSpecificAngularMomentumZ, particle_type=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
@@ -744,12 +758,12 @@ add_field("ParticleAngularMomentumX", function=_ParticleAngularMomentumX,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 def _ParticleAngularMomentumY(field, data):
-    return data["particle_mass"] * data["ParticleSpecificAngularMomentumX"]
+    return data["particle_mass"] * data["ParticleSpecificAngularMomentumY"]
 add_field("ParticleAngularMomentumY", function=_ParticleAngularMomentumY,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 def _ParticleAngularMomentumZ(field, data):
-    return data["particle_mass"] * data["ParticleSpecificAngularMomentumX"]
+    return data["particle_mass"] * data["ParticleSpecificAngularMomentumZ"]
 add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
