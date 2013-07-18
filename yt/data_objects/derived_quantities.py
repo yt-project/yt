@@ -231,19 +231,21 @@ def _AngularMomentumVector(data):
     j_mag = [amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)]
     return [j_mag]
 
-def _StarAngularMomentumVector(data):
+def _StarAngularMomentumVector(data, ftype=None):
     """
     This function returns the mass-weighted average angular momentum vector 
     for stars.
     """
-    is_star = data["creation_time"] > 0
-    star_mass = data["ParticleMassMsun"][is_star]
-    sLx = data["ParticleSpecificAngularMomentumX"][is_star]
-    sLy = data["ParticleSpecificAngularMomentumY"][is_star]
-    sLz = data["ParticleSpecificAngularMomentumZ"][is_star]
-    amx = sLx * star_mass
-    amy = sLy * star_mass
-    amz = sLz * star_mass
+    if ftype is None:
+        is_star = data["creation_time"] > 0
+        star_mass = data["ParticleMassMsun"][is_star]
+    else:
+        is_star = Ellipsis
+        key = (ftype, "ParticleSpecificAngularMomentum%s")
+    j_mag = np.ones(3, dtype='f8')
+    for i, ax in enumerate("XYZ"):
+        j_mag[i] = data[key % ax][is_star]
+        j_mag[i] *= star_mass
     j_mag = [amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)]
     return [j_mag]
 

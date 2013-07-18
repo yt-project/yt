@@ -715,7 +715,7 @@ def _ParticleSpecificAngularMomentumZ(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     yv = data["particle_velocity_y"] - bv[1]
     return xv*y - yv*x
-for ax in 'XYZ':
+def with_axis(ax):
     n = "ParticleSpecificAngularMomentum%s" % ax
     add_field(n, function=eval("_%s" % n), particle_type=True,
               convert_function=_convertSpecificAngularMomentum,
@@ -723,6 +723,8 @@ for ax in 'XYZ':
     add_field(n + "KMSMPC", function=eval("_%s" % n), particle_type=True,
               convert_function=_convertSpecificAngularMomentumKMSMPC,
               units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+for ax in 'XYZ':
+    with_axis(ax)
 
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
