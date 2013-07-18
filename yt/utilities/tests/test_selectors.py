@@ -1,34 +1,103 @@
-from yt.testing import *
+import numpy as np
+from yt.testing import fake_random_pf, assert_equal, assert_array_less
 from yt.utilities.math_utils import periodic_dist
+
 
 def setup():
     from yt.config import ytcfg
-    ytcfg["yt","__withintesting"] = "True"
+    ytcfg["yt", "__withintesting"] = "True"
 
 def test_sphere_selector():
     # generate fake data with a number of non-cubical grids
-    pf = fake_random_pf(64,nprocs=51)
+    pf = fake_random_pf(64, nprocs=51)
     assert(all(pf.periodicity))
 
     # aligned tests
-    spheres = [ [0.0,0.0,0.0],
-                [0.5,0.5,0.5],
-                [1.0,1.0,1.0],
-                [0.25,0.75,0.25] ]
+    spheres = [ [0.0, 0.0, 0.0],
+                [0.5, 0.5, 0.5],
+                [1.0, 1.0, 1.0],
+                [0.25, 0.75, 0.25] ]
 
-    for center in spheres :
+    for center in spheres:
         data = pf.h.sphere(center, 0.25)
         data.get_data()
         # WARNING: this value has not be externally verified
         dd = pf.h.all_data()
         dd.set_field_parameter("center", center)
         n_outside = (dd["RadiusCode"] >= 0.25).sum()
-        assert_equal( data.size + n_outside, dd.size)
+        assert_equal(data.size + n_outside, dd.size)
 
         positions = np.array([data[ax] for ax in 'xyz'])
-        centers = np.tile( data.center, data.shape[0] ).reshape(data.shape[0],3).transpose()
+        centers = np.tile(data.center, 
+                          data.shape[0]).reshape(data.shape[0], 3).transpose()
         dist = periodic_dist(positions, centers,
-                         pf.domain_right_edge-pf.domain_left_edge,
-                         pf.periodicity)
+                             pf.domain_right_edge-pf.domain_left_edge,
+                             pf.periodicity)
         # WARNING: this value has not been externally verified
         yield assert_array_less, dist, 0.25
+
+def test_ellipsoid_selector():
+    # generate fake data with a number of non-cubical grids
+    pf = fake_random_pf(64, nprocs=51)
+    assert(all(pf.periodicity))
+
+    ellipsoids = [ [0.0, 0.0, 0.0],
+                   [0.5, 0.5, 0.5],
+                   [1.0, 1.0, 1.0],
+                   [0.25, 0.75, 0.25] ]
+
+    # spherical ellipsoid tests
+    ratios = 3*[0.25]
+    for center in ellipsoids:
+        data = pf.h.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
+                              np.array([1., 0., 0.]), 0.)
+        data.get_data()
+
+        dd = pf.h.all_data()
+        dd.set_field_parameter("center", center)
+        n_outside = (dd["RadiusCode"] >= ratios[0]).sum()
+        assert_equal(data.size + n_outside, dd.size)
+
+        positions = np.array([data[ax] for ax in 'xyz'])
+        centers = np.tile(data.center, 
+                          data.shape[0]).reshape(data.shape[0], 3).transpose()
+        dist = periodic_dist(positions, centers,
+                             pf.domain_right_edge-pf.domain_left_edge,
+                             pf.periodicity)
+        # WARNING: this value has not been externally verified
+        yield assert_array_less, dist, ratios[0]
+
+    # aligned ellipsoid tests
+    ratios = [0.25, 0.1, 0.1]
+    for center in ellipsoids: 
+        data = pf.h.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
+                              np.array([1., 0., 0.]), 0.)
+        data.get_data()
+        
+        # hack to compute elliptic distance
+        dist2 = np.zeros(data.shape[0])
+        for i,ax in enumerate('xyz'):
+            positions = np.zeros((3,data.shape[0]))
+            positions[i,:] = data[ax]
+            centers = np.zeros((3,data.shape[0]))
+            centers[i,:] = center[i]
+            dist = periodic_dist(positions, centers,
+                                   pf.domain_right_edge-pf.domain_left_edge,
+                                   pf.periodicity)
+            dist2 += (periodic_dist(positions, centers,
+                                   pf.domain_right_edge-pf.domain_left_edge,
+                                   pf.periodicity)/ratios[i])**2
+        # WARNING: this value has not been externally verified
+        yield assert_array_less, dist2, 1.0
+
+#def test_region_selector():
+#
+#def test_disk_selector():
+#
+#def test_cutting_plane_selector():
+#
+#def test_slice_selector():
+#
+#def test_orthoray_selector():
+#
+#def test_ray_selector():

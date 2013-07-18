@@ -667,7 +667,7 @@ cdef class DiskSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
-        self.select_point( pos ) 
+        return self.select_point( pos ) 
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -875,7 +875,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        if self.difference( pos[self.axis], self.coord, self.axis )**2 < radius**2 :
+        if self.difference( pos[self.axis], self.coord, self.axis )**2 < radius**2:
             return 1
         return 0
 
@@ -884,7 +884,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3] ) nogil:
-        if left_edge[self.axis] <= self.coord < right_edge[self.axis] :
+        if left_edge[self.axis] <= self.coord < right_edge[self.axis]:
             return 1
         return 0
 
@@ -1104,11 +1104,11 @@ cdef class RaySelector(SelectorObject):
         # if either point is fully enclosed, we select the bounding box
         if left_edge[0] <= self.p1[0] <= right_edge[0] and \
            left_edge[1] <= self.p1[1] <= right_edge[1] and \
-           left_edge[2] <= self.p1[2] <= right_edge[2] :
+           left_edge[2] <= self.p1[2] <= right_edge[2]:
             return 1
         if left_edge[0] <= self.p2[0] <= right_edge[0] and \
            left_edge[1] <= self.p2[1] <= right_edge[1] and \
-           left_edge[2] <= self.p2[2] <= right_edge[2] :
+           left_edge[2] <= self.p2[2] <= right_edge[2]:
             return 1
 
         for ax in range(3):
@@ -1203,14 +1203,14 @@ cdef class EllipsoidSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
-        self.select_bbox( left_edge, right_edge )
+        return self.select_bbox(left_edge, right_edge)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
-        self.select_point(pos)
+        return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1222,7 +1222,7 @@ cdef class EllipsoidSelector(SelectorObject):
         dot_evec[0] = dot_evec[1] = dot_evec[2] = 0
         # Calculate the rotated dot product
         for i in range(3): # axis
-            dist = self.difference( pos[i], self.center[i], i )
+            dist = self.difference(pos[i], self.center[i], i)
             for j in range(3):
                 dot_evec[j] += dist * self.vec[j][i]
         dist = 0.0
@@ -1249,22 +1249,21 @@ cdef class EllipsoidSelector(SelectorObject):
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         # This is the sphere selection
-        cdef np.float64_t radius2, box_center, relcenter, closest, dist, edge
-        radius2 = self.mag[0] * self.mag[0]
-        cdef int id
-        if (left_edge[0] <= self.center[0] <= right_edge[0] and
-            left_edge[1] <= self.center[1] <= right_edge[1] and
-            left_edge[2] <= self.center[2] <= right_edge[2]):
+        cdef int i
+        cdef np.float64_t box_center, relcenter, closest, dist, edge
+        if left_edge[0] <= self.center[0] <= right_edge[0] and \
+           left_edge[1] <= self.center[1] <= right_edge[1] and \
+           left_edge[2] <= self.center[2] <= right_edge[2]:
             return 1
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         dist = 0
         for i in range(3):
             box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.difference( box_center, self.center[i], i )
+            relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
-        if dist <= radius2: return 1
+        if dist <= self.mag[0]**2: return 1
         return 0
 
 ellipsoid_selector = EllipsoidSelector
