@@ -157,10 +157,6 @@ def _SpeciesComovingDensity(field, data):
     ef = (1.0 + data.pf.current_redshift)**3.0
     return data[sp] / ef
 
-def _SpeciesFraction(field, data):
-    sp = field.name.split("_")[0] + "_Density"
-    return data[sp] / data["Density"]
-
 def _SpeciesMass(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp] * data["CellVolume"]
@@ -170,22 +166,22 @@ def _SpeciesNumberDensity(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp] / _speciesMass[species]
 
+def _SpeciesDensity(field, data):
+    species = field.name.split("_")[0]
+    sp = field.name.split("_")[0] + "_Fraction"
+    return data[sp] * data["Density"]
+
 def _convertCellMassMsun(data):
     return 1.0/mass_sun_cgs # g^-1
 def _ConvertNumberDensity(data):
     return 1.0/mh
 
 for species in _speciesList:
-    add_ramses_field("%s_Density" % species,
-             function = NullFunc,
+    add_field("%s_Density" % species,
+             function = _SpeciesDensity,
              display_name = "%s\/Density" % species,
-             convert_function = _convertDensity,
              units = r"\rm{g}/\rm{cm}^3",
              projected_units = r"\rm{g}/\rm{cm}^2")
-    add_field("%s_Fraction" % species,
-             function=_SpeciesFraction,
-             validators=ValidateDataField("%s_Density" % species),
-             display_name="%s\/Fraction" % species)
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species),
