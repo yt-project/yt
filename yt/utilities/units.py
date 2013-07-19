@@ -112,7 +112,7 @@ default_unit_symbol_lut = {
 
     # dimensionless stuff
     "h": (1.0, dimensionless),
-
+    
     # times
     "min": (60.0, time),
     "hr":  (3600.0, time),

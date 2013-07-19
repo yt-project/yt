@@ -609,7 +609,7 @@ class YTArray(np.ndarray):
             else:
                 out_arr.units = unit
         elif len(context[1]) in (2,3):
-            if context[1] == 3:
+            if len(context[1]) == 3:
                 # note we use `is`, not ==.
                 # They should be at the same location in memory
                 if out_arr is not context[1][2]:

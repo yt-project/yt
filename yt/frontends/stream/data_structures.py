@@ -112,8 +112,8 @@ class StreamHandler(object):
                  fields, field_units, code_units, io = None,
                  particle_types = None, periodicity = (True, True, True)):
         if particle_types is None: particle_types = {}
-        self.left_edges = left_edges
-        self.right_edges = right_edges
+        self.left_edges = YTArray(left_edges, 'code_length')
+        self.right_edges = YTArray(right_edges, 'code_length')
         self.dimensions = dimensions
         self.levels = levels
         self.parent_ids = parent_ids

@@ -82,7 +82,7 @@ class AMRGridPatch(YTSelectionContainer):
         if self.Parent == None:
             left = self.LeftEdge - self.pf.domain_left_edge
             start_index = left / self.dds
-            return np.rint(start_index).astype('int64').ravel()
+            return np.rint(start_index).astype('int64').ravel().view(np.ndarray)
 
         pdx = self.Parent.dds
         start_index = (self.Parent.get_global_startindex()) + \

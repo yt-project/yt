@@ -70,7 +70,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.exceptions import YTUnitNotRecognized, YTInvalidWidthError
 from yt.data_objects.time_series import \
     TimeSeriesData
-
+from yt.data_objects.yt_array import YTArray
+    
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
 # Also accounting for the fact that in 1.2.0, pyparsing got renamed.
@@ -200,7 +201,7 @@ def StandardWidth(axis, width, depth, pf):
             assert isinstance(width, Number), "width (%s) is invalid" % str(width)
         except AssertionError, e:
             raise YTInvalidWidthError(e)
-        width = ((width, '1'), (width, '1'))
+        width = ((width, 'code_length'), (width, 'code_length'))
     if depth is not None:
         if iterable(depth) and isinstance(depth[1], str):
             depth = (depth,)
@@ -211,9 +212,9 @@ def StandardWidth(axis, width, depth, pf):
                 assert isinstance(depth, Number), "width (%s) is invalid" % str(depth)
             except AssertionError, e:
                 raise YTInvalidWidthError(e)
-            depth = ((depth, '1'),)
+            depth = ((depth, 'code_length'),)
         width += depth
-    return width
+    return ()
 
 def StandardCenter(center, pf):
     if isinstance(center,str):
@@ -229,10 +230,10 @@ def GetWindowParameters(axis, center, width, pf):
     width = StandardWidth(axis, width, None, pf)
     center = StandardCenter(center, pf)
     units = (width[0][1], width[1][1])
-    bounds = (center[x_dict[axis]]-width[0][0]/pf[units[0]]/2,
-              center[x_dict[axis]]+width[0][0]/pf[units[0]]/2,
-              center[y_dict[axis]]-width[1][0]/pf[units[1]]/2,
-              center[y_dict[axis]]+width[1][0]/pf[units[1]]/2)
+    bounds = (center[x_dict[axis]]-width[0][0] / 2,
+              center[x_dict[axis]]+width[0][0] / 2,
+              center[y_dict[axis]]-width[1][0] / 2,
+              center[y_dict[axis]]+width[1][0] / 2)
     return (bounds, center, units)
 
 def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
@@ -241,13 +242,13 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
-        center = np.array(center)
         center = (center - pf.domain_left_edge)/pf.domain_width - 0.5
         (normal,perp1,perp2) = ortho_find(normal)
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
 
         units = (width[0][1], width[1][1])
+        raise RuntimeError
         bounds = (-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2,
                   -width[1][0]/pf[units[1]]/2, width[1][0]/pf[units[1]]/2)
     else:

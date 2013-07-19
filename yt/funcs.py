@@ -590,11 +590,11 @@ def fix_length(length):
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], types.StringTypes)
     if length_valid_tuple and unit_is_string:
-        if length[1] == 'unitary':
+        if length[1] in ('unitary', '1'):
             length = (length[0], 'code_length')
         return YTArray(*length)
     elif isinstance(length, numeric_type):
-        return YTArray(length, 'code_length')
+        return YTArray(length, 'cm')
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
 

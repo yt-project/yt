@@ -368,7 +368,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     def __init__(self, normal, center, pf = None,
                  north_vector = None, field_parameters = None):
         YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
-        self._set_center(YTArray(center, 'code_length'))
+        self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -572,7 +572,7 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
         # Taken from Cutting Plane
         #
         YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
-        self._set_center(YTArray(center, 'code_length'))
+        self._set_center(center)
         self.width = width
         self.dims = dims
         self.dds = self.width / self.dims

@@ -134,7 +134,7 @@ class YTDataContainer(object):
         if center is None:
             pass
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
-            center = np.array(center)
+            center = YTArray(center, 'code_length')
         elif center in ("c", "center"):
             center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?

@@ -406,7 +406,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self,
             center, pf, field_parameters)
-        self.left_edge = np.array(left_edge)
+        self.left_edge = YTArray(left_edge, 'code_length')
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
         self.dds = self.pf.domain_width/rdx.astype("float64")
@@ -418,7 +418,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.domain_width = np.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
-
+                
     @property
     def shape(self):
         return tuple(self.ActiveDimensions.tolist())
@@ -472,7 +472,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             self[name] = v
 
     def _generate_container_field(self, field):
-        rv = np.ones(self.ActiveDimensions, dtype="float64")
+        rv = YTArray(np.ones(self.ActiveDimensions, dtype="float64"))
         if field == "dx":
             np.multiply(rv, self.dds[0], rv)
         elif field == "dy":

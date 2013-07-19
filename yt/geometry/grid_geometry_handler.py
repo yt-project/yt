@@ -81,8 +81,10 @@ class GridGeometryHandler(GeometryHandler):
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = np.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = np.ones((self.num_grids,3), self.float_type)
+        self.grid_left_edge = \
+          YTArray(np.zeros((self.num_grids,3), self.float_type), 'code_length')
+        self.grid_right_edge = \
+          YTArray(np.ones((self.num_grids,3), self.float_type), 'code_length')
         self.grid_levels = np.zeros((self.num_grids,1), 'int32')
         self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
@@ -206,8 +208,8 @@ class GridGeometryHandler(GeometryHandler):
 
     def get_grid_tree(self) :
 
-        left_edge = np.zeros((self.num_grids, 3))
-        right_edge = np.zeros((self.num_grids, 3))
+        left_edge = YTArray(np.zeros((self.num_grids, 3)), 'code_length')
+        right_edge = YTArray(np.zeros((self.num_grids, 3)), 'code_length')
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')
