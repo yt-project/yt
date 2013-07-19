@@ -24,7 +24,10 @@ License:
 """
 
 import os
-from .parallel_analysis_interface import ProcessorPool
+import np
+from yt.utilities.logger import ytLogger as mylog
+from .parallel_analysis_interface import \
+    ProcessorPool, parallel_objects
 from yt.utilities.io_handler import BaseIOHandler
 from contextlib import contextmanager
 import time
@@ -168,6 +171,7 @@ def remote_io(pf, wg, pool):
     pf.h.io = original_io
 
 def io_nodes(fn, n_io, n_work, func, *args, **kwargs):
+    from yt.mods import load
     pool, wg = ProcessorPool.from_sizes([(n_io, "io"), (n_work, "work")])
     rv = None
     if wg.name == "work":
