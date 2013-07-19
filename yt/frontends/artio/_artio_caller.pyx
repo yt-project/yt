@@ -700,8 +700,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef np.float32_t **field_vals = <np.float32_t**> malloc(
             nf * sizeof(np.float32_t*))
         cdef np.int64_t *local_ind = <np.int64_t *> malloc(
-            max_level * sizeof(np.int64_t))
-        for i in range(max_level):
+            (max_level + 1) * sizeof(np.int64_t))
+        for i in range(max_level + 1):
             # This will help us keep track of where we are in the flattened
             # array, which will be indexed by file_ind.
             local_ind[i] = self.level_indices[i]
@@ -729,9 +729,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                     check_artio_status(status)
                     for j in range(8):
                         for i in range(nf):
-                            field_vals[i][local_ind[level - 1] * 8 + j] = \
+                            field_vals[i][local_ind[level] * 8 + j] = \
                                 grid_variables[ngv * j + i]
-                    local_ind[level - 1] += 1
+                    local_ind[level] += 1
                 status = artio_grid_read_level_end(handle)
                 check_artio_status(status)
             status = artio_grid_read_root_cell_end( handle )
@@ -743,7 +743,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             source = source_arrays[j]
             for i in range(levels.shape[0]):
                 if levels[i] == 0: continue
-                oct_ind = self.level_indices[levels[i] - 1]
+                oct_ind = self.level_indices[levels[i]]
                 dest[i] = source[file_inds[i] + oct_ind, cell_inds[i]]
         free(field_ind)
         free(field_vals)
