@@ -656,8 +656,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef np.int64_t si, ei
         si = 0
         for level in range(max_level + 1):
-            ei = self.level_indices[level] = \
-                si + tot_octs_per_level[level]
+            self.level_indices[level] = si
+            ei = si + tot_octs_per_level[level]
             if tot_octs_per_level[level] == 0: break
             nadded = self.add(1, level, pos[si:ei, :])
             if nadded != (ei - si):
@@ -742,7 +742,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             dest = dest_fields[j]
             source = source_arrays[j]
             for i in range(levels.shape[0]):
-                dest[i] = source[file_inds[i], cell_inds[i]]
+                if levels[i] == 0: continue
+                oct_ind = self.level_indices[levels[i] - 1]
+                dest[i] = source[file_inds[i] + oct_ind, cell_inds[i]]
         free(field_ind)
         free(field_vals)
         free(local_ind)

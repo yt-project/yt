@@ -36,7 +36,7 @@ class IOHandlerARTIO(BaseIOHandler):
         cp = 0
         for onechunk in chunks:
             for artchunk in onechunk.objs:
-                rv = artchunk.fill(fields)
+                rv = artchunk.fill(fields, selector)
                 for f in fields:
                     tr[f].resize(cp+artchunk.data_size)
                     tr[f][cp:cp+artchunk.data_size] = rv.pop(f)
@@ -48,7 +48,7 @@ class IOHandlerARTIO(BaseIOHandler):
         tr = dict((ftuple, np.empty(0, dtype='float32')) for ftuple in fields)
         for onechunk in chunks:
             for artchunk in onechunk.objs:
-                artchunk.fill_particles(tr, fields)
+                artchunk.fill_particles(tr, fields, selector)
         for ftype, fname in tr.keys():
             if fname == "particle_mass":
                 tr[ftype, fname] = tr[ftype, fname].astype("float64")

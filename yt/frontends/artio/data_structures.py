@@ -52,7 +52,7 @@ class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = 1
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
-    _type_name = 'indexed_octree_subset'
+    _type_name = 'octree_subset'
 
     def __init__(self, base_region, sfc_start, sfc_end, pf):
         self.field_data = YTFieldData()
@@ -87,17 +87,17 @@ class ARTIOOctreeSubset(OctreeSubset):
     def max_ind(self):
         return self.sfc_end
 
-    def fill(self, fields):
+    def fill(self, fields, selector):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         handle = self.oct_handler.artio_handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
-        cell_count = self.selector.count_oct_cells(
+        cell_count = selector.count_oct_cells(
             self.oct_handler, self.domain_id)
         self.data_size = cell_count
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
-            self.selector, self.domain_id, cell_count)
+            selector, self.domain_id, cell_count)
         tr = [np.zeros(cell_count, dtype="float64") for field in fields]
         self.oct_handler.fill_sfc(levels, cell_inds, file_inds, field_indices, tr)
         tr = dict((field, v) for field, v in zip(fields, tr))
@@ -108,9 +108,8 @@ class ARTIOOctreeSubset(OctreeSubset):
 
 class ARTIOChunk(object):
 
-    def __init__(self, pf, selector, sfc_start, sfc_end):
+    def __init__(self, pf, sfc_start, sfc_end):
         self.pf = pf
-        self.selector = selector
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
 
@@ -147,10 +146,10 @@ class ARTIOChunk(object):
             raise RuntimeError("ARTIOChunk.icoords called before fill")
         return (int)(self._fcoords/2**-self._ires)
 
-    def fill(self, fields):
+    def fill(self, fields, selector):
         art_fields = [yt_to_art[f[1]] for f in fields]
         (self._fcoords, self._ires, artdata) = \
-            self.pf._handle.read_grid_chunk(self.selector,
+            self.pf._handle.read_grid_chunk(selector,
                                             self.sfc_start,
                                             self.sfc_end, art_fields)
         data = {}
@@ -159,7 +158,7 @@ class ARTIOChunk(object):
         self._data_size = len(self._fcoords)
         return data
 
-    def fill_particles(self, field_data, fields):
+    def fill_particles(self, field_data, fields, selector):
         art_fields = {}
         for s, f in fields:
             for i in range(self.pf.num_species):
@@ -168,7 +167,7 @@ class ARTIOChunk(object):
                         art_fields[(i, yt_to_art[f])] = 1
 
         species_data = self.pf._handle.read_particle_chunk(
-            self.selector, self.sfc_start, self.sfc_end, art_fields.keys())
+            selector, self.sfc_start, self.sfc_end, art_fields.keys())
 
         for s, f in fields:
             af = yt_to_art[f]
@@ -276,7 +275,7 @@ class ARTIOGeometryHandler(GeometryHandler):
                 mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
-            dobj._chunk_info = [ARTIOChunk(self.pf, dobj.selector, start, end)
+            dobj._chunk_info = [ARTIOChunk(self.pf, start, end)
                                 for (start, end) in list_sfc_ranges]
             mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
