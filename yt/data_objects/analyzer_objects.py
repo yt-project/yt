@@ -80,7 +80,7 @@ class SlicePlotDataset(AnalysisTask):
 
     def eval(self, pf):
         slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
-        return pc.save()
+        return slc.save()
 
 class QuantityProxy(AnalysisTask):
     _params = None
