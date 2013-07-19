@@ -279,20 +279,20 @@ add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
 
 # We can now set up particle vector and particle deposition fields.
 
-for ptype in ("nbody", "stars"):
-    particle_vector_functions(ptype,
-        ["particle_position_%s" % ax for ax in 'xyz'],
-        ["particle_velocity_%s" % ax for ax in 'xyz'],
-        ARTIOFieldInfo)
-    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
-        ARTIOFieldInfo)
-
 for fname in ["particle_position_%s" % ax for ax in 'xyz'] + \
              ["particle_velocity_%s" % ax for ax in 'xyz'] + \
              ["particle_index", "particle_species"]:
     func = _field_concat(fname)
     ARTIOFieldInfo.add_field(("all", fname), function=func,
             particle_type = True)
+
+for ptype in ("nbody", "stars", "all"):
+    particle_vector_functions(ptype,
+        ["particle_position_%s" % ax for ax in 'xyz'],
+        ["particle_velocity_%s" % ax for ax in 'xyz'],
+        ARTIOFieldInfo)
+    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
+        ARTIOFieldInfo)
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')
