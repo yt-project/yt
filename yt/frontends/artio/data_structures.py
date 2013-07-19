@@ -88,7 +88,20 @@ class ARTIOOctreeSubset(OctreeSubset):
         return self.sfc_end
 
     def fill(self, fields):
-        raise NotImplementedError
+        # Here we get a copy of the file, which we skip through and read the
+        # bits we want.
+        handle = self.oct_handler.artio_handle
+        field_indices = [handle.parameters["grid_variable_labels"].index(
+                        yt_to_art[f]) for (ft, f) in fields]
+        cell_count = self.selector.count_oct_cells(
+            self.oct_handler, self.domain_id)
+        self.data_size = cell_count
+        levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
+            self.selector, self.domain_id, cell_count)
+        tr = [np.zeros(cell_count, dtype="float64") for field in fields]
+        self.oct_handler.fill_sfc(levels, cell_inds, file_inds, field_indices, tr)
+        tr = dict((field, v) for field, v in zip(fields, tr))
+        return tr
 
     def fill_particles(self, field_data, fields):
         raise NotImplementedError
