@@ -162,6 +162,9 @@ class ProtoSubgrid(object):
                 # Note that sd is offset by one
                 if sd[i-1] * sd[i] < 0:
                     strength = np.abs(sd[i-1] - sd[i])
+                    # TODO this differs from what I could find in ENZO
+                    # there's |center - i| < |center - zero_cross| instead
+                    # additionally zero_cross is undefined in first pass  
                     if strength > zero_strength or \
                        (strength == zero_strength and np.abs(center - i) < np.abs(zero_cross -i )):
                         zero_strength = strength
