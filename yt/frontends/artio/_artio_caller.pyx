@@ -801,6 +801,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         primary_variables = <double *>malloc(sizeof(double) * max(npri_vars))
         secondary_variables = <float *>malloc(sizeof(double) * max(nsec_vars))
 
+        cdef particle_var_pointers *vp
+
         for ispec in range(num_species):
             total_particles[ispec] = 0
             accessed_species[ispec] = 0
@@ -808,8 +810,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             vpoints[ispec].count = 0
             vpoints[ispec].n_mass = 0
             vpoints[ispec].n_pid = 0
-            vpoints[ispec].n_s = 0
+            vpoints[ispec].n_species = 0
             vpoints[ispec].n_p = 0
+            vpoints[ispec].n_s = 0
 
         status = artio_particle_cache_sfc_range( handle,
                 self.sfc_start, self.sfc_end ) 
@@ -838,36 +841,33 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             sec_vars = params.get(
                 "species_%02u_secondary_variable_labels" % (species,), [])
             tp = total_particles[species]
+            vp = &vpoints[species]
             if field == "MASS":
-                vpoints[species].n_mass = 1
+                vp.n_mass = 1
                 npf32arr = data[(species, field)] = np.zeros(tp, dtype="float32")
                 # We fill this *now*
                 npf32arr += params["particle_species_mass"][ispec]
-                vpoints[species].mass = <np.float32_t*> npf32arr.data
+                vp.mass = <np.float32_t*> npf32arr.data
             elif field == "PID":
-                vpoints[species].n_pid = 1
-                npi64arr = data[(species, field)] = np.empty(tp, dtype="int64")
-                vpoints[species].pid = <np.int64_t*> npf32arr.data
+                vp.n_pid = 1
+                npi64arr = data[(species, field)] = np.zeros(tp, dtype="int64")
+                vp.pid = <np.int64_t*> npi64arr.data
             elif field == "SPECIES":
-                vpoints[species].n_species = 1
-                npi8arr = data[(species, field)] = np.empty(tp, dtype="int8")
+                vp.n_species = 1
+                npi8arr = data[(species, field)] = np.zeros(tp, dtype="int8")
                 # We fill this *now*
                 npi8arr += species
-                vpoints[species].species = <np.int8_t*> npf32arr.data
+                vp.species = <np.int8_t*> npi8arr.data
             elif npri_vars[species] > 0 and field in pri_vars :
-                npf64arr = data[(species, field)] = np.empty(tp, dtype="float64")
-                vpoints[species].p_ind[vpoints[species].n_p] = \
-                    pri_vars.index(field)
-                vpoints[species].pvars[vpoints[species].n_p] = \
-                    <np.float64_t *> npf64arr.data
-                vpoints[species].n_p += 1
+                npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+                vp.p_ind[vp.n_p] = pri_vars.index(field)
+                vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
+                vp.n_p += 1
             elif nsec_vars[species] > 0 and field in sec_vars :
-                vpoints[species].s_ind[vpoints[species].n_s] = \
-                    sec_vars.index(field)
-                npf32arr = data[(species, field)] = np.empty(tp, dtype="float32")
-                vpoints[species].svars[vpoints[species].n_s] = \
-                    <np.float32_t *> npf32arr.data
-                vpoints[species].n_s += 1
+                npf32arr = data[(species, field)] = np.zeros(tp, dtype="float32")
+                vp.s_ind[vp.n_s] = sec_vars.index(field)
+                vp.svars[vp.n_s] = <np.float32_t *> npf32arr.data
+                vp.n_s += 1
 
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             status = artio_particle_read_root_cell_begin( handle, sfc,
@@ -877,24 +877,27 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 if accessed_species[ispec] == 0: continue
                 status = artio_particle_read_species_begin(handle, ispec);
                 check_artio_status(status)
+                vp = &vpoints[ispec]
  
                 for particle in range(num_particles_per_species[ispec]) :
                     status = artio_particle_read_particle(handle,
                             &pid, &subspecies, primary_variables,
                             secondary_variables)
                     check_artio_status(status)
-                    ind = vpoints[ispec].count
+                    ind = vp.count
 
-                    for i in range(vpoints[ispec].n_p):
-                        vind = vpoints[ispec].p_ind[i]
-                        vpoints[ispec].pvars[i][ind] = primary_variables[vind]
+                    for i in range(vp.n_p):
+                        vind = vp.p_ind[i]
+                        vp.pvars[i][ind] = primary_variables[vind]
                         
-                    for i in range(vpoints[ispec].n_s):
-                        vind = vpoints[ispec].s_ind[i]
-                        vpoints[ispec].svars[i][ind] = secondary_variables[vind]
+                    for i in range(vp.n_s):
+                        vind = vp.s_ind[i]
+                        vp.svars[i][ind] = secondary_variables[vind]
                         
-                    if vpoints[ispec].n_pid:
-                        vpoints[ispec].pid[ind] = pid
+                    if vp.n_pid:
+                        vp.pid[ind] = pid
+
+                    vp.count += 1
 
                 status = artio_particle_read_species_end( handle )
                 check_artio_status(status)
