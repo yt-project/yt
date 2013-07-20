@@ -799,7 +799,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         npri_vars = params["num_primary_variables"]
         nsec_vars = params["num_secondary_variables"]
         primary_variables = <double *>malloc(sizeof(double) * max(npri_vars))
-        secondary_variables = <float *>malloc(sizeof(double) * max(nsec_vars))
+        secondary_variables = <float *>malloc(sizeof(float) * max(nsec_vars))
 
         cdef particle_var_pointers *vp
 
@@ -836,6 +836,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         #        self.sfc_start, self.sfc_end + 1, total_particles[ispec], ispec)
         data = {}
         for species, field in sorted(fields):
+            accessed_species[species] = 1
             pri_vars = params.get(
                 "species_%02u_primary_variable_labels" % (species,), [])
             sec_vars = params.get(
@@ -846,7 +847,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 vp.n_mass = 1
                 npf32arr = data[(species, field)] = np.zeros(tp, dtype="float32")
                 # We fill this *now*
-                npf32arr += params["particle_species_mass"][ispec]
+                npf32arr += params["particle_species_mass"][species]
                 vp.mass = <np.float32_t*> npf32arr.data
             elif field == "PID":
                 vp.n_pid = 1
