@@ -33,12 +33,15 @@ class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
     """
-    def __init__(self, fsize, axrect):
+    def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
         self._plot_valid = True
-        self.figure = matplotlib.figure.Figure(figsize=fsize,
-                                               frameon=True)
-        self.axes = self.figure.add_axes(axrect)
+        if figure is None:
+            self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
+            self.axes = self.figure.add_axes(axrect)
+        else:
+            self.figure = figure
+            self.axes = axes
 
     def save(self, name, mpl_kwargs, canvas=None):
         """Choose backend and save image to disk"""
@@ -67,9 +70,9 @@ class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
 
     """
-    def __init__(self, fsize, axrect, caxrect, zlim):
+    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes):
         """Initialize ImagePlotMPL class object"""
-        PlotMPL.__init__(self, fsize, axrect)
+        PlotMPL.__init__(self, fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
         self.cax = self.figure.add_axes(caxrect)
 
