@@ -881,8 +881,10 @@ class PWViewerMPL(PWViewer):
             fig = None
             axes = None
             if self.plots.has_key(f):
-                fig = self.plots[f].figure
-                axes = self.plots[f].axes
+                if extent == list(self.plots[f].figure.axes[0].get_xlim() +
+                                  self.plots[f].figure.axes[0].get_ylim()):
+                    fig = self.plots[f].figure
+                    axes = self.plots[f].axes
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
                                           self._colormaps[f], extent, aspect,
