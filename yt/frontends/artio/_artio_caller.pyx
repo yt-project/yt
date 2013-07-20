@@ -812,7 +812,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             vpoints[ispec].n_p = 0
 
         status = artio_particle_cache_sfc_range( handle,
-                self.sfc_start, self.sfc_end +1 ) 
+                self.sfc_start, self.sfc_end ) 
         check_artio_status(status)
 
         # Pass through once.  We want every single particle.
