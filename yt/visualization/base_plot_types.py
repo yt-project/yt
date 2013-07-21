@@ -41,6 +41,7 @@ class PlotMPL(object):
             self.axes = self.figure.add_axes(axrect)
         else:
             self.figure = figure
+            axes.cla()
             self.axes = axes
 
     def save(self, name, mpl_kwargs, canvas=None):
