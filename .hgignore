@@ -12,6 +12,7 @@ yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
 yt/utilities/libconfig_wrapper.c
 yt/utilities/spatial/ckdtree.c
+yt/utilities/lib/amr_kdtools.c
 yt/utilities/lib/CICDeposit.c
 yt/utilities/lib/ContourFinding.c
 yt/utilities/lib/DepthFirstOctree.c
