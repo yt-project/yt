@@ -74,9 +74,11 @@ class ImagePlotMPL(PlotMPL):
         """Initialize ImagePlotMPL class object"""
         PlotMPL.__init__(self, fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
+        if figure is not None:
+            self.figure.delaxes(self.figure.axes[1])
         self.cax = self.figure.add_axes(caxrect)
 
-    def _init_image(self, data, cbnorm, cmap, extent, aspect=None):
+    def _init_image(self, data, cbnorm, cmap, extent, aspect):
         """Store output of imshow in image variable"""
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()

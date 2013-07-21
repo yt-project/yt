@@ -90,6 +90,16 @@ def invalidate_data(f):
         return rv
     return newfunc
 
+def invalidate_figure(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        for field in args[0].fields:
+            args[0].plots[field].figure = None
+            args[0].plots[field].axes = None
+        return rv
+    return newfunc
+
 def invalidate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -558,6 +568,7 @@ class PlotWindow(object):
             self.buff_size = (size, size)
 
     @invalidate_plot
+    @invalidate_figure
     def set_window_size(self, size):
         """Sets a new window size for the plot
 
@@ -881,10 +892,11 @@ class PWViewerMPL(PWViewer):
             fig = None
             axes = None
             if self.plots.has_key(f):
-                if extent == list(self.plots[f].figure.axes[0].get_xlim() +
-                                  self.plots[f].figure.axes[0].get_ylim()):
-                    fig = self.plots[f].figure
-                    axes = self.plots[f].axes
+                if self.plots[f].figure is not None:
+                    if extent == list(self.plots[f].figure.axes[0].get_xlim() +
+                                      self.plots[f].figure.axes[0].get_ylim()):
+                        fig = self.plots[f].figure
+                        axes = self.plots[f].axes
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
                                           self._colormaps[f], extent, aspect,
@@ -955,6 +967,7 @@ class PWViewerMPL(PWViewer):
                 del self._frb[key]
 
     @invalidate_plot
+    @invalidate_figure
     def set_font(self, font_dict=None):
         """set the font and font properties
 
