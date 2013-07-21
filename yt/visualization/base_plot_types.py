@@ -39,11 +39,11 @@ class PlotMPL(object):
         if figure is None:
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
             self.axes = self.figure.add_axes(axrect)
-            self.canvas = FigureCanvasAgg(self.figure)
         else:
             self.figure = figure
             axes.cla()
             self.axes = axes
+        self.canvas = FigureCanvasAgg(self.figure)
 
     def save(self, name, mpl_kwargs, canvas=None):
         """Choose backend and save image to disk"""
