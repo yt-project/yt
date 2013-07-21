@@ -893,8 +893,10 @@ class PWViewerMPL(PWViewer):
             axes = None
             if self.plots.has_key(f):
                 if self.plots[f].figure is not None:
-                    if extent == list(self.plots[f].figure.axes[0].get_xlim() +
-                                      self.plots[f].figure.axes[0].get_ylim()):
+                    oe = list(self.plots[f].figure.axes[0].get_xlim() +
+                              self.plots[f].figure.axes[0].get_ylim())
+                    if (oe[1] - oe[0]) / (oe[3] - oe[2]) == \
+                       (extent[1] - extent[0]) / (extent[3] - extent[2]):
                         fig = self.plots[f].figure
                         axes = self.plots[f].axes
 
