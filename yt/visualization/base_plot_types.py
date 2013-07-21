@@ -39,6 +39,7 @@ class PlotMPL(object):
         if figure is None:
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
             self.axes = self.figure.add_axes(axrect)
+            self.canvas = FigureCanvasAgg(self.figure)
         else:
             self.figure = figure
             axes.cla()
@@ -61,7 +62,7 @@ class PlotMPL(object):
             canvas = FigureCanvasPS(self.figure)
         else:
             mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-            canvas = FigureCanvasAgg(self.figure)
+            canvas = self.canvas
 
         canvas.print_figure(name, **mpl_kwargs)
         return name
