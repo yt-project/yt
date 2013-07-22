@@ -97,6 +97,7 @@ def invalidate_figure(f):
         for field in args[0].fields:
             args[0].plots[field].figure = None
             args[0].plots[field].axes = None
+            args[0].plots[field].cax = None
         return rv
     return newfunc
 
@@ -891,18 +892,17 @@ class PWViewerMPL(PWViewer):
 
             fig = None
             axes = None
+            cax = None
             if self.plots.has_key(f):
                 if self.plots[f].figure is not None:
-                    oe = list(self.plots[f].figure.axes[0].get_xlim() +
-                              self.plots[f].figure.axes[0].get_ylim())
-                    if (oe[1] - oe[0]) / (oe[3] - oe[2]) == \
-                       (extent[1] - extent[0]) / (extent[3] - extent[2]):
-                        fig = self.plots[f].figure
-                        axes = self.plots[f].axes
+                    fig = self.plots[f].figure
+                    axes = self.plots[f].axes
+                    cax = self.plots[f].cax
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
                                           self._colormaps[f], extent, aspect,
-                                          zlim, size, fp.get_size(), fig, axes)
+                                          zlim, size, fp.get_size(), fig, axes,
+                                          cax)
 
             axes_unit_labels = ['', '']
             for i, un in enumerate((unit_x, unit_y)):
@@ -1776,7 +1776,7 @@ class PWViewerExtJS(PWViewer):
 class WindowPlotMPL(ImagePlotMPL):
     def __init__(
             self, data, cbname, cmap, extent, aspect, zlim, size, fontsize,
-            figure, axes):
+            figure, axes, cax):
         fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
@@ -1785,7 +1785,8 @@ class WindowPlotMPL(ImagePlotMPL):
                           'and matplotlib.')
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
-        ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim, figure, axes)
+        ImagePlotMPL.__init__(
+            self, fsize, axrect, caxrect, zlim, figure, axes, cax)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
         if cbname == 'linear':
