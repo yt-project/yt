@@ -346,6 +346,22 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def mask(self, SelectorObject selector, np.int64_t num_octs = -1,
+             int domain_id = -1):
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
+        cdef np.ndarray[np.uint8_t, ndim=1] coords
+        coords = np.zeros((num_octs * 8), dtype="uint8")
+        cdef OctVisitorData data
+        data.array = <void *> coords.data
+        data.index = 0
+        data.domain = domain_id
+        self.visit_all_octs(selector, oct_visitors.mask_octs, &data)
+        return coords.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def icoords(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
         if num_octs == -1:
