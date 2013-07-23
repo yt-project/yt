@@ -773,15 +773,13 @@ cdef class CuttingPlaneSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
-        cdef np.float64_t diag2, height
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
         cdef int i
-        height = self.d
-        diag2 = 0
         for i in range(3):
-            height += pos[i] * self.norm_vec[i]
-            diag2 += dds[i] * dds[i] * 0.25
-        if height * height <= diag2: return 1
-        return 0
+            left_edge[i] = pos[i] - 0.5*dds[i]
+            right_edge[i] = pos[i] + 0.5*dds[i]
+        return self.select_bbox(left_edge, right_edge)
 
     cdef int select_point(self, np.float64_t pos[3] ) nogil:
         # two 0-volume constructs don't intersect
@@ -821,12 +819,17 @@ cdef class CuttingPlaneSelector(SelectorObject):
                     gd = self.d
                     for n in range(3):
                         gd += pos[n] * self.norm_vec[n]
-                    if gd < 0: all_over = 0
-                    if gd > 0: all_under = 0
+                    # this allows corners and faces on the low-end to
+                    # collide, while not selecting cells on the high-side 
+                    if i == 0 and j == 0 and k == 0 :
+                        if gd <= 0: all_over = 0
+                        if gd >= 0: all_under = 0
+                    else :
+                        if gd < 0: all_over = 0
+                        if gd > 0: all_under = 0
         if all_over == 1 or all_under == 1:
             return 0
         return 1
-
 
 cutting_selector = CuttingPlaneSelector
 

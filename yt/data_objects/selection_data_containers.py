@@ -248,33 +248,6 @@ class YTSliceBase(YTSelectionContainer2D):
         self._set_center(center)
         self.coord = coord
 
-    def reslice(self, coord):
-        """
-        Change the entire dataset, clearing out the current data and slicing at
-        a new location.  Not terribly useful except for in-place plot changes.
-        """
-        mylog.debug("Setting coordinate to %0.5e" % coord)
-        self.coord = coord
-        self.field_data.clear()
-
-    def shift(self, val):
-        """
-        Moves the slice coordinate up by either a floating point value, or an
-        integer number of indices of the finest grid.
-        """
-        if isinstance(val, types.FloatType):
-            # We add the dx
-            self.coord += val
-        elif isinstance(val, types.IntType):
-            # Here we assume that the grid is the max level
-            level = self.hierarchy.max_level
-            self.coord
-            dx = self.hierarchy.select_grids(level)[0].dds[self.axis]
-            self.coord += dx * val
-        else:
-            raise ValueError(val)
-        self.field_data.clear()
-
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -375,7 +348,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
         self._x_vec = self.orienter.unit_vectors[0]
         self._y_vec = self.orienter.unit_vectors[1]
-        self._d = -1.0 * np.dot(self._norm_vec, self.center)
         # First we try all three, see which has the best result:
         vecs = np.identity(3)
         self._rot_mat = np.array([self._x_vec,self._y_vec,self._norm_vec])

@@ -81,22 +81,53 @@ def test_ellipsoid_selector():
             positions[i,:] = data[ax]
             centers = np.zeros((3,data.shape[0]))
             centers[i,:] = center[i]
-            dist = periodic_dist(positions, centers,
-                                   pf.domain_right_edge-pf.domain_left_edge,
-                                   pf.periodicity)
             dist2 += (periodic_dist(positions, centers,
                                    pf.domain_right_edge-pf.domain_left_edge,
                                    pf.periodicity)/ratios[i])**2
         # WARNING: this value has not been externally verified
         yield assert_array_less, dist2, 1.0
 
+def test_slice_selector():
+    # generate fake data with a number of non-cubical grids
+    pf = fake_random_pf(64, nprocs=51)
+    assert(all(pf.periodicity))
+
+    for i,d in enumerate('xyz'):
+        for coord in np.arange(0,1.0,0.1):
+            data = pf.h.slice(i, coord)
+            data.get_data()
+            assert(data.shape[0] == 64**2)
+            yield assert_array_less, np.abs(data[d] - coord), 1./128.+1e-6
+
+def test_cutting_plane_selector():
+    # generate fake data with a number of non-cubical grids
+    pf = fake_random_pf(64, nprocs=51)
+    assert(all(pf.periodicity))
+
+    # test cutting plane against orthogonal plane
+    for i,d in enumerate('xyz'):
+        norm = np.zeros(3)
+        norm[i] = 1.0
+
+        for coord in np.arange(0, 1.0, 0.1):
+            center = np.zeros(3)
+            center[i] = coord
+
+            data = pf.h.slice(i, coord)
+            data.get_data()
+            data2 = pf.h.cutting(norm, center)
+            data2.get_data()
+
+            assert(data.shape[0] == data2.shape[0])
+
+            cells1 = np.lexsort((data['x'],data['y'],data['z']))
+            cells2 = np.lexsort((data2['x'],data2['y'],data2['z']))
+            for d2 in 'xyz':
+                yield assert_equal, data[d2][cells1], data2[d2][cells2]
+
 #def test_region_selector():
 #
 #def test_disk_selector():
-#
-#def test_cutting_plane_selector():
-#
-#def test_slice_selector():
 #
 #def test_orthoray_selector():
 #
