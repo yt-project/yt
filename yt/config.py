@@ -28,7 +28,7 @@ License:
 import ConfigParser, os, os.path, types
 
 ytcfgDefaults = dict(
-    serialize = 'True',
+    serialize = 'False',
     onlydeserialize = 'False',
     timefunctions = 'False',
     logfile = 'False',
