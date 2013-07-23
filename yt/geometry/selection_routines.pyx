@@ -421,15 +421,14 @@ cdef class SelectorObject:
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
-        if radius == 0.0 :
-            with nogil:
+        with nogil:
+            if radius == 0.0 :
                 for i in range(x.shape[0]):
                     pos[0] = x[i]
                     pos[1] = y[i]
                     pos[2] = z[i]
                     count += self.select_point(pos)
-        else :
-            with nogil:
+            else :
                 for i in range(x.shape[0]):
                     pos[0] = x[i]
                     pos[1] = y[i]
@@ -455,16 +454,15 @@ cdef class SelectorObject:
         # effects for 0-volume selectors, however (collision 
         # between a ray and a point is null, while ray and a
         # sphere is allowed)
-        if radius == 0.0 :
-            with nogil:
+        with nogil:
+            if radius == 0.0 :
                 for i in range(x.shape[0]) :
                     pos[0] = x[i]
                     pos[1] = y[i]
                     pos[2] = z[i]
                     mask[i] = self.select_point(pos)
                     count += mask[i]
-        else :
-            with nogil:
+            else :
                 for i in range(x.shape[0]):
                     pos[0] = x[i]
                     pos[1] = y[i]
@@ -510,9 +508,10 @@ cdef class SphereSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
         cdef int i
-        cdef np.float64_t dist2 = 0
+        cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist2 += self.difference( pos[i], self.center[i], i )**2
+            dist = self.difference( pos[i], self.center[i], i )
+            dist2 += dist*dist
         if dist2 <= self.radius2: return 1
         return 0
    
@@ -521,10 +520,12 @@ cdef class SphereSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         cdef int i
-        cdef np.float64_t dist2 = 0
+        cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist2 += self.difference( pos[i], self.center[i], i )**2
-        if dist2 <= (self.radius+radius)**2: return 1
+            dist = self.difference( pos[i], self.center[i], i ) 
+            dist2 += dist*dist
+        dist = self.radius+radius
+        if dist2 <= dist*dist: return 1
         return 0
  
     @cython.boundscheck(False)
@@ -545,7 +546,7 @@ cdef class SphereSelector(SelectorObject):
             relcenter = self.difference( box_center, self.center[i], i )
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
-            dist += closest * closest
+            dist += closest*closest
         if dist <= self.radius2: return 1
         return 0
 
@@ -696,7 +697,8 @@ cdef class DiskSelector(SelectorObject):
             h += pos[i] * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
-        if fabs(h) <= self.height+radius and r2 <= (self.radius+radius)**2: return 1
+        d = self.radius+radius
+        if fabs(h) <= self.height+radius and r2 <= d*d: return 1
         return 0
 
     @cython.boundscheck(False)
@@ -793,7 +795,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
         cdef np.float64_t height = self.d
         for i in range(3) :
             height += pos[i] * self.norm_vec[i]
-        if height*height <= radius**2 : return 1
+        if height*height <= radius*radius : return 1
         return 0
 
     @cython.boundscheck(False)
@@ -875,7 +877,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        if self.difference( pos[self.axis], self.coord, self.axis )**2 < radius**2:
+        cdef np.float64_t dist = self.difference( pos[self.axis], self.coord, self.axis )
+        if dist*dist < radius*radius:
             return 1
         return 0
 
@@ -933,8 +936,9 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        if self.difference( pos[self.px_ax], self.px, self.px_ax )**2 + \
-           self.difference( pos[self.py_ax], self.py, self.py_ax )**2 < radius**2 :
+        cdef np.float64_t dx = self.difference( pos[self.px_ax], self.px, self.px_ax )
+        cdef np.float64_t dy = self.difference( pos[self.py_ax], self.py, self.py_ax )
+        if dx*dx + dy*dy < radius*radius:
             return 1
         return 0
 
