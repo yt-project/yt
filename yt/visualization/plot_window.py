@@ -1423,13 +1423,6 @@ class OffAxisProjectionDummyDataSource(object):
         self.re = re
         self.north_vector = north_vector
 
-    def __getitem__(self, item):
-        lo = self.center - 0.5*self.width
-        hi = self.center + 0.5*self.width
-        bounds = [lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]]
-        frb = OffAxisProjectionFixedResolutionBuffer(self, bounds, self.resolution)
-        return frb[item]
-
 class OffAxisProjectionPlot(PWViewerMPL):
     r"""Creates an off axis projection plot from a parameter file
 
