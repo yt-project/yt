@@ -1456,7 +1456,12 @@ class YTNotebookCmd(YTCommand):
         """
     def __call__(self, args):
         kwargs = {}
-        from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        try:
+            # IPython 1.0+
+            from IPython.html.notebookapp import NotebookApp
+        except ImportError:
+            # pre-IPython v1.0
+            from IPython.frontend.html.notebook.notebookapp import NotebookApp
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib
