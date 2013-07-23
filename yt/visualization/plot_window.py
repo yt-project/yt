@@ -702,7 +702,7 @@ class PWViewer(PlotWindow):
                             'ParticleCallback','ClumpContourCallback',
                             'GridBoundaryCallback']
             if self._plot_type == 'OffAxisProjection':
-                ignored += ['MagFieldCallback',
+                ignored += ['VelocityCallback','MagFieldCallback',
                             'QuiverCallback','CuttingQuiverCallback',
                             'StreamlineCallback']
             if key in ignored:
