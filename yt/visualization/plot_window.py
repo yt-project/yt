@@ -702,7 +702,7 @@ class PWViewer(PlotWindow):
                             'ParticleCallback','ClumpContourCallback',
                             'GridBoundaryCallback']
             if self._plot_type == 'OffAxisProjection':
-                ignored += ['VelocityCallback','MagFieldCallback',
+                ignored += ['MagFieldCallback',
                             'QuiverCallback','CuttingQuiverCallback',
                             'StreamlineCallback']
             if key in ignored:
@@ -1137,12 +1137,10 @@ class SlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blank,
-         the image centers on the location of the maximum density
-         cell.  If set to 'c' or 'center', the plot is centered on
-         the middle of the domain.  If set to 'max', will be at the point
-         of highest density.
+    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'.
+         The coordinate of the center of the image. If set to 'c' or 'center' or 
+         left blank, the plot is centered on the middle of the domain.  If set to 'max', 
+         the center will be at the point of highest density.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1247,12 +1245,10 @@ class ProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string
         The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blank,
-         the image centers on the location of the maximum density
-         cell.  If set to 'c' or 'center', the plot is centered on
-         the middle of the domain.  If set to 'max', will be at the point
-         of highest density.
+    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'.
+         The coordinate of the center of the image. If set to 'c' or 'center' or 
+         left blank, the plot is centered on the middle of the domain.  If set to 'max', 
+         the center will be at the point of highest density.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1366,10 +1362,8 @@ class OffAxisSlicePlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blank,
-        the image centers on the location of the maximum density
-        cell.  If set to 'c' or 'center', the plot is centered on
-        the middle of the domain.
+        The coordinate of the center of the image. If set to 'c' or 'center' or 
+        left blank, the plot is centered on the middle of the domain.
     width : A tuple or a float
         A tuple containing the width of image and the string key of
         the unit: (width, 'unit').  If set to a float, code units
@@ -1429,6 +1423,13 @@ class OffAxisProjectionDummyDataSource(object):
         self.re = re
         self.north_vector = north_vector
 
+    def __getitem__(self, item):
+        lo = self.center - 0.5*self.width
+        hi = self.center + 0.5*self.width
+        bounds = [lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]]
+        frb = OffAxisProjectionFixedResolutionBuffer(self, bounds, self.resolution)
+        return frb[item]
+
 class OffAxisProjectionPlot(PWViewerMPL):
     r"""Creates an off axis projection plot from a parameter file
 
@@ -1449,10 +1450,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blank,
-        the image centers on the location of the maximum density
-        cell.  If set to 'c' or 'center', the plot is centered on
-        the middle of the domain.
+        The coordinate of the center of the image. If set to 'c' or 'center' or 
+        left blank, the plot is centered on the middle of the domain.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
