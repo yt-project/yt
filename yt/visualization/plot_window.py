@@ -90,6 +90,17 @@ def invalidate_data(f):
         return rv
     return newfunc
 
+def invalidate_figure(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        for field in args[0].fields:
+            args[0].plots[field].figure = None
+            args[0].plots[field].axes = None
+            args[0].plots[field].cax = None
+        return rv
+    return newfunc
+
 def invalidate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -394,7 +405,7 @@ class PlotWindow(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
-
+        return self
 
     @invalidate_data
     def pan(self, deltas):
@@ -408,6 +419,7 @@ class PlotWindow(object):
         """
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
+        return self
 
     @invalidate_data
     def pan_rel(self, deltas):
@@ -422,6 +434,7 @@ class PlotWindow(object):
         Wx, Wy = self.width
         self.xlim = (self.xlim[0] + Wx*deltas[0], self.xlim[1] + Wx*deltas[0])
         self.ylim = (self.ylim[0] + Wy*deltas[1], self.ylim[1] + Wy*deltas[1])
+        return self
 
     @invalidate_data
     def set_window(self, bounds):
@@ -556,6 +569,7 @@ class PlotWindow(object):
             self.buff_size = (size, size)
 
     @invalidate_plot
+    @invalidate_figure
     def set_window_size(self, size):
         """Sets a new window size for the plot
 
@@ -876,9 +890,19 @@ class PWViewerMPL(PWViewer):
 
             fp = self._font_properties
 
+            fig = None
+            axes = None
+            cax = None
+            if self.plots.has_key(f):
+                if self.plots[f].figure is not None:
+                    fig = self.plots[f].figure
+                    axes = self.plots[f].axes
+                    cax = self.plots[f].cax
+
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
                                           self._colormaps[f], extent, aspect,
-                                          zlim, size, fp.get_size())
+                                          zlim, size, fp.get_size(), fig, axes,
+                                          cax)
 
             axes_unit_labels = ['', '']
             for i, un in enumerate((unit_x, unit_y)):
@@ -945,6 +969,7 @@ class PWViewerMPL(PWViewer):
                 del self._frb[key]
 
     @invalidate_plot
+    @invalidate_figure
     def set_font(self, font_dict=None):
         """set the font and font properties
 
@@ -1110,6 +1135,11 @@ class PWViewerMPL(PWViewer):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
+    def __repr__(self):
+        if "__IPYTHON__" in dir(__builtin__):
+            self.show()
+        return super(PWViewerMPL, self).__repr__()
+
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
 
@@ -1130,12 +1160,11 @@ class SlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blank,
-         the image centers on the location of the maximum density
-         cell.  If set to 'c' or 'center', the plot is centered on
-         the middle of the domain.  If set to 'max', will be at the point
-         of highest density.
+    center : two or three-element vector of sequence floats, or one of 'c', 
+         'center', 'max' or 'm'. The coordinate of the center of the image. 
+         If set to 'c', 'center' or left blank, the plot is centered on the
+         middle of the domain. If set to 'max' or 'm', the center will be at 
+         the point of highest density.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1240,13 +1269,11 @@ class ProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string
         The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center', or 'max'
-         The coordinate of the center of the image.  If left blank,
-         the image centers on the location of the maximum density
-         cell.  If set to 'c' or 'center', the plot is centered on
-         the middle of the domain.  If set to 'max', will be at the point
-         of highest density.
-    width : tuple or a float.
+    center : two or three-element vector of sequence floats, or one of 'c', 
+         'center', 'max' or 'm'. The coordinate of the center of the image. 
+         If set to 'c', 'center' or left blank, the plot is centered on the
+         middle of the domain. If set to 'max' or 'm', the center will be at 
+         the point of highest density.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
 
@@ -1358,11 +1385,11 @@ class OffAxisSlicePlot(PWViewerMPL):
         The vector normal to the slicing plane.
     fields : string
         The name of the field(s) to be plotted.
-    center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blank,
-        the image centers on the location of the maximum density
-        cell.  If set to 'c' or 'center', the plot is centered on
-        the middle of the domain.
+    center : two or three-element vector of sequence floats, or one of 'c', 
+         'center', 'max' or 'm'. The coordinate of the center of the image. 
+         If set to 'c', 'center' or left blank, the plot is centered on the
+         middle of the domain. If set to 'max' or 'm', the center will be at 
+         the point of highest density.
     width : A tuple or a float
         A tuple containing the width of image and the string key of
         the unit: (width, 'unit').  If set to a float, code units
@@ -1441,11 +1468,11 @@ class OffAxisProjectionPlot(PWViewerMPL):
         The vector normal to the slicing plane.
     fields : string
         The name of the field(s) to be plotted.
-    center : A two or three-element vector of sequence floats, 'c', or 'center'
-        The coordinate of the center of the image.  If left blank,
-        the image centers on the location of the maximum density
-        cell.  If set to 'c' or 'center', the plot is centered on
-        the middle of the domain.
+    center : two or three-element vector of sequence floats, or one of 'c', 
+         'center', 'max' or 'm'. The coordinate of the center of the image. 
+         If set to 'c', 'center' or left blank, the plot is centered on the
+         middle of the domain. If set to 'max' or 'm', the center will be at 
+         the point of highest density.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1744,7 +1771,9 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size, fontsize):
+    def __init__(
+            self, data, cbname, cmap, extent, aspect, zlim, size, fontsize,
+            figure, axes, cax):
         fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
@@ -1753,7 +1782,8 @@ class WindowPlotMPL(ImagePlotMPL):
                           'and matplotlib.')
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
-        ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
+        ImagePlotMPL.__init__(
+            self, fsize, axrect, caxrect, zlim, figure, axes, cax)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
         if cbname == 'linear':

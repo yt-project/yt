@@ -28,7 +28,7 @@ import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
-from distutils import version
+from distutils.version import LooseVersion
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
@@ -260,10 +260,12 @@ def insert_ipython(num_up=1):
     """
 
     import IPython
-    if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
+    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
         api_version = '0.10'
-    else:
+    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
         api_version = '0.11'
+    else:
+        api_version = '1.0'
 
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
@@ -281,7 +283,10 @@ def insert_ipython(num_up=1):
         cfg.InteractiveShellEmbed.local_ns = loc
         cfg.InteractiveShellEmbed.global_ns = glo
         IPython.embed(config=cfg, banner2 = __header % dd)
-        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        if api_version == '0.11':
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        else:
+            from IPython.terminal.embed import InteractiveShellEmbed
         ipshell = InteractiveShellEmbed(config=cfg)
 
     del ipshell
