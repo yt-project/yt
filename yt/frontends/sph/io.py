@@ -446,9 +446,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                                pf.domain_left_edge,
                                                pf.domain_right_edge)
                     pos = np.empty((pp.size, 3), dtype="float64")
-                    pos[:,0] = pp["Coordinates"]["x"]
-                    pos[:,1] = pp["Coordinates"]["y"]
-                    pos[:,2] = pp["Coordinates"]["z"]
+                    for i, ax in enumerate("xyz"):
+                        eps = np.finfo(pp["Coordinates"][ax].dtype).eps
+                        pos[:,i] = np.clip(pp["Coordinates"][ax],
+                                    pf.domain_left_edge[i] + eps,
+                                    pf.domain_right_edge[i] - eps)
                     regions.add_data_file(pos, data_file.file_id)
                     morton[ind:ind+c] = compute_morton(
                         pos[:,0], pos[:,1], pos[:,2],
