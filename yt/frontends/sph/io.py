@@ -380,6 +380,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 rv[field] = np.empty(size, dtype="float64")
                 if size == 0: continue
                 rv[field][:] = vals[field][mask]
+            if field == "Coordinates":
+                eps = np.finfo(rv[field].dtype).eps
+                for i in range(3):
+                  rv[field][:,i] = np.clip(rv[field][:,i],
+                      self.domain_left_edge[i] + eps,
+                      self.domain_right_edge[i] - eps)
         return rv
 
     def _read_particle_selection(self, chunks, selector, fields):
@@ -421,6 +427,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ind = 0
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         dx = (DRE - DLE) / (2**_ORDER_MAX)
+        self.domain_left_edge = DLE
+        self.domain_right_edge = DRE
         with open(data_file.filename, "rb") as f:
             f.seek(pf._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
