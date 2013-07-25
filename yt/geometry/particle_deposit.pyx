@@ -38,6 +38,7 @@ from oct_container cimport Oct, OctAllocationContainer, \
 cdef class ParticleDepositOperation:
     def __init__(self, nvals):
         self.nvals = nvals
+        self.update_values = 0 # This is the default
 
     def initialize(self, *args):
         raise NotImplementedError
@@ -102,6 +103,9 @@ cdef class ParticleDepositOperation:
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
                          offset, pos, field_vals)
+            if self.update_values == 1:
+                for j in range(nf):
+                    field_pointers[j][i] = field_vals[j] 
         
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -132,6 +136,9 @@ cdef class ParticleDepositOperation:
             for j in range(3):
                 pos[j] = positions[i, j]
             self.process(dims, left_edge, dds, 0, pos, field_vals)
+            if self.update_values == 1:
+                for j in range(nf):
+                    field_pointers[j][i] = field_vals[j] 
 
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.int64_t offset,
@@ -375,7 +382,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         self.ow = np.zeros(self.nvals, dtype='float64', order='F')
         cdef np.ndarray warr = self.ow
         self.w = <np.float64_t*> warr.data
-    
+
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3], 
@@ -393,5 +400,4 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
     def finalize(self):
         return self.owf / self.ow
 
-deposit_weighted_mean= WeightedMeanParticleField
-
+deposit_weighted_mean = WeightedMeanParticleField
