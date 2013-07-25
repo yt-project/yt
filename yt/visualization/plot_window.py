@@ -90,6 +90,17 @@ def invalidate_data(f):
         return rv
     return newfunc
 
+def invalidate_figure(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        for field in args[0].fields:
+            args[0].plots[field].figure = None
+            args[0].plots[field].axes = None
+            args[0].plots[field].cax = None
+        return rv
+    return newfunc
+
 def invalidate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -558,6 +569,7 @@ class PlotWindow(object):
             self.buff_size = (size, size)
 
     @invalidate_plot
+    @invalidate_figure
     def set_window_size(self, size):
         """Sets a new window size for the plot
 
@@ -878,9 +890,19 @@ class PWViewerMPL(PWViewer):
 
             fp = self._font_properties
 
+            fig = None
+            axes = None
+            cax = None
+            if self.plots.has_key(f):
+                if self.plots[f].figure is not None:
+                    fig = self.plots[f].figure
+                    axes = self.plots[f].axes
+                    cax = self.plots[f].cax
+
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
                                           self._colormaps[f], extent, aspect,
-                                          zlim, size, fp.get_size())
+                                          zlim, size, fp.get_size(), fig, axes,
+                                          cax)
 
             axes_unit_labels = ['', '']
             for i, un in enumerate((unit_x, unit_y)):
@@ -947,6 +969,7 @@ class PWViewerMPL(PWViewer):
                 del self._frb[key]
 
     @invalidate_plot
+    @invalidate_figure
     def set_font(self, font_dict=None):
         """set the font and font properties
 
@@ -1748,7 +1771,9 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size, fontsize):
+    def __init__(
+            self, data, cbname, cmap, extent, aspect, zlim, size, fontsize,
+            figure, axes, cax):
         fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
@@ -1757,7 +1782,8 @@ class WindowPlotMPL(ImagePlotMPL):
                           'and matplotlib.')
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
-        ImagePlotMPL.__init__(self, fsize, axrect, caxrect, zlim)
+        ImagePlotMPL.__init__(
+            self, fsize, axrect, caxrect, zlim, figure, axes, cax)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
         if cbname == 'linear':
