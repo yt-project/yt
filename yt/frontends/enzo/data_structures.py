@@ -675,7 +675,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, npart):
+    def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions[:,:1] = ei
         self.grid_dimensions[:,:1] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
@@ -685,10 +685,12 @@ class EnzoHierarchy1D(EnzoHierarchy):
         self.grid_left_edge[:,1:] = 0.0
         self.grid_right_edge[:,1:] = 1.0
         self.grid_dimensions[:,1:] = 1
+        if nap is not None:
+            raise NotImplementedError
 
 class EnzoHierarchy2D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, npart):
+    def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions[:,:2] = ei
         self.grid_dimensions[:,:2] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
@@ -698,6 +700,8 @@ class EnzoHierarchy2D(EnzoHierarchy):
         self.grid_left_edge[:,2] = 0.0
         self.grid_right_edge[:,2] = 1.0
         self.grid_dimensions[:,2] = 1
+        if nap is not None:
+            raise NotImplementedError
 
 class EnzoStaticOutput(StaticOutput):
     """

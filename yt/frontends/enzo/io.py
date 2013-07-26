@@ -277,6 +277,33 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                         (grid.id, field)).transpose()
         return t
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        rv = {}
+        # Now we have to do something unpleasant
+        chunks = list(chunks)
+        if selector.__class__.__name__ == "GridSelector":
+            return self._read_grid_chunk(chunks, fields)
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
+        for field in fields:
+            ftype, fname = field
+            fsize = size
+            rv[field] = np.empty(fsize, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+        ind = 0
+        for chunk in chunks:
+            data = self._read_chunk_data(chunk, fields)
+            for g in chunk.objs:
+                for field in fields:
+                    ftype, fname = field
+                    ds = np.atleast_3d(data[g.id].pop(fname))
+                    nd = g.select(selector, ds, rv[field], ind)  # caches
+                ind += nd
+                data.pop(g.id)
+        return rv
+
 
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
