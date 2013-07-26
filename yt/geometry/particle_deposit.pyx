@@ -410,7 +410,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
 
 deposit_weighted_mean = WeightedMeanParticleField
 
-cdef class BoxIdentifier(ParticleDepositOperation):
+cdef class MeshIdentifier(ParticleDepositOperation):
     # This is a tricky one!  What it does is put into the particle array the
     # value of the oct or block (grids will always be zero) identifier that a
     # given particle resides in
@@ -431,4 +431,4 @@ cdef class BoxIdentifier(ParticleDepositOperation):
     def finalize(self):
         return
 
-deposit_box_identifier = BoxIdentifier
+deposit_mesh_id = MeshIdentifier
