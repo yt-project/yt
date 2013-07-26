@@ -120,7 +120,7 @@ cdef class ParticleDepositOperation:
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
         field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
-        cdef np.int64_t gid = gobj.id
+        cdef np.int64_t gid = getattr(gobj, "id", -1)
         for i in range(nf):
             tarr = fields[i]
             field_pointers[i] = <np.float64_t *> tarr.data
