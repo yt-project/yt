@@ -35,7 +35,7 @@ def test_add_particles_random():
         # This visits every cell -- including those covered by octs.
         #for dom in range(ndom):
         #    level_count += octree.count_levels(total_count.size-1, dom, mask)
-        yield assert_equal, total_count, [1, 8, 64, 104, 184, 480, 1680, 1480]
+        yield assert_equal, total_count, [1, 8, 64, 64, 256, 536, 1856, 1672]
 
 if __name__=="__main__":
     for i in test_add_particles_random():
