@@ -102,7 +102,7 @@ cdef class ParticleDepositOperation:
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
-                         offset, pos, field_vals)
+                         offset, pos, field_vals, oct.domain_ind)
             if self.update_values == 1:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j] 
@@ -120,6 +120,7 @@ cdef class ParticleDepositOperation:
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
         field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
+        cdef np.int64_t gid = gobj.id
         for i in range(nf):
             tarr = fields[i]
             field_pointers[i] = <np.float64_t *> tarr.data
@@ -135,14 +136,15 @@ cdef class ParticleDepositOperation:
                 field_vals[j] = field_pointers[j][i]
             for j in range(3):
                 pos[j] = positions[i, j]
-            self.process(dims, left_edge, dds, 0, pos, field_vals)
+            self.process(dims, left_edge, dds, 0, pos, field_vals, gid)
             if self.update_values == 1:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j] 
 
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.int64_t offset,
-                      np.float64_t ppos[3], np.float64_t *fields):
+                      np.float64_t ppos[3], np.float64_t *fields,
+                      np.int64_t domain_ind):
         raise NotImplementedError
 
 cdef class CountParticles(ParticleDepositOperation):
@@ -161,7 +163,8 @@ cdef class CountParticles(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset, # offset into IO field
                       np.float64_t ppos[3], # this particle's position
-                      np.float64_t *fields # any other fields we need
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
                       ):
         # here we do our thing; this is the kernel
         cdef int ii[3], i
@@ -197,7 +200,8 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
                       ):
         cdef int ii[3], half_len, ib0[3], ib1[3]
         cdef int i, j, k
@@ -250,7 +254,8 @@ cdef class SumParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset, 
                       np.float64_t ppos[3],
-                      np.float64_t *fields 
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
                       ):
         cdef int ii[3], i
         for i in range(3):
@@ -296,7 +301,8 @@ cdef class StdParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
                       ):
         cdef int ii[3], i, cell_index
         cdef float k, mk, qk
@@ -338,7 +344,8 @@ cdef class CICDeposit(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset, # offset into IO field
                       np.float64_t ppos[3], # this particle's position
-                      np.float64_t *fields # any other fields we need
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
                       ):
         
         cdef int i, j, k, ind[3], ii
@@ -389,7 +396,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset, 
                       np.float64_t ppos[3],
-                      np.float64_t *fields 
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
                       ):
         cdef int ii[3], i
         for i in range(3):
@@ -401,3 +409,26 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         return self.owf / self.ow
 
 deposit_weighted_mean = WeightedMeanParticleField
+
+cdef class BoxIdentifier(ParticleDepositOperation):
+    # This is a tricky one!  What it does is put into the particle array the
+    # value of the oct or block (grids will always be zero) identifier that a
+    # given particle resides in
+    def initialize(self):
+        self.update_values = 1
+
+    @cython.cdivision(True)
+    cdef void process(self, int dim[3],
+                      np.float64_t left_edge[3], 
+                      np.float64_t dds[3],
+                      np.int64_t offset, 
+                      np.float64_t ppos[3],
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
+                      ):
+        fields[0] = domain_ind
+
+    def finalize(self):
+        return
+
+deposit_box_identifier = BoxIdentifier

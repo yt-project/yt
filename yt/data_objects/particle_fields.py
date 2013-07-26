@@ -113,6 +113,19 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             particle_type = True,
             units = r"\mathrm{M}_\odot")
 
+    def particle_box_ids(field, data):
+        pos = data[ptype, coord_name]
+        ids = np.zeros(pos.shape[0], dtype="float64") - 1
+        # This is float64 in name only.  It will be properly cast inside the
+        # deposit operation.
+        #_ids = ids.view("float64")
+        data.deposit(pos, [ids], method = "box_identifier")
+        return ids
+    registry.add_field((ptype, "BoxIdentifier"),
+            function= particle_box_ids,
+            validators = [ValidateSpatial()],
+            particle_type = True)
+
     return list(set(registry.keys()).difference(orig))
 
 
