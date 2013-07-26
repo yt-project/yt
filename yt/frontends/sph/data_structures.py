@@ -357,13 +357,14 @@ class TipsyStaticOutput(ParticleStaticOutput):
                  domain_left_edge = None,
                  domain_right_edge = None,
                  unit_base = None,
-                 cosmology_parameters = None):
+                 cosmology_parameters = None,
+                 parameter_file = None):
         self.endian = endian
         self.storage_filename = None
         if domain_left_edge is None:
-            domain_left_edge = np.zeros(3, "float64") - 0.5
+            domain_left_edge = np.zeros(3, "float64") - 1.0
         if domain_right_edge is None:
-            domain_right_edge = np.zeros(3, "float64") + 0.5
+            domain_right_edge = np.zeros(3, "float64") + 1.0
 
         self.domain_left_edge = np.array(domain_left_edge, dtype="float64")
         self.domain_right_edge = np.array(domain_right_edge, dtype="float64")
@@ -375,6 +376,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         self._unit_base = unit_base or {}
         self._cosmology_parameters = cosmology_parameters
+        self._param_file = parameter_file
         super(TipsyStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
@@ -382,8 +384,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
     def _parse_parameter_file(self):
 
-        # The entries in this header are capitalized and named to match Table 4
-        # in the GADGET-2 user guide.
+        # Parsing the header of the tipsy file, from this we obtain
+        # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
         hh = self.endian + "".join(["%s" % (b) for a,b in self._header_spec])
@@ -397,6 +399,25 @@ class TipsyStaticOutput(ParticleStaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Set standard values
+
+        # Read in parameter file, if available.
+        if self._param_file == None:
+            pfn = glob.glob(os.path.dirname+'*.param')
+            assert len(fn) < 2, \
+                "More than one param file is in the data directory"
+            if pfn == []:
+                pfn = None
+        else:
+            pfn = self._param_file
+
+        # modified version of pf read from enzo frontend
+        lines = open(pfn).readlines()
+        for line in (l.strip() for l in lines):
+            # skip comment lines
+            if line.strip().startswith('#'):
+                pass
+            param, vals = (i.strip() for i in line.splot('=',1))
+            import pdb; pdb.set_trace()
 
         # This may not be correct.
         self.current_time = hvals["time"]
@@ -432,8 +453,12 @@ class TipsyStaticOutput(ParticleStaticOutput):
         cosmo = Cosmology(self.hubble_constant * 100.0,
                           self.omega_matter, self.omega_lambda)
         length_unit = DW * self.units['cm'] # Get it in proper cm
-        density_unit = cosmo.CriticalDensity(self.current_redshift)
-        mass_unit = density_unit * length_unit**3
+        if self.current_redshift:
+            density_unit = cosmo.CriticalDensity(self.current_redshift)
+            mass_unit = density_unit * length_unit**3
+        else:
+            mass_unit = mass_sun_cgs
+            density_unit = mass_unit / length_unit**3
         time_unit = 1.0 / np.sqrt(G*density_unit)
         velocity_unit = length_unit / time_unit
         self.conversion_factors["velocity"] = velocity_unit
