@@ -151,7 +151,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
     def __init__(self, filename, data_style="gadget_binary",
                  additional_fields = (),
-                 unit_base = None):
+                 unit_base = None, n_ref = 64):
+        self.n_ref = n_ref
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -264,10 +265,11 @@ class OWLSStaticOutput(GadgetStaticOutput):
     _particle_coordinates_name = "Coordinates"
     _header_spec = None # Override so that there's no confusion
 
-    def __init__(self, filename, data_style="OWLS"):
+    def __init__(self, filename, data_style="OWLS", n_ref = 64):
         self.storage_filename = None
         super(OWLSStaticOutput, self).__init__(filename, data_style,
-                                               unit_base = None)
+                                               unit_base = None,
+                                               n_ref = n_ref)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
@@ -357,7 +359,9 @@ class TipsyStaticOutput(ParticleStaticOutput):
                  domain_left_edge = None,
                  domain_right_edge = None,
                  unit_base = None,
-                 cosmology_parameters = None):
+                 cosmology_parameters = None,
+                 n_ref = 64):
+        self.n_ref = n_ref
         self.endian = endian
         self.storage_filename = None
         if domain_left_edge is None:

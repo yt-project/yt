@@ -733,9 +733,11 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     _data_style = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
+    n_ref = 64
 
 def load_particles(data, sim_unit_to_cm, bbox=None,
-                      sim_time=0.0, periodicity=(True, True, True)):
+                      sim_time=0.0, periodicity=(True, True, True),
+                      n_ref = 64):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -764,6 +766,9 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    n_ref : int
+        The number of particles that result in refining an oct used for
+        indexing the particles.
 
     Examples
     --------
@@ -818,6 +823,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     handler.cosmology_simulation = 0
 
     spf = StreamParticlesStaticOutput(handler)
+    spf.n_ref = n_ref
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
