@@ -43,8 +43,7 @@ cdef class SelectorObject:
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = ?) nogil
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
-                         int eterm[3]) nogil
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil
 
     cdef int select_point(self, np.float64_t pos[3] ) nogil
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil
@@ -53,7 +52,3 @@ cdef class SelectorObject:
 
 	# compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil
-
-    cdef void set_bounds(self,
-                         np.float64_t left_edge[3], np.float64_t right_edge[3],
-                         np.float64_t dds[3], int ind[3][2], int *check)
