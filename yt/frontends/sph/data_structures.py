@@ -28,6 +28,7 @@ import numpy as np
 import stat
 import weakref
 import struct
+import glob
 from itertools import izip
 
 from yt.utilities.fortran_utils import read_record
@@ -46,6 +47,7 @@ from yt.utilities.physical_constants import \
     G, \
     gravitational_constant_cgs, \
     km_per_pc, \
+    cm_per_kpc, \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
@@ -107,11 +109,12 @@ class ParticleStaticOutput(StaticOutput):
         mpch = {}
         mpch.update(mpc_conversion)
         unit_base = self._unit_base or {}
-        for unit in mpc_conversion:
-            mpch['%sh' % unit] = mpch[unit] * self.hubble_constant
-            mpch['%shcm' % unit] = (mpch["%sh" % unit] / 
-                    (1 + self.current_redshift))
-            mpch['%scm' % unit] = mpch[unit] / (1 + self.current_redshift)
+        if self.cosmological_simulation:
+            for unit in mpc_conversion:
+                mpch['%sh' % unit] = mpch[unit] * self.hubble_constant
+                mpch['%shcm' % unit] = (mpch["%sh" % unit] /
+                                (1 + self.current_redshift))
+                mpch['%scm' % unit] = mpch[unit] / (1 + self.current_redshift)
         # ud == unit destination
         # ur == unit registry
         for ud, ur in [(self.units, mpch), (self.time_units, sec_conversion)]:
@@ -360,6 +363,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
                  domain_right_edge = None,
                  unit_base = None,
                  cosmology_parameters = None,
+                 parameter_file = None,
                  n_ref = 64):
         self.n_ref = n_ref
         self.endian = endian
@@ -379,6 +383,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         self._unit_base = unit_base or {}
         self._cosmology_parameters = cosmology_parameters
+        self._param_file = parameter_file
         super(TipsyStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
@@ -386,44 +391,74 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
     def _parse_parameter_file(self):
 
-        # The entries in this header are capitalized and named to match Table 4
-        # in the GADGET-2 user guide.
+        # Parsing the header of the tipsy file, from this we obtain
+        # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
         hh = self.endian + "".join(["%s" % (b) for a,b in self._header_spec])
         hvals = dict([(a, c) for (a, b), c in zip(self._header_spec,
                      struct.unpack(hh, f.read(struct.calcsize(hh))))])
+        self.parameters.update(hvals)
         self._header_offset = f.tell()
 
+        # These are always true, for now.
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
+
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        # Set standard values
 
-        # This may not be correct.
+        # Read in parameter file, if available.
+        if self._param_file is None:
+            pfn = glob.glob(os.path.join(self.directory, "*.param"))
+            assert len(pfn) < 2, \
+                "More than one param file is in the data directory"
+            if pfn == []:
+                pfn = None
+            else:
+                pfn = pfn[0]
+        else:
+            pfn = self._param_file
+
+        if pfn is not None:
+            for line in (l.strip() for l in open(pfn)):
+                # skip comment lines and blank lines
+                l = line.strip()
+                if l.startswith('#') or l == '':
+                    continue
+                # parse parameters according to tipsy parameter type
+                param, val = (i.strip() for i in line.split('=',1))
+                if param.startswith('n') or param.startswith('i'):
+                    val = long(val)
+                elif param.startswith('d'):
+                    val = float(val)
+                elif param.startswith('b'):
+                    val = bool(float(val))
+                self.parameters[param] = val
+
         self.current_time = hvals["time"]
-
-        # NOTE: These are now set in the main initializer.
-        #self.domain_left_edge = np.zeros(3, "float64") - 0.5
-        #self.domain_right_edge = np.ones(3, "float64") + 0.5
         self.domain_dimensions = np.ones(3, "int32") * 2
-        self.periodicity = (True, True, True)
+        if self.parameters.get('bPeriodic', True):
+            self.periodicity = (True, True, True)
+        else:
+            self.periodicity = (False, False, False)
 
-        self.cosmological_simulation = 1
-
-        cosm = self._cosmology_parameters or {}
-        dcosm = dict(current_redshift = 0.0,
-                     omega_lambda = 0.0,
-                     omega_matter = 0.0,
-                     hubble_constant = 1.0)
-        for param in ['current_redshift', 'omega_lambda',
-                      'omega_matter', 'hubble_constant']:
-            pval = cosm.get(param, dcosm[param])
-            setattr(self, param, pval)
-
-        self.parameters = hvals
+        if self.parameters.get('bComove', True):
+            self.cosmological_simulation = 1
+            cosm = self._cosmology_parameters or {}
+            dcosm = dict(current_redshift = 0.0,
+                         omega_lambda = 0.0,
+                         omega_matter = 0.0,
+                         hubble_constant = 1.0)
+            for param in ['current_redshift', 'omega_lambda',
+                          'omega_matter', 'hubble_constant']:
+                pval = cosm.get(param, dcosm[param])
+                setattr(self, param, pval)
+        else:
+            self.cosmological_simulation = 0.0
+            kpc_unit = self.parameters.get('dKpcUnit', 1.0)
+            self._unit_base['cm'] = 1.0 / (kpc_unit * cm_per_kpc)
 
         self.filename_template = self.parameter_filename
         self.file_count = 1
@@ -432,12 +467,17 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
     def _set_units(self):
         super(TipsyStaticOutput, self)._set_units()
-        DW = (self.domain_right_edge - self.domain_left_edge).max()
-        cosmo = Cosmology(self.hubble_constant * 100.0,
-                          self.omega_matter, self.omega_lambda)
-        length_unit = DW * self.units['cm'] # Get it in proper cm
-        density_unit = cosmo.CriticalDensity(self.current_redshift)
-        mass_unit = density_unit * length_unit**3
+        if self.cosmological_simulation:
+            DW = (self.domain_right_edge - self.domain_left_edge).max()
+            cosmo = Cosmology(self.hubble_constant * 100.0,
+                              self.omega_matter, self.omega_lambda)
+            length_unit = DW * self.units['cm'] # Get it in proper cm
+            density_unit = cosmo.CriticalDensity(self.current_redshift)
+            mass_unit = density_unit * length_unit**3
+        else:
+            mass_unit = self.parameters.get('dMsolUnit', 1.0) * mass_sun_cgs
+            length_unit = self.parameters.get('dKpcUnit', 1.0) * cm_per_kpc
+            density_unit = mass_unit / length_unit**3
         time_unit = 1.0 / np.sqrt(G*density_unit)
         velocity_unit = length_unit / time_unit
         self.conversion_factors["velocity"] = velocity_unit
