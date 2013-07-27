@@ -544,7 +544,7 @@ def fill_region(input_fields, output_fields,
                 np.ndarray[np.int64_t, ndim=1] left_index,
                 np.ndarray[np.int64_t, ndim=2] ipos,
                 np.ndarray[np.int64_t, ndim=1] ires,
-                np.ndarray[np.int64_t] level_dims,
+                np.ndarray[np.int64_t, ndim=1] level_dims,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
