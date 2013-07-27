@@ -415,19 +415,20 @@ class TipsyStaticOutput(ParticleStaticOutput):
         else:
             pfn = self._param_file
 
-        lines = open(pfn).readlines()
-        for line in (l.strip() for l in lines):
-            # skip comment lines
-            if line.strip().startswith('#'):
-                continue
-            param, val = (i.strip() for i in line.split('=',1))
-            if param.startswith('n') or param.startswith('i'):
-                val = long(val)
-            elif param.startswith('d'):
-                val = float(val)
-            elif param.startswith('b'):
-                val = bool(float(val))
-            self.parameters[param] = val
+        if pfn is not None:
+            lines = open(pfn).readlines()
+            for line in (l.strip() for l in lines):
+                # skip comment lines
+                if line.strip().startswith('#'):
+                    continue
+                param, val = (i.strip() for i in line.split('=',1))
+                if param.startswith('n') or param.startswith('i'):
+                    val = long(val)
+                elif param.startswith('d'):
+                    val = float(val)
+                elif param.startswith('b'):
+                    val = bool(float(val))
+                self.parameters[param] = val
 
         for key in hvals:
             self.parameters[key] = hvals[key]
