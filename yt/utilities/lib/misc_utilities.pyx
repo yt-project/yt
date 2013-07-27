@@ -544,6 +544,7 @@ def fill_region(input_fields, output_fields,
                 np.ndarray[np.int64_t, ndim=1] left_index,
                 np.ndarray[np.int64_t, ndim=2] ipos,
                 np.ndarray[np.int64_t, ndim=1] ires,
+                np.ndarray[np.int64_t] level_dims,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
@@ -552,29 +553,51 @@ def fill_region(input_fields, output_fields,
     cdef np.ndarray[np.float64_t, ndim=3] ofield
     cdef np.ndarray[np.float64_t, ndim=1] ifield
     nf = len(input_fields)
+    # The variable offsets governs for each dimension and each possible
+    # wrapping if we do it.  Then the wi, wj, wk indices check into each
+    # [dim][wrap] inside the loops.
+    cdef int offsets[3][3], wi, wj, wk
+    cdef np.int64_t off
     for i in range(3):
         dim[i] = output_fields[0].shape[i]
+        offsets[i][0] = offsets[i][2] = 0
+        offsets[i][1] = 1
+        if left_index[i] < 0:
+            offsets[i][0] = 1
+        if left_index[i] + dim[i] >= level_dims[i]:
+            offsets[i][2] = 1
     for n in range(nf):
         tot = 0
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
             rf = refine_by**(output_level - ires[i]) 
-            for n in range(3):
-                iind[n] = ipos[i, n] * rf - left_index[n]
-            for oi in range(rf):
-                oind[0] = oi + iind[0]
-                if oind[0] < 0 or oind[0] >= dim[0]:
-                    continue
-                for oj in range(rf):
-                    oind[1] = oj + iind[1]
-                    if oind[1] < 0 or oind[1] >= dim[1]:
+            for wi in range(3):
+                if offsets[0][wi] == 0: continue
+                off = (left_index[0] + level_dims[0]*(wi-1))
+                iind[0] = ipos[i, 0] * rf - off
+                for oi in range(rf):
+                    # Now we need to apply our offset
+                    oind[0] = oi + iind[0]
+                    if oind[0] < 0 or oind[0] >= dim[0]:
                         continue
-                    for ok in range(rf):
-                        oind[2] = ok + iind[2]
-                        if oind[2] < 0 or oind[2] >= dim[2]:
-                            continue
-                        ofield[oind[0], oind[1], oind[2]] = \
-                            ifield[i]
-                        tot += 1
+                    for wj in range(3):
+                        if offsets[1][wj] == 0: continue
+                        off = (left_index[1] + level_dims[1]*(wj-1))
+                        iind[1] = ipos[i, 1] * rf - off
+                        for oj in range(rf):
+                            oind[1] = oj + iind[1]
+                            if oind[1] < 0 or oind[1] >= dim[1]:
+                                continue
+                            for wk in range(3):
+                                if offsets[2][wk] == 0: continue
+                                off = (left_index[2] + level_dims[2]*(wk-1))
+                                iind[2] = ipos[i, 2] * rf - off
+                                for ok in range(rf):
+                                    oind[2] = ok + iind[2]
+                                    if oind[2] < 0 or oind[2] >= dim[2]:
+                                        continue
+                                    ofield[oind[0], oind[1], oind[2]] = \
+                                        ifield[i]
+                                    tot += 1
     return tot
