@@ -31,6 +31,7 @@ from .data_structures import \
       StreamHandler, \
       load_uniform_grid, \
       load_amr_grids, \
+      load_particles, \
       refine_amr
 
 from .fields import \

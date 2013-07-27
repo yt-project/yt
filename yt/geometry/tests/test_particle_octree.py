@@ -3,6 +3,8 @@ import numpy as np
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.utilities.lib.geometry_utils import get_morton_indices
+from yt.frontends.stream.api import load_particles
+import yt.data_objects.api
 import time, os
 
 NPART = 32**3
@@ -36,6 +38,26 @@ def test_add_particles_random():
         #for dom in range(ndom):
         #    level_count += octree.count_levels(total_count.size-1, dom, mask)
         yield assert_equal, total_count, [1, 8, 64, 64, 256, 536, 1856, 1672]
+
+def test_particle_octree_counts():
+    np.random.seed(int(0x4d3d3d3))
+    # Eight times as many!
+    pos = []
+    data = {}
+    bbox = []
+    for i, ax in enumerate('xyz'):
+        DW = DRE[i] - DLE[i]
+        LE = DLE[i]
+        data["particle_position_%s" % ax] = \
+            np.random.normal(0.5, scale=0.05, size=(NPART*8)) * DW + LE
+        bbox.append( [DLE[i], DRE[i]] )
+    bbox = np.array(bbox)
+    for n_ref in [16, 32, 64, 512, 1024]:
+        pf = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
+        dd = pf.h.all_data()
+        bi = dd["all","mesh_id"]
+        v = np.bincount(bi.astype("int64"))
+        yield assert_equal, v.max() <= n_ref, True
 
 if __name__=="__main__":
     for i in test_add_particles_random():
