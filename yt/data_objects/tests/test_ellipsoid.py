@@ -5,13 +5,23 @@ def setup():
     ytcfg["yt","loglevel"] = "50"
     ytcfg["yt","__withintesting"] = "True"
 
+def _difference(x1, x2, dw):
+    rel = x1 - x2
+    rel[rel >  dw/2.0] -= dw
+    rel[rel < -dw/2.0] += dw
+    return rel
+
 def test_ellipsoid():
     # We decompose in different ways
-    cs = [np.array([0.5, 0.5, 0.5]),
+    cs = [
+          np.array([0.5, 0.5, 0.5]),
           np.array([0.1, 0.2, 0.3]),
-          np.array([0.8, 0.8, 0.8])]
+          np.array([0.8, 0.8, 0.8])
+          ]
+    np.random.seed(int(0x4d3d3d3))
     for nprocs in [1, 2, 4, 8]:
         pf = fake_random_pf(64, nprocs = nprocs)
+        DW = pf.domain_right_edge - pf.domain_left_edge
         min_dx = 2.0/pf.domain_dimensions
         ABC = np.random.random((3, 12)) * 0.1
         e0s = np.random.random((3, 12))
@@ -28,8 +38,15 @@ def test_ellipsoid():
                 ell = pf.h.ellipsoid(c, A, B, C, e0, tilt)
                 yield assert_array_less, ell["Radius"], A
                 p = np.array([ell[ax] for ax in 'xyz'])
-                v  = np.zeros_like(ell["Radius"])
-                v += (((p - c[:,None]) * ell._e0[:,None]).sum(axis=0) / ell._A)**2
-                v += (((p - c[:,None]) * ell._e1[:,None]).sum(axis=0) / ell._B)**2
-                v += (((p - c[:,None]) * ell._e2[:,None]).sum(axis=0) / ell._C)**2
-                yield assert_array_less, np.sqrt(v), 1.0
+                dot_evec = [np.zeros_like(ell["Radius"]) for i in range(3)]
+                vecs = [ell._e0, ell._e1, ell._e2]
+                mags = [ell._A, ell._B, ell._C]
+                my_c = np.array([c]*p.shape[1]).transpose()
+                for ax_i in range(3):
+                    dist = _difference(p[ax_i,:], my_c[ax_i,:], DW[ax_i])
+                    for ax_j in range(3):
+                        dot_evec[ax_j] += dist * vecs[ax_j][ax_i]
+                dist = 0
+                for ax_i in range(3):
+                    dist += dot_evec[ax_i]**2.0 / mags[ax_i]**2.0
+                yield assert_array_less, dist, 1.0
