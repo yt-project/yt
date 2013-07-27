@@ -293,11 +293,10 @@ cdef class SelectorObject:
         cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, ind[3][2]
+        cdef int i, j, k, dim[3]
         child_mask = gobj.child_mask
         for i in range(3):
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
+            dim[i] = gobj.ActiveDimensions[i]
             dds[i] = odds[i]
         cdef int count = 0
         # Check for the level bounds
@@ -310,11 +309,11 @@ cdef class SelectorObject:
             this_level = 1
         with nogil:
             pos[0] = left_edge[0] + dds[0] * 0.5
-            for i in range(ind[0][0], ind[0][1]):
+            for i in range(dim[0]):
                 pos[1] = left_edge[1] + dds[1] * 0.5
-                for j in range(ind[1][0], ind[1][1]):
+                for j in range(dim[1]):
                     pos[2] = left_edge[2] + dds[2] * 0.5
-                    for k in range(ind[2][0], ind[2][1]):
+                    for k in range(dim[2]):
                         if child_mask[i,j,k] == 1 or this_level == 1:
                             count += self.select_cell(pos, dds)
                         pos[2] += dds[1]
@@ -330,6 +329,7 @@ cdef class SelectorObject:
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask 
         cdef int ind[3][2]
+        cdef int dim[3]
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
         cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
         cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
@@ -337,8 +337,7 @@ cdef class SelectorObject:
         cdef np.float64_t dds[3], pos[3]
         for i in range(3):
             dds[i] = odds[i]
-            ind[i][0] = 0
-            ind[i][1] = gobj.ActiveDimensions[i]
+            dim[i] = gobj.ActiveDimensions[i]
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         cdef int total = 0
         cdef int temp
@@ -352,11 +351,11 @@ cdef class SelectorObject:
             this_level = 1
         with nogil:
             pos[0] = left_edge[0] + dds[0] * 0.5
-            for i in range(ind[0][0], ind[0][1]):
+            for i in range(dim[0]):
                 pos[1] = left_edge[1] + dds[1] * 0.5
-                for j in range(ind[1][0], ind[1][1]):
+                for j in range(dim[1]):
                     pos[2] = left_edge[2] + dds[2] * 0.5
-                    for k in range(ind[2][0], ind[2][1]):
+                    for k in range(dim[2]):
                         if child_mask[i,j,k] == 1 or this_level == 1:
                             mask[i,j,k] = self.select_cell(pos, dds)
                             total += mask[i,j,k]
