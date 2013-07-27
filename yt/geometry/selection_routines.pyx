@@ -578,10 +578,21 @@ cdef class RegionSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        cdef int i
+        cdef int i, shift, included
+        cdef np.float64_t LE[3], RE[3]
         for i in range(3):
-            if left_edge[i] >= self.right_edge[i]: return 0
-            if right_edge[i] <= self.left_edge[i]: return 0
+            if self.periodicity[i] == 0:
+                if left_edge[i] >= self.right_edge[i]: return 0
+                if right_edge[i] <= self.left_edge[i]: return 0
+            else:
+                included = 0
+                for shift in range(3):
+                    LE[i] = left_edge[i] + self.domain_width[i] * (shift - 1)
+                    RE[i] = right_edge[i] + self.domain_width[i] * (shift - 1)
+                    if LE[i] >= self.right_edge[i]: continue
+                    if RE[i] <= self.left_edge[i]: continue
+                    included += 1
+                if included == 0: return 0
         return 1
 
     @cython.boundscheck(False)
@@ -589,14 +600,21 @@ cdef class RegionSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
-        cdef int i
-        cdef np.float64_t dxp
+        cdef int i, shift, included
+        cdef np.float64_t dxp, ppos[3]
         for i in range(3):
             dxp = self.dx_pad * dds[i]
-            if pos[i] - dxp >= self.right_edge[i]:
-                eterm[i] = 1
-                return 0
-            if pos[i] + dxp <= self.left_edge[i]: return 0
+            if self.periodicity[i] == 0:
+                if pos[i] - dxp >= self.right_edge[i]: return 0
+                if pos[i] + dxp <= self.left_edge[i]: return 0
+            else:
+                included = 0
+                for shift in range(3):
+                    ppos[i] = pos[i] + self.domain_width[i] * (shift - 1)
+                    if ppos[i] - dxp >= self.right_edge[i]: continue
+                    if ppos[i] + dxp <= self.left_edge[i]: continue
+                    included = 1
+                if included == 0: return 0
         return 1
 
     @cython.boundscheck(False)

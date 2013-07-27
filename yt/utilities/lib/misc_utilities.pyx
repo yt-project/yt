@@ -563,9 +563,9 @@ def fill_region(input_fields, output_fields,
         offsets[i][0] = offsets[i][2] = 0
         offsets[i][1] = 1
         if left_index[i] < 0:
-            offsets[i][0] = 1
-        if left_index[i] + dim[i] >= level_dims[i]:
             offsets[i][2] = 1
+        if left_index[i] + dim[i] >= level_dims[i]:
+            offsets[i][0] = 1
     for n in range(nf):
         tot = 0
         ofield = output_fields[n]
