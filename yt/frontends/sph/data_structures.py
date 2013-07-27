@@ -394,18 +394,20 @@ class TipsyStaticOutput(ParticleStaticOutput):
         hh = self.endian + "".join(["%s" % (b) for a,b in self._header_spec])
         hvals = dict([(a, c) for (a, b), c in zip(self._header_spec,
                      struct.unpack(hh, f.read(struct.calcsize(hh))))])
+        self.parameters.update(hvals)
         self._header_offset = f.tell()
 
+        # These are always true, for now.
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
+
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        # Set standard values
 
         # Read in parameter file, if available.
-        if self._param_file == None:
-            pfn = glob.glob(os.path.dirname(self.parameter_filename)+'/*.param')
+        if self._param_file is None:
+            pfn = glob.glob(os.path.join(self.directory, "*.param"))
             assert len(pfn) < 2, \
                 "More than one param file is in the data directory"
             if pfn == []:
@@ -416,11 +418,12 @@ class TipsyStaticOutput(ParticleStaticOutput):
             pfn = self._param_file
 
         if pfn is not None:
-            lines = open(pfn).readlines()
-            for line in (l.strip() for l in lines):
-                # skip comment lines
-                if line.strip().startswith('#'):
+            for line in (l.strip() for l in open(pfn)):
+                # skip comment lines and blank lines
+                l = line.strip()
+                if l.startswith('#') or l == '':
                     continue
+                # parse parameters according to tipsy parameter type
                 param, val = (i.strip() for i in line.split('=',1))
                 if param.startswith('n') or param.startswith('i'):
                     val = long(val)
@@ -429,9 +432,6 @@ class TipsyStaticOutput(ParticleStaticOutput):
                 elif param.startswith('b'):
                     val = bool(float(val))
                 self.parameters[param] = val
-
-        for key in hvals:
-            self.parameters[key] = hvals[key]
 
         self.current_time = hvals["time"]
         self.domain_dimensions = np.ones(3, "int32") * 2
