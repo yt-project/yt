@@ -122,6 +122,15 @@ cdef class SelectorObject:
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0
 
+        for i in range(3) :
+            if dobj.pf.periodicity[i] and dobj.pf.domain_left_edge[i] != 0.0 :
+                print "SelectorObject periodicity assumes left_edge == 0"
+                raise RuntimeError
+
+            self.domain_width[i] = dobj.pf.domain_right_edge[i] - \
+                                   dobj.pf.domain_left_edge[i]
+            self.periodicity[i] = dobj.pf.periodicity[i]
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -256,6 +265,28 @@ cdef class SelectorObject:
                          int eterm[3]) nogil:
         return 0
 
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        return 0
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        return 0
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil:
+        cdef np.float64_t rel = x1 - x2
+        if self.periodicity[d] :
+            if rel > self.domain_width[d]/2.0 :
+                rel -= self.domain_width[d]
+            elif rel < -self.domain_width[d]/2.0 :
+                rel += self.domain_width[d]
+        return rel
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -389,15 +420,20 @@ cdef class SelectorObject:
                            np.float64_t radius = 0.0):
         cdef int count = 0
         cdef int i
-        cdef np.float64_t dds[3], pos[3]
-        dds[0] = dds[1] = dds[2] = radius
-        cdef int eterm[3]
+        cdef np.float64_t pos[3]
         with nogil:
-            for i in range(x.shape[0]):
-                pos[0] = x[i]
-                pos[1] = y[i]
-                pos[2] = z[i]
-                count += self.select_cell(pos, dds, eterm)
+            if radius == 0.0 :
+                for i in range(x.shape[0]):
+                    pos[0] = x[i]
+                    pos[1] = y[i]
+                    pos[2] = z[i]
+                    count += self.select_point(pos)
+            else :
+                for i in range(x.shape[0]):
+                    pos[0] = x[i]
+                    pos[1] = y[i]
+                    pos[2] = z[i]
+                    count += self.select_sphere(pos, radius)
         return count
 
     @cython.boundscheck(False)
@@ -409,43 +445,94 @@ cdef class SelectorObject:
                             np.float64_t radius = 0.0):
         cdef int count = 0
         cdef int i
-        cdef np.float64_t dds[3], pos[3]
-        dds[0] = dds[1] = dds[2] = radius
-        cdef int eterm[3]
+        cdef np.float64_t pos[3]
         cdef np.ndarray[np.uint8_t, ndim=1] mask 
         mask = np.zeros(x.shape[0], dtype='uint8')
+
+        # this is to allow selectors to optimize the point vs
+        # 0-radius sphere case.  These two may have different 
+        # effects for 0-volume selectors, however (collision 
+        # between a ray and a point is null, while ray and a
+        # sphere is allowed)
         with nogil:
-            for i in range(x.shape[0]):
-                pos[0] = x[i]
-                pos[1] = y[i]
-                pos[2] = z[i]
-                mask[i] = self.select_cell(pos, dds, eterm)
-                count += mask[i]
+            if radius == 0.0 :
+                for i in range(x.shape[0]) :
+                    pos[0] = x[i]
+                    pos[1] = y[i]
+                    pos[2] = z[i]
+                    mask[i] = self.select_point(pos)
+                    count += mask[i]
+            else :
+                for i in range(x.shape[0]):
+                    pos[0] = x[i]
+                    pos[1] = y[i]
+                    pos[2] = z[i]
+                    mask[i] = self.select_sphere(pos, radius)
+                    count += mask[i]
         if count == 0: return None
         return mask.astype("bool")
 
 cdef class SphereSelector(SelectorObject):
+    cdef np.float64_t radius
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
-    cdef np.float64_t domain_width[3]
-    cdef bint periodicity[3]
 
     def __init__(self, dobj):
         for i in range(3):
             self.center[i] = dobj.center[i]
+        self.radius = dobj.radius
         self.radius2 = dobj.radius * dobj.radius
 
-        for i in range(3) :
-            self.domain_width[i] = dobj.pf.domain_right_edge[i] - \
-                                   dobj.pf.domain_left_edge[i]
-            self.periodicity[i] = dobj.pf.periodicity[i]
-        
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
+        return self.select_bbox(left_edge,right_edge)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        # sphere center either inside cell or center of cell lies inside sphere
+        if (pos[0] - 0.5*dds[0] <= self.center[0] <= pos[0]+0.5*dds[0] and
+            pos[1] - 0.5*dds[1] <= self.center[1] <= pos[1]+0.5*dds[1] and
+            pos[2] - 0.5*dds[2] <= self.center[2] <= pos[2]+0.5*dds[2]):
+            return 1
+        return self.select_point(pos)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int i
+        cdef np.float64_t dist, dist2 = 0
+        for i in range(3):
+            dist = self.difference( pos[i], self.center[i], i )
+            dist2 += dist*dist
+        if dist2 <= self.radius2: return 1
+        return 0
+   
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int i
+        cdef np.float64_t dist, dist2 = 0
+        for i in range(3):
+            dist = self.difference( pos[i], self.center[i], i ) 
+            dist2 += dist*dist
+        dist = self.radius+radius
+        if dist2 <= dist*dist: return 1
+        return 0
+ 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
         cdef np.float64_t box_center, relcenter, closest, dist, edge
         cdef int i
         if (left_edge[0] <= self.center[0] <= right_edge[0] and
@@ -456,40 +543,11 @@ cdef class SphereSelector(SelectorObject):
         dist = 0
         for i in range(3):
             box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.center[i] - box_center
-            if self.periodicity[i]:
-                if relcenter > self.domain_width[i]/2.0: 
-                    relcenter -= self.domain_width[i] 
-                elif relcenter < -self.domain_width[i]/2.0: 
-                    relcenter += self.domain_width[i] 
+            relcenter = self.difference( box_center, self.center[i], i )
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
-            dist += closest * closest
+            dist += closest*closest
         if dist <= self.radius2: return 1
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
-                         int eterm[3]) nogil:
-        cdef np.float64_t dist2, temp
-        cdef int i
-        if (pos[0] - 0.5*dds[0] <= self.center[0] <= pos[0]+0.5*dds[0] and
-            pos[1] - 0.5*dds[1] <= self.center[1] <= pos[1]+0.5*dds[1] and
-            pos[2] - 0.5*dds[2] <= self.center[2] <= pos[2]+0.5*dds[2]):
-            return 1
-        dist2 = 0
-        for i in range(3):
-            temp = self.center[i] - pos[i]
-            if self.periodicity[i]:
-                if temp > self.domain_width[i]/2.0:
-                    temp -= self.domain_width[i]
-                elif temp < -self.domain_width[i]/2.0:
-                    temp += self.domain_width[i]
-            #temp = temp - fclip(temp, -dds[i]/2.0, dds[i]/2.0)
-            dist2 += temp*temp
-        if dist2 <= self.radius2: return 1
         return 0
 
 sphere_selector = SphereSelector
@@ -513,6 +571,14 @@ cdef class RegionSelector(SelectorObject):
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
         if level < self.min_level or level > self.max_level: return 0
+        return self.select_bbox( left_edge, right_edge )
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int i
         for i in range(3):
             if left_edge[i] >= self.right_edge[i]: return 0
             if right_edge[i] <= self.left_edge[i]: return 0
@@ -523,6 +589,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
+        cdef int i
         cdef np.float64_t dxp
         for i in range(3):
             dxp = self.dx_pad * dds[i]
@@ -530,6 +597,18 @@ cdef class RegionSelector(SelectorObject):
                 eterm[i] = 1
                 return 0
             if pos[i] + dxp <= self.left_edge[i]: return 0
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        # assume pos[3] is inside domain
+        cdef int i
+        for i in range(3) :
+            if pos[i] < self.left_edge[i] or \
+                    pos[i] >= self.right_edge[i] :
+                return 0
         return 1
 
     @cython.boundscheck(False)
@@ -564,8 +643,7 @@ region_selector = RegionSelector
 cdef class DiskSelector(SelectorObject):
     cdef np.float64_t norm_vec[3]
     cdef np.float64_t center[3]
-    cdef np.float64_t d
-    cdef np.float64_t radius2
+    cdef np.float64_t radius, radius2
     cdef np.float64_t height
 
     def __init__(self, dobj):
@@ -573,7 +651,7 @@ cdef class DiskSelector(SelectorObject):
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
             self.center[i] = dobj.center[i]
-        self.d = dobj._d
+        self.radius = dobj._radius
         self.radius2 = dobj._radius * dobj._radius
         self.height = dobj._height
 
@@ -583,13 +661,73 @@ cdef class DiskSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
+        return self.select_bbox( left_edge, right_edge )
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        return self.select_point( pos ) 
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef np.float64_t h, d, r2, temp
+        cdef int i
+        h = d = 0
+        for i in range(3):
+            temp = self.difference( pos[i], self.center[i], i )
+            h += temp * self.norm_vec[i]
+            d += temp*temp
+        r2 = (d - h*h)
+        if fabs(h) <= self.height and r2 <= self.radius2: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        cdef np.float64_t h, d, r2, temp
+        cdef int i
+        h = d = 0
+        for i in range(3):
+            temp = self.difference( pos[i], self.center[i], i )
+            h += pos[i] * self.norm_vec[i]
+            d += temp*temp
+        r2 = (d - h*h)
+        d = self.radius+radius
+        if fabs(h) <= self.height+radius and r2 <= d*d: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3] ) nogil:
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3], H, D, R2, temp
         cdef int i, j, k, n
+        cdef int all_under = 1
+        cdef int all_over = 1
+        cdef int any_radius = 0
+        # A moment of explanation (revised):
+        #    The disk and bounding box collide if any of the following are true:
+        #    1) the center of the disk is inside the bounding box
+        #    2) any corner of the box lies inside the disk
+        #    3) the box spans the plane (!all_under and !all_over) and at least
+        #       one corner is within the cylindrical radius
+
+        # check if disk center lies inside bbox
+        if left_edge[0] <= self.center[0] <= right_edge[0] and \
+           left_edge[1] <= self.center[1] <= right_edge[1] and \
+           left_edge[2] <= self.center[2] <= right_edge[2] :
+            return 1
+        
+        # check all corners
         arr[0] = left_edge
         arr[1] = right_edge
-        cdef int cond[2]
-        cond[0] = cond[1] = 0
         for i in range(2):
             pos[0] = arr[i][0]
             for j in range(2):
@@ -598,39 +736,16 @@ cdef class DiskSelector(SelectorObject):
                     pos[2] = arr[k][2]
                     H = D = 0
                     for n in range(3):
-                        H += (pos[n] * self.norm_vec[n])
-                        temp = (pos[n] - self.center[n])
+                        temp = self.difference( pos[n], self.center[n], n )
+                        H += (temp * self.norm_vec[n])
                         D += temp*temp
-                    H += self.d
                     R2 = (D - H*H)
-                    if fabs(H) < self.height: cond[0] = 1
-                    if R2 < self.radius2: cond[1] = 1
-        # A moment of explanation:
-        #    We want our height to be less than the height AND our radius2 to be
-        #    less than radius2, so we set cond[0] equal to 1 if any corners
-        #    match that criteria.
-        # Note that we OVERSELECT grids, as we are selecting anything within
-        # the height and within the radius, which is kind of a funny thing.
-        # Cell selection takes care of the rest.
-        if cond[0] == 1 and cond[1] == 1:
-            return 1
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
-                         int eterm[3]) nogil:
-        cdef np.float64_t h, d, r2, temp
-        cdef int i
-        h = d = 0
-        for i in range(3):
-            h += pos[i] * self.norm_vec[i]
-            temp = pos[i] - self.center[i]
-            d += temp*temp
-        h += self.d
-        r2 = (d - h*h)
-        if fabs(h) <= self.height and r2 <= self.radius2: return 1
+                    if R2 < self.radius2 :
+                        any_radius = 1
+                        if fabs(H) < self.height: return 1
+                    if H < 0: all_over = 0
+                    if H > 0: all_under = 0
+        if all_over == 0 and all_under == 0 and any_radius == 1: return 1
         return 0
 
 disk_selector = DiskSelector
@@ -651,6 +766,41 @@ cdef class CuttingPlaneSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
+        return self.select_bbox(left_edge,right_edge)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
+        cdef int i
+        for i in range(3):
+            left_edge[i] = pos[i] - 0.5*dds[i]
+            right_edge[i] = pos[i] + 0.5*dds[i]
+        return self.select_bbox(left_edge, right_edge)
+
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        # two 0-volume constructs don't intersect
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        cdef int i
+        cdef np.float64_t height = self.d
+        for i in range(3) :
+            height += pos[i] * self.norm_vec[i]
+        if height*height <= radius*radius : return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3] ) nogil:
         cdef int i, j, k, n
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3]
@@ -669,26 +819,17 @@ cdef class CuttingPlaneSelector(SelectorObject):
                     gd = self.d
                     for n in range(3):
                         gd += pos[n] * self.norm_vec[n]
-                    if gd < 0: all_over = 0
-                    if gd > 0: all_under = 0
+                    # this allows corners and faces on the low-end to
+                    # collide, while not selecting cells on the high-side 
+                    if i == 0 and j == 0 and k == 0 :
+                        if gd <= 0: all_over = 0
+                        if gd >= 0: all_under = 0
+                    else :
+                        if gd < 0: all_over = 0
+                        if gd > 0: all_under = 0
         if all_over == 1 or all_under == 1:
             return 0
         return 1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
-                         int eterm[3]) nogil:
-        cdef np.float64_t diag2, height
-        cdef int i
-        height = self.d
-        diag2 = 0
-        for i in range(3):
-            height += pos[i] * self.norm_vec[i]
-            diag2 += dds[i] * dds[i] * 0.25
-        if height * height <= diag2: return 1
-        return 0
 
 cutting_selector = CuttingPlaneSelector
 
@@ -719,11 +860,8 @@ cdef class SliceSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
-        if right_edge[self.axis] > self.coord \
-           and left_edge[self.axis] <= self.coord:
-            return 1
-        return 0
-    
+        return self.select_bbox( left_edge, right_edge )
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -731,6 +869,28 @@ cdef class SliceSelector(SelectorObject):
                          int eterm[3]) nogil:
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
            and pos[self.axis] - 0.5*dds[self.axis] <= self.coord:
+            return 1
+        return 0
+
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        # two 0-volume constructs don't intersect
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        cdef np.float64_t dist = self.difference( pos[self.axis], self.coord, self.axis )
+        if dist*dist < radius*radius:
+            return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3] ) nogil:
+        if left_edge[self.axis] <= self.coord < right_edge[self.axis]:
             return 1
         return 0
 
@@ -757,25 +917,43 @@ cdef class OrthoRaySelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
-        if (    (self.px >= left_edge[self.px_ax])
-            and (self.px < right_edge[self.px_ax])
-            and (self.py >= left_edge[self.py_ax])
-            and (self.py < right_edge[self.py_ax])):
-            return 1
-        return 0
-    
+        return self.select_bbox(left_edge,right_edge)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
-        if (    (self.px >= pos[self.px_ax] - 0.5*dds[self.px_ax])
-            and (self.px <  pos[self.px_ax] + 0.5*dds[self.px_ax])
-            and (self.py >= pos[self.py_ax] - 0.5*dds[self.py_ax])
-            and (self.py <  pos[self.py_ax] + 0.5*dds[self.py_ax])):
+        if self.px >= pos[self.px_ax] - 0.5*dds[self.px_ax] and \
+           self.px <  pos[self.px_ax] + 0.5*dds[self.px_ax] and \
+           self.py >= pos[self.py_ax] - 0.5*dds[self.py_ax] and \
+           self.py <  pos[self.py_ax] + 0.5*dds[self.py_ax]:
             return 1
         return 0
 
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        # two 0-volume constructs don't intersect
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        cdef np.float64_t dx = self.difference( pos[self.px_ax], self.px, self.px_ax )
+        cdef np.float64_t dy = self.difference( pos[self.py_ax], self.py, self.py_ax )
+        if dx*dx + dy*dy < radius*radius:
+            return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3] ) nogil:
+        if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
+           left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
+            return 1
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -836,46 +1014,7 @@ cdef class RaySelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
-        cdef int i, ax
-        cdef int i1, i2
-        cdef np.float64_t vs[3], t, v[3]
-        for ax in range(3):
-            i1 = (ax+1) % 3
-            i2 = (ax+2) % 3
-            t = (left_edge[ax] - self.p1[ax])/self.vec[ax]
-            for i in range(3):
-                vs[i] = t * self.vec[i] + self.p1[i]
-            if left_edge[i1] <= vs[i1] and \
-               right_edge[i1] >= vs[i1] and \
-               left_edge[i2] <= vs[i2] and \
-               right_edge[i2] >= vs[i2] and \
-               0.0 <= t <= 1.0:
-                return 1
-            t = (right_edge[ax] - self.p1[ax])/self.vec[ax]
-            for i in range(3):
-                vs[i] = t * self.vec[i] + self.p1[i]
-            if left_edge[i1] <= vs[i1] and \
-               right_edge[i1] >= vs[i1] and \
-               left_edge[i2] <= vs[i2] and \
-               right_edge[i2] >= vs[i2] and\
-               0.0 <= t <= 1.0:
-                return 1
-        # if the point is fully enclosed, we count the grid
-        if left_edge[0] <= self.p1[0] and \
-           right_edge[0] >= self.p1[0] and \
-           left_edge[1] <= self.p1[1] and \
-           right_edge[1] >= self.p1[1] and \
-           left_edge[2] <= self.p1[2] and \
-           right_edge[2] >= self.p1[2]:
-            return 1
-        if left_edge[0] <= self.p2[0] and \
-           right_edge[0] >= self.p2[0] and \
-           left_edge[1] <= self.p2[1] and \
-           right_edge[1] >= self.p2[1] and \
-           left_edge[2] <= self.p2[2] and \
-           right_edge[2] >= self.p2[2]:
-            return 1
-        return 0
+        return self.select_bbox(left_edge,right_edge)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -951,7 +1090,53 @@ cdef class RaySelector(SelectorObject):
         if not (ni == ia.hits):
             print ni, ia.hits
         return dtr, tr
-    
+
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        # two 0-volume constructs don't intersect
+        return 0
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        # not implemented
+        return 0        
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int i, ax
+        cdef int i1, i2
+        cdef np.float64_t vs[3], t, v[3]
+
+        # if either point is fully enclosed, we select the bounding box
+        if left_edge[0] <= self.p1[0] <= right_edge[0] and \
+           left_edge[1] <= self.p1[1] <= right_edge[1] and \
+           left_edge[2] <= self.p1[2] <= right_edge[2]:
+            return 1
+        if left_edge[0] <= self.p2[0] <= right_edge[0] and \
+           left_edge[1] <= self.p2[1] <= right_edge[1] and \
+           left_edge[2] <= self.p2[2] <= right_edge[2]:
+            return 1
+
+        for ax in range(3):
+            i1 = (ax+1) % 3
+            i2 = (ax+2) % 3
+            t = (left_edge[ax] - self.p1[ax])/self.vec[ax]
+            if 0.0 <= t <= 1.0 :
+                for i in range(3):
+                    vs[i] = t * self.vec[i] + self.p1[i]
+                if left_edge[i1] <= vs[i1] <= right_edge[i1] and \
+                   left_edge[i2] <= vs[i2] <= right_edge[i2] :
+                    return 1
+            t = (right_edge[ax] - self.p1[ax])/self.vec[ax]
+            if 0.0 <= t <= 1.0 :
+                for i in range(3):
+                    vs[i] = t * self.vec[i] + self.p1[i]
+                if left_edge[i1] <= vs[i1] <= right_edge[i1] and \
+                   left_edge[i2] <= vs[i2] <= right_edge[i2] :
+                    return 1
+        return 0
+
 ray_selector = RaySelector
 
 cdef class DataCollectionSelector(SelectorObject):
@@ -984,8 +1169,6 @@ cdef class DataCollectionSelector(SelectorObject):
         cdef np.ndarray[np.int64_t, ndim=1] oids = self.obj_ids
         with nogil:
             for n in range(self.nids):
-                # Call our selector function
-                # Check if the sphere is inside the grid
                 gridi[oids[n]] = 1
         return gridi.astype("bool")
 
@@ -1027,44 +1210,67 @@ cdef class EllipsoidSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
-        # This is the sphere selection
-        cdef np.float64_t radius2, box_center, relcenter, closest, dist, edge
-        return 1
-        radius2 = self.mag[0] * self.mag[0]
-        cdef int id
-        if (left_edge[0] <= self.center[0] <= right_edge[0] and
-            left_edge[1] <= self.center[1] <= right_edge[1] and
-            left_edge[2] <= self.center[2] <= right_edge[2]):
-            return 1
-        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
-        dist = 0
-        for i in range(3):
-            box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.center[i] - box_center
-            edge = right_edge[i] - left_edge[i]
-            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
-            dist += closest * closest
-        if dist < radius2: return 1
-        return 0
+        return self.select_bbox(left_edge, right_edge)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
                          int eterm[3]) nogil:
+        return self.select_point(pos)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         cdef np.float64_t dot_evec[3]
         cdef np.float64_t dist
         cdef int i, j
         dot_evec[0] = dot_evec[1] = dot_evec[2] = 0
         # Calculate the rotated dot product
         for i in range(3): # axis
-            dist = pos[i] - self.center[i]
+            dist = self.difference(pos[i], self.center[i], i)
             for j in range(3):
                 dot_evec[j] += dist * self.vec[j][i]
         dist = 0.0
         for i in range(3):
             dist += (dot_evec[i] * dot_evec[i])/(self.mag[i] * self.mag[i])
         if dist <= 1.0: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        # this is the sphere selection
+        cdef int i
+        cdef np.float64_t dist2 = 0
+        for i in range(3):
+            dist2 += self.difference( pos[i], self.center[i], i )**2
+        if dist2 <= (self.mag[0]+radius)**2: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # This is the sphere selection
+        cdef int i
+        cdef np.float64_t box_center, relcenter, closest, dist, edge
+        if left_edge[0] <= self.center[0] <= right_edge[0] and \
+           left_edge[1] <= self.center[1] <= right_edge[1] and \
+           left_edge[2] <= self.center[2] <= right_edge[2]:
+            return 1
+        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
+        dist = 0
+        for i in range(3):
+            box_center = (right_edge[i] + left_edge[i])/2.0
+            relcenter = self.difference(box_center, self.center[i], i)
+            edge = right_edge[i] - left_edge[i]
+            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
+            dist += closest * closest
+        if dist <= self.mag[0]**2: return 1
         return 0
 
 ellipsoid_selector = EllipsoidSelector
@@ -1115,6 +1321,9 @@ cdef class GridSelector(SelectorObject):
                          int eterm[3]) nogil:
         return 1
 
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        # we apparently don't check if the point actually lies in the grid..
+        return 1
 
 grid_selector = GridSelector
 
@@ -1249,6 +1458,16 @@ cdef class AlwaysSelector(SelectorObject):
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
+        return 1
+
+    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+        return 1
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        return 1
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
         return 1
 
 always_selector = AlwaysSelector
