@@ -26,10 +26,10 @@ def test_ellipsoid():
                 e0 = e0s[:,i]
                 tilt = tilts[i]
                 ell = pf.h.ellipsoid(c, A, B, C, e0, tilt)
-                yield assert_equal, np.all(ell["Radius"] <= A), True
+                yield assert_array_less, ell["Radius"], A
                 p = np.array([ell[ax] for ax in 'xyz'])
                 v  = np.zeros_like(ell["Radius"])
                 v += (((p - c[:,None]) * ell._e0[:,None]).sum(axis=0) / ell._A)**2
                 v += (((p - c[:,None]) * ell._e1[:,None]).sum(axis=0) / ell._B)**2
                 v += (((p - c[:,None]) * ell._e2[:,None]).sum(axis=0) / ell._C)**2
-                yield assert_equal, np.all(np.sqrt(v) <= 1.0), True
+                yield assert_array_less, np.sqrt(v), 1.0
