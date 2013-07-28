@@ -261,7 +261,50 @@ cdef class OctreeContainer:
     cdef int neighbors(self, OctInfo *oinfo, Oct** neighbors):
         cdef Oct* candidate
         nn = 0
-        return 0
+        # We are going to do a brute-force search here.
+        # This is not the most efficient -- in fact, it's relatively bad.  But
+        # we will attempt to improve it in a future iteration, where we will
+        # grow a stack of parent Octs.
+        # Note that in the first iteration, we will just find the up-to-27
+        # neighbors, including the main oct.
+        cdef int i, j, k, n, level, ind[3], ii, nfound = 0
+        cdef OctList *olist, *my_list
+        my_list = olist = NULL
+        cdef Oct *cand
+        cdef np.int64_t npos[3]
+        for i in range(3):
+            npos[0] = oinfo.ipos[0] + (1 - i)
+            for j in range(3):
+                nj = 1 - j
+                npos[1] = oinfo.ipos[1] + (1 - j)
+                for k in range(3):
+                    nk = 1 - k
+                    npos[2] = oinfo.ipos[2] + (1 - k)
+                    # Now we have our npos, which we just need to find.
+                    cand = NULL
+                    for level in range(oinfo.level + 1):
+                        for n in range(3):
+                            ind[n] = ((npos[n] >> (oinfo.level - level)) & 1)
+                        if level == 0:
+                            self.get_root(ind, &cand)
+                            if cand == NULL: break
+                            continue
+                        if cand.children == NULL: break
+                        ii = cind(ind[0],ind[1],ind[2])
+                        if cand.children[ii] == NULL: break
+                        cand = cand.children[ii]
+                    if cand != NULL:
+                        nfound += 1
+                        olist = OctList_append(olist, cand)
+                        if my_list == NULL: my_list = olist
+        olist = my_list
+        cdef int noct = OctList_count(olist)
+        neighbors = <Oct **> malloc(sizeof(Oct*)*noct)
+        for i in range(noct):
+            neighbors[i] = olist.o
+            olist = olist.next
+        OctList_delete(my_list)
+        return noct
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -707,24 +750,31 @@ cdef class ARTOctreeContainer(OctreeContainer):
                             local_filled += 1
         return local_filled
 
-cdef OctList *OctList_append(OctList *list, Oct *o):
-    cdef OctList *this = list
+cdef OctList *OctList_append(OctList *olist, Oct *o):
+    cdef OctList *this = olist
+    if olist == NULL:
+        this = <OctList *> malloc(sizeof(OctList))
+        this.next = NULL
+        this.o = o
+        return this
     while this.next != NULL:
         this = this.next
     this.next = <OctList*> malloc(sizeof(OctList))
-    this.next.o = o
-    return this.next
+    this = this.next
+    this.o = o
+    this.next = NULL
+    return this
 
-cdef int OctList_count(OctList *list):
-    cdef OctList *this = list
+cdef int OctList_count(OctList *olist):
+    cdef OctList *this = olist
     cdef int i = 0 # Count the list
     while this != NULL:
         i += 1
         this = this.next
     return i
 
-cdef void OctList_delete(OctList *list):
-    cdef OctList *next, *this = list
+cdef void OctList_delete(OctList *olist):
+    cdef OctList *next, *this = olist
     while this != NULL:
         next = this.next
         free(this)
