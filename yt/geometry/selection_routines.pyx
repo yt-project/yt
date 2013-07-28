@@ -1298,6 +1298,12 @@ cdef class OctreeSubsetSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         return 1
 
@@ -1354,6 +1360,12 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
                      np.ndarray[np.float64_t, ndim=2] right_edges,
                      np.ndarray[np.int32_t, ndim=2] levels):
         raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+        return 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
