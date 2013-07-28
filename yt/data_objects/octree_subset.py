@@ -162,7 +162,7 @@ class OctreeSubset(YTSelectionContainer):
         return n
 
     def count(self, selector):
-        if id(selector) == self._last_selector_id:
+        if hash(selector) == self._last_selector_id:
             if self._last_mask is None: return 0
             return self._last_mask.sum()
         self.select(selector)

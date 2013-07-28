@@ -426,6 +426,21 @@ cdef class SelectorObject:
         if count == 0: return None
         return mask.astype("bool")
 
+    def __hash__(self):
+        return hash(self._hash_vals() + self._base_hash())
+
+    def _hash_vals(self):
+        raise NotImplementedError
+
+    def _base_hash(self):
+        return (self.min_level, self.max_level, self.overlap_cells,
+                self.periodicity[0],
+                self.periodicity[1],
+                self.periodicity[2],
+                self.domain_width[0],
+                self.domain_width[1],
+                self.domain_width[2])
+
 cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius
     cdef np.float64_t radius2
@@ -502,6 +517,10 @@ cdef class SphereSelector(SelectorObject):
             dist += closest*closest
         if dist <= self.radius2: return 1
         return 0
+
+    def _hash_vals(self):
+        return (self.radius, self.radius2,
+                self.center[0], self.center[1], self.center[2])
 
 sphere_selector = SphereSelector
 
@@ -581,6 +600,11 @@ cdef class RegionSelector(SelectorObject):
                     included = 1
                 if included == 0: return 0
         return 1
+
+    def _hash_vals(self):
+        return (self.left_edge[0], self.left_edge[1], self.left_edge[2],
+                self.right_edge[0], self.right_edge[1], self.right_edge[2],
+                self.dx_pad)
 
 region_selector = RegionSelector
 
@@ -691,6 +715,11 @@ cdef class DiskSelector(SelectorObject):
         if all_over == 0 and all_under == 0 and any_radius == 1: return 1
         return 0
 
+    def _hash_vals(self):
+        return (self.norm_vec[0], self.norm_vec[1], self.norm_vec[2],
+                self.center[0], self.center[1], self.center[2],
+                self.radius, self.radius2, self.height)
+
 disk_selector = DiskSelector
 
 cdef class CuttingPlaneSelector(SelectorObject):
@@ -773,6 +802,10 @@ cdef class CuttingPlaneSelector(SelectorObject):
             return 0
         return 1
 
+    def _hash_vals(self):
+        return (self.norm_vec[0], self.norm_vec[1], self.norm_vec[2],
+                self.d)
+
 cutting_selector = CuttingPlaneSelector
 
 cdef class SliceSelector(SelectorObject):
@@ -821,6 +854,9 @@ cdef class SliceSelector(SelectorObject):
         if left_edge[self.axis] <= self.coord < right_edge[self.axis]:
             return 1
         return 0
+
+    def _hash_vals(self):
+        return (self.axis, self.coord)
 
 slice_selector = SliceSelector
 
@@ -881,6 +917,9 @@ cdef class OrthoRaySelector(SelectorObject):
            left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
             return 1
         return 0
+
+    def _hash_vals(self):
+        return (self.px_ax, self.py_ax, self.px, self.py, self.axis)
 
 ortho_ray_selector = OrthoRaySelector
 
@@ -1048,6 +1087,11 @@ cdef class RaySelector(SelectorObject):
                     return 1
         return 0
 
+    def _hash_vals(self):
+        return (self.p1[0], self.p1[1], self.p1[2],
+                self.p2[0], self.p2[1], self.p2[2],
+                self.vec[0], self.vec[1], self.vec[2])
+
 ray_selector = RaySelector
 
 cdef class DataCollectionSelector(SelectorObject):
@@ -1087,6 +1131,9 @@ cdef class DataCollectionSelector(SelectorObject):
         cdef np.ndarray[np.uint8_t, ndim=3] mask 
         mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
         return mask.astype("bool")
+
+    def _hash_vals(self):
+        return (hash(self.obj_ids.tostring()), self.nids)
 
 data_collection_selector = DataCollectionSelector
 
@@ -1174,6 +1221,13 @@ cdef class EllipsoidSelector(SelectorObject):
         if dist <= self.mag[0]**2: return 1
         return 0
 
+    def _hash_vals(self):
+        return (self.vec[0][0], self.vec[0][1], self.vec[0][2],
+                self.vec[1][0], self.vec[1][1], self.vec[1][2],
+                self.vec[2][0], self.vec[2][1], self.vec[2][2],
+                self.mag[0], self.mag[1], self.mag[2],
+                self.center[0], self.center[1], self.center[2])
+
 ellipsoid_selector = EllipsoidSelector
 
 cdef class GridSelector(SelectorObject):
@@ -1216,6 +1270,9 @@ cdef class GridSelector(SelectorObject):
         # we apparently don't check if the point actually lies in the grid..
         return 1
 
+    def _hash_vals(self):
+        return (self.ind,)
+
 grid_selector = GridSelector
 
 cdef class OctreeSubsetSelector(SelectorObject):
@@ -1254,6 +1311,9 @@ cdef class OctreeSubsetSelector(SelectorObject):
         if res == 1 and o != NULL and o.domain != self.domain_id:
             return -1
         return res
+    
+    def _hash_vals(self):
+        return (hash(self.base_selector), self.domain_id)
 
 octree_subset_selector = OctreeSubsetSelector
 
@@ -1291,6 +1351,9 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
         return self.base_selector.select_grid(left_edge, right_edge, level, o)
+    
+    def _hash_vals(self):
+        return (hash(self.base_selector), self.min_ind, self.max_ind)
 
 particle_octree_subset_selector = ParticleOctreeSubsetSelector
 
@@ -1330,5 +1393,8 @@ cdef class AlwaysSelector(SelectorObject):
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         return 1
+
+    def _hash_vals(self):
+        return ("always", 1,)
 
 always_selector = AlwaysSelector

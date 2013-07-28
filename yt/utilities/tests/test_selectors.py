@@ -93,10 +93,11 @@ def test_slice_selector():
     assert(all(pf.periodicity))
 
     for i,d in enumerate('xyz'):
-        for coord in np.arange(0,1.0,0.1):
+        for coord in np.arange(0.0,1.0,0.1):
             data = pf.h.slice(i, coord)
             data.get_data()
-            assert(data.shape[0] == 64**2)
+            yield assert_equal, data.shape[0], 64**2
+            yield assert_equal, data["Ones"].shape[0], 64**2
             yield assert_array_less, np.abs(data[d] - coord), 1./128.+1e-6
 
 def test_cutting_plane_selector():
