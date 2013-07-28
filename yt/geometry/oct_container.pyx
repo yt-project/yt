@@ -190,18 +190,22 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL):
+    cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL,
+                  ):
         #Given a floating point position, retrieve the most
         #refined oct at that time
-        cdef int ind[3]
+        cdef int ind[3], level
+        cdef np.int64_t ipos[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef Oct *cur, *next
-        cur = next = NULL
         cdef int i
+        cur = next = NULL
+        level = 0
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
+            ipos[i] = ind[i]
         self.get_root(ind, &next)
         # We want to stop recursing when there's nowhere else to go
         while next != NULL:
@@ -216,6 +220,9 @@ cdef class OctreeContainer:
                     cp[i] += dds[i]/2.0
             if cur.children != NULL:
                 next = cur.children[cind(ind[0],ind[1],ind[2])]
+                for i in range(3):
+                    ipos[i] = (ipos[i] << 1) + ind[i]
+                level += 1
             else:
                 next = NULL
         if oinfo == NULL: return cur
@@ -230,6 +237,8 @@ cdef class OctreeContainer:
             # oct width, thus making it already the cell width
             oinfo.dds[i] = dds[i] # Cell width
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
+            oinfo.ipos[i] = ipos[i]
+            oinfo.level = level
         return cur
 
     def domain_identify(self, SelectorObject selector):
@@ -249,99 +258,10 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void neighbors(self, Oct* o, Oct* neighbors[27]):
-        #Get 3x3x3 neighbors, although the 1,1,1 oct is the
-        #central one. 
-        #Return an array of Octs
-        cdef np.int64_t curopos[3]
-        cdef np.int64_t curnpos[3]
-        cdef np.int64_t npos[3]
-        cdef int i, j, k, ni, nj, nk, ind[3], nn, dl, skip
-        cdef np.float64_t dds[3], cp[3], pp[3]
+    cdef int neighbors(self, OctInfo *oinfo, Oct** neighbors):
         cdef Oct* candidate
-        for i in range(27): neighbors[i] = NULL
         nn = 0
-        raise RuntimeError
-        #for ni in range(3):
-        #    for nj in range(3):
-        #        for nk in range(3):
-        #            if ni == nj == nk == 1:
-        #                neighbors[nn] = o
-        #                nn += 1
-        #                continue
-        #            npos[0] = o.pos[0] + (ni - 1)
-        #            npos[1] = o.pos[1] + (nj - 1)
-        #            npos[2] = o.pos[2] + (nk - 1)
-        #            for i in range(3):
-        #                # Periodicity
-        #                if npos[i] == -1:
-        #                    npos[i] = (self.nn[i]  << o.level) - 1
-        #                elif npos[i] == (self.nn[i] << o.level):
-        #                    npos[i] = 0
-        #                curopos[i] = o.pos[i]
-        #                curnpos[i] = npos[i] 
-        #            # Now we have our neighbor position and a safe place to
-        #            # keep it.  curnpos will be the root index of the neighbor
-        #            # at a given level, and npos will be constant.  curopos is
-        #            # the candidate root at a level.
-        #            candidate = o
-        #            while candidate != NULL:
-        #                if ((curopos[0] == curnpos[0]) and 
-        #                    (curopos[1] == curnpos[1]) and
-        #                    (curopos[2] == curnpos[2])):
-        #                    break
-        #                # This one doesn't meet it, so we pop up a level.
-        #                # First we update our positions, then we update our
-        #                # candidate.
-        #                for i in range(3):
-        #                    # We strip a digit off the right
-        #                    curopos[i] = (curopos[i] >> 1)
-        #                    curnpos[i] = (curnpos[i] >> 1)
-        #                # Now we update to the candidate's parent, which should
-        #                # have a matching position to curopos[]
-        #                # TODO: This has not survived the transition to
-        #                # mostly-stateless Octs!
-        #                raise RuntimeError
-        #                candidate = candidate.parent
-        #            if candidate == NULL:
-        #                # Worst case scenario
-        #                for i in range(3):
-        #                    ind[i] = (npos[i] >> (o.level))
-        #                candidate = self.root_mesh[ind[0]][ind[1]][ind[2]]
-        #            # Now we have the common root, which may be NULL
-        #            while candidate.level < o.level:
-        #                dl = o.level - (candidate.level + 1)
-        #                for i in range(3):
-        #                    ind[i] = (npos[i] >> dl) & 1
-        #                if candidate.children[cind(ind[0],ind[1],ind[2])] \
-        #                        == NULL:
-        #                    break
-        #                candidate = candidate.children[cind(ind[0],ind[1],ind[2])]
-        #            neighbors[nn] = candidate
-        #            nn += 1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def get_neighbor_boundaries(self, oppos):
-        cdef int i, ii
-        cdef np.float64_t ppos[3]
-        for i in range(3):
-            ppos[i] = oppos[i]
-        cdef Oct *main = self.get(ppos)
-        cdef Oct* neighbors[27]
-        self.neighbors(main, neighbors)
-        cdef np.ndarray[np.float64_t, ndim=2] bounds
-        cdef np.float64_t corner[3], size[3]
-        bounds = np.zeros((27,6), dtype="float64")
-        tnp = 0
-        raise RuntimeError
-        for i in range(27):
-            self.oct_bounds(neighbors[i], corner, size)
-            for ii in range(3):
-                bounds[i, ii] = corner[ii]
-                bounds[i, 3+ii] = size[ii]
-        return bounds
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -786,3 +706,26 @@ cdef class ARTOctreeContainer(OctreeContainer):
                             dest[local_filled + offset] = source[ox,oy,oz]
                             local_filled += 1
         return local_filled
+
+cdef OctList *OctList_append(OctList *list, Oct *o):
+    cdef OctList *this = list
+    while this.next != NULL:
+        this = this.next
+    this.next = <OctList*> malloc(sizeof(OctList))
+    this.next.o = o
+    return this.next
+
+cdef int OctList_count(OctList *list):
+    cdef OctList *this = list
+    cdef int i = 0 # Count the list
+    while this != NULL:
+        i += 1
+        this = this.next
+    return i
+
+cdef void OctList_delete(OctList *list):
+    cdef OctList *next, *this = list
+    while this != NULL:
+        next = this.next
+        free(this)
+        this = next
