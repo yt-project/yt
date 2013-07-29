@@ -184,8 +184,13 @@ cdef class OctreeContainer:
         return 0
 
     cdef int get_root(self, int ind[3], Oct **o):
+        cdef int i
+        for i in range(3):
+            if ind[i] < 0 or ind[i] >= self.nn[i]:
+                o[0] = NULL
+                return 1
         o[0] = self.root_mesh[ind[0]][ind[1]][ind[2]]
-        return 1
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -200,15 +205,18 @@ cdef class OctreeContainer:
         cdef Oct *cur, *next
         cdef int i
         cur = next = NULL
-        level = 0
+        level = -1
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
-            ipos[i] = ind[i]
+            ipos[i] = 0
         self.get_root(ind, &next)
         # We want to stop recursing when there's nowhere else to go
         while next != NULL:
+            level += 1
+            for i in range(3):
+                ipos[i] = (ipos[i] << 1) + ind[i]
             cur = next
             for i in range(3):
                 dds[i] = dds[i] / 2.0
@@ -220,9 +228,6 @@ cdef class OctreeContainer:
                     cp[i] += dds[i]/2.0
             if cur.children != NULL:
                 next = cur.children[cind(ind[0],ind[1],ind[2])]
-                for i in range(3):
-                    ipos[i] = (ipos[i] << 1) + ind[i]
-                level += 1
             else:
                 next = NULL
         if oinfo == NULL: return cur
@@ -258,7 +263,7 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int neighbors(self, OctInfo *oinfo, Oct** neighbors):
+    cdef int neighbors(self, OctInfo *oi, Oct** neighbors):
         cdef Oct* candidate
         nn = 0
         # We are going to do a brute-force search here.
@@ -271,25 +276,38 @@ cdef class OctreeContainer:
         cdef OctList *olist, *my_list
         my_list = olist = NULL
         cdef Oct *cand
-        cdef np.int64_t npos[3]
+        cdef np.int64_t npos[3], ndim[3]
+        # Now we get our boundaries for this level, so that we can wrap around
+        # if need be.
         for i in range(3):
-            npos[0] = oinfo.ipos[0] + (1 - i)
+            ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i])/oi.dds[i])
+        for i in range(3):
+            npos[0] = (oi.ipos[0] + (1 - i))
+            if npos[0] < 0: npos[0] += ndim[0]
+            if npos[0] >= ndim[0]: npos[0] -= ndim[0]
             for j in range(3):
                 nj = 1 - j
-                npos[1] = oinfo.ipos[1] + (1 - j)
+                npos[1] = (oi.ipos[1] + (1 - j))
+                if npos[1] < 0: npos[1] += ndim[1]
+                if npos[1] >= ndim[1]: npos[1] -= ndim[1]
                 for k in range(3):
                     nk = 1 - k
-                    npos[2] = oinfo.ipos[2] + (1 - k)
+                    npos[2] = (oi.ipos[2] + (1 - k))
+                    if npos[2] < 0: npos[2] += ndim[2]
+                    if npos[2] >= ndim[2]: npos[2] -= ndim[2]
                     # Now we have our npos, which we just need to find.
+                    # Level 0 gets bootstrapped
+                    for n in range(3):
+                        ind[n] = ((npos[n] >> (oi.level + 1)) & 1)
                     cand = NULL
-                    for level in range(oinfo.level + 1):
-                        for n in range(3):
-                            ind[n] = ((npos[n] >> (oinfo.level - level)) & 1)
-                        if level == 0:
-                            self.get_root(ind, &cand)
-                            if cand == NULL: break
-                            continue
+                    self.get_root(ind, &cand)
+                    # We should not get a NULL if we handle periodicity
+                    # correctly, but we might.
+                    if cand == NULL: continue
+                    for level in range(1, oi.level+1):
                         if cand.children == NULL: break
+                        for n in range(3):
+                            ind[n] = (npos[n] >> (oi.level - (level + 1))) & 1
                         ii = cind(ind[0],ind[1],ind[2])
                         if cand.children[ii] == NULL: break
                         cand = cand.children[ii]
