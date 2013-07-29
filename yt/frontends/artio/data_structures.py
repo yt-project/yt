@@ -103,8 +103,31 @@ class ARTIOOctreeSubset(OctreeSubset):
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
 
-    def fill_particles(self, field_data, fields):
-        raise NotImplementedError
+    def fill_particles(self, field_data, fields, selector):
+        art_fields = {}
+        for s, f in fields:
+            for i in range(self.pf.num_species):
+                if s == "all" or self.pf.particle_species[i] == yt_to_art[s]:
+                    if yt_to_art[f] in self.pf.particle_variables[i]:
+                        art_fields[(i, yt_to_art[f])] = 1
+
+        species_data = self.oct_handler.fill_sfc_particles(art_fields.keys())
+
+        for s, f in fields:
+            af = yt_to_art[f]
+            npart = sum(len(species_data[(i, af)])
+                     for i in range(self.pf.num_species)
+                     if s == "all"
+                     or self.pf.particle_species[i] == yt_to_art[s])
+
+            cp = len(field_data[(s, f)])
+            field_data[(s, f)].resize(cp + npart)
+            for i in range(self.pf.num_species):
+                if s == "all" or self.pf.particle_species[i] == yt_to_art[s]:
+                    npart = len(species_data[(i, yt_to_art[f])])
+                    field_data[(s, f)][cp:cp+npart] = \
+                        species_data[(i, yt_to_art[f])]
+                    cp += npart
 
 class ARTIOChunk(object):
 
@@ -267,15 +290,21 @@ class ARTIOGeometryHandler(GeometryHandler):
                     all(dobj.right_edge == self.pf.domain_right_edge)
             except:
                 all_data = False
-
+            base_region = getattr(dobj, "base_region", dobj)
+            sfc_start = getattr(dobj, "sfc_start", None)
+            sfc_end = getattr(dobj, "sfc_end", None)
             if all_data:
                 mylog.debug("Selecting entire artio domain")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
+            elif sfc_start is not None and sfc_end is not None:
+                mylog.debug("Restricting to %s .. %s", sfc_start, sfc_end)
+                list_sfc_ranges = [(sfc_start, sfc_end)]
             else:
                 mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
-            dobj._chunk_info = [ARTIOChunk(self.pf, start, end)
+            dobj._chunk_info = [ARTIOOctreeSubset(base_region,
+                                    start, end, self.pf)
                                 for (start, end) in list_sfc_ranges]
             mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
@@ -288,7 +317,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, self._data_size)
+        yield YTDataChunk(dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz):
         if ngz > 0:
@@ -296,16 +325,17 @@ class ARTIOGeometryHandler(GeometryHandler):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # These are ARTIOChunk objects
         for i,og in enumerate(sobjs):
-            g = ARTIOOctreeSubset(dobj, og.sfc_start, og.sfc_end, self.pf)
             if ngz > 0:
-                g = g.retrieve_ghost_zones(ngz, [], smoothed=True)
+                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+            else:
+                g = og
             yield YTDataChunk(dobj, "spatial", [g], None)
 
     def _chunk_io(self, dobj, cache = True):
         # _current_chunk is made from identify_base_chunk
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for chunk in oobjs:
-            yield YTDataChunk(dobj, "io", [chunk], self._data_size,
+            yield YTDataChunk(dobj, "io", [chunk], None,
                               cache = cache)
 
     def _read_fluid_fields(self, fields, dobj, chunk=None):
