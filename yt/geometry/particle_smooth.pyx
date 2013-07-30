@@ -84,7 +84,7 @@ cdef class ParticleSmoothOperation:
         # mechanism of an expandable array for holding pointers to Octs, so
         # that we can deal with >27 neighbors.  As I write this comment,
         # neighbors() only returns 27 neighbors.
-        cdef int nf, i, j, dims[3]
+        cdef int nf, i, j, dims[3], n
         cdef np.float64_t **field_pointers, *field_vals, pos[3], *ppos
         cdef int nsize = 0
         cdef np.int64_t *nind = NULL
@@ -157,6 +157,10 @@ cdef class ParticleSmoothOperation:
                 nsize = nneighbors
             for j in range(nneighbors):
                 nind[j] = neighbors[j].domain_ind - moff
+                for n in range(j):
+                    if nind[j] == nind[n]:
+                        nind[j] = -1
+                    break
             free(neighbors)
             self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
@@ -236,6 +240,7 @@ cdef class ParticleSmoothOperation:
         cdef np.float64_t pos[3]
         self.neighbor_reset()
         for ni in range(nneighbors):
+            if nind[ni] == -1: continue
             offset = doffs[nind[ni]]
             pc = pcounts[nind[ni]]
             for i in range(pc):
