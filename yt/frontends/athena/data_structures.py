@@ -339,7 +339,9 @@ class AthenaStaticOutput(StaticOutput):
     _data_style = "athena"
 
     def __init__(self, filename, data_style='athena',
-                 storage_filename=None, parameters={}):
+                 storage_filename=None, parameters=None):
+        if parameters is None:
+            parameters = {}
         self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
@@ -470,6 +472,10 @@ class AthenaStaticOutput(StaticOutput):
         except:
             pass
         return False
+
+    @property
+    def _skip_cache(self):
+        return True
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

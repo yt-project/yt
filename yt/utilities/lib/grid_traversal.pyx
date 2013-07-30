@@ -67,7 +67,7 @@ cdef struct VolumeContainer:
     np.float64_t idds[3]
     int dims[3]
 
-ctypedef void sample_function(
+ctypedef void sample_function1(
                 VolumeContainer *vc,
                 np.float64_t v_pos[3],
                 np.float64_t v_dir[3],
@@ -235,7 +235,7 @@ cdef struct ImageAccumulator:
 
 cdef class ImageSampler:
     cdef ImageContainer *image
-    cdef sample_function *sampler
+    cdef sample_function1 *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
     cdef void *supp_data
     cdef np.float64_t width[3]
@@ -929,7 +929,7 @@ cdef class ProtoPrism:
 cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
-                     sample_function *sampler,
+                     sample_function1 *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
                      np.float64_t enter_t = -1.0) nogil:
