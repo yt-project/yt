@@ -40,7 +40,6 @@ cdef class ParticleSmoothOperation:
         self.nvals = nvals 
         self.nfields = nfields
         self.maxn = max_neighbors
-        print "CREATED", nvals, nfields, max_neighbors
         self.neighbors = <NeighborList *> malloc(
             sizeof(NeighborList) * self.maxn)
         self.neighbor_reset()
