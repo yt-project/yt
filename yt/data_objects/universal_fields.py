@@ -800,6 +800,8 @@ def get_radius(data, field_prefix):
     if any(data.pf.periodicity):
         rdw = radius.copy()
     for i, ax in enumerate('xyz'):
+        if data.pf.dimensionality < i+1:
+            break
         np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
         if data.pf.periodicity[i] == True:
             np.abs(r, r)
@@ -1013,7 +1015,8 @@ def _MagneticEnergy(field,data):
     units of Gauss. If you use MKS, make sure to write your own
     MagneticEnergy field to deal with non-unitary \mu_0.
     """
-    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/(8*np.pi)
+    return data['CellVolume'] * \
+        (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/(8*np.pi)
 add_field("MagneticEnergy",function=_MagneticEnergy,
           units=r"\rm{ergs}\/\rm{cm}^{-3}",
           display_name=r"\rm{Magnetic}\/\rm{Energy}")
