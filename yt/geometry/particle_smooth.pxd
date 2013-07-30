@@ -41,6 +41,7 @@ cdef extern from "alloca.h":
 cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
     cdef public object nvals
+    cdef int nfields
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.float64_t *ppos,
                       np.float64_t **fields, np.int64_t nneighbors,

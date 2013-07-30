@@ -34,9 +34,10 @@ from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 
 cdef class ParticleSmoothOperation:
-    def __init__(self, nvals):
+    def __init__(self, nvals, nfields):
         # This is the set of cells, in grids, blocks or octs, we are handling.
         self.nvals = nvals 
+        self.nfields = nfields
 
     def initialize(self, *args):
         raise NotImplementedError
@@ -162,3 +163,33 @@ cdef class ParticleSmoothOperation:
                       np.int64_t *pinds, np.int64_t *pcounts,
                       np.int64_t offset):
         raise NotImplementedError
+
+cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
+    cdef np.float64_t **fp
+    def initialize(self):
+        if self.nvals < 2:
+            # We need at least two fields, the smoothing length and the 
+            # field to smooth, to operate.
+            raise RuntimeError
+        self.vals = [np.zeros(self.nvals, dtype="float64")
+                     for i in range(self.nfields)]
+        self.fp = <np.float64_t **> malloc(
+            sizeof(np.float64_t *) * self.nfields)
+
+    def finalize(self):
+        free(self.fp)
+        return self.vals
+
+    cdef void process(self, int dim[3], np.float64_t left_edge[3],
+                      np.float64_t dds[3], np.float64_t *ppos,
+                      np.float64_t **fields, np.int64_t nneighbors,
+                      np.int64_t *nind, np.int64_t *doffs,
+                      np.int64_t *pinds, np.int64_t *pcounts,
+                      np.int64_t offset):
+        # Note that we assume that fields[0] == smoothing length in the native
+        # units supplied.  We can now iterate over every cell in the block and
+        # every particle to find the nearest.  We will use a priority heap.
+        raise NotImplementedError
+
+simple_neighbor_smooth = SimpleNeighborSmooth
+
