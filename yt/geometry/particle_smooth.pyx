@@ -138,6 +138,8 @@ cdef class ParticleSmoothOperation:
         pinds = <np.int64_t*> pind.data
         pcounts = <np.int64_t*> pcount.data
         cdef np.int64_t pn
+        nsize = 27
+        nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         for i in range(doff.shape[0]):
             # Nothing assigned.
             if doff[i] < 0: continue
@@ -147,20 +149,20 @@ cdef class ParticleSmoothOperation:
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             offset = dom_ind[oct.domain_ind - moff] * 8
-            nneighbors = octree.neighbors(&oi, &neighbors)
+            neighbors = octree.neighbors(&oi, &nneighbors)
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:
-                nind = <np.int64_t *> realloc(nind, nneighbors)
+                nind = <np.int64_t *> realloc(
+                    nind, sizeof(np.int64_t)*nneighbors)
                 nsize = nneighbors
             for j in range(nneighbors):
                 nind[j] = neighbors[j].domain_ind - moff
+            free(neighbors)
             self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset)
             # This is allocated by the neighbors function, so we deallocate it.
-            free(neighbors)
-            neighbors = NULL
         if nind != NULL:
             free(nind)
         
