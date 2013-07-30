@@ -34,10 +34,15 @@ from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 
 cdef class ParticleSmoothOperation:
-    def __init__(self, nvals, nfields):
+    def __init__(self, nvals, nfields, max_neighbors):
         # This is the set of cells, in grids, blocks or octs, we are handling.
+        cdef int i
         self.nvals = nvals 
         self.nfields = nfields
+        self.maxn = max_neighbors
+        self.neighbors = <NeighborList *> malloc(
+            sizeof(NeighborList) * self.maxn)
+        self.neighbor_reset()
 
     def initialize(self, *args):
         raise NotImplementedError
@@ -94,12 +99,15 @@ cdef class ParticleSmoothOperation:
         doff = np.zeros_like(dom_ind) - 1
         moff = octree.get_domain_offset(domain_id + domain_offset)
         pdoms = np.zeros(positions.shape[0], dtype="int64") - 1
+        nf = len(fields)
         if fields is None:
             fields = []
         field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
         for i in range(nf):
             tarr = fields[i]
             field_pointers[i] = <np.float64_t *> tarr.data
+        for i in range(3):
+            self.DW[i] = (octree.DRE[i] - octree.DLE[i])
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
@@ -143,7 +151,7 @@ cdef class ParticleSmoothOperation:
                 nsize = nneighbors
             for j in range(nneighbors):
                 nind[j] = neighbors[j].domain_ind - moff
-            self.process(dims, oi.left_edge, oi.dds,
+            self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset)
         if nind != NULL:
@@ -156,13 +164,102 @@ cdef class ParticleSmoothOperation:
                      fields = None):
         raise NotImplementedError
 
-    cdef void process(self, int dim[3], np.float64_t left_edge[3],
-                      np.float64_t dds[3], np.float64_t *ppos,
-                      np.float64_t **fields, np.int64_t nneighbors,
-                      np.int64_t *nind, np.int64_t *doffs,
-                      np.int64_t *pinds, np.int64_t *pcounts,
-                      np.int64_t offset):
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3]):
         raise NotImplementedError
+
+    cdef void neighbor_reset(self):
+        self.curn = 0
+        for i in range(self.maxn):
+            self.neighbors[i].pn = -1
+            self.neighbors[i].r2 = 1e300
+
+    cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
+                            np.float64_t cpos[3]):
+        cdef NeighborList *cur
+        cdef int i
+        # _c means candidate (what we're evaluating)
+        # _o means other (the item in the list)
+        cdef np.float64_t r2_c, r2_o
+        cdef np.int64_t pn_c, pn_o
+        if self.curn < self.maxn:
+            cur = &self.neighbors[self.curn]
+            cur.pn = pn
+            cur.r2 = r2dist(ppos, cpos, self.DW)
+            self.curn += 1
+            return
+        # This will go (curn - 1) through 0.
+        r2_c = r2dist(ppos, cpos, self.DW)
+        pn_c = pn
+        for i in range((self.curn - 1), -1, -1):
+            # First we evaluate against i.  If our candidate radius is greater
+            # than the one we're inspecting, we quit early.
+            cur = &self.neighbors[i]
+            r2_o = cur.r2
+            pn_o = cur.pn
+            if r2_c >= r2_o:
+                break
+            # Now we know we need to swap them.  First we assign our candidate
+            # values to cur.
+            cur.r2 = r2_c
+            cur.pn = pn_c
+            if i + 1 >= self.maxn:
+                continue # No swapping
+            cur = &self.neighbors[i + 1]
+            cur.r2 = r2_o
+            cur.pn = pn_o
+        # At this point, we've evaluated all the particles and we should have a
+        # sorted set of values.  So, we're done.
+
+    cdef void neighbor_find(self,
+                            np.int64_t nneighbors,
+                            np.int64_t *nind,
+                            np.int64_t *doffs,
+                            np.int64_t *pcounts,
+                            np.int64_t *pinds,
+                            np.float64_t *ppos,
+                            np.float64_t cpos[3]
+                            ):
+        # We are now given the number of neighbors, the indices into the
+        # domains for them, and the number of particles for each.
+        cdef int ni, i, j
+        cdef np.int64_t offset, pn, pc
+        cdef np.float64_t pos[3]
+        self.neighbor_reset()
+        for ni in range(nneighbors):
+            offset = doffs[nind[ni]]
+            pc = pcounts[nind[ni]]
+            for i in range(pc):
+                pn = pinds[offset + i]
+                for j in range(3):
+                    pos[j] = ppos[pn * 3 + j]
+                self.neighbor_eval(pn, pos, cpos)
+
+    cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
+                               np.float64_t dds[3], np.float64_t *ppos,
+                               np.float64_t **fields, np.int64_t nneighbors,
+                               np.int64_t *nind, np.int64_t *doffs,
+                               np.int64_t *pinds, np.int64_t *pcounts,
+                               np.int64_t offset):
+        # Note that we assume that fields[0] == smoothing length in the native
+        # units supplied.  We can now iterate over every cell in the block and
+        # every particle to find the nearest.  We will use a priority heap.
+        cdef int i, j, k
+        cdef np.float64_t cpos[3]
+        cpos[0] = left_edge[0] + 0.5*dds[0]
+        for i in range(dim[0]):
+            cpos[1] = left_edge[1] + 0.5*dds[1]
+            for j in range(dim[1]):
+                cpos[2] = left_edge[2] + 0.5*dds[2]
+                for k in range(dim[2]):
+                    self.neighbor_find(nneighbors, nind, doffs, pcounts,
+                        pinds, ppos, cpos)
+                    # Now we have all our neighbors in our neighbor list.
+                    self.process(offset, i, j, k, dim, cpos)
+                    cpos[2] += dds[2]
+                cpos[1] += dds[1]
+            cpos[0] += dds[0]
+
 
 cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
     cdef np.float64_t **fp
@@ -180,15 +277,9 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
         free(self.fp)
         return self.vals
 
-    cdef void process(self, int dim[3], np.float64_t left_edge[3],
-                      np.float64_t dds[3], np.float64_t *ppos,
-                      np.float64_t **fields, np.int64_t nneighbors,
-                      np.int64_t *nind, np.int64_t *doffs,
-                      np.int64_t *pinds, np.int64_t *pcounts,
-                      np.int64_t offset):
-        # Note that we assume that fields[0] == smoothing length in the native
-        # units supplied.  We can now iterate over every cell in the block and
-        # every particle to find the nearest.  We will use a priority heap.
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3]):
+        # We have our i, j, k for our cell 
         raise NotImplementedError
 
 simple_neighbor_smooth = SimpleNeighborSmooth
