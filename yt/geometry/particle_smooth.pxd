@@ -5,7 +5,7 @@ Author: Christopher Moody <chris.e.moody@gmail.com>
 Affiliation: UC Santa Cruz
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt-project.org/
+Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
@@ -32,38 +32,18 @@ cimport cython
 from libc.math cimport sqrt
 
 from fp_utils cimport *
-from .oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from .particle_deposit cimport sph_kernel, gind
 
 cdef extern from "alloca.h":
     void *alloca(int)
 
-cdef inline int gind(int i, int j, int k, int dims[3]):
-    # The ordering is such that we want i to vary the slowest in this instance,
-    # even though in other instances it varies the fastest.  To see this in
-    # action, try looking at the results of an n_ref=256 particle CIC plot,
-    # which shows it the most clearly.
-    return ((i*dims[1])+j)*dims[2]+k
-
-
-####################################################
-# Standard SPH kernel for use with the Grid method #
-####################################################
-
-cdef inline np.float64_t sph_kernel(np.float64_t x) nogil:
-    cdef np.float64_t kernel
-    if x <= 0.5:
-        kernel = 1.-6.*x*x*(1.-x)
-    elif x>0.5 and x<=1.0:
-        kernel = 2.*(1.-x)*(1.-x)*(1.-x)
-    else:
-        kernel = 0.
-    return kernel
-
-cdef class ParticleDepositOperation:
+cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
     cdef public object nvals
-    cdef public int update_values
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
-                      np.float64_t dds[3], np.int64_t offset,
-                      np.float64_t ppos[3], np.float64_t *fields,
-                      np.int64_t domain_ind)
+                      np.float64_t dds[3], np.float64_t *ppos,
+                      np.float64_t **fields, np.int64_t nneighbors,
+                      np.int64_t *nind, np.int64_t *doffs,
+                      np.int64_t *pinds, np.int64_t *pcounts,
+                      np.int64_t offset)

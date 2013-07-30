@@ -54,7 +54,6 @@ cdef class ParticleDepositOperation:
                      fields = None, int domain_id = -1,
                      int domain_offset = 0):
         cdef int nf, i, j
-        self.bad_indices = 0
         if fields is None:
             fields = []
         nf = len(fields)
