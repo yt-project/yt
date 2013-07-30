@@ -65,6 +65,10 @@ cdef class ParticleSmoothOperation:
     cdef int nfields
     cdef int maxn
     cdef int curn
+    cdef np.int64_t *doffs
+    cdef np.int64_t *pinds
+    cdef np.int64_t *pcounts
+    cdef np.float64_t *ppos
     # Note that we are preallocating here, so this is *not* threadsafe.
     cdef NeighborList *neighbors
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],

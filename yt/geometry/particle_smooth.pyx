@@ -40,6 +40,7 @@ cdef class ParticleSmoothOperation:
         self.nvals = nvals 
         self.nfields = nfields
         self.maxn = max_neighbors
+        print "CREATED", nvals, nfields, max_neighbors
         self.neighbors = <NeighborList *> malloc(
             sizeof(NeighborList) * self.maxn)
         self.neighbor_reset()
@@ -128,8 +129,7 @@ cdef class ParticleSmoothOperation:
         for i in range(positions.shape[0]):
             # This is the domain_ind (minus moff) for this particle
             offset = pdoms[pind[i]] 
-            if doff[offset] < 0:
-                doff[offset] = i
+            if doff[offset] < 0: doff[offset] = i
         # Now doff is full of offsets to the first entry in the pind that
         # refers to that oct's particles.
         ppos = <np.float64_t *> positions.data
@@ -143,7 +143,7 @@ cdef class ParticleSmoothOperation:
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             offset = dom_ind[oct.domain_ind - moff] * 8
-            nneighbors = octree.neighbors(&oi, neighbors)
+            nneighbors = octree.neighbors(&oi, &neighbors)
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:
@@ -154,6 +154,9 @@ cdef class ParticleSmoothOperation:
             self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset)
+            # This is allocated by the neighbors function, so we deallocate it.
+            free(neighbors)
+            neighbors = NULL
         if nind != NULL:
             free(nind)
         
@@ -263,6 +266,7 @@ cdef class ParticleSmoothOperation:
 
 cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
     cdef np.float64_t **fp
+    cdef public object vals
     def initialize(self):
         if self.nvals < 2:
             # We need at least two fields, the smoothing length and the 
@@ -280,7 +284,7 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3]):
         # We have our i, j, k for our cell 
-        raise NotImplementedError
+        #print "Offset", offset, i, j, k, self.curn
+        return
 
 simple_neighbor_smooth = SimpleNeighborSmooth
-

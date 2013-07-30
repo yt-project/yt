@@ -263,7 +263,7 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int neighbors(self, OctInfo *oi, Oct** neighbors):
+    cdef int neighbors(self, OctInfo *oi, Oct*** neighbors):
         cdef Oct* candidate
         nn = 0
         # We are going to do a brute-force search here.
@@ -317,9 +317,9 @@ cdef class OctreeContainer:
                         if my_list == NULL: my_list = olist
         olist = my_list
         cdef int noct = OctList_count(olist)
-        neighbors = <Oct **> malloc(sizeof(Oct*)*noct)
+        neighbors[0] = <Oct **> malloc(sizeof(Oct*)*noct)
         for i in range(noct):
-            neighbors[i] = olist.o
+            neighbors[0][i] = olist.o
             olist = olist.next
         OctList_delete(my_list)
         return noct
