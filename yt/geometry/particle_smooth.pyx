@@ -51,6 +51,7 @@ cdef class ParticleSmoothOperation:
     def finalize(self, *args):
         raise NotImplementedError
 
+    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def process_octree(self, OctreeContainer octree,
@@ -136,7 +137,10 @@ cdef class ParticleSmoothOperation:
         doffs = <np.int64_t*> doff.data
         pinds = <np.int64_t*> pind.data
         pcounts = <np.int64_t*> pcount.data
+        cdef np.int64_t pn
         for i in range(doff.shape[0]):
+            # Nothing assigned.
+            if doff[i] < 0: continue
             for j in range(3):
                 pos[j] = positions[pind[doff[i]], j]
             oct = octree.get(pos, &oi)
@@ -160,6 +164,7 @@ cdef class ParticleSmoothOperation:
         if nind != NULL:
             free(nind)
         
+    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def process_grid(self, gobj,
