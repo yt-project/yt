@@ -174,7 +174,7 @@ cdef class ParticleSmoothOperation:
         raise NotImplementedError
 
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3]):
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields):
         raise NotImplementedError
 
     cdef void neighbor_reset(self):
@@ -264,7 +264,7 @@ cdef class ParticleSmoothOperation:
                     self.neighbor_find(nneighbors, nind, doffs, pcounts,
                         pinds, ppos, cpos)
                     # Now we have all our neighbors in our neighbor list.
-                    self.process(offset, i, j, k, dim, cpos)
+                    self.process(offset, i, j, k, dim, cpos, fields)
                     cpos[2] += dds[2]
                 cpos[1] += dds[1]
             cpos[0] += dds[0]
@@ -274,23 +274,42 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
     cdef np.float64_t **fp
     cdef public object vals
     def initialize(self):
-        if self.nvals < 2:
+        cdef int i
+        if self.nfields < 4:
             # We need at least two fields, the smoothing length and the 
             # field to smooth, to operate.
             raise RuntimeError
-        self.vals = [np.zeros(self.nvals, dtype="float64")
-                     for i in range(self.nfields)]
+        cdef np.ndarray tarr
         self.fp = <np.float64_t **> malloc(
             sizeof(np.float64_t *) * self.nfields)
+        self.vals = []
+        for i in range(self.nfields):
+            tarr = np.zeros(self.nvals, dtype="float64", order="F")
+            self.vals.append(tarr)
+            self.fp[i] = <np.float64_t *> tarr.data
 
     def finalize(self):
         free(self.fp)
         return self.vals
 
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3]):
-        # We have our i, j, k for our cell 
-        #print "Offset", offset, i, j, k, self.curn
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields):
+        # We have our i, j, k for our cell, as well as the cell position.
+        # We also have a list of neighboring particles with particle numbers.
+        cdef int n, fi
+        cdef np.float64_t weight, r2, val
+        cdef np.int64_t pn
+        for n in range(self.curn):
+            # No normalization for the moment.
+            # fields[0] is the smoothing length.
+            r2 = self.neighbors[n].r2
+            pn = self.neighbors[n].pn
+            # Smoothing kernel weight function
+            weight = sph_kernel(sqrt(r2) / fields[0][pn])
+            # Mass of the particle times the value divided by the Density
+            for fi in range(self.nfields - 3):
+                val = fields[1][pn] * fields[fi + 3][pn]/fields[2][pn]
+                self.fp[fi + 3][gind(i,j,k,dim) + offset] = val
         return
 
 simple_neighbor_smooth = SimpleNeighborSmooth

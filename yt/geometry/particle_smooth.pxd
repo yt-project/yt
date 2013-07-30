@@ -89,5 +89,4 @@ cdef class ParticleSmoothOperation:
                             np.float64_t *ppos,
                             np.float64_t cpos[3])
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3])
-
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields)

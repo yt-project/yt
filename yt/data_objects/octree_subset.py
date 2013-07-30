@@ -140,7 +140,11 @@ class OctreeSubset(YTSelectionContainer):
             self.domain_id, self._domain_offset)
         vals = op.finalize()
         if vals is None: return
-        return np.asfortranarray(vals)
+        if isinstance(vals, list):
+            vals = [np.asfortranarray(v) for v in vals]
+        else:
+            vals = np.asfortranarray(vals)
+        return vals
 
     def select_icoords(self, dobj):
         d = self.oct_handler.icoords(self.selector, domain_id = self.domain_id,
