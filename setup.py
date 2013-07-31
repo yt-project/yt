@@ -6,11 +6,8 @@ import time
 import subprocess
 import shutil
 import glob
-import setuptools
-from distutils.version import StrictVersion
-if StrictVersion(setuptools.__version__) < StrictVersion('0.7.0'):
-    import distribute_setup
-    distribute_setup.use_setuptools()
+#import distribute_setup
+#distribute_setup.use_setuptools()
 
 from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
@@ -155,6 +152,8 @@ from numpy.distutils.command import build_src
 build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 # End snippet
 ######
+
+import setuptools
 
 VERSION = "3.0dev"
 
