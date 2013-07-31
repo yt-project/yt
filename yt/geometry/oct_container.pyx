@@ -243,7 +243,7 @@ cdef class OctreeContainer:
             oinfo.dds[i] = dds[i] # Cell width
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
             oinfo.ipos[i] = ipos[i]
-            oinfo.level = level
+        oinfo.level = level
         return cur
 
     def domain_identify(self, SelectorObject selector):
@@ -280,25 +280,23 @@ cdef class OctreeContainer:
         # Now we get our boundaries for this level, so that we can wrap around
         # if need be.
         for i in range(3):
-            ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i])/oi.dds[i])
+            ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i])/(2*oi.dds[i]))
         for i in range(3):
             npos[0] = (oi.ipos[0] + (1 - i))
             if npos[0] < 0: npos[0] += ndim[0]
             if npos[0] >= ndim[0]: npos[0] -= ndim[0]
             for j in range(3):
-                nj = 1 - j
                 npos[1] = (oi.ipos[1] + (1 - j))
                 if npos[1] < 0: npos[1] += ndim[1]
                 if npos[1] >= ndim[1]: npos[1] -= ndim[1]
                 for k in range(3):
-                    nk = 1 - k
                     npos[2] = (oi.ipos[2] + (1 - k))
                     if npos[2] < 0: npos[2] += ndim[2]
                     if npos[2] >= ndim[2]: npos[2] -= ndim[2]
                     # Now we have our npos, which we just need to find.
                     # Level 0 gets bootstrapped
                     for n in range(3):
-                        ind[n] = ((npos[n] >> (oi.level + 1)) & 1)
+                        ind[n] = ((npos[n] >> (oi.level)) & 1)
                     cand = NULL
                     self.get_root(ind, &cand)
                     # We should not get a NULL if we handle periodicity
@@ -307,7 +305,7 @@ cdef class OctreeContainer:
                     for level in range(1, oi.level+1):
                         if cand.children == NULL: break
                         for n in range(3):
-                            ind[n] = (npos[n] >> (oi.level - (level + 1))) & 1
+                            ind[n] = (npos[n] >> (oi.level - (level))) & 1
                         ii = cind(ind[0],ind[1],ind[2])
                         if cand.children[ii] == NULL: break
                         cand = cand.children[ii]

@@ -27,7 +27,7 @@ License:
 
 cimport numpy as np
 import numpy as np
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free, qsort
 cimport cython
 from libc.math cimport sqrt
 
