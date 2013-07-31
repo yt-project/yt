@@ -163,10 +163,12 @@ _particle_field_list = ["mass",
                         "angmomen_y",
                         "angmomen_z",
                         "mlast",
+                        "r",
                         "mdeut",
                         "n",
                         "mdot",
                         "burnstate",
+                        "luminosity",
                         "id"]
 
 for pf in _particle_field_list:

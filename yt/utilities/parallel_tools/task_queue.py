@@ -133,14 +133,14 @@ def task_queue(func, tasks, njobs=0):
     comm = _get_comm(())
     if not parallel_capable:
         mylog.error("Cannot create task queue for serial process.")
-        raise RunTimeError
+        raise RuntimeError
     my_size = comm.comm.size
     if njobs <= 0:
         njobs = my_size - 1
     if njobs >= my_size:
         mylog.error("You have asked for %s jobs, but only %s processors are available.",
                     njobs, (my_size - 1))
-        raise RunTimeError
+        raise RuntimeError
     my_rank = comm.rank
     all_new_comms = np.array_split(np.arange(1, my_size), njobs)
     all_new_comms.insert(0, np.array([0]))
@@ -161,14 +161,14 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
     comm = _get_comm(())
     if not parallel_capable:
         mylog.error("Cannot create task queue for serial process.")
-        raise RunTimeError
+        raise RuntimeError
     my_size = comm.comm.size
     if njobs <= 0:
         njobs = my_size - 1
     if njobs >= my_size:
         mylog.error("You have asked for %s jobs, but only %s processors are available.",
                     njobs, (my_size - 1))
-        raise RunTimeError
+        raise RuntimeError
     my_rank = comm.rank
     all_new_comms = np.array_split(np.arange(1, my_size), njobs)
     all_new_comms.insert(0, np.array([0]))

@@ -309,6 +309,10 @@ class AthenaHierarchy(AMRHierarchy):
         self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
+        if self.parameter_file.dimensionality <= 2:
+            self.grid_right_edge[:,2] = self.parameter_file.domain_right_edge[2]
+        if self.parameter_file.dimensionality == 1:
+            self.grid_right_edge[:,1:] = self.parameter_file.domain_right_edge[1:]
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
     def _populate_grid_objects(self):
@@ -335,7 +339,9 @@ class AthenaStaticOutput(StaticOutput):
     _data_style = "athena"
 
     def __init__(self, filename, data_style='athena',
-                 storage_filename=None, parameters={}):
+                 storage_filename=None, parameters=None):
+        if parameters is None:
+            parameters = {}
         self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
@@ -466,6 +472,10 @@ class AthenaStaticOutput(StaticOutput):
         except:
             pass
         return False
+
+    @property
+    def _skip_cache(self):
+        return True
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

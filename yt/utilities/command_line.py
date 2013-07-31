@@ -1401,7 +1401,7 @@ class YTRenderCmd(YTCommand):
         tf = ColorTransferFunction((mi-2, ma+2))
         tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
 
-        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf, fields=[field])
         image = cam.snapshot()
 
         if args.enhance:
@@ -1456,7 +1456,12 @@ class YTNotebookCmd(YTCommand):
         """
     def __call__(self, args):
         kwargs = {}
-        from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        try:
+            # IPython 1.0+
+            from IPython.html.notebookapp import NotebookApp
+        except ImportError:
+            # pre-IPython v1.0
+            from IPython.frontend.html.notebook.notebookapp import NotebookApp
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib

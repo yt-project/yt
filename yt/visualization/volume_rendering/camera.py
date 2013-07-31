@@ -342,6 +342,62 @@ class Camera(ParallelAnalysisInterface):
         lines(nim, px, py, colors, 24)
         return nim
 
+    def draw_coordinate_vectors(self, im, length=0.05, thickness=1):
+        r"""Draws three coordinate vectors in the corner of a rendering.
+
+        Modifies an existing image to have three lines corresponding to the
+        coordinate directions colored by {x,y,z} = {r,g,b}.  Currently only
+        functional for plane-parallel volume rendering.
+
+        Parameters
+        ----------
+        im: Numpy ndarray
+            Existing image that has the same resolution as the Camera,
+            which will be painted by grid lines.
+        length: float, optional
+            The length of the lines, as a fraction of the image size.
+            Default : 0.05
+        thickness : int, optional
+            Thickness in pixels of the line to be drawn.
+
+        Returns
+        -------
+        None
+
+        Modifies
+        --------
+        im: The original image.
+
+        Examples
+        --------
+        >>> im = cam.snapshot()
+        >>> cam.draw__coordinate_vectors(im)
+        >>> im.write_png('render_with_grids.png')
+
+        """
+        length_pixels = length * self.resolution[0]
+        # Put the starting point in the lower left
+        px0 = int(length * self.resolution[0])
+        # CS coordinates!
+        py0 = int((1.0-length) * self.resolution[1])
+
+        alpha = im[:, :, 3].max()
+        if alpha == 0.0:
+            alpha = 1.0
+
+        coord_vectors = [np.array([length_pixels, 0.0, 0.0]),
+                         np.array([0.0, length_pixels, 0.0]),
+                         np.array([0.0, 0.0, length_pixels])]
+        colors = [np.array([1.0, 0.0, 0.0, alpha]),
+                  np.array([0.0, 1.0, 0.0, alpha]),
+                  np.array([0.0, 0.0, 1.0, alpha])]
+
+        for vec, color in zip(coord_vectors, colors):
+            dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
+            dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
+            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
+                  np.array([color, color]), 1, thickness)
+
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
 
@@ -526,7 +582,7 @@ class Camera(ParallelAnalysisInterface):
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                np.array(self.width), self.transfer_function, self.sub_samples)
+                np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
         return args
 
     star_trees = None
@@ -1074,19 +1130,22 @@ class PerspectiveCamera(Camera):
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
-        view_pos = self.front_center
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
 
         pbar.finish()
-        image = sampler.aimage
-        self.finalize_image(image)
+        image = self.finalize_image(sampler.aimage)
         return image
 
     def finalize_image(self, image):
+        view_pos = self.front_center
         image.shape = self.resolution[0], self.resolution[0], 4
+        image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
+        return image
 
 def corners(left_edge, right_edge):
     return np.array([
@@ -1107,11 +1166,13 @@ class HEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, use_kd=True, no_ghost=False, use_light=False):
+                 pf = None, use_kd=True, no_ghost=False, use_light=False,
+                 inner_radius = 10):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = np.array(center, dtype='float64')
         self.radius = radius
+        self.inner_radius = inner_radius
         self.nside = nside
         self.use_kd = use_kd
         if transfer_function is None:
@@ -1119,9 +1180,11 @@ class HEALpixCamera(Camera):
         self.transfer_function = transfer_function
 
         if isinstance(self.transfer_function, ProjectionTransferFunction):
-            self._sampler_object = ProjectionSampler
+            self._sampler_object = InterpolatedProjectionSampler
+            self._needs_tf = 0
         else:
             self._sampler_object = VolumeRenderSampler
+            self._needs_tf = 1
 
         if fields is None: fields = ["Density"]
         self.fields = fields
@@ -1145,15 +1208,20 @@ class HEALpixCamera(Camera):
     def get_sampler_args(self, image):
         nv = 12 * self.nside ** 2
         vs = arr_pix2vec_nest(self.nside, np.arange(nv))
-        vs *= self.radius
-        vs.shape = nv, 1, 3
+        vs.shape = (nv, 1, 3)
+        vs += 1e-8
         uv = np.ones(3, dtype='float64')
         positions = np.ones((nv, 1, 3), dtype='float64') * self.center
+        dx = min(g.dds.min() for g in self.pf.h.find_point(self.center)[0])
+        positions += self.inner_radius * dx * vs
+        vs *= self.radius
         args = (positions, vs, self.center,
                 (0.0, 1.0, 0.0, 1.0),
                 image, uv, uv,
-                np.zeros(3, dtype='float64'),
-                self.transfer_function, self.sub_samples)
+                np.zeros(3, dtype='float64'))
+        if self._needs_tf:
+            args += (self.transfer_function,)
+        args += (self.sub_samples,)
         return args
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -1228,28 +1296,14 @@ class HEALpixCamera(Camera):
     def save_image(self, image, fn=None, clim=None, label = None):
         if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
-            import matplotlib.figure
-            import matplotlib.backends.backend_agg
-            phi, theta = np.mgrid[0.0:2*np.pi:800j, 0:np.pi:800j]
-            pixi = arr_ang2pix_nest(self.nside, theta.ravel(), phi.ravel())
-            image *= self.radius * self.pf['cm']
-            img = np.log10(image[:,0,0][pixi]).reshape((800,800))
-
-            fig = matplotlib.figure.Figure((10, 5))
-            ax = fig.add_subplot(1,1,1,projection='hammer')
-            implot = ax.imshow(img, extent=(-np.pi,np.pi,-np.pi/2,np.pi/2), clip_on=False, aspect=0.5)
-            cb = fig.colorbar(implot, orientation='horizontal')
-
-            if label == None:
-                cb.set_label("Projected %s" % self.fields[0])
+            if label is None:
+                label = "Projected %s" % (self.fields[0])
+            if clim is not None:
+                cmin, cmax = clim
             else:
-                cb.set_label(label)
-            if clim is not None: cb.set_clim(*clim)
-            ax.xaxis.set_ticks(())
-            ax.yaxis.set_ticks(())
-            canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-            canvas.print_figure(fn)
-
+                cmin = cmax = None
+            plot_allsky_healpix(image[:,0,0], self.nside, fn, label, 
+                                cmin = cmin, cmax = cmax)
 
 class AdaptiveHEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
@@ -2019,7 +2073,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, np.arange(nv))
-    vs.shape = (nv,1,3)
+    vs.shape = (nv, 1, 3)
     if rotation is not None:
         vs2 = vs.copy()
         for i in range(3):
@@ -2138,10 +2192,10 @@ class ProjectionCamera(Camera):
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
         args = (rotp, self.box_vectors[2], self.back_center,
-            (-self.width[0]/2, self.width[0]/2,
-             -self.width[1]/2, self.width[1]/2),
+            (-self.width[0]/2., self.width[0]/2.,
+             -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                np.array(self.width), self.sub_samples)
+                np.array(self.width, dtype='float64'), self.sub_samples)
         return args
 
     def finalize_image(self,image):

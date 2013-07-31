@@ -3121,6 +3121,8 @@ class InLineExtractedRegionBase(AMR3DData):
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.
     """
+    _type_name = "cut_region"
+    _con_args = ("_base_region", "_field_cuts")
     def __init__(self, base_region, field_cuts, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
@@ -3701,7 +3703,8 @@ class AMRCoveringGridBase(AMR3DData):
         self.left_edge = np.array(left_edge)
         self.level = level
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
-        self.dds = self.pf.domain_width/rdx.astype("float64")
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
+        self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
