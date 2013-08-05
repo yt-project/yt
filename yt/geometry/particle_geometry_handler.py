@@ -87,7 +87,7 @@ class ParticleGeometryHandler(GeometryHandler):
         pf = self.parameter_file
         self.oct_handler = ParticleOctreeContainer(
             [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge)
-        self.oct_handler.n_ref = 64
+        self.oct_handler.n_ref = pf.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 

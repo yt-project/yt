@@ -497,10 +497,13 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
                          for field in fields]
+        domain_dims = self.pf.domain_dimensions.astype("int64") \
+                    * self.pf.refine_by**self.level
         for chunk in self._data_source.chunks(fields, "io"):
             input_fields = [chunk[field] for field in fields]
             fill_region(input_fields, output_fields, self.level,
-                        self.global_startindex, chunk.icoords, chunk.ires)
+                        self.global_startindex, chunk.icoords, chunk.ires,
+                        domain_dims, self.pf.refine_by)
         for name, v in zip(fields, output_fields):
             self[name] = v
 
@@ -653,13 +656,14 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def _fill_fields(self, fields):
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
-            tot = 0
+            domain_dims = self.pf.domain_dimensions.astype("int64") \
+                        * self.pf.refine_by**level
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
-                tot += fill_region(input_fields, ls.fields, ls.current_level,
+                fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
-                            chunk.ires)
+                            chunk.ires, domain_dims, self.pf.refine_by)
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
@@ -703,7 +707,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         new_fields = []
         for input_field in level_state.fields:
             output_field = np.zeros(output_dims, dtype="float64")
-            output_left = self.global_startindex + 0.5
+            output_left = level_state.global_startindex + 0.5
             ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
             new_fields.append(output_field)
