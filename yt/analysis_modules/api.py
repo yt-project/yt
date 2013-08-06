@@ -120,3 +120,9 @@ from .two_point_functions.api import \
 
 from .radmc3d_export.api import \
     RadMC3DWriter
+
+from .synthetic_xray_obs.api import \
+     XRayPhotonList, \
+     XRayEventList, \
+     XSpecThermalModel, \
+     XSpecAbsorbModel

@@ -96,7 +96,7 @@ class XSpecAbsorbModel(PhotonModel):
          m.nH = self.nH
          return np.array(self.model.values(0))
     
-class ApecTableModel(PhotonModel):
+class TableApecModel(PhotonModel):
 
     def __init__(self, filename):
         if not os.path.exists(filename):
@@ -128,7 +128,7 @@ class ApecTableModel(PhotonModel):
                self.spec_table[it+1,iz,:]*dt*(1.-dz)
         return spec
 
-class AbsorbTableModel(PhotonModel):
+class TableAbsorbModel(PhotonModel):
 
     def __init__(self, filename):
         if not os.path.exists(filename):
@@ -188,7 +188,7 @@ class XRayPhotonList(object):
 
     @classmethod
     def from_scratch(cls, cell_data, redshift, eff_A, exp_time, emission_model,
-                     ctr="c", X_H=0.75, Zmet=0.3, cosmology=None):
+                     center="c", X_H=0.75, Zmet=0.3, cosmology=None):
         """
         Initialize a XRayPhotonList from a data container. 
         """
@@ -210,12 +210,12 @@ class XRayPhotonList(object):
 
         cell_data.set_field_parameter("X_H", X_H)
 
-        if ctr == "c":
+        if center == "c":
             src_ctr = pf.domain_center
-        elif ctr == "max":
+        elif center == "max":
             src_ctr = pf.h.find_max("Density")[-1]
-        elif iterable(ctr):
-            src_ctr = ctr
+        elif iterable(center):
+            src_ctr = center
                     
         kT_bins = np.linspace(TMIN, max(cell_data["TempkeV"][idxs][-1],
                                         TMAX), num=N_TBIN+1)
@@ -331,7 +331,7 @@ class XRayPhotonList(object):
         f.close()
     
     def project_photons(self, L, area_new=None, texp_new=None, 
-                        absorb_model=None):
+                        absorb_model=None, smoothing=False):
         """
         Project photons 
         """
@@ -370,11 +370,16 @@ class XRayPhotonList(object):
             
         n_obs_tot = n_obs.sum()
 
-        mylog.info("Total number of observed photons (without absoprtion): %d" % (n_obs_tot))
-        
-        x = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-        y = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-        z = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+        mylog.info("Total number of observed photons (without absorption): %d" % (n_obs_tot))
+
+        if smoothing:
+            x = np.random.normal(scale=0.5,size=n_obs_tot)
+            y = np.random.normal(scale=0.5,size=n_obs_tot)
+            z = np.random.normal(scale=0.5,size=n_obs_tot)
+        else:
+            x = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+            y = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+            z = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
 
         vz = self.photons["vx"]*z_hat[0] + \
              self.photons["vy"]*z_hat[1] + \
@@ -449,7 +454,7 @@ class XRayEventList(object) :
         self.num_events = events["xsky"].shape[0]
         
     @classmethod
-    def from_h5_file(cls, h5file) :
+    def from_h5_file(cls, h5file):
         """
         Initialize a XRayEventList from a HDF5 file with filename h5file.
         """
@@ -473,7 +478,7 @@ class XRayEventList(object) :
         return cls(events)
 
     @classmethod
-    def from_fits_file(cls, fitsfile) :
+    def from_fits_file(cls, fitsfile):
         """
         Initialize a XRayEventList from a FITS file with filename fitsfile.
         """
@@ -519,7 +524,7 @@ class XRayEventList(object) :
         
         tbhdu.writeto(fitsfile, clobber=clobber)
                 
-    def write_simput_file(self, prefix, clobber=False, e_min=None, e_max=None) :
+    def write_simput_file(self, prefix, clobber=False, e_min=None, e_max=None):
 
         if e_min is None:
             e_min = 0.0
@@ -585,7 +590,7 @@ class XRayEventList(object) :
                 
         wrhdu.writeto(simputfile, clobber=clobber)
 
-    def write_h5_file(self, h5file) :
+    def write_h5_file(self, h5file):
         """
         Write a XRayEventList to the HDF5 file given by h5file.
         """
@@ -603,24 +608,25 @@ class XRayEventList(object) :
                         
         f.close()
 
-    def write_fits_image(self, imagefile, width, nx, clobber=False, gzip_file=False,
-                         emin=None, emax=None) :
+    def write_fits_image(self, imagefile, width, nx, center,
+                         clobber=False, gzip_file=False,
+                         emin=None, emax=None):
         
         if emin is None:
             mask_emin = np.ones((self.num_events), dtype='bool')
-        else :
+        else:
             mask_emin = self.events["eobs"] > emin
         if emax is None:
             mask_emax = np.ones((self.num_events), dtype='bool')
-        else :
+        else:
             mask_emax = self.events["eobs"] < emax
 
         mask = np.logical_and(mask_emin, mask_emax)
 
         dx_pixel = width/nx
-        xmin = -0.5*nx*dx_pixel
-        xmax = 0.5*nx*dx_pixel
-        xbins = np.linspace(xmin, xmax, 2*nx+1, endpoint=True)
+        xmin = -0.5*width
+        xmax = -xmin
+        xbins = np.linspace(xmin, xmax, nx+1, endpoint=True)
         
         H, xedges, yedges = np.histogram2d(self.events["xsky"][mask],
                                            self.events["ysky"][mask],
@@ -628,27 +634,28 @@ class XRayEventList(object) :
         
         hdu = pyfits.PrimaryHDU(H.T)
 
-        hdu.header.update('WCSNAMEP', "PHYSICAL")
-        hdu.header.update("MTYPE1", "SKY")
-        hdu.header.update("MFORM1", "X,Y")
-        hdu.header.update("CTYPE1P", "LINEAR")
-        hdu.header.update("CTYPE2P", "LINEAR")
-        hdu.header.update("CRPIX1P", 0.5)
-        hdu.header.update("CRPIX2P", 0.5)
-        hdu.header.update("CRVAL1P", xmin)
-        hdu.header.update("CRVAL2P", xmin)
-        hdu.header.update("CDELT1P", dx_pixel)
-        hdu.header.update("CDELT2P", dx_pixel)
+        hdu.header.update("MTYPE1", "EQPOS")
+        hdu.header.update("MFORM1", "RA,DEC")
+        hdu.header.update("CTYPE1", "RA---TAN")
+        hdu.header.update("CTYPE2", "DEC--TAN")
+        hdu.header.update("CRPIX1", 0.5*(nx+1))
+        hdu.header.update("CRPIX2", 0.5*(nx+1))                
+        hdu.header.update("CRVAL1", center[0])
+        hdu.header.update("CRVAL2", center[1])
+        hdu.header.update("CUNIT1", "deg")
+        hdu.header.update("CUNIT2", "deg")
+        hdu.header.update("CDELT1", -dx_pixel/3600.)
+        hdu.header.update("CDELT2", dx_pixel/3600.)
         hdu.header.update("EXPOSURE", self.events["ExposureTime"])
         
         hdu.writeto(imagefile, clobber=clobber)
 
-        if (gzip_file) :
+        if (gzip_file):
             clob = ""
             if (clobber) : clob="-f"
             os.system("gzip "+clob+" %s.fits" % (prefix))
                                     
-    def write_spectrum(self, specfile, emin, emax, nchan, clobber=False) :
+    def write_spectrum(self, specfile, emin, emax, nchan, clobber=False):
         
         spec, ee = np.histogram(self.events["eobs"], bins=nchan, range=(emin, emax))
 
