@@ -91,12 +91,11 @@ def parse_line(line, grid):
     splitup = line.strip().split()
     if "vtk" in splitup:
         grid['vtk_version'] = splitup[-1]
-    elif "Really" in splitup:
-        grid['time'] = splitup[-1]
-    elif any(x in ['PRIMITIVE','CONSERVED'] for x in splitup):
-        grid['time'] = float(splitup[4].rstrip(','))
-        grid['level'] = int(splitup[6].rstrip(','))
-        grid['domain'] = int(splitup[8].rstrip(','))
+    elif "time=" in splitup:
+        time_index = splitup.index("time=")
+        grid['time'] = float(splitup[time_index+1].rstrip(','))
+        grid['level'] = int(splitup[time_index+3].rstrip(','))
+        grid['domain'] = int(splitup[time_index+5].rstrip(','))                        
     elif "DIMENSIONS" in splitup:
         grid['dimensions'] = np.array(splitup[-3:]).astype('int')
     elif "ORIGIN" in splitup:
