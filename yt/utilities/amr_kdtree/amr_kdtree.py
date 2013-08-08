@@ -257,17 +257,19 @@ class AMRKDTree(ParallelAnalysisInterface):
         else:
             dds = []
             for i, field in enumerate(self.fields):
-                vcd = grid.get_vertex_centered_data(field, smoothed=True,no_ghost=self.no_ghost).astype('float64')
+                vcd = grid.get_vertex_centered_data(field, smoothed=True, no_ghost=self.no_ghost).astype('float64')
                 if self.log_fields[i]: vcd = np.log10(vcd)
                 dds.append(vcd)
                 self.current_saved_grids.append(grid)
                 self.current_vcds.append(dds)
+        mask = np.ones(dims, dtype='uint8')
 
         data = [d[li[0]:ri[0]+1,
                   li[1]:ri[1]+1,
                   li[2]:ri[2]+1].copy() for d in dds]
 
         brick = PartitionedGrid(grid.id, data,
+                                mask,
                                 nle.copy(),
                                 nre.copy(),
                                 dims.astype('int64'))
