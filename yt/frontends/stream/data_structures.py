@@ -339,6 +339,10 @@ class StreamStaticOutput(StaticOutput):
     def _is_valid(cls, *args, **kwargs):
         return False
 
+    @property
+    def _skip_cache(self):
+        return True
+
 class StreamDictFieldHandler(dict):
 
     @property
