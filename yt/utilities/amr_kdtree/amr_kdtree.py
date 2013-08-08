@@ -262,7 +262,11 @@ class AMRKDTree(ParallelAnalysisInterface):
                 dds.append(vcd)
                 self.current_saved_grids.append(grid)
                 self.current_vcds.append(dds)
-        mask = np.ones(dims, dtype='uint8')
+
+        if self.source.selector is None:
+            mask = np.ones(dims, dtype='uint8')
+        else:
+            mask = self.source.selector.fill_mask(grid)[li[0]:ri[0], li[1]:ri[1], li[2]:ri[2] ].astype('uint8')
 
         data = [d[li[0]:ri[0]+1,
                   li[1]:ri[1]+1,
