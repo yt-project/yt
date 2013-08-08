@@ -122,7 +122,6 @@ cdef class PartitionedGrid:
         # So we don't need to deallocate them.
         if self.container == NULL: return
         if self.container.data != NULL: free(self.container.data)
-        if self.container.mask != NULL: free(self.container.mask)
         free(self.container)
 
     @cython.boundscheck(False)
