@@ -479,7 +479,7 @@ function do_setup_py
     then
         echo "Installing $LIB"
     else
-	echo "Installing $LIB (arguments: '$@')"
+        echo "Installing $LIB (arguments: '$@')"
     fi
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
