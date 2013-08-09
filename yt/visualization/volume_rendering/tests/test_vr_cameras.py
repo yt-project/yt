@@ -86,15 +86,15 @@ class CameraTest(TestCase):
         cam.snapshot('camera.png')
         assert_fname('camera.png')
 
-    def test_source_camera(self):
+    def test_data_source_camera(self):
         pf = self.pf
         tf = self.setup_transfer_function('camera')
-        source = pf.h.sphere(pf.domain_center, pf.domain_width[0]*0.5)
+        data_source = pf.h.sphere(pf.domain_center, pf.domain_width[0]*0.5)
 
         cam = pf.h.camera(self.c, self.L, self.W, self.N,
-                          transfer_function=tf, source=source)
-        cam.snapshot('source_camera.png')
-        assert_fname('source_camera.png')
+                          transfer_function=tf, data_source=data_source)
+        cam.snapshot('data_source_camera.png')
+        assert_fname('data_source_camera.png')
 
     def test_perspective_camera(self):
         pf = self.pf
