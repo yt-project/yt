@@ -54,28 +54,22 @@ class CameraTest(TestCase):
         else:
             self.curdir, self.tmpdir = None, None
 
-        self.pf, self.c, self.L, self.W, self.N, self.field = self.setup_pf()
+        self.pf = fake_random_pf(64)
+        self.c = self.pf.domain_center
+        self.L = np.array([0.5, 0.5, 0.5])
+        self.W = 1.5*self.pf.domain_width
+        self.N = 64
+        self.field = "Density"
 
     def tearDown(self):
         if use_tmpdir:
             os.chdir(self.curdir)
             shutil.rmtree(self.tmpdir)
 
-    def setup_pf(self):
-        # args for off_axis_projection
-        test_pf = fake_random_pf(64)
-        c = test_pf.domain_center
-        norm = [0.5, 0.5, 0.5]
-        W = 1.5*test_pf.domain_width
-        N = 64
-        field = "Density"
-        cam_args = [test_pf, c, norm, W, N, field]
-        return cam_args
-
-    def setup_transfer_function(self, pf, camera_type):
+    def setup_transfer_function(self, camera_type):
         if camera_type in ['perspective', 'camera',
                            'stereopair', 'interactive']:
-            mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+            mi, ma = self.pf.h.all_data().quantities['Extrema']('Density')[0]
             tf = ColorTransferFunction((mi-1., ma+1.), grey_opacity=True)
             tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
             return tf
@@ -86,7 +80,7 @@ class CameraTest(TestCase):
 
     def test_camera(self):
         pf = self.pf
-        tf = self.setup_transfer_function(pf, 'camera')
+        tf = self.setup_transfer_function('camera')
         cam = self.pf.h.camera(self.c, self.L, self.W, self.N,
                                transfer_function=tf)
         cam.snapshot('camera.png')
@@ -94,7 +88,7 @@ class CameraTest(TestCase):
 
     def test_source_camera(self):
         pf = self.pf
-        tf = self.setup_transfer_function(pf, 'camera')
+        tf = self.setup_transfer_function('camera')
         source = pf.h.sphere(pf.domain_center, pf.domain_width[0]*0.5)
 
         cam = pf.h.camera(self.c, self.L, self.W, self.N,
@@ -104,7 +98,7 @@ class CameraTest(TestCase):
 
     def test_perspective_camera(self):
         pf = self.pf
-        tf = self.setup_transfer_function(pf, 'camera')
+        tf = self.setup_transfer_function('camera')
 
         cam = PerspectiveCamera(self.c, self.L, self.W, self.N, pf=pf,
                                 transfer_function=tf)
@@ -113,7 +107,7 @@ class CameraTest(TestCase):
 
     def test_interactive_camera(self):
         pf = self.pf
-        tf = self.setup_transfer_function(pf, 'camera')
+        tf = self.setup_transfer_function('camera')
 
         cam = InteractiveCamera(self.c, self.L, self.W, self.N, pf=pf,
                                 transfer_function=tf)
@@ -129,7 +123,7 @@ class CameraTest(TestCase):
 
     def test_stereo_camera(self):
         pf = self.pf
-        tf = self.setup_transfer_function(pf, 'camera')
+        tf = self.setup_transfer_function('camera')
 
         cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf)
         stereo_cam = StereoPairCamera(cam)
@@ -142,7 +136,7 @@ class CameraTest(TestCase):
 
     def test_camera_movement(self):
         pf = self.pf
-        tf = self.setup_transfer_function(pf, 'camera')
+        tf = self.setup_transfer_function('camera')
 
         cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf)
         cam.zoom(0.5)
