@@ -473,11 +473,18 @@ function do_exit
 function do_setup_py
 {
     [ -e $1/done ] && return
-    echo "Installing $1 (arguments: '$*')"
-    [ ! -e $1/extracted ] && tar xfz $1.tar.gz
-    touch $1/extracted
-    cd $1
-    if [ ! -z `echo $1 | grep h5py` ]
+    LIB=$1
+    shift
+    if [ -z "$@" ]
+    then
+        echo "Installing $LIB"
+    else
+	echo "Installing $LIB (arguments: '$@')"
+    fi
+    [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
+    touch $LIB/extracted
+    cd $LIB
+    if [ ! -z `echo $LIB | grep h5py` ]
     then
         shift
 	( ${DEST_DIR}/bin/python2.7 setup.py build --hdf5=${HDF5_DIR} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
