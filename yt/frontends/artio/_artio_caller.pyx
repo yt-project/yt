@@ -188,8 +188,7 @@ cdef class artio_fileset :
         status = artio_fileset_open_particles( self.handle )
         check_artio_status(status)
    
-    # this should possibly be __dealloc__ 
-    def __del__(self) :
+    def __dealloc__(self) :
         if self.num_octs_per_level : free(self.num_octs_per_level)
         if self.grid_variables : free(self.grid_variables)
 
