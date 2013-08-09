@@ -519,8 +519,8 @@ fi
 
 function get_ytproject
 {
-    echo "Downloading $1 from yt-project.org"
     [ -e $1 ] && return
+    echo "Downloading $1 from yt-project.org"
     ${GETFILE} "http://yt-project.org/dependencies/$1" || do_exit
     ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
@@ -825,7 +825,7 @@ else
 	    echo "Building BLAS"
 	    cd BLAS
 	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
-	    ar r libfblas.a *.o 1>> ${LOG_FILE}
+	    ar r libfblas.a *.o &>> ${LOG_FILE}
 	    ranlib libfblas.a 1>> ${LOG_FILE}
 	    rm -rf *.o
 	    touch done
