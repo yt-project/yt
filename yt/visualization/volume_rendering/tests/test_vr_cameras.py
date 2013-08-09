@@ -32,6 +32,7 @@ from yt.mods import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.volume_rendering.api import \
     PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera
 from yt.visualization.tests.test_plotwindow import assert_fname
+from unittest import TestCase
 
 # This toggles using a temporary directory. Turn off to examine images.
 use_tmpdir = True 
@@ -43,131 +44,126 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-def setup_dir():
-    if use_tmpdir:
-        curdir = os.getcwd()
-        # Perform I/O in safe place instead of yt main dir
-        tmpdir = tempfile.mkdtemp()
-        os.chdir(tmpdir)
-    else:
-        curdir, tmpdir = None, None
-    return curdir, tmpdir
+class CameraTest(TestCase):
+    def setUp(self):
+        if use_tmpdir:
+            self.curdir = os.getcwd()
+            # Perform I/O in safe place instead of yt main dir
+            self.tmpdir = tempfile.mkdtemp()
+            os.chdir(self.tmpdir)
+        else:
+            self.curdir, self.tmpdir = None, None
 
+        self.pf, self.c, self.L, self.W, self.N, self.field = self.setup_pf()
 
-def teardown_dir(curdir, tmpdir):
-    if use_tmpdir:
-        os.chdir(curdir)
-        shutil.rmtree(tmpdir)
+    def tearDown(self):
+        if use_tmpdir:
+            os.chdir(self.curdir)
+            shutil.rmtree(self.tmpdir)
 
+    def setup_pf(self):
+        # args for off_axis_projection
+        test_pf = fake_random_pf(64)
+        c = test_pf.domain_center
+        norm = [0.5, 0.5, 0.5]
+        W = 1.5*test_pf.domain_width
+        N = 64
+        field = "Density"
+        cam_args = [test_pf, c, norm, W, N, field]
+        return cam_args
 
-def setup_pf():
-    # args for off_axis_projection
-    test_pf = fake_random_pf(64)
-    c = test_pf.domain_center 
-    norm = [0.5, 0.5, 0.5]
-    W = 1.5*test_pf.domain_width
-    N = 64
-    field = "Density"
-    cam_args = [test_pf, c, norm, W, N, field]
-    return cam_args
+    def setup_transfer_function(self, pf, camera_type):
+        if camera_type in ['perspective', 'camera',
+                           'stereopair', 'interactive']:
+            mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+            tf = ColorTransferFunction((mi-1., ma+1.), grey_opacity=True)
+            tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
+            return tf
+        elif camera_type in ['healpix']:
+            return ProjectionTransferFunction()
+        else:
+            pass
 
+    def test_camera(self):
+        pf = self.pf
+        tf = self.setup_transfer_function(pf, 'camera')
+        cam = self.pf.h.camera(self.c, self.L, self.W, self.N,
+                               transfer_function=tf)
+        cam.snapshot('camera.png')
+        assert_fname('camera.png')
 
-def setup_transfer_function(pf, camera_type):
-    if camera_type in ['perspective', 'camera', 'stereopair', 'interactive']:
-        mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
-        tf = ColorTransferFunction((mi-1., ma+1.), grey_opacity=True)
-        tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
-        return tf
-    elif camera_type in ['healpix']:
-        return ProjectionTransferFunction()
-    else:
-        pass
+    def test_source_camera(self):
+        pf = self.pf
+        tf = self.setup_transfer_function(pf, 'camera')
+        source = pf.h.sphere(pf.domain_center, pf.domain_width[0]*0.5)
 
+        cam = pf.h.camera(self.c, self.L, self.W, self.N,
+                          transfer_function=tf, source=source)
+        cam.snapshot('source_camera.png')
+        assert_fname('source_camera.png')
 
-def test_camera():
-    curdir, tmpdir = setup_dir()
-    pf, c, L, W, N, field = setup_pf()
-    tf = setup_transfer_function(pf, 'camera')
+    def test_perspective_camera(self):
+        pf = self.pf
+        tf = self.setup_transfer_function(pf, 'camera')
 
-    cam = pf.h.camera(c, L, W, N, transfer_function=tf)
-    cam.snapshot('camera.png')
-    assert_fname('camera.png')
-    teardown_dir(curdir, tmpdir)
+        cam = PerspectiveCamera(self.c, self.L, self.W, self.N, pf=pf,
+                                transfer_function=tf)
+        cam.snapshot('perspective.png')
+        assert_fname('perspective.png')
 
+    def test_interactive_camera(self):
+        pf = self.pf
+        tf = self.setup_transfer_function(pf, 'camera')
 
-def test_perspective_camera():
-    curdir, tmpdir = setup_dir()
-    pf, c, L, W, N, field = setup_pf()
-    tf = setup_transfer_function(pf, 'camera')
+        cam = InteractiveCamera(self.c, self.L, self.W, self.N, pf=pf,
+                                transfer_function=tf)
+        # Can't take a snapshot here since IC uses pylab.'
 
-    cam = PerspectiveCamera(c, L, W, N, pf=pf, transfer_function=tf)
-    cam.snapshot('perspective.png')
-    assert_fname('perspective.png')
-    teardown_dir(curdir, tmpdir)
+    def test_projection_camera(self):
+        pf = self.pf
 
+        cam = ProjectionCamera(self.c, self.L, self.W, self.N, pf=pf,
+                               field='Density')
+        cam.snapshot('projection.png')
+        assert_fname('projection.png')
 
-def test_interactive_camera():
-    curdir, tmpdir = setup_dir()
-    pf, c, L, W, N, field = setup_pf()
-    tf = setup_transfer_function(pf, 'camera')
+    def test_stereo_camera(self):
+        pf = self.pf
+        tf = self.setup_transfer_function(pf, 'camera')
 
-    cam = InteractiveCamera(c, L, W, N, pf=pf, transfer_function=tf)
-    # Can't take a snapshot here since IC uses pylab.'
-    teardown_dir(curdir, tmpdir)
+        cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf)
+        stereo_cam = StereoPairCamera(cam)
+        # Take image
+        cam1, cam2 = stereo_cam.split()
+        cam1.snapshot(fn='stereo1.png')
+        cam2.snapshot(fn='stereo2.png')
+        assert_fname('stereo1.png')
+        assert_fname('stereo2.png')
 
+    def test_camera_movement(self):
+        pf = self.pf
+        tf = self.setup_transfer_function(pf, 'camera')
 
-def test_projection_camera():
-    curdir, tmpdir = setup_dir()
-    pf, c, L, W, N, field = setup_pf()
-
-    cam = ProjectionCamera(c, L, W, N, pf=pf, field='Density')
-    cam.snapshot('projection.png')
-    assert_fname('projection.png')
-    teardown_dir(curdir, tmpdir)
-
-
-def test_stereo_camera():
-    curdir, tmpdir = setup_dir()
-    pf, c, L, W, N, field = setup_pf()
-    tf = setup_transfer_function(pf, 'camera')
-
-    cam = pf.h.camera(c, L, W, N, transfer_function=tf)
-    stereo_cam = StereoPairCamera(cam)
-    # Take image
-    cam1, cam2 = stereo_cam.split()
-    cam1.snapshot(fn='stereo1.png')
-    cam2.snapshot(fn='stereo2.png')
-    assert_fname('stereo1.png')
-    assert_fname('stereo2.png')
-    teardown_dir(curdir, tmpdir)
-
-
-def test_camera_movement():
-    curdir, tmpdir = setup_dir()
-    pf, c, L, W, N, field = setup_pf()
-    tf = setup_transfer_function(pf, 'camera')
-
-    cam = pf.h.camera(c, L, W, N, transfer_function=tf)
-    cam.zoom(0.5)
-    for snap in cam.zoomin(2.0, 3):
-        snap
-    for snap in cam.move_to(np.array(c) + 0.1, 3,
-                            final_width=None, exponential=False):
-        snap
-    for snap in cam.move_to(np.array(c) - 0.1, 3,
-                            final_width=2.0*W, exponential=False):
-        snap
-    for snap in cam.move_to(np.array(c), 3,
-                            final_width=1.0*W, exponential=True):
-        snap
-    cam.rotate(np.pi/10)
-    cam.pitch(np.pi/10)
-    cam.yaw(np.pi/10)
-    cam.roll(np.pi/10)
-    for snap in cam.rotation(np.pi, 3, rot_vector=None):
-        snap
-    for snap in cam.rotation(np.pi, 3, rot_vector=np.random.random(3)):
-        snap
-    cam.snapshot('final.png')
-    assert_fname('final.png')
-    teardown_dir(curdir, tmpdir)
+        cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf)
+        cam.zoom(0.5)
+        for snap in cam.zoomin(2.0, 3):
+            snap
+        for snap in cam.move_to(np.array(self.c) + 0.1, 3,
+                                final_width=None, exponential=False):
+            snap
+        for snap in cam.move_to(np.array(self.c) - 0.1, 3,
+                                final_width=2.0*self.W, exponential=False):
+            snap
+        for snap in cam.move_to(np.array(self.c), 3,
+                                final_width=1.0*self.W, exponential=True):
+            snap
+        cam.rotate(np.pi/10)
+        cam.pitch(np.pi/10)
+        cam.yaw(np.pi/10)
+        cam.roll(np.pi/10)
+        for snap in cam.rotation(np.pi, 3, rot_vector=None):
+            snap
+        for snap in cam.rotation(np.pi, 3, rot_vector=np.random.random(3)):
+            snap
+        cam.snapshot('final.png')
+        assert_fname('final.png')
