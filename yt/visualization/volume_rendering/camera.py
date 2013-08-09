@@ -1157,8 +1157,8 @@ class HEALpixCamera(Camera):
         self.light_dir = None
         self.light_rgba = None
         if volume is None:
-            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
-                               log_fields=log_fields)
+            volume = AMRKDTree(self.pf, min_level=min_level,
+                               max_level=max_level, source=self.source)
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
@@ -2205,6 +2205,7 @@ class ProjectionCamera(Camera):
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id, data,
+                mask.astype('uint8'),
                 grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
             grid.clear_data()
             sampler(pg, num_threads = num_threads)
