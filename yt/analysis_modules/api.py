@@ -125,4 +125,7 @@ from .synthetic_xray_obs.api import \
      XRayPhotonList, \
      XRayEventList, \
      XSpecThermalModel, \
-     XSpecAbsorbModel
+     XSpecAbsorbModel, \
+     TableApecModel, \
+     TableAbsorbModel
+     
