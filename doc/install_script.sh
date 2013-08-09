@@ -551,67 +551,93 @@ get_ytdata xray_emissivity.h5
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
 
+CYTHON='Cython-0.19.1'
+FORTHON='Forthon-0.8.11'
+PYX='PyX-0.12.1'
+PYTHON='Python-2.7.5'
+BZLIB='bzip2-1.0.6'
+FREETYPE_VER='freetype-2.4.12'
+H5PY='h5py-2.1.3'
+HDF5='hdf5-1.8.11'
+IPYTHON='ipython-1.0.0'
+LAPACK='lapack-3.4.2'
+PNG=libpng-1.6.3
+MATPLOTLIB='matplotlib-1.3.0'
+MERCURIAL='mercurial-2.7'
+NOSE='nose-1.3.0'
+NUMPY='numpy-1.7.1'
+PYTHON_HGLIB='python-hglib-1.0'
+PYZMQ='pyzmq-13.1.0'
+ROCKSTAR='rockstar-0.99.6'
+SCIPY='scipy-0.12.0'
+SQLITE='sqlite-autoconf-3071700'
+SYMPY='sympy-0.7.3'
+TORNADO='tornado-3.1'
+ZEROMQ='zeromq-3.2.3'
+ZLIB='zlib-1.2.8'
+
 # Now we dump all our SHA512 files out.
-echo 'fb85d71bb4f80b35f0d0f1735c650dd75c5f84b05635ddf91d6241ff103b5a49158c5b851a20c15e05425f6dde32a4971b35fcbd7445f61865b4d61ffd1fbfa1  Cython-0.18.tar.gz' > Cython-0.18.tar.gz.sha512
+echo '9dcdda5b2ee2e63c2d3755245b7b4ed2f4592455f40feb6f8e86503195d9474559094ed27e789ab1c086d09da0bb21c4fe844af0e32a7d47c81ff59979b18ca0  Cython-0.19.1.tar.gz' > Cython-0.19.1.tar.gz.sha512
+echo '3f53d0b474bfd79fea2536d0a9197eaef6c0927e95f2f9fd52dbd6c1d46409d0e649c21ac418d8f7767a9f10fe6114b516e06f2be4b06aec3ab5bdebc8768220  Forthon-0.8.11.tar.gz' > Forthon-0.8.11.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
-echo '3349152c47ed2b63c5c9aabcfa92b8497ea9d71ca551fd721e827fcb8f91ff9fbbee6bba8f8cb2dea185701b8798878b4b2435c1496b63d4b4a37c624a625299  Python-2.7.4.tgz' > Python-2.7.4.tgz.sha512
+echo 'd6580eb170b36ad50f3a30023fe6ca60234156af91ccb3971b0b0983119b86f3a9f6c717a515c3c6cb72b3dcbf1d02695c6d0b92745f460b46a3defd3ff6ef2f  Python-2.7.5.tgz' > Python-2.7.5.tgz.sha512
+echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
+echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
-echo 'b46c93d76f8ce09c94765b20b2eeadf71207671f1131777de178b3727c235b4dd77f6e60d62442b96648c3c6749e9e4c1194c1b02af7e946576be09e1ff7ada3  freetype-2.4.11.tar.gz' > freetype-2.4.11.tar.gz.sha512
-echo '15ca0209e8d8f172cb0708a2de946fbbde8551d9bebc4a95fa7ae31558457a7f43249d5289d7675490c577deb4e0153698fd2407644078bf30bd5ab10135fce3  h5py-2.1.2.tar.gz' > h5py-2.1.2.tar.gz.sha512
-echo 'c68a425bacaa7441037910b9166f25b89e1387776a7749a5350793f89b1690350df5f018060c31d03686e7c3ed2aa848bd2b945c96350dc3b6322e087934783a  hdf5-1.8.9.tar.gz' > hdf5-1.8.9.tar.gz.sha512
-echo 'b2b53ed358bacab9e8d63a51f17bd5f121ece60a1d7c53e8a8eb08ad8b1e4393a8d7a86eec06e2efc62348114f0d84c0a3dfc805e68e6edd93b20401962b3554  libpng-1.6.1.tar.gz' > libpng-1.6.1.tar.gz.sha512
-echo '497f91725eaf361bdb9bdf38db2bff5068a77038f1536df193db64c9b887e3b0d967486daee722eda6e2c4e60f034eee030673e53d07bf0db0f3f7c0ef3bd208  matplotlib-1.2.1.tar.gz' > matplotlib-1.2.1.tar.gz.sha512
-echo '928fdeaaf0eaec80adbd8765521de9666ab56aaa2101fb9ab2cb392d8b29475d3b052d89652ff9b67522cfcc6cd958717ac715f51b0573ee088e9a595f29afe2  mercurial-2.5.4.tar.gz' > mercurial-2.5.4.tar.gz.sha512
-echo 'a485daa556f6c76003de1dbb3e42b3daeee0a320c69c81b31a7d2ebbc2cf8ab8e96c214a4758e5e7bf814295dc1d6aa563092b714db7e719678d8462135861a8  numpy-1.7.0.tar.gz' > numpy-1.7.0.tar.gz.sha512
-echo '293d78d14a9347cb83e1a644e5f3e4447ed6fc21642c51683e5495dda08d2312194a73d1fc3c1d78287e33ed065aa251ecbaa7c0ea9189456c1702e96d78becd  sqlite-autoconf-3071601.tar.gz' > sqlite-autoconf-3071601.tar.gz.sha512
-echo 'b1c073ad26684e354f7c522c14655840592e03872bc0a94690f89cae2ff88f146fce1dad252ff27a889dac4a32ff9f8ab63ba940671f9da89e9ba3e19f1bf58d  zlib-1.2.7.tar.gz' > zlib-1.2.7.tar.gz.sha512
-echo '05ac335727a2c3036f31a2506fdd2615aa436bfbe2f81799fe6c51bffe2591ad6a8427f3b25c34e7e709fb4e7607a0589dc7a22185c1f9b894e90de6711a88aa  ipython-0.13.1.tar.gz' > ipython-0.13.1.tar.gz.sha512
-echo 'b9d061ca49e54ea917e0aed2b2a48faef33061dbf6d17eae7f8c3fff0b35ca883e7324f6cb24bda542443f669dcd5748037a5f2309f4c359d68adef520894865  zeromq-3.2.2.tar.gz' > zeromq-3.2.2.tar.gz.sha512
-echo '852fce8a8308c4e1e4b19c77add2b2055ca2ba570b28e8364888df490af92b860c72e860adfb075b3405a9ceb62f343889f20a8711c9353a7d9059adee910f83  pyzmq-13.0.2.tar.gz' > pyzmq-13.0.2.tar.gz.sha512
-echo '303bd3fbea22be57fddf7df78ddf5a783d355a0c8071b1363250daafc20232ddd28eedc44aa1194f4a7afd82f9396628c5bb06819e02b065b6a1b1ae8a7c19e1  tornado-3.0.tar.gz' > tornado-3.0.tar.gz.sha512
-echo '3f53d0b474bfd79fea2536d0a9197eaef6c0927e95f2f9fd52dbd6c1d46409d0e649c21ac418d8f7767a9f10fe6114b516e06f2be4b06aec3ab5bdebc8768220  Forthon-0.8.11.tar.gz' > Forthon-0.8.11.tar.gz.sha512
-echo 'c13116c1f0547000cc565e15774687b9e884f8b74fb62a84e578408a868a84961704839065ae4f21b662e87f2aaedf6ea424ea58dfa9d3d73c06281f806d15dd  nose-1.2.1.tar.gz' > nose-1.2.1.tar.gz.sha512
-echo 'd67de9567256e6f1649e4f3f7dfee63371d5f00fd3fd4f92426198f862e97c57f70e827d19f4e5e1929ad85ef2ce7aa5a0596b101cafdac71672e97dc115b397  python-hglib-0.3.tar.gz' > python-hglib-0.3.tar.gz.sha512
-echo 'ffc602eb346717286b3d0a6770c60b03b578b3cf70ebd12f9e8b1c8c39cdb12ef219ddaa041d7929351a6b02dbb8caf1821b5452d95aae95034cbf4bc9904a7a  sympy-0.7.2.tar.gz' > sympy-0.7.2.tar.gz.sha512
-echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
-echo 'd4fdd62f2db5285cd133649bd1bfa5175cb9da8304323abd74e0ef1207d55e6152f0f944da1da75f73e9dafb0f3bb14efba3c0526c732c348a653e0bd223ccfa  scipy-0.11.0.tar.gz' > scipy-0.11.0.tar.gz.sha512
-echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
+echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
+echo '2eb7030f8559ff5cb06333223d98fda5b3a663b6f4a026949d1c423aa9a869d824e612ed5e1851f3bf830d645eea1a768414f73731c23ab4d406da26014fe202  h5py-2.1.3.tar.gz' > h5py-2.1.3.tar.gz.sha512
+echo 'e9db26baa297c8ed10f1ca4a3fcb12d6985c6542e34c18d48b2022db73014f054c8b8434f3df70dcf44631f38b016e8050701d52744953d0fced3272d7b6b3c1  hdf5-1.8.11.tar.gz' > hdf5-1.8.11.tar.gz.sha512
+echo '1b309c08009583e66d1725a2d2051e6de934db246129568fa6d5ba33ad6babd3b443e7c2782d817128d2b112e21bcdd71e66be34fbd528badd900f1d0ed3db56  ipython-1.0.0.tar.gz' > ipython-1.0.0.tar.gz.sha512
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
+echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
+echo '990e3a155ca7a9d329c41a43b44a9625f717205e81157c668a8f3f2ad5459ed3fed8c9bd85e7f81c509e0628d2192a262d4aa30c8bfc348bb67ed60a0362505a  matplotlib-1.3.0.tar.gz' > matplotlib-1.3.0.tar.gz.sha512
+echo 'e425778edb0f71c34e719e04561ee3de37feaa1be4d60b94c780aebdbe6d41f8f4ab15103a8bbe8894ebeb228c42f0e2cd41b8db840f8384e1cd7cd2d5b67b97  mercurial-2.7.tar.gz' > mercurial-2.7.tar.gz.sha512
+echo 'a3b8060e415560a868599224449a3af636d24a060f1381990b175dcd12f30249edd181179d23aea06b0c755ff3dc821b7a15ed8840f7855530479587d4d814f4  nose-1.3.0.tar.gz' > nose-1.3.0.tar.gz.sha512
+echo 'd58177f3971b6d07baf6f81a2088ba371c7e43ea64ee7ada261da97c6d725b4bd4927122ac373c55383254e4e31691939276dab08a79a238bfa55172a3eff684  numpy-1.7.1.tar.gz' > numpy-1.7.1.tar.gz.sha512
+echo '9c0a61299779aff613131aaabbc255c8648f0fa7ab1806af53f19fbdcece0c8a68ddca7880d25b926d67ff1b9201954b207919fb09f6a290acb078e8bbed7b68  python-hglib-1.0.tar.gz' > python-hglib-1.0.tar.gz.sha512
+echo 'c65013293dd4049af5db009fdf7b6890a3c6b1e12dd588b58fb5f5a5fef7286935851fb7a530e03ea16f28de48b964e50f48bbf87d34545fd23b80dd4380476b  pyzmq-13.1.0.tar.gz' > pyzmq-13.1.0.tar.gz.sha512
+echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
+echo '80c8e137c3ccba86575d4263e144ba2c4684b94b5cd620e200f094c92d4e118ea6a631d27bdb259b0869771dfaeeae68c0fdd37fdd740b9027ee185026e921d4  scipy-0.12.0.tar.gz' > scipy-0.12.0.tar.gz.sha512
+echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
+echo '2992baa3edfb4e1842fb642abf0bf0fc0bf56fc183aab8fed6b3c42fbea928fa110ede7fdddea2d63fc5953e8d304b04da433dc811134fadefb1eecc326121b8  sympy-0.7.3.tar.gz' > sympy-0.7.3.tar.gz.sha512
+echo '101544db6c97beeadc5a02b2ef79edefa0a07e129840ace2e4aa451f3976002a273606bcdc12d6cef5c22ff4c1c9dcf60abccfdee4cbef8e3f957cd25c0430cf  tornado-3.1.tar.gz' > tornado-3.1.tar.gz.sha512
+echo '34ffb6aa645f62bd1158a8f2888bf92929ccf90917a6c50ed51ed1240732f498522e164d1536f26480c87ad5457fe614a93bf0e15f2f89b0b168e64a30de68ca  zeromq-3.2.3.tar.gz' > zeromq-3.2.3.tar.gz.sha512
+echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
 # Individual processes
-[ -z "$HDF5_DIR" ] && get_ytproject hdf5-1.8.9.tar.gz
-[ $INST_ZLIB -eq 1 ] && get_ytproject zlib-1.2.7.tar.gz
-[ $INST_BZLIB -eq 1 ] && get_ytproject bzip2-1.0.6.tar.gz
-[ $INST_PNG -eq 1 ] && get_ytproject libpng-1.6.1.tar.gz
-[ $INST_FTYPE -eq 1 ] && get_ytproject freetype-2.4.11.tar.gz
-[ $INST_SQLITE3 -eq 1 ] && get_ytproject sqlite-autoconf-3071601.tar.gz
-[ $INST_PYX -eq 1 ] && get_ytproject PyX-0.12.1.tar.gz
-[ $INST_0MQ -eq 1 ] && get_ytproject zeromq-3.2.2.tar.gz
-[ $INST_0MQ -eq 1 ] && get_ytproject pyzmq-13.0.2.tar.gz
-[ $INST_0MQ -eq 1 ] && get_ytproject tornado-3.0.tar.gz
-[ $INST_SCIPY -eq 1 ] && get_ytproject scipy-0.11.0.tar.gz
+[ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
+[ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
+[ $INST_BZLIB -eq 1 ] && get_ytproject $BZLIB.tar.gz
+[ $INST_PNG -eq 1 ] && get_ytproject $PNG.tar.gz
+[ $INST_FTYPE -eq 1 ] && get_ytproject $FREETYPE_VER.tar.gz
+[ $INST_SQLITE3 -eq 1 ] && get_ytproject $SQLITE.tar.gz
+[ $INST_PYX -eq 1 ] && get_ytproject $PYX.tar.gz
+[ $INST_0MQ -eq 1 ] && get_ytproject $ZEROMQ.tar.gz
+[ $INST_0MQ -eq 1 ] && get_ytproject $PYZMQ.tar.gz
+[ $INST_0MQ -eq 1 ] && get_ytproject $TORNADO.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
-[ $INST_SCIPY -eq 1 ] && get_ytproject lapack-3.4.2.tar.gz
-get_ytproject Python-2.7.4.tgz
-get_ytproject numpy-1.7.0.tar.gz
-get_ytproject matplotlib-1.2.1.tar.gz
-get_ytproject mercurial-2.5.4.tar.gz
-get_ytproject ipython-0.13.1.tar.gz
-get_ytproject h5py-2.1.2.tar.gz
-get_ytproject Cython-0.18.tar.gz
+[ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
+get_ytproject $PYTHON.tgz
+get_ytproject $NUMPY.tar.gz
+get_ytproject $MATPLOTLIB.tar.gz
+get_ytproject $MERCURIAL.tar.gz
+get_ytproject $IPYTHON.tar.gz
+get_ytproject $H5PY.tar.gz
+get_ytproject $CYTHON.tar.gz
 get_ytproject reason-js-20120623.zip
-get_ytproject Forthon-0.8.11.tar.gz
-get_ytproject nose-1.2.1.tar.gz
-get_ytproject python-hglib-0.3.tar.gz
-get_ytproject sympy-0.7.2.tar.gz
-get_ytproject rockstar-0.99.6.tar.gz
+get_ytproject $FORTHON.tar.gz
+get_ytproject $NOSE.tar.gz
+get_ytproject $PYTHON_HGLIB.tar.gz
+get_ytproject $SYMPY.tar.gz
+get_ytproject $ROCKSTAR.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
-    if [ ! -e bzip2-1.0.6/done ]
+    if [ ! -e $BZLIB/done ]
     then
-        [ ! -e bzip2-1.0.6 ] && tar xfz bzip2-1.0.6.tar.gz
+        [ ! -e $BZLIB ] && tar xfz $BZLIB.tar.gz
         echo "Installing BZLIB"
-        cd bzip2-1.0.6
+        cd $BZLIB
         if [ `uname` = "Darwin" ]
         then
             if [ -z "${CC}" ]
@@ -634,11 +660,11 @@ fi
 
 if [ $INST_ZLIB -eq 1 ]
 then
-    if [ ! -e zlib-1.2.7/done ]
+    if [ ! -e $ZLIB/done ]
     then
-        [ ! -e zlib-1.2.7 ] && tar xfz zlib-1.2.7.tar.gz
+        [ ! -e $ZLIB ] && tar xfz $ZLIB.tar.gz
         echo "Installing ZLIB"
-        cd zlib-1.2.7
+        cd $ZLIB
         ( ./configure --shared --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
@@ -652,11 +678,11 @@ fi
 
 if [ $INST_PNG -eq 1 ]
 then
-    if [ ! -e libpng-1.6.1/done ]
+    if [ ! -e $PNG/done ]
     then
-        [ ! -e libpng-1.6.1 ] && tar xfz libpng-1.6.1.tar.gz
+        [ ! -e $PNG ] && tar xfz $PNG.tar.gz
         echo "Installing PNG"
-        cd libpng-1.6.1
+        cd $PNG
         ( ./configure CPPFLAGS=-I${DEST_DIR}/include CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
@@ -670,13 +696,14 @@ fi
 
 if [ $INST_FTYPE -eq 1 ]
 then
-    if [ ! -e freetype-2.4.11/done ]
+    if [ ! -e $FREETYPE_VER/done ]
     then
-        [ ! -e freetype-2.4.11 ] && tar xfz freetype-2.4.11.tar.gz
+        [ ! -e $FREETYPE_VER ] && tar xfz $FREETYPE_VER.tar.gz
         echo "Installing FreeType2"
-        cd freetype-2.4.11
+        cd $FREETYPE_VER
         ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
+		( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
@@ -688,11 +715,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.8.9/done ]
+    if [ ! -e $HDF5/done ]
     then
-        [ ! -e hdf5-1.8.9 ] && tar xfz hdf5-1.8.9.tar.gz
+        [ ! -e $HDF5 ] && tar xfz $HDF5.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.8.9
+        cd $HDF5
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
@@ -707,11 +734,11 @@ export HDF5_API=16
 
 if [ $INST_SQLITE3 -eq 1 ]
 then
-    if [ ! -e sqlite-autoconf-3071601/done ]
+    if [ ! -e $SQLITE/done ]
     then
-        [ ! -e sqlite-autoconf-3071601 ] && tar xfz sqlite-autoconf-3071601.tar.gz
+        [ ! -e $SQLITE ] && tar xfz $SQLITE.tar.gz
         echo "Installing SQLite3"
-        cd sqlite-autoconf-3071601
+        cd $SQLITE
         ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make ${MAKE_PROCS} install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
@@ -720,11 +747,11 @@ then
     fi
 fi
 
-if [ ! -e Python-2.7.4/done ]
+if [ ! -e $PYTHON/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
-    [ ! -e Python-2.7.4 ] && tar xfz Python-2.7.4.tgz
-    cd Python-2.7.4
+    [ ! -e $PYTHON ] && tar xfz $PYTHON.tgz
+    cd $PYTHON
     ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -739,7 +766,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
 
 if [ $INST_HG -eq 1 ]
 then
-    do_setup_py mercurial-2.5.4
+    do_setup_py $MERCURIAL
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -788,9 +815,9 @@ echo "Installing pip"
 
 if [ $INST_SCIPY -eq 0 ]
 then
-    do_setup_py numpy-1.7.0 ${NUMPY_ARGS}
+    do_setup_py $NUMPY ${NUMPY_ARGS}
 else
-    if [ ! -e scipy-0.11.0/done ]
+    if [ ! -e $SCIPY/done ]
     then
 	if [ ! -e BLAS/done ]
 	then
@@ -804,11 +831,11 @@ else
 	    touch done
 	    cd ..
 	fi
-	if [ ! -e lapack-3.4.2/done ]
+	if [ ! -e $LAPACK/done ]
 	then
-	    tar xfz lapack-3.4.2.tar.gz
+	    tar xfz $LAPACK.tar.gz
 	    echo "Building LAPACK"
-	    cd lapack-3.4.2/
+	    cd $LAPACK/
 	    cp INSTALL/make.inc.gfortran make.inc
 	    make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
 	    touch done
@@ -816,9 +843,9 @@ else
 	fi
     fi
     export BLAS=$PWD/BLAS/libfblas.a
-    export LAPACK=$PWD/lapack-3.4.2/liblapack.a
-    do_setup_py numpy-1.7.0 ${NUMPY_ARGS}
-    do_setup_py scipy-0.11.0 ${NUMPY_ARGS}
+    export LAPACK=$PWD/$LAPACK/liblapack.a
+    do_setup_py $NUMPY ${NUMPY_ARGS}
+    do_setup_py $SCIPY ${NUMPY_ARGS}
 fi
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
@@ -840,10 +867,10 @@ then
     echo "Setting CFLAGS ${CFLAGS}"
 fi
 # Now we set up the basedir for matplotlib:
-mkdir -p ${DEST_DIR}/src/matplotlib-1.2.1
-echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.2.1/setup.cfg
-echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.2.1/setup.cfg
-do_setup_py matplotlib-1.2.1
+mkdir -p ${DEST_DIR}/src/$MATPLOTLIB
+echo "[directories]" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
+echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
+do_setup_py $MATPLOTLIB
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}
@@ -855,36 +882,36 @@ fi
 # Now we do our IPython installation, which has two optional dependencies.
 if [ $INST_0MQ -eq 1 ]
 then
-    if [ ! -e zeromq-3.2.2/done ]
+    if [ ! -e $ZEROMQ/done ]
     then
-        [ ! -e zeromq-3.2.2 ] && tar xfz zeromq-3.2.2.tar.gz
+        [ ! -e $ZEROMQ ] && tar xfz $ZEROMQ.tar.gz
         echo "Installing ZeroMQ"
-        cd zeromq-3.2.2
+        cd $ZEROMQ
         ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
-    do_setup_py pyzmq-13.0.2 --zmq=${DEST_DIR}
-    do_setup_py tornado-3.0
+    do_setup_py $PYZMQ --zmq=${DEST_DIR}
+    do_setup_py $TORNADO
 fi
 
-do_setup_py ipython-0.13.1
-do_setup_py h5py-2.1.2
-do_setup_py Cython-0.18
-do_setup_py Forthon-0.8.11
-do_setup_py nose-1.2.1
-do_setup_py python-hglib-0.3
-do_setup_py sympy-0.7.2
-[ $INST_PYX -eq 1 ] && do_setup_py PyX-0.12.1
+do_setup_py $IPYTHON
+do_setup_py $H5PY
+do_setup_py $CYTHON
+do_setup_py $FORTHON
+do_setup_py $NOSE
+do_setup_py $PYTHON_HGLIB
+do_setup_py $SYMPY
+[ $INST_PYX -eq 1 ] && do_setup_py $PYX
 
 # Now we build Rockstar and set its environment variable.
 if [ $INST_ROCKSTAR -eq 1 ]
 then
     if [ ! -e Rockstar/done ]
     then
-        [ ! -e Rockstar ] && tar xfz rockstar-0.99.6.tar.gz
+        [ ! -e Rockstar ] && tar xfz $ROCKSTAR.tar.gz
         echo "Building Rockstar"
         cd Rockstar
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
