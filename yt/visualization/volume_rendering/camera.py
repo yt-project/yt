@@ -121,7 +121,7 @@ class Camera(ParallelAnalysisInterface):
         accuracy/smoothness in resulting image.  The effects are
         less notable when the transfer function is smooth and
         broad. Default: True
-    data_source: YTRegion, optional
+    data_source: data container, optional
         Optionally specify an arbitrary data source to the volume rendering.
         All cells not included in the data source will be ignored during ray
         casting. By default this will get set to pf.h.all_data().
@@ -2005,7 +2005,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         this by, for instance, calling np.array([v1,v2,v3]) where those are the
         three reference planes of an orthogonal frame (see ortho_find).
     data_source : data container, default None
-        If this is supplied, this gives the data data_source from which the all sky
+        If this is supplied, this gives the data source from which the all sky
         projection pulls its data from.
 
     Returns
