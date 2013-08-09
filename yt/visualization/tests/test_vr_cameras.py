@@ -32,8 +32,11 @@ from yt.mods import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.volume_rendering.api import \
     PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera
 from yt.visualization.tests.test_plotwindow import assert_fname
+import matplotlib
+matplotlib.use('Agg')
 
-use_tmpdir = False
+# This toggles using a temporary directory. Turn off to examine images.
+use_tmpdir = True 
 
 
 def setup():
@@ -62,9 +65,9 @@ def teardown_dir(curdir, tmpdir):
 def setup_pf():
     # args for off_axis_projection
     test_pf = fake_random_pf(64)
-    c = [0.5, 0.5, 0.5]
+    c = test_pf.domain_center 
     norm = [0.5, 0.5, 0.5]
-    W = test_pf.domain_width
+    W = 1.5*test_pf.domain_width
     N = 64
     field = "Density"
     cam_args = [test_pf, c, norm, W, N, field]
@@ -74,12 +77,8 @@ def setup_pf():
 def setup_transfer_function(pf, camera_type):
     if camera_type in ['perspective', 'camera', 'stereopair', 'interactive']:
         mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
-        mi, ma = np.log10(mi), np.log10(ma)
         tf = ColorTransferFunction((mi-1., ma+1.), grey_opacity=True)
-        Nsamples = 4
-        tf.add_layers(Nsamples, w=0.02, col_bounds=(mi, ma),
-                      alpha=np.logspace(1.0, 2.0, Nsamples), colormap='RdBu_r')
-        #tf.map_to_colormap(mi,ma, scale=10., colormap='RdBu_r')
+        tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
         return tf
     elif camera_type in ['healpix']:
         return ProjectionTransferFunction()
