@@ -5,6 +5,7 @@ from yt.utilities.physical_constants import mp, clight, cm_per_kpc, cm_per_mpc, 
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.data_objects.api import add_field
+
 import os
 import h5py
 
@@ -14,13 +15,8 @@ except ImportError:
     try:
         import astropy.io.fits as pyfits
     except ImportError:
-        mylog.warning("You don't have pyFITS installed. Writing to FITS files won't be available.")
+        mylog.warning("You don't have pyFITS installed. Writing to and reading from FITS files won't be available.")
     
-try:
-    import xspec
-except ImportError:
-    mylog.warning("You don't have PyXSpec installed. Some models won't be available.")
-
 N_TBIN = 10000
 TMIN = 8.08e-2
 TMAX = 50.
@@ -43,111 +39,6 @@ def _emission_measure_density(field, data):
 add_field("EmissionMeasure", function=_emission_measure)
 add_field("EMDensity", function=_emission_measure_density)
 
-class PhotonModel(object):
-
-    def __init__(self, emin, emax, nchan):
-        self.emin = emin
-        self.emax = emax
-        self.nchan = nchan
-        self.ebins = np.linspace(emin, emax, nchan+1)
-
-    def prepare(self):
-        pass
-    
-    def get_spectrum(self):
-        pass
-    
-class XSpecThermalModel(PhotonModel):
-    
-    def __init__(self, model_name, emin, emax, nchan):
-        self.model_name = model_name
-        PhotonModel.__init__(self, emin, emax, nchan)
-                
-    def prepare(self):
-        xspec.Xset.chatter = 0
-        xspec.AllModels.setEnergies("%f %f %d lin" % (self.emin, self.emax, self.nchan))
-        self.model = xspec.Model(self.model_name)
-        
-    def get_spectrum(self, kT, Zmet):
-
-        m = getattr(self.model,self.model_name)
-        m.kT = kT 
-        m.Abundanc = Zmet
-        m.norm = 1.0
-        m.Redshift = 0.0        
-        return 1.0e-14*np.array(self.model.values(0))
-
-class XSpecAbsorbModel(PhotonModel):
-
-     def __init__(self, model_name, nH, emin=0.01, emax=50.0, nchan=100000):
-         self.model_name = model_name
-         self.nH = nH
-         PhotonModel.__init__(self, emin, emax, nchan)
-         
-     def prepare(self):
-         xspec.Xset.chatter = 0
-         xspec.AllModels.setEnergies("%f %f %d lin" % (self.emin, self.emax, self.nchan))
-         self.model = xspec.Model(self.model_name+"*powerlaw")
-         self.model.powerlaw.norm = self.nchan/(self.emax-self.emin)
-         self.model.powerlaw.PhoIndex = 0.0
-                                                       
-     def get_spectrum(self):
-         m = getattr(self.model,self.model_name)
-         m.nH = self.nH
-         return np.array(self.model.values(0))
-    
-class TableApecModel(PhotonModel):
-
-    def __init__(self, filename):
-        if not os.path.exists(filename):
-            raise IOError("File does not exist: %s." % filename)
-        self.filename = filename
-        f = h5py.File(self.filename,"r")
-        self.T_vals = f["kT"][:]
-        self.Z_vals = f["Zmet"][:]
-        emin        = f["emin"].value
-        emax        = f["emax"].value
-        self.spec_table = f["spectrum"][:,:,:]
-        nchan = self.spec_table.shape[-1]
-        f.close()
-        self.dT = self.T_vals[1]-self.T_vals[0]
-        self.dZ = self.Z_vals[1]-self.Z_vals[0]
-        PhotonModel.__init__(self, emin, emax, nchan)
-                
-    def prepare(self):
-        pass
-    
-    def get_spectrum(self, kT, Zmet):
-        iz = np.searchsorted(self.Z_vals, Zmet)-1
-        dz = (Zmet-self.Z_vals[iz])/self.dZ
-        it = np.searchsorted(self.T_vals, kT)-1
-        dt = (kT-self.T_vals[it])/self.dT
-        spec = self.spec_table[it+1,iz+1,:]*dt*dz + \
-               self.spec_table[it,iz,:]*(1.-dt)*(1.-dz) + \
-               self.spec_table[it,iz+1,:]*(1.-dt)*dz + \
-               self.spec_table[it+1,iz,:]*dt*(1.-dz)
-        return spec
-
-class TableAbsorbModel(PhotonModel):
-
-    def __init__(self, filename):
-        if not os.path.exists(filename):
-            raise IOError("File does not exist: %s." % filename)
-        self.filename = filename
-        f = h5py.File(self.filename,"r")
-        emin = f["emin"].value
-        emax = f["emax"].value
-        self.abs = f["spectrum"][:]
-        nchan = self.abs.shape[0]
-        f.close()
-        PhotonModel.__init__(self, emin, emax, nchan)
-        
-    def prepare(self):
-        pass
-
-    def get_spectrum(self):
-        return self.abs ** nH
-            
 class XRayPhotonList(object):
 
     def __init__(self, photons = None):
@@ -351,6 +242,8 @@ class XRayPhotonList(object):
         n_ph = self.photons["NumberOfPhotons"]
         num_cells = len(n_ph)
         n_ph_tot = n_ph.sum()
+
+        eff_area = None
         
         if texp_new is None and area_new is None:
             n_obs = n_ph
@@ -361,16 +254,25 @@ class XRayPhotonList(object):
                 Tratio = texp_new/self.photons["FiducialExposureTime"]
             if area_new is None:
                 Aratio = 1.
+            elif isinstance(area_new, basestring):
+                mylog.info("Using energy-dependent effective area.")
+                f = pyfits.open(area_new)
+                elo = f[1].data.field("ENERG_LO")
+                ehi = f[1].data.field("ENERG_HI")
+                eff_area = f[1].data.field("SPECRESP")
+                f.close()
+                Aratio = eff_area.max()/self.photons["FiducialArea"]
             else:
+                mylog.info("Using constant effective area.")
                 Aratio = area_new/self.photons["FiducialArea"]
             fak = Aratio*Tratio
             if fak > 1:
                 raise ValueError("Spectrum scaling factor = %g, cannot be greater than unity." % (fak))
             n_obs = np.uint64(n_ph*fak)
-            
+                            
         n_obs_tot = n_obs.sum()
 
-        mylog.info("Total number of observed photons (without absorption): %d" % (n_obs_tot))
+        mylog.info("Total number of photons to use: %d" % (n_obs_tot))
 
         if smoothing:
             x = np.random.normal(scale=0.5,size=n_obs_tot)
@@ -384,7 +286,7 @@ class XRayPhotonList(object):
         vz = self.photons["vx"]*z_hat[0] + \
              self.photons["vy"]*z_hat[1] + \
              self.photons["vz"]*z_hat[2]
-        shift = -vz * cm_per_km / clight
+        shift = -vz*cm_per_km/clight
         shift = np.sqrt((1.-shift)/(1.+shift))
         
         cells = np.concatenate([i*np.ones((n_ph[i]),dtype='uint64') for i in xrange(num_cells)])
@@ -415,20 +317,35 @@ class XRayPhotonList(object):
             de = energy[1]-energy[0]
             emid = 0.5*(energy[1:]+energy[:-1])
             aspec = absorb_model.get_spectrum()
-            aspec_max = aspec.max()
             eidxs = np.searchsorted(emid, eobs)-1
             dx = (eobs-emid[eidxs])/de
             absorb = aspec[eidxs]*(1.-dx) + aspec[eidxs+1]*dx
-            randvec = aspec_max*np.random.random(eobs.shape)
-            not_abs = np.where(randvec < absorb)[0]
-                        
+            randvec = aspec.max()*np.random.random(eobs.shape)
+            not_abs = randvec < absorb
+
+        if eff_area is None:
+            detected = np.ones(eobs.shape, dtype='bool')
+        else:
+            mylog.info("Applying energy-dependent effective area.")
+            earf = 0.5*(elo+ehi)
+            de = earf[1]-earf[0]            
+            eidxs = np.searchsorted(earf, eobs)-1
+            dx = (eobs-earf[eidxs])/de
+            earea = eff_area[eidxs]*(1.-dx) + eff_area[eidxs+1]*dx
+            randvec = eff_area.max()*np.random.random(eobs.shape)
+            detected = randvec < earea
+        
+        all_obs = np.logical_and(not_abs, detected)
+
+        mylog.info("Total number of observed photons: %d" % (all_obs.sum()))
+                    
         D_A = self.photons["AngularDiameterDistance"] / cm_per_kpc
 
         events = {}
 
-        events["xsky"] = np.rad2deg(xsky[not_abs]/D_A)*3600.
-        events["ysky"] = np.rad2deg(ysky[not_abs]/D_A)*3600.
-        events["eobs"] = eobs[not_abs]
+        events["xsky"] = np.rad2deg(xsky[all_obs]/D_A)*3600.
+        events["ysky"] = np.rad2deg(ysky[all_obs]/D_A)*3600.
+        events["eobs"] = eobs[all_obs]
 
         if texp_new is None:
             events["ExposureTime"] = self.photons["FiducialExposureTime"]
@@ -632,7 +549,7 @@ class XRayEventList(object) :
                                            self.events["ysky"][mask],
                                            bins=[xbins,xbins])
         
-        hdu = pyfits.PrimaryHDU(H.T)
+        hdu = pyfits.PrimaryHDU(H.T[::-1,::])
 
         hdu.header.update("MTYPE1", "EQPOS")
         hdu.header.update("MFORM1", "RA,DEC")
