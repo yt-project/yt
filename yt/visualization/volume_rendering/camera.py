@@ -121,6 +121,10 @@ class Camera(ParallelAnalysisInterface):
         accuracy/smoothness in resulting image.  The effects are
         less notable when the transfer function is smooth and
         broad. Default: True
+    data_source: YTRegion, optional
+        Optionally specify an arbitrary data source to the volume rendering.
+        All cells not included in the data source will be ignored during ray
+        casting. By default this will get set to pf.h.all_data().
 
     Examples
     --------
