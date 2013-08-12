@@ -1135,11 +1135,6 @@ class PWViewerMPL(PWViewer):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
-    def __repr__(self):
-        if "__IPYTHON__" in dir(__builtin__):
-            self.show()
-        return super(PWViewerMPL, self).__repr__()
-
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
 
