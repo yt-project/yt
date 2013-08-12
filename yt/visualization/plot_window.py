@@ -1135,10 +1135,14 @@ class PWViewerMPL(PWViewer):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
-    def __repr__(self):
-        if "__IPYTHON__" in dir(__builtin__):
-            self.show()
-        return super(PWViewerMPL, self).__repr__()
+    def _repr_html_(self):
+        """Return an html representation of the plot object. Will display as a
+        png for each WindowPlotMPL instance in self.plots"""
+        ret = ''
+        for field in self.plots:
+            img = base64.b64encode(self.plots[field]._repr_png_())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret
 
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file

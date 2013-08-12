@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import matplotlib
+import cStringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
@@ -96,3 +97,10 @@ class ImagePlotMPL(PlotMPL):
                                       norm=norm, vmin=self.zmin, aspect=aspect,
                                       vmax=self.zmax, cmap=cmap)
         self.cb = self.figure.colorbar(self.image, self.cax)
+
+    def _repr_png_(self):
+        canvas = FigureCanvasAgg(self.figure)
+        f = cStringIO.StringIO()
+        canvas.print_figure(f)
+        f.seek(0)
+        return f.read()
