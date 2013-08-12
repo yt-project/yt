@@ -52,7 +52,7 @@ from .base_plot_types import ImagePlotMPL
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
-    fix_axis, get_image_suffix
+    fix_axis, get_image_suffix, get_ipython_api_version
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -1123,7 +1123,11 @@ class PWViewerMPL(PWViewer):
 
         """
         if "__IPYTHON__" in dir(__builtin__):
-            self._send_zmq()
+            api_version = get_ipython_api_version()
+            if api_version in ('0.10', '0.11'):
+                self._send_zmq()
+            else:
+                return self
         else:
             raise YTNotInsideNotebook
 

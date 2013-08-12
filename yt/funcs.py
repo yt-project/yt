@@ -250,6 +250,17 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
+def get_ipython_api_version():
+    import IPython
+    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
+        api_version = '0.10'
+    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
+        api_version = '0.11'
+    else:
+        api_version = '1.0'
+
+    return api_version
+
 def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
@@ -259,13 +270,7 @@ def insert_ipython(num_up=1):
     defaults to 1 so that this function itself is stripped off.
     """
 
-    import IPython
-    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
-        api_version = '0.10'
-    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
-        api_version = '0.11'
-    else:
-        api_version = '1.0'
+    api_version = get_ipython_api_version()
 
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
