@@ -152,7 +152,7 @@ cdef void assign_domain_ind(Oct *o, OctVisitorData *data, np.uint8_t selected):
     o.domain_ind = data.global_index
     data.index += 1
 
-cdef void fill_file_indices(Oct *o, OctVisitorData *data, np.uint8_t selected):
+cdef void fill_file_indices_oind(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We fill these arrays, then inside the level filler we use these as
     # indices as we fill a second array from the data.
     if selected == 0: return
@@ -163,4 +163,17 @@ cdef void fill_file_indices(Oct *o, OctVisitorData *data, np.uint8_t selected):
     level_arr[data.index] = data.level
     find_arr[data.index] = o.file_ind
     cell_arr[data.index] = oind(data)
+    data.index +=1
+
+cdef void fill_file_indices_rind(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # We fill these arrays, then inside the level filler we use these as
+    # indices as we fill a second array from the data.
+    if selected == 0: return
+    cdef void **p = <void **> data.array
+    cdef np.uint8_t *level_arr = <np.uint8_t *> p[0]
+    cdef np.int64_t *find_arr = <np.int64_t *> p[1]
+    cdef np.uint8_t *cell_arr = <np.uint8_t *> p[2]
+    level_arr[data.index] = data.level
+    find_arr[data.index] = o.file_ind
+    cell_arr[data.index] = rind(data)
     data.index +=1
