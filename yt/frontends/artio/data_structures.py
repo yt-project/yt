@@ -103,31 +103,17 @@ class ARTIOOctreeSubset(OctreeSubset):
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
 
-    def fill_particles(self, field_data, fields, selector):
-        art_fields = {}
+    def fill_particles(self, fields):
+        art_fields = []
         for s, f in fields:
-            for i in range(self.pf.num_species):
-                if s == "all" or self.pf.particle_species[i] == yt_to_art[s]:
-                    if yt_to_art[f] in self.pf.particle_variables[i]:
-                        art_fields[(i, yt_to_art[f])] = 1
-
+            i = self.pf.particle_species.index(yt_to_art[s])
+            art_fields.append((i, yt_to_art[f]))
         species_data = self.oct_handler.fill_sfc_particles(art_fields.keys())
-
+        tr = defaultdict(dict)
         for s, f in fields:
-            af = yt_to_art[f]
-            npart = sum(len(species_data[(i, af)])
-                     for i in range(self.pf.num_species)
-                     if s == "all"
-                     or self.pf.particle_species[i] == yt_to_art[s])
-
-            cp = len(field_data[(s, f)])
-            field_data[(s, f)].resize(cp + npart)
-            for i in range(self.pf.num_species):
-                if s == "all" or self.pf.particle_species[i] == yt_to_art[s]:
-                    npart = len(species_data[(i, yt_to_art[f])])
-                    field_data[(s, f)][cp:cp+npart] = \
-                        species_data[(i, yt_to_art[f])]
-                    cp += npart
+            i = self.pf.particle_species.index(yt_to_art[s])
+            tr[s][f] = species_data.pop((i, yt_to_art[f]))
+        return species_data
 
 class ARTIOChunk(object):
 
