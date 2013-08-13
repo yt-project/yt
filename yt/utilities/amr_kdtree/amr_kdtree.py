@@ -107,7 +107,8 @@ class Tree(object):
         for lvl in lvl_range:
             gles = np.array([g.LeftEdge for g in grids if g.Level == lvl])
             gres = np.array([g.RightEdge for g in grids if g.Level == lvl])
-            gids = np.array([g.id for g in grids if g.Level == lvl])
+            gids = np.array([g.id for g in grids if g.Level == lvl],
+                            dtype="int64")
 
             add_pygrids(self.trunk, len(gids), gles, gres, gids, self.comm_rank, self.comm_size)
             del gles, gres, gids
