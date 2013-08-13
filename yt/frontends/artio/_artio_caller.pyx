@@ -291,10 +291,10 @@ cdef class artio_fileset :
             elif self.parameters["num_secondary_variables"][species] > 0 and \
                     field in self.parameters["species_%02u_secondary_variable_labels"%(species,)] :
                 selected_secondary[species].append((self.parameters["species_%02u_secondary_variable_labels"%(species,)].index(field),(species,field)))
-                data[(species,field)] = np.empty(0,dtype="float32")
+                data[(species,field)] = np.empty(0,dtype="float64")
             elif field == "MASS" :
                 selected_mass[species] = (species,field)
-                data[(species,field)] = np.empty(0,dtype="float32")
+                data[(species,field)] = np.empty(0,dtype="float64")
             elif field == "PID" :
                 selected_pid[species] = (species,field)
                 data[(species,field)] = np.empty(0,dtype="int64")
@@ -403,7 +403,7 @@ cdef class artio_fileset :
         ires = np.empty(0, dtype="int64")
 
         #data = [ np.empty(max_cells, dtype="float32") for i in range(num_fields) ]
-        data = [ np.empty(0,dtype="float32") for i in range(num_fields)]
+        data = [ np.empty(0,dtype="float64") for i in range(num_fields)]
 
         count = 0
         for sfc in range( sfc_start, sfc_end+1 ) :
@@ -539,14 +539,14 @@ cdef struct particle_var_pointers:
     int s_ind[16] # Max of 16 vars
     # Pointers to the bools and data arrays for mass, pid and species
     int n_mass
-    np.float32_t *mass
+    np.float64_t *mass
     int n_pid
     np.int64_t *pid
     int n_species
     np.int8_t *species
     # Pointers to the pointers to primary and secondary vars
     np.float64_t *pvars[16]
-    np.float32_t *svars[16]
+    np.float64_t *svars[16]
 
 cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     # This is a transitory, created-on-demand OctreeContainer.  It should not
@@ -790,7 +790,6 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 
         cdef np.ndarray[np.int8_t, ndim=1] npi8arr
         cdef np.ndarray[np.int64_t, ndim=1] npi64arr
-        cdef np.ndarray[np.float32_t, ndim=1] npf32arr
         cdef np.ndarray[np.float64_t, ndim=1] npf64arr
 
         # Now we set up our field pointers
@@ -845,10 +844,10 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             vp = &vpoints[species]
             if field == "MASS":
                 vp.n_mass = 1
-                npf32arr = data[(species, field)] = np.zeros(tp, dtype="float32")
+                npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
                 # We fill this *now*
-                npf32arr += params["particle_species_mass"][species]
-                vp.mass = <np.float32_t*> npf32arr.data
+                npf64arr += params["particle_species_mass"][species]
+                vp.mass = <np.float64_t*> npf64arr.data
             elif field == "PID":
                 vp.n_pid = 1
                 npi64arr = data[(species, field)] = np.zeros(tp, dtype="int64")
@@ -865,9 +864,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
                 vp.n_p += 1
             elif nsec_vars[species] > 0 and field in sec_vars :
-                npf32arr = data[(species, field)] = np.zeros(tp, dtype="float32")
+                npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
                 vp.s_ind[vp.n_s] = sec_vars.index(field)
-                vp.svars[vp.n_s] = <np.float32_t *> npf32arr.data
+                vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
                 vp.n_s += 1
 
         for sfc in range(self.sfc_start, self.sfc_end + 1):
