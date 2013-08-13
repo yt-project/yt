@@ -139,7 +139,8 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
                 speciesLines['N']=na.append(speciesLines['N'],newLinesP[:,0])
                 speciesLines['b']=na.append(speciesLines['b'],newLinesP[:,1])
                 speciesLines['z']=na.append(speciesLines['z'],newLinesP[:,2])
-                speciesLines['group#']=na.append(speciesLines['group#'],b_i)
+                groupNums = b_i*na.ones(na.size(newLinesP[:,0]))
+                speciesLines['group#']=na.append(speciesLines['group#'],groupNums)
 
         allSpeciesLines[species]=speciesLines
 
