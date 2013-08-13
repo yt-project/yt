@@ -1,9 +1,11 @@
 import numpy as np
 from yt.funcs import *
-from yt.utilities.physical_constants import mp, clight, cm_per_kpc, cm_per_mpc, \
-     cm_per_km, K_per_keV, erg_per_keV
+from yt.utilities.physical_constants import mp, clight, cm_per_kpc, \
+     cm_per_mpc, cm_per_km, K_per_keV, erg_per_keV
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+     parallel_objects
 from yt.data_objects.api import add_field
 
 import os
@@ -15,7 +17,8 @@ except ImportError:
     try:
         import astropy.io.fits as pyfits
     except ImportError:
-        mylog.warning("You don't have pyFITS installed. Writing to and reading from FITS files won't be available.")
+        mylog.warning("You don't have pyFITS installed. " + 
+                      "Writing to and reading from FITS files won't be available.")
     
 N_TBIN = 10000
 TMIN = 8.08e-2
@@ -78,13 +81,18 @@ class XRayPhotonList(object):
         return cls(photons)
 
     @classmethod
-    def from_scratch(cls, cell_data, redshift, eff_A, exp_time, emission_model,
-                     center="c", X_H=0.75, Zmet=0.3, cosmology=None):
+    def from_scratch(cls, cell_data, redshift, eff_A,
+                     exp_time, emission_model, center="c",
+                     X_H=0.75, Zmet=0.3, cosmology=None):
         """
         Initialize a XRayPhotonList from a data container. 
         """
         pf = cell_data.pf
 
+        comm = communication_system.communicators[-1]
+        my_rank = comm.rank
+        my_size = comm.size
+        
         vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
 
         if cosmology is None:
@@ -133,9 +141,8 @@ class XRayPhotonList(object):
         n = int(0)
             
         for i,ikT in enumerate(kT_idxs):
-            
+
             ncells = int(bcounts[i])
-            
             kT = kT_bins[ikT] + 0.5*dkT
             
             em_sum = cell_em[n:n+ncells].sum()
@@ -162,13 +169,13 @@ class XRayPhotonList(object):
                     eidxs = np.searchsorted(counts, randvec)-1
                     cell_e = emid[eidxs]+de*(randvec-counts[eidxs])/(counts[eidxs+1]-counts[eidxs])
                     energies.append(cell_e)
-
+            
                 pbar.update(icell)
                 
             n += ncells
             
         pbar.finish()
-                        
+            
         active_cells = np.where(number_of_photons > 0)[0]
         num_active_cells = len(active_cells)
 
@@ -190,7 +197,7 @@ class XRayPhotonList(object):
         photons["OmegaMatter"] = cosmo.OmegaMatterNow
         photons["OmegaLambda"] = cosmo.OmegaLambdaNow
         photons["AngularDiameterDistance"] = D_A
-        
+
         return cls(photons)
             
     def write_h5_file(self, photonfile):
@@ -222,9 +229,9 @@ class XRayPhotonList(object):
         f.close()
     
     def project_photons(self, L, area_new=None, texp_new=None, 
-                        absorb_model=None, smoothing=False):
+                        absorb_model=None, psf_sigma=None):
         """
-        Project photons 
+        Projects photons onto an image plane given a line of sight. 
         """
         dx = self.photons["dx"]
         
@@ -239,6 +246,8 @@ class XRayPhotonList(object):
         y_hat = orient.unit_vectors[1]
         z_hat = orient.unit_vectors[2]
 
+        D_A = self.photons["AngularDiameterDistance"] / cm_per_kpc
+        
         n_ph = self.photons["NumberOfPhotons"]
         num_cells = len(n_ph)
         n_ph_tot = n_ph.sum()
@@ -274,15 +283,10 @@ class XRayPhotonList(object):
 
         mylog.info("Total number of photons to use: %d" % (n_obs_tot))
 
-        if smoothing:
-            x = np.random.normal(scale=0.5,size=n_obs_tot)
-            y = np.random.normal(scale=0.5,size=n_obs_tot)
-            z = np.random.normal(scale=0.5,size=n_obs_tot)
-        else:
-            x = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-            y = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-            z = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-
+        x = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+        y = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+        z = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+                    
         vz = self.photons["vx"]*z_hat[0] + \
              self.photons["vy"]*z_hat[1] + \
              self.photons["vz"]*z_hat[2]
@@ -296,9 +300,7 @@ class XRayPhotonList(object):
         else:
             idxs = np.random.choice(n_ph_tot, size=n_obs_tot, replace=False)
             obs_cells = cells[idxs]
-        x *= dx[obs_cells]
-        y *= dx[obs_cells]
-        z *= dx[obs_cells]
+
         x += self.photons["x"][obs_cells]
         y += self.photons["y"][obs_cells]
         z += self.photons["z"][obs_cells]  
@@ -337,16 +339,20 @@ class XRayPhotonList(object):
         
         all_obs = np.logical_and(not_abs, detected)
 
-        mylog.info("Total number of observed photons: %d" % (all_obs.sum()))
+        num_events = all_obs.sum()
+        
+        mylog.info("Total number of observed photons: %d" % (num_events))
                     
-        D_A = self.photons["AngularDiameterDistance"] / cm_per_kpc
-
         events = {}
 
         events["xsky"] = np.rad2deg(xsky[all_obs]/D_A)*3600.
         events["ysky"] = np.rad2deg(ysky[all_obs]/D_A)*3600.
         events["eobs"] = eobs[all_obs]
 
+        if psf_sigma is not None:
+            events["xsky"] += np.random.normal(sigma=psf_sigma)
+            events["ysky"] += np.random.normal(sigma=psf_sigma)
+            
         if texp_new is None:
             events["ExposureTime"] = self.photons["FiducialExposureTime"]
         else:
@@ -418,6 +424,9 @@ class XRayEventList(object) :
         
         return cls(events)
 
+    def convolve_with_response(self, respfile):
+        pass
+    
     def write_fits_file(self, fitsfile, clobber=False):
         """
         Write events to a FITS binary table file.
@@ -442,7 +451,9 @@ class XRayEventList(object) :
         tbhdu.writeto(fitsfile, clobber=clobber)
                 
     def write_simput_file(self, prefix, clobber=False, e_min=None, e_max=None):
-
+        """
+        Write events to a SIMPUT file.
+        """
         if e_min is None:
             e_min = 0.0
         if e_max is None:
@@ -528,7 +539,9 @@ class XRayEventList(object) :
     def write_fits_image(self, imagefile, width, nx, center,
                          clobber=False, gzip_file=False,
                          emin=None, emax=None):
-        
+        """
+        Generate a image by binning X-ray counts and write it to a FITS file.
+        """
         if emin is None:
             mask_emin = np.ones((self.num_events), dtype='bool')
         else:
