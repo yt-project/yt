@@ -270,7 +270,7 @@ def can_run_pf(pf_fn):
     with temp_cwd(path):
         try:
             load(pf_fn)
-        except:
+        except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
