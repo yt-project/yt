@@ -281,7 +281,8 @@ add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
 
 for fname in ["particle_position_%s" % ax for ax in 'xyz'] + \
              ["particle_velocity_%s" % ax for ax in 'xyz'] + \
-             ["particle_index", "particle_species"]:
+             ["particle_index", "particle_species",
+              "particle_mass"]:
     func = _field_concat(fname)
     ARTIOFieldInfo.add_field(("all", fname), function=func,
             particle_type = True)

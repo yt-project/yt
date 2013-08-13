@@ -64,9 +64,12 @@ class IOHandlerARTIO(BaseIOHandler):
                     if mask is None: continue
                     for fname in rv[ftype]:
                         if (ftype, fname) not in fields: continue
-                        tr[ftype, fname].append(rv[ftype][fname][mask])
+                        fd[ftype, fname].append(rv[ftype][fname][mask])
+        # This needs to be pre-initialized in case we are later concatenated.
+        tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
         for f in fd.keys():
-            n, v = fd.pop(f)
+            v = fd.pop(f)
             if f not in fields: continue
+            if len(v) == 0: continue
             tr[f] = np.concatenate(v)
         return tr

@@ -108,12 +108,12 @@ class ARTIOOctreeSubset(OctreeSubset):
         for s, f in fields:
             i = self.pf.particle_species.index(yt_to_art[s])
             art_fields.append((i, yt_to_art[f]))
-        species_data = self.oct_handler.fill_sfc_particles(art_fields.keys())
+        species_data = self.oct_handler.fill_sfc_particles(art_fields)
         tr = defaultdict(dict)
         for s, f in fields:
             i = self.pf.particle_species.index(yt_to_art[s])
             tr[s][f] = species_data.pop((i, yt_to_art[f]))
-        return species_data
+        return tr
 
 class ARTIOChunk(object):
 
@@ -256,11 +256,11 @@ class ARTIOGeometryHandler(GeometryHandler):
     def _detect_particle_fields(self):
         fields = set()
         for ptype in self.pf.particle_types:
+            if ptype == "all": continue
             for f in yt_to_art.values():
                 if all(f in self.pf.particle_variables[i]
                        for i in range(self.pf.num_species)
-                       if ptype == "all"
-                       or art_to_yt[self.pf.particle_species[i]] == ptype):
+                       if art_to_yt[self.pf.particle_species[i]] == ptype):
                     fields.add((ptype, art_to_yt[f]))
         return list(fields)
 
@@ -349,6 +349,8 @@ class ARTIOStaticOutput(StaticOutput):
     _hierarchy_class = ARTIOGeometryHandler
     _fieldinfo_fallback = ARTIOFieldInfo
     _fieldinfo_known = KnownARTIOFields
+    _particle_mass_name = "particle_mass"
+    _particle_coordinates_name = "Coordinates"
 
     def __init__(self, filename, data_style='artio',
                  storage_filename=None):
