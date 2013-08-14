@@ -194,7 +194,7 @@ class YTRayBase(YTSelectionContainer1D):
             ts = np.abs(ts)
         self._dts[grid.id] = dts
         self._ts[grid.id] = ts
-        self._masks[grid.id] = masks
+        self._masks[grid.id] = mask
         return mask
 
 

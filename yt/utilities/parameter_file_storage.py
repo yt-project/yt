@@ -221,7 +221,8 @@ class EnzoRunDatabase(object):
     def __init__(self, path = None):
         if path is None:
             path = ytcfg.get("yt", "enzo_db")
-            if len(path) == 0: raise Runtime
+            if len(path) == 0:
+                raise RuntimeError
         import sqlite3
         self.conn = sqlite3.connect(path)
 

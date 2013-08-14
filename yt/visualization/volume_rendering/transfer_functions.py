@@ -636,24 +636,59 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 v, w, (r,g,b,alpha)))
 
     def map_to_colormap(self, mi, ma, scale=1.0, colormap="gist_stern",
-            scale_func=None):
+                        scale_func=None):
+        r"""Map a range of values to a full colormap.
+
+        Given a minimum and maximum value in the TransferFunction, map a full
+        colormap over that range at an alpha level of `scale`.
+        Optionally specify a scale_func function that modifies the alpha as
+        a function of the transfer function value.
+
+        Parameters
+        ----------
+        mi : float
+            The start of the TransferFunction to map the colormap
+        ma : float
+            The end of the TransferFunction to map the colormap
+        scale: float, optional
+            The alpha value to be used for the height of the transfer function.
+            Larger values will be more opaque.
+        colormap : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        scale_func: function(value, minval, maxval), optional
+            A user-defined function that can be used to scale the alpha channel
+            as a function of the TransferFunction field values. Function maps
+            value to somewhere between minval and maxval.
+
+        Examples
+        --------
+
+        >>> def linramp(vals, minval, maxval):
+        ...     return (vals - vals.min())/(vals.(max) - vals.min())
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='algae')
+        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
+        ...                    scale_func = linramp)
+        """
+
         rel0 = int(self.nbins*(mi - self.x_bounds[0])/(self.x_bounds[1] -
-            self.x_bounds[0]))
+                                                       self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
-            self.x_bounds[0]))
+                                                       self.x_bounds[0]))
         rel0 = max(rel0, 0)
         rel1 = min(rel1, self.nbins-1)
-        tomap = np.linspace(0.,1.,num=rel1-rel0)
+        tomap = np.linspace(0., 1., num=rel1-rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)
         if scale_func is None:
             scale_mult = 1.0
         else:
-            scale_mult = scale_func(tomap,0.0,1.0)
-        self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
-        self.green.y[rel0:rel1]= cc[:,1]*scale_mult
-        self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
-        self.alpha.y[rel0:rel1]= scale*cc[:,3]*scale_mult
+            scale_mult = scale_func(tomap, 0.0, 1.0)
+        self.red.y[rel0:rel1] = cc[:, 0]*scale_mult
+        self.green.y[rel0:rel1] = cc[:, 1]*scale_mult
+        self.blue.y[rel0:rel1] = cc[:, 2]*scale_mult
+        self.alpha.y[rel0:rel1] = scale*cc[:, 3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):

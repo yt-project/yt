@@ -190,7 +190,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 if cur.children == NULL or \
                    cur.children[cind(ind[0],ind[1],ind[2])] == NULL:
                     cur = self.refine_oct(cur, index, level)
-                    self.filter_particles(cur, data, p, level + 1)
+                    self.filter_particles(cur, data, p, level)
                 else:
                     cur = cur.children[cind(ind[0],ind[1],ind[2])]
             cur.file_ind += 1
@@ -215,7 +215,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     o.children[cind(i,j,k)] = noct
         o.file_ind = self.n_ref + 1
         for i in range(3):
-            ind[i] = (index >> ((ORDER_MAX - (level + 1))*3 + (2 - i))) & 1
+            ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
         noct = o.children[cind(ind[0],ind[1],ind[2])]
         return noct
 

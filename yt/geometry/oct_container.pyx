@@ -109,6 +109,7 @@ cdef class OctreeContainer:
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
         self._initialize_root_mesh()
+        self.fill_func = oct_visitors.fill_file_indices_oind
 
     def _initialize_root_mesh(self):
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
@@ -613,7 +614,7 @@ cdef class OctreeContainer:
         p[2] = cell_inds.data
         data.array = p
         data.domain = domain_id
-        self.visit_all_octs(selector, oct_visitors.fill_file_indices, &data)
+        self.visit_all_octs(selector, self.fill_func, &data)
         return levels, cell_inds, file_inds
 
     @cython.boundscheck(False)
@@ -673,6 +674,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
+        self.fill_func = oct_visitors.fill_file_indices_rind
 
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL

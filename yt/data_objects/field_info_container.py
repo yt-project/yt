@@ -449,7 +449,7 @@ class DerivedField(object):
         dd['units'] = self._units
         dd['projected_units'] = self._projected_units,
         dd['take_log'] = self.take_log
-        dd['validators'] = self.validators.copy()
+        dd['validators'] = list(self.validators)
         dd['particle_type'] = self.particle_type
         dd['vector_field'] = self.vector_field
         dd['display_field'] = True

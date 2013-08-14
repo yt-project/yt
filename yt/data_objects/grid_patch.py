@@ -489,6 +489,7 @@ class AMRGridPatch(YTSelectionContainer):
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
+        if vals is None: return
         return vals.reshape(self.ActiveDimensions, order="C")
 
     def select_blocks(self, selector):

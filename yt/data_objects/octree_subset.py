@@ -135,6 +135,7 @@ class OctreeSubset(YTSelectionContainer):
         op.process_octree(self.oct_handler, self.domain_ind, pos, f64,
             self.domain_id, self._domain_offset)
         vals = op.finalize()
+        if vals is None: return
         return np.asfortranarray(vals)
 
     def select_icoords(self, dobj):
