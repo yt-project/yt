@@ -106,13 +106,29 @@ class ARTIOOctreeSubset(OctreeSubset):
     def fill_particles(self, fields):
         art_fields = []
         for s, f in fields:
-            i = self.pf.particle_species.index(yt_to_art[s])
-            art_fields.append((i, yt_to_art[f]))
+            fn = yt_to_art[f]
+            for i in self.pf.particle_type_map[s]:
+                if fn in self.pf.particle_variables[i]:
+                    art_fields.append((i, fn))
         species_data = self.oct_handler.fill_sfc_particles(art_fields)
         tr = defaultdict(dict)
+        # Now we need to sum things up and then fill
         for s, f in fields:
-            i = self.pf.particle_species.index(yt_to_art[s])
-            tr[s][f] = species_data.pop((i, yt_to_art[f]))
+            count = 0
+            fn = yt_to_art[f]
+            dt = "float64" # default
+            for i in self.pf.particle_type_map[s]:
+                if (i, fn) not in species_data: continue
+                # No vector fields in ARTIO
+                count += species_data[i, fn].size
+                dt = species_data[i, fn].dtype
+            tr[s][f] = np.zeros(count, dtype=dt)
+            cp = 0
+            for i in self.pf.particle_type_map[s]:
+                if (i, fn) not in species_data: continue
+                v = species_data.pop((i, fn))
+                tr[s][f][cp:cp+v.size] = v
+                cp += v.size
         return tr
 
 class ARTIOChunk(object):
@@ -464,6 +480,12 @@ class ARTIOStaticOutput(StaticOutput):
                                    for i in range(self.num_species)]
         self.particle_species =\
             self.artio_parameters["particle_species_labels"]
+        self.particle_type_map = {}
+        for i, s in enumerate(self.particle_species):
+            f = art_to_yt[s]
+            if f not in self.particle_type_map:
+                self.particle_type_map[f] = []
+            self.particle_type_map[f].append(i)
 
         for species in range(self.num_species):
             # Mass would be best as a derived field,
