@@ -470,7 +470,7 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference( pos[i], self.center[i], i )
+            dist = self.difference(pos[i], self.center[i], i)
             dist2 += dist*dist
         if dist2 <= self.radius2: return 1
         return 0
@@ -482,7 +482,7 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference( pos[i], self.center[i], i ) 
+            dist = self.difference(pos[i], self.center[i], i) 
             dist2 += dist*dist
         dist = self.radius+radius
         if dist2 <= dist*dist: return 1
@@ -503,7 +503,7 @@ cdef class SphereSelector(SelectorObject):
         dist = 0
         for i in range(3):
             box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.difference( box_center, self.center[i], i )
+            relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest*closest
@@ -519,14 +519,36 @@ sphere_selector = SphereSelector
 cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
+    cdef np.float64_t right_edge_shift[3]
     cdef np.float64_t dx_pad
 
     def __init__(self, dobj):
         cdef int i
+        cdef np.float64_t region_width, domain_width
         self.dx_pad =dobj._dx_pad
         for i in range(3):
+            region_width = dobj.right_edge[i] - dobj.left_edge[i]
+            domain_width = dobj.pf.domain_right_edge[i] - dobj.pf.domain_left_edge[i]
+
+            if region_width <= 0 or region_width > domain_width:
+                raise RuntimeError
+
+            if dobj.pf.periodicity[i]:
+                # shift so left_edge guaranteed in domain
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i]:
+                    dobj.left_edge[i] += domain_width
+                    dobj.right_edge[i] += domain_width
+                elif dobj.left_edge[i] > dobj.pf.domain_right_edge[i]:
+                    dobj.left_edge[i] += domain_width
+                    dobj.right_edge[i] += domain_width
+            else:
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge or \
+                   dobj.right_edge[i] > dobj.pf.domain_right_edge:
+                    raise RuntimeError
+                
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
+            self.right_edge_shift[i] = dobj.right_edge[i] - domain_width
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -536,18 +558,10 @@ cdef class RegionSelector(SelectorObject):
         cdef int i, shift, included
         cdef np.float64_t LE, RE
         for i in range(3):
-            if not self.periodicity[i]:
-                if left_edge[i] > self.right_edge[i]: return 0
-                if right_edge[i] < self.left_edge[i]: return 0
-            else:
-                included = 1
-                for shift in range(3):
-                    LE = left_edge[i] + self.domain_width[i] * (shift - 1)
-                    RE = right_edge[i] + self.domain_width[i] * (shift - 1)
-                    if LE > self.right_edge[i]: continue
-                    if RE < self.left_edge[i]: continue
-                    included = 1
-                if included == 0: return 0
+            if (right_edge[i] < self.left_edge[i] and \
+                left_edge[i] >= self.right_edge_shift[i]) or \
+                left_edge[i] >= self.right_edge[i]:
+                return 0
         return 1
 
     @cython.boundscheck(False)
@@ -567,21 +581,11 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
-        # assume pos[3] is inside domain
-        cdef int i, shift, included
-        cdef np.float64_t dxp, ppos
+        cdef int i
         for i in range(3):
-            if not self.periodicity[i]:
-                if pos[i] < self.left_edge[i]: return 0
-                if pos[i] > self.right_edge[i]: return 0
-            else:
-                included = 0
-                for shift in range(3):
-                    ppos = pos[i] + self.domain_width[i] * (shift - 1)
-                    if ppos < self.left_edge[i]: continue
-                    if ppos > self.right_edge[i]: continue
-                    included = 1
-                if included == 0: return 0
+            if (self.right_edge_shift[i] <= pos[i] < self.left_edge[i]) or \
+               pos[i] >= self.right_edge[i]:
+                return 0
         return 1
 
     def _hash_vals(self):
@@ -620,7 +624,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         h = d = 0
         for i in range(3):
-            temp = self.difference( pos[i], self.center[i], i )
+            temp = self.difference(pos[i], self.center[i], i)
             h += temp * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
@@ -635,7 +639,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         h = d = 0
         for i in range(3):
-            temp = self.difference( pos[i], self.center[i], i )
+            temp = self.difference(pos[i], self.center[i], i)
             h += pos[i] * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
@@ -678,7 +682,7 @@ cdef class DiskSelector(SelectorObject):
                     pos[2] = arr[k][2]
                     H = D = 0
                     for n in range(3):
-                        temp = self.difference( pos[n], self.center[n], n )
+                        temp = self.difference(pos[n], self.center[n], n)
                         H += (temp * self.norm_vec[n])
                         D += temp*temp
                     R2 = (D - H*H)
@@ -800,7 +804,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        cdef np.float64_t dist = self.difference( pos[self.axis], self.coord, self.axis )
+        cdef np.float64_t dist = self.difference(pos[self.axis], self.coord, self.axis)
         if dist*dist < radius*radius:
             return 1
         return 0
@@ -853,8 +857,8 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        cdef np.float64_t dx = self.difference( pos[self.px_ax], self.px, self.px_ax )
-        cdef np.float64_t dy = self.difference( pos[self.py_ax], self.py, self.py_ax )
+        cdef np.float64_t dx = self.difference(pos[self.px_ax], self.px, self.px_ax)
+        cdef np.float64_t dy = self.difference(pos[self.py_ax], self.py, self.py_ax)
         if dx*dx + dy*dy < radius*radius:
             return 1
         return 0
@@ -1129,7 +1133,7 @@ cdef class EllipsoidSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist2 = 0
         for i in range(3):
-            dist2 += self.difference( pos[i], self.center[i], i )**2
+            dist2 += self.difference(pos[i], self.center[i], i)**2
         if dist2 <= (self.mag[0]+radius)**2: return 1
         return 0
 
