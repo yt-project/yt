@@ -531,6 +531,7 @@ cdef class RegionSelector(SelectorObject):
             domain_width = dobj.pf.domain_right_edge[i] - dobj.pf.domain_left_edge[i]
 
             if region_width <= 0 or region_width > domain_width:
+                print "Error: bad region width", region_width, domain_width
                 raise RuntimeError
 
             if dobj.pf.periodicity[i]:
@@ -542,8 +543,10 @@ cdef class RegionSelector(SelectorObject):
                     dobj.left_edge[i] += domain_width
                     dobj.right_edge[i] += domain_width
             else:
-                if dobj.left_edge[i] < dobj.pf.domain_left_edge or \
-                   dobj.right_edge[i] > dobj.pf.domain_right_edge:
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i] or \
+                   dobj.right_edge[i] > dobj.pf.domain_right_edge[i]:
+                    print "Error: bad Region in non-periodic domain:", dobj.left_edge[i], \
+                        dobj.pf.domain_left_edge[i], dobj.right_edge[i], dobj.pf.domain_right_edge[i]
                     raise RuntimeError
                 
             self.left_edge[i] = dobj.left_edge[i]
