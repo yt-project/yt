@@ -109,7 +109,7 @@ class YTCannotParseFieldDisplayName(YTException):
                 % (self.display_name, self.field_name) + self.mathtext_error
 
 class YTCannotParseUnitDisplayName(YTException):
-    def __init__(self, field_name, display_unit, mathtext_error):
+    def __init__(self, field_name, unit_name, mathtext_error):
         self.field_name = field_name
         self.unit_name = unit_name
         self.mathtext_error = mathtext_error

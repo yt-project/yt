@@ -36,7 +36,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
-import yt.visualization._MPL
+import yt.visualization._MPL as _MPL
 
 from .cartesian_fields import CartesianFieldInfo
 from .cylindrical_fields import CylindricalFieldInfo, PolarFieldInfo
@@ -103,7 +103,7 @@ def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2[...,0] = ((coord[...,0] - center[0])**2.0
               +  (coord[...,1] - center[1])**2.0)**0.5
     c2[...,1] = coord[...,2] # rzt
-    c2[...,2] = np.arctans(coord[...,1] - center[1],
+    c2[...,2] = np.arctan2(coord[...,1] - center[1],
                            coord[...,0] - center[0])
     return c2
 
@@ -145,7 +145,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],
                               data_source.center, data_source._inv_mat, indices,
-                              data_source[item], size[0], size[1], bounds).transpose()
+                              data_source[field], size[0], size[1], bounds).transpose()
         return buff
 
     def convert_from_cartesian(self, coord):
@@ -258,7 +258,7 @@ class PolarCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return na.array([0.0, 0.0, 2.0*np.pi])
+        return np.array([0.0, 0.0, 2.0*np.pi])
 
 class CylindricalCoordinateHandler(CoordinateHandler):
 
@@ -331,5 +331,5 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return na.array([0.0, 0.0, 2.0*np.pi])
+        return np.array([0.0, 0.0, 2.0*np.pi])
 

@@ -545,6 +545,8 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1][self.indices].ravel().astype('int64')
@@ -553,8 +555,8 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
         weight_data = weight_data[mi][self.indices]
         nx = bin_indices_x.size
         #mylog.debug("Binning %s / %s times", source_data.size, nx)
-        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        bin_profile2d(bin_indices_x, bin_indices_y, weight_data, source_data,
+                      weight_field, binned_field, m_field, q_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
