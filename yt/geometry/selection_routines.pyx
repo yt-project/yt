@@ -526,12 +526,13 @@ cdef class RegionSelector(SelectorObject):
         cdef int i
         cdef np.float64_t region_width, domain_width
         self.dx_pad =dobj._dx_pad
+
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
             domain_width = dobj.pf.domain_right_edge[i] - dobj.pf.domain_left_edge[i]
 
-            if region_width <= 0 or region_width > domain_width:
-                print "Error: bad region width", region_width, domain_width
+            if region_width <= 0:
+                print "Error: region right edge < left edge", region_width
                 raise RuntimeError
 
             if dobj.pf.periodicity[i]:
