@@ -1180,6 +1180,52 @@ cdef class ARTIORootMeshContainer:
                                 1, fields)
         return rv
 
+    def fill_sfc(self, field_indices, dest_fields):
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef np.int64_t sfc
+        cdef np.float64_t val
+        cdef artio_fileset_handle *handle = self.artio_handle.handle
+        cdef double dpos[3]
+        # We duplicate some of the grid_variables stuff here so that we can
+        # potentially release the GIL
+        nf = len(field_indices)
+        ngv = self.artio_handle.num_grid_variables
+        max_level = self.artio_handle.max_level
+        cdef int *num_octs_per_level = <int *>malloc(
+            (max_level + 1)*sizeof(int))
+        cdef float *grid_variables = <float *>malloc(
+            ngv * sizeof(float))
+        cdef int* field_ind = <int*> malloc(
+            nf * sizeof(int))
+        cdef np.float64_t **field_vals = <np.float64_t**> malloc(
+            nf * sizeof(np.float64_t*))
+        for i in range(nf):
+            field_ind[i] = field_indices[i]
+            # This zeros should be an empty once we handle the root grid
+            dest = dest_fields[i]
+            field_vals[i] = <np.float64_t*> dest.data
+        # First we need to walk the mesh in the file.  Then we fill in the dest
+        # location based on the file index.
+        status = artio_grid_cache_sfc_range(handle,
+            self.sfc_start, self.sfc_end )
+        check_artio_status(status) 
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            status = artio_grid_read_root_cell_begin( handle, sfc, 
+                    dpos, grid_variables, &num_oct_levels,
+                    num_octs_per_level)
+            check_artio_status(status) 
+            for i in range(nf):
+                field_vals[i][sfc - self.sfc_start] = grid_variables[i]
+            status = artio_grid_read_root_cell_end( handle )
+            check_artio_status(status)
+        # Now we have all our sources.
+        status = artio_grid_clear_sfc_cache(handle)
+        check_artio_status(status)
+        free(field_ind)
+        free(field_vals)
+        free(grid_variables)
+        free(num_octs_per_level)
 
 sfc_subset_selector = AlwaysSelector
 
