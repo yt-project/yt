@@ -91,9 +91,13 @@ class OctreeSubset(YTSelectionContainer):
             return tr
         return tr
 
+    @property
+    def nz(self):
+        return self._num_zones + 2*self._num_ghost_zones
+
     def _reshape_vals(self, arr):
         if len(arr.shape) == 4: return arr
-        nz = self._num_zones + 2*self._num_ghost_zones
+        nz = self.nz
         n_oct = arr.shape[0] / (nz**3.0)
         if arr.size == nz*nz*nz*n_oct:
             arr = arr.reshape((nz, nz, nz, n_oct), order="F")
@@ -125,7 +129,8 @@ class OctreeSubset(YTSelectionContainer):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
+        nz = self.nz
+        nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         op = cls(nvals) # We allocate number of zones, not number of octs
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
@@ -141,7 +146,7 @@ class OctreeSubset(YTSelectionContainer):
     def select_icoords(self, dobj):
         d = self.oct_handler.icoords(self.selector, domain_id = self.domain_id,
                                      num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / 8
+        self._num_octs = d.shape[0] / (self.nz**3)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
                                             domain_id = self.domain_id)
         return tr
@@ -149,7 +154,7 @@ class OctreeSubset(YTSelectionContainer):
     def select_fcoords(self, dobj):
         d = self.oct_handler.fcoords(self.selector, domain_id = self.domain_id,
                                      num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / 8
+        self._num_octs = d.shape[0] / (self.nz**3)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
                                             domain_id = self.domain_id)
         return tr
@@ -157,7 +162,7 @@ class OctreeSubset(YTSelectionContainer):
     def select_fwidth(self, dobj):
         d = self.oct_handler.fwidth(self.selector, domain_id = self.domain_id,
                                   num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / 8
+        self._num_octs = d.shape[0] / (self.nz**3)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
                                             domain_id = self.domain_id)
         return tr
@@ -165,7 +170,7 @@ class OctreeSubset(YTSelectionContainer):
     def select_ires(self, dobj):
         d = self.oct_handler.ires(self.selector, domain_id = self.domain_id,
                                   num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / 8
+        self._num_octs = d.shape[0] / (self.nz**3)
         tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 1,
                                             domain_id = self.domain_id)
         return tr
@@ -222,7 +227,8 @@ class OctreeSubsetBlockSlice(object):
         self.ind = None
         self.octree_subset = octree_subset
         # Cache some attributes
-        self.ActiveDimensions = np.array([2,2,2], dtype="int64")
+        nz = octree_subset.nz
+        self.ActiveDimensions = np.array([nz,nz,nz], dtype="int64")
         for attr in ["ires", "icoords", "fcoords", "fwidth"]:
             v = getattr(octree_subset, attr)
             setattr(self, "_%s" % attr, octree_subset._reshape_vals(v))
