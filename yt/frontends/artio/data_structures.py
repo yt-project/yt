@@ -55,6 +55,7 @@ class ARTIOOctreeSubset(OctreeSubset):
     domain_id = 1
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
     _type_name = 'octree_subset'
+    min_level = 1
 
     def __init__(self, base_region, sfc_start, sfc_end, pf):
         self.field_data = YTFieldData()
@@ -141,6 +142,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
     _num_zones = 1
     _type_name = 'sfc_subset'
     _selector_module = _artio_caller
+    min_level = 0
 
     @property
     def oct_handler(self):
@@ -148,7 +150,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
             self._oct_handler = ARTIORootMeshContainer(
                 self.pf.domain_dimensions, # Cells, not octs
                 self.pf.domain_left_edge, self.pf.domain_right_edge,
-                self.pf._handle)
+                self.pf._handle,
+                self.sfc_start, self.sfc_end)
         return self._oct_handler
 
 class ARTIOChunk(object):
@@ -325,9 +328,11 @@ class ARTIOGeometryHandler(GeometryHandler):
                 mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
-            dobj._chunk_info = [ARTIOOctreeSubset(base_region,
-                                    start, end, self.pf)
-                                for (start, end) in list_sfc_ranges]
+            ci =  [ARTIORootMeshSubset(base_region, start, end, self.pf)
+                   for (start, end) in list_sfc_ranges]
+            ci += [ARTIOOctreeSubset(base_region, start, end, self.pf)
+                   for (start, end) in list_sfc_ranges]
+            dobj._chunk_info = ci
             mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 

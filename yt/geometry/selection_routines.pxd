@@ -46,3 +46,6 @@ cdef class SelectorObject:
     cdef void set_bounds(self,
                          np.float64_t left_edge[3], np.float64_t right_edge[3],
                          np.float64_t dds[3], int ind[3][2], int *check)
+
+cdef class AlwaysSelector(SelectorObject):
+    pass

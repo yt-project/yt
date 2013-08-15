@@ -6,7 +6,7 @@ import numpy as np
 cimport numpy as np
 import sys 
 
-from yt.geometry.selection_routines cimport SelectorObject
+from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctAllocationContainer, \
     SparseOctreeContainer
@@ -919,11 +919,14 @@ cdef class ARTIORootMeshContainer:
     cdef np.float64_t dds[3]
     cdef np.int64_t dims[3]
     cdef artio_fileset_handle *handle
+    cdef np.uint64_t sfc_start
+    cdef np.uint64_t sfc_end
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
                  domain_right_edge,
-                 artio_fileset artio_handle):
+                 artio_fileset artio_handle,
+                 sfc_start, sfc_end):
         self.artio_handle = artio_handle
         self.handle = artio_handle.handle
         cdef int i
@@ -932,6 +935,8 @@ cdef class ARTIORootMeshContainer:
             self.DLE[i] = domain_left_edge[i]
             self.DRE[i] = domain_right_edge[i]
             self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
+        self.sfc_start = sfc_start
+        self.sfc_end = sfc_end
 
     cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
         # Calculate the index
@@ -969,8 +974,8 @@ cdef class ARTIORootMeshContainer:
         if num_octs == -1:
             # We need to count, but this process will only occur one time,
             # since num_octs will later be cached.
-            num_octs = self.sfc_start - self.sfc_end + 1
-        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+            num_octs = self.sfc_end - self.sfc_start + 1
+        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_octs, 3), dtype="int64")
         for sfc in range(self.sfc_start, self.sfc_end + 1):
@@ -992,8 +997,8 @@ cdef class ARTIORootMeshContainer:
         if num_octs == -1:
             # We need to count, but this process will only occur one time,
             # since num_octs will later be cached.
-            num_octs = self.sfc_start - self.sfc_end + 1
-        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+            num_octs = self.sfc_end - self.sfc_start + 1
+        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_octs, 3), dtype="float64")
         for sfc in range(self.sfc_start, self.sfc_end + 1):
@@ -1011,8 +1016,8 @@ cdef class ARTIORootMeshContainer:
         if num_octs == -1:
             # We need to count, but this process will only occur one time,
             # since num_octs will later be cached.
-            num_octs = self.sfc_start - self.sfc_end + 1
-        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+            num_octs = self.sfc_end - self.sfc_start + 1
+        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
         cdef np.ndarray[np.float64_t, ndim=2] width
         width = np.zeros((num_octs, 3), dtype="float64")
         for i in range(3):
@@ -1024,8 +1029,8 @@ cdef class ARTIORootMeshContainer:
         if num_octs == -1:
             # We need to count, but this process will only occur one time,
             # since num_octs will later be cached.
-            num_octs = self.sfc_start - self.sfc_end + 1
-        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+            num_octs = self.sfc_end - self.sfc_start + 1
+        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_octs, dtype="int64")
         return res
@@ -1041,8 +1046,12 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t ind = offset
         cdef np.int64_t sfc
         cdef np.float64_t pos[3]
+        cdef np.float64_t dpos[3]
         cdef int dim, status, eterm[3]
         cdef int num_oct_levels, level
+        cdef int max_level = self.artio_handle.max_level
+        cdef int *num_octs_per_level = <int *>malloc(
+            (max_level + 1)*sizeof(int))
         if dest is None:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of
@@ -1062,7 +1071,7 @@ cdef class ARTIORootMeshContainer:
             if selector.select_cell(pos, self.dds, eterm) == 0: continue
             # Now we just need to check if the cells are refined.
             status = artio_grid_read_root_cell_begin( self.handle,
-                sfc, NULL, NULL, &num_oct_levels, NULL)
+                sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
             check_artio_status(status)
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status)
@@ -1076,6 +1085,9 @@ cdef class ARTIORootMeshContainer:
             ind += 1
 
         artio_grid_clear_sfc_cache(self.handle)
+        free(num_octs_per_level)
+        if num_cells >= 0:
+            return dest
         return ind - offset
 
     def domain_ind(self, selector, int domain_id = -1):
@@ -1085,69 +1097,5 @@ cdef class ARTIORootMeshContainer:
              int domain_id = -1):
         raise NotImplementedError
         
-
-cdef class RootMeshSubsetSelector(SelectorObject):
-    # This is a numpy array, which will be a bool of ndim 1
-    cdef np.uint64_t sfc_start
-    cdef np.uint64_t sfc_end
-    cdef SelectorObject base_selector
-    cdef ARTIORootMeshContainer root_mesh
-
-    def __init__(self, dobj):
-        self.sfc_start = dobj.sfc_start
-        self.sfc_end = dobj.sfc_end
-        self.root_mesh = dobj.oct_handler
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void set_bounds(self,
-                         np.float64_t left_edge[3], np.float64_t right_edge[3],
-                         np.float64_t dds[3], int ind[3][2], int *check):
-        check[0] = 0
-        return
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def select_grids(self,
-                     np.ndarray[np.float64_t, ndim=2] left_edges,
-                     np.ndarray[np.float64_t, ndim=2] right_edges,
-                     np.ndarray[np.int32_t, ndim=2] levels):
-        raise RuntimeError
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
-                         int eterm[3]) nogil:
-        cdef np.int64_t sfc
-        sfc = self.root_mesh.pos_to_sfc(pos)
-        if sfc >= self.sfc_start and sfc <= self.sfc_end:
-            return 1
-        return 0
-
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                         np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
-        cdef np.float64_t pos[3], v[2][3], dds[3]
-        cdef int i, j, k, eterm[3]
-        # We check each of the eight corners
-        for i in range(3):
-            v[0][i] = left_edge[i]
-            v[1][i] = right_edge[i]
-            dds[i] = (right_edge[i] - left_edge[i])
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    pos[0] = v[i][0]
-                    pos[1] = v[j][1]
-                    pos[2] = v[k][2]
-                    status = self.select_cell(pos, dds, eterm)
-                    if status == 1:
-                        # Early termination
-                        return 1
-        return 0
-
-sfc_subset_selector = RootMeshSubsetSelector
+sfc_subset_selector = AlwaysSelector
 
