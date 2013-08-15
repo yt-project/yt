@@ -44,6 +44,7 @@ from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
+from yt.visualization.image_writer import apply_colormap
 
 import _MPL
 
@@ -337,29 +338,49 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, 
-                   periodic=True, min_level=None, max_level=None, 
-                   shaded_levels=False)
+    annotate_grids()
 
-    Overplots grid boundaries on a plot, optionally with *alpha*-blending.
-    Cutoff for display is at *min_pix* width.  
+    Draws grids on an existing PlotWindow object.
 
-    *draw_ids* puts the grid id in the corner of each grid.  
-    (Not so great in projections...)
+    Parameters
+    ----------
+    alpha: float, optional
+        The alpha value for the grids being drawn.  Used to control
+        how bright the grid lines are with respect to the image.
+        Default : 0.3
 
-    Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  
+    cmap : string, optional
+        Colormap to be used mapping grid levels to colors.  If 
+        cmap is set to None, will default to all black grid boxes.
+        Default : 'algae'
+
+    min_pix : int, optional
+        If a grid patch is smaller than min_pix pixels in size in image
+        space, it will not be displayed.
+        Default : 1
     
-    If *min_level* is specified, only draw grids at or above min_level.  
-    
-    If *max_level* is specified, only draw grids at or below max_level.
+    min_pix_ids : int, optional
+        If a grid patch is smaller than min_pix_ids pixels in size in 
+        image space, it will not be labeled with an id (only applies
+        when using the *draw_ids* kwarg).
+        Default : 20
 
-    If *shaded_levels* is True, then differentiate between different levels
-    of refinement with different shades of white/gray/black, with white
-    as the lowest level and black as the highest level of refinement.
+    draw_ids : bool, optional
+        When set, labels each grid with ID number.
+        Default : False
+
+    periodic : bool, optional
+        Retains periodic behavior of grids at volume boundaries.
+        Default : False
+
+    min_level, max_level : int, optional
+        Optional parameters to specify the min and max level grid boxes
+        to overplot on the image.
+
     """
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None, shaded_levels=False):
+    def __init__(self, alpha=0.3, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='algae'):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -368,7 +389,7 @@ class GridBoundaryCallback(PlotCallback):
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
-        self.shaded_levels = shaded_levels
+        self.cmap = cmap
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -407,38 +428,28 @@ class GridBoundaryCallback(PlotCallback):
                        ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
                        ( grid_levels >= min_level) & \
                        ( grid_levels <= max_level)
+            if self.cmap is not None: 
+                edgecolors = apply_colormap(grid_levels*1.0,
+                                  color_bounds=[0,plot.data.pf.h.max_level],
+                                  cmap_name=self.cmap)[0,:,:]*1.0/255.
+            else:
+                edgecolors = (0.0,0.0,0.0,self.alpha)
+            edgecolors[:,3] = self.alpha
+
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
                 [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
-            if not self.shaded_levels:
-                verts=verts.transpose()[visible,:,:]
-                edgecolors = (0.0,0.0,0.0,self.alpha)
-                grid_collection = matplotlib.collections.PolyCollection(
-                    verts, facecolors="none",
-                    edgecolors=edgecolors)
-                plot._axes.hold(True)
-                plot._axes.add_collection(grid_collection)
-            # if shaded_levels is defined, then make the different
-            # grid boxes different colors.  lowest level of resolution
-            # is white and go up in shades of gray to highest level
-            # of resolution which is black.
-            else:
-                level_range = max_level - min_level
-                for j,level in enumerate(range(min_level, max_level+1)):
-                    edge_shade = 1-(j*(1./level_range))
-                    edgecolors = (edge_shade, edge_shade, edge_shade, self.alpha)
-                    one_level =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
-                                 ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
-                                 ( grid_levels == level)
-                    grid_collection = matplotlib.collections.PolyCollection(
-                                      verts.transpose()[one_level,:,:], facecolors="none",
-                                      edgecolors=edgecolors)
-                    plot._axes.hold(True)
-                    plot._axes.add_collection(grid_collection)
+            verts=verts.transpose()[visible,:,:]
+            grid_collection = matplotlib.collections.PolyCollection(
+                verts, facecolors="none",
+                edgecolors=edgecolors)
+            plot._axes.hold(True)
+            plot._axes.add_collection(grid_collection)
+
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
-                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids ) 
+                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
                 active_ids = np.unique(plot.data['GridIndices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
