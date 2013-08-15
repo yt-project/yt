@@ -105,6 +105,7 @@ cdef extern from "artio.h":
     int artio_particle_read_particle(artio_fileset_handle *handle, int64_t *pid, int *subspecies,
                         double *primary_variables, float *secondary_variables)
     int artio_particle_cache_sfc_range(artio_fileset_handle *handle, int64_t sfc_start, int64_t sfc_end)
+    int artio_particle_clear_sfc_cache(artio_fileset_handle *handle)
     int artio_particle_read_species_begin(artio_fileset_handle *handle, int species)
     int artio_particle_read_species_end(artio_fileset_handle *handle) 
    
@@ -792,6 +793,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
     cdef np.int64_t sfc, particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
     cdef artio_fileset_handle *handle = artio_handle.handle
+    cdef int num_oct_levels
     cdef int *num_particles_per_species =  <int *>malloc(
         sizeof(int)*num_species) 
     cdef int *accessed_species =  <int *>malloc(
@@ -800,9 +802,12 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         sizeof(int)*num_species) 
     cdef particle_var_pointers *vpoints = <particle_var_pointers *> malloc(
         sizeof(particle_var_pointers)*num_species)
-    cdef double *primary_variables
+    cdef double *primary_variables, dpos[3]
     cdef float *secondary_variables
     cdef np.int64_t tp
+    cdef int max_level = artio_handle.max_level
+    cdef int *num_octs_per_level = <int *>malloc(
+        (max_level + 1)*sizeof(int))
 
     cdef np.ndarray[np.int8_t, ndim=1] npi8arr
     cdef np.ndarray[np.int64_t, ndim=1] npi64arr
@@ -833,8 +838,19 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             sfc_start, sfc_end ) 
     check_artio_status(status)
 
+    # We cache so we can figure out if the cell is refined or not.
+    status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end)
+    check_artio_status(status) 
+
     # Pass through once.  We want every single particle.
     for sfc in range(sfc_start, sfc_end + 1):
+        status = artio_grid_read_root_cell_begin( handle,
+            sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+        check_artio_status(status)
+        status = artio_grid_read_root_cell_end(handle)
+        check_artio_status(status)
+        if read_unrefined == 1 and num_oct_levels > 0: continue
+        if read_unrefined == 0 and num_oct_levels == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
@@ -886,6 +902,13 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             vp.n_s += 1
 
     for sfc in range(sfc_start, sfc_end + 1):
+        status = artio_grid_read_root_cell_begin( handle,
+            sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+        check_artio_status(status)
+        status = artio_grid_read_root_cell_end(handle)
+        check_artio_status(status)
+        if read_unrefined == 1 and num_oct_levels > 0: continue
+        if read_unrefined == 0 and num_oct_levels == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
@@ -920,6 +943,14 @@ cdef read_sfc_particles(artio_fileset artio_handle,
                 
         status = artio_particle_read_root_cell_end( handle )
         check_artio_status(status)
+
+    status = artio_particle_clear_sfc_cache(handle)
+    check_artio_status(status)
+
+    status = artio_grid_clear_sfc_cache(handle)
+    check_artio_status(status)
+
+    free(num_octs_per_level)
     free(num_particles_per_species)
     free(total_particles)
     free(accessed_species)
@@ -1142,6 +1173,13 @@ cdef class ARTIORootMeshContainer:
         artio_grid_clear_sfc_cache(self.handle)
         free(num_octs_per_level)
         return mask.astype("bool")
+
+    def fill_sfc_particles(self, fields):
+        rv = read_sfc_particles(self.artio_handle,
+                                self.sfc_start, self.sfc_end,
+                                1, fields)
+        return rv
+
 
 sfc_subset_selector = AlwaysSelector
 

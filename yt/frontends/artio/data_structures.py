@@ -151,6 +151,16 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
                 self.sfc_start, self.sfc_end)
         return self._oct_handler
 
+    def fill(self, fields, selector):
+        # We know how big these will be.
+        field_indices = [handle.parameters["grid_variable_labels"].index(
+                        yt_to_art[f]) for (ft, f) in fields]
+        self.data_size = cell_count = self.sfc_end - self.sfc_start + 1
+        tr = [np.zeros(cell_count, dtype="float64") for field in fields]
+        self.oct_handler.fill_sfc(field_indices, tr)
+        tr = dict((field, v) for field, v in zip(fields, tr))
+        return tr
+
 class ARTIOChunk(object):
 
     def __init__(self, pf, sfc_start, sfc_end):
