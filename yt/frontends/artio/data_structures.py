@@ -29,7 +29,9 @@ import cStringIO
 
 from .definitions import yt_to_art, art_to_yt, ARTIOconstants
 from _artio_caller import \
-    artio_is_valid, artio_fileset, ARTIOOctreeContainer
+    artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
+    ARTIORootMeshContainer
+import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
@@ -130,6 +132,24 @@ class ARTIOOctreeSubset(OctreeSubset):
                 tr[s][f][cp:cp+v.size] = v
                 cp += v.size
         return tr
+
+# We create something of a fake octree here.  This is primarily to enable us to
+# reuse code for things like __getitem__ and the like.  We will also create a
+# new oct_handler type that is functionally equivalent, except that it will
+# only manage the root mesh.
+class ARTIORootMeshSubset(ARTIOOctreeSubset):
+    _num_zones = 1
+    _type_name = 'sfc_subset'
+    _selector_module = _artio_caller
+
+    @property
+    def oct_handler(self):
+        if self._oct_handler is None: 
+            self._oct_handler = ARTIORootMeshContainer(
+                self.pf.domain_dimensions, # Cells, not octs
+                self.pf.domain_left_edge, self.pf.domain_right_edge,
+                self.pf._handle)
+        return self._oct_handler
 
 class ARTIOChunk(object):
 

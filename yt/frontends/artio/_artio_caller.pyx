@@ -110,8 +110,8 @@ cdef extern from "artio.h":
    
     
 cdef extern from "artio_internal.h":
-    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] )
-    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] )
+    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) nogil
+    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
 
 cdef void check_artio_status(int status, char *fname="[unknown]"):
     if status!=ARTIO_SUCCESS :
@@ -911,4 +911,243 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         free(primary_variables)
         free(secondary_variables)
         return data
- 
+
+cdef class ARTIORootMeshContainer:
+    cdef public artio_fileset artio_handle
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
+    cdef np.float64_t dds[3]
+    cdef np.int64_t dims[3]
+    cdef artio_fileset_handle *handle
+
+    def __init__(self, domain_dimensions, # cells
+                 domain_left_edge,
+                 domain_right_edge,
+                 artio_fileset artio_handle):
+        self.artio_handle = artio_handle
+        self.handle = artio_handle.handle
+        cdef int i
+        for i in range(3):
+            self.dims[i] = domain_dimensions[i]
+            self.DLE[i] = domain_left_edge[i]
+            self.DRE[i] = domain_right_edge[i]
+            self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
+
+    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
+        # Calculate the index
+        cdef int coords[3], i
+        cdef np.int64_t sfc
+        for i in range(3):
+            coords[i] = <int>((pos[i] - self.DLE[i])/self.dds[i])
+        sfc = artio_sfc_index(self.handle, coords)
+        return sfc
+
+    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) nogil:
+        cdef int coords[3], i
+        artio_sfc_coords(self.handle, sfc, coords)
+        for i in range(3):
+            pos[i] = self.DLE[i] + (coords[i] + 0.5) * self.dds[i]
+
+    cdef np.int64_t count_cells(self, SelectorObject selector):
+        # We visit each cell if it is not refined and determine whether it is
+        # included or not.
+        cdef np.int64_t sfc
+        cdef np.float64_t pos[3], right_edge[3]
+        cdef int num_cells = 0
+        cdef int i, eterm[3]
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            self.sfc_to_pos(sfc, pos)
+            num_cells += selector.select_cell(pos, self.dds, eterm)
+        return num_cells
+
+    def icoords(self, SelectorObject selector, np.int64_t num_octs = -1,
+                int domain_id = -1):
+        # Note that num_octs does not have to equal sfc_end - sfc_start + 1.
+        cdef np.int64_t sfc
+        cdef int acoords[3], i
+        # We call it num_octs, but it's really num_cells.
+        if num_octs == -1:
+            # We need to count, but this process will only occur one time,
+            # since num_octs will later be cached.
+            num_octs = self.sfc_start - self.sfc_end + 1
+        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+        cdef np.ndarray[np.int64_t, ndim=2] coords
+        coords = np.empty((num_octs, 3), dtype="int64")
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            # Note that we do *no* checks on refinement here.  In fact, this
+            # entire setup should not need to touch the disk except if the
+            # artio sfc calculators need to.
+            artio_sfc_coords(self.handle, sfc, acoords)
+            for i in range(3):
+                coords[sfc - self.sfc_start, i] = acoords[i]
+        return coords
+
+    def fcoords(self, SelectorObject selector, np.int64_t num_octs = -1,
+                int domain_id = -1):
+        # Note that num_octs does not have to equal sfc_end - sfc_start + 1.
+        cdef np.int64_t sfc
+        cdef np.float64_t pos[3]
+        cdef int acoords[3], i
+        # We call it num_octs, but it's really num_cells.
+        if num_octs == -1:
+            # We need to count, but this process will only occur one time,
+            # since num_octs will later be cached.
+            num_octs = self.sfc_start - self.sfc_end + 1
+        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        coords = np.empty((num_octs, 3), dtype="float64")
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            # Note that we do *no* checks on refinement here.  In fact, this
+            # entire setup should not need to touch the disk except if the
+            # artio sfc calculators need to.
+            self.sfc_to_pos(sfc, pos)
+            for i in range(3):
+                coords[sfc - self.sfc_start, i] = pos[i]
+        return coords
+
+    def fwidth(self, SelectorObject selector, np.int64_t num_octs = -1,
+                int domain_id = -1):
+        cdef int i
+        if num_octs == -1:
+            # We need to count, but this process will only occur one time,
+            # since num_octs will later be cached.
+            num_octs = self.sfc_start - self.sfc_end + 1
+        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+        cdef np.ndarray[np.float64_t, ndim=2] width
+        width = np.zeros((num_octs, 3), dtype="float64")
+        for i in range(3):
+            width[:,i] = self.dds[i]
+        return width
+
+    def ires(self, SelectorObject selector, np.int64_t num_octs = -1,
+                int domain_id = -1):
+        if num_octs == -1:
+            # We need to count, but this process will only occur one time,
+            # since num_octs will later be cached.
+            num_octs = self.sfc_start - self.sfc_end + 1
+        assert(num_octs == (self.sfc_start - self.sfc_end + 1))
+        cdef np.ndarray[np.int64_t, ndim=1] res
+        res = np.zeros(num_octs, dtype="int64")
+        return res
+
+    def selector_fill(self, SelectorObject selector,
+                      np.ndarray source,
+                      np.ndarray dest = None,
+                      np.int64_t offset = 0, int dims = 1,
+                      int domain_id = -1):
+        # This is where we use the selector to transplant from one to the
+        # other.  Note that we *do* apply the selector here.
+        cdef np.int64_t num_cells = -1
+        cdef np.int64_t ind = offset
+        cdef np.int64_t sfc
+        cdef np.float64_t pos[3]
+        cdef int dim, status, eterm[3]
+        cdef int num_oct_levels, level
+        if dest is None:
+            # Note that RAMSES can have partial refinement inside an Oct.  This
+            # means we actually do want the number of Octs, not the number of
+            # cells.
+            num_cells = self.count_cells(selector)
+            if dims > 1:
+                dest = np.zeros((num_cells, dims), dtype=source.dtype,
+                    order='C')
+            else:
+                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
+        status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
+                                            self.sfc_end)
+        check_artio_status(status) 
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            # We check if the SFC is in our selector, and if so, we copy
+            self.sfc_to_pos(sfc, pos)
+            if selector.select_cell(pos, self.dds, eterm) == 0: continue
+            # Now we just need to check if the cells are refined.
+            status = artio_grid_read_root_cell_begin( self.handle,
+                sfc, NULL, NULL, &num_oct_levels, NULL)
+            check_artio_status(status)
+            status = artio_grid_read_root_cell_end( self.handle )
+            check_artio_status(status)
+            # If refined, we skip
+            if num_oct_levels > 0: continue
+            if dims > 1:
+                for dim in range(dims):
+                    dest[ind, dim] = source[sfc - self.sfc_start, dim]
+            else:
+                dest[ind] = source[sfc - self.sfc_start]
+            ind += 1
+
+        artio_grid_clear_sfc_cache(self.handle)
+        return ind - offset
+
+    def domain_ind(self, selector, int domain_id = -1):
+        raise NotImplementedError
+
+    def mask(self, SelectorObject selector, np.int64_t num_octs = -1,
+             int domain_id = -1):
+        raise NotImplementedError
+        
+
+cdef class RootMeshSubsetSelector(SelectorObject):
+    # This is a numpy array, which will be a bool of ndim 1
+    cdef np.uint64_t sfc_start
+    cdef np.uint64_t sfc_end
+    cdef SelectorObject base_selector
+    cdef ARTIORootMeshContainer root_mesh
+
+    def __init__(self, dobj):
+        self.sfc_start = dobj.sfc_start
+        self.sfc_end = dobj.sfc_end
+        self.root_mesh = dobj.oct_handler
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_bounds(self,
+                         np.float64_t left_edge[3], np.float64_t right_edge[3],
+                         np.float64_t dds[3], int ind[3][2], int *check):
+        check[0] = 0
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges,
+                     np.ndarray[np.int32_t, ndim=2] levels):
+        raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3],
+                         int eterm[3]) nogil:
+        cdef np.int64_t sfc
+        sfc = self.root_mesh.pos_to_sfc(pos)
+        if sfc >= self.sfc_start and sfc <= self.sfc_end:
+            return 1
+        return 0
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        cdef np.float64_t pos[3], v[2][3], dds[3]
+        cdef int i, j, k, eterm[3]
+        # We check each of the eight corners
+        for i in range(3):
+            v[0][i] = left_edge[i]
+            v[1][i] = right_edge[i]
+            dds[i] = (right_edge[i] - left_edge[i])
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    pos[0] = v[i][0]
+                    pos[1] = v[j][1]
+                    pos[2] = v[k][2]
+                    status = self.select_cell(pos, dds, eterm)
+                    if status == 1:
+                        # Early termination
+                        return 1
+        return 0
+
+sfc_subset_selector = RootMeshSubsetSelector
+
