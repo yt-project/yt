@@ -632,7 +632,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         for i in range(max_level + 1):
             self.level_indices[i] = tot
             tot += tot_octs_per_level[i]
-        self.allocate_domains([tot], num_root)
+        self.allocate_domains([tot - num_root, num_root], num_root)
         # Now we have everything counted, and we need to create the appropriate
         # number of arrays.
         cdef np.ndarray[np.float64_t, ndim=2] pos
@@ -675,17 +675,25 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         nadded = 0
         cdef np.int64_t si, ei
         si = 0
+        # We initialize domain to 2 so that all root mesh octs are viewed as
+        # not belonging to this domain.  This way we don't get confused with
+        # how the different meshes are interfaced, and the root mesh container
+        # will own all the root mesh octs.
+        cdef int domain = 2
         for level in range(max_level + 1):
             self.level_indices[level] = si
             ei = si + tot_octs_per_level[level]
             if tot_octs_per_level[level] == 0: break
-            nadded = self.add(1, level, pos[si:ei, :])
-            if nadded != (ei - si):
+            nadded = self.add(domain, level, pos[si:ei, :])
+            if level > 0 and nadded != (ei - si):
+                print domain, self.sfc_start, self.sfc_end
                 print level, nadded, ei, si, self.max_root,
                 print self.level_indices[level]
                 print pos[si:ei,:]
+                print nadded, (ei - si), tot_octs_per_level[0]
                 raise RuntimeError
             si = ei
+            domain = 1 # Switch back to 1
         artio_grid_clear_sfc_cache(handle)
         free(mask)
         free(num_octs_per_level)
