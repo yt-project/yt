@@ -435,7 +435,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     @property
     def selector(self):
         if self._selector is not None: return self._selector
-        sclass = getattr(yt.geometry.selection_routines,
+        s_module = getattr(self, '_selector_module',
+                           yt.geometry.selection_routines)
+        sclass = getattr(s_module,
                          "%s_selector" % self._type_name, None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
