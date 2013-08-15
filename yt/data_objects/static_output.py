@@ -70,6 +70,8 @@ class StaticOutput(object):
             obj = object.__new__(cls)
             if obj._skip_cache is False:
                 _cached_pfs[apath] = obj
+        else:
+            obj = _cached_pfs[apath]
         return obj
 
     def __init__(self, filename, data_style=None, file_style=None):
