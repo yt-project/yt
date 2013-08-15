@@ -337,18 +337,29 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
+    annotate_grids(alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, 
+                   periodic=True, min_level=None, max_level=None, 
+                   shaded_levels=False)
 
-    Adds grid boundaries to a plot, optionally with *alpha*-blending.
-    Cuttoff for display is at *min_pix* wide.
-    *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
-    Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *min_level* 
-    is specified, only draw grids at or above min_level.  If *max_level* is specified, only 
-    draw grids at or below max_level.
+    Overplots grid boundaries on a plot, optionally with *alpha*-blending.
+    Cutoff for display is at *min_pix* width.  
+
+    *draw_ids* puts the grid id in the corner of each grid.  
+    (Not so great in projections...)
+
+    Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  
+    
+    If *min_level* is specified, only draw grids at or above min_level.  
+    
+    If *max_level* is specified, only draw grids at or below max_level.
+
+    If *shaded_levels* is True, then differentiate between different levels
+    of refinement with different shades of white/gray/black, with white
+    as the lowest level and black as the highest level of refinement.
     """
     _type_name = "grids"
     def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None):
+                 min_level=None, max_level=None, shaded_levels=False):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -357,6 +368,7 @@ class GridBoundaryCallback(PlotCallback):
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
+        self.shaded_levels = shaded_levels
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -399,16 +411,34 @@ class GridBoundaryCallback(PlotCallback):
             verts = np.array(
                 [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
-            verts=verts.transpose()[visible,:,:]
-            edgecolors = (0.0,0.0,0.0,self.alpha)
-            grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors="none",
-                edgecolors=edgecolors)
-            plot._axes.hold(True)
-            plot._axes.add_collection(grid_collection)
+            if not self.shaded_levels:
+                verts=verts.transpose()[visible,:,:]
+                edgecolors = (0.0,0.0,0.0,self.alpha)
+                grid_collection = matplotlib.collections.PolyCollection(
+                    verts, facecolors="none",
+                    edgecolors=edgecolors)
+                plot._axes.hold(True)
+                plot._axes.add_collection(grid_collection)
+            # if shaded_levels is defined, then make the different
+            # grid boxes different colors.  lowest level of resolution
+            # is white and go up in shades of gray to highest level
+            # of resolution which is black.
+            else:
+                level_range = max_level - min_level
+                for j,level in enumerate(range(min_level, max_level+1)):
+                    edge_shade = 1-(j*(1./level_range))
+                    edgecolors = (edge_shade, edge_shade, edge_shade, self.alpha)
+                    one_level =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
+                                 ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
+                                 ( grid_levels == level)
+                    grid_collection = matplotlib.collections.PolyCollection(
+                                      verts.transpose()[one_level,:,:], facecolors="none",
+                                      edgecolors=edgecolors)
+                    plot._axes.hold(True)
+                    plot._axes.add_collection(grid_collection)
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
-                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
+                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids ) 
                 active_ids = np.unique(plot.data['GridIndices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
