@@ -1098,12 +1098,42 @@ cdef class ARTIORootMeshContainer:
             return dest
         return ind - offset
 
-    def domain_ind(self, selector, int domain_id = -1):
-        raise NotImplementedError
-
-    def mask(self, SelectorObject selector, np.int64_t num_octs = -1,
-             int domain_id = -1):
-        raise NotImplementedError
+    def mask(self, SelectorObject selector, np.int64_t num_octs = -1):
+        cdef int i, status, eterm[3]
+        cdef double dpos[3]
+        cdef np.float64_t pos[3]
+        if num_octs == -1:
+            # We need to count, but this process will only occur one time,
+            # since num_octs will later be cached.
+            num_octs = self.sfc_end - self.sfc_start + 1
+        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef int num_oct_levels
+        cdef int max_level = self.artio_handle.max_level
+        cdef int *num_octs_per_level = <int *>malloc(
+            (max_level + 1)*sizeof(int))
+        mask = np.zeros((num_octs * 8), dtype="uint8")
+        status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
+                                            self.sfc_end)
+        check_artio_status(status) 
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            # We check if the SFC is in our selector, and if so, we copy
+            # Note that because we initialize to zeros, we can just continue if
+            # it's not included.
+            self.sfc_to_pos(sfc, pos)
+            if selector.select_cell(pos, self.dds, eterm) == 0: continue
+            # Now we just need to check if the cells are refined.
+            status = artio_grid_read_root_cell_begin( self.handle,
+                sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+            check_artio_status(status)
+            status = artio_grid_read_root_cell_end( self.handle )
+            check_artio_status(status)
+            # If refined, we skip
+            if num_oct_levels > 0: continue
+            mask[sfc - self.sfc_start] = 1
+        artio_grid_clear_sfc_cache(self.handle)
+        free(num_octs_per_level)
+        return mask.astype("bool")
         
 sfc_subset_selector = AlwaysSelector
 
