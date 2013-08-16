@@ -735,7 +735,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         for i in range(max_level + 1):
             # This will help us keep track of where we are in the flattened
             # array, which will be indexed by file_ind.
-            local_ind[i] = self.level_indices[i] - self.level_indices[0]
+            local_ind[i] = self.level_indices[i]
         source_arrays = []
         for i in range(nf):
             field_ind[i] = field_indices[i]
@@ -1113,9 +1113,9 @@ cdef class ARTIORootMeshContainer:
             num_cells = mask.sum()
             if dims > 1:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
-                    order='C') - 1
+                    order='C')
             else:
-                dest = np.zeros(num_cells, dtype=source.dtype, order='C') - 1
+                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
         ddata = (<char*>dest.data) + offset*ss*dims
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             if mask[sfc - self.sfc_start] == 0: continue
@@ -1125,7 +1125,7 @@ cdef class ARTIORootMeshContainer:
             filled += 1
         if num_cells >= 0:
             return dest
-        return filled - offset
+        return filled
 
     def mask(self, SelectorObject selector, np.int64_t num_octs = -1):
         cdef int i, status, eterm[3]
