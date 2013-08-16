@@ -176,7 +176,8 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     """
-    annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None, 
+                    normalize=False, bv_x=0, bv_y=0):
 
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints
@@ -230,8 +231,8 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     """
-    annotate_contour(self, field, ncont=5, factor=4, take_log=None, clim=None,
-                     plot_args = None):
+    annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
+                     plot_args=None, label=False, label_args=None):
 
     Add contours in *field* to the plot.  *ncont* governs the number of
     contours generated, *factor* governs the number of points used in the
@@ -338,7 +339,8 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids()
+    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
 
     Draws grids on an existing PlotWindow object.
 
