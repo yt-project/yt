@@ -14,7 +14,8 @@ from yt.geometry.oct_visitors cimport \
     OctVisitorData, oct_visitor_function, Oct
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
-import  data_structures  
+from libc.string cimport memcpy
+import data_structures  
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
@@ -1090,52 +1091,41 @@ cdef class ARTIORootMeshContainer:
         # This is where we use the selector to transplant from one to the
         # other.  Note that we *do* apply the selector here.
         cdef np.int64_t num_cells = -1
-        cdef np.int64_t ind = offset
+        cdef np.int64_t ind
         cdef np.int64_t sfc
         cdef np.float64_t pos[3]
         cdef np.float64_t dpos[3]
-        cdef int dim, status, eterm[3]
+        cdef int dim, status, eterm[3], filled = 0
         cdef int num_oct_levels, level
         cdef int max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
+        cdef char *sdata = <char*> source.data
+        cdef char *ddata
+        cdef int ss = source.dtype.itemsize
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector)
         if dest is None:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of
             # cells.
-            num_cells = self.count_cells(selector)
+            num_cells = mask.sum()
             if dims > 1:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
-                    order='C')
+                    order='C') - 1
             else:
-                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
-        status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
-                                            self.sfc_end)
-        check_artio_status(status) 
+                dest = np.zeros(num_cells, dtype=source.dtype, order='C') - 1
+        ddata = (<char*>dest.data) + offset*ss*dims
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            # We check if the SFC is in our selector, and if so, we copy
-            self.sfc_to_pos(sfc, pos)
-            if selector.select_cell(pos, self.dds, eterm) == 0: continue
-            # Now we just need to check if the cells are refined.
-            status = artio_grid_read_root_cell_begin( self.handle,
-                sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
-            check_artio_status(status)
-            status = artio_grid_read_root_cell_end( self.handle )
-            check_artio_status(status)
-            # If refined, we skip
-            if num_oct_levels > 0: continue
-            if dims > 1:
-                for dim in range(dims):
-                    dest[ind, dim] = source[sfc - self.sfc_start, dim]
-            else:
-                dest[ind] = source[sfc - self.sfc_start]
-            ind += 1
+            if mask[sfc - self.sfc_start] == 0: continue
+            ind = (sfc - self.sfc_start) * ss * dims
+            memcpy(ddata, sdata + ind, dims * ss)
+            ddata += dims * ss
+            filled += 1
 
-        artio_grid_clear_sfc_cache(self.handle)
-        free(num_octs_per_level)
         if num_cells >= 0:
             return dest
-        return ind - offset
+        return filled - offset
 
     def mask(self, SelectorObject selector, np.int64_t num_octs = -1):
         cdef int i, status, eterm[3]

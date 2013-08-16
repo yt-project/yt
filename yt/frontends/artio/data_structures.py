@@ -153,6 +153,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
     def fill(self, fields, selector):
         # We know how big these will be.
+        handle = self.pf._handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
         self.data_size = cell_count = self.sfc_end - self.sfc_start + 1
