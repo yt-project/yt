@@ -1170,10 +1170,10 @@ cdef class ARTIORootMeshContainer:
                                 1, fields)
         return rv
 
-    def fill_sfc(self, field_indices, dest_fields):
+    def fill_sfc(self, SelectorObject selector, field_indices):
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, num_cells
         cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
         cdef double dpos[3]
@@ -1182,6 +1182,12 @@ cdef class ARTIORootMeshContainer:
         nf = len(field_indices)
         ngv = self.artio_handle.num_grid_variables
         max_level = self.artio_handle.max_level
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector)
+        num_cells = mask.sum()
+        tr = []
+        for i in range(nf):
+            tr.append(np.zeros(num_cells, dtype="float64"))
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
         cdef float *grid_variables = <float *>malloc(
@@ -1193,20 +1199,22 @@ cdef class ARTIORootMeshContainer:
         for i in range(nf):
             field_ind[i] = field_indices[i]
             # This zeros should be an empty once we handle the root grid
-            dest = dest_fields[i]
+            dest = tr[i]
             field_vals[i] = <np.float64_t*> dest.data
         # First we need to walk the mesh in the file.  Then we fill in the dest
         # location based on the file index.
+        cdef int filled = 0
         status = artio_grid_cache_sfc_range(handle,
             self.sfc_start, self.sfc_end )
         check_artio_status(status) 
         for sfc in range(self.sfc_start, self.sfc_end + 1):
+            if mask[sfc - self.sfc_start] == 0: continue
             status = artio_grid_read_root_cell_begin( handle, sfc, 
                     dpos, grid_variables, &num_oct_levels,
                     num_octs_per_level)
             check_artio_status(status) 
             for i in range(nf):
-                field_vals[i][sfc - self.sfc_start] = grid_variables[i]
+                field_vals[i][filled] = grid_variables[i]
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
         # Now we have all our sources.
@@ -1216,6 +1224,7 @@ cdef class ARTIORootMeshContainer:
         free(field_vals)
         free(grid_variables)
         free(num_octs_per_level)
+        return tr
 
 sfc_subset_selector = AlwaysSelector
 

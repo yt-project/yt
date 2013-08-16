@@ -156,9 +156,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         handle = self.pf._handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
-        self.data_size = cell_count = self.sfc_end - self.sfc_start + 1
-        tr = [np.zeros(cell_count, dtype="float64") for field in fields]
-        self.oct_handler.fill_sfc(field_indices, tr)
+        tr = self.oct_handler.fill_sfc(selector, field_indices)
+        self.data_size = tr[0].size
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
 
