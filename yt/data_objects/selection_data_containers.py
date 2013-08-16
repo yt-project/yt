@@ -828,7 +828,6 @@ class YTRegionBase(YTSelectionContainer3D):
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
-    _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)

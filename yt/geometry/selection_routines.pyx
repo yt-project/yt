@@ -519,12 +519,10 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
-    cdef np.float64_t dx_pad
 
     def __init__(self, dobj):
         cdef int i
         cdef np.float64_t region_width, domain_width
-        self.dx_pad =dobj._dx_pad
 
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
@@ -571,14 +569,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
-        cdef int i
-        cdef np.float64_t LE[3], RE[3]
-        if self.dx_pad == 0.0:
-            return self.select_point(pos)
-        for i in range(3):
-            LE[i] = pos[i] - self.dx_pad * dds[i]
-            RE[i] = pos[i] + self.dx_pad * dds[i]
-        return self.select_bbox(LE, RE)
+        return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -593,8 +584,7 @@ cdef class RegionSelector(SelectorObject):
 
     def _hash_vals(self):
         return (self.left_edge[0], self.left_edge[1], self.left_edge[2],
-                self.right_edge[0], self.right_edge[1], self.right_edge[2],
-                self.dx_pad)
+                self.right_edge[0], self.right_edge[1], self.right_edge[2])
 
 region_selector = RegionSelector
 
