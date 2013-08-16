@@ -51,7 +51,7 @@ from yt.data_objects.field_info_container import \
 
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
-    domain_id = 1
+    domain_id = 2
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
     _type_name = 'octree_subset'
 
@@ -140,6 +140,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
     _num_zones = 1
     _type_name = 'sfc_subset'
     _selector_module = _artio_caller
+    domain_id = 1
 
     @property
     def oct_handler(self):
@@ -335,7 +336,7 @@ class ARTIOGeometryHandler(GeometryHandler):
                 mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
-            ci =  [ARTIORootMeshSubset(base_region, start, end, self.pf)
+            ci  = [ARTIORootMeshSubset(base_region, start, end, self.pf)
                    for (start, end) in list_sfc_ranges]
             ci += [ARTIOOctreeSubset(base_region, start, end, self.pf)
                    for (start, end) in list_sfc_ranges]

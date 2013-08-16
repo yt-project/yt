@@ -634,7 +634,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         for i in range(max_level + 1):
             self.level_indices[i] = tot
             tot += tot_octs_per_level[i]
-        self.allocate_domains([tot - num_root, num_root], num_root)
+        self.allocate_domains([num_root, tot - num_root], num_root)
         # Now we have everything counted, and we need to create the appropriate
         # number of arrays.
         cdef np.ndarray[np.float64_t, ndim=2] pos
@@ -677,11 +677,12 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         nadded = 0
         cdef np.int64_t si, ei
         si = 0
-        # We initialize domain to 2 so that all root mesh octs are viewed as
+        # We initialize domain to 1 so that all root mesh octs are viewed as
         # not belonging to this domain.  This way we don't get confused with
         # how the different meshes are interfaced, and the root mesh container
-        # will own all the root mesh octs.
-        cdef int domain = 2
+        # will own all the root mesh octs.  Then, for all octs at higher
+        # levels, we use domain == 2.
+        cdef int domain = 1
         for level in range(max_level + 1):
             self.level_indices[level] = si
             ei = si + tot_octs_per_level[level]
@@ -695,7 +696,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 print nadded, (ei - si), tot_octs_per_level[0]
                 raise RuntimeError
             si = ei
-            domain = 1 # Switch back to 1
+            domain = 2
         artio_grid_clear_sfc_cache(handle)
         free(mask)
         free(num_octs_per_level)
@@ -734,7 +735,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         for i in range(max_level + 1):
             # This will help us keep track of where we are in the flattened
             # array, which will be indexed by file_ind.
-            local_ind[i] = self.level_indices[i]
+            local_ind[i] = self.level_indices[i] - self.level_indices[0]
         source_arrays = []
         for i in range(nf):
             field_ind[i] = field_indices[i]
