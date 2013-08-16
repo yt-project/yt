@@ -1127,7 +1127,8 @@ class PWViewerMPL(PWViewer):
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
             else:
-                return self
+                from IPython.display import display
+                display(self)
         else:
             raise YTNotInsideNotebook
 
