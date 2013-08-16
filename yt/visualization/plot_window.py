@@ -1840,9 +1840,9 @@ class PWViewerExtJS(PWViewer):
             self._field_transform[field] = linear_transform
 
 class WindowPlotMPL(ImagePlotMPL):
-    def __init__(self, data, cbname, cmap, extent, aspect, zlim, size,
-                 fontsize):
-            figure, axes, cax):
+    def __init__(
+            self, data, cbname, cmap, extent, aspect, zlim, size, fontsize,
+                figure, axes, cax):
         fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
         if np.any(np.array(axrect) < 0):
             msg = 'The axis ratio of the requested plot is very narrow. ' \
