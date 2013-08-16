@@ -896,6 +896,56 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def count_cells(self, gobj):
+        # optimization if we can ignore the child mask
+        if gobj.level < self.min_level or gobj.level > self.max_level:
+            return 0
+        elif gobj.level == self.max_level:
+            return gobj.ActiveDimensions[self.axis]
+        else:
+            return super(OrthoRaySelector, self).count_cells(gobj)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i, j, k
+        cdef int total = 0
+        cdef int this_level = 0
+        cdef int ind[3][2]
+        cdef np.int32_t level = gobj.Level
+
+        if level < self.min_level or level > self.max_level:
+            return None
+        else:
+            child_mask = gobj.child_mask
+            mask = np.zeros(gobj.ActiveDimensions, dtype=np.uint8 )
+            if level == self.max_level:
+                this_level = 1
+            ind[self.axis][0] = 0
+            ind[self.axis][1] = gobj.ActiveDimensions[self.axis]
+            ind[self.px_ax][0] = <int> ((self.px - gobj.LeftEdge[self.px_ax]) /
+                                        gobj.dds[self.px_ax])
+            ind[self.px_ax][1] = ind[self.px_ax][0] + 1
+            ind[self.py_ax][0] = <int> ((self.py - gobj.LeftEdge[self.py_ax]) /
+                                        gobj.dds[self.py_ax])
+            ind[self.py_ax][1] = ind[self.py_ax][0] + 1
+
+            with nogil:
+                for i in range(ind[0][0],ind[0][1]):
+                    for j in range(ind[1][0],ind[1][1]):
+                        for k in range(ind[2][0],ind[2][1]):
+                            if this_level == 1 or child_mask[i,j,k]:
+                                mask[i,j,k] = 1
+                                total += 1
+            if total == 0: return None
+            return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         if self.px >= pos[self.px_ax] - 0.5*dds[self.px_ax] and \
            self.px <  pos[self.px_ax] + 0.5*dds[self.px_ax] and \
@@ -975,6 +1025,7 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=3] t, dt
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i
+        cdef int total = 0
         cdef IntegrationAccumulator ia
         cdef VolumeContainer vc
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
@@ -997,13 +1048,14 @@ cdef class RaySelector(SelectorObject):
                 for k in range(dt.shape[2]):
                     if dt[i,j,k] >= 0:
                         mask[i,j,k] = 1
+                        total += 1
+        if total == 0: return None
         return mask.astype("bool")
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def count_cells(self, gobj):
-        return self.fill_mask(gobj).sum()
+        mask = self.fill_mask(gobj)
+        if mask is None: return 0
+        return mask.sum()
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
