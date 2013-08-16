@@ -1009,10 +1009,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.float64_t pos[3], right_edge[3]
         cdef int num_cells = 0
         cdef int i, eterm[3]
-        for sfc in range(self.sfc_start, self.sfc_end + 1):
-            self.sfc_to_pos(sfc, pos)
-            num_cells += selector.select_cell(pos, self.dds, eterm)
-        return num_cells
+        return self.mask(selector).sum()
 
     def icoords(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
@@ -1020,20 +1017,21 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t sfc
         cdef int acoords[3], i
         # We call it num_octs, but it's really num_cells.
-        if num_octs == -1:
-            # We need to count, but this process will only occur one time,
-            # since num_octs will later be cached.
-            num_octs = self.sfc_end - self.sfc_start + 1
-        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector)
+        num_octs = mask.sum()
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_octs, 3), dtype="int64")
+        cdef int filled = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
+            if mask[sfc - self.sfc_start] == 0: continue
             # Note that we do *no* checks on refinement here.  In fact, this
             # entire setup should not need to touch the disk except if the
             # artio sfc calculators need to.
             artio_sfc_coords(self.handle, sfc, acoords)
             for i in range(3):
-                coords[sfc - self.sfc_start, i] = acoords[i]
+                coords[filled, i] = acoords[i]
+            filled += 1
         return coords
 
     def fcoords(self, SelectorObject selector, np.int64_t num_octs = -1,
@@ -1043,30 +1041,29 @@ cdef class ARTIORootMeshContainer:
         cdef np.float64_t pos[3]
         cdef int acoords[3], i
         # We call it num_octs, but it's really num_cells.
-        if num_octs == -1:
-            # We need to count, but this process will only occur one time,
-            # since num_octs will later be cached.
-            num_octs = self.sfc_end - self.sfc_start + 1
-        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector)
+        num_octs = mask.sum()
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_octs, 3), dtype="float64")
+        cdef int filled = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
+            if mask[sfc - self.sfc_start] == 0: continue
             # Note that we do *no* checks on refinement here.  In fact, this
             # entire setup should not need to touch the disk except if the
             # artio sfc calculators need to.
             self.sfc_to_pos(sfc, pos)
             for i in range(3):
-                coords[sfc - self.sfc_start, i] = pos[i]
+                coords[filled, i] = pos[i]
+            filled += 1
         return coords
 
     def fwidth(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
         cdef int i
-        if num_octs == -1:
-            # We need to count, but this process will only occur one time,
-            # since num_octs will later be cached.
-            num_octs = self.sfc_end - self.sfc_start + 1
-        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector)
+        num_octs = mask.sum()
         cdef np.ndarray[np.float64_t, ndim=2] width
         width = np.zeros((num_octs, 3), dtype="float64")
         for i in range(3):
@@ -1075,11 +1072,9 @@ cdef class ARTIORootMeshContainer:
 
     def ires(self, SelectorObject selector, np.int64_t num_octs = -1,
                 int domain_id = -1):
-        if num_octs == -1:
-            # We need to count, but this process will only occur one time,
-            # since num_octs will later be cached.
-            num_octs = self.sfc_end - self.sfc_start + 1
-        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector)
+        num_octs = mask.sum()
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_octs, dtype="int64")
         return res
@@ -1117,12 +1112,13 @@ cdef class ARTIORootMeshContainer:
             else:
                 dest = np.zeros(num_cells, dtype=source.dtype, order='C')
         ddata = (<char*>dest.data) + offset*ss*dims
+        ind = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             if mask[sfc - self.sfc_start] == 0: continue
-            ind = (sfc - self.sfc_start) * ss * dims
             memcpy(ddata, sdata + ind, dims * ss)
             ddata += dims * ss
             filled += 1
+            ind += ss * dims
         if num_cells >= 0:
             return dest
         return filled
@@ -1183,7 +1179,7 @@ cdef class ARTIORootMeshContainer:
         ngv = self.artio_handle.num_grid_variables
         max_level = self.artio_handle.max_level
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
-        mask = self.mask(selector)
+        mask = self.mask(selector, -1)
         num_cells = mask.sum()
         tr = []
         for i in range(nf):
