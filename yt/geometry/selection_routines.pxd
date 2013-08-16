@@ -49,3 +49,7 @@ cdef class SelectorObject:
 
 cdef class AlwaysSelector(SelectorObject):
     pass
+
+cdef class OctreeSubsetSelector(SelectorObject):
+    cdef SelectorObject base_selector
+    cdef public np.int64_t domain_id
