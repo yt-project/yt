@@ -343,44 +343,13 @@ class GridBoundaryCallback(PlotCallback):
                  min_level=None, max_level=None, cmap='B-W LINEAR_r'):
 
     Draws grids on an existing PlotWindow object.
-
-    Parameters
-    ----------
-    alpha: float, optional
-        The alpha value for the grids being drawn.  Used to control
-        how bright the grid lines are with respect to the image.
-        Default : 0.7
-
-    cmap : string, optional
-        Colormap to be used mapping grid levels to colors.  If 
-        cmap is set to None, will default to all black grid boxes.
-        The default colormap was chosen to give shades of white to black
-        as the refinement level increases.
-        Default : 'B-W LINEAR_r'
-
-    min_pix : int, optional
-        If a grid patch is smaller than min_pix pixels in size in image
-        space, it will not be displayed.
-        Default : 1
-    
-    min_pix_ids : int, optional
-        If a grid patch is smaller than min_pix_ids pixels in size in 
-        image space, it will not be labeled with an id (only applies
-        when using the *draw_ids* kwarg).
-        Default : 20
-
-    draw_ids : bool, optional
-        When set, labels each grid with ID number.
-        Default : False
-
-    periodic : bool, optional
-        Retains periodic behavior of grids at volume boundaries.
-        Default : False
-
-    min_level, max_level : int, optional
-        Optional parameters to specify the min and max level grid boxes
-        to overplot on the image.
-
+    Adds grid boundaries to a plot, optionally with alpha-blending. By default, 
+    colors different levels of grids with different colors going from white to
+    black, but you can change to any arbitrary colormap with cmap keyword 
+    (or all black cells for all levels with cmap=None).  Cuttoff for display is at 
+    min_pix wide. draw_ids puts the grid id in the corner of the grid. 
+    (Not so great in projections...).  One can set min and maximum level of
+    grids to display.
     """
     _type_name = "grids"
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
