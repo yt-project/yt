@@ -1267,9 +1267,9 @@ cdef class ARTIORootMeshContainer:
                 pos[j] = positions[i, j]
                 coords[j] = <int>((pos[j] - self.DLE[j])/self.dds[j])
             sfc = artio_sfc_index(self.artio_handle.handle, coords)
+            if sfc < self.sfc_start or sfc > self.sfc_end: continue
             offset = domain_ind[sfc - self.sfc_start]
-            if offset < 0 or sfc < self.sfc_start or sfc > self.sfc_end:
-                continue
+            if offset < 0: continue
             # Check that we found the oct ...
             for j in range(3):
                 left_edge[j] = coords[j] * self.dds[j] + self.DLE[j]
