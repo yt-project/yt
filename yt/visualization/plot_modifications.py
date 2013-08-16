@@ -432,9 +432,9 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors = apply_colormap(grid_levels*1.0,
                                   color_bounds=[0,plot.data.pf.h.max_level],
                                   cmap_name=self.cmap)[0,:,:]*1.0/255.
+                edgecolors[:,3] = self.alpha
             else:
                 edgecolors = (0.0,0.0,0.0,self.alpha)
-            edgecolors[:,3] = self.alpha
 
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
