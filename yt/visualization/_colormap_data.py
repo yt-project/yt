@@ -7798,3 +7798,11 @@ color_map_luts['Waves'] = color_map_luts['idl37']
 color_map_luts['Rainbow18'] = color_map_luts['idl38']
 color_map_luts['Rainbow + white'] = color_map_luts['idl39']
 color_map_luts['Rainbow + black'] = color_map_luts['idl40']
+
+# Create a reversed LUT for each of the above defined LUTs
+# and append a "_r" (for reversal. consistent with MPL convention).
+# So for example, the reversal of "Waves" is "Waves_r"
+temp = {}
+for k,v in color_map_luts.iteritems():
+    temp[k+"_r"] = (v[0][::-1], v[1][::-1], v[2][::-1], v[3][::-1])
+color_map_luts.update(temp)
