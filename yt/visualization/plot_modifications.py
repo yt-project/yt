@@ -379,8 +379,8 @@ class GridBoundaryCallback(PlotCallback):
 
     """
     _type_name = "grids"
-    def __init__(self, alpha=0.3, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None, cmap='algae'):
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
