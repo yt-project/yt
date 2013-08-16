@@ -1123,7 +1123,6 @@ cdef class ARTIORootMeshContainer:
             memcpy(ddata, sdata + ind, dims * ss)
             ddata += dims * ss
             filled += 1
-
         if num_cells >= 0:
             return dest
         return filled - offset
@@ -1142,7 +1141,7 @@ cdef class ARTIORootMeshContainer:
         cdef int max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
-        mask = np.zeros((num_octs * 8), dtype="uint8")
+        mask = np.zeros((num_octs), dtype="uint8")
         status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
                                             self.sfc_end)
         check_artio_status(status) 
@@ -1215,7 +1214,8 @@ cdef class ARTIORootMeshContainer:
                     num_octs_per_level)
             check_artio_status(status) 
             for i in range(nf):
-                field_vals[i][filled] = grid_variables[i]
+                field_vals[i][filled] = grid_variables[field_ind[i]]
+            filled += 1
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
         # Now we have all our sources.

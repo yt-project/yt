@@ -326,6 +326,7 @@ class ARTIOGeometryHandler(GeometryHandler):
             base_region = getattr(dobj, "base_region", dobj)
             sfc_start = getattr(dobj, "sfc_start", None)
             sfc_end = getattr(dobj, "sfc_end", None)
+            domain = getattr(dobj, "domain_id", 0)
             if all_data:
                 mylog.debug("Selecting entire artio domain")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
@@ -336,10 +337,13 @@ class ARTIOGeometryHandler(GeometryHandler):
                 mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
-            ci  = [ARTIORootMeshSubset(base_region, start, end, self.pf)
-                   for (start, end) in list_sfc_ranges]
-            ci += [ARTIOOctreeSubset(base_region, start, end, self.pf)
-                   for (start, end) in list_sfc_ranges]
+            ci = []
+            if domain != 2:
+                ci += [ARTIORootMeshSubset(base_region, start, end, self.pf)
+                        for (start, end) in list_sfc_ranges]
+            if domain != 1:
+                ci += [ARTIOOctreeSubset(base_region, start, end, self.pf)
+                       for (start, end) in list_sfc_ranges]
             dobj._chunk_info = ci
             mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
