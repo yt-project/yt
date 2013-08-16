@@ -409,13 +409,15 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.grid_left_edge
         GRE = plot.data.grid_right_edge
-        grid_levels = plot.data.grid_levels[:,0]
+        levels = plot.data.grid_levels[:,0]
         min_level = self.min_level
         max_level = self.max_level
-        if min_level is None:
-            min_level = 0
-        if max_level is None:
-            max_level = plot.data.pf.h.max_level
+        if max_level is not None:
+            subset = levels <= max_level
+            levels = levels[subset]
+        if min_level is not None:
+            subset = levels >= min_level
+            levels = levels[subset]
 
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
@@ -425,11 +427,9 @@ class GridBoundaryCallback(PlotCallback):
             right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
             right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
-                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
-                       ( grid_levels >= min_level) & \
-                       ( grid_levels <= max_level)
+                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix )
             if self.cmap is not None: 
-                edgecolors = apply_colormap(grid_levels*1.0,
+                edgecolors = apply_colormap(levels*1.0,
                                   color_bounds=[0,plot.data.pf.h.max_level],
                                   cmap_name=self.cmap)[0,:,:]*1.0/255.
                 edgecolors[:,3] = self.alpha
