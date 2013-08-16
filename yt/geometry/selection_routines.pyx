@@ -287,43 +287,6 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, dim[3]
-        child_mask = gobj.child_mask
-        for i in range(3):
-            dim[i] = gobj.ActiveDimensions[i]
-            dds[i] = odds[i]
-        cdef int count = 0
-        # Check for the level bounds
-        cdef np.int32_t level = gobj.Level
-        if level < self.min_level or level > self.max_level:
-            return count
-        # We set this to 1 if we ignore child_mask
-        cdef int this_level = 0
-        if level == self.max_level:
-            this_level = 1
-        with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
-            for i in range(dim[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
-                for j in range(dim[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
-                    for k in range(dim[2]):
-                        if child_mask[i,j,k] == 1 or this_level == 1:
-                            count += self.select_cell(pos, dds)
-                        pos[2] += dds[1]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
-        return count
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
@@ -787,18 +750,6 @@ cdef class SliceSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        # optimization if we can ignore the child mask
-        if gobj.level < self.min_level or gobj.level > self.max_level:
-            return 0
-        elif gobj.level == self.max_level:
-            return gobj.ActiveDimensions[self.ax]*gobj.ActiveDimensions[self.ay]
-        else:
-            return super(SliceSelector, self).count_cells(gobj)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3] mask
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
@@ -882,18 +833,6 @@ cdef class OrthoRaySelector(SelectorObject):
         self.py_ax = dobj.py_ax
         self.px = dobj.px
         self.py = dobj.py
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def count_cells(self, gobj):
-        # optimization if we can ignore the child mask
-        if gobj.level < self.min_level or gobj.level > self.max_level:
-            return 0
-        elif gobj.level == self.max_level:
-            return gobj.ActiveDimensions[self.axis]
-        else:
-            return super(OrthoRaySelector, self).count_cells(gobj)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1042,11 +981,6 @@ cdef class RaySelector(SelectorObject):
         if total == 0: return None
         return mask.astype("bool")
 
-    def count_cells(self, gobj):
-        mask = self.fill_mask(gobj)
-        if mask is None: return 0
-        return mask.sum()
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1165,12 +1099,6 @@ cdef class DataCollectionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        return gobj.ActiveDimensions.prod()
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3] mask 
         mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
@@ -1284,12 +1212,6 @@ cdef class GridSelector(SelectorObject):
         gridi[self.ind] = 1
         return gridi.astype("bool")
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def count_cells(self, gobj):
-        return gobj.ActiveDimensions.prod()
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
