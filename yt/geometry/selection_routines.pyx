@@ -328,7 +328,6 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask
-        cdef int ind[3][2]
         cdef int dim[3]
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
         cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
@@ -786,10 +785,62 @@ cutting_selector = CuttingPlaneSelector
 cdef class SliceSelector(SelectorObject):
     cdef int axis
     cdef np.float64_t coord
+    cdef int ax, ay
 
     def __init__(self, dobj):
         self.axis = dobj.axis
         self.coord = dobj.coord
+
+        ax = (self.axis+1) % 3
+        ay = (self.axis+2) % 3
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count_cells(self, gobj):
+        # optimization if we can ignore the child mask
+        if gobj.level < self.min_level or gobj.level > self.max_level:
+            return 0
+        elif gobj.level == self.max_level:
+            return gobj.ActiveDimensions[self.ax]*gobj.ActiveDimensions[self.ay]
+        else:
+            return super(SliceSelector, self).count_cells(gobj)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i, j, k
+        cdef int total = 0
+        cdef int this_level = 0
+        cdef int ind[3][2]
+        cdef np.int32_t level = gobj.Level
+
+        if level < self.min_level or level > self.max_level:
+            return None
+        else:
+            child_mask = gobj.child_mask
+            mask = np.zeros(gobj.ActiveDimensions, dtype=np.uint8 )
+            if level == self.max_level:
+                this_level = 1
+            for i in range(3):
+                if i == self.axis:
+                    ind[i][0] = <int> ((self.coord - gobj.LeftEdge[i])/gobj.dds[i])
+                    ind[i][1] = ind[i][0] + 1
+                else:
+                    ind[i][0] = 0
+                    ind[i][1] = gobj.ActiveDimensions[i]
+            with nogil:
+                for i in range(ind[0][0],ind[0][1]):
+                    for j in range(ind[1][0],ind[1][1]):
+                        for k in range(ind[2][0],ind[2][1]):
+                            if this_level == 1 or child_mask[i,j,k]:
+                                mask[i,j,k] = 1
+                                total += 1
+            if total == 0: return None
+            return mask.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
