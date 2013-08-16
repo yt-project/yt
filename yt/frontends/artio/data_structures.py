@@ -39,6 +39,7 @@ from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
+import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.data_objects.octree_subset import \
@@ -161,6 +162,24 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         self.data_size = tr[0].size
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
+
+    def deposit(self, positions, fields = None, method = None):
+        # Here we perform our particle deposition.
+        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        if cls is None:
+            raise YTParticleDepositionNotImplemented(method)
+        nz = self.nz
+        nvals = (nz, nz, nz, self.ires.size)
+        op = cls(nvals) # We allocate number of zones, not number of octs
+        op.initialize()
+        mylog.debug("Depositing %s (%s^3) particles into %s Root Mesh",
+            positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
+        pos = np.array(positions, dtype="float64")
+        f64 = [np.array(f, dtype="float64") for f in fields]
+        self.oct_handler.deposit(op, self.base_selector, pos, f64)
+        vals = op.finalize()
+        if vals is None: return
+        return np.asfortranarray(vals)
 
 class ARTIOChunk(object):
 

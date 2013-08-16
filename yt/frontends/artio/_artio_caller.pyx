@@ -12,10 +12,15 @@ from yt.geometry.oct_container cimport \
     SparseOctreeContainer
 from yt.geometry.oct_visitors cimport \
     OctVisitorData, oct_visitor_function, Oct
+from yt.geometry.particle_deposit cimport \
+    ParticleDepositOperation
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures  
+
+cdef extern from "alloca.h":
+    void *alloca(int)
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
@@ -1222,6 +1227,57 @@ cdef class ARTIORootMeshContainer:
         free(grid_variables)
         free(num_octs_per_level)
         return tr
+
+    def deposit(self, ParticleDepositOperation pdeposit,
+                SelectorObject selector,
+                np.ndarray[np.float64_t, ndim=2] positions,
+                fields):
+        # This implements the necessary calls to enable particle deposition to
+        # occur as needed.
+        cdef int nf, i, j
+        if fields is None:
+            fields = []
+        nf = len(fields)
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
+        mask = self.mask(selector, -1)
+        cdef np.ndarray[np.int64_t, ndim=1] domain_ind
+        domain_ind = np.zeros(mask.shape[0], dtype="int64") - 1
+        j = 0
+        for i in range(mask.shape[0]):
+            if mask[i] == 1:
+                domain_ind[i] = j
+                j += 1
+        cdef np.float64_t **field_pointers, *field_vals, pos[3], left_edge[3]
+        cdef int coords[3]
+        cdef np.int64_t sfc
+        cdef np.ndarray[np.float64_t, ndim=1] tarr
+        field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
+        field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
+        for i in range(nf):
+            tarr = fields[i]
+            field_pointers[i] = <np.float64_t *> tarr.data
+        cdef int dims[3]
+        dims[0] = dims[1] = dims[2] = 1
+        cdef np.int64_t offset, moff
+        cdef np.int64_t numpart = positions.shape[0]
+        for i in range(positions.shape[0]):
+            for j in range(nf):
+                field_vals[j] = field_pointers[j][i]
+            for j in range(3):
+                pos[j] = positions[i, j]
+                coords[j] = <int>((pos[j] - self.DLE[j])/self.dds[j])
+            sfc = artio_sfc_index(self.artio_handle.handle, coords)
+            offset = domain_ind[sfc - self.sfc_start]
+            if offset < 0 or sfc < self.sfc_start or sfc > self.sfc_end:
+                continue
+            # Check that we found the oct ...
+            for j in range(3):
+                left_edge[j] = coords[j] * self.dds[j] + self.DLE[j]
+            pdeposit.process(dims, left_edge, self.dds,
+                         offset, pos, field_vals, sfc)
+            if pdeposit.update_values == 1:
+                for j in range(nf):
+                    field_pointers[j][i] = field_vals[j] 
 
 sfc_subset_selector = AlwaysSelector
 
