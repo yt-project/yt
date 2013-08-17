@@ -86,8 +86,11 @@ class StaticOutput(object):
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            _cached_pfs[apath] = obj
-        return _cached_pfs[apath]
+            if obj._skip_cache is False:
+                _cached_pfs[apath] = obj
+        else:
+            obj = _cached_pfs[apath]
+        return obj
 
     def __init__(self, filename, data_style=None, file_style=None):
         """
@@ -156,6 +159,10 @@ class StaticOutput(object):
     @property
     def _mrep(self):
         return MinimalStaticOutput(self)
+
+    @property
+    def _skip_cache(self):
+        return False
 
     def hub_upload(self):
         self._mrep.upload()

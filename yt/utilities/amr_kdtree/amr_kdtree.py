@@ -89,7 +89,8 @@ class Tree(object):
         for lvl in lvl_range:
             #grids = self.data_source.select_grids(lvl)
             grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
-            if len(grids) == 0: continue
+            gids = np.array([g.id for g in grids if g.Level == lvl],
+                            dtype="int64")
             self.add_grids(grids)
 
     def check_tree(self):

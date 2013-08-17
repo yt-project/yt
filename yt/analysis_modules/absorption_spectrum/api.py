@@ -30,3 +30,6 @@ License:
 
 from .absorption_spectrum import \
     AbsorptionSpectrum
+
+from .absorption_spectrum_fit import \
+    generate_total_fit
