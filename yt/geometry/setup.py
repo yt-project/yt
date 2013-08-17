@@ -41,6 +41,7 @@ def configuration(parent_package='',top_path=None):
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/geometry/oct_container.pxd",
+                         "yt/geometry/selection_routines.pxd",
                          "yt/geometry/particle_deposit.pxd"])
     config.add_extension("fake_octree", 
                 ["yt/geometry/fake_octree.pyx"],

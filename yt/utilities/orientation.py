@@ -52,6 +52,8 @@ class Orientation:
            
         """
         self.steady_north = steady_north
+        if not np.dot(normal_vector, normal_vector) > 0:
+            mylog.error("Normal vector is null")
         if np.all(north_vector == normal_vector):
             mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
             north_vector = None

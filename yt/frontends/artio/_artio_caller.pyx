@@ -204,8 +204,7 @@ cdef class artio_fileset :
         status = artio_fileset_open_particles( self.handle )
         check_artio_status(status)
    
-    # this should possibly be __dealloc__ 
-    def __del__(self) :
+    def __dealloc__(self) :
         if self.num_octs_per_level : free(self.num_octs_per_level)
         if self.grid_variables : free(self.grid_variables)
 
@@ -274,9 +273,6 @@ cdef class artio_fileset :
 
         cdef int num_fields = len(fields)
         cdef np.float64_t pos[3]
-        cdef np.float64_t dds[3]
-        cdef int eterm[3]
-        for i in range(3) : dds[i] = 0
 
         data = {}
         accessed_species = np.zeros( self.num_species, dtype="int")
@@ -322,7 +318,7 @@ cdef class artio_fileset :
 
             for ispec in range(self.num_species) : 
                 if accessed_species[ispec] :
-                    status = artio_particle_read_species_begin(self.handle, ispec);
+                    status = artio_particle_read_species_begin(self.handle, ispec)
                     check_artio_status(status)
  
                     for particle in range( self.num_particles_per_species[ispec] ) :
@@ -332,9 +328,9 @@ cdef class artio_fileset :
                         check_artio_status(status)
 
                         for i in range(3) :
-                            pos[i] = self.primary_variables[self.particle_position_index[3*ispec+i]] 
+                            pos[i] = self.primary_variables[self.particle_position_index[3*ispec+i]]
 
-                        if selector.select_cell(pos,dds,eterm) :
+                        if selector.select_point(pos) :
                             # loop over primary variables
                             for i,field in selected_primary[ispec] :
                                 count = len(data[field])
@@ -379,9 +375,10 @@ cdef class artio_fileset :
         cdef int64_t count
         cdef int64_t max_octs
         cdef double dpos[3]
-        cdef np.float64_t pos[3]
+        cdef np.float64_t left[3]
+        cdef np.float64_t right[3]
         cdef np.float64_t dds[3]
-        cdef int eterm[3]
+
         cdef int *field_order
         cdef int num_fields  = len(fields)
         field_order = <int*>malloc(sizeof(int)*num_fields)
@@ -443,12 +440,13 @@ cdef class artio_fileset :
                     for child in range(8) :
                         if not refined[child] :
                             for i in range(3) :
-                                pos[i] = dpos[i] + dds[i]*(0.5 if (child & (1<<i)) else -0.5)
+                                left[i] = (dpos[i]-dds[i]) if (child & (i<<1)) else dpos[i]
+                                right[i] = left[i] + dds[i]
 
-                            if selector.select_cell( pos, dds, eterm ) :
+                            if selector.select_bbox(left,right) :
                                 fcoords.resize((count+1, 3))
                                 for i in range(3) :
-                                    fcoords[count][i] = pos[i]
+                                    fcoords[count][i] = left[i]+0.5*dds[i]
                                 ires.resize(count+1)
                                 ires[count] = level
                                 for i in range(num_fields) :
@@ -490,26 +488,28 @@ cdef class artio_fileset :
         cdef int max_range_size = 1024
         cdef int coords[3]
         cdef int64_t sfc_start, sfc_end
-        cdef np.float64_t pos[3]
+        cdef np.float64_t left[3]
+        cdef np.float64_t right[3]
         cdef np.float64_t dds[3]
-        cdef int eterm[3]
         cdef artio_selection *selection
         cdef int i, j, k
-        for i in range(3): dds[i] = 1.0
 
         sfc_ranges=[]
         selection = artio_selection_allocate(self.handle)
         for i in range(self.num_grid) :
             # stupid cython
             coords[0] = i
-            pos[0] = coords[0] + 0.5
+            left[0] = coords[0]
+            right[0] = left[0] + 1.0
             for j in range(self.num_grid) :
                 coords[1] = j
-                pos[1] = coords[1] + 0.5
+                left[1] = coords[1]
+                right[1] = left[1] + 1.0
                 for k in range(self.num_grid) :
                     coords[2] = k 
-                    pos[2] = coords[2] + 0.5
-                    if selector.select_cell(pos, dds, eterm) :
+                    left[2] = coords[2] 
+                    right[2] = left[2] + 1.0
+                    if selector.select_bbox(left,right) :
                         status = artio_selection_add_root_cell(selection, coords)
                         check_artio_status(status)
 
@@ -1013,7 +1013,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t sfc
         cdef np.float64_t pos[3], right_edge[3]
         cdef int num_cells = 0
-        cdef int i, eterm[3]
+        cdef int i
         return self.mask(selector).sum()
 
     def icoords(self, SelectorObject selector, np.int64_t num_octs = -1,
@@ -1096,7 +1096,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t sfc
         cdef np.float64_t pos[3]
         cdef np.float64_t dpos[3]
-        cdef int dim, status, eterm[3], filled = 0
+        cdef int dim, status, filled = 0
         cdef int num_oct_levels, level
         cdef int max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
@@ -1129,7 +1129,7 @@ cdef class ARTIORootMeshContainer:
         return filled
 
     def mask(self, SelectorObject selector, np.int64_t num_octs = -1):
-        cdef int i, status, eterm[3]
+        cdef int i, status
         cdef double dpos[3]
         cdef np.float64_t pos[3]
         if num_octs == -1:
@@ -1151,7 +1151,7 @@ cdef class ARTIORootMeshContainer:
             # Note that because we initialize to zeros, we can just continue if
             # it's not included.
             self.sfc_to_pos(sfc, pos)
-            if selector.select_cell(pos, self.dds, eterm) == 0: continue
+            if selector.select_cell(pos, self.dds) == 0: continue
             # Now we just need to check if the cells are refined.
             status = artio_grid_read_root_cell_begin( self.handle,
                 sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
