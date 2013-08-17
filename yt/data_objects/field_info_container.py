@@ -280,6 +280,8 @@ class FieldDetector(defaultdict):
             # need to re-update -- otherwise, our item will always not have the
             # field type.  This can lead to, for instance, "unknown" particle
             # types not getting correctly identified.
+            # Note that the *only* way this works is if we also fix our field
+            # dependencies during checking.  Bug #627 talks about this.
             item = self.pf._last_freq
         else:
             FI = getattr(self.pf, "field_info", FieldInfo)

@@ -295,20 +295,25 @@ class StaticOutput(object):
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
         if fname == self._last_freq[1]:
-            mylog.debug("Guessing field %s is (%s, %s)", fname,
-                        self._last_freq[0], self._last_freq[1])
             return self._last_finfo
         if fname in self.field_info:
+            # Sometimes, if guessing_type == True, this will be switched for
+            # the type of field it is.  So we look at the field type and
+            # determine if we need to change the type.
+            fi = self._last_finfo = self.field_info[fname]
+            if fi.particle_type and self._last_freq[0] \
+                not in self.particle_types:
+                    field = "all", field[1]
+            elif not fi.particle_type and self._last_freq[0] \
+                not in self.fluid_types:
+                    field = self.default_fluid_type, field[1]
             self._last_freq = field
-            self._last_finfo = self.field_info[fname]
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type and ("all", fname) in self.field_info:
             self._last_freq = ("all", fname)
             self._last_finfo = self.field_info["all", fname]
-            mylog.debug("Guessing field %s is (%s, %s)", fname,
-                        "all", fname)
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 

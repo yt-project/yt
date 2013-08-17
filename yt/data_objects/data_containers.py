@@ -460,7 +460,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
             inspected += 1
-            if field not in self.pf.field_dependencies: continue
+            fd = self.pf.field_dependencies.get(field, None) or \
+                 self.pf.field_dependencies.get(field[1], None)
+            if fd is None: continue
             fd = self.pf.field_dependencies[field]
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
