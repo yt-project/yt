@@ -992,6 +992,7 @@ cdef class ARTIORootMeshContainer:
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
 
+    @cython.cdivision(True)
     cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
         # Calculate the index
         cdef int coords[3], i
@@ -1001,6 +1002,7 @@ cdef class ARTIORootMeshContainer:
         sfc = artio_sfc_index(self.handle, coords)
         return sfc
 
+    @cython.cdivision(True)
     cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) nogil:
         cdef int coords[3], i
         artio_sfc_coords(self.handle, sfc, coords)
