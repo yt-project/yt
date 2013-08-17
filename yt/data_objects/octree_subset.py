@@ -136,8 +136,10 @@ class OctreeSubset(YTSelectionContainer):
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
         pos = np.array(positions, dtype="float64")
-        f64 = [np.array(f, dtype="float64") for f in fields]
-        op.process_octree(self.oct_handler, self.domain_ind, pos, f64,
+        # We should not need the following if we know in advance all our fields
+        # need no casting.
+        fields = [np.asarray(f, dtype="float64") for f in fields]
+        op.process_octree(self.oct_handler, self.domain_ind, pos, fields,
             self.domain_id, self._domain_offset)
         vals = op.finalize()
         if vals is None: return
