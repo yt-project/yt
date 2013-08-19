@@ -5,7 +5,7 @@ from yt.utilities.physical_constants import mp, clight, cm_per_kpc, \
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     parallel_objects
+     communication_system
 from yt.data_objects.api import add_field
 
 import os
@@ -255,7 +255,7 @@ class XRayPhotonList(object):
         eff_area = None
         
         if texp_new is None and area_new is None:
-            n_obs = n_ph
+            n_obs_tot = n_ph_tot
         else:
             if texp_new is None:
                 Tratio = 1.
@@ -277,10 +277,8 @@ class XRayPhotonList(object):
             fak = Aratio*Tratio
             if fak > 1:
                 raise ValueError("Spectrum scaling factor = %g, cannot be greater than unity." % (fak))
-            n_obs = np.uint64(n_ph*fak)
-                            
-        n_obs_tot = n_obs.sum()
-
+            n_obs_tot = np.uint64(n_ph_tot*fak)
+            
         mylog.info("Total number of photons to use: %d" % (n_obs_tot))
 
         x = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
@@ -301,6 +299,9 @@ class XRayPhotonList(object):
             idxs = np.random.choice(n_ph_tot, size=n_obs_tot, replace=False)
             obs_cells = cells[idxs]
 
+        x *= dx[obs_cells]
+        y *= dx[obs_cells]
+        z *= dx[obs_cells]
         x += self.photons["x"][obs_cells]
         y += self.photons["y"][obs_cells]
         z += self.photons["z"][obs_cells]  

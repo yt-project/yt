@@ -14,6 +14,7 @@ class PhotonModel(object):
         self.emax = emax
         self.nchan = nchan
         self.ebins = np.linspace(emin, emax, nchan+1)
+        self.de = self.ebins[1]-self.ebins[0]
         
     def prepare(self):
         pass
