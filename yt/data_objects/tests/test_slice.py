@@ -42,7 +42,10 @@ def setup():
 
 def teardown_func(fns):
     for fn in fns:
-        os.remove(fn)
+        try:
+            os.remove(fn)
+        except OSError:
+            pass
 
 
 def test_slice():

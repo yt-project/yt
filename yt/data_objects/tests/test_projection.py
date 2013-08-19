@@ -1,5 +1,6 @@
 from yt.testing import *
 import os
+import tempfile
 
 def setup():
     from yt.config import ytcfg
@@ -7,7 +8,10 @@ def setup():
 
 def teardown_func(fns):
     for fn in fns:
-        os.remove(fn)
+        try:
+            os.remove(fn)
+        except OSError:
+            pass
 
 def test_projection():
     for nprocs in [8, 1]:
