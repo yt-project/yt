@@ -27,6 +27,7 @@ License:
 """
 import os
 import numpy as np
+import tempfile
 from nose.tools import raises
 from yt.testing import \
     fake_random_pf, assert_equal, assert_array_equal
