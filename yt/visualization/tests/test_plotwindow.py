@@ -179,18 +179,18 @@ class TestPlotWindowSave(unittest.TestCase):
         test_pf = fake_random_pf(64)
         normal = [1, 1, 1]
         ds_region = test_pf.h.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
-        slices = [SlicePlot(test_pf, dim, 'Density') for dim in range(3)]
         projections = []
         projections_ds = []
         for dim in range(3):
             projections.append(ProjectionPlot(test_pf, dim, 'Density'))
             projections_ds.append(ProjectionPlot(test_pf, dim, 'Density',
                                                  data_source=ds_region))
-        cls.pf = test_pf
-        cls.normal = normal
-        cls.slices = slices
+
+        cls.slices = [SlicePlot(test_pf, dim, 'Density') for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
+        cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, 'Density')
+        cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, 'Density')
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
@@ -221,12 +221,10 @@ class TestPlotWindowSave(unittest.TestCase):
         param.explicit((fname, ))
         for fname in TEST_FLNMS)
     def test_offaxis_slice_plot(self, fname):
-        obj = OffAxisSlicePlot(self.pf, self.normal, 'Density')
-        assert assert_fname(obj.save(fname)[0])
+        assert assert_fname(self.offaxis_slice.save(fname)[0])
 
     @parameterized.expand(
         param.explicit((fname, ))
         for fname in TEST_FLNMS)
     def test_offaxis_projection_plot(self, fname):
-        obj = OffAxisProjectionPlot(self.pf, self.normal, 'Density')
-        assert assert_fname(obj.save(fname)[0])
+        assert assert_fname(self.offaxis_proj.save(fname)[0])
