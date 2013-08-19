@@ -31,7 +31,7 @@ from libc.string cimport memcpy
 from cpython.string cimport PyString_FromStringAndSize
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -93,6 +93,7 @@ cdef extern from "png.h":
         int filter_method)
 
     cdef int PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE
+    cdef int PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_ADAM7
     cdef int PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE
 
     void png_set_pHYs(png_structp png_ptr, png_infop info_ptr,
@@ -240,7 +241,8 @@ cdef public void my_png_write_data(png_structp png_ptr, png_bytep data,
 cdef public void my_png_flush(png_structp png_ptr):
     return
 
-def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100):
+def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100,
+                        int gray = 0):
 
     # This is something of a translation of the matplotlib _png module
     cdef png_byte *pix_buffer = <png_byte *> buffer.data
@@ -263,16 +265,27 @@ def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100):
     
     # Um we are ignoring setjmp sorry guys
 
+    cdef int im_type, interlace_type
+    interlace_type = PNG_INTERLACE_NONE
+    if gray == 0:
+        im_type = PNG_COLOR_TYPE_RGB_ALPHA
+        sig_bit.gray = 0
+        sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 8
+    elif gray == 1:
+        im_type = PNG_COLOR_TYPE_GRAY
+        sig_bit.gray = 8
+        sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 0
+    else:
+        raise RuntimeError
+
     png_set_IHDR(png_ptr, info_ptr, width, height, 8,
-                 PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
+                 im_type, interlace_type,
                  PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE)
 
     cdef size_t dots_per_meter = <size_t> (dpi / (2.54 / 100.0))
     png_set_pHYs(png_ptr, info_ptr, dots_per_meter, dots_per_meter,
                  PNG_RESOLUTION_METER)
 
-    sig_bit.gray = 0
-    sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 8
 
     png_set_sBIT(png_ptr, info_ptr, &sig_bit)
 
@@ -299,7 +312,7 @@ def add_points_to_image(
     cdef int np = px.shape[0]
     cdef int xs = buffer.shape[0]
     cdef int ys = buffer.shape[1]
-    cdef int v 
+    cdef int v
     v = iclip(<int>(pv * 255), 0, 255)
     for pi in range(np):
         j = <int> (xs * px[pi])
@@ -307,8 +320,8 @@ def add_points_to_image(
         for k in range(3):
             buffer[i, j, k] = 0
     return
-    for i in range(xs):
-        for j in range(ys):
-            for k in range(3):
-                v = buffer[i, j, k]
-                buffer[i, j, k] = iclip(v, 0, 255)
+    #for i in range(xs):
+    #    for j in range(ys):
+    #        for k in range(3):
+    #            v = buffer[i, j, k]
+    #            buffer[i, j, k] = iclip(v, 0, 255)

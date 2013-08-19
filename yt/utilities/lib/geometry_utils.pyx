@@ -26,7 +26,7 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -183,7 +183,7 @@ cdef inline int cutting_plane_cell(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def cutting_plane_cells(dobj, gobj):
-    cdef np.ndarray[np.uint8_t, ndim=3] mask 
+    cdef np.ndarray[np.uint8_t, ndim=3] mask
     cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
     cdef int i, j, k
@@ -205,58 +205,6 @@ def cutting_plane_cells(dobj, gobj):
             y += dds[1]
         x += dds[0]
     return mask
-                
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
-                        np.ndarray[np.float64_t, ndim=1] right_edge,
-                        int level,
-                        np.ndarray[np.float64_t, ndim=2] left_edges,
-                        np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_index = 0):
-    cdef int i, n
-    cdef int nx = left_edges.shape[0]
-    cdef int inside 
-    for i in range(nx):
-        if i < min_index or levels[i,0] != level:
-            mask[i] = 0
-            continue
-        inside = 1
-        for n in range(3):
-            if left_edge[n] >= right_edges[i,n] or \
-               right_edge[n] <= left_edges[i,n]:
-                inside = 0
-                break
-        if inside == 1: mask[i] = 1
-        else: mask[i] = 0
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def get_box_grids_below_level(
-                        np.ndarray[np.float64_t, ndim=1] left_edge,
-                        np.ndarray[np.float64_t, ndim=1] right_edge,
-                        int level,
-                        np.ndarray[np.float64_t, ndim=2] left_edges,
-                        np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
-    cdef int i, n
-    cdef int nx = left_edges.shape[0]
-    cdef int inside 
-    for i in range(nx):
-        mask[i] = 0
-        if levels[i,0] <= level:
-            inside = 1
-            for n in range(3):
-                if left_edge[n] >= right_edges[i,n] or \
-                   right_edge[n] <= left_edges[i,n]:
-                    inside = 0
-                    break
-            if inside == 1: mask[i] = 1
 
 # Finally, miscellaneous routines.
 
@@ -338,3 +286,47 @@ def obtain_rvec(data):
                     rg[2,i,j,k] = zg[i,j,k] - c[2]
         return rg
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def obtain_rv_vec(data):
+    # This is just to let the pointers exist and whatnot.  We can't cdef them
+    # inside conditionals.
+    cdef np.ndarray[np.float64_t, ndim=1] vxf
+    cdef np.ndarray[np.float64_t, ndim=1] vyf
+    cdef np.ndarray[np.float64_t, ndim=1] vzf
+    cdef np.ndarray[np.float64_t, ndim=2] rvf
+    cdef np.ndarray[np.float64_t, ndim=3] vxg
+    cdef np.ndarray[np.float64_t, ndim=3] vyg
+    cdef np.ndarray[np.float64_t, ndim=3] vzg
+    cdef np.ndarray[np.float64_t, ndim=4] rvg
+    cdef np.float64_t bv[3]
+    cdef int i, j, k
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = np.zeros(3)
+    bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
+    if len(data['x-velocity'].shape) == 1:
+        # One dimensional data
+        vxf = data['x-velocity'].astype("float64")
+        vyf = data['y-velocity'].astype("float64")
+        vzf = data['z-velocity'].astype("float64")
+        rvf = np.empty((3, vxf.shape[0]), 'float64')
+        for i in range(vxf.shape[0]):
+            rvf[0, i] = vxf[i] - bv[0]
+            rvf[1, i] = vyf[i] - bv[1]
+            rvf[2, i] = vzf[i] - bv[2]
+        return rvf
+    else:
+        # Three dimensional data
+        vxg = data['x-velocity'].astype("float64")
+        vyg = data['y-velocity'].astype("float64")
+        vzg = data['z-velocity'].astype("float64")
+        rvg = np.empty((3, vxg.shape[0], vxg.shape[1], vxg.shape[2]), 'float64')
+        for i in range(vxg.shape[0]):
+            for j in range(vxg.shape[1]):
+                for k in range(vxg.shape[2]):
+                    rvg[0,i,j,k] = vxg[i,j,k] - bv[0]
+                    rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
+                    rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
+        return rvg

@@ -26,7 +26,7 @@ License:
 from matplotlib import figure
 import shutil
 import tempfile
-import numpy as na
+import numpy as np
 import os
 
 from yt.funcs import *
@@ -39,10 +39,10 @@ from yt.utilities.definitions import \
     axis_names, inv_axis_names, x_dict, y_dict
 from .plot_types import \
     FixedResolutionPlot, \
-    SlicePlot, \
-    SlicePlotNaturalNeighbor, \
-    ProjectionPlot, \
-    ProjectionPlotNaturalNeighbor, \
+    PCSlicePlot, \
+    PCSlicePlotNaturalNeighbor, \
+    PCProjectionPlot, \
+    PCProjectionPlotNaturalNeighbor, \
     CuttingPlanePlot, \
     ParticlePlot, \
     ProfilePlot, \
@@ -62,10 +62,6 @@ def concatenate_pdfs(output_fn, input_fns):
         outfile.addPage(infile.getPage(0))
     outfile.write(open(output_fn, "wb"))
 
-def _fix_axis(axis):
-    return inv_axis_names.get(axis, axis)
-
-
 class ImageCollection(object):
     def __init__(self, pf, name):
         self.pf = pf
@@ -75,50 +71,49 @@ class ImageCollection(object):
 
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
-        self.images.append((os.path.basename(fn), na.fromfile(fn, dtype='c')))
+        self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
 
 class PlotCollection(object):
+    r"""The PlotCollection object was created to ease the creation of multiple
+    slices, projections and so forth made from a single parameter file.
+    The concept is that when the width on one image changes, it should
+    change on all the others.  The PlotCollection can create all plot types
+    available in yt.
+
+    Parameters
+    ----------
+    pf : `StaticOutput`
+        The parameter file from which all the plots will be created.
+    center : array_like, optional
+        The 'center' supplied to plots like sphere plots, slices, and so
+        on.  Should be 3 elements.  Defaults to the point of maximum
+        density.
+    Long_variable_name : {'hi', 'ho'}, optional
+        Choices in brackets, default first when optional.
+
+    Notes
+    -----
+    This class is the primary entry point to creating plots, but it is not
+    the only entry point.  Additionally, creating a PlotCollection should
+    be a "cheap" operation.
+
+    You may iterate over the plots in the PlotCollection, via something
+    like:
+
+    >>> pc = PlotCollection(pf)
+    >>> for p in pc: print p
+
+    Examples
+    --------
+
+    >>> pc = PlotCollection(pf, center=[0.5, 0.5, 0.5])
+    >>> pc.add_slice("Density", 'x')
+    >>> pc.save()
+
+    """
+
     __id_counter = 0
     def __init__(self, pf, center=None):
-        r"""The primary interface for creating plots.
-
-        The PlotCollection object was created to ease the creation of multiple
-        slices, projections and so forth made from a single parameter file.
-        The concept is that when the width on one image changes, it should
-        change on all the others.  The PlotCollection can create all plot types
-        available in yt.
-
-        Parameters
-        ----------
-        pf : `StaticOutput`
-            The parameter file from which all the plots will be created.
-        center : array_like, optional
-            The 'center' supplied to plots like sphere plots, slices, and so
-            on.  Should be 3 elements.  Defaults to the point of maximum
-            density.
-        Long_variable_name : {'hi', 'ho'}, optional
-            Choices in brackets, default first when optional.
-
-        Notes
-        -----
-        This class is the primary entry point to creating plots, but it is not
-        the only entry point.  Additionally, creating a PlotCollection should
-        be a "cheap" operation.
-
-        You may iterate over the plots in the PlotCollection, via something
-        like:
-
-        >>> pc = PlotCollection(pf)
-        >>> for p in pc: print p
-
-        Examples
-        --------
-
-        >>> pc = PlotCollection(pf, center=[0.5, 0.5, 0.5])
-        >>> pc.add_slice("Density", 'x')
-        >>> pc.save()
-
-        """
         self.plots = []
         self.pf = pf
         if center == None:
@@ -126,7 +121,7 @@ class PlotCollection(object):
         elif center == "center" or center == "c":
             self.c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         else:
-            self.c = na.array(center, dtype='float64')
+            self.c = np.array(center, dtype='float64')
         mylog.info("Created plot collection with default plot-center = %s",
                     list(self.c))
 
@@ -360,7 +355,7 @@ class PlotCollection(object):
         collection.
 
         This function will generate a `yt.data_objects.api.AMRSliceBase` from the given
-        parameters.  This slice then gets passed to a `yt.visualization.plot_types.SlicePlot`, and
+        parameters.  This slice then gets passed to a `yt.visualization.plot_types.PCSlicePlot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the slice is displayed, as well as
         how the slice is generated.
@@ -400,7 +395,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.SlicePlot`
+        plot : `yt.visualization.plot_types.PCSlicePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -424,7 +419,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_slice("Density", 'x')
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if center == None:
             center = self.c
         if coord == None:
@@ -433,7 +428,7 @@ class PlotCollection(object):
             if field_parameters is None: field_parameters = {}
             obj = self.pf.hierarchy.slice(axis, coord, field,
                             center=center, **field_parameters)
-        p = self._add_plot(SlicePlot(
+        p = self._add_plot(PCSlicePlot(
                          obj, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -497,7 +492,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_particles(0, 1.0)
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         LE = self.pf.domain_left_edge.copy()
         RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
@@ -707,7 +702,7 @@ class PlotCollection(object):
 
         This function will generate a `yt.data_objects.api.AMRProjBase` from the given
         parameters.  This projection then gets passed to a
-        `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot is added to the
+        `yt.visualization.plot_types.PCProjectionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
         slice is displayed, as well as how the slice is generated.
 
@@ -754,7 +749,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.ProjectionPlot`
+        plot : `yt.visualization.plot_types.PCProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -778,7 +773,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_projection("Density", 'x', "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -786,7 +781,7 @@ class PlotCollection(object):
             obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                          source = data_source, center=center,
                                          **field_parameters)
-        p = self._add_plot(ProjectionPlot(obj, field,
+        p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]
@@ -801,7 +796,7 @@ class PlotCollection(object):
 
         This function will generate a rectangular prism region and supply it to
         a`yt.data_objects.api.AMRProjBase` from the given parameters.  This projection
-        then gets passed to a `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot
+        then gets passed to a `yt.visualization.plot_types.PCProjectionPlot`, and the resultant plot
         is added to the current collection.  Various parameters allow control
         of the way the slice is displayed, as well as how the slice is
         generated.  The center is used as the center of the thin projection.
@@ -843,7 +838,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.visualization.plot_types.ProjectionPlot`
+        plot : `yt.visualization.plot_types.PCProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -867,7 +862,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_thin_projection("Density", 0, 0.1, "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
@@ -880,7 +875,7 @@ class PlotCollection(object):
         obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                      source = region, center=center,
                                      **field_parameters)
-        p = self._add_plot(ProjectionPlot(obj, field,
+        p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]
@@ -1460,7 +1455,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_ortho_ray(0, (0.5, 0.5), "Density")
         """
-        axis = _fix_axis(axis)
+        axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
         data_source = self.pf.h.ortho_ray(axis, coords, field,
@@ -1537,7 +1532,7 @@ class PlotCollection(object):
     @rootonly
     def save_book(self, filename, author = None, title = None, keywords = None,
                   subject = None, creator = None, producer = None,
-                  creation_data = None):
+                  creation_date = None):
         r"""Save a multipage PDF of all the current plots, rather than
         individual image files.
 
@@ -1584,15 +1579,21 @@ class PlotCollection(object):
         >>> dd = pf.h.all_data()
         >>> pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
         ...                     weight = None)
-        >>> pc.save_book("my_plots.pdf", author="Matthew Turk", 
+        >>> pc.save_book("my_plots.pdf", author="Yours Truly",
         ...              title="Fun plots")
         """
         from matplotlib.backends.backend_pdf import PdfPages
         outfile = PdfPages(filename)
         for plot in self.plots:
             plot.save_to_pdf(outfile)
-        if info is not None:
-            outfile._file.writeObject(outfile._file.infoObject, info)
+        pdf_keys = ['Title', 'Author', 'Subject', 'Keywords', 'Creator',
+            'Producer', 'CreationDate']
+        pdf_values = [title, author, subject, keywords, creator, producer,
+            creation_date]
+        metadata = outfile.infodict()
+        for key, val in zip(pdf_keys, pdf_values):
+            if isinstance(val, str):
+                metadata[key] = val
         outfile.close()
 
 def wrap_pylab_newplot(func):
@@ -1729,16 +1730,13 @@ class PlotCollectionIPython(PlotCollection):
 
         >>> pc.save()
         """
-        from matplotlib.backends.backend_svg import \
-            FigureCanvasSVG
-        from IPython.zmq.pylab.backend_payload import \
-            add_plot_payload
+        from ._mpl_imports import FigureCanvasAgg
         from IPython.zmq.pylab.backend_inline import \
-            send_svg_canvas
+            send_figure
         if basename is None: basename = str(self.pf)
         for plot in self.plots:
-            canvas = FigureCanvasSVG(plot._figure)
-            send_svg_canvas(canvas)
+            canvas = FigureCanvasAgg(plot._figure)
+            send_figure(plot._figure)
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):
@@ -1885,7 +1883,7 @@ def matplotlib_widget(data_source, field, npix):
         norm = matplotlib.colors.Normalize()
     ax = pylab.figure().gca()
     ax.autoscale(False)
-    axi = ax.imshow(na.random.random((npix, npix)),
+    axi = ax.imshow(np.random.random((npix, npix)),
                     extent = extent, norm = norm,
                     origin = 'lower')
     cb = pylab.colorbar(axi, norm = norm)

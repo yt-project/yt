@@ -33,7 +33,7 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
-import numpy as na
+import numpy as np
 
 KnownChomboFields = FieldInfoContainer()
 add_chombo_field = KnownChomboFields.add_field
@@ -98,6 +98,21 @@ def _Density(field,data):
 add_field("Density",function=_Density, take_log=True,
           units=r'\rm{g}/\rm{cm^3}')
 
+def _Bx(field,data):
+    return data["X-magnfield"]
+add_field("Bx", function=_Bx, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_x")
+
+def _By(field,data):
+    return data["Y-magnfield"]
+add_field("By", function=_By, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_y")
+
+def _Bz(field,data):
+    return data["Z-magnfield"]
+add_field("Bz", function=_Bz, take_log=False,
+          units=r"\rm{Gauss}", display_name=r"B_z")
+
 def _MagneticEnergy(field,data):
     return (data["X-magnfield"]**2 +
             data["Y-magnfield"]**2 +
@@ -131,7 +146,7 @@ def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
         io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
-            return na.array([], dtype=dtype)
+            return np.array([], dtype=dtype)
         else:
             return io._read_particles(data, p_field).astype(dtype)
         
@@ -148,10 +163,12 @@ _particle_field_list = ["mass",
                         "angmomen_y",
                         "angmomen_z",
                         "mlast",
+                        "r",
                         "mdeut",
                         "n",
                         "mdot",
                         "burnstate",
+                        "luminosity",
                         "id"]
 
 for pf in _particle_field_list:
@@ -159,3 +176,18 @@ for pf in _particle_field_list:
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)
+
+def _ParticleMass(field, data):
+    particles = data["particle_mass"].astype('float64')
+    return particles
+
+def _ParticleMassMsun(field, data):
+    particles = data["particle_mass"].astype('float64')
+    return particles/1.989e33
+
+add_field("ParticleMass",
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
+          particle_type=True)
+add_field("ParticleMassMsun",
+          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
+          particle_type=True)

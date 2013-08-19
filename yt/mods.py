@@ -33,12 +33,15 @@ from __future__ import absolute_import
 # First module imports
 import sys, types, os, glob, cPickle, time
 import numpy as na # For historical reasons
+import numpy as np # For modern purposes
 import numpy # In case anyone wishes to use it by name
 
 # This next item will handle most of the actual startup procedures, but it will
 # also attempt to parse the command line and set up the global state of various
-# operations.
-
+# operations.  The variable unparsed_args is not used internally but is
+# provided as a convenience for users who wish to parse arguments in scripts.
+# See http://lists.spacepope.org/pipermail/yt-dev-spacepope.org/2011-December/
+#     001727.html
 import yt.startup_tasks as __startup_tasks
 unparsed_args = __startup_tasks.unparsed_args
 
@@ -52,16 +55,16 @@ from yt.utilities.logger import level as __level
 if __level >= int(ytcfgDefaults["loglevel"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
-    na.seterr(all = 'ignore')
+    np.seterr(all = 'ignore')
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \
-    derived_field, add_field, FieldInfo, \
+    derived_field, add_field, add_grad, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection
+    ParticleTrajectoryCollection, ImageArray
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -95,11 +98,21 @@ from yt.frontends.chombo.api import \
 from yt.frontends.gdf.api import \
     GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
+from yt.frontends.athena.api import \
+    AthenaStaticOutput, AthenaFieldInfo, add_athena_field
+
 from yt.frontends.art.api import \
     ARTStaticOutput, ARTFieldInfo, add_art_field
 
-from yt.frontends.maestro.api import \
-    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
+from yt.frontends.pluto.api import \
+     PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
+
+#from yt.frontends.maestro.api import \
+#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
+
+from yt.frontends.stream.api import \
+    StreamStaticOutput, StreamFieldInfo, add_stream_field, \
+    StreamHandler, load_uniform_grid, load_amr_grids
 
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
@@ -118,7 +131,7 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, OffAxisSlicePlot, ProjectionPlot
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
@@ -135,7 +148,7 @@ from yt.convenience import \
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
-    ortho_find, quartiles
+    ortho_find, quartiles, periodic_position
 
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -

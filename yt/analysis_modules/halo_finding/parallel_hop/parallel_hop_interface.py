@@ -25,13 +25,13 @@ License:
 
 from collections import defaultdict
 import itertools, sys
-import numpy as na
+import numpy as np
 import gc
 
 from yt.funcs import *
 from yt.utilities.performance_counters import yt_counters, time_function
 try:
-    from yt.utilities.kdtree import \
+    from yt.utilities.kdtree.api import \
         chainHOP_tags_dens, \
         create_tree, fKD, find_nn_nearest_neighbors, \
         free_tree, find_chunk_nearest_neighbors
@@ -88,23 +88,23 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         for taskID in global_bounds:
             thisLE, thisRE = global_bounds[taskID]
             if self.mine != taskID:
-                vertices.append(na.array([thisLE[0], thisLE[1], thisLE[2], taskID]))
-                vertices.append(na.array([thisLE[0], thisLE[1], thisRE[2], taskID]))
-                vertices.append(na.array([thisLE[0], thisRE[1], thisLE[2], taskID]))
-                vertices.append(na.array([thisRE[0], thisLE[1], thisLE[2], taskID]))
-                vertices.append(na.array([thisLE[0], thisRE[1], thisRE[2], taskID]))
-                vertices.append(na.array([thisRE[0], thisLE[1], thisRE[2], taskID]))
-                vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2], taskID]))
-                vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2], taskID]))
+                vertices.append(np.array([thisLE[0], thisLE[1], thisLE[2], taskID]))
+                vertices.append(np.array([thisLE[0], thisLE[1], thisRE[2], taskID]))
+                vertices.append(np.array([thisLE[0], thisRE[1], thisLE[2], taskID]))
+                vertices.append(np.array([thisRE[0], thisLE[1], thisLE[2], taskID]))
+                vertices.append(np.array([thisLE[0], thisRE[1], thisRE[2], taskID]))
+                vertices.append(np.array([thisRE[0], thisLE[1], thisRE[2], taskID]))
+                vertices.append(np.array([thisRE[0], thisRE[1], thisLE[2], taskID]))
+                vertices.append(np.array([thisRE[0], thisRE[1], thisRE[2], taskID]))
             if self.mine == taskID:
-                my_vertices.append(na.array([thisLE[0], thisLE[1], thisLE[2]]))
-                my_vertices.append(na.array([thisLE[0], thisLE[1], thisRE[2]]))
-                my_vertices.append(na.array([thisLE[0], thisRE[1], thisLE[2]]))
-                my_vertices.append(na.array([thisRE[0], thisLE[1], thisLE[2]]))
-                my_vertices.append(na.array([thisLE[0], thisRE[1], thisRE[2]]))
-                my_vertices.append(na.array([thisRE[0], thisLE[1], thisRE[2]]))
-                my_vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2]]))
-                my_vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2]]))
+                my_vertices.append(np.array([thisLE[0], thisLE[1], thisLE[2]]))
+                my_vertices.append(np.array([thisLE[0], thisLE[1], thisRE[2]]))
+                my_vertices.append(np.array([thisLE[0], thisRE[1], thisLE[2]]))
+                my_vertices.append(np.array([thisRE[0], thisLE[1], thisLE[2]]))
+                my_vertices.append(np.array([thisLE[0], thisRE[1], thisRE[2]]))
+                my_vertices.append(np.array([thisRE[0], thisLE[1], thisRE[2]]))
+                my_vertices.append(np.array([thisRE[0], thisRE[1], thisLE[2]]))
+                my_vertices.append(np.array([thisRE[0], thisRE[1], thisRE[2]]))
         # Find the neighbors we share corners with. Yes, this is lazy with
         # a double loop, but it works and this is definitely not a performance
         # bottleneck.
@@ -119,13 +119,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 # Also test to see if the distance to this corner is within
                 # max_padding, which is more likely the case with load-balancing
                 # turned on.
-                dx = min( na.fabs(my_vertex[0] - vertex[0]), \
-                    self.period[0] - na.fabs(my_vertex[0] - vertex[0]))
-                dy = min( na.fabs(my_vertex[1] - vertex[1]), \
-                    self.period[1] - na.fabs(my_vertex[1] - vertex[1]))
-                dz = min( na.fabs(my_vertex[2] - vertex[2]), \
-                    self.period[2] - na.fabs(my_vertex[2] - vertex[2]))
-                d = na.sqrt(dx*dx + dy*dy + dz*dz)
+                dx = min( np.fabs(my_vertex[0] - vertex[0]), \
+                    self.period[0] - np.fabs(my_vertex[0] - vertex[0]))
+                dy = min( np.fabs(my_vertex[1] - vertex[1]), \
+                    self.period[1] - np.fabs(my_vertex[1] - vertex[1]))
+                dz = min( np.fabs(my_vertex[2] - vertex[2]), \
+                    self.period[2] - np.fabs(my_vertex[2] - vertex[2]))
+                d = np.sqrt(dx*dx + dy*dy + dz*dz)
                 if d <= self.max_padding:
                     self.neighbors.add(int(vertex[3]))
         # Faces and edges.
@@ -219,13 +219,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         annulus data.
         """
         if round == 'first':
-            max_pad = na.max(self.padding)
+            max_pad = np.max(self.padding)
             self.mine, self.global_padding = self.comm.mpi_info_dict(max_pad)
             self.max_padding = max(self.global_padding.itervalues())
         elif round == 'second':
             self.max_padding = 0.
             for neighbor in self.neighbors:
-                self.max_padding = na.maximum(self.global_padding[neighbor], \
+                self.max_padding = np.maximum(self.global_padding[neighbor], \
                     self.max_padding)
 
     def _communicate_padding_data(self):
@@ -247,7 +247,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # This will reduce the size of the loop over particles.
         yt_counters("Picking padding data to send.")
         send_count = self.is_inside_annulus.sum()
-        points = na.empty((send_count, 3), dtype='float64')
+        points = np.empty((send_count, 3), dtype='float64')
         points[:,0] = self.xpos[self.is_inside_annulus]
         points[:,1] = self.ypos[self.is_inside_annulus]
         points[:,2] = self.zpos[self.is_inside_annulus]
@@ -280,9 +280,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         recv_size = 0
         for opp_neighbor in self.neighbors:
             opp_size = global_send_count[opp_neighbor][self.mine]
-            recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
-            recv_points[opp_neighbor] = na.empty((opp_size, 3), dtype='float64')
-            recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
+            recv_real_indices[opp_neighbor] = np.empty(opp_size, dtype='int64')
+            recv_points[opp_neighbor] = np.empty((opp_size, 3), dtype='float64')
+            recv_mass[opp_neighbor] = np.empty(opp_size, dtype='float64')
             recv_size += opp_size
         yt_counters("Initalizing recv arrays.")
         # Setup the receiving slots.
@@ -306,11 +306,11 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("Processing padded data.")
         del send_real_indices, send_points, send_mass
         # Now we add the data to ourselves.
-        self.index_pad = na.empty(recv_size, dtype='int64')
-        self.xpos_pad = na.empty(recv_size, dtype='float64')
-        self.ypos_pad = na.empty(recv_size, dtype='float64')
-        self.zpos_pad = na.empty(recv_size, dtype='float64')
-        self.mass_pad = na.empty(recv_size, dtype='float64')
+        self.index_pad = np.empty(recv_size, dtype='int64')
+        self.xpos_pad = np.empty(recv_size, dtype='float64')
+        self.ypos_pad = np.empty(recv_size, dtype='float64')
+        self.zpos_pad = np.empty(recv_size, dtype='float64')
+        self.mass_pad = np.empty(recv_size, dtype='float64')
         so_far = 0
         for opp_neighbor in self.neighbors:
             opp_size = global_send_count[opp_neighbor][self.mine]
@@ -335,7 +335,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("Flipping coordinates around the periodic boundary.")
         self.size = self.index.size + self.index_pad.size
         # Now that we have the full size, initialize the chainID array
-        self.chainID = na.ones(self.size,dtype='int64') * -1
+        self.chainID = np.ones(self.size,dtype='int64') * -1
         # Clean up explicitly, but these should be empty dicts by now.
         del recv_real_indices, hooks, recv_points, recv_mass
         yt_counters("Communicate discriminated padding")
@@ -348,10 +348,10 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         if self.tree == 'F':
             # Yes, we really do need to initialize this many arrays.
             # They're deleted in _parallelHOP.
-            fKD.dens = na.zeros(self.size, dtype='float64', order='F')
-            fKD.mass = na.concatenate((self.mass, self.mass_pad))
+            fKD.dens = np.zeros(self.size, dtype='float64', order='F')
+            fKD.mass = np.concatenate((self.mass, self.mass_pad))
             del self.mass
-            fKD.pos = na.empty((3, self.size), dtype='float64', order='F')
+            fKD.pos = np.empty((3, self.size), dtype='float64', order='F')
             # This actually copies the data into the fortran space.
             self.psize = self.xpos.size
             fKD.pos[0, :self.psize] = self.xpos
@@ -364,7 +364,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             fKD.pos[2, self.psize:] = self.zpos_pad
             del self.xpos_pad, self.ypos_pad, self.zpos_pad
             gc.collect()
-            fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
+            fKD.qv = np.asfortranarray(np.empty(3, dtype='float64'))
             fKD.nn = self.num_neighbors
             # Plus 2 because we're looking for that neighbor, but only keeping 
             # nMerge + 1 neighbor tags, skipping ourselves.
@@ -375,8 +375,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             # Now call the fortran.
             create_tree(0)
         elif self.tree == 'C':
-            self.mass = na.concatenate((self.mass, self.mass_pad))
-            self.pos = na.empty((self.size, 3), dtype='float64')
+            self.mass = np.concatenate((self.mass, self.mass_pad))
+            self.pos = np.empty((self.size, 3), dtype='float64')
             self.psize = self.xpos.size
             self.pos[:self.psize, 0] = self.xpos
             self.pos[:self.psize, 1] = self.ypos
@@ -407,7 +407,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Test to see if the points are in the 'real' region
         (LE, RE) = self.bounds
         if round == 'first':
-            points = na.empty((self.real_size, 3), dtype='float64')
+            points = np.empty((self.real_size, 3), dtype='float64')
             points[:,0] = self.xpos
             points[:,1] = self.ypos
             points[:,2] = self.zpos
@@ -426,21 +426,21 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         temp_LE = LE + self.max_padding
         temp_RE = RE - self.max_padding
         if round == 'first':
-            inner = na.invert( (points >= temp_LE).all(axis=1) * \
+            inner = np.invert( (points >= temp_LE).all(axis=1) * \
                 (points < temp_RE).all(axis=1) )
         elif round == 'second' or round == 'third':
             if self.tree == 'F':
-                inner = na.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
+                inner = np.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
                     (fKD.pos.T < temp_RE).all(axis=1) )
             elif self.tree == 'C':
-                inner = na.invert( (self.pos >= temp_LE).all(axis=1) * \
+                inner = np.invert( (self.pos >= temp_LE).all(axis=1) * \
                     (self.pos < temp_RE).all(axis=1) )
         if round == 'first':
             del points
         # After inverting the logic above, we want points that are both
         # inside the real region, but within one padding of the boundary,
         # and this will do it.
-        self.is_inside_annulus = na.bitwise_and(self.is_inside, inner)
+        self.is_inside_annulus = np.bitwise_and(self.is_inside, inner)
         del inner
         # Below we make a mapping of real particle index->local ID
         # Unf. this has to be a dict, because any task can have
@@ -449,10 +449,10 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # as the full number of particles.
         # We can skip this the first two times around.
         if round == 'third':
-            temp = na.arange(self.size)
-            my_part = na.bitwise_or(na.invert(self.is_inside), self.is_inside_annulus)
-            my_part = na.bitwise_and(my_part, (self.chainID != -1))
-            catted_indices = na.concatenate(
+            temp = np.arange(self.size)
+            my_part = np.bitwise_or(np.invert(self.is_inside), self.is_inside_annulus)
+            my_part = np.bitwise_and(my_part, (self.chainID != -1))
+            catted_indices = np.concatenate(
                 (self.index, self.index_pad))[my_part]
             self.rev_index = dict.fromkeys(catted_indices)
             self.rev_index.update(itertools.izip(catted_indices, temp[my_part]))
@@ -468,11 +468,11 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         keeping the all of this data, just using it.
         """
         yt_counters("densestNN")
-        self.densestNN = na.empty(self.size,dtype='int64')
+        self.densestNN = np.empty(self.size,dtype='int64')
         # We find nearest neighbors in chunks.
         chunksize = 10000
         if self.tree == 'F':
-            fKD.chunk_tags = na.asfortranarray(na.empty((self.num_neighbors, chunksize), dtype='int64'))
+            fKD.chunk_tags = np.asfortranarray(np.empty((self.num_neighbors, chunksize), dtype='int64'))
             start = 1 # Fortran counting!
             finish = 0
             while finish < self.size:
@@ -486,8 +486,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 chunk_NNtags = (fKD.chunk_tags[:,:finish-start+1] - 1).transpose()
                 # Find the densest nearest neighbors by referencing the already
                 # calculated density.
-                n_dens = na.take(self.density,chunk_NNtags)
-                max_loc = na.argmax(n_dens,axis=1)
+                n_dens = np.take(self.density,chunk_NNtags)
+                max_loc = np.argmax(n_dens,axis=1)
                 for i in xrange(finish - start + 1): # +1 for fortran counting.
                     j = start + i - 1 # -1 for fortran counting.
                     self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
@@ -502,9 +502,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 # be as memory efficient - fragmenting?
                 chunk_NNtags = self.kdtree.find_chunk_nearest_neighbors(start, \
                     finish, num_neighbors=self.num_neighbors)
-                n_dens = na.take(self.density, chunk_NNtags)
-                max_loc = na.argmax(n_dens, axis=1)
-                max_loc = na.argmax(n_dens,axis=1)
+                n_dens = np.take(self.density, chunk_NNtags)
+                max_loc = np.argmax(n_dens, axis=1)
+                max_loc = np.argmax(n_dens,axis=1)
                 for i in xrange(finish - start):
                     j = start + i
                     self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
@@ -520,8 +520,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         yt_counters("build_chains")
         chainIDmax = 0
-        self.densest_in_chain = na.ones(10000, dtype='float64') * -1 # chainID->density, one to one
-        self.densest_in_chain_real_index = na.ones(10000, dtype='int64') * -1 # chainID->real_index, one to one
+        self.densest_in_chain = np.ones(10000, dtype='float64') * -1 # chainID->density, one to one
+        self.densest_in_chain_real_index = np.ones(10000, dtype='int64') * -1 # chainID->real_index, one to one
         for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
             # in the padding, move on because chains can only terminate in
@@ -536,7 +536,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             # in the next loop.
             if chainIDnew == chainIDmax:
                 chainIDmax += 1
-        self.padded_particles = na.array(self.padded_particles, dtype='int64')
+        self.padded_particles = np.array(self.padded_particles, dtype='int64')
         self.densest_in_chain = self.__clean_up_array(self.densest_in_chain)
         self.densest_in_chain_real_index = self.__clean_up_array(self.densest_in_chain_real_index)
         yt_counters("build_chains")
@@ -598,9 +598,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("preconnect_chains")
         yt_counters("local chain sorting.")
         sort = self.densest_in_chain.argsort()
-        sort = na.flipud(sort)
-        map = na.empty(sort.size,dtype='int64')
-        map[sort] = na.arange(sort.size)
+        sort = np.flipud(sort)
+        map = np.empty(sort.size,dtype='int64')
+        map[sort] = np.arange(sort.size)
         self.densest_in_chain = self.densest_in_chain[sort]
         self.densest_in_chain_real_index = self.densest_in_chain_real_index[sort]
         del sort
@@ -626,8 +626,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         elif self.tree == 'F':
             # Plus 2 because we're looking for that neighbor, but only keeping 
             # nMerge + 1 neighbor tags, skipping ourselves.
-            fKD.dist = na.empty(self.nMerge+2, dtype='float64')
-            fKD.tags = na.empty(self.nMerge+2, dtype='int64')
+            fKD.dist = np.empty(self.nMerge+2, dtype='float64')
+            fKD.tags = np.empty(self.nMerge+2, dtype='int64')
             # We can change this here to make the searches faster.
             fKD.nn = self.nMerge + 2
             for i in xrange(self.size):
@@ -685,7 +685,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # link is to itself. At that point we've found the densest chain
         # in this set of sets and we keep a record of that.
         yt_counters("preconnect pregrouping.")
-        final_chain_map = na.empty(max(self.chainID)+1, dtype='int64')
+        final_chain_map = np.empty(max(self.chainID)+1, dtype='int64')
         removed = 0
         for i in xrange(self.chainID.max()+1):
             j = chain_count - i - 1
@@ -701,9 +701,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 self.chainID[i] = final_chain_map[self.chainID[i]]
         del final_chain_map
         # Now make the chainID assignments consecutive.
-        map = na.empty(self.densest_in_chain.size, dtype='int64')
-        dic_new = na.empty(chain_count - removed, dtype='float64')
-        dicri_new = na.empty(chain_count - removed, dtype='int64')
+        map = np.empty(self.densest_in_chain.size, dtype='int64')
+        dic_new = np.empty(chain_count - removed, dtype='float64')
+        dicri_new = np.empty(chain_count - removed, dtype='int64')
         new = 0
         for i,dic in enumerate(self.densest_in_chain):
             if dic > 0:
@@ -763,9 +763,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         mylog.info("Sorting chains...")
         yt_counters("global chain sorting.")
         sort = self.densest_in_chain.argsort()
-        sort = na.flipud(sort)
-        map = na.empty(sort.size,dtype='int64')
-        map[sort] =na.arange(sort.size)
+        sort = np.flipud(sort)
+        map = np.empty(sort.size,dtype='int64')
+        map[sort] =np.arange(sort.size)
         self.densest_in_chain = self.densest_in_chain[sort]
         self.densest_in_chain_real_index = self.densest_in_chain_real_index[sort]
         del sort
@@ -779,14 +779,14 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         mylog.info("Pre-linking chains 'by hand'...")
         yt_counters("global chain hand-linking.")
         # If there are no repeats, we can skip this mess entirely.
-        uniq = na.unique(self.densest_in_chain_real_index)
+        uniq = np.unique(self.densest_in_chain_real_index)
         if uniq.size != self.densest_in_chain_real_index.size:
             # Find only the real particle indices that are repeated to reduce
             # the dict workload below.
             dicri = self.densest_in_chain_real_index[self.densest_in_chain_real_index.argsort()]
-            diff = na.ediff1d(dicri)
+            diff = np.ediff1d(dicri)
             diff = (diff == 0) # Picks out the places where the ids are equal
-            diff = na.concatenate((diff, [False])) # Makes it the same length
+            diff = np.concatenate((diff, [False])) # Makes it the same length
             # This has only the repeated IDs. Sets are faster at searches than
             # arrays.
             dicri = set(dicri[diff])
@@ -837,11 +837,11 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         for opp_neighbor in self.neighbors:
             opp_size = self.global_padded_count[opp_neighbor]
             to_recv_count += opp_size
-            temp_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
-            temp_chainIDs[opp_neighbor] = na.empty(opp_size, dtype='int64')
+            temp_indices[opp_neighbor] = np.empty(opp_size, dtype='int64')
+            temp_chainIDs[opp_neighbor] = np.empty(opp_size, dtype='int64')
         # The arrays we'll actually keep around...
-        self.recv_real_indices = na.empty(to_recv_count, dtype='int64')
-        self.recv_chainIDs = na.empty(to_recv_count, dtype='int64')
+        self.recv_real_indices = np.empty(to_recv_count, dtype='int64')
+        self.recv_chainIDs = np.empty(to_recv_count, dtype='int64')
         # Set up the receives, but don't actually use them.
         hooks = []
         for opp_neighbor in self.neighbors:
@@ -899,9 +899,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         yt_counters("connect_chains_across_tasks")
         # Remote (lower dens) chain -> local (higher) chain.
-        chainID_translate_map_local = na.arange(self.nchains, dtype='int64')
+        chainID_translate_map_local = np.arange(self.nchains, dtype='int64')
         # Build the stuff to send.
-        self.uphill_real_indices = na.concatenate((
+        self.uphill_real_indices = np.concatenate((
             self.index, self.index_pad))[self.padded_particles]
         self.uphill_chainIDs = self.chainID[self.padded_particles]
         del self.padded_particles
@@ -991,7 +991,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         """
         yt_counters("communicate_annulus_chainIDs")
         # Pick the particles in the annulus.
-        real_indices = na.concatenate(
+        real_indices = np.concatenate(
             (self.index, self.index_pad))[self.is_inside_annulus]
         chainIDs = self.chainID[self.is_inside_annulus]
         # We're done with this here.
@@ -1012,8 +1012,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         recv_chainIDs = dict.fromkeys(self.neighbors)
         for opp_neighbor in self.neighbors:
             opp_size = global_annulus_count[opp_neighbor]
-            recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
-            recv_chainIDs[opp_neighbor] = na.empty(opp_size, dtype='int64')
+            recv_real_indices[opp_neighbor] = np.empty(opp_size, dtype='int64')
+            recv_chainIDs[opp_neighbor] = np.empty(opp_size, dtype='int64')
         # Set up the receving hooks.
         hooks = []
         for opp_neighbor in self.neighbors:
@@ -1062,8 +1062,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Plus 2 because we're looking for that neighbor, but only keeping 
         # nMerge + 1 neighbor tags, skipping ourselves.
         if self.tree == 'F':
-            fKD.dist = na.empty(self.nMerge+2, dtype='float64')
-            fKD.tags = na.empty(self.nMerge+2, dtype='int64')
+            fKD.dist = np.empty(self.nMerge+2, dtype='float64')
+            fKD.tags = np.empty(self.nMerge+2, dtype='int64')
             # We can change this here to make the searches faster.
             fKD.nn = self.nMerge+2
         elif self.tree == 'C':
@@ -1160,9 +1160,9 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 top_keys.append(top_key)
                 bot_keys.append(bot_key)
                 vals.append(data[top_key][bot_key])
-        top_keys = na.array(top_keys, dtype='int64')
-        bot_keys = na.array(bot_keys, dtype='int64')
-        vals = na.array(vals, dtype='float64')
+        top_keys = np.array(top_keys, dtype='int64')
+        bot_keys = np.array(bot_keys, dtype='int64')
+        vals = np.array(vals, dtype='float64')
 
         data.clear()
 
@@ -1179,14 +1179,14 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # We need to find out which pairs of self.top_keys, self.bot_keys are
         # both < self.peakthresh, and create arrays that will store this
         # relationship.
-        both = na.bitwise_and((self.densest_in_chain[self.top_keys] < self.peakthresh),
+        both = np.bitwise_and((self.densest_in_chain[self.top_keys] < self.peakthresh),
             (self.densest_in_chain[self.bot_keys] < self.peakthresh))
         g_high = self.top_keys[both]
         g_low = self.bot_keys[both]
         g_dens = self.vals[both]
         del both
-        self.reverse_map = na.ones(self.densest_in_chain.size) * -1
-        densestbound = na.ones(self.densest_in_chain.size) * -1.0
+        self.reverse_map = np.ones(self.densest_in_chain.size) * -1
+        densestbound = np.ones(self.densest_in_chain.size) * -1.0
         for i, gl in enumerate(g_low):
             if g_dens[i] > densestbound[gl]:
                 densestbound[gl] = g_dens[i]
@@ -1200,7 +1200,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
                 groupID += 1
-        group_equivalancy_map = na.empty(groupID, dtype='object')
+        group_equivalancy_map = np.empty(groupID, dtype='object')
         for i in xrange(groupID):
             group_equivalancy_map[i] = set([])
         # Loop over all of the chain linkages.
@@ -1259,7 +1259,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # Shack.'
         Set_list = []
         # We only want the holes that are modulo mine.
-        keys = na.arange(groupID, dtype='int64')
+        keys = np.arange(groupID, dtype='int64')
         size = self.comm.size
         select = (keys % size == self.mine)
         groupIDs = keys[select]
@@ -1298,7 +1298,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         del group_equivalancy_map, final_set, keys, select, groupIDs, current_sets
         del mine_groupIDs, not_mine_groupIDs, new_set, to_add_set, liter
         # Convert this list of sets into a look-up table
-        lookup = na.ones(self.densest_in_chain.size, dtype='int64') * (self.densest_in_chain.size + 2)
+        lookup = np.ones(self.densest_in_chain.size, dtype='int64') * (self.densest_in_chain.size + 2)
         for i,item in enumerate(Set_list):
             item_min = min(item)
             for groupID in item:
@@ -1353,7 +1353,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             # There are no groups, probably.
             pass
         # Make a secondary map to make the IDs consecutive.
-        values = na.arange(len(temp))
+        values = np.arange(len(temp))
         secondary_map = dict(itertools.izip(temp, values))
         del values
         # Update reverse_map
@@ -1386,8 +1386,8 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 self.chainID[i] = -1
         del self.is_inside
         # Create a densest_in_group, analogous to densest_in_chain.
-        keys = na.arange(group_count)
-        vals = na.zeros(group_count)
+        keys = np.arange(group_count)
+        vals = np.zeros(group_count)
         self.densest_in_group = dict(itertools.izip(keys,vals))
         self.densest_in_group_real_index = self.densest_in_group.copy()
         del keys, vals
@@ -1409,12 +1409,12 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         velocity, to save time in HaloFinding.py (fewer barriers!).
         """
         select = (self.chainID != -1)
-        calc = len(na.where(select == True)[0])
-        loc = na.empty((calc, 3), dtype='float64')
+        calc = len(np.where(select == True)[0])
+        loc = np.empty((calc, 3), dtype='float64')
         if self.tree == 'F':
-            loc[:, 0] = na.concatenate((self.xpos, self.xpos_pad))[select]
-            loc[:, 1] = na.concatenate((self.ypos, self.ypos_pad))[select]
-            loc[:, 2] = na.concatenate((self.zpos, self.zpos_pad))[select]
+            loc[:, 0] = np.concatenate((self.xpos, self.xpos_pad))[select]
+            loc[:, 1] = np.concatenate((self.ypos, self.ypos_pad))[select]
+            loc[:, 2] = np.concatenate((self.zpos, self.zpos_pad))[select]
             self.__max_memory()
             del self.xpos_pad, self.ypos_pad, self.zpos_pad
         elif self.tree == 'C':
@@ -1424,15 +1424,15 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
         yt_counters("max dens point")
-        max_dens_point = na.zeros((self.group_count,4),dtype='float64')
-        for i,part in enumerate(na.arange(self.size)[select]):
+        max_dens_point = np.zeros((self.group_count,4),dtype='float64')
+        for i,part in enumerate(np.arange(self.size)[select]):
             groupID = self.chainID[part]
             if part < self.real_size:
                 real_index = self.index[part]
             else:
                 real_index = self.index_pad[part - self.real_size]
             if real_index == self.densest_in_group_real_index[groupID]:
-                max_dens_point[groupID] = na.array([self.density[part], \
+                max_dens_point[groupID] = np.array([self.density[part], \
                 loc[i, 0], loc[i, 1], loc[i, 2]])
         del self.index, self.index_pad, self.densest_in_group_real_index
         # Now we broadcast this, effectively, with an allsum. Even though
@@ -1443,25 +1443,25 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         yt_counters("max dens point")
         # Now CoM.
         yt_counters("CoM")
-        CoM_M = na.zeros((self.group_count,3),dtype='float64')
-        Tot_M = na.zeros(self.group_count, dtype='float64')
-        #c_vec = self.max_dens_point[:,1:4][subchain] - na.array([0.5,0.5,0.5])
+        CoM_M = np.zeros((self.group_count,3),dtype='float64')
+        Tot_M = np.zeros(self.group_count, dtype='float64')
+        #c_vec = self.max_dens_point[:,1:4][subchain] - np.array([0.5,0.5,0.5])
         if calc:
-            c_vec = self.max_dens_point[:,1:4][subchain] - na.array([0.5,0.5,0.5])
-            size = na.bincount(self.chainID[select]).astype('int64')
+            c_vec = self.max_dens_point[:,1:4][subchain] - np.array([0.5,0.5,0.5])
+            size = np.bincount(self.chainID[select]).astype('int64')
         else:
             # This task has no particles in groups!
-            size = na.zeros(self.group_count, dtype='int64')
+            size = np.zeros(self.group_count, dtype='int64')
         # In case this task doesn't have all the groups, add trailing zeros.
         if size.size != self.group_count:
-            size = na.concatenate((size, na.zeros(self.group_count - size.size, dtype='int64')))
+            size = np.concatenate((size, np.zeros(self.group_count - size.size, dtype='int64')))
         if calc:
             cc = loc - c_vec
-            cc = cc - na.floor(cc)
-            ms = na.concatenate((self.mass, self.mass_pad))[select]
+            cc = cc - np.floor(cc)
+            ms = np.concatenate((self.mass, self.mass_pad))[select]
             # Most of the time, the masses will be all the same, and we can try
             # to save some effort.
-            ms_u = na.unique(ms)
+            ms_u = np.unique(ms)
             if ms_u.size == 1:
                 single = True
                 Tot_M = size.astype('float64') * ms_u
@@ -1475,13 +1475,13 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
             sort = subchain.argsort()
             cc = cc[sort]
             sort_subchain = subchain[sort]
-            uniq_subchain = na.unique(sort_subchain)
-            diff_subchain = na.ediff1d(sort_subchain)
+            uniq_subchain = np.unique(sort_subchain)
+            diff_subchain = np.ediff1d(sort_subchain)
             marks = (diff_subchain > 0)
-            marks = na.arange(calc)[marks] + 1
-            marks = na.concatenate(([0], marks, [calc]))
+            marks = np.arange(calc)[marks] + 1
+            marks = np.concatenate(([0], marks, [calc]))
             for i, u in enumerate(uniq_subchain):
-                CoM_M[u] = na.sum(cc[marks[i]:marks[i+1]], axis=0)
+                CoM_M[u] = np.sum(cc[marks[i]:marks[i+1]], axis=0)
             if not single:
                 for i,groupID in enumerate(subchain):
                     Tot_M[groupID] += ms[i]
@@ -1490,31 +1490,31 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
                 # Don't divide by zero.
                 if groupID in self.I_own:
                     CoM_M[groupID] /= Tot_M[groupID]
-                    CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
+                    CoM_M[groupID] += self.max_dens_point[groupID,1:4] - np.array([0.5,0.5,0.5])
                     CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
         self.group_sizes = self.comm.mpi_allreduce(size, op='sum')
         CoM_M = self.comm.mpi_allreduce(CoM_M, op='sum')
         self.Tot_M = self.comm.mpi_allreduce(Tot_M, op='sum')
-        self.CoM = na.empty((self.group_count,3), dtype='float64')
+        self.CoM = np.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
         yt_counters("CoM")
         self.__max_memory()
         # Now we find the maximum radius for all groups.
         yt_counters("max radius")
-        max_radius = na.zeros(self.group_count, dtype='float64')
+        max_radius = np.zeros(self.group_count, dtype='float64')
         if calc:
             com = self.CoM[subchain]
-            rad = na.fabs(com - loc)
-            dist = (na.minimum(rad, self.period - rad)**2.).sum(axis=1)
+            rad = np.fabs(com - loc)
+            dist = (np.minimum(rad, self.period - rad)**2.).sum(axis=1)
             dist = dist[sort]
             for i, u in enumerate(uniq_subchain):
-                max_radius[u] = na.max(dist[marks[i]:marks[i+1]])
+                max_radius[u] = np.max(dist[marks[i]:marks[i+1]])
         # Find the maximum across all tasks.
         mylog.info('Fraction of particles in this region in groups: %f' % (float(calc)/self.size))
         self.max_radius = self.comm.mpi_allreduce(max_radius, op='max')
-        self.max_radius = na.sqrt(self.max_radius)
+        self.max_radius = np.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
         self.__max_memory()
@@ -1558,7 +1558,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         chain_count = self._build_chains()
         # This array tracks whether or not relationships for this particle
         # need to be examined twice, in preconnect_chains and in connect_chains
-        self.search_again = na.ones(self.size, dtype='bool')
+        self.search_again = np.ones(self.size, dtype='bool')
         if self.premerge:
             chain_count = self._preconnect_chains(chain_count)
         mylog.info('Gobally assigning chainIDs...')
@@ -1625,7 +1625,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         try:
             arr[key] = value
         except IndexError:
-            arr = na.concatenate((arr, na.ones(10000, dtype=type)*-1))
+            arr = np.concatenate((arr, np.ones(10000, dtype=type)*-1))
             arr[key] = value
         return arr
     

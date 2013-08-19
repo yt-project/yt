@@ -26,7 +26,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 from itertools import izip
 
 from yt.funcs import *
@@ -36,6 +36,8 @@ from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.utilities.definitions import \
+    sec_conversion
 
 from .fields import GadgetFieldInfo, KnownGadgetFields
 from yt.data_objects.field_info_container import \
@@ -102,7 +104,7 @@ class GadgetHierarchy(AMRHierarchy):
         
     def _parse_hierarchy(self):
         f = self._handle # shortcut
-        npa = na.array
+        npa = np.array
         DLE = self.parameter_file.domain_left_edge
         DRE = self.parameter_file.domain_right_edge
         DW = (DRE - DLE)
@@ -117,12 +119,12 @@ class GadgetHierarchy(AMRHierarchy):
                                 + dxs *(1 + self.grid_dimensions)
         self.grid_particle_count.flat[:] = f['/grid_particle_count'][:].astype("int32")
         grid_parent_id = f['/grid_parent_id'][:]
-        self.max_level = na.max(self.grid_levels)
+        self.max_level = np.max(self.grid_levels)
         
         args = izip(xrange(self.num_grids), self.grid_levels.flat,
                     grid_parent_id, LI,
                     self.grid_dimensions, self.grid_particle_count.flat)
-        self.grids = na.empty(len(args), dtype='object')
+        self.grids = np.empty(len(args), dtype='object')
         for gi, (j,lvl,p, le, d, n) in enumerate(args):
             self.grids[gi] = self.grid(self,j,d,le,lvl,p,n)
         
@@ -159,11 +161,8 @@ class GadgetStaticOutput(StaticOutput):
         self.units['cm'] = 1.0
         self.units['unitary'] = 1.0 / \
             (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        self.time_units['years'] = seconds / (365*3600*24.0)
-        self.time_units['days']  = seconds / (3600*24.0)
-        self.time_units['Myr'] = self.time_units['years'] / 1.0e6
-        self.time_units['Gyr']  = self.time_units['years'] / 1.0e9
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
     def _parse_parameter_file(self):
         fileh = h5py.File(self.filename)

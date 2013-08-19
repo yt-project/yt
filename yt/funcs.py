@@ -23,14 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
-from distutils import version
+import numpy as np
+from distutils.version import LooseVersion
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.utilities.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from collections import defaultdict
@@ -58,6 +61,31 @@ def ensure_list(obj):
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
+
+def ensure_numpy_array(obj):
+    """
+    This function ensures that *obj* is a numpy array. Typically used to
+    convert scalar, list or tuple argument passed to functions using Cython.
+    """
+    if isinstance(obj, np.ndarray):
+        return obj
+    elif isinstance(obj, (types.ListType, types.TupleType)):
+        return np.asarray(obj)
+    else:
+        return np.asarray([obj])
+
+def ensure_tuple(obj):
+    """
+    This function ensures that *obj* is a tuple.  Typically used to convert
+    scalar, list, or array arguments specified by a user in a context where
+    we assume a tuple internally
+    """
+    if isinstance(obj, types.TupleType):
+        return obj
+    elif isinstance(obj, (types.ListType, np.ndarray)):
+        return tuple(obj)
+    else:
+        return (obj,)
 
 def read_struct(f, fmt):
     """
@@ -166,7 +194,7 @@ def rootonly(func):
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
         if ytcfg.getint("yt","__topcomm_parallel_rank") > 0:
-            return 
+            return
         return func(*args, **kwargs)
     return check_parallel_rank
 
@@ -183,7 +211,7 @@ def deprecate(func):
 
     .. code-block:: python
 
-       @rootonly
+       @deprecate
        def some_really_old_function(...):
 
     """
@@ -203,7 +231,7 @@ def pdb_run(func):
 
     .. code-block:: python
 
-       @rootonly
+       @pdb_run
        def some_function_to_debug(...):
 
     """
@@ -222,6 +250,17 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
+def get_ipython_api_version():
+    import IPython
+    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
+        api_version = '0.10'
+    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
+        api_version = '0.11'
+    else:
+        api_version = '1.0'
+
+    return api_version
+
 def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
@@ -231,11 +270,7 @@ def insert_ipython(num_up=1):
     defaults to 1 so that this function itself is stripped off.
     """
 
-    import IPython
-    if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
-        api_version = '0.10'
-    else:
-        api_version = '0.11'
+    api_version = get_ipython_api_version()
 
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
@@ -253,7 +288,10 @@ def insert_ipython(num_up=1):
         cfg.InteractiveShellEmbed.local_ns = loc
         cfg.InteractiveShellEmbed.global_ns = glo
         IPython.embed(config=cfg, banner2 = __header % dd)
-        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        if api_version == '0.11':
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        else:
+            from IPython.terminal.embed import InteractiveShellEmbed
         ipshell = InteractiveShellEmbed(config=cfg)
 
     del ipshell
@@ -308,7 +346,9 @@ def get_pbar(title, maxval):
     """
     maxval = max(maxval, 1)
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","suppressStreamLogging"):
+    if ytcfg.getboolean("yt", "suppressStreamLogging") or \
+       "__IPYTHON__" in dir(__builtin__) or \
+       ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
         from yt.gui.reason.extdirect_repl import ExtProgressBar
@@ -338,6 +378,20 @@ def only_on_root(func, *args, **kwargs):
         return func(*args,**kwargs)
     if ytcfg.getint("yt", cfg_option) > 0: return
     return func(*args, **kwargs)
+
+def is_root():
+    """
+    This function returns True if it is on the root processor of the
+    topcomm and False otherwise.
+    """
+    from yt.config import ytcfg
+    cfg_option = "__topcomm_parallel_rank"
+    if not ytcfg.getboolean("yt","__parallel"):
+        return True
+    if ytcfg.getint("yt", cfg_option) > 0: 
+        return False
+    return True
+
 
 #
 # Our signal and traceback handling functions
@@ -462,6 +516,11 @@ def get_hg_version(path):
     return u.popbuffer()
 
 def get_yt_version():
+    try:
+        from yt.__hg_version__ import hg_version
+        return hg_version
+    except ImportError:
+        pass
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
@@ -560,5 +619,19 @@ def get_num_threads():
     if nt < 0:
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
-        
 
+def fix_axis(axis):
+    return inv_axis_names.get(axis, axis)
+
+def get_image_suffix(name):
+    suffix = os.path.splitext(name)[1]
+    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+
+
+def ensure_dir_exists(path):
+    r"""Create all directories in path recursively in a parallel safe manner"""
+    my_dir = os.path.dirname(path)
+    if not my_dir:
+        return
+    if not os.path.exists(my_dir):
+        only_on_root(os.makedirs, my_dir)

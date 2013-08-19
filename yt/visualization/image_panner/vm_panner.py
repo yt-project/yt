@@ -21,7 +21,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 import types, os
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer
@@ -163,7 +163,7 @@ class VariableMeshPanner(object):
         """
         self.xlim = (low[0], high[0])
         self.ylim = (low[1], high[1])
-        return na.log10(self.buffer)
+        return np.log10(self.buffer)
 
     def set_width(self, width):
         """
@@ -283,7 +283,7 @@ class ImageSaver(object):
 
     def __call__(self, val):
         self.pylab.clf()
-        self.pylab.imshow(na.log10(val), interpolation='nearest')
+        self.pylab.imshow(np.log10(val), interpolation='nearest')
         self.pylab.savefig("wimage_%03i.png" % self.tile_id)
 
 class TransportAppender(object):
@@ -297,13 +297,13 @@ class TransportAppender(object):
     def __call__(self, val):
         from yt.utilities.lib import write_png_to_string
         from yt.visualization.image_writer import map_to_colors
-        image = na.log10(val)
-        mi = na.nanmin(image[~na.isinf(image)])
-        ma = na.nanmax(image[~na.isinf(image)])
+        image = np.log10(val)
+        mi = np.nanmin(image[~np.isinf(image)])
+        ma = np.nanmax(image[~np.isinf(image)])
         color_bounds = mi, ma
         image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
         to_plot = map_to_colors(image, "algae")
-        to_plot = na.clip(to_plot, 0, 255)
+        to_plot = np.clip(to_plot, 0, 255)
         s = write_png_to_string(to_plot)
         response_body = "data:image/png;base64," + base64.encodestring(s)
         tf.close()

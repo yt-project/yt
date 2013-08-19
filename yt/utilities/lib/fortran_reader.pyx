@@ -27,7 +27,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from stdio cimport fopen, fclose, FILE
+from libc.stdio cimport fopen, fclose, FILE
 cimport libc.stdlib as stdlib
 
 #cdef inline int imax(int i0, int i1):
@@ -53,8 +53,8 @@ cdef extern from "stdio.h":
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def read_and_seek(char *filename, int offset1, int offset2,
-                  np.ndarray buffer, int bytes):
+def read_and_seek(char *filename, np.int64_t offset1,
+                  np.int64_t offset2, np.ndarray buffer, int bytes):
     cdef FILE *f = fopen(filename, "rb")
     cdef void *buf = <void *> buffer.data
     cdef char line[1024]

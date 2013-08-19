@@ -81,3 +81,28 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+__version__ = "2.5-dev"
+
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+    import nose, os, sys
+    from yt.config import ytcfg
+    nose_argv = sys.argv
+    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    if verbose:
+        nose_argv.append('-v')
+    if run_answer_tests:
+        nose_argv.append('--with-answer-testing')
+    if answer_big_data:
+        nose_argv.append('--answer-big-data')
+    log_suppress = ytcfg.getboolean("yt","suppressStreamLogging")
+    ytcfg.set("yt","suppressStreamLogging", 'True')
+    initial_dir = os.getcwd()
+    yt_file = os.path.abspath(__file__)
+    yt_dir = os.path.dirname(yt_file)
+    os.chdir(yt_dir)
+    try:
+        nose.run(argv=nose_argv)
+    finally:
+        os.chdir(initial_dir)
+        ytcfg.set("yt","suppressStreamLogging", str(log_suppress))

@@ -24,7 +24,7 @@ License:
 """
 
 import glob
-import numpy as na
+import numpy as np
 import os, os.path, inspect, types
 from functools import wraps
 
@@ -61,6 +61,12 @@ def load(*args ,**kwargs):
     valid_file = [os.path.exists(arg) if isinstance(arg, types.StringTypes) 
             else False for arg in args]
     if not any(valid_file):
+        try:
+            from yt.data_objects.time_series import TimeSeriesData
+            ts = TimeSeriesData.from_filenames(*args, **kwargs)
+            return ts
+        except YTOutputNotIdentified:
+            pass
         mylog.error("None of the arguments provided to load() is a valid file")
         mylog.error("Please check that you have used a correct path")
         raise YTOutputNotIdentified(args, kwargs)
@@ -112,7 +118,7 @@ def projload(pf, axis, weight_field = None):
     f.close()
     return proj
 
-def simulation(parameter_filename, simulation_type):
+def simulation(parameter_filename, simulation_type, find_outputs=False):
     """
     Loads a simulation time series object of the specified
     simulation type.
@@ -121,5 +127,6 @@ def simulation(parameter_filename, simulation_type):
     if simulation_type not in simulation_time_series_registry:
         raise YTSimulationNotIdentified(simulation_type)
 
-    return simulation_time_series_registry[simulation_type](parameter_filename)
+    return simulation_time_series_registry[simulation_type](parameter_filename, 
+                                                            find_outputs=find_outputs)
 

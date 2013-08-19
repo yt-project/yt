@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+import numpy as np
 
 def voigt(a,u):
     """
@@ -65,15 +65,15 @@ def voigt(a,u):
             J. Murthy, Mar 1990 (adapted from the FORTRAN program of Armstrong)
                       Sep 1990 (better overflow checking)
     """
-    x = na.asarray(u).astype(na.float64)
-    y = na.asarray(a).astype(na.float64)
+    x = np.asarray(u).astype(np.float64)
+    y = np.asarray(a).astype(np.float64)
 
-    w = na.array([0.462243670,   0.286675505,   0.109017206, 
+    w = np.array([0.462243670,   0.286675505,   0.109017206, 
                   0.0248105209,  0.00324377334, 0.000228338636, 
                   7.80255648e-6, 1.08606937e-7, 4.39934099e-10, 
                   2.22939365e-13])
 
-    t = na.array([0.245340708, 0.737473729, 1.23407622, 1.73853771, 
+    t = np.array([0.245340708, 0.737473729, 1.23407622, 1.73853771, 
                   2.25497400,  2.78880606,  3.34785457, 3.94476404, 
                   4.60368245,  5.38748089])
 
@@ -94,31 +94,31 @@ def voigt(a,u):
     y2 = y * y
 
     # limits are y<1.,  x<4 or y<1.8(x+1),  x>4 (no checking performed)
-    u1 = na.exp(-x * x + y2) * na.cos(2. * x * y)
+    u1 = np.exp(-x * x + y2) * np.cos(2. * x * y)
 
     # Clenshaw's Algorithm
-    bno1 = na.zeros(x.shape)
-    bno2 = na.zeros(x.shape)
-    x1 = na.clip((x / 5.), -na.inf, 1.)
+    bno1 = np.zeros(x.shape)
+    bno2 = np.zeros(x.shape)
+    x1 = np.clip((x / 5.), -np.inf, 1.)
     coef = 4. * x1 * x1 - 2.
     for i in range(33, -1, -1):
         bn = coef * bno1 - bno2 + c[i]
-        bno2 = na.copy(bno1)
-        bno1 = na.copy(bn)
+        bno2 = np.copy(bno1)
+        bno1 = np.copy(bn)
 
     f = x1 * (bn - bno2)
     dno1 = 1. - 2. * x * f
     dno2 = f
 
-    q = na.abs(x) > 5
+    q = np.abs(x) > 5
     if q.any():
-        x14 = na.power(na.clip(x[q], -na.inf, 500.),  14)
-        x12 = na.power(na.clip(x[q], -na.inf, 1000.), 12)
-        x10 = na.power(na.clip(x[q], -na.inf, 5000.), 10)
-        x8  = na.power(na.clip(x[q], -na.inf, 50000.), 8)
-        x6  = na.power(na.clip(x[q], -na.inf, 1.e6),   6)
-        x4  = na.power(na.clip(x[q], -na.inf, 1.e9),   4)
-        x2  = na.power(na.clip(x[q], -na.inf, 1.e18),  2)
+        x14 = np.power(np.clip(x[q], -np.inf, 500.),  14)
+        x12 = np.power(np.clip(x[q], -np.inf, 1000.), 12)
+        x10 = np.power(np.clip(x[q], -np.inf, 5000.), 10)
+        x8  = np.power(np.clip(x[q], -np.inf, 50000.), 8)
+        x6  = np.power(np.clip(x[q], -np.inf, 1.e6),   6)
+        x4  = np.power(np.clip(x[q], -np.inf, 1.e9),   4)
+        x2  = np.power(np.clip(x[q], -np.inf, 1.e18),  2)
         dno1[q] = -(0.5 / x2 + 0.75 / x4 + 1.875 / x6 + 
                     6.5625 / x8 + 29.53125 / x10 +
                     162.4218 / x12 + 1055.7421 / x14)
@@ -135,12 +135,12 @@ def voigt(a,u):
             if (i % 2) == 1:
                 q = -q
                 yn = yn * y2
-                g = dn.astype(na.float64) * yn
+                g = dn.astype(np.float64) * yn
                 funct = funct + q * g
-                if na.max(na.abs(g / funct)) <= 1.e-8: break
+                if np.max(np.abs(g / funct)) <= 1.e-8: break
 
     k1 = u1 - 1.12837917 * funct
-    k1 = k1.astype(na.float64).clip(0)
+    k1 = k1.astype(np.float64).clip(0)
     return k1
 
 def tau_profile(lam0, fval, gamma, vkms, column_density, 
@@ -191,19 +191,19 @@ def tau_profile(lam0, fval, gamma, vkms, column_density,
     ## create wavelength
     if lambda_bins is None:
         lambda_bins = lam1 + \
-            na.arange(n_lambda, dtype=na.float) * dlambda - \
+            np.arange(n_lambda, dtype=np.float) * dlambda - \
             n_lambda * dlambda / 2    # wavelength vector (angstroms)
     nua = ccgs / (lambda_bins / 1.e8) # frequency vector (Hz)
 
     ## tau_0
-    tau_X = na.sqrt(na.pi) * e**2 / (me * ccgs) * \
+    tau_X = np.sqrt(np.pi) * e**2 / (me * ccgs) * \
         column_density * fval / vdop
     tau1 = tau_X * lam1cgs
     tau0 = tau_X * lam0cgs
 
     # dimensionless frequency offset in units of doppler freq
     x = (nua - nu1) / nudop
-    a = gamma / (4 * na.pi * nudop)   # damping parameter 
+    a = gamma / (4 * np.pi * nudop)   # damping parameter 
     phi = voigt(a, x)                 # profile
     tauphi = tau0 * phi               # profile scaled with tau0
 

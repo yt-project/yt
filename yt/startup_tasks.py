@@ -36,9 +36,11 @@ exe_name = os.path.basename(sys.executable)
 def turn_on_parallelism():
     try:
         from mpi4py import MPI
-        parallel_capable = (MPI.COMM_WORLD.size > 1)
-    except ImportError:
-        parallel_capable = False
+    except ImportError as e:
+        mylog.error("Warning: Attempting to turn on parallelism, " +
+                    "but mpi4py import failed. Try pip install mpi4py.")
+        raise e
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
         mylog.info("Global parallel computation enabled: %s / %s",
                    MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
@@ -98,7 +100,17 @@ class SetConfigOption(argparse.Action):
         if param == "loglevel": # special case
             mylog.setLevel(int(val))
 
-parser = argparse.ArgumentParser(description = 'yt command line arguments')
+class YTParser(argparse.ArgumentParser):
+    def error(self, message):
+        """error(message: string)
+
+        Prints a help message that is more detailed than the argparse default
+        and then exits.
+        """
+        self.print_help(sys.stderr)
+        self.exit(2, '%s: error: %s\n' % (self.prog, message))
+
+parser = YTParser(description = 'yt command line arguments')
 parser.add_argument("--config", action=SetConfigOption,
     help = "Set configuration option, in the form param=value")
 parser.add_argument("--paste", action=SetExceptionHandling,
@@ -142,8 +154,9 @@ if parallel_capable == True:
 elif exe_name in \
         ["mpi4py", "embed_enzo",
          "python"+sys.version[:3]+"-mpi"] \
-    or '_parallel' in dir(sys) \
-    or any(["ipengine" in arg for arg in sys.argv]):
+        or '_parallel' in dir(sys) \
+        or any(["ipengine" in arg for arg in sys.argv]) \
+        or any(["cluster-id" in arg for arg in sys.argv]):
     parallel_capable = turn_on_parallelism()
 else:
     parallel_capable = False

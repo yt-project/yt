@@ -25,7 +25,7 @@ License:
 """
 
 import os
-import numpy as na
+import numpy as np
 from yt.utilities.io_handler import \
            BaseIOHandler
 
@@ -44,6 +44,17 @@ class IOHandlerNative(BaseIOHandler):
         parses the Orion Star Particle text files
         
         """
+
+        fn = grid.pf.fullplotdir + "/StarParticles"
+        if not os.path.exists(fn):
+            fn = grid.pf.fullplotdir + "/SinkParticles"
+
+        # Figure out the format of the particle file
+        with open(fn, 'r') as f:
+            lines = f.readlines()
+        line = lines[1]
+        
+        # The basic fields that all sink particles have
         index = {'particle_mass': 0,
                  'particle_position_x': 1,
                  'particle_position_y': 2,
@@ -54,17 +65,39 @@ class IOHandlerNative(BaseIOHandler):
                  'particle_angmomen_x': 7,
                  'particle_angmomen_y': 8,
                  'particle_angmomen_z': 9,
-                 'particle_mlast': 10,
-                 'particle_mdeut': 11,
-                 'particle_n': 12,
-                 'particle_mdot': 13,
-                 'particle_burnstate': 14,
-                 'particle_id': 15}
+                 'particle_id': -1}
+
+        if len(line.strip().split()) == 11:
+            # these are vanilla sinks, do nothing
+            pass  
+
+        elif len(line.strip().split()) == 17:
+            # these are old-style stars, add stellar model parameters
+            index['particle_mlast']     = 10
+            index['particle_r']         = 11
+            index['particle_mdeut']     = 12
+            index['particle_n']         = 13
+            index['particle_mdot']      = 14,
+            index['particle_burnstate'] = 15
+
+        elif len(line.strip().split()) == 18:
+            # these are the newer style, add luminosity as well
+            index['particle_mlast']     = 10
+            index['particle_r']         = 11
+            index['particle_mdeut']     = 12
+            index['particle_n']         = 13
+            index['particle_mdot']      = 14,
+            index['particle_burnstate'] = 15,
+            index['particle_luminosity']= 16
+
+        else:
+            # give a warning if none of the above apply:
+            mylog.warning('Warning - could not figure out particle output file')
+            mylog.warning('These results could be nonsense!')
 
         def read(line, field):
-            return float(line.split(' ')[index[field]])
+            return float(line.strip().split(' ')[index[field]])
 
-        fn = grid.pf.fullplotdir + "/StarParticles"
         with open(fn, 'r') as f:
             lines = f.readlines()
             particles = []
@@ -76,9 +109,9 @@ class IOHandlerNative(BaseIOHandler):
                     if ( (grid.LeftEdge < coord).all() and 
                          (coord <= grid.RightEdge).all() ):
                         particles.append(read(line, field))
-        return na.array(particles)
+        return np.array(particles)
 
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
 
@@ -109,8 +142,8 @@ class IOHandlerNative(BaseIOHandler):
             dtype += ('f%i'% bytesPerReal) #always a floating point
 
             # determine size of FAB
-            start = na.array(map(int,start.split(',')))
-            stop = na.array(map(int,stop.split(',')))
+            start = np.array(map(int,start.split(',')))
+            stop = np.array(map(int,stop.split(',')))
 
             gridSize = stop - start + 1
 
@@ -150,20 +183,11 @@ class IOHandlerNative(BaseIOHandler):
             fieldname = field
         field_index = grid.field_indexes[fieldname]
         inFile.seek(int(nElements*bytesPerReal*field_index),1)
-        field = na.fromfile(inFile,count=nElements,dtype=dtype)
+        field = np.fromfile(inFile,count=nElements,dtype=dtype)
         field = field.reshape(grid.ActiveDimensions, order='F')
 
         # we can/should also check against the max and min in the header file
 
         inFile.close()
         return field
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        """wishful thinking?
-        """
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        #sl = tuple(reversed(sl))
-        return self._read_data_set(grid,field)[sl]
-
 

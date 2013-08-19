@@ -57,14 +57,22 @@ class StaticOutput(object):
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
-            obj.__init__(filename, *args, **kwargs)
+            # The Stream frontend uses a StreamHandler object to pass metadata
+            # to __init__.
+            is_stream = (hasattr(filename, 'get_fields') and
+                         hasattr(filename, 'get_particle_type'))
+            if not is_stream:
+                obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            _cached_pfs[apath] = obj
-        return _cached_pfs[apath]
+            if obj._skip_cache is False:
+                _cached_pfs[apath] = obj
+        else:
+            obj = _cached_pfs[apath]
+        return obj
 
     def __init__(self, filename, data_style=None, file_style=None):
         """
@@ -81,6 +89,10 @@ class StaticOutput(object):
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
+        self.backup_filename = self.parameter_filename + '_backup.gdf'
+        self.read_from_backup = False
+        if os.path.exists(self.backup_filename):
+            self.read_from_backup = True
         if len(self.directory) == 0:
             self.directory = "."
 
@@ -128,6 +140,10 @@ class StaticOutput(object):
     def _mrep(self):
         return MinimalStaticOutput(self)
 
+    @property
+    def _skip_cache(self):
+        return False
+
     def hub_upload(self):
         self._mrep.upload()
 
@@ -161,7 +177,7 @@ class StaticOutput(object):
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
-        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'cm']:
+        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
             vv = v*self[unit]
             if vv < max_nu and vv > 1.0:
                 good_u = unit

@@ -24,7 +24,7 @@ License:
 """
 
 import h5py
-import numpy as na
+import numpy as np
 
 from absorption_line import tau_profile
 
@@ -36,19 +36,25 @@ from yt.utilities.physical_constants import \
 speed_of_light_kms = speed_of_light_cgs * km_per_cm
 
 class AbsorptionSpectrum(object):
-    def __init__(self, lambda_min, lambda_max, n_lambda):
-        """
-        Create an absorption spectrum object.
-        :param lambda_min (float): lower wavelength bound in angstroms.
-        :param lambda_max (float): upper wavelength bound in angstroms.
-        :param n_lambda (float): number of wavelength bins.
-        """
+    r"""Create an absorption spectrum object.
 
+    Parameters
+    ----------
+
+    lambda_min : float
+       lower wavelength bound in angstroms.
+    lambda_max : float
+       upper wavelength bound in angstroms.
+    n_lambda : float
+       number of wavelength bins.
+    """
+
+    def __init__(self, lambda_min, lambda_max, n_lambda):
         self.n_lambda = n_lambda
         self.tau_field = None
         self.flux_field = None
         self.spectrum_line_list = None
-        self.lambda_bins = na.linspace(lambda_min, lambda_max, n_lambda)
+        self.lambda_bins = np.linspace(lambda_min, lambda_max, n_lambda)
         self.bin_width = (lambda_max - lambda_min) / float(n_lambda - 1)
         self.line_list = []
         self.continuum_list = []
@@ -56,16 +62,24 @@ class AbsorptionSpectrum(object):
     def add_line(self, label, field_name, wavelength,
                  f_value, gamma, atomic_mass,
                  label_threshold=None):
-        """
-        Add an absorption line to the list of lines included in the spectrum.
-        :param label (string): label for the line.
-        :param field_name (string): field name from ray data for column densities.
-        :param wavelength (float): line rest wavelength in angstroms.
-        :param f_value (float): line f-value.
-        :param gamma (float): line gamme value.
-        :param atomic_mass (float): mass of atom in amu.
-        """
+        r"""Add an absorption line to the list of lines included in the spectrum.
 
+        Parameters
+        ----------
+        
+        label : string
+           label for the line.
+        field_name : string
+           field name from ray data for column densities.
+        wavelength : float
+           line rest wavelength in angstroms.
+        f_value  : float
+           line f-value.
+        gamma : float
+           line gamme value.
+        atomic_mass : float
+           mass of atom in amu.
+        """
         self.line_list.append({'label': label, 'field_name': field_name,
                                'wavelength': wavelength, 'f_value': f_value,
                                'gamma': gamma, 'atomic_mass': atomic_mass,
@@ -75,11 +89,20 @@ class AbsorptionSpectrum(object):
                       normalization, index):
         """
         Add a continuum feature that follows a power-law.
-        :param label (string): label for the feature.
-        :param field_name (string): field name from ray data for column densities.
-        :param wavelength (float): line rest wavelength in angstroms.
-        :param normalization (float): the column density normalization.
-        :param index (float): the power-law index for the wavelength dependence.
+
+        Parameters
+        ----------
+
+        label : string
+           label for the feature.
+        field_name : string
+           field name from ray data for column densities.
+        wavelength : float
+           line rest wavelength in angstroms.
+        normalization : float
+           the column density normalization.
+        index : float
+           the power-law index for the wavelength dependence.
         """
 
         self.continuum_list.append({'label': label, 'field_name': field_name,
@@ -92,14 +115,17 @@ class AbsorptionSpectrum(object):
                       use_peculiar_velocity=True):
         """
         Make spectrum from ray data using the line list.
-        :param input_file (string): path to input ray data.
-        :param output_file (string): path for output file.
-               File formats are chosen based on the filename extension.
-                    - .h5: hdf5.
-                    - .fits: fits.
-                    - anything else: ascii.
-        :param use_peculiar_velocity (bool): if True, include line of sight
-        velocity for shifting lines.
+
+        Parameters
+        ----------
+
+        input_file : string
+           path to input ray data.
+        output_file : string
+           path for output file.  File formats are chosen based on the filename extension.
+           ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
+        use_peculiar_velocity : bool
+           if True, include line of sight velocity for shifting lines.
         """
 
         input_fields = ['dl', 'redshift', 'Temperature']
@@ -114,13 +140,13 @@ class AbsorptionSpectrum(object):
             field_data[field] = input[field].value
         input.close()
 
-        self.tau_field = na.zeros(self.lambda_bins.size)
+        self.tau_field = np.zeros(self.lambda_bins.size)
         self.spectrum_line_list = []
 
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
 
-        self.flux_field = na.exp(-self.tau_field)
+        self.flux_field = np.exp(-self.tau_field)
 
         if output_file.endswith('.h5'):
             self._write_spectrum_hdf5(output_file)
@@ -148,20 +174,20 @@ class AbsorptionSpectrum(object):
                 delta_lambda += continuum['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['los_velocity'] / speed_of_light_cgs
             this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = na.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
-            left_index = na.digitize((this_wavelength *
-                                     na.power((tau_min * continuum['normalization'] /
+            right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
+            left_index = np.digitize((this_wavelength *
+                                     np.power((tau_min * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
                                     self.lambda_bins).clip(0, self.n_lambda)
 
-            valid_continuua = na.where(((column_density /
+            valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > tau_min) &
                                        (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding continuum feature - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
             for i, lixel in enumerate(valid_continuua):
-                line_tau = na.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] /
+                line_tau = np.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] /
                                      this_wavelength[lixel]), continuum['index']) * \
                                      column_density[lixel] / continuum['normalization']
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
@@ -184,10 +210,10 @@ class AbsorptionSpectrum(object):
                 # include factor of (1 + z) because our velocity is in proper frame.
                 delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['los_velocity'] / speed_of_light_cgs
-            thermal_b = km_per_cm * na.sqrt((2 * boltzmann_constant_cgs *
+            thermal_b = km_per_cm * np.sqrt((2 * boltzmann_constant_cgs *
                                              field_data['Temperature']) /
                                             (amu_cgs * line['atomic_mass']))
-            center_bins = na.digitize((delta_lambda + line['wavelength']),
+            center_bins = np.digitize((delta_lambda + line['wavelength']),
                                       self.lambda_bins)
 
             # ratio of line width to bin width
@@ -201,7 +227,7 @@ class AbsorptionSpectrum(object):
                            spectrum_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
 
             # loop over all lines wider than the bin width
-            valid_lines = na.where((width_ratio >= 1.0) &
+            valid_lines = np.where((width_ratio >= 1.0) &
                                    (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             valid_lines.size)

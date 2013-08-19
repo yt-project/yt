@@ -24,7 +24,7 @@ License:
 """
 
 import random
-import numpy as na
+import numpy as np
 from .create_spline import create_spline
 
 class Keyframes(object):
@@ -67,12 +67,12 @@ class Keyframes(object):
         Examples
         --------
 
-        >>> import numpy as na
+        >>> import numpy as np
         >>> import matplotlib.pyplot as plt
         >>> from yt.visualization.volume_rendering.camera_path import *
 
         # Make a camera path from 10 random (x,y,z) keyframes
-        >>> data = na.random.random.((10,3))
+        >>> data = np.random.random.((10,3))
         >>> kf = Keyframes(data[:,0], data[:,1], data[:,2])
         >>> path = kf.create_path(250, shortest_path=False)
 
@@ -93,7 +93,7 @@ class Keyframes(object):
             print "Need Nx (%d) == Ny (%d) == Nz (%d)" % (Nx, Ny, Nz)
             sys.exit()
         self.nframes = Nx
-        self.pos = na.zeros((Nx,3))
+        self.pos = np.zeros((Nx,3))
         self.pos[:,0] = x
         self.pos[:,1] = y
         if z != None:
@@ -103,7 +103,7 @@ class Keyframes(object):
         self.north_vectors = north_vectors
         self.up_vectors = up_vectors
         if times == None:
-            self.times = na.arange(self.nframes)
+            self.times = np.arange(self.nframes)
         else:
             self.times = times
         self.cartesian_matrix()
@@ -131,7 +131,7 @@ class Keyframes(object):
         """
         # randomize tour
         self.tour = range(self.nframes)
-        na.random.shuffle(self.tour)
+        np.random.shuffle(self.tour)
         if fixed_start:
             first = self.tour.index(0)
             self.tour[0], self.tour[first] = self.tour[first], self.tour[0]
@@ -191,17 +191,17 @@ class Keyframes(object):
         Create a distance matrix for the city coords that uses
         straight line distance
         """
-        self.dist_matrix = na.zeros((self.nframes, self.nframes))
-        xmat = na.zeros((self.nframes, self.nframes))
+        self.dist_matrix = np.zeros((self.nframes, self.nframes))
+        xmat = np.zeros((self.nframes, self.nframes))
         xmat[:,:] = self.pos[:,0]
         dx = xmat - xmat.T
-        ymat = na.zeros((self.nframes, self.nframes))
+        ymat = np.zeros((self.nframes, self.nframes))
         ymat[:,:] = self.pos[:,1]
         dy = ymat - ymat.T
-        zmat = na.zeros((self.nframes, self.nframes))
+        zmat = np.zeros((self.nframes, self.nframes))
         zmat[:,:] = self.pos[:,2]
         dz = zmat - zmat.T
-        self.dist_matrix = na.sqrt(dx*dx + dy*dy + dz*dz)
+        self.dist_matrix = np.sqrt(dx*dx + dy*dy + dz*dz)
 
     def tour_length(self, tour):
         r"""
@@ -227,7 +227,7 @@ class Keyframes(object):
         if next > prev:
             return 1.0
         else:
-            return na.exp( -abs(next-prev) / temperature )
+            return np.exp( -abs(next-prev) / temperature )
 
     def get_shortest_path(self):
         r"""Determine shortest path between all keyframes.
@@ -294,14 +294,14 @@ class Keyframes(object):
             path.  Also saved to self.path.
         """
         self.npoints = npoints
-        self.path = {"time": na.zeros(npoints),
-                     "position": na.zeros((npoints, 3)),
-                     "north_vectors": na.zeros((npoints,3)),
-                     "up_vectors": na.zeros((npoints,3))}
+        self.path = {"time": np.zeros(npoints),
+                     "position": np.zeros((npoints, 3)),
+                     "north_vectors": np.zeros((npoints,3)),
+                     "up_vectors": np.zeros((npoints,3))}
         if shortest_path:
             self.get_shortest_path()
         if path_time == None:
-            path_time = na.linspace(0, self.nframes, npoints)
+            path_time = np.linspace(0, self.nframes, npoints)
         self.path["time"] = path_time
         for dim in range(3):
             self.path["position"][:,dim] = create_spline(self.times, self.pos[:,dim],

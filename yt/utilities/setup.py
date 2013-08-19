@@ -1,45 +1,154 @@
 #!/usr/bin/env python
-import setuptools
-import os, sys, os.path, glob
+import os
+import sys
+import os.path
+import glob
+import platform
+
+
+# snatched from PyTables
+def add_from_path(envname, dirs):
+    try:
+        dirs.extend(os.environ[envname].split(os.pathsep))
+    except KeyError:
+        pass
+
+
+# snatched from PyTables
+def add_from_flags(envname, flag_key, dirs):
+    for flag in os.environ.get(envname, "").split():
+        if flag.startswith(flag_key):
+            dirs.append(flag[len(flag_key):])
+
+
+# snatched from PyTables
+def get_default_dirs():
+    default_header_dirs = []
+    default_library_dirs = []
+
+    add_from_path("CPATH", default_header_dirs)
+    add_from_path("C_INCLUDE_PATH", default_header_dirs)
+    add_from_flags("CPPFLAGS", "-I", default_header_dirs)
+    default_header_dirs.extend(
+        ['/usr/include', '/usr/local/include', '/usr/X11']
+    )
+
+    _archs = ['lib64', 'lib']
+    if platform.system() == 'Linux':
+        distname, version, did = platform.linux_distribution()
+        if distname in ('Ubuntu', 'Debian'):
+            _archs.extend(
+                ['lib/x86_64-linux-gnu',
+                 'lib/i686-linux-gnu',
+                 'lib/i386-linux-gnu']
+            )
+
+    add_from_flags("LDFLAGS", "-L", default_library_dirs)
+    default_library_dirs.extend(
+        os.path.join(_tree, _arch)
+        for _tree in ('/usr', '/usr/local', '/usr/X11', '/')
+        for _arch in _archs
+    )
+    return default_header_dirs, default_library_dirs
+
+
+def get_location_from_env(env):
+    env_dir = os.environ[env]
+    env_inc = os.path.join(env_dir, "include")
+    env_lib = os.path.join(env_dir, "lib")
+    print("%s_LOCATION: %s: %s, %s"
+          % (env.split('_')[0], env, env_inc, env_lib))
+    return (env_inc, env_lib)
+
+
+def get_location_from_cfg(cfg):
+    cfg_dir = open(cfg).read().strip()
+    cfg_inc = os.path.join(cfg_dir, "include")
+    cfg_lib = os.path.join(cfg_dir, "lib")
+    print("%s_LOCATION: %s: %s, %s"
+          % (cfg.split('.')[0].upper(), cfg, cfg_inc, cfg_lib))
+    return (cfg_inc, cfg_lib)
+
+
+def check_prefix(inc_dir, lib_dir):
+    if platform.system() == 'Linux':
+        distname, version, did = platform.linux_distribution()
+        if distname in ('Ubuntu', 'Debian'):
+            print("Since you are using multiarch distro it's hard to detect")
+            print("whether library matches the header file. We will assume")
+            print("it does. If you encounter any build failures please use")
+            print("proper cfg files to provide path to the dependencies")
+            return (inc_dir, lib_dir)
+    prefix = os.path.commonprefix([inc_dir, lib_dir]).rstrip('/\\')
+    if prefix is not '' and prefix == os.path.dirname(inc_dir):
+        return (inc_dir, lib_dir)
+    else:
+        print("It seems that include prefix is different from lib prefix")
+        print("Please use either env variable or cfg to set proper path")
+        return (None, None)
+
+
+def get_location_from_ctypes(header, library):
+    yt_inst = os.environ.get('YT_DEST')
+    if yt_inst is not None:
+        # since we prefer installation via script, make sure
+        # that YT_DEST path take precedence above all else
+        return (os.path.join(yt_inst, 'include'), os.path.join(yt_inst, 'lib'))
+
+    try:
+        import ctypes
+        import ctypes.util
+    except ImportError:
+        return (None, None)
+
+    target_inc, target_libdir = None, None
+    default_header_dirs, default_library_dirs = get_default_dirs()
+    for inc_prefix in default_header_dirs:
+        if os.path.isfile(os.path.join(inc_prefix, header)):
+            target_inc = inc_prefix
+
+    target_libfile = ctypes.util.find_library(library)
+    if None in (target_inc, target_libfile):
+        # either header or lib was not found, abort now
+        return (None, None)
+    if os.path.isfile(target_libfile):
+        return check_prefix(target_inc, os.path.dirname(target_libfile))
+    for lib_dir in default_library_dirs:
+        try:
+            ctypes.CDLL(os.path.join(lib_dir, target_libfile))
+            target_libdir = lib_dir
+        except OSError:
+            pass
+    return check_prefix(target_inc, target_libdir)
+
+
+def check_for_dependencies(env, cfg, header, library):
+    # First up: check in environment
+    if env in os.environ:
+        return get_location_from_env(env)
+    # Next up, we try config file
+    elif os.path.exists(cfg):
+        return get_location_from_cfg(cfg)
+    # Now we see if ctypes can help us
+    if os.name == 'posix':
+        target_inc, target_lib = get_location_from_ctypes(header, library)
+    if None not in (target_inc, target_lib):
+        print(
+            "%s_LOCATION: %s found via ctypes in: %s, %s"
+            % (env.split('_')[0], env.split('_')[0], target_inc, target_lib)
+        )
+        return (target_inc, target_lib)
+
+    print("Reading %s location from %s failed." % (env.split('_')[0], cfg))
+    print("Please place the base directory of your")
+    print("%s install in %s and restart." % (env.split('_')[0], cfg))
+    print("(ex: \"echo '/usr/local/' > %s\" )" % cfg)
+    print("You can locate the path by looking for %s" % header)
+    sys.exit(1)
+
 
 def check_for_hdf5():
-    # First up: HDF5_DIR in environment
-    if "HDF5_DIR" in os.environ:
-        hdf5_dir = os.environ["HDF5_DIR"]
-        hdf5_inc = os.path.join(hdf5_dir, "include")
-        hdf5_lib = os.path.join(hdf5_dir, "lib")
-        print "HDF5_LOCATION: HDF5_DIR: %s, %s" % (hdf5_inc, hdf5_lib)
-        return (hdf5_inc, hdf5_lib)
-    # Next up, we try hdf5.cfg
-    elif os.path.exists("hdf5.cfg"):
-        hdf5_dir = open("hdf5.cfg").read().strip()
-        hdf5_inc = os.path.join(hdf5_dir, "include")
-        hdf5_lib = os.path.join(hdf5_dir, "lib")
-        print "HDF5_LOCATION: hdf5.cfg: %s, %s" % (hdf5_inc, hdf5_lib)
-        return (hdf5_inc, hdf5_lib)
-    # Now we see if ctypes can help us:
-    try:
-        import ctypes.util
-        hdf5_libfile = ctypes.util.find_library("hdf5")
-        if hdf5_libfile is not None and os.path.isfile(hdf5_libfile):
-            # Now we've gotten a library, but we'll need to figure out the
-            # includes if this is going to work.  It feels like there is a
-            # better way to pull off two directory names.
-            hdf5_dir = os.path.dirname(os.path.dirname(hdf5_libfile))
-            if os.path.isdir(os.path.join(hdf5_dir, "include")) and \
-               os.path.isfile(os.path.join(hdf5_dir, "include", "hdf5.h")):
-                hdf5_inc = os.path.join(hdf5_dir, "include")
-                hdf5_lib = os.path.join(hdf5_dir, "lib")
-                print "HDF5_LOCATION: HDF5 found in: %s, %s" % (hdf5_inc,
-                    hdf5_lib)
-                return hdf5_inc, hdf5_lib
-    except ImportError:
-        pass
-    print "Reading HDF5 location from hdf5.cfg failed."
-    print "Please place the base directory of your"
-    print "HDF5 install in hdf5.cfg and restart."
-    print "(ex: \"echo '/usr/local/' > hdf5.cfg\" )"
-    sys.exit(1)
+    return check_for_dependencies("HDF5_DIR", "hdf5.cfg", "hdf5.h", "hdf5")
 
 
 def configuration(parent_package='', top_path=None):
@@ -50,27 +159,28 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("answer_testing")
     config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
-    config.add_data_files(('kdtree', ['kdtree/fKDpy.so']))
     config.add_subpackage("spatial")
     config.add_subpackage("grid_data_format")
     config.add_subpackage("parallel_tools")
     config.add_subpackage("lib")
     config.add_extension("data_point_utilities",
-                "yt/utilities/data_point_utilities.c", libraries=["m"])
+                         "yt/utilities/data_point_utilities.c",
+                         libraries=["m"])
+    config.add_subpackage("tests")
     hdf5_inc, hdf5_lib = check_for_hdf5()
     include_dirs = [hdf5_inc]
     library_dirs = [hdf5_lib]
     config.add_extension("hdf5_light_reader",
-                        "yt/utilities/hdf5_light_reader.c",
+                         "yt/utilities/hdf5_light_reader.c",
                          define_macros=[("H5_USE_16_API", True)],
                          libraries=["m", "hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
     config.add_extension("libconfig_wrapper",
-        ["yt/utilities/libconfig_wrapper.pyx"] +
-         glob.glob("yt/utilities/_libconfig/*.c"),
-        include_dirs=["yt/utilities/_libconfig/"],
-        define_macros=[("HAVE_XLOCALE_H", True)]
-        )
+                         ["yt/utilities/libconfig_wrapper.pyx"] +
+                         glob.glob("yt/utilities/_libconfig/*.c"),
+                         include_dirs=["yt/utilities/_libconfig/"],
+                         define_macros=[("HAVE_XLOCALE_H", True)]
+                         )
     config.make_config_py()  # installs __config__.py
-    #config.make_svn_version_py()
+    # config.make_svn_version_py()
     return config

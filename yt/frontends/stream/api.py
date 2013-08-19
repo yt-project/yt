@@ -28,7 +28,10 @@ from .data_structures import \
       StreamGrid, \
       StreamHierarchy, \
       StreamStaticOutput, \
-      StreamHandler
+      StreamHandler, \
+      load_uniform_grid, \
+      load_amr_grids, \
+      refine_amr
 
 from .fields import \
       KnownStreamFields, \
