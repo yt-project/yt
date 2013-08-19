@@ -832,8 +832,8 @@ else
 	    echo "Building BLAS"
 	    cd BLAS
 	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
-	    ar r libfblas.a *.o 2>> ${LOG_FILE}
-	    ranlib libfblas.a 1>> ${LOG_FILE}
+	    ( ar r libfblas.a *.o 2>&1 ) 1>> ${LOG_FILE}
+	    ( ranlib libfblas.a 2>&1 ) 1>> ${LOG_FILE}
 	    rm -rf *.o
 	    touch done
 	    cd ..
@@ -844,7 +844,7 @@ else
 	    echo "Building LAPACK"
 	    cd $LAPACK/
 	    cp INSTALL/make.inc.gfortran make.inc
-	    make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 1>> ${LOG_FILE} || do_exit
+	    ( make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 2>&1 ) 1>> ${LOG_FILE} || do_exit
 	    touch done
 	    cd ..
 	fi
@@ -943,10 +943,10 @@ echo $HDF5_DIR > hdf5.cfg
 touch done
 cd $MY_PWD
 
-if !(${DEST_DIR}/bin/python2.7 -c "import readline" >> ${LOG_FILE})
+if !( ( ${DEST_DIR}/bin/python2.7 -c "import readline" 2>&1 )>> ${LOG_FILE})
 then
     echo "Installing pure-python readline"
-    ${DEST_DIR}/bin/pip install readline 1>> ${LOG_FILE}
+    ( ${DEST_DIR}/bin/pip install readline 2>&1 ) 1>> ${LOG_FILE}
 fi
 
 if [ $INST_ENZO -eq 1 ]
