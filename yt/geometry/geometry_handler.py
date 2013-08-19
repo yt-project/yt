@@ -250,6 +250,8 @@ class GeometryHandler(ParallelAnalysisInterface):
                     requested.append( (field[0], f) )
                 elif f in self.field_list:
                     requested.append( f )
+                elif isinstance(f, tuple) and f[1] in self.field_list:
+                    requested.append( f )
                 else:
                     missing = True
                     break

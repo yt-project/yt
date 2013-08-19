@@ -28,7 +28,7 @@ License:
 import ConfigParser, os, os.path, types
 
 ytcfgDefaults = dict(
-    serialize = 'True',
+    serialize = 'False',
     onlydeserialize = 'False',
     timefunctions = 'False',
     logfile = 'False',
@@ -62,7 +62,7 @@ ytcfgDefaults = dict(
     notebook_password = '',
     answer_testing_tolerance = '3',
     answer_testing_bitwise = 'False',
-    gold_standard_filename = 'gold008',
+    gold_standard_filename = 'gold010',
     local_standard_filename = 'local001',
     sketchfab_api_key = 'None',
     thread_field_detection = 'False'

@@ -27,6 +27,8 @@ try:
     from .parallel_analysis_interface import MPI
 except ImportError:
     pass
+from .parallel_analysis_interface import \
+    ProcessorPool
 from contextmanager import contextlib
 from abc import ABCMeta, abstractmethod, abstractproperty
 

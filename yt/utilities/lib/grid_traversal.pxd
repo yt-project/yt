@@ -30,6 +30,8 @@ cimport cython
 cdef struct VolumeContainer:
     int n_fields
     np.float64_t **data
+    # The mask has dimensions one fewer in each direction than data
+    np.uint8_t *mask
     np.float64_t left_edge[3]
     np.float64_t right_edge[3]
     np.float64_t dds[3]

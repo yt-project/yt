@@ -492,12 +492,16 @@ class AMRGridPatch(YTSelectionContainer):
         if vals is None: return
         return vals.reshape(self.ActiveDimensions, order="C")
 
+    def select_blocks(self, selector):
+        mask = self._get_selector_mask(selector)
+        yield self, mask
+
     def _get_selector_mask(self, selector):
-        if id(selector) == self._last_selector_id:
+        if hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
             self._last_mask = mask = selector.fill_mask(self)
-            self._last_selector_id = id(selector)
+            self._last_selector_id = hash(selector)
             if mask is None:
                 self._last_count = 0
             else:

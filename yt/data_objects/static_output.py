@@ -86,8 +86,11 @@ class StaticOutput(object):
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            _cached_pfs[apath] = obj
-        return _cached_pfs[apath]
+            if obj._skip_cache is False:
+                _cached_pfs[apath] = obj
+        else:
+            obj = _cached_pfs[apath]
+        return obj
 
     def __init__(self, filename, data_style=None, file_style=None):
         """
@@ -156,6 +159,10 @@ class StaticOutput(object):
     @property
     def _mrep(self):
         return MinimalStaticOutput(self)
+
+    @property
+    def _skip_cache(self):
+        return False
 
     def hub_upload(self):
         self._mrep.upload()
@@ -261,6 +268,10 @@ class StaticOutput(object):
             raise YTGeometryNotSupported(self.geometry)
 
     def add_particle_filter(self, filter):
+        # This is a dummy, which we set up to enable passthrough of "all"
+        # concatenation fields.
+        n = getattr(filter, "name", filter)
+        self.known_filters[n] = None
         if isinstance(filter, types.StringTypes):
             used = False
             for f in filter_registry[filter]:
@@ -271,6 +282,7 @@ class StaticOutput(object):
         else:
             used = self.h._setup_filtered_type(filter)
         if not used:
+            self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
         return True
@@ -290,20 +302,25 @@ class StaticOutput(object):
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
         if fname == self._last_freq[1]:
-            mylog.debug("Guessing field %s is (%s, %s)", fname,
-                        self._last_freq[0], self._last_freq[1])
             return self._last_finfo
         if fname in self.field_info:
+            # Sometimes, if guessing_type == True, this will be switched for
+            # the type of field it is.  So we look at the field type and
+            # determine if we need to change the type.
+            fi = self._last_finfo = self.field_info[fname]
+            if fi.particle_type and self._last_freq[0] \
+                not in self.particle_types:
+                    field = "all", field[1]
+            elif not fi.particle_type and self._last_freq[0] \
+                not in self.fluid_types:
+                    field = self.default_fluid_type, field[1]
             self._last_freq = field
-            self._last_finfo = self.field_info[fname]
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type and ("all", fname) in self.field_info:
             self._last_freq = ("all", fname)
             self._last_finfo = self.field_info["all", fname]
-            mylog.debug("Guessing field %s is (%s, %s)", fname,
-                        "all", fname)
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
