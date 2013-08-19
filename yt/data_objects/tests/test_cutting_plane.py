@@ -1,5 +1,6 @@
 from yt.testing import *
 import os
+import tempfile
 
 def setup():
     from yt.config import ytcfg
@@ -23,7 +24,9 @@ def test_cutting_plane():
         yield assert_equal, cut["Ones"].min(), 1.0
         yield assert_equal, cut["Ones"].max(), 1.0
         pw = cut.to_pw()
-        fns += pw.save()
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns += pw.save(name=tmpname)
         frb = cut.to_frb((1.0,'unitary'), 64)
         for cut_field in ['Ones', 'Density']:
             yield assert_equal, frb[cut_field].info['data_source'], \

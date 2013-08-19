@@ -72,7 +72,9 @@ def test_slice():
                 yield assert_equal, np.unique(slc["pdx"]), 0.5 / dims[xax]
                 yield assert_equal, np.unique(slc["pdy"]), 0.5 / dims[yax]
                 pw = slc.to_pw()
-                fns += pw.save()
+                tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                os.close(tmpfd)
+                fns += pw.save(name=tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['Ones', 'Density']:
                     yield assert_equal, frb[slc_field].info['data_source'], \
