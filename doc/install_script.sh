@@ -832,7 +832,7 @@ else
 	    echo "Building BLAS"
 	    cd BLAS
 	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
-	    ar r libfblas.a *.o 1>> ${LOG_FILE}
+	    ar r libfblas.a *.o 2>> ${LOG_FILE}
 	    ranlib libfblas.a 1>> ${LOG_FILE}
 	    rm -rf *.o
 	    touch done
