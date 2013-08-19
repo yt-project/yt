@@ -68,9 +68,9 @@ class IOHandlerAthena(BaseIOHandler):
                 data = data[2::3].reshape(grid_dims,order='F').copy()
         f.close()
         if grid.pf.field_ordering == 1:
-            return data.T
+            return data.T.astype("float64")
         else:
-            return data
+            return data.astype("float64")
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
