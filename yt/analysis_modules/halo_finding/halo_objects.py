@@ -1061,8 +1061,9 @@ class HaloList(object):
     def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is True (default), only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
+        *dm_only* is True (default), only run it on the dark matter particles, 
+        otherwise on all particles.  Returns an iterable collection of 
+        *HopGroup* items.
         """
         self._data_source = data_source
         self.dm_only = dm_only
