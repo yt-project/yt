@@ -145,3 +145,57 @@ def _extract_lookup_table(cmap_name):
     b = cmap._lut[:-3, 2]
     a = np.ones(b.shape)
     return [r, g, b, a]
+
+def show_colormaps(subset = "all", filename=None):
+    """
+    Displays the colormaps available to yt.  Note, most functions can use
+    both the matplotlib and the native yt colormaps; however, there are 
+    some special functions existing within image_writer.py (e.g. write_image()
+    write_fits(), write_bitmap(), etc.), which cannot access the matplotlib
+    colormaps.
+
+    In addition to the colormaps listed, one can access the reverse of each 
+    colormap by appending a "_r" to any map.
+    
+    Parameters
+    ----------
+
+    subset : string, opt
+
+        valid values : "all", "yt_native"
+        default : "all"
+
+        As mentioned above, a few functions can only access yt_native 
+        colormaps.  To display only the yt_native colormaps, set this
+        to "yt_native".  
+
+    filename : string, opt
+
+        default: None
+
+        If filename is set, then it will save the colormaps to an output
+        file.  If it is not set, it will "show" the result interactively.
+    """
+    import pylab as pl
+
+    pl.rc('text', usetex=False)
+    a=np.outer(np.arange(0,1,0.01), np.ones(10))
+    if (subset == "all"):
+        maps = [ m for m in pl.cm.datad if (not m.startswith("idl")) & (not m.endswith("_r"))]
+    if (subset == "yt_native"):
+        maps = [ m for m in _cm.color_map_luts if (not m.startswith("idl")) & (not m.endswith("_r"))]
+    maps = np.unique(maps)
+    maps.sort()
+    # scale the image size by the number of cmaps
+    pl.figure(figsize=(2.*len(maps)/10.,6))
+    pl.subplots_adjust(top=0.7,bottom=0.05,left=0.01,right=0.99)
+    l = len(maps)+1
+    for i,m in enumerate(maps):
+        pl.subplot(1,l,i+1)
+        pl.axis("off")
+        pl.imshow(a, aspect='auto',cmap=pl.get_cmap(m),origin="lower")      
+        pl.title(m,rotation=90, fontsize=10, verticalalignment='bottom')
+    if filename is not None:
+        pl.savefig(filename, dpi=100, facecolor='gray') 
+    else:  
+        pl.show()
