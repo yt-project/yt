@@ -198,16 +198,17 @@ class PolarCoordinateHandler(CoordinateHandler):
         return PolarFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
-        raise NotImplementedError
-        if dimension == 1:
+        ax_name = self.axis_name[dimension]
+        if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
-        elif dimension == 2:
-            return self._polar_pixelize(data_source, field, bounds, size,
+        elif ax_name == "z":
+            return self._cyl_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
+
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
