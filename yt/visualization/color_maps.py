@@ -178,13 +178,12 @@ def show_colormaps(subset = "all", filename=None):
     """
     import pylab as pl
 
-    pl.rc('text', usetex=False)
     a=np.outer(np.arange(0,1,0.01), np.ones(10))
     if (subset == "all"):
         maps = [ m for m in pl.cm.datad if (not m.startswith("idl")) & (not m.endswith("_r"))]
     if (subset == "yt_native"):
         maps = [ m for m in _cm.color_map_luts if (not m.startswith("idl")) & (not m.endswith("_r"))]
-    maps = np.unique(maps)
+    maps = list(set(maps))
     maps.sort()
     # scale the image size by the number of cmaps
     pl.figure(figsize=(2.*len(maps)/10.,6))
