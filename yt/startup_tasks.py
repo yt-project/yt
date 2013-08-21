@@ -36,9 +36,11 @@ exe_name = os.path.basename(sys.executable)
 def turn_on_parallelism():
     try:
         from mpi4py import MPI
-        parallel_capable = (MPI.COMM_WORLD.size > 1)
-    except ImportError:
-        parallel_capable = False
+    except ImportError as e:
+        mylog.error("Warning: Attempting to turn on parallelism, " +
+                    "but mpi4py import failed. Try pip install mpi4py.")
+        raise e
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
         mylog.info("Global parallel computation enabled: %s / %s",
                    MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)

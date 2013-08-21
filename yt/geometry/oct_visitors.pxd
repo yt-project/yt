@@ -58,7 +58,8 @@ cdef oct_visitor_function copy_array_f64
 cdef oct_visitor_function copy_array_i64
 cdef oct_visitor_function identify_octs
 cdef oct_visitor_function assign_domain_ind
-cdef oct_visitor_function fill_file_indices
+cdef oct_visitor_function fill_file_indices_oind
+cdef oct_visitor_function fill_file_indices_rind
 
 cdef inline int cind(int i, int j, int k):
     return (((i*2)+j)*2+k)

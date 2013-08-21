@@ -30,6 +30,7 @@ from yt.funcs import *
 
 class StandardRadialAnalysis(object):
     def __init__(self, pf, center, radius, n_bins = 128, inner_radius = None):
+        raise NotImplementedError  # see TODO
         self.pf = pf
         # We actually don't want to replicate the handling of setting the
         # center here, so we will pass it to the sphere creator.
@@ -53,6 +54,7 @@ class StandardRadialAnalysis(object):
         prof = BinnedProfile1D(self.obj, self.n_bins, "Radius",
                                self.inner_radius, self.outer_radius)
         by_weights = defaultdict(list)
+        # TODO: analysis_field_list is undefined
         for fspec in analysis_field_list:
             if isinstance(fspec, types.TupleType) and len(fspec) == 2:
                 field, weight = fspec

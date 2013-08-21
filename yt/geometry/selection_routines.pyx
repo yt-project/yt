@@ -74,7 +74,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
             for k in range(mask.shape[2]):
-                if mask[i,j,k] == 1:
+                if mask[i, j, k] == 1:
                     if transpose == 1:
                         indices[cpos, 0] = k
                         indices[cpos, 1] = j
@@ -99,8 +99,8 @@ cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
             for k in range(mask.shape[2]):
-                if mask[i,j,k] == 1:
-                    out[offset + count] = vals[i,j,k]
+                if mask[i, j, k] == 1:
+                    out[offset + count] = vals[i, j, k]
                     count += 1
     return count
 
@@ -121,16 +121,13 @@ cdef class SelectorObject:
         self.min_level = getattr(dobj, "min_level", 0)
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0
+
         if dobj is None:
             for i in range(3):
                 self.periodicity[i] = False
                 self.domain_width[i] = 0.0
         else:
             for i in range(3) :
-                if dobj.pf.periodicity[i] and dobj.pf.domain_left_edge[i] != 0.0 :
-                    print "SelectorObject periodicity assumes left_edge == 0"
-                    raise RuntimeError
-
                 self.domain_width[i] = dobj.pf.domain_right_edge[i] - \
                                        dobj.pf.domain_left_edge[i]
                 self.periodicity[i] = dobj.pf.periodicity[i]
@@ -153,7 +150,7 @@ cdef class SelectorObject:
                 for i in range(3):
                     LE[i] = left_edges[n, i]
                     RE[i] = right_edges[n, i]
-                gridi[n] = self.select_grid(LE, RE, levels[n,0])
+                gridi[n] = self.select_grid(LE, RE, levels[n, 0])
         return gridi.astype("bool")
 
     def count_octs(self, OctreeContainer octree, int domain_id = -1):
@@ -229,7 +226,7 @@ cdef class SelectorObject:
                     for k in range(2):
                         ch = NULL
                         if root.children != NULL:
-                            ch = root.children[cind(i,j,k)]
+                            ch = root.children[cind(i, j, k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
                             # Note that data.pos is always going to be the
                             # position of the Oct -- it is *not* always going
@@ -266,18 +263,22 @@ cdef class SelectorObject:
             this_level = 0 # We turn this off for the second pass.
             iter += 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = NULL) nogil:
-        return 0
-    
+        if level < self.min_level or level > self.max_level: return 0
+        return self.select_bbox(left_edge, right_edge)
+ 
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         return 0
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
@@ -299,48 +300,10 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.float64_t dds[3], pos[3]
-        cdef int i, j, k, dim[3]
-        child_mask = gobj.child_mask
-        for i in range(3):
-            dim[i] = gobj.ActiveDimensions[i]
-            dds[i] = odds[i]
-        cdef int count = 0
-        # Check for the level bounds
-        cdef np.int32_t level = gobj.Level
-        if level < self.min_level or level > self.max_level:
-            return count
-        # We set this to 1 if we ignore child_mask
-        cdef int this_level = 0
-        if level == self.max_level:
-            this_level = 1
-        with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
-            for i in range(dim[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
-                for j in range(dim[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
-                    for k in range(dim[2]):
-                        if child_mask[i,j,k] == 1 or this_level == 1:
-                            count += self.select_cell(pos, dds)
-                        pos[2] += dds[1]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
-        return count
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
-        cdef np.ndarray[np.uint8_t, ndim=3] mask 
-        cdef int ind[3][2]
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
         cdef int dim[3]
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
         cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
@@ -368,9 +331,9 @@ cdef class SelectorObject:
                 for j in range(dim[1]):
                     pos[2] = left_edge[2] + dds[2] * 0.5
                     for k in range(dim[2]):
-                        if child_mask[i,j,k] == 1 or this_level == 1:
-                            mask[i,j,k] = self.select_cell(pos, dds)
-                            total += mask[i,j,k]
+                        if child_mask[i, j, k] == 1 or this_level == 1:
+                            mask[i, j, k] = self.select_cell(pos, dds)
+                            total += mask[i, j, k]
                         pos[2] += dds[1]
                     pos[1] += dds[1]
                 pos[0] += dds[0]
@@ -467,14 +430,6 @@ cdef class SphereSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox(left_edge,right_edge)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         # sphere center either inside cell or center of cell lies inside sphere
         if (pos[0] - 0.5*dds[0] <= self.center[0] <= pos[0]+0.5*dds[0] and
@@ -490,7 +445,7 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference( pos[i], self.center[i], i )
+            dist = self.difference(pos[i], self.center[i], i)
             dist2 += dist*dist
         if dist2 <= self.radius2: return 1
         return 0
@@ -502,7 +457,7 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference( pos[i], self.center[i], i ) 
+            dist = self.difference(pos[i], self.center[i], i) 
             dist2 += dist*dist
         dist = self.radius+radius
         if dist2 <= dist*dist: return 1
@@ -523,7 +478,7 @@ cdef class SphereSelector(SelectorObject):
         dist = 0
         for i in range(3):
             box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.difference( box_center, self.center[i], i )
+            relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest*closest
@@ -539,23 +494,38 @@ sphere_selector = SphereSelector
 cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
-    cdef np.float64_t dx_pad
+    cdef np.float64_t right_edge_shift[3]
 
     def __init__(self, dobj):
         cdef int i
-        self.dx_pad =dobj._dx_pad
+        cdef np.float64_t region_width, domain_width
+
         for i in range(3):
+            region_width = dobj.right_edge[i] - dobj.left_edge[i]
+            domain_width = dobj.pf.domain_right_edge[i] - dobj.pf.domain_left_edge[i]
+
+            if region_width <= 0:
+                print "Error: region right edge < left edge", region_width
+                raise RuntimeError
+
+            if dobj.pf.periodicity[i]:
+                # shift so left_edge guaranteed in domain
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i]:
+                    dobj.left_edge[i] += domain_width
+                    dobj.right_edge[i] += domain_width
+                elif dobj.left_edge[i] > dobj.pf.domain_right_edge[i]:
+                    dobj.left_edge[i] += domain_width
+                    dobj.right_edge[i] += domain_width
+            else:
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i] or \
+                   dobj.right_edge[i] > dobj.pf.domain_right_edge[i]:
+                    print "Error: bad Region in non-periodic domain:", dobj.left_edge[i], \
+                        dobj.pf.domain_left_edge[i], dobj.right_edge[i], dobj.pf.domain_right_edge[i]
+                    raise RuntimeError
+                
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        if level < self.min_level or level > self.max_level: return 0
-        return self.select_bbox( left_edge, right_edge )
+            self.right_edge_shift[i] = dobj.right_edge[i] - domain_width
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -565,58 +535,32 @@ cdef class RegionSelector(SelectorObject):
         cdef int i, shift, included
         cdef np.float64_t LE, RE
         for i in range(3):
-            if not self.periodicity[i]:
-                if left_edge[i] > self.right_edge[i]: return 0
-                if right_edge[i] < self.left_edge[i]: return 0
-            else:
-                included = 1
-                for shift in range(3):
-                    LE = left_edge[i] + self.domain_width[i] * (shift - 1)
-                    RE = right_edge[i] + self.domain_width[i] * (shift - 1)
-                    if LE > self.right_edge[i]: continue
-                    if RE < self.left_edge[i]: continue
-                    included = 1
-                if included == 0: return 0
+            if (right_edge[i] < self.left_edge[i] and \
+                left_edge[i] >= self.right_edge_shift[i]) or \
+                left_edge[i] >= self.right_edge[i]:
+                return 0
         return 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
-        cdef int i
-        cdef np.float64_t LE[3], RE[3]
-        if self.dx_pad == 0.0:
-            return self.select_point(pos)
-        for i in range(3):
-            LE[i] = pos[i] - self.dx_pad * dds[i]
-            RE[i] = pos[i] + self.dx_pad * dds[i]
-        return self.select_bbox(LE, RE)
+        return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
-        # assume pos[3] is inside domain
-        cdef int i, shift, included
-        cdef np.float64_t dxp, ppos
+        cdef int i
         for i in range(3):
-            if not self.periodicity[i]:
-                if pos[i] < self.left_edge[i]: return 0
-                if pos[i] > self.right_edge[i]: return 0
-            else:
-                included = 0
-                for shift in range(3):
-                    ppos = pos[i] + self.domain_width[i] * (shift - 1)
-                    if ppos < self.left_edge[i]: continue
-                    if ppos > self.right_edge[i]: continue
-                    included = 1
-                if included == 0: return 0
+            if (self.right_edge_shift[i] <= pos[i] < self.left_edge[i]) or \
+               pos[i] >= self.right_edge[i]:
+                return 0
         return 1
 
     def _hash_vals(self):
         return (self.left_edge[0], self.left_edge[1], self.left_edge[2],
-                self.right_edge[0], self.right_edge[1], self.right_edge[2],
-                self.dx_pad)
+                self.right_edge[0], self.right_edge[1], self.right_edge[2])
 
 region_selector = RegionSelector
 
@@ -638,16 +582,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox( left_edge, right_edge )
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
-        return self.select_point( pos ) 
+        return self.select_point(pos) 
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -657,7 +593,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         h = d = 0
         for i in range(3):
-            temp = self.difference( pos[i], self.center[i], i )
+            temp = self.difference(pos[i], self.center[i], i)
             h += temp * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
@@ -667,12 +603,12 @@ cdef class DiskSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         cdef np.float64_t h, d, r2, temp
         cdef int i
         h = d = 0
         for i in range(3):
-            temp = self.difference( pos[i], self.center[i], i )
+            temp = self.difference(pos[i], self.center[i], i)
             h += pos[i] * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
@@ -684,7 +620,7 @@ cdef class DiskSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3] ) nogil:
+                               np.float64_t right_edge[3]) nogil:
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3], H, D, R2, temp
         cdef int i, j, k, n
@@ -715,7 +651,7 @@ cdef class DiskSelector(SelectorObject):
                     pos[2] = arr[k][2]
                     H = D = 0
                     for n in range(3):
-                        temp = self.difference( pos[n], self.center[n], n )
+                        temp = self.difference(pos[n], self.center[n], n)
                         H += (temp * self.norm_vec[n])
                         D += temp*temp
                     R2 = (D - H*H)
@@ -747,14 +683,6 @@ cdef class CuttingPlaneSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox(left_edge,right_edge)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
@@ -764,14 +692,14 @@ cdef class CuttingPlaneSelector(SelectorObject):
             right_edge[i] = pos[i] + 0.5*dds[i]
         return self.select_bbox(left_edge, right_edge)
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         # two 0-volume constructs don't intersect
         return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         cdef int i
         cdef np.float64_t height = self.d
         for i in range(3) :
@@ -783,7 +711,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3] ) nogil:
+                               np.float64_t right_edge[3]) nogil:
         cdef int i, j, k, n
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3]
@@ -823,18 +751,50 @@ cutting_selector = CuttingPlaneSelector
 cdef class SliceSelector(SelectorObject):
     cdef int axis
     cdef np.float64_t coord
+    cdef int ax, ay
 
     def __init__(self, dobj):
         self.axis = dobj.axis
         self.coord = dobj.coord
 
+        ax = (self.axis+1) % 3
+        ay = (self.axis+2) % 3
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox( left_edge, right_edge )
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i, j, k
+        cdef int total = 0
+        cdef int this_level = 0
+        cdef int ind[3][2]
+        cdef np.int32_t level = gobj.Level
+
+        if level < self.min_level or level > self.max_level:
+            return None
+        else:
+            child_mask = gobj.child_mask
+            mask = np.zeros(gobj.ActiveDimensions, dtype=np.uint8)
+            if level == self.max_level:
+                this_level = 1
+            for i in range(3):
+                if i == self.axis:
+                    ind[i][0] = <int> ((self.coord - gobj.LeftEdge[i])/gobj.dds[i])
+                    ind[i][1] = ind[i][0] + 1
+                else:
+                    ind[i][0] = 0
+                    ind[i][1] = gobj.ActiveDimensions[i]
+            with nogil:
+                for i in range(ind[0][0], ind[0][1]):
+                    for j in range(ind[1][0], ind[1][1]):
+                        for k in range(ind[2][0], ind[2][1]):
+                            if this_level == 1 or child_mask[i, j, k]:
+                                mask[i, j, k] = 1
+                                total += 1
+            if total == 0: return None
+            return mask.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -845,15 +805,15 @@ cdef class SliceSelector(SelectorObject):
             return 1
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         # two 0-volume constructs don't intersect
         return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        cdef np.float64_t dist = self.difference( pos[self.axis], self.coord, self.axis )
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef np.float64_t dist = self.difference(pos[self.axis], self.coord, self.axis)
         if dist*dist < radius*radius:
             return 1
         return 0
@@ -862,7 +822,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3] ) nogil:
+                               np.float64_t right_edge[3]) nogil:
         if left_edge[self.axis] <= self.coord < right_edge[self.axis]:
             return 1
         return 0
@@ -890,10 +850,40 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox(left_edge,right_edge)
+    def fill_mask(self, gobj):
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i, j, k
+        cdef int total = 0
+        cdef int this_level = 0
+        cdef int ind[3][2]
+        cdef np.int32_t level = gobj.Level
+
+        if level < self.min_level or level > self.max_level:
+            return None
+        else:
+            child_mask = gobj.child_mask
+            mask = np.zeros(gobj.ActiveDimensions, dtype=np.uint8)
+            if level == self.max_level:
+                this_level = 1
+            ind[self.axis][0] = 0
+            ind[self.axis][1] = gobj.ActiveDimensions[self.axis]
+            ind[self.px_ax][0] = <int> ((self.px - gobj.LeftEdge[self.px_ax]) /
+                                        gobj.dds[self.px_ax])
+            ind[self.px_ax][1] = ind[self.px_ax][0] + 1
+            ind[self.py_ax][0] = <int> ((self.py - gobj.LeftEdge[self.py_ax]) /
+                                        gobj.dds[self.py_ax])
+            ind[self.py_ax][1] = ind[self.py_ax][0] + 1
+
+            with nogil:
+                for i in range(ind[0][0], ind[0][1]):
+                    for j in range(ind[1][0], ind[1][1]):
+                        for k in range(ind[2][0], ind[2][1]):
+                            if this_level == 1 or child_mask[i, j, k]:
+                                mask[i, j, k] = 1
+                                total += 1
+            if total == 0: return None
+            return mask.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -906,16 +896,16 @@ cdef class OrthoRaySelector(SelectorObject):
             return 1
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         # two 0-volume constructs don't intersect
         return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
-        cdef np.float64_t dx = self.difference( pos[self.px_ax], self.px, self.px_ax )
-        cdef np.float64_t dy = self.difference( pos[self.py_ax], self.py, self.py_ax )
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef np.float64_t dx = self.difference(pos[self.px_ax], self.px, self.px_ax)
+        cdef np.float64_t dy = self.difference(pos[self.py_ax], self.py, self.py_ax)
         if dx*dx + dy*dy < radius*radius:
             return 1
         return 0
@@ -924,7 +914,7 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3] ) nogil:
+                               np.float64_t right_edge[3]) nogil:
         if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
            left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
             return 1
@@ -973,18 +963,11 @@ cdef class RaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox(left_edge,right_edge)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.float64_t, ndim=3] t, dt
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i
+        cdef int total = 0
         cdef IntegrationAccumulator ia
         cdef VolumeContainer vc
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
@@ -1005,16 +988,12 @@ cdef class RaySelector(SelectorObject):
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
-                    if dt[i,j,k] >= 0:
-                        mask[i,j,k] = 1
+                    if dt[i, j, k] >= 0:
+                        mask[i, j, k] = 1
+                        total += 1
+        if total == 0: return None
         return mask.astype("bool")
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def count_cells(self, gobj):
-        return self.fill_mask(gobj).sum()
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1045,19 +1024,19 @@ cdef class RaySelector(SelectorObject):
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
-                    if dt[i,j,k] >= 0:
-                        tr[ni] = t[i,j,k]
-                        dtr[ni] = dt[i,j,k]
+                    if dt[i, j, k] >= 0:
+                        tr[ni] = t[i, j, k]
+                        dtr[ni] = dt[i, j, k]
                         ni += 1
         if not (ni == ia.hits):
             print ni, ia.hits
         return dtr, tr
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         # two 0-volume constructs don't intersect
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         # not implemented
         return 0        
 
@@ -1133,12 +1112,6 @@ cdef class DataCollectionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        return gobj.ActiveDimensions.prod()
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3] mask 
         mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
@@ -1164,14 +1137,6 @@ cdef class EllipsoidSelector(SelectorObject):
         self.mag[0] = dobj._A
         self.mag[1] = dobj._B
         self.mag[2] = dobj._C
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_grid(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
-        return self.select_bbox(left_edge, right_edge)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1206,7 +1171,7 @@ cdef class EllipsoidSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist2 = 0
         for i in range(3):
-            dist2 += self.difference( pos[i], self.center[i], i )**2
+            dist2 += self.difference(pos[i], self.center[i], i)**2
         if dist2 <= (self.mag[0]+radius)**2: return 1
         return 0
 
@@ -1263,12 +1228,6 @@ cdef class GridSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_cells(self, gobj):
-        return gobj.ActiveDimensions.prod()
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def fill_mask(self, gobj):
         return np.ones(gobj.ActiveDimensions, dtype='bool')
 
@@ -1278,7 +1237,7 @@ cdef class GridSelector(SelectorObject):
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         return 1
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         # we apparently don't check if the point actually lies in the grid..
         return 1
 
@@ -1288,8 +1247,6 @@ cdef class GridSelector(SelectorObject):
 grid_selector = GridSelector
 
 cdef class OctreeSubsetSelector(SelectorObject):
-    cdef SelectorObject base_selector
-    cdef public np.int64_t domain_id
 
     def __init__(self, dobj):
         self.base_selector = dobj.base_selector
@@ -1310,7 +1267,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         return 1
 
     @cython.boundscheck(False)
@@ -1351,7 +1308,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
 
 octree_subset_selector = OctreeSubsetSelector
 
-cdef class ParticleOctreeSubsetSelector(SelectorObject):
+cdef class IndexedOctreeSubsetSelector(SelectorObject):
     # This is a numpy array, which will be a bool of ndim 1
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
@@ -1376,7 +1333,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         return 1
 
     @cython.boundscheck(False)
@@ -1408,7 +1365,7 @@ cdef class ParticleOctreeSubsetSelector(SelectorObject):
     def _hash_vals(self):
         return (hash(self.base_selector), self.min_ind, self.max_ind)
 
-particle_octree_subset_selector = ParticleOctreeSubsetSelector
+indexed_octree_subset_selector = IndexedOctreeSubsetSelector
 
 cdef class AlwaysSelector(SelectorObject):
 
@@ -1437,10 +1394,10 @@ cdef class AlwaysSelector(SelectorObject):
                          Oct *o = NULL) nogil:
         return 1
 
-    cdef int select_point(self, np.float64_t pos[3] ) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
         return 1
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius ) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         return 1
 
     cdef int select_bbox(self, np.float64_t left_edge[3],

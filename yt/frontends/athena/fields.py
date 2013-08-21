@@ -128,15 +128,16 @@ def _gasenergy(field, data) :
     if "pressure" in data.pf.field_info:
         return data["pressure"]/(data.pf["Gamma"]-1.0)/data["density"]
     else:
-        return (data["total_energy"] - 
-                0.5*(data["cell_centered_B_x"]**2 +
-                     data["cell_centered_B_y"]**2 +
-                     data["cell_centered_B_z"]**2) - 
-                0.5*(data["momentum_x"]**2 +
-                     data["momentum_y"]**2 +
-                     data["momentum_z"]**2)/data["density"])/data["density"]
+        eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
+                                           data["momentum_y"]**2 +
+                                           data["momentum_z"]**2)/data["density"]
+        if "cell_centered_B_x" in data.pf.field_info:
+            eint -= 0.5*(data["cell_centered_B_x"]**2 +
+                         data["cell_centered_B_y"]**2 +
+                         data["cell_centered_B_z"]**2)
+        return eint/data["density"]
 add_field("Gas_Energy", function=_gasenergy, take_log=False,
-          units=r"\rm{erg}/\rm{g}")
+          convert_function=_convertEnergy, units=r"\rm{erg}/\rm{g}")
 
 def _convertPressure(data) :
     return data.convert("Density")*data.convert("x-velocity")**2
@@ -144,15 +145,17 @@ def _pressure(field, data) :
     if "pressure" in data.pf.field_info:
         return data["pressure"]
     else:
-        return (data["total_energy"] -
-                0.5*(data["cell_centered_B_x"]**2 +
-                     data["cell_centered_B_y"]**2 +
-                     data["cell_centered_B_z"]**2) -
-                0.5*(data["momentum_x"]**2 +
-                     data["momentum_y"]**2 +
-                     data["momentum_z"]**2)/data["density"])*(data.pf["Gamma"]-1.0)
-add_field("Pressure", function=_pressure, take_log=False, convert_function=_convertPressure,
-          units=r"\rm{erg}/\rm{cm}^3", projected_units=r"\rm{erg}/\rm{cm}^2")
+        eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
+                                           data["momentum_y"]**2 +
+                                           data["momentum_z"]**2)/data["density"]
+        if "cell_centered_B_x" in data.pf.field_info:
+            eint -= 0.5*(data["cell_centered_B_x"]**2 +
+                         data["cell_centered_B_y"]**2 +
+                         data["cell_centered_B_z"]**2)
+        return eint*(data.pf["Gamma"]-1.0)
+add_field("Pressure", function=_pressure, take_log=False,
+          convert_function=_convertPressure, units=r"\rm{erg}/\rm{cm}^3",
+          projected_units=r"\rm{erg}/\rm{cm}^2")
 
 def _temperature(field, data):
     if data.has_field_parameter("mu"):

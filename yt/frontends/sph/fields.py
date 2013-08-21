@@ -39,7 +39,8 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.data_objects.particle_fields import \
     particle_deposition_functions, \
-    particle_scalar_functions
+    particle_scalar_functions, \
+    _field_concat, _field_concat_slice
 from yt.utilities.physical_constants import \
     mass_sun_cgs
 
@@ -67,30 +68,6 @@ def _get_conv(cf):
     def _convert(data):
         return data.convert(cf)
     return _convert
-
-def _field_concat(fname):
-    def _AllFields(field, data):
-        v = []
-        for ptype in data.pf.particle_types:
-            if ptype == "all" or \
-                ptype in data.pf.known_filters:
-                  continue
-            v.append(data[ptype, fname].copy())
-        rv = np.concatenate(v, axis=0)
-        return rv
-    return _AllFields
-
-def _field_concat_slice(fname, axi):
-    def _AllFields(field, data):
-        v = []
-        for ptype in data.pf.particle_types:
-            if ptype == "all" or \
-                ptype in data.pf.known_filters:
-                  continue
-            v.append(data[ptype, fname][:,axi])
-        rv = np.concatenate(v, axis=0)
-        return rv
-    return _AllFields
 
 # TIPSY
 # =====

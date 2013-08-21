@@ -109,6 +109,7 @@ cdef class OctreeContainer:
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
         self._initialize_root_mesh()
+        self.fill_func = oct_visitors.fill_file_indices_oind
 
     def _initialize_root_mesh(self):
         self.root_mesh = <Oct****> malloc(sizeof(void*) * self.nn[0])
@@ -323,6 +324,22 @@ cdef class OctreeContainer:
         OctList_delete(my_list)
         nneighbors[0] = noct
         return neighbors
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def mask(self, SelectorObject selector, np.int64_t num_octs = -1,
+             int domain_id = -1):
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
+        cdef np.ndarray[np.uint8_t, ndim=1] coords
+        coords = np.zeros((num_octs * 8), dtype="uint8")
+        cdef OctVisitorData data
+        data.array = <void *> coords.data
+        data.index = 0
+        data.domain = domain_id
+        self.visit_all_octs(selector, oct_visitors.mask_octs, &data)
+        return coords.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -585,7 +602,7 @@ cdef class OctreeContainer:
         p[2] = cell_inds.data
         data.array = p
         data.domain = domain_id
-        self.visit_all_octs(selector, oct_visitors.fill_file_indices, &data)
+        self.visit_all_octs(selector, self.fill_func, &data)
         return levels, cell_inds, file_inds
 
     @cython.boundscheck(False)
@@ -629,7 +646,7 @@ cdef int root_node_compare(void *a, void *b) nogil:
     else:
         return 1
 
-cdef class RAMSESOctreeContainer(OctreeContainer):
+cdef class SparseOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
         cdef int i, j, k, p
@@ -646,6 +663,7 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
+        self.fill_func = oct_visitors.fill_file_indices_rind
 
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL
@@ -732,6 +750,9 @@ cdef class RAMSESOctreeContainer(OctreeContainer):
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
         if self.domains != NULL: free(self.domains)
+
+cdef class RAMSESOctreeContainer(SparseOctreeContainer):
+    pass
 
 cdef class ARTOctreeContainer(OctreeContainer):
 

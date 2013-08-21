@@ -1235,7 +1235,8 @@ class YTPastebinGrabCmd(YTCommand):
         lo.main( None, download=args.number )
 
 class YTNotebookUploadCmd(YTCommand):
-    args = (dict(short="file", type=str),)
+    args = (dict(short="file", type=str),
+            dict(long="--title", short="-t", type=str, default = None))
     description = \
         """
         Upload an IPython notebook to hub.yt-project.org.
@@ -1254,6 +1255,11 @@ class YTNotebookUploadCmd(YTCommand):
             t = json.loads(open(filename).read())['metadata']['name']
         except (ValueError, KeyError):
             print "File does not appear to be an IPython notebook."
+        if args.title is not None:
+            t = args.title
+        if len(t) == 0:
+            print "You need to specify a title with --title ."
+            return 1
         from yt.utilities.minimal_representation import MinimalNotebook
         mn = MinimalNotebook(filename, t)
         rv = mn.upload()
@@ -1456,7 +1462,12 @@ class YTNotebookCmd(YTCommand):
         """
     def __call__(self, args):
         kwargs = {}
-        from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        try:
+            # IPython 1.0+
+            from IPython.html.notebookapp import NotebookApp
+        except ImportError:
+            # pre-IPython v1.0
+            from IPython.frontend.html.notebook.notebookapp import NotebookApp
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib

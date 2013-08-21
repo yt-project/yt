@@ -194,7 +194,7 @@ class YTRayBase(YTSelectionContainer1D):
             ts = np.abs(ts)
         self._dts[grid.id] = dts
         self._ts[grid.id] = ts
-        self._masks[grid.id] = masks
+        self._masks[grid.id] = mask
         return mask
 
 
@@ -644,38 +644,6 @@ class YTFixedResCuttingPlaneBase(YTSelectionContainer2D):
             raise SyntaxError("Making a fixed resolution slice with "
                               "particles isn't supported yet.")
 
-    def reslice(self, normal, center, width):
-
-        # Cleanup
-        del self._coord
-        del self._pixelmask
-
-        self.center = center
-        self.width = width
-        self.dds = self.width / self.dims
-        self.set_field_parameter('center', center)
-        self._norm_vec = normal/np.sqrt(np.dot(normal,normal))
-        self._d = -1.0 * np.dot(self._norm_vec, self.center)
-        # First we try all three, see which has the best result:
-        vecs = np.identity(3)
-        _t = np.cross(self._norm_vec, vecs).sum(axis=1)
-        ax = _t.argmax()
-        self._x_vec = np.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= np.sqrt(np.dot(self._x_vec, self._x_vec))
-        self._y_vec = np.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= np.sqrt(np.dot(self._y_vec, self._y_vec))
-        self.set_field_parameter('cp_x_vec',self._x_vec)
-        self.set_field_parameter('cp_y_vec',self._y_vec)
-        self.set_field_parameter('cp_z_vec',self._norm_vec)
-        # Calculate coordinates of each pixel
-        _co = self.dds * \
-              (np.mgrid[-self.dims/2 : self.dims/2,
-                        -self.dims/2 : self.dims/2] + 0.5)
-
-        self._coord = self.center + np.outer(_co[0,:,:], self._x_vec) + \
-                      np.outer(_co[1,:,:], self._y_vec)
-        self._pixelmask = np.ones(self.dims*self.dims, dtype='int8')
-
     def get_data(self, fields):
         """
         Iterates over the list of fields and generates/reads them all.
@@ -860,7 +828,6 @@ class YTRegionBase(YTSelectionContainer3D):
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
-    _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)

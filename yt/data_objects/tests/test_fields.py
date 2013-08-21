@@ -99,6 +99,7 @@ def test_all_fields():
         if fname.startswith("Overdensity"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
+            test_all_fields.__name__ = "%s_%s" % (field, nproc)
             yield TestFieldAccess(field, nproc)
 
 if __name__ == "__main__":

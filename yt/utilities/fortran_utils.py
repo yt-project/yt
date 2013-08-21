@@ -121,7 +121,8 @@ def read_vector(f, d, endian='='):
     vec_fmt = "%s%s" % (endian, d)
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
-        print "fmt = '%s' ; length = %s ; size= %s" % (fmt, length, size)
+        print("fmt = '%s' ; length = %s ; size= %s"
+              % (vec_fmt, vec_len, vec_size))
         raise RuntimeError
     vec_num = vec_len / vec_size
     if isinstance(f, file): # Needs to be explicitly a file

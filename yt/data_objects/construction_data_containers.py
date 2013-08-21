@@ -36,6 +36,7 @@ from functools import wraps
 import fileinput
 from re import finditer
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
