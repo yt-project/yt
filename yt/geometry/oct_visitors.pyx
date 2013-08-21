@@ -70,6 +70,25 @@ cdef void count_total_cells(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Number of *cells* visited and selected.
     data.index += selected
 
+cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # We mark them even if they are not selected
+    cdef int i
+    cdef np.uint8_t *arr = <np.uint8_t *> data.array
+    if data.last != o.domain_ind:
+        data.last = o.domain_ind
+        data.index += 1
+    cdef np.int64_t index = data.index * 8
+    index += oind(data)
+    arr[index] = 1
+
+cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    if selected == 0: return
+    cdef int i
+    cdef np.uint8_t *arr = <np.uint8_t *> data.array
+    cdef np.int64_t index = data.global_index * 8
+    index += oind(data)
+    arr[index] = 1
+
 cdef void index_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that we provide an index even if the cell is not selected.
     cdef int i

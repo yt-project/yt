@@ -49,6 +49,8 @@ ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
 
 cdef oct_visitor_function count_total_octs
 cdef oct_visitor_function count_total_cells
+cdef oct_visitor_function mark_octs
+cdef oct_visitor_function mask_octs
 cdef oct_visitor_function index_octs
 cdef oct_visitor_function icoords_octs
 cdef oct_visitor_function ires_octs
