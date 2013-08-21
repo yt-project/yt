@@ -1173,7 +1173,7 @@ class YTMapserverCmd(YTCommand):
             p = pc.add_slice(args.field, args.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
         mapper = PannableMapServer(p.data, args.field)
-        import yt.utilities.bottle as bottle
+        import yt.extern.bottle as bottle
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1555,7 +1555,7 @@ class YTGUICmd(YTCommand):
         except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
+        import yt.extern.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(reasonjs_path, use_pyro=args.use_pyro)

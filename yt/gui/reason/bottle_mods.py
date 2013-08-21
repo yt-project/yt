@@ -31,7 +31,7 @@ import sys
 import urllib, urllib2
 import numpy as np
 
-from yt.utilities.bottle import \
+from yt.extern.bottle import \
     server_names, debug, route, run, request, ServerAdapter, response
 from extdirect_router import DirectRouter, DirectProviderDefinition
 from yt.utilities.logger import ytLogger as mylog
@@ -169,7 +169,7 @@ class PayloadHandler(object):
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
     def run(self, handler):
-        from yt.utilities.rocket import Rocket
+        from yt.extern.rocket import Rocket
         server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
         self.server_info[id(self)] = server
         server.start()
@@ -263,7 +263,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             thread.start()
         local_browse()
     try:
-        import yt.utilities.rocket as rocket
+        import yt.extern.rocket as rocket
         server_type = YTRocketServer
         log = logging.getLogger('Rocket')
         log.setLevel(logging.WARNING)
