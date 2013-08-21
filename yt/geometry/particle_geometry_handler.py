@@ -86,7 +86,8 @@ class ParticleGeometryHandler(GeometryHandler):
                 sum(d.total_particles.values()) for d in self.data_files)
         pf = self.parameter_file
         self.oct_handler = ParticleOctreeContainer(
-            [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge)
+            [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge,
+            over_refine = pf.over_refine_factor)
         self.oct_handler.n_ref = pf.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
@@ -148,7 +149,8 @@ class ParticleGeometryHandler(GeometryHandler):
                               self.regions.identify_data_files(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             subset = [ParticleOctreeSubset(base_region, data_files, 
-                        self.parameter_file)]
+                        self.parameter_file,
+                        self.parameter_file.over_refine_factor)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 

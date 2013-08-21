@@ -738,10 +738,11 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     file_count = 1
     filename_template = "stream_file"
     n_ref = 64
+    over_refine_factor = 1
 
 def load_particles(data, sim_unit_to_cm, bbox=None,
                       sim_time=0.0, periodicity=(True, True, True),
-                      n_ref = 64):
+                      n_ref = 64, over_refine_factor = 1):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -828,6 +829,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
 
     spf = StreamParticlesStaticOutput(handler)
     spf.n_ref = n_ref
+    spf.over_refine_factor = over_refine_factor
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0

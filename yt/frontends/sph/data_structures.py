@@ -96,6 +96,7 @@ class GadgetBinaryFile(ParticleFile):
 
 class ParticleStaticOutput(StaticOutput):
     _unit_base = None
+    over_refine_factor = 1
 
     def _set_units(self):
         self.units = {}
@@ -154,8 +155,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
     def __init__(self, filename, data_style="gadget_binary",
                  additional_fields = (),
-                 unit_base = None, n_ref = 64):
+                 unit_base = None, n_ref = 64,
+                 over_refine_factor = 1):
         self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -268,11 +271,13 @@ class OWLSStaticOutput(GadgetStaticOutput):
     _particle_coordinates_name = "Coordinates"
     _header_spec = None # Override so that there's no confusion
 
-    def __init__(self, filename, data_style="OWLS", n_ref = 64):
+    def __init__(self, filename, data_style="OWLS", n_ref = 64,
+                 over_refine_factor = 1):
         self.storage_filename = None
-        super(OWLSStaticOutput, self).__init__(filename, data_style,
-                                               unit_base = None,
-                                               n_ref = n_ref)
+        super(OWLSStaticOutput, self).__init__(
+                               filename, data_style,
+                               unit_base = None, n_ref = n_ref,
+                               over_refine_factor = over_refine_factor)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
