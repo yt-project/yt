@@ -52,7 +52,7 @@ from .base_plot_types import ImagePlotMPL
 from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
-    fix_axis, get_image_suffix
+    fix_axis, get_image_suffix, get_ipython_api_version
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -1123,7 +1123,12 @@ class PWViewerMPL(PWViewer):
 
         """
         if "__IPYTHON__" in dir(__builtin__):
-            self._send_zmq()
+            api_version = get_ipython_api_version()
+            if api_version in ('0.10', '0.11'):
+                self._send_zmq()
+            else:
+                from IPython.display import display
+                display(self)
         else:
             raise YTNotInsideNotebook
 
@@ -1135,10 +1140,14 @@ class PWViewerMPL(PWViewer):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
-    def __repr__(self):
-        if "__IPYTHON__" in dir(__builtin__):
-            self.show()
-        return super(PWViewerMPL, self).__repr__()
+    def _repr_html_(self):
+        """Return an html representation of the plot object. Will display as a
+        png for each WindowPlotMPL instance in self.plots"""
+        ret = ''
+        for field in self.plots:
+            img = base64.b64encode(self.plots[field]._repr_png_())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret
 
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
