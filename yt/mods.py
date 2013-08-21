@@ -119,7 +119,8 @@ from yt.frontends.pluto.api import \
 
 from yt.frontends.stream.api import \
     StreamStaticOutput, StreamFieldInfo, add_stream_field, \
-    StreamHandler, load_uniform_grid, load_amr_grids
+    StreamHandler, load_uniform_grid, load_amr_grids, \
+    load_particles
 
 from yt.frontends.sph.api import \
     OWLSStaticOutput, OWLSFieldInfo, add_owls_field, \
