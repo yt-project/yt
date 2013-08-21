@@ -191,7 +191,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * 2
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
         self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
@@ -297,7 +298,8 @@ class OWLSStaticOutput(GadgetStaticOutput):
         self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * 2
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]
@@ -443,7 +445,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
                 self.parameters[param] = val
 
         self.current_time = hvals["time"]
-        self.domain_dimensions = np.ones(3, "int32") * 2
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
         else:
