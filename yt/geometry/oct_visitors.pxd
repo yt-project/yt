@@ -45,6 +45,7 @@ cdef struct OctVisitorData:
     np.int8_t level
     np.int8_t oref # This is the level of overref.  1 => 8 zones, 2 => 64, etc.
                    # To calculate nzones, 1 << (oref * 3)
+    np.int32_t nz
                             
 
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
@@ -67,10 +68,15 @@ cdef oct_visitor_function fill_file_indices_oind
 cdef oct_visitor_function fill_file_indices_rind
 
 cdef inline int cind(int i, int j, int k):
+    # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
 
 cdef inline int oind(OctVisitorData *data):
-    return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
+    return (((data.ind[0]*(1<<data.oref))
+             +data.ind[1])*(1<<data.oref)
+             +data.ind[2])
 
 cdef inline int rind(OctVisitorData *data):
-    return (((data.ind[2]*2)+data.ind[1])*2+data.ind[0])
+    return (((data.ind[2]*(1<<data.oref))
+             +data.ind[1])*(1<<data.oref)
+             +data.ind[0])

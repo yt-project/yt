@@ -229,7 +229,7 @@ class ParticleOctreeSubset(OctreeSubset):
     _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
     domain_id = -1
     def __init__(self, base_region, data_files, pf, min_ind = 0, max_ind = 0,
-                 over_refine_factor = 2):
+                 over_refine_factor = 1):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
         self.data_files = data_files

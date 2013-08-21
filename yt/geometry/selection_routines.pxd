@@ -40,6 +40,9 @@ cdef class SelectorObject:
                         oct_visitor_function *func,
                         OctVisitorData *data,
                         int visit_covered = ?)
+    cdef void visit_oct_cells(self, OctVisitorData *data, Oct *root, Oct *ch,
+                              np.float64_t spos[3], np.float64_t sdds[3],
+                              oct_visitor_function *func, int i, int j, int k)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = ?) nogil
