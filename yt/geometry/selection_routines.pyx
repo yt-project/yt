@@ -231,6 +231,10 @@ cdef class SelectorObject:
                         if root.children != NULL:
                             ch = root.children[cind(i,j,k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
+                            # Note that data.pos is always going to be the
+                            # position of the Oct -- it is *not* always going
+                            # to be the same as the position of the cell under
+                            # investigation.
                             data.pos[0] = (data.pos[0] << 1) + i
                             data.pos[1] = (data.pos[1] << 1) + j
                             data.pos[2] = (data.pos[2] << 1) + k
@@ -243,11 +247,15 @@ cdef class SelectorObject:
                             data.pos[2] = (data.pos[2] >> 1)
                             data.level -= 1
                         elif this_level == 1:
+                            # TODO: Refactor to enable multiple cells
+                            #       This code should be able to iterate over
+                            #       cells, even though the rest cannot.
                             selected = self.select_cell(spos, sdds)
                             if ch != NULL:
                                 selected *= self.overlap_cells
                             data.global_index += increment
                             increment = 0
+                            # data.ind refers to the cell, not to the oct.
                             data.ind[0] = i
                             data.ind[1] = j
                             data.ind[2] = k

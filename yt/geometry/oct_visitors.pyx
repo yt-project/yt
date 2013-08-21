@@ -38,6 +38,7 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef int i
     # There are this many records between "octs"
+    # TODO: This 8 needs to be made into a generic value.
     cdef np.int64_t index = (data.global_index * 8)*data.dims
     cdef np.float64_t **p = <np.float64_t**> data.array
     index += oind(data)*data.dims
@@ -50,6 +51,7 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
     cdef int i
+    # TODO: This 8 needs to be made into a generic value.
     cdef np.int64_t index = (data.global_index * 8)*data.dims
     cdef np.int64_t **p = <np.int64_t**> data.array
     index += oind(data)*data.dims
@@ -68,25 +70,6 @@ cdef void count_total_cells(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Number of *cells* visited and selected.
     data.index += selected
 
-cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    # We mark them even if they are not selected
-    cdef int i
-    cdef np.uint8_t *arr = <np.uint8_t *> data.array
-    if data.last != o.domain_ind:
-        data.last = o.domain_ind
-        data.index += 1
-    cdef np.int64_t index = data.index * 8
-    index += oind(data)
-    arr[index] = 1
-
-cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    if selected == 0: return
-    cdef int i
-    cdef np.uint8_t *arr = <np.uint8_t *> data.array
-    cdef np.int64_t index = data.global_index * 8
-    index += oind(data)
-    arr[index] = 1
-
 cdef void index_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # Note that we provide an index even if the cell is not selected.
     cdef int i
@@ -101,6 +84,8 @@ cdef void icoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef np.int64_t *coords = <np.int64_t*> data.array
     cdef int i
+    # TODO: data.ind and the number of bits we shift need to be made general
+    # for octrees with > 8 zones.
     for i in range(3):
         coords[data.index * 3 + i] = (data.pos[i] << 1) + data.ind[i]
     data.index += 1
@@ -120,6 +105,8 @@ cdef void fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.float64_t *fcoords = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t c, dx 
+    # TODO: data.ind and the number of bits we shift in dx and in data.pos need
+    # to be made general for octrees with > 8 zones.
     dx = 1.0 / (2 << data.level)
     for i in range(3):
         c = <np.float64_t> ((data.pos[i] << 1 ) + data.ind[i]) 

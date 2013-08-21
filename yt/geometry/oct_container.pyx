@@ -332,6 +332,7 @@ cdef class OctreeContainer:
         if num_octs == -1:
             num_octs = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.int64_t, ndim=2] coords
+        # TODO: This *8 needs to be made generic.
         coords = np.empty((num_octs * 8, 3), dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
@@ -349,6 +350,7 @@ cdef class OctreeContainer:
             num_octs = selector.count_octs(self, domain_id)
         #Return the 'resolution' of each cell; ie the level
         cdef np.ndarray[np.int64_t, ndim=1] res
+        # TODO: This *8 needs to be made generic.
         res = np.empty(num_octs * 8, dtype="int64")
         cdef OctVisitorData data
         data.array = <void *> res.data
@@ -365,6 +367,7 @@ cdef class OctreeContainer:
         if num_octs == -1:
             num_octs = selector.count_octs(self, domain_id)
         cdef np.ndarray[np.float64_t, ndim=2] fwidth
+        # TODO: This *8 needs to be made generic.
         fwidth = np.empty((num_octs * 8, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> fwidth.data
@@ -386,6 +389,7 @@ cdef class OctreeContainer:
             num_octs = selector.count_octs(self, domain_id)
         #Return the floating point unitary position of every cell
         cdef np.ndarray[np.float64_t, ndim=2] coords
+        # TODO: This *8 needs to be made generic.
         coords = np.empty((num_octs * 8, 3), dtype="float64")
         cdef OctVisitorData data
         data.array = <void *> coords.data
@@ -438,8 +442,10 @@ cdef class OctreeContainer:
         else:
             raise NotImplementedError
         self.visit_all_octs(selector, func, &data)
+        # TODO: This *8 needs to be made generic.
         if (data.global_index + 1) * 8 * data.dims > source.size:
             print "GLOBAL INDEX RAN AHEAD.",
+            # TODO: This *8 needs to be made generic.
             print (data.global_index + 1) * 8 * data.dims - source.size
             print dest.size, source.size, num_cells
             raise RuntimeError
@@ -542,6 +548,7 @@ cdef class OctreeContainer:
         if parent.children != NULL:
             next = parent.children[cind(ind[0],ind[1],ind[2])]
         else:
+            # TODO: This *8 does NOT need to be made generic.
             parent.children = <Oct **> malloc(sizeof(Oct *) * 8)
             for i in range(8):
                 parent.children[i] = NULL
@@ -608,6 +615,7 @@ cdef class OctreeContainer:
         data.index = 0
         data.domain = 1
         self.visit_all_octs(selector, oct_visitors.assign_domain_ind, &data)
+        # TODO: This *8 needs to be made generic.
         assert ((data.global_index+1)*8 == data.index)
 
 cdef int root_node_compare(void *a, void *b) nogil:
