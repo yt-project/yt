@@ -151,7 +151,8 @@ class OctreeSubset(YTSelectionContainer):
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        nvals = (2, 2, 2, (self.domain_ind >= 0).sum())
+        nz = self.nz
+        nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         if fields is None: fields = []
         op = cls(nvals, len(fields), 64)
         op.initialize()

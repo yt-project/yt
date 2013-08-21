@@ -107,7 +107,8 @@ cdef class ParticleSmoothOperation:
         cdef np.int64_t *doffs, *pinds, *pcounts, poff
         cdef np.ndarray[np.int64_t, ndim=1] pind, doff, pdoms, pcount
         cdef np.ndarray[np.float64_t, ndim=1] tarr
-        dims[0] = dims[1] = dims[2] = 2
+        dims[0] = dims[1] = dims[2] = (1 << octree.oref)
+        cdef int nz = dims[0] * dims[1] * dims[2]
         numpart = positions.shape[0]
         # pcount is the number of particles per oct.
         pcount = np.zeros_like(dom_ind)
@@ -173,7 +174,7 @@ cdef class ParticleSmoothOperation:
             oct = octree.get(pos, &oi)
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
-            offset = dom_ind[oct.domain_ind - moff] * 8
+            offset = dom_ind[oct.domain_ind - moff] * nz
             neighbors = octree.neighbors(&oi, &nneighbors)
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.

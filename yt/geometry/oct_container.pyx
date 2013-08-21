@@ -248,9 +248,11 @@ cdef class OctreeContainer:
                 cp[i] -= dds[i]/2.0 # Now centered
             else:
                 cp[i] += dds[i]/2.0
-            # We don't need to change dds[i] as it has been halved from the
-            # oct width, thus making it already the cell width
-            oinfo.dds[i] = dds[i] # Cell width
+            # We don't normally need to change dds[i] as it has been halved
+            # from the oct width, thus making it already the cell width.
+            # But, for some cases where the oref != 1, this needs to be
+            # changed.
+            oinfo.dds[i] = dds[i] / self.oref # Cell width
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
             oinfo.ipos[i] = ipos[i]
         oinfo.level = level

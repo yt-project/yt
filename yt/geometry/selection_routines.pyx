@@ -286,9 +286,9 @@ cdef class SelectorObject:
                     selected = self.select_cell(pos, dds)
                     if ch != NULL:
                         selected *= self.overlap_cells
-                    data.ind[0] = i
-                    data.ind[1] = j
-                    data.ind[2] = k
+                    data.ind[0] = ci
+                    data.ind[1] = cj
+                    data.ind[2] = ck
                     pos[2] += dds[2]
                     func(root, data, selected)
                 pos[1] += dds[1]
