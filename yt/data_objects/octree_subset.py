@@ -42,7 +42,6 @@ from yt.funcs import *
 class OctreeSubset(YTSelectionContainer):
     _spatial = True
     _num_ghost_zones = 0
-    _num_zones = 2
     _type_name = 'octree_subset'
     _skip_add = True
     _con_args = ('base_region', 'domain', 'pf')
@@ -50,7 +49,8 @@ class OctreeSubset(YTSelectionContainer):
     _domain_offset = 0
     _num_octs = -1
 
-    def __init__(self, base_region, domain, pf):
+    def __init__(self, base_region, domain, pf, over_refine_factor = 1):
+        self._num_zones = 1 << (over_refine_factor)
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.domain = domain
@@ -228,8 +228,10 @@ class ParticleOctreeSubset(OctreeSubset):
     _type_name = 'indexed_octree_subset'
     _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
     domain_id = -1
-    def __init__(self, base_region, data_files, pf, min_ind = 0, max_ind = 0):
+    def __init__(self, base_region, data_files, pf, min_ind = 0, max_ind = 0,
+                 over_refine_factor = 2):
         # The first attempt at this will not work in parallel.
+        self._num_zones = 1 << (over_refine_factor)
         self.data_files = data_files
         self.field_data = YTFieldData()
         self.field_parameters = {}

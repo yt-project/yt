@@ -96,8 +96,10 @@ cdef void free_octs(
 cdef class OctreeContainer:
 
     def __init__(self, oct_domain_dimensions, domain_left_edge,
-                 domain_right_edge, partial_coverage = 0):
+                 domain_right_edge, partial_coverage = 0,
+                 over_refine = 1):
         # This will just initialize the root mesh octs
+        self.oref = over_refine
         self.partial_coverage = partial_coverage
         cdef int i, j, k, p
         for i in range(3):
@@ -119,6 +121,12 @@ cdef class OctreeContainer:
                 self.root_mesh[i][j] = <Oct **> malloc(sizeof(void*) * self.nn[2])
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = NULL
+
+    cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
+        data.index = 0
+        data.last = -1
+        data.domain = domain_id
+        data.oref = self.oref
 
     def __dealloc__(self):
         free_octs(self.cont)
@@ -251,8 +259,8 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=1] domain_mask
         domain_mask = np.zeros(self.max_domain, dtype="uint8")
         cdef OctVisitorData data
+        self.setup_data(&data)
         data.array = domain_mask.data
-        data.domain = -1
         self.visit_all_octs(selector, oct_visitors.identify_octs, &data)
         cdef int i
         domain_ids = []
@@ -335,9 +343,8 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=1] coords
         coords = np.zeros((num_octs * 8), dtype="uint8")
         cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
         data.array = <void *> coords.data
-        data.index = 0
-        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.mask_octs, &data)
         return coords.astype("bool")
 
@@ -352,9 +359,8 @@ cdef class OctreeContainer:
         # TODO: This *8 needs to be made generic.
         coords = np.empty((num_octs * 8, 3), dtype="int64")
         cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
         data.array = <void *> coords.data
-        data.index = 0
-        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.icoords_octs, &data)
         return coords
 
@@ -370,9 +376,8 @@ cdef class OctreeContainer:
         # TODO: This *8 needs to be made generic.
         res = np.empty(num_octs * 8, dtype="int64")
         cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
         data.array = <void *> res.data
-        data.index = 0
-        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.ires_octs, &data)
         return res
 
@@ -387,9 +392,8 @@ cdef class OctreeContainer:
         # TODO: This *8 needs to be made generic.
         fwidth = np.empty((num_octs * 8, 3), dtype="float64")
         cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
         data.array = <void *> fwidth.data
-        data.index = 0
-        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.fwidth_octs, &data)
         cdef np.float64_t base_dx
         for i in range(3):
@@ -409,9 +413,8 @@ cdef class OctreeContainer:
         # TODO: This *8 needs to be made generic.
         coords = np.empty((num_octs * 8, 3), dtype="float64")
         cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
         data.array = <void *> coords.data
-        data.index = 0
-        data.domain = domain_id
         self.visit_all_octs(selector, oct_visitors.fcoords_octs, &data)
         cdef int i
         cdef np.float64_t base_dx
@@ -441,8 +444,8 @@ cdef class OctreeContainer:
             else:
                 dest = np.zeros(num_cells, dtype=source.dtype, order='C')
         cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
         data.index = offset
-        data.domain = domain_id
         # We only need this so we can continue calculating the offset
         data.dims = dims
         cdef void *p[2]
@@ -479,10 +482,8 @@ cdef class OctreeContainer:
         # Here's where we grab the masked items.
         ind = np.zeros(self.nocts, 'int64') - 1
         cdef OctVisitorData data
-        data.domain = domain_id
+        self.setup_data(&data, domain_id)
         data.array = ind.data
-        data.index = 0
-        data.last = -1
         self.visit_all_octs(selector, oct_visitors.index_octs, &data)
         return ind
 
@@ -595,13 +596,12 @@ cdef class OctreeContainer:
             file_inds[i] = -1
             cell_inds[i] = 9
         cdef OctVisitorData data
-        data.index = 0
+        self.setup_data(&data, domain_id)
         cdef void *p[3]
         p[0] = levels.data
         p[1] = file_inds.data
         p[2] = cell_inds.data
         data.array = p
-        data.domain = domain_id
         self.visit_all_octs(selector, self.fill_func, &data)
         return levels, cell_inds, file_inds
 
@@ -629,8 +629,7 @@ cdef class OctreeContainer:
     def finalize(self):
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         cdef OctVisitorData data
-        data.index = 0
-        data.domain = 1
+        self.setup_data(&data, 1)
         self.visit_all_octs(selector, oct_visitors.assign_domain_ind, &data)
         # TODO: This *8 needs to be made generic.
         assert ((data.global_index+1)*8 == data.index)
@@ -648,9 +647,11 @@ cdef int root_node_compare(void *a, void *b) nogil:
 
 cdef class SparseOctreeContainer(OctreeContainer):
 
-    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge):
+    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
+                 over_refine = 1):
         cdef int i, j, k, p
         self.partial_coverage = 1
+        self.oref = over_refine
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
         self.max_domain = -1

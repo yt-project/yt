@@ -77,6 +77,7 @@ cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if data.last != o.domain_ind:
         data.last = o.domain_ind
         data.index += 1
+    # TODO: This 8 needs to be made into a generic value.
     cdef np.int64_t index = data.index * 8
     index += oind(data)
     arr[index] = 1
@@ -85,6 +86,7 @@ cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef int i
     cdef np.uint8_t *arr = <np.uint8_t *> data.array
+    # TODO: This 8 needs to be made into a generic value.
     cdef np.int64_t index = data.global_index * 8
     index += oind(data)
     arr[index] = 1

@@ -43,6 +43,9 @@ cdef struct OctVisitorData:
     int dims
     np.int32_t domain
     np.int8_t level
+    np.int8_t oref # This is the level of overref.  1 => 8 zones, 2 => 64, etc.
+                   # To calculate nzones, 1 << (oref * 3)
+                            
 
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
                                    np.uint8_t selected)

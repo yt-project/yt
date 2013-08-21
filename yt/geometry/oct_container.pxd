@@ -68,6 +68,7 @@ cdef class OctreeContainer:
     cdef oct_visitor_function *fill_func
     cdef int partial_coverage
     cdef int nn[3]
+    cdef np.uint8_t oref
     cdef np.float64_t DLE[3], DRE[3]
     cdef public np.int64_t nocts
     cdef public int max_domain
@@ -83,6 +84,7 @@ cdef class OctreeContainer:
                         OctVisitorData *data)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
+    cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
 
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
