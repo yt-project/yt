@@ -218,11 +218,14 @@ cdef class SimpleSmooth(ParticleDepositOperation):
             ib0[i] = iclip(ib0[i], 0, dim[i] - 1)
             ib1[i] = iclip(ib1[i], 0, dim[i] - 1)
         for i from ib0[0] <= i <= ib1[0]:
-            idist[0] = (ii[0] - i) * (ii[0] - i) * dds[0]
+            idist[0] = (ii[0] - i) * dds[0]
+            idist[0] *= idist[0]
             for j from ib0[1] <= j <= ib1[1]:
-                idist[1] = (ii[1] - j) * (ii[1] - j) * dds[1] 
+                idist[1] = (ii[1] - j) * dds[1] 
+                idist[1] *= idist[1]
                 for k from ib0[2] <= k <= ib1[2]:
-                    idist[2] = (ii[2] - k) * (ii[2] - k) * dds[2]
+                    idist[2] = (ii[2] - k) * dds[2]
+                    idist[2] *= idist[2]
                     dist = idist[0] + idist[1] + idist[2]
                     # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / fields[0]
