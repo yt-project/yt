@@ -45,6 +45,7 @@ def _field_concat(fname):
     def _AllFields(field, data):
         v = []
         for ptype in data.pf.particle_types:
+            data.pf._last_freq = (ptype, None)
             if ptype == "all" or \
                 ptype in data.pf.known_filters:
                   continue
@@ -57,6 +58,7 @@ def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
         for ptype in data.pf.particle_types:
+            data.pf._last_freq = (ptype, None)
             if ptype == "all" or \
                 ptype in data.pf.known_filters:
                   continue
