@@ -50,17 +50,18 @@ def test_write_gdf():
     tmpdir = tempfile.mkdtemp()
     tmpfile = os.path.join(tmpdir, 'test_gdf.h5')
 
-    test_pf = fake_random_pf(64)
-    write_to_gdf(test_pf, tmpfile, data_author=TEST_AUTHOR,
-                 data_comment=TEST_COMMENT)
-    del test_pf
+    try:
+        test_pf = fake_random_pf(64)
+        write_to_gdf(test_pf, tmpfile, data_author=TEST_AUTHOR,
+                     data_comment=TEST_COMMENT)
+        del test_pf
+        assert isinstance(load(tmpfile), GDFStaticOutput)
 
-    assert isinstance(load(tmpfile), GDFStaticOutput)
+        h5f = h5.File(tmpfile, 'r')
+        gdf = h5f['gridded_data_format'].attrs
+        assert_equal(gdf['data_author'], TEST_AUTHOR)
+        assert_equal(gdf['data_comment'], TEST_COMMENT)
+        h5f.close()
 
-    h5f = h5.File(tmpfile, 'r')
-    gdf = h5f['gridded_data_format'].attrs
-    assert_equal(gdf['data_author'], TEST_AUTHOR)
-    assert_equal(gdf['data_comment'], TEST_COMMENT)
-    h5f.close()
-
-    shutil.rmtree(tmpdir)
+    finally:
+        shutil.rmtree(tmpdir)

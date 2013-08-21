@@ -27,6 +27,7 @@ License:
 """
 import os
 import numpy as np
+import tempfile
 from nose.tools import raises
 from yt.testing import \
     fake_random_pf, assert_equal, assert_array_equal
@@ -42,7 +43,10 @@ def setup():
 
 def teardown_func(fns):
     for fn in fns:
-        os.remove(fn)
+        try:
+            os.remove(fn)
+        except OSError:
+            pass
 
 
 def test_slice():
@@ -72,7 +76,9 @@ def test_slice():
                 yield assert_equal, np.unique(slc["pdx"]), 0.5 / dims[xax]
                 yield assert_equal, np.unique(slc["pdy"]), 0.5 / dims[yax]
                 pw = slc.to_pw()
-                fns += pw.save()
+                tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                os.close(tmpfd)
+                fns += pw.save(name=tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['Ones', 'Density']:
                     yield assert_equal, frb[slc_field].info['data_source'], \
