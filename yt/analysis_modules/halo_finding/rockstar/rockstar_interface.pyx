@@ -204,6 +204,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     else:
         sources = [pf.h.all_data()]
     for g in sources:
+        if getattr(g, 'NumberOfParticles', 1) == 0: continue
         if len(g['particle_position_x']) == 0: continue
         if (rh.dm_only or (not has_particle_type)):
             if rh.hires_only:
