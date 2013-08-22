@@ -121,6 +121,10 @@ class Camera(ParallelAnalysisInterface):
         accuracy/smoothness in resulting image.  The effects are
         less notable when the transfer function is smooth and
         broad. Default: True
+    data_source: data container, optional
+        Optionally specify an arbitrary data source to the volume rendering.
+        All cells not included in the data source will be ignored during ray
+        casting. By default this will get set to pf.h.all_data().
 
     Examples
     --------
@@ -164,7 +168,7 @@ class Camera(ParallelAnalysisInterface):
                  log_fields = None,
                  sub_samples = 5, pf = None,
                  min_level=None, max_level=None, no_ghost=True,
-                 source=None,
+                 data_source=None,
                  use_light=False):
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
@@ -196,13 +200,13 @@ class Camera(ParallelAnalysisInterface):
         if self.no_ghost:
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
 
-        if source is None:
-            source = self.pf.h.all_data()
-        self.source = source
+        if data_source is None:
+            data_source = self.pf.h.all_data()
+        self.data_source = data_source
 
         if volume is None:
             volume = AMRKDTree(self.pf, min_level=min_level, 
-                               max_level=max_level, source=self.source)
+                               max_level=max_level, data_source=self.data_source)
         self.volume = volume        
 
     def _setup_box_properties(self, width, center, unit_vectors):
@@ -1125,6 +1129,8 @@ class HEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False, use_light=False,
                  inner_radius = 10):
+        mylog.error('I am sorry, HEALpix Camera does not work yet in 3.0')
+        raise NotImplementedError
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = np.array(center, dtype='float64')
@@ -1155,8 +1161,8 @@ class HEALpixCamera(Camera):
         self.light_dir = None
         self.light_rgba = None
         if volume is None:
-            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
-                               log_fields=log_fields)
+            volume = AMRKDTree(self.pf, min_level=min_level,
+                               max_level=max_level, data_source=self.data_source)
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
@@ -1963,7 +1969,7 @@ class MosaicFisheyeCamera(Camera):
             yield self.snapshot()
 
 def allsky_projection(pf, center, radius, nside, field, weight = None,
-                      inner_radius = 10, rotation = None, source = None):
+                      inner_radius = 10, rotation = None, data_source = None):
     r"""Project through a parameter file, through an allsky-method
     decomposition from HEALpix, and return the image plane.
 
@@ -1998,7 +2004,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         If supplied, the vectors will be rotated by this.  You can construct
         this by, for instance, calling np.array([v1,v2,v3]) where those are the
         three reference planes of an orthogonal frame (see ortho_find).
-    source : data container, default None
+    data_source : data container, default None
         If this is supplied, this gives the data source from which the all sky
         projection pulls its data from.
 
@@ -2044,16 +2050,16 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     positions += inner_radius * dx * vs
     vs *= radius
     uv = np.ones(3, dtype='float64')
-    if source is not None:
-        grids = source._grids
+    if data_source is not None:
+        grids = data_source._grids
     else:
         grids = pf.h.sphere(center, radius)._grids
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
     pb = get_pbar("Sampling ", len(grids))
     for i,grid in enumerate(grids):
-        if source is not None:
-            data = [grid[field] * source._get_cut_mask(grid) * \
+        if data_source is not None:
+            data = [grid[field] * data_source._get_cut_mask(grid) * \
                 grid.child_mask.astype('float64')
                 for field in fields]
         else:
@@ -2197,12 +2203,13 @@ class ProjectionCamera(Camera):
                     np.minimum(mi, this_point, mi)
                     np.maximum(ma, this_point, ma)
         # Now we have a bounding box.
-        source = pf.h.region(self.center, mi, ma)
+        data_source = pf.h.region(self.center, mi, ma)
 
-        for i, (grid, mask) in enumerate(source.blocks):
+        for i, (grid, mask) in enumerate(data_source.blocks):
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id, data,
+                mask.astype('uint8'),
                 grid.LeftEdge, grid.RightEdge, grid.ActiveDimensions.astype("int64"))
             grid.clear_data()
             sampler(pg, num_threads = num_threads)

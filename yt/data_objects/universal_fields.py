@@ -376,12 +376,6 @@ def _DynamicalTime(field, data):
 add_field("DynamicalTime", function=_DynamicalTime,
            units=r"\rm{s}")
 
-def JeansMassMsun(field,data):
-    return (MJ_constant * 
-            ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
-            (data["Density"]**(-0.5)))
-add_field("JeansMassMsun",function=JeansMassMsun,units=r"\rm{Msun}")
-
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
 def _convertCellMassMsun(data):
@@ -619,7 +613,7 @@ def obtain_velocities(data):
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
 def _convertSpecificAngularMomentumKMSMPC(data):
-    return data.convert("mpc")/1e5
+    return km_per_cm*data.convert("mpc")
 
 def _SpecificAngularMomentumX(field, data):
     xv, yv, zv = obtain_velocities(data)
@@ -678,8 +672,6 @@ def _ParticleSpecificAngularMomentum(field, data):
 #          function=_ParticleSpecificAngularMomentum, particle_type=True,
 #          convert_function=_convertSpecificAngularMomentum, vector_field=True,
 #          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
-def _convertSpecificAngularMomentumKMSMPC(data):
-    return km_per_cm*data.convert("mpc")
 #add_field("ParticleSpecificAngularMomentumKMSMPC",
 #          function=_ParticleSpecificAngularMomentum, particle_type=True,
 #          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
@@ -993,7 +985,7 @@ def _ParticlePhiVelocity(field, data):
     phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
-    sphp = get_sph_phi_component(vel, theta, phi, normal)
+    sphp = get_sph_phi_component(vel, phi, normal)
     return sphp
 
 add_field("ParticlePhiVelocity", function=_ParticleThetaVelocity,

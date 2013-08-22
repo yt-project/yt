@@ -35,6 +35,8 @@ from yt.data_objects.field_info_container import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter
+from yt.utilities.exceptions import \
+    YTCoordinateNotImplemented
 
 CylindricalFieldInfo = FieldInfoContainer()
 CylindricalFieldInfo.name = id(CylindricalFieldInfo)

@@ -36,6 +36,7 @@ from functools import wraps
 import fileinput
 from re import finditer
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
@@ -703,7 +704,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         new_fields = []
         for input_field in level_state.fields:
             output_field = np.zeros(output_dims, dtype="float64")
-            output_left = self.global_startindex + 0.5
+            output_left = level_state.global_startindex + 0.5
             ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
             new_fields.append(output_field)

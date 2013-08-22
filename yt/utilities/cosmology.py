@@ -61,7 +61,7 @@ class Cosmology(object):
                           self.HubbleDistance()))
          elif (self.OmegaCurvatureNow < 0):
              return (self.HubbleDistance() / np.sqrt(np.fabs(self.OmegaCurvatureNow)) * 
-                     sin(np.sqrt(np.fabs(self.OmegaCurvatureNow)) * 
+                     np.sin(np.sqrt(np.fabs(self.OmegaCurvatureNow)) * 
                          self.ComovingRadialDistance(z_i,z_f) / self.HubbleDistance()))
          else:
              return self.ComovingRadialDistance(z_i,z_f)
@@ -73,7 +73,7 @@ class Cosmology(object):
                       np.sqrt(1 + self.OmegaCurvatureNow * 
                            sqr(self.ComovingTransverseDistance(z_i,z_f) / 
                                self.HubbleDistance())) - 
-                      anp.sinh(np.fabs(self.OmegaCurvatureNow) * 
+                      np.sinh(np.fabs(self.OmegaCurvatureNow) * 
                             self.ComovingTransverseDistance(z_i,z_f) / 
                             self.HubbleDistance()) / np.sqrt(self.OmegaCurvatureNow)) / 1e9)
         elif (self.OmegaCurvatureNow < 0):
@@ -83,7 +83,7 @@ class Cosmology(object):
                       np.sqrt(1 + self.OmegaCurvatureNow * 
                            sqr(self.ComovingTransverseDistance(z_i,z_f) / 
                                self.HubbleDistance())) - 
-                      asin(np.fabs(self.OmegaCurvatureNow) * 
+                      np.arcsin(np.fabs(self.OmegaCurvatureNow) * 
                            self.ComovingTransverseDistance(z_i,z_f) / 
                            self.HubbleDistance()) / 
                       np.sqrt(np.fabs(self.OmegaCurvatureNow))) / 1e9)
@@ -269,7 +269,7 @@ class EnzoCosmology(object):
         # 3) For OmegaMatterNow > 1 and OmegaLambdaNow == 0, use sin/cos.
  
         if ((self.OmegaMatterNow > 1) and (self.OmegaLambdaNow == 0)):
-            eta = np.acos(1 - 2*(1-self.OmegaMatterNow)/self.OmegaMatterNow/(1+z))
+            eta = np.arccos(1 - 2*(1-self.OmegaMatterNow)/self.OmegaMatterNow/(1+z))
             TimeHubble0 = self.OmegaMatterNow/(2*np.power(1.0-self.OmegaMatterNow, 1.5))*\
                 (eta - np.sin(eta))
  
