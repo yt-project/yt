@@ -5,7 +5,7 @@ from yt.utilities.physical_constants import mp, clight, cm_per_kpc, \
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     communication_system
+     communication_system, parallel_root_only, get_mpi_type, parallel_capable
 from yt.data_objects.api import add_field
 
 import os
@@ -25,74 +25,111 @@ TMIN = 8.08e-2
 TMAX = 50.
 FOUR_PI = 4.*np.pi
 
-def _emission_measure(field, data):
-    if data.has_field_parameter("X_H"):
-        X_H = data.get_field_parameter("X_H")
-    else:
-        X_H = 0.75
-    return (data["Density"]/mp)*(data["CellMass"]/mp)*0.5*(1.+X_H)*X_H
-
-def _emission_measure_density(field, data):
-    if data.has_field_parameter("X_H"):
-        X_H = data.get_field_parameter("X_H")
-    else:
-        X_H = 0.75            
-    return (data["Density"]/mp)*(data["Density"]/mp)*0.5*(1.+X_H)*X_H
-
-add_field("EmissionMeasure", function=_emission_measure)
-add_field("EMDensity", function=_emission_measure_density)
-
 class XRayPhotonList(object):
 
-    def __init__(self, photons = None):
+    def __init__(self, photons=None, comm=None, cosmo=None, p_bins=None):
         if photons is None: photons = {}
         self.photons = photons
+        self.comm = comm
+        self.cosmo = cosmo
+        self.p_bins = p_bins
+        self.num_cells = len(photons["x"])
         
+    def keys(self):
+        return self.photons.keys()
+    
+    def items(self):
+        ret = []
+        for k, v in self.photons.items():
+            if k == "Energy":
+                ret.append((k, self[k]))
+            else:
+                ret.append((k,v))
+        return ret
+    
+    def values(self):
+        ret = []
+        for k, v in self.photons.items():
+            if k == "Energy":
+                ret.append(self[k])
+            else:
+                ret.append(v)
+        return ret
+                                
+    def __getitem__(self, key):
+        if key == "Energy":
+            return [self.photons["Energy"][self.p_bins[i]:self.p_bins[i+1]]
+                    for i in xrange(self.num_cells)]
+        else:
+            return self.photons[key]
+    
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, cosmology=None):
         """
         Initialize a XRayPhotonList from an HDF5 file given by filename.
         """
         photons = {}
-        
+
+        comm = communication_system.communicators[-1]
+                
         f = h5py.File(filename, "r")
 
         photons["FiducialExposureTime"] = f["/fid_exp_time"].value
         photons["FiducialArea"] = f["/fid_area"].value
-        photons["Redshift"] = f["/redshift"].value
+        photons["FiducialRedshift"] = f["/fid_redshift"].value
         photons["Hubble0"] = f["/hubble"].value
         photons["OmegaMatter"] = f["/omega_matter"].value
         photons["OmegaLambda"] = f["/omega_lambda"].value                    
-        photons["AngularDiameterDistance"] = f["/d_a"].value
-                        
-        photons["x"] = f["/x"][:]
-        photons["y"] = f["/y"][:]
-        photons["z"] = f["/z"][:]
-        photons["dx"] = f["/dx"][:]
-        photons["vx"] = f["/vx"][:]
-        photons["vy"] = f["/vy"][:]
-        photons["vz"] = f["/vz"][:]
-        photons["NumberOfPhotons"] = f["/num_photons"][:].astype("uint64")
+        photons["FiducialAngularDiameterDistance"] = f["/fid_d_a"].value
 
-        photons["Energy"] = f["/energy"][:]
+        num_cells = f["/x"][:].shape[0]
+        start_c = comm.rank*num_cells/comm.size
+        end_c = (comm.rank+1)*num_cells/comm.size
+        
+        photons["x"] = f["/x"][start_c:end_c]
+        photons["y"] = f["/y"][start_c:end_c]
+        photons["z"] = f["/z"][start_c:end_c]
+        photons["dx"] = f["/dx"][start_c:end_c]
+        photons["vx"] = f["/vx"][start_c:end_c]
+        photons["vy"] = f["/vy"][start_c:end_c]
+        photons["vz"] = f["/vz"][start_c:end_c]
+
+        n_ph = f["/num_photons"][:]
+        
+        if comm.rank == 0:
+            start_e = np.uint64(0)
+        else:
+            start_e = n_ph[:start_c].sum()
+        end_e = start_e + np.uint64(n_ph[start_c:end_c].sum())
+
+        photons["NumberOfPhotons"] = n_ph[start_c:end_c]
+
+        p_bins = np.cumsum(photons["NumberOfPhotons"])
+        p_bins = np.insert(p_bins, 0, [np.uint64(0)])
+        
+        photons["Energy"] = f["/energy"][start_e:end_e]
         
         f.close()
-        
-        return cls(photons)
+
+        if cosmology is None:
+            cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
+                              OmegaLambdaNow=0.73)
+        else:
+            cosmo = cosmology
+                                        
+        return cls(photons=photons, comm=comm, cosmo=cosmo, p_bins=p_bins)
 
     @classmethod
-    def from_scratch(cls, cell_data, redshift, eff_A,
+    def from_scratch(cls, data_source, redshift, eff_A,
                      exp_time, emission_model, center="c",
                      X_H=0.75, Zmet=0.3, cosmology=None):
         """
         Initialize a XRayPhotonList from a data container. 
         """
-        pf = cell_data.pf
+        pf = data_source.pf
 
         comm = communication_system.communicators[-1]
-        my_rank = comm.rank
-        my_size = comm.size
-        
+                
         vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
 
         if cosmology is None:
@@ -100,14 +137,36 @@ class XRayPhotonList(object):
                               OmegaLambdaNow=0.73)
         else:
             cosmo = cosmology
-            
+        
         D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
         cosmo_fac = 1.0/(FOUR_PI*D_A*D_A*(1.+redshift)**3)
 
-        idxs = np.argsort(cell_data["Temperature"])
-        dshape = idxs.shape
+        num_cells = data_source["Temperature"].shape[0]
+        start_c = comm.rank*num_cells/comm.size
+        end_c = (comm.rank+1)*num_cells/comm.size
 
-        cell_data.set_field_parameter("X_H", X_H)
+        kT = data_source["Temperature"][start_c:end_c].copy()/K_per_keV
+        vol = data_source["CellVolume"][start_c:end_c].copy()
+        dx = data_source["dx"][start_c:end_c].copy()
+        EM = (data_source["Density"][start_c:end_c].copy()/mp)**2
+        EM *= 0.5*(1.+X_H)*X_H*vol
+        
+        data_source.clear_data()
+        
+        x = data_source["x"][start_c:end_c].copy()
+        y = data_source["y"][start_c:end_c].copy()
+        z = data_source["z"][start_c:end_c].copy()
+
+        data_source.clear_data()
+                
+        vx = data_source["x-velocity"][start_c:end_c].copy()
+        vy = data_source["y-velocity"][start_c:end_c].copy()
+        vz = data_source["z-velocity"][start_c:end_c].copy()
+        
+        data_source.clear_data()
+                
+        idxs = np.argsort(kT)
+        dshape = idxs.shape
 
         if center == "c":
             src_ctr = pf.domain_center
@@ -116,49 +175,56 @@ class XRayPhotonList(object):
         elif iterable(center):
             src_ctr = center
                     
-        kT_bins = np.linspace(TMIN, max(cell_data["TempkeV"][idxs][-1],
-                                        TMAX), num=N_TBIN+1)
+        kT_bins = np.linspace(TMIN, max(kT[idxs][-1], TMAX), num=N_TBIN+1)
         dkT = kT_bins[1]-kT_bins[0]
-        kT_idxs = np.digitize(cell_data["TempkeV"][idxs], kT_bins)
+        kT_idxs = np.digitize(kT[idxs], kT_bins)
         kT_idxs = np.minimum(np.maximum(1, kT_idxs), N_TBIN) - 1
         bcounts = np.bincount(kT_idxs).astype("int")
         bcounts = bcounts[bcounts > 0]
+        n = int(0)
+        bcell = []
+        ecell = []
+        for bcount in bcounts:
+            bcell.append(n)
+            ecell.append(n+bcount)
+            n += bcount
         kT_idxs = np.unique(kT_idxs)
 
         emission_model.prepare()
         energy = emission_model.ebins
-        de = energy[1]-energy[0]
+        de = emission_model.de
         emid = 0.5*(energy[1:]+energy[:-1])
-
-        cell_em = cell_data["EmissionMeasure"][idxs]*vol_scale
-        cell_vol = cell_data["CellVolume"][idxs]*vol_scale
-        cell_emd = cell_data["EMDensity"][idxs]
-
-        energies = []
+        
+        cell_em = EM[idxs]*vol_scale
+        cell_vol = vol[idxs]*vol_scale
+        cell_emd = cell_em/cell_vol
+        
         number_of_photons = np.zeros(dshape, dtype='uint64')
-
+        energies = []
+                                
         pbar = get_pbar("Generating Photons", dshape[0])
-        n = int(0)
-            
-        for i,ikT in enumerate(kT_idxs):
 
+        for i, ikT in enumerate(kT_idxs):
+            
             ncells = int(bcounts[i])
+            ibegin = bcell[i]
+            iend = ecell[i]
             kT = kT_bins[ikT] + 0.5*dkT
             
-            em_sum = cell_em[n:n+ncells].sum()
-            vol_sum = cell_vol[n:n+ncells].sum()
-            em_avg = em_sum / vol_sum
+            em_sum = cell_em[ibegin:iend].sum()
+            vol_sum = cell_vol[ibegin:iend].sum()
+            em_avg = em_sum/vol_sum
             
-            tot_norm = cosmo_fac*em_sum / vol_scale
+            tot_norm = cosmo_fac*em_sum/vol_scale
             
             spec = emission_model.get_spectrum(kT, Zmet)
             spec *= tot_norm
             cumspec = np.cumsum(spec)
             counts = cumspec[:]/cumspec[-1]
             tot_ph = cumspec[-1]*eff_A*exp_time
-
-            for icell in xrange(n,n+ncells):
-
+            
+            for icell in xrange(ibegin, iend):
+                
                 cell_norm = tot_ph * (cell_emd[icell]/em_avg) * (cell_vol[icell]/vol_sum)                    
                 cell_Nph = int(cell_norm) + int(np.modf(cell_norm)[0] >= np.random.random())
                 
@@ -169,70 +235,149 @@ class XRayPhotonList(object):
                     eidxs = np.searchsorted(counts, randvec)-1
                     cell_e = emid[eidxs]+de*(randvec-counts[eidxs])/(counts[eidxs+1]-counts[eidxs])
                     energies.append(cell_e)
-            
+                            
                 pbar.update(icell)
-                
-            n += ncells
             
         pbar.finish()
-            
-        active_cells = np.where(number_of_photons > 0)[0]
-        num_active_cells = len(active_cells)
 
+        del cell_emd, cell_vol, cell_em
+
+        active_cells = number_of_photons > 0
+        idxs = idxs[active_cells]
+        
         photons = {}
-        photons["x"] = (cell_data["x"][idxs][active_cells]-src_ctr[0])*pf.units["kpc"]
-        photons["y"] = (cell_data["y"][idxs][active_cells]-src_ctr[1])*pf.units["kpc"]
-        photons["z"] = (cell_data["z"][idxs][active_cells]-src_ctr[2])*pf.units["kpc"]
-        photons["vx"] = cell_data["x-velocity"][idxs][active_cells]/cm_per_km
-        photons["vy"] = cell_data["y-velocity"][idxs][active_cells]/cm_per_km
-        photons["vz"] = cell_data["z-velocity"][idxs][active_cells]/cm_per_km
-        photons["dx"] = cell_data["dx"][idxs][active_cells]*pf.units["kpc"]
+        photons["x"] = (x[idxs]-src_ctr[0])*pf.units["kpc"]
+        photons["y"] = (y[idxs]-src_ctr[1])*pf.units["kpc"]
+        photons["z"] = (z[idxs]-src_ctr[2])*pf.units["kpc"]
+        photons["vx"] = vx[idxs]/cm_per_km
+        photons["vy"] = vy[idxs]/cm_per_km
+        photons["vz"] = vz[idxs]/cm_per_km
+        photons["dx"] = dx[idxs]*pf.units["kpc"]
         photons["NumberOfPhotons"] = number_of_photons[active_cells]
         photons["Energy"] = np.concatenate(energies)
-
+                
         photons["FiducialExposureTime"] = exp_time
         photons["FiducialArea"] = eff_A
-        photons["Redshift"] = redshift
+        photons["FiducialRedshift"] = redshift
         photons["Hubble0"] = cosmo.HubbleConstantNow
         photons["OmegaMatter"] = cosmo.OmegaMatterNow
         photons["OmegaLambda"] = cosmo.OmegaLambdaNow
-        photons["AngularDiameterDistance"] = D_A
+        photons["FiducialAngularDiameterDistance"] = D_A/cm_per_mpc
 
-        return cls(photons)
-            
+        p_bins = np.cumsum(photons["NumberOfPhotons"])
+        p_bins = np.insert(p_bins, 0, [np.uint64(0)])
+        
+        return cls(photons=photons, comm=comm, cosmo=cosmo, p_bins=p_bins)
+
     def write_h5_file(self, photonfile):
 
-        f = h5py.File(photonfile, "w")
-
-        # Scalars
-       
-        f.create_dataset("fid_area", data=self.photons["FiducialArea"])
-        f.create_dataset("fid_exp_time", data=self.photons["FiducialExposureTime"])
-        f.create_dataset("redshift", data=self.photons["Redshift"])
-        f.create_dataset("omega_matter", data=self.photons["OmegaMatter"])
-        f.create_dataset("omega_lambda", data=self.photons["OmegaLambda"])
-        f.create_dataset("hubble", data=self.photons["Hubble0"])
-        f.create_dataset("d_a", data=self.photons["AngularDiameterDistance"])
+        if parallel_capable:
+            
+            mpi_long = get_mpi_type("int64")
+            mpi_double = get_mpi_type("float64")
         
-        # Arrays
+            local_num_cells = len(self.photons["x"])
+            sizes_c = self.comm.comm.gather(local_num_cells, root=0)
+            
+            local_num_photons = self.photons["NumberOfPhotons"].sum()
+            sizes_p = self.comm.comm.gather(local_num_photons, root=0)
+            
+            if self.comm.rank == 0:
+                num_cells = sum(sizes_c)
+                num_photons = sum(sizes_p)        
+                disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
+                disps_p = [sum(sizes_p[:i]) for i in range(len(sizes_p))]
+                x = np.zeros((num_cells))
+                y = np.zeros((num_cells))
+                z = np.zeros((num_cells))
+                vx = np.zeros((num_cells))
+                vy = np.zeros((num_cells))
+                vz = np.zeros((num_cells))
+                dx = np.zeros((num_cells))
+                n_ph = np.zeros((num_cells), dtype="uint64")
+                e = np.zeros((num_photons))
+            else:
+                sizes_c = []
+                sizes_p = []
+                disps_c = []
+                disps_p = []
+                x = np.empty([])
+                y = np.empty([])
+                z = np.empty([])
+                vx = np.empty([])
+                vy = np.empty([])
+                vz = np.empty([])
+                dx = np.empty([])
+                n_ph = np.empty([])
+                e = np.empty([])
+                                                
+            self.comm.comm.Gatherv([self.photons["x"], local_num_cells, mpi_double],
+                                   [x, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["y"], local_num_cells, mpi_double],
+                                   [y, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["z"], local_num_cells, mpi_double],
+                                   [z, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["vx"], local_num_cells, mpi_double],
+                                   [vx, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["vy"], local_num_cells, mpi_double],
+                                   [vy, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["vz"], local_num_cells, mpi_double],
+                                   [vz, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["dx"], local_num_cells, mpi_double],
+                                   [dx, (sizes_c, disps_c), mpi_double], root=0)
+            self.comm.comm.Gatherv([self.photons["NumberOfPhotons"], local_num_cells, mpi_long],
+                                   [n_ph, (sizes_c, disps_c), mpi_long], root=0)
+            self.comm.comm.Gatherv([self.photons["Energy"], local_num_photons, mpi_double],
+                                   [e, (sizes_p, disps_p), mpi_double], root=0) 
 
-        f.create_dataset("x", data=self.photons["x"])
-        f.create_dataset("y", data=self.photons["y"])
-        f.create_dataset("z", data=self.photons["z"])
-        f.create_dataset("vx", data=self.photons["vx"])
-        f.create_dataset("vy", data=self.photons["vy"])
-        f.create_dataset("vz", data=self.photons["vz"])
-        f.create_dataset("dx", data=self.photons["dx"])
-        f.create_dataset("num_photons", data=self.photons["NumberOfPhotons"])
-        f.create_dataset("energy", data=self.photons["Energy"])
-                
-        f.close()
-    
+        else:
+
+            x = self.photons["x"]
+            y = self.photons["y"]
+            z = self.photons["z"]
+            vx = self.photons["vx"]
+            vy = self.photons["vy"]
+            vz = self.photons["vz"]
+            dx = self.photons["dx"]
+            n_ph = self.photons["NumberOfPhotons"]
+            e = self.photons["Energy"]
+                                                
+        if self.comm.rank == 0:
+            
+            f = h5py.File(photonfile, "w")
+
+            # Scalars
+       
+            f.create_dataset("fid_area", data=self.photons["FiducialArea"])
+            f.create_dataset("fid_exp_time", data=self.photons["FiducialExposureTime"])
+            f.create_dataset("fid_redshift", data=self.photons["FiducialRedshift"])
+            f.create_dataset("omega_matter", data=self.photons["OmegaMatter"])
+            f.create_dataset("omega_lambda", data=self.photons["OmegaLambda"])
+            f.create_dataset("hubble", data=self.photons["Hubble0"])
+            f.create_dataset("fid_d_a", data=self.photons["FiducialAngularDiameterDistance"])
+        
+            # Arrays
+
+            f.create_dataset("x", data=x)
+            f.create_dataset("y", data=y)
+            f.create_dataset("z", data=z)
+            f.create_dataset("vx", data=vx)
+            f.create_dataset("vy", data=vy)
+            f.create_dataset("vz", data=vz)
+            f.create_dataset("dx", data=dx)
+            f.create_dataset("num_photons", data=n_ph)
+            f.create_dataset("energy", data=e)
+
+            f.close()
+
+        self.comm.barrier()
+
     def project_photons(self, L, area_new=None, texp_new=None, 
-                        absorb_model=None, psf_sigma=None):
+                        redshift_new=None, absorb_model=None, psf_sigma=None):
         """
         Projects photons onto an image plane given a line of sight. 
         """
+
         dx = self.photons["dx"]
         
         L /= np.sqrt(np.dot(L, L))
@@ -246,16 +391,14 @@ class XRayPhotonList(object):
         y_hat = orient.unit_vectors[1]
         z_hat = orient.unit_vectors[2]
 
-        D_A = self.photons["AngularDiameterDistance"] / cm_per_kpc
-        
         n_ph = self.photons["NumberOfPhotons"]
         num_cells = len(n_ph)
         n_ph_tot = n_ph.sum()
-
+        
         eff_area = None
         
-        if texp_new is None and area_new is None:
-            n_obs_tot = n_ph_tot
+        if texp_new is None and area_new is None and redshift_new is None:
+            my_n_obs = n_ph_tot
         else:
             if texp_new is None:
                 Tratio = 1.
@@ -274,50 +417,60 @@ class XRayPhotonList(object):
             else:
                 mylog.info("Using constant effective area.")
                 Aratio = area_new/self.photons["FiducialArea"]
-            fak = Aratio*Tratio
+            if redshift_new is None:
+                Zratio = 1.
+                zobs = self.photons["FiducialRedshift"]
+                D_A = self.photons["FiducialAngularDiameterDistance"]*1000.                    
+            else:
+                zobs = redshift_new
+                fid_D_A = self.photons["FiducialAngularDiameterDistance"]*1000.
+                D_A = self.cosmo.AngularDiameterDistance(0.0,zobs)*1000.
+                Zratio = fid_D_A*fid_D_A*(1.+self.photons["FiducialRedshift"]**3) / \
+                         (D_A*D_A*(1.+zobs)**3)
+            fak = Aratio*Tratio*Zratio
             if fak > 1:
                 raise ValueError("Spectrum scaling factor = %g, cannot be greater than unity." % (fak))
-            n_obs_tot = np.uint64(n_ph_tot*fak)
-            
-        mylog.info("Total number of photons to use: %d" % (n_obs_tot))
+            my_n_obs = np.uint64(n_ph_tot*fak)
 
-        x = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-        y = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
-        z = np.random.uniform(low=-0.5,high=0.5,size=n_obs_tot)
+        n_obs_all = self.comm.mpi_allreduce(my_n_obs)
+        if self.comm.rank == 0: mylog.info("Total number of photons to use: %d" % (n_obs_all))
+        
+        x = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
+        y = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
+        z = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
                     
         vz = self.photons["vx"]*z_hat[0] + \
              self.photons["vy"]*z_hat[1] + \
              self.photons["vz"]*z_hat[2]
         shift = -vz*cm_per_km/clight
         shift = np.sqrt((1.-shift)/(1.+shift))
-        
-        cells = np.concatenate([i*np.ones((n_ph[i]),dtype='uint64') for i in xrange(num_cells)])
-        if n_obs_tot == n_ph_tot:
-            idxs = np.arange(n_ph_tot,dtype='uint64')
-            obs_cells = cells
-        else:
-            idxs = np.random.choice(n_ph_tot, size=n_obs_tot, replace=False)
-            obs_cells = cells[idxs]
 
-        x *= dx[obs_cells]
-        y *= dx[obs_cells]
-        z *= dx[obs_cells]
+        if my_n_obs == n_ph_tot:
+            idxs = np.arange(my_n_obs,dtype='uint64')
+        else:
+            idxs = np.random.permutation(n_ph_tot)[:my_n_obs].astype("uint64")
+        obs_cells = np.searchsorted(self.p_bins, idxs, side='right')-1
+        delta = dx[obs_cells]
+
+        x *= delta
+        y *= delta
+        z *= delta
         x += self.photons["x"][obs_cells]
         y += self.photons["y"][obs_cells]
         z += self.photons["z"][obs_cells]  
         eobs = self.photons["Energy"][idxs]*shift[obs_cells]
-        
+
         xsky = x*x_hat[0] + y*x_hat[1] + z*x_hat[2]
         ysky = x*y_hat[0] + y*y_hat[1] + z*y_hat[2]
-        eobs /= (1.+self.photons["Redshift"])
-                 
+        eobs /= (1.+zobs)
+
         if absorb_model is None:
             not_abs = np.ones(eobs.shape, dtype='bool')
         else:
             mylog.info("Absorbing.")
             absorb_model.prepare()
             energy = absorb_model.ebins
-            de = energy[1]-energy[0]
+            de = absorb_model.de
             emid = 0.5*(energy[1:]+energy[:-1])
             aspec = absorb_model.get_spectrum()
             eidxs = np.searchsorted(emid, eobs)-1
@@ -338,22 +491,24 @@ class XRayPhotonList(object):
             randvec = eff_area.max()*np.random.random(eobs.shape)
             detected = randvec < earea
         
-        all_obs = np.logical_and(not_abs, detected)
-
-        num_events = all_obs.sum()
-        
-        mylog.info("Total number of observed photons: %d" % (num_events))
+        detected = np.logical_and(not_abs, detected)
                     
         events = {}
 
-        events["xsky"] = np.rad2deg(xsky[all_obs]/D_A)*3600.
-        events["ysky"] = np.rad2deg(ysky[all_obs]/D_A)*3600.
-        events["eobs"] = eobs[all_obs]
+        events["xsky"] = np.rad2deg(xsky[detected]/D_A)*3600.
+        events["ysky"] = np.rad2deg(ysky[detected]/D_A)*3600.
+        events["eobs"] = eobs[detected]
 
         if psf_sigma is not None:
             events["xsky"] += np.random.normal(sigma=psf_sigma)
             events["ysky"] += np.random.normal(sigma=psf_sigma)
+
+        events = self.comm.par_combine_object(events, datatype="dict", op="cat")
+        
+        num_events = len(events["xsky"])
             
+        if self.comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
+                        
         if texp_new is None:
             events["ExposureTime"] = self.photons["FiducialExposureTime"]
         else:
@@ -363,10 +518,11 @@ class XRayPhotonList(object):
         else:
             events["Area"] = area_new
         events["Hubble0"] = self.photons["Hubble0"]
-        events["Redshift"] = self.photons["Redshift"]
+        events["Redshift"] = zobs
         events["OmegaMatter"] = self.photons["OmegaMatter"]
         events["OmegaLambda"] = self.photons["OmegaLambda"] 
-        
+        events["AngularDiameterDistance"] = D_A/1000.
+                
         return XRayEventList(events)
 
 class XRayEventList(object) :
@@ -376,6 +532,18 @@ class XRayEventList(object) :
         if events is None : events = {}
         self.events = events
         self.num_events = events["xsky"].shape[0]
+
+    def keys(self):
+        return self.events.keys()
+
+    def items(self):
+        return self.events.items()
+
+    def values(self):
+        return self.events.values()
+    
+    def __getitem__(self,key):
+        return self.events[key]
         
     @classmethod
     def from_h5_file(cls, h5file):
@@ -392,6 +560,7 @@ class XRayEventList(object) :
         events["Redshift"] = f["/redshift"].value
         events["OmegaMatter"] = f["/omega_matter"].value
         events["OmegaLambda"] = f["/omega_lambda"].value
+        events["AngularDiameterDistance"] = f["/d_a"].value
         
         events["xsky"] = f["/xsky"][:]
         events["ysky"] = f["/ysky"][:]
@@ -418,16 +587,30 @@ class XRayEventList(object) :
         events["Redshift"] = tblhdu.header["REDSHIFT"]
         events["OmegaMatter"] = tblhdu.header["OMEGA_M"]
         events["OmegaLambda"] = tblhdu.header["OMEGA_L"]
-
+        events["AngularDiameterDistance"] = tblhdu.header["D_A"]
+        
         events["xsky"] = tblhdu.data.field("POS_X")
         events["ysky"] = tblhdu.data.field("POS_Y")
         events["eobs"] = tblhdu.data.field("ENERGY")
         
         return cls(events)
 
+    @classmethod
+    def join_events(cls, events1, events2):
+        events = {}
+        for item1, item2 in zip(events1.items(), events2.items()):
+            k1, v1 = item1
+            k2, v2 = item2
+            if isinstance(v1, np.ndarray):
+                events[k1] = np.concatenate([v1,v2])
+            else:
+                events[k1] = v1            
+        return cls(events)
+    
     def convolve_with_response(self, respfile):
         pass
-    
+
+    @parallel_root_only
     def write_fits_file(self, fitsfile, clobber=False):
         """
         Write events to a FITS binary table file.
@@ -448,9 +631,11 @@ class XRayEventList(object) :
         tbhdu.header.update("HUBBLE", self.events["Hubble0"])
         tbhdu.header.update("OMEGA_M", self.events["OmegaMatter"])
         tbhdu.header.update("OMEGA_L", self.events["OmegaLambda"])
-        
-        tbhdu.writeto(fitsfile, clobber=clobber)
+        tbhdu.header.update("D_A", self.evenets["AngularDiameterDistance"])
                 
+        tbhdu.writeto(fitsfile, clobber=clobber)
+
+    @parallel_root_only    
     def write_simput_file(self, prefix, clobber=False, e_min=None, e_max=None):
         """
         Write events to a SIMPUT file.
@@ -519,6 +704,7 @@ class XRayEventList(object) :
                 
         wrhdu.writeto(simputfile, clobber=clobber)
 
+    @parallel_root_only
     def write_h5_file(self, h5file):
         """
         Write a XRayEventList to the HDF5 file given by h5file.
@@ -531,12 +717,14 @@ class XRayEventList(object) :
         f.create_dataset("/hubble", data=self.events["Hubble0"])
         f.create_dataset("/omega_matter", data=self.events["OmegaMatter"])
         f.create_dataset("/omega_lambda", data=self.events["OmegaLambda"])        
+        f.create_dataset("/d_a", data=self.events["AngularDiameterDistance"])        
         f.create_dataset("/xsky", data=self.events["xsky"])
         f.create_dataset("/ysky", data=self.events["ysky"])
         f.create_dataset("/eobs", data=self.events["eobs"])
                         
         f.close()
 
+    @parallel_root_only
     def write_fits_image(self, imagefile, width, nx, center,
                          clobber=False, gzip_file=False,
                          emin=None, emax=None):
@@ -586,6 +774,7 @@ class XRayEventList(object) :
             if (clobber) : clob="-f"
             os.system("gzip "+clob+" %s.fits" % (prefix))
                                     
+    @parallel_root_only
     def write_spectrum(self, specfile, emin, emax, nchan, clobber=False):
         
         spec, ee = np.histogram(self.events["eobs"], bins=nchan, range=(emin, emax))
