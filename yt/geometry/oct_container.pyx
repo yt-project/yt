@@ -123,9 +123,17 @@ cdef class OctreeContainer:
                     self.root_mesh[i][j][k] = NULL
 
     cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
+        cdef int i
         data.index = 0
         data.last = -1
+        data.global_index = -1
+        for i in range(3):
+            data.pos[i] = -1
+            data.ind[i] = -1
+        data.array = NULL
+        data.dims = 0
         data.domain = domain_id
+        data.level = -1
         data.oref = self.oref
         data.nz = (1 << (data.oref*3))
 
@@ -472,6 +480,8 @@ cdef class OctreeContainer:
         if data.index > dest.size:
             print "DEST INDEX RAN AHEAD.",
             print data.index - dest.size
+            print (data.global_index + 1) * data.nz * data.dims, source.size
+            print num_cells
             raise RuntimeError
         if num_cells >= 0:
             return dest

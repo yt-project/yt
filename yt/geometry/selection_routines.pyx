@@ -274,23 +274,24 @@ cdef class SelectorObject:
         # But, we can figure it out by calculating the cell dds.
         cdef np.float64_t dds[3], pos[3]
         cdef int ci, cj, ck
-        for i in range(3):
-            dds[i] = sdds[i] / data.oref
+        cdef int nr = (1 << (data.oref - 1))
+        for ci in range(3):
+            dds[ci] = sdds[ci] / nr
         # Boot strap at the first index.
         pos[0] = (spos[0] - sdds[0]/2.0) + dds[0] * 0.5
-        for ci in range(data.oref):
+        for ci in range(nr):
             pos[1] = (spos[1] - sdds[1]/2.0) + dds[1] * 0.5
-            for cj in range(data.oref):
+            for cj in range(nr):
                 pos[2] = (spos[2] - sdds[2]/2.0) + dds[2] * 0.5
-                for ck in range(data.oref):
+                for ck in range(nr):
                     selected = self.select_cell(pos, dds)
                     if ch != NULL:
                         selected *= self.overlap_cells
-                    data.ind[0] = ci
-                    data.ind[1] = cj
-                    data.ind[2] = ck
-                    pos[2] += dds[2]
+                    data.ind[0] = ci + i * nr
+                    data.ind[1] = cj + j * nr
+                    data.ind[2] = ck + k * nr
                     func(root, data, selected)
+                    pos[2] += dds[2]
                 pos[1] += dds[1]
             pos[0] += dds[0]
 
