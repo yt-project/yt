@@ -144,9 +144,13 @@ class ImagePlotContainer(object):
 
         im = self.image
         if self.cbar.scale == 'log':
-            norm = mpl.matplotlib.colors.LogNorm()
+            norm = mpl.matplotlib.colors.LogNorm(
+                vmin = self.cbar.bounds[0],
+                vmax = self.cbar.bounds[1])
         else:
-            norm = mpl.matplotlib.colors.Normalize()
+            norm = mpl.matplotlib.colors.Normalize(
+                vmin = self.cbar.bounds[0],
+                vmax = self.cbar.bounds[1])
         if use_mesh:
             mappable = axes.pcolormesh(
                                   x_bins, y_bins, self.image, norm=norm,
@@ -161,6 +165,9 @@ class ImagePlotContainer(object):
                         norm = norm)
         cbar = figure.colorbar(mappable)
         cbar.set_label(self.cbar.title)
+        mappable.cmap.set_bad("w")
+        mappable.cmap.set_under("w")
+        mappable.cmap.set_over("w")
         if self.x_spec.title is not None:
             axes.set_xlabel(self.x_spec.title)
         if self.y_spec.title is not None:
@@ -305,12 +312,10 @@ class PhasePlotter(object):
 
         cbar = ColorbarSpec()
         cbar.title = self._current_field
-        if self.scale == 'log':
-            nz = (self.profile[self._current_field] > 0)
-            mi = self.profile[self._current_field][nz].min()
-        else:
-            mi = self.profile[self._current_field].min()
-        ma = self.profile[self._current_field].max()
+        nz = self.profile["UsedBins"]
+        mi = self.profile[self._current_field][nz].min()
+        ma = self.profile[self._current_field][nz].max()
+        print "BOUNDS", mi, ma
         cbar.bounds = (mi, ma)
         cbar.cmap = 'algae'
         cbar.scale = self.scale
