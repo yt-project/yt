@@ -315,7 +315,6 @@ class PhasePlotter(object):
         nz = self.profile["UsedBins"]
         mi = self.profile[self._current_field][nz].min()
         ma = self.profile[self._current_field][nz].max()
-        print "BOUNDS", mi, ma
         cbar.bounds = (mi, ma)
         cbar.cmap = 'algae'
         cbar.scale = self.scale
