@@ -203,7 +203,10 @@ class GDFStaticOutput(StaticOutput):
             else:
                 self.units[field_name] = 1.0
             if 'field_units' in current_field.attrs:
-                current_fields_unit = just_one(current_field.attrs['field_units'])
+                if type(current_field.attrs['field_units']) == str:
+                    current_fields_unit = current_field.attrs['field_units']
+                else:
+                    current_fields_unit = just_one(current_field.attrs['field_units'])
             else:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
