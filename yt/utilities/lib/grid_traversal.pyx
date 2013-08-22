@@ -58,6 +58,15 @@ cdef extern from "math.h":
     double sin(double x) nogil
     double sqrt(double x) nogil
 
+ctypedef void sampler_function(
+                VolumeContainer *vc,
+                np.float64_t v_pos[3],
+                np.float64_t v_dir[3],
+                np.float64_t enter_t,
+                np.float64_t exit_t,
+                int index[3],
+                void *data) nogil
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object source_mask 
@@ -223,7 +232,7 @@ cdef struct ImageAccumulator:
 
 cdef class ImageSampler:
     cdef ImageContainer *image
-    cdef sample_function *sampler
+    cdef sampler_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
     cdef void *supp_data
     cdef np.float64_t width[3]
@@ -921,7 +930,7 @@ cdef class ProtoPrism:
 cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
-                     sample_function *sampler,
+                     sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
                      np.float64_t enter_t = -1.0) nogil:

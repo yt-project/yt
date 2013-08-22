@@ -115,6 +115,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0: continue
                 x, y, z = (data[g.id].pop("particle_position_%s" % ax)
                            for ax in 'xyz')
+                x, y, z = (np.array(arr, dtype='float64') for arr in (x, y, z))
                 size += g.count_particles(selector, x, y, z)
         read_fields = fields[:]
         for field in fields:
@@ -132,6 +133,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0: continue
                 x, y, z = (data[g.id]["particle_position_%s" % ax]
                            for ax in 'xyz')
+                x, y, z = (np.array(arr, dtype='float64') for arr in (x, y, z))
                 mask = g.select_particles(selector, x, y, z)
                 if mask is None: continue
                 for field in set(fields):

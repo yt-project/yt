@@ -96,7 +96,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     if answer_big_data:
         nose_argv.append('--answer-big-data')
     log_suppress = ytcfg.getboolean("yt","suppressStreamLogging")
-    ytcfg["yt","suppressStreamLogging"] = 'True'
+    ytcfg.set("yt","suppressStreamLogging", 'True')
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
@@ -105,4 +105,4 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
         nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
-        ytcfg["yt","suppressStreamLogging"] = log_suppress
+        ytcfg.set("yt","suppressStreamLogging", str(log_suppress))

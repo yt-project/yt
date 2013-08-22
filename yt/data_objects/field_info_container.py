@@ -277,7 +277,14 @@ class FieldDetector(defaultdict):
                 mylog.debug("Guessing field %s is %s", item, finfo.name)
             else:
                 field = item
-                finfo = self.pf._get_field_info(*field)
+            finfo = self.pf._get_field_info(*field)
+            # For those cases where we are guessing the field type, we will
+            # need to re-update -- otherwise, our item will always not have the
+            # field type.  This can lead to, for instance, "unknown" particle
+            # types not getting correctly identified.
+            # Note that the *only* way this works is if we also fix our field
+            # dependencies during checking.  Bug #627 talks about this.
+            item = self.pf._last_freq
         else:
             FI = getattr(self.pf, "field_info", FieldInfo)
             if item in FI:

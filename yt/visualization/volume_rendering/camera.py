@@ -542,7 +542,7 @@ class Camera(ParallelAnalysisInterface):
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                np.array(self.width), self.transfer_function, self.sub_samples)
+                np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
         return args
 
     star_trees = None
@@ -2034,6 +2034,9 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             return temp_weightfield
         pf.field_info.add_field("temp_weightfield",
             function=_make_wf(field, weight))
+        # Now we have to tell the parameter file to add it and to calculate its
+        # dependencies..
+        pf.h._derived_fields_add(["temp_weightfield"], [])
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
@@ -2083,6 +2086,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     else:
         image[:,:,0] /= image[:,:,1]
         pf.field_info.pop("temp_weightfield")
+        pf.field_dependencies.pop("temp_weightfield")
         for g in pf.h.grids:
             if "temp_weightfield" in g.keys():
                 del g["temp_weightfield"]
@@ -2133,6 +2137,9 @@ class ProjectionCamera(Camera):
                 return temp_weightfield
             pf.field_info.add_field("temp_weightfield",
                 function=_make_wf(self.field, self.weight))
+            # Now we have to tell the parameter file to add it and to calculate
+            # its dependencies..
+            pf.h._derived_fields_add(["temp_weightfield"], [])
             fields = ["temp_weightfield", self.weight]
         
         self.fields = fields
@@ -2159,10 +2166,10 @@ class ProjectionCamera(Camera):
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
         args = (rotp, self.box_vectors[2], self.back_center,
-            (-self.width[0]/2, self.width[0]/2,
-             -self.width[1]/2, self.width[1]/2),
+            (-self.width[0]/2., self.width[0]/2.,
+             -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                np.array(self.width), self.sub_samples)
+                np.array(self.width, dtype='float64'), self.sub_samples)
         return args
 
     def finalize_image(self,image):
@@ -2327,6 +2334,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
+        pf.field_dependencies.pop("temp_weightfield")
     del projcam
     return image[:,:]
 

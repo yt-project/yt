@@ -189,8 +189,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
 class PolarCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rzt'):
-        if ordering != 'rzt': raise NotImplementedError
+    def __init__(self, pf, ordering = 'rtz'):
+        if ordering != 'rtz': raise NotImplementedError
         super(PolarCoordinateHandler, self).__init__(pf)
 
     def coordinate_fields(self):
@@ -198,16 +198,17 @@ class PolarCoordinateHandler(CoordinateHandler):
         return PolarFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
-        raise NotImplementedError
-        if dimension == 1:
+        ax_name = self.axis_name[dimension]
+        if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
-        elif dimension == 2:
-            return self._polar_pixelize(data_source, field, bounds, size,
+        elif ax_name == "z":
+            return self._cyl_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
+
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
@@ -222,20 +223,20 @@ class PolarCoordinateHandler(CoordinateHandler):
                                  data_source['dr']/2.0,
                                  data_source['theta'],
                                  data_source['dtheta']/2.0,
-                                 size[0], field, bounds[0])
+                                 size[0], data_source[field], bounds[0])
         return buff
 
-    axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
-                 'r' : 'r', 'z' : 'z', 'theta' : 'theta',
-                 'R' : 'r', 'Z' : 'z', 'Theta' : 'theta'}
+    axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',
+                 'r' : 'r', 'theta' : 'theta', 'z' : 'z',
+                 'R' : 'r', 'Theta' : 'theta', 'Z' : 'z'}
 
-    axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
+    axis_id = { 'r' : 0, 'theta' : 1, 'z' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
-    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
+    x_axis = { 'r' : 1, 'theta' : 0, 'z' : 0,
                 0  : 1,  1  : 0,  2  : 0}
 
-    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
+    y_axis = { 'r' : 2, 'theta' : 2, 'z' : 1,
                 0  : 2,  1  : 2,  2  : 1}
 
     def convert_from_cartesian(self, coord):
@@ -262,8 +263,8 @@ class PolarCoordinateHandler(CoordinateHandler):
 
 class CylindricalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rtz'):
-        if ordering != 'rtz': raise NotImplementedError
+    def __init__(self, pf, ordering = 'rzt'):
+        if ordering != 'rzt': raise NotImplementedError
         super(CylindricalCoordinateHandler, self).__init__(pf)
 
     def coordinate_fields(self):
@@ -271,11 +272,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return CylindricalFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
-        raise NotImplementedError
-        if dimension == 1:
+        ax_name = self.axis_name[dimension]
+        if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
-        elif dimension == 2:
+        elif ax_name == "z":
             return self._cyl_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
@@ -295,7 +296,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                                  data_source['dr']/2.0,
                                  data_source['theta'],
                                  data_source['dtheta']/2.0,
-                                 size[0], field, bounds[0])
+                                 size[0], data_source[field], bounds[0])
         return buff
 
     axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',

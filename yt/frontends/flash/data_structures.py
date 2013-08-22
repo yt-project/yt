@@ -444,6 +444,12 @@ class FLASHStaticOutput(StaticOutput):
                     mylog.warning('Identical domain left edge and right edges '
                                   'along dummy dimension (%i), attempting to read anyway' % d)
                     self.domain_right_edge[d] = self.domain_left_edge[d]+1.0
+        if self.dimensionality < 3 and self.geometry == "cylindrical":
+            mylog.warning("Extending theta dimension to 2PI + left edge.")
+            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+        elif self.dimensionality < 3 and self.geometry == "polar":
+            mylog.warning("Extending theta dimension to 2PI + left edge.")
+            self.domain_right_edge[1] = self.domain_left_edge[1] + 2*np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 

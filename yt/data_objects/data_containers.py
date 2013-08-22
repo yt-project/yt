@@ -414,10 +414,12 @@ class YTDataContainer(object):
     def blocks(self):
         for io_chunk in self.chunks([], "io"):
             for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
-                g = self._current_chunk.objs[0]
-                mask = g._get_selector_mask(self.selector)
-                if mask is None: continue
-                yield g, mask
+                # For grids this will be a grid object, and for octrees it will
+                # be an OctreeSubset.  Note that we delegate to the sub-object.
+                o = self._current_chunk.objs[0]
+                for b, m in o.select_blocks(self.selector):
+                    if m is None: continue
+                    yield b, m
 
 class GenerationInProgress(Exception):
     def __init__(self, fields):
@@ -436,7 +438,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     @property
     def selector(self):
         if self._selector is not None: return self._selector
-        sclass = getattr(yt.geometry.selection_routines,
+        s_module = getattr(self, '_selector_module',
+                           yt.geometry.selection_routines)
+        sclass = getattr(s_module,
                          "%s_selector" % self._type_name, None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
@@ -459,7 +463,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
             inspected += 1
-            if field not in self.pf.field_dependencies: continue
+            fd = self.pf.field_dependencies.get(field, None) or \
+                 self.pf.field_dependencies.get(field[1], None)
+            if fd is None: continue
             fd = self.pf.field_dependencies[field]
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]

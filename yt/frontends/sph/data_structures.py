@@ -112,9 +112,9 @@ class ParticleStaticOutput(StaticOutput):
         if self.cosmological_simulation:
             for unit in mpc_conversion:
                 mpch['%sh' % unit] = mpch[unit] * self.hubble_constant
-                mpch['%shcm' % unit] = (mpch["%sh" % unit] /
+                mpch['%shcm' % unit] = (mpch["%sh" % unit] *
                                 (1 + self.current_redshift))
-                mpch['%scm' % unit] = mpch[unit] / (1 + self.current_redshift)
+                mpch['%scm' % unit] = mpch[unit] * (1 + self.current_redshift)
         # ud == unit destination
         # ur == unit registry
         for ud, ur in [(self.units, mpch), (self.time_units, sec_conversion)]:

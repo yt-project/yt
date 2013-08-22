@@ -89,3 +89,6 @@ from field_info_container import \
 
 from particle_trajectories import \
     ParticleTrajectoryCollection
+
+from particle_filters import \
+    particle_filter

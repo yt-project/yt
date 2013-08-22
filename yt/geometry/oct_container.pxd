@@ -57,7 +57,7 @@ cdef class OctreeContainer:
     cdef int partial_coverage
     cdef int nn[3]
     cdef np.float64_t DLE[3], DRE[3]
-    cdef public int nocts
+    cdef public np.int64_t nocts
     cdef public int max_domain
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef int get_root(self, int ind[3], Oct **o)
@@ -72,11 +72,14 @@ cdef class OctreeContainer:
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
 
-cdef class RAMSESOctreeContainer(OctreeContainer):
+cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
     cdef void *tree_root
     cdef int num_root
     cdef int max_root
+
+cdef class RAMSESOctreeContainer(SparseOctreeContainer):
+    pass
 
 cdef extern from "search.h" nogil:
     void *tsearch(const void *key, void **rootp,

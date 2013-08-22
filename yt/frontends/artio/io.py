@@ -36,7 +36,7 @@ class IOHandlerARTIO(BaseIOHandler):
         cp = 0
         for onechunk in chunks:
             for artchunk in onechunk.objs:
-                rv = artchunk.fill(fields)
+                rv = artchunk.fill(fields, selector)
                 for f in fields:
                     tr[f].resize(cp+artchunk.data_size)
                     tr[f][cp:cp+artchunk.data_size] = rv.pop(f)
@@ -44,12 +44,32 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_selection(self, chunks, selector, fields):
-        # TODO: determine proper datatype for fields
-        tr = dict((ftuple, np.empty(0, dtype='float32')) for ftuple in fields)
+        fd = dict((ftuple, []) for ftuple in fields)
+        ftypes = set(ftype for (ftype, fname) in fields)
+        for ftype in ftypes:
+            for ax in 'xyz':
+                ftuple = (ftype, "particle_position_%s" % ax)
+                if ftuple not in fd:
+                    fd[ftuple] = []
         for onechunk in chunks:
+            # We're going to read here
             for artchunk in onechunk.objs:
-                artchunk.fill_particles(tr, fields)
-        for ftype, fname in tr.keys():
-            if fname == "particle_mass":
-                tr[ftype, fname] = tr[ftype, fname].astype("float64")
+                rv = artchunk.fill_particles(fd.keys())
+                # Now we count and also cut
+                for ftype in rv:
+                    mask = selector.select_points(
+                        rv[ftype]["particle_position_x"],
+                        rv[ftype]["particle_position_y"],
+                        rv[ftype]["particle_position_z"])
+                    if mask is None: continue
+                    for fname in rv[ftype]:
+                        if (ftype, fname) not in fields: continue
+                        fd[ftype, fname].append(rv[ftype][fname][mask])
+        # This needs to be pre-initialized in case we are later concatenated.
+        tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
+        for f in fd.keys():
+            v = fd.pop(f)
+            if f not in fields: continue
+            if len(v) == 0: continue
+            tr[f] = np.concatenate(v)
         return tr
