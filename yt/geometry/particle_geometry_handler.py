@@ -148,9 +148,9 @@ class ParticleGeometryHandler(GeometryHandler):
                 data_files = [self.data_files[i] for i in
                               self.regions.identify_data_files(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
+            oref = self.parameter_file.over_refine_factor
             subset = [ParticleOctreeSubset(base_region, data_files, 
-                        self.parameter_file,
-                        self.parameter_file.over_refine_factor)]
+                        self.parameter_file, over_refine_factor = oref)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 

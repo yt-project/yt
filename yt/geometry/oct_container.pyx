@@ -291,8 +291,10 @@ cdef class OctreeContainer:
         cdef np.int64_t npos[3], ndim[3]
         # Now we get our boundaries for this level, so that we can wrap around
         # if need be.
+        # ndim is the oct dimensions of the level, not the cell dimensions.
         for i in range(3):
-            ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i])/(2*oi.dds[i]))
+            ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i]) / oi.dds[i])
+            ndim[i] = (ndim[i] >> self.oref)
         for i in range(3):
             npos[0] = (oi.ipos[0] + (1 - i))
             if npos[0] < 0: npos[0] += ndim[0]
@@ -325,6 +327,7 @@ cdef class OctreeContainer:
                         nfound += 1
                         olist = OctList_append(olist, cand)
                         if my_list == NULL: my_list = olist
+
         olist = my_list
         cdef int noct = OctList_count(olist)
         cdef Oct **neighbors

@@ -98,7 +98,7 @@ cdef class ParticleSmoothOperation:
         # that we can deal with >27 neighbors.  As I write this comment,
         # neighbors() only returns 27 neighbors.
         cdef int nf, i, j, dims[3], n
-        cdef np.float64_t **field_pointers, *field_vals, pos[3], *ppos
+        cdef np.float64_t **field_pointers, *field_vals, pos[3], *ppos, dds[3]
         cdef int nsize = 0
         cdef np.int64_t *nind = NULL
         cdef OctInfo oi
@@ -144,6 +144,7 @@ cdef class ParticleSmoothOperation:
         # actually be indirectly-sorted fields.  This preserves memory at the
         # expense of additional pointer lookups.
         pind = np.argsort(pdoms)
+        pind = np.asarray(pind, dtype='int64', order='C')
         # So what this means is that we now have all the oct-0 particle indices
         # in order, then the oct-1, etc etc.
         # This now gives us the indices to the particles for each domain.
@@ -176,6 +177,8 @@ cdef class ParticleSmoothOperation:
                 continue
             offset = dom_ind[oct.domain_ind - moff] * nz
             neighbors = octree.neighbors(&oi, &nneighbors)
+            for j in range(3):
+                dds[j] = oi.dds[j] / octree.oref
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:
@@ -190,7 +193,7 @@ cdef class ParticleSmoothOperation:
                     break
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
-            self.neighbor_process(dims, oi.left_edge, oi.dds,
+            self.neighbor_process(dims, oi.left_edge, dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset)
         if nind != NULL:
@@ -332,6 +335,9 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
         free(self.fp)
         return self.vals
 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields):
         # We have our i, j, k for our cell, as well as the cell position.
