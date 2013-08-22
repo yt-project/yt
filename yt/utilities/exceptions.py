@@ -287,3 +287,14 @@ class YTIllDefinedFilter(YTException):
     def __str__(self):
         return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
             self.filter, self.s1, self.s2)
+
+class YTIllDefinedBounds(YTException):
+    def __init__(self, lb, ub):
+        self.lb = lb
+        self.ub = ub
+
+    def __str__(self):
+        v =  "The bounds %0.3e and %0.3e are ill-defined. " % (self.lb, self.ub)
+        v += "Typically this happens when a log binning is specified "
+        v += "and zero or negative values are given for the bounds."
+        return v

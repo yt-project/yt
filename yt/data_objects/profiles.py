@@ -183,6 +183,8 @@ class BinnedProfile1D(BinnedProfile):
 
         # Get our bins
         if log_space:
+            if lower_bound <= 0.0 or upper_bound <= 0.0:
+                raise YTIllDefinedBounds(lower_bound, upper_bound)
             func = np.logspace
             lower_bound, upper_bound = np.log10(lower_bound), np.log10(upper_bound)
         else:
@@ -522,7 +524,10 @@ class BinnedProfile2D(BinnedProfile):
         return [self.x_bin_field, self.y_bin_field]
 
 def fix_bounds(upper, lower, logit):
-    if logit: return np.log10(upper), np.log10(lower)
+    if logit:
+        if lower <= 0.0 or upper <= 0.0:
+            raise YTIllDefinedBounds(lower, upper)
+        return np.log10(upper), np.log10(lower)
     return upper, lower
 
 class BinnedProfile2DInlineCut(BinnedProfile2D):

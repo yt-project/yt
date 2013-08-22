@@ -231,20 +231,37 @@ def _AngularMomentumVector(data):
     j_mag = [amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)]
     return [j_mag]
 
-def _StarAngularMomentumVector(data):
+def _StarAngularMomentumVector(data, ftype=None):
     """
     This function returns the mass-weighted average angular momentum vector 
     for stars.
     """
-    is_star = data["creation_time"] > 0
-    star_mass = data["ParticleMassMsun"][is_star]
-    sLx = data["ParticleSpecificAngularMomentumX"][is_star]
-    sLy = data["ParticleSpecificAngularMomentumY"][is_star]
-    sLz = data["ParticleSpecificAngularMomentumZ"][is_star]
-    amx = sLx * star_mass
-    amy = sLy * star_mass
-    amz = sLz * star_mass
+    if ftype is None:
+        is_star = data["creation_time"] > 0
+        star_mass = data["ParticleMassMsun"][is_star]
+    else:
+        is_star = Ellipsis
+        key = (ftype, "ParticleSpecificAngularMomentum%s")
+    j_mag = np.ones(3, dtype='f8')
+    for i, ax in enumerate("XYZ"):
+        j_mag[i] = data[key % ax][is_star]
+        j_mag[i] *= star_mass
     j_mag = [amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)]
+    return [j_mag]
+
+def _ParticleAngularMomentumVector(data):
+    """
+    This function returns the mass-weighted average angular momentum vector 
+    for all particles.
+    """
+    mass = data["ParticleMass"]
+    sLx = data["ParticleSpecificAngularMomentumX"]
+    sLy = data["ParticleSpecificAngularMomentumY"]
+    sLz = data["ParticleSpecificAngularMomentumZ"]
+    amx = sLx * mass
+    amy = sLy * mass
+    amz = sLz * mass
+    j_mag = [amx.sum(), amy.sum(), amz.sum()]
     return [j_mag]
 
 def _combAngularMomentumVector(data, j_mag):
@@ -252,10 +269,14 @@ def _combAngularMomentumVector(data, j_mag):
     L_vec = j_mag.sum(axis=0,dtype=np.float64)
     L_vec_norm = L_vec / np.sqrt((L_vec**2.0).sum(dtype=np.float64))
     return L_vec_norm
+
 add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 add_quantity("StarAngularMomentumVector", function=_StarAngularMomentumVector,
+             combine_function=_combAngularMomentumVector, n_ret=1)
+
+add_quantity("ParticleAngularMomentumVector", function=_ParticleAngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 def _BaryonSpinParameter(data):
@@ -726,3 +747,28 @@ def _combParticleDensityCenter(data,densities,centers):
 
 add_quantity("ParticleDensityCenter",function=_ParticleDensityCenter,
              combine_function=_combParticleDensityCenter,n_ret=2)
+
+def _HalfMass(data, field):
+    """
+    Cumulative sum the given mass field and find 
+    at what radius the half mass is. Simple but 
+    memory-expensive method.
+    """
+    d = np.nan_to_num(data[field])
+    r = data['Radius']
+    return d, r
+
+def _combHalfMass(data, field_vals, radii, frac=0.5):
+    fv = np.concatenate(field_vals.tolist()).ravel()
+    r = np.concatenate(radii.tolist()).ravel()
+    idx = np.argsort(r)
+    r = r[idx]
+    fv = np.cumsum(fv[idx])
+    idx, = np.where(fv / fv[-1] > frac)
+    if len(idx) > 0:
+        return r[idx[0]]
+    else:
+        return np.nan
+
+add_quantity("HalfMass",function=_HalfMass,
+             combine_function=_combHalfMass,n_ret=2)

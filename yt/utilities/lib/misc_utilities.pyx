@@ -378,6 +378,8 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
     raise KeyError
 
 @cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                       np.ndarray[np.float64_t, ndim=1] dradius,
                       np.ndarray[np.float64_t, ndim=1] theta,
