@@ -615,11 +615,12 @@ class ChunkDataCache(object):
         # potentially looking at estimated memory usage.  Note that this never
         # initializes the iterator; it assumes the iterator is already created,
         # and it calls next() on it.
-        self.base_iter = base_iter
+        self.base_iter = base_iter.__iter__()
         self.queue = []
         self.max_length = max_length
         self.preload_fields = preload_fields
         self.geometry_handler = geometry_handler
+        self.cache = {}
 
     def __iter__(self):
         return self
@@ -631,7 +632,11 @@ class ChunkDataCache(object):
                     self.queue.append(self.base_iter.next())
                 except StopIteration:
                     break
-        if len(self.queue) == 0:
             # If it's still zero ...
-            raise StopIteration
-        return self.queue.pop(0)
+            if len(self.queue) == 0: raise StopIteration
+            chunk = YTDataChunk(None, "cache", self.queue, cache=False)
+            self.cache = self.geometry_handler.io._read_chunk_data(
+                chunk, self.preload_fields)
+        g = self.queue.pop(0)
+        g._initialize_cache(self.cache.pop(g.id, {}))
+        return g

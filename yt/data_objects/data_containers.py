@@ -47,7 +47,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
-    NeedsGridType
+    NeedsGridType, ValidateSpatial
 import yt.geometry.selection_routines
 
 def force_array(item, shape):
@@ -92,6 +92,7 @@ class YTDataContainer(object):
     _con_args = ()
     _skip_add = False
     _container_fields = ()
+    _field_cache = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -192,13 +193,17 @@ class YTDataContainer(object):
         Returns a single field.  Will add if necessary.
         """
         f = self._determine_fields(key)[0]
-        if f not in self.field_data:
+        if f not in self.field_data and key not in self.field_data:
             if f in self._container_fields:
                 self.field_data[f] = self._generate_container_field(f)
                 return self.field_data[f]
             else:
                 self.get_data(f)
-        return self.field_data[f]
+        # Note that this is less succinct so that we can account for the case
+        # when there are, for example, no elements in the object.
+        rv = self.field_data.get(f, None)
+        if rv is None: rv = self.field_data[key]
+        return rv
 
     def __setitem__(self, key, val):
         """
@@ -249,10 +254,14 @@ class YTDataContainer(object):
         rv = np.empty(self.ires.size, dtype="float64")
         ind = 0
         if ngz == 0:
+            deps = self._identify_dependencies([field], spatial = True)
+            deps = self._determine_fields(deps)
             for io_chunk in self.chunks([], "io", cache = False):
-                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
-                    ind += self._current_chunk.objs[0].select(
-                            self.selector, self[field], rv, ind)
+                for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
+                                                    preload_fields = deps)):
+                    o = self._current_chunk.objs[0]
+                    with o._activate_cache():
+                        ind += o.select(self.selector, self[field], rv, ind)
         else:
             chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
@@ -454,12 +463,18 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
-    def _identify_dependencies(self, fields_to_get):
+    def _identify_dependencies(self, fields_to_get, spatial = False):
         inspected = 0
         fields_to_get = fields_to_get[:]
         for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
             inspected += 1
+            fi = self.pf._get_field_info(*field)
+            if not spatial and any(
+                    isinstance(v, ValidateSpatial) for v in fi.validators):
+                # We don't want to pre-fetch anything that's spatial, as that
+                # will be done later.
+                continue
             fd = self.pf.field_dependencies.get(field, None) or \
                  self.pf.field_dependencies.get(field[1], None)
             if fd is None: continue
@@ -569,6 +584,25 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.field_data = old_field_data
         self._current_chunk = old_chunk
         self._locked = old_locked
+
+    @contextmanager
+    def _activate_cache(self):
+        cache = self._field_cache or {}
+        old_fields = {}
+        for field in (f for f in cache if f in self.field_data):
+            old_fields[field] = self.field_data[field]
+        self.field_data.update(cache)
+        yield
+        for field in cache:
+            self.field_data.pop(field)
+            if field in old_fields:
+                self.field_data[field] = old_fields.pop(field)
+        self._field_cache = None
+
+    def _initialize_cache(self, cache):
+        # Wipe out what came before
+        self._field_cache = {}
+        self._field_cache.update(cache)
 
     @property
     def icoords(self):

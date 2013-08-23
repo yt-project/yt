@@ -196,6 +196,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             elif g.filename is None:
                 continue
             grids_by_file[g.filename].append(g.id)
+        #if len(chunk.objs) == 1 and len(grids_by_file) > 0:
+        #    raise RuntimeError
         sets = [fname for ftype, fname in fields]
         for filename in grids_by_file:
             nodes = grids_by_file[filename]

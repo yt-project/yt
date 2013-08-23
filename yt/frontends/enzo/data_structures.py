@@ -201,6 +201,7 @@ class EnzoHierarchy(GridGeometryHandler):
 
     _strip_path = False
     grid = EnzoGrid
+    _preload_implemented = True
 
     def __init__(self, pf, data_style):
         

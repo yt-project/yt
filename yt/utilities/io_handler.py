@@ -118,6 +118,9 @@ class BaseIOHandler(object):
     def _read_exception(self):
         return None
 
+    def _read_chunk_data(self, chunk, fields):
+        return None
+
 class IOHandlerExtracted(BaseIOHandler):
 
     _data_style = 'extracted'
