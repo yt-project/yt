@@ -3,6 +3,7 @@ import os
 import sys
 import os.path
 import glob
+import platform
 
 
 # snatched from PyTables
@@ -23,6 +24,8 @@ def add_from_flags(envname, flag_key, dirs):
 # snatched from PyTables
 def get_default_dirs():
     default_header_dirs = []
+    default_library_dirs = []
+
     add_from_path("CPATH", default_header_dirs)
     add_from_path("C_INCLUDE_PATH", default_header_dirs)
     add_from_flags("CPPFLAGS", "-I", default_header_dirs)
@@ -30,12 +33,21 @@ def get_default_dirs():
         ['/usr/include', '/usr/local/include', '/usr/X11']
     )
 
-    default_library_dirs = []
+    _archs = ['lib64', 'lib']
+    if platform.system() == 'Linux':
+        distname, version, did = platform.linux_distribution()
+        if distname in ('Ubuntu', 'Debian'):
+            _archs.extend(
+                ['lib/x86_64-linux-gnu',
+                 'lib/i686-linux-gnu',
+                 'lib/i386-linux-gnu']
+            )
+
     add_from_flags("LDFLAGS", "-L", default_library_dirs)
     default_library_dirs.extend(
         os.path.join(_tree, _arch)
-        for _tree in ('/', '/usr', '/usr/local', '/usr/X11')
-        for _arch in ('lib64', 'lib')
+        for _tree in ('/usr', '/usr/local', '/usr/X11', '/')
+        for _arch in _archs
     )
     return default_header_dirs, default_library_dirs
 
@@ -59,6 +71,14 @@ def get_location_from_cfg(cfg):
 
 
 def check_prefix(inc_dir, lib_dir):
+    if platform.system() == 'Linux':
+        distname, version, did = platform.linux_distribution()
+        if distname in ('Ubuntu', 'Debian'):
+            print("Since you are using multiarch distro it's hard to detect")
+            print("whether library matches the header file. We will assume")
+            print("it does. If you encounter any build failures please use")
+            print("proper cfg files to provide path to the dependencies")
+            return (inc_dir, lib_dir)
     prefix = os.path.commonprefix([inc_dir, lib_dir]).rstrip('/\\')
     if prefix is not '' and prefix == os.path.dirname(inc_dir):
         return (inc_dir, lib_dir)
@@ -69,20 +89,29 @@ def check_prefix(inc_dir, lib_dir):
 
 
 def get_location_from_ctypes(header, library):
+    yt_inst = os.environ.get('YT_DEST')
+    if yt_inst is not None:
+        # since we prefer installation via script, make sure
+        # that YT_DEST path take precedence above all else
+        return (os.path.join(yt_inst, 'include'), os.path.join(yt_inst, 'lib'))
+
     try:
         import ctypes
         import ctypes.util
     except ImportError:
         return (None, None)
 
-    default_header_dirs, default_library_dirs = get_default_dirs()
     target_inc, target_libdir = None, None
+    default_header_dirs, default_library_dirs = get_default_dirs()
     for inc_prefix in default_header_dirs:
         if os.path.isfile(os.path.join(inc_prefix, header)):
             target_inc = inc_prefix
 
     target_libfile = ctypes.util.find_library(library)
-    if target_libfile is not None and os.path.isfile(target_libfile):
+    if None in (target_inc, target_libfile):
+        # either header or lib was not found, abort now
+        return (None, None)
+    if os.path.isfile(target_libfile):
         return check_prefix(target_inc, os.path.dirname(target_libfile))
     for lib_dir in default_library_dirs:
         try:

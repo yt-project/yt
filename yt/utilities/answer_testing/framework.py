@@ -33,6 +33,7 @@ import sys
 import cPickle
 import shelve
 import zlib
+import tempfile
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -270,7 +271,7 @@ def can_run_pf(pf_fn):
     with temp_cwd(path):
         try:
             load(pf_fn)
-        except:
+        except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
@@ -604,9 +605,11 @@ class PlotWindowAttributeTest(AnswerTestingTest):
                                 self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
-        fn = plot.save()[0]
-        image = mpimg.imread(fn)
-        os.remove(fn)
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):

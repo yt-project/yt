@@ -277,7 +277,7 @@ class Camera(ParallelAnalysisInterface):
                    max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
-        By mapping grid level to a color, drawes edges of grids on 
+        By mapping grid level to a color, draws edges of grids on 
         a volume rendering using the camera orientation.
 
         Parameters
@@ -582,7 +582,7 @@ class Camera(ParallelAnalysisInterface):
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                np.array(self.width), self.transfer_function, self.sub_samples)
+                np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
         return args
 
     star_trees = None
@@ -2192,10 +2192,10 @@ class ProjectionCamera(Camera):
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
         args = (rotp, self.box_vectors[2], self.back_center,
-            (-self.width[0]/2, self.width[0]/2,
-             -self.width[1]/2, self.width[1]/2),
+            (-self.width[0]/2., self.width[0]/2.,
+             -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
-                np.array(self.width), self.sub_samples)
+                np.array(self.width, dtype='float64'), self.sub_samples)
         return args
 
     def finalize_image(self,image):

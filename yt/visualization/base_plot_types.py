@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import matplotlib
+import cStringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
@@ -33,12 +34,20 @@ class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
     """
-    def __init__(self, fsize, axrect):
+    def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
         self._plot_valid = True
-        self.figure = matplotlib.figure.Figure(figsize=fsize,
-                                               frameon=True)
-        self.axes = self.figure.add_axes(axrect)
+        if figure is None:
+            self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
+        else:
+            figure.set_size_inches(fsize)
+            self.figure = figure
+        if axes is None:
+            self.axes = self.figure.add_axes(axrect)
+        else:
+            axes.cla()
+            self.axes = axes
+        self.canvas = FigureCanvasAgg(self.figure)
 
     def save(self, name, mpl_kwargs, canvas=None):
         """Choose backend and save image to disk"""
@@ -57,7 +66,7 @@ class PlotMPL(object):
             canvas = FigureCanvasPS(self.figure)
         else:
             mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-            canvas = FigureCanvasAgg(self.figure)
+            canvas = self.canvas
 
         canvas.print_figure(name, **mpl_kwargs)
         return name
@@ -67,13 +76,18 @@ class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
 
     """
-    def __init__(self, fsize, axrect, caxrect, zlim):
+    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
-        PlotMPL.__init__(self, fsize, axrect)
+        PlotMPL.__init__(self, fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
-        self.cax = self.figure.add_axes(caxrect)
+        if cax is None:
+            self.cax = self.figure.add_axes(caxrect)
+        else:
+            cax.cla()
+            cax.set_position(caxrect)
+            self.cax = cax
 
-    def _init_image(self, data, cbnorm, cmap, extent, aspect=None):
+    def _init_image(self, data, cbnorm, cmap, extent, aspect):
         """Store output of imshow in image variable"""
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()
@@ -83,3 +97,10 @@ class ImagePlotMPL(PlotMPL):
                                       norm=norm, vmin=self.zmin, aspect=aspect,
                                       vmax=self.zmax, cmap=cmap)
         self.cb = self.figure.colorbar(self.image, self.cax)
+
+    def _repr_png_(self):
+        canvas = FigureCanvasAgg(self.figure)
+        f = cStringIO.StringIO()
+        canvas.print_figure(f)
+        f.seek(0)
+        return f.read()

@@ -236,8 +236,15 @@ class MultiVariateTransferFunction(object):
     this is fine.  However, more complicated schema are possible by using
     this object.  For instance, density-weighted emission that produces
     colors based on the temperature of the fluid.
+
+    Parameters
+    ----------
+    grey_opacity : bool
+        Should opacity be calculated on a channel-by-channel basis, or
+        overall?  Useful for opaque renderings. Default: False
+ 
     """
-    def __init__(self):
+    def __init__(self, grey_opacity=False):
         self.n_field_tables = 0
         self.tables = [] # Tables are interpolation tables
         self.field_ids = [0] * 6 # This correlates fields with tables
@@ -246,6 +253,7 @@ class MultiVariateTransferFunction(object):
         self.weight_table_ids = [-1] * 6
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, 'float64')
+        self.grey_opacity = grey_opacity
 
     def add_field_table(self, table, field_id, weight_field_id = -1,
                         weight_table_id = -1):
@@ -641,6 +649,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
             self.x_bounds[0]))
+        rel0 = max(rel0, 0)
+        rel1 = min(rel1, self.nbins-1)
         tomap = np.linspace(0.,1.,num=rel1-rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)
@@ -801,6 +811,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             self.link_channels(i+3, i+3)
 
         self._normalize()
+        self.grey_opacity = False
 
     def _normalize(self):
         fmax  = np.array([f.y for f in self.tables[:3]])
