@@ -177,8 +177,6 @@ cdef class ParticleSmoothOperation:
                 continue
             offset = dom_ind[oct.domain_ind - moff] * nz
             neighbors = octree.neighbors(&oi, &nneighbors)
-            for j in range(3):
-                dds[j] = oi.dds[j] / octree.oref
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:
@@ -193,7 +191,7 @@ cdef class ParticleSmoothOperation:
                     break
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
-            self.neighbor_process(dims, oi.left_edge, dds,
+            self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset)
         if nind != NULL:

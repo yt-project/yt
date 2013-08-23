@@ -260,7 +260,7 @@ cdef class OctreeContainer:
             # from the oct width, thus making it already the cell width.
             # But, for some cases where the oref != 1, this needs to be
             # changed.
-            oinfo.dds[i] = dds[i] / self.oref # Cell width
+            oinfo.dds[i] = dds[i] / (1 << (self.oref-1)) # Cell width
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
             oinfo.ipos[i] = ipos[i]
         oinfo.level = level

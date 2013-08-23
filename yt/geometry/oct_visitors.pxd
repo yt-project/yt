@@ -72,11 +72,9 @@ cdef inline int cind(int i, int j, int k):
     return (((i*2)+j)*2+k)
 
 cdef inline int oind(OctVisitorData *data):
-    return (((data.ind[0]*(1<<data.oref))
-             +data.ind[1])*(1<<data.oref)
-             +data.ind[2])
+    cdef int d = (1 << data.oref)
+    return (((data.ind[0]*d)+data.ind[1])*d+data.ind[2])
 
 cdef inline int rind(OctVisitorData *data):
-    return (((data.ind[2]*(1<<data.oref))
-             +data.ind[1])*(1<<data.oref)
-             +data.ind[0])
+    cdef int d = (1 << data.oref)
+    return (((data.ind[2]*d)+data.ind[1])*d+data.ind[0])

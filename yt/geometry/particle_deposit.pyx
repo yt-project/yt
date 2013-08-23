@@ -65,7 +65,8 @@ cdef class ParticleDepositOperation:
             tarr = fields[i]
             field_pointers[i] = <np.float64_t *> tarr.data
         cdef int dims[3]
-        dims[0] = dims[1] = dims[2] = 2
+        dims[0] = dims[1] = dims[2] = (1 << octree.oref)
+        cdef int nz = dims[0] * dims[1] * dims[2]
         cdef OctInfo oi
         cdef np.int64_t offset, moff
         cdef Oct *oct
@@ -97,7 +98,7 @@ cdef class ParticleDepositOperation:
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Note that this has to be our local index, not our in-file index.
-            offset = dom_ind[oct.domain_ind - moff] * 8
+            offset = dom_ind[oct.domain_ind - moff] * nz
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
