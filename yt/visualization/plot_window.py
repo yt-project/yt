@@ -1029,7 +1029,7 @@ class PWViewerMPL(PWViewer):
         field : string
             the field to set a transform
             if field == 'all', applies to all plots.
-        cmap_name : string
+        cmap : string
             name of the colormap
 
         """
