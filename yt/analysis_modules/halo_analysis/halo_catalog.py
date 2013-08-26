@@ -67,12 +67,7 @@ class HaloCatalog(object):
             cb.initialize(self)
         for halo in halo_list:
             if all(cb(self, halo) for cb in self.callbacks):
-                self.add_halo(halo)
+                self.values.append(halo.quantities)
         for cb in self.callbacks:
             cb.finalize(self)
-
-    def add_halo(self, halo):
-        q = halo.quantities
-        for record in q:
-            self.values.append(q)
 
