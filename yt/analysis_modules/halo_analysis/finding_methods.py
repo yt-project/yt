@@ -1,5 +1,5 @@
 """
-Operation registry class
+Halo Finding methods
 
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
@@ -26,20 +26,35 @@ License:
 
 """
 
-class OperatorRegistry(dict):
-    def find(self, op):
-        args = None
-        if isinstance(op, tuple):
-            op, args = op
-        if not callable(op):
-            # Lookup, assuming string or hashable object
-            op = self[op]
-        # We assume that if we are fed args, and a callable, it is arguments
-        # for a class instantiation.
-        if args is not None:
-            op = op(args)
-        # This should at this point be a final operation.
-        return op
+from .operator_registry import \
+    hf_methods
+from .halo_object import \
+    Halo
 
-callback_registry = OperatorRegistry()
-hf_registry = OperatorRegistry()
+import numpy as np
+
+class HaloFindingMethod(object):
+    pass
+
+
+class HOPFindingMethod(HaloFindingMethod):
+    def __init__(self, threshold = 160):
+        self.threshold = 160
+
+    def __call__(self, halo_catalog):
+        from yt.analysis_modules.halo_finding.hop.EnzoHop import \
+            RunHOP
+        ds = halo_catalog.data_source
+        densities, tags = RunHOP(
+            ds["particle_position_x"], ds["particle_position_y"],
+            ds["particle_position_z"], self.threshold)
+        tids = np.unique(tags)
+        pi = np.zeros(tags.shape, dtype="bool")
+        for tid in tids:
+            # In-place equal op
+            pi = np.equal(tags, tid, pi)
+            halo = Halo(pi)
+            yield halo
+
+hf_methods["hop"] = HOPFindingMethod
+

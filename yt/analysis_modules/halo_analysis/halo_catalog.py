@@ -52,12 +52,13 @@ class HaloCatalog(object):
         # First we call the halo finding operation.  This is going to be handed
         # the data source, but we assume it already has all its arguments
         # necessary for the finding operation.
+        # halo_list here will be a generator.
         halo_list = self.finding_method(self)
-        self.halo_list = self.run_callbacks(halo_list)
+        self.run_callbacks(halo_list)
 
     def run_callbacks(self, halo_list):
         new_list = []
         for halo in halo_list:
             if all(cb(self, halo) for cb in self.callbacks):
-                new_list.append(halo)
+                self.add_halo(halo)
         return new_list

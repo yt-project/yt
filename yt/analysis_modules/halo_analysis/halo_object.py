@@ -28,5 +28,6 @@ License:
 
 class Halo(object):
     particles = None
-    def __init__(self):
+    def __init__(self, particle_indices = None):
         self.quantities = {}
+        self.particle_indices = particle_indices
