@@ -31,3 +31,8 @@ class Halo(object):
     def __init__(self, hid, particle_indices = None):
         self.quantities = {}
         self.particle_indices = particle_indices
+        self.halo_id = hid
+
+    def __getitem__(self, key):
+        if key == "particle_indices":
+            return self.particle_indices

@@ -37,7 +37,7 @@ class OperatorRegistry(dict):
         # We assume that if we are fed args, and a callable, it is arguments
         # for a class instantiation.
         if args is not None:
-            op = op(args)
+            op = op(*args)
         # This should at this point be a final operation.
         return op
 

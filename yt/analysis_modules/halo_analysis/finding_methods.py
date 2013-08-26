@@ -52,9 +52,10 @@ class HOPFindingMethod(HaloFindingMethod):
         hids = np.unique(tags)
         pind = np.zeros(tags.shape, dtype="bool")
         for hid in hids:
+            if hid == -1: continue
             # In-place equal op
             np.equal(tags, hid, pind)
-            halo = Halo(pind)
+            halo = Halo(hid, pind)
             yield halo
 
 hf_registry["hop"] = HOPFindingMethod

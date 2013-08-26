@@ -25,6 +25,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
+from .operator_registry import \
+    callback_registry
+
 class HaloCallback(object):
     def __init__(self, function, args, kwargs):
         self.function = function
@@ -48,12 +52,14 @@ class SaveParticles(object):
         self.handle = None
 
     def initialize(self, halo_catalog):
-        self.handle = h5py.File(self.filename)
+        self.handle = h5py.File(self.filename, "a")
 
     def __call__(self, halo_catalog, halo):
         g = self.handle.create_group("/Halo%08i" % halo.halo_id)
-        for arr in arr_names:
+        for arr in self.arr_names:
             g.create_dataset(arr, data=halo[arr])
 
     def finalize(self, halo_catalog):
         self.handle.close()
+
+callback_registry["save_particles"] = SaveParticles
