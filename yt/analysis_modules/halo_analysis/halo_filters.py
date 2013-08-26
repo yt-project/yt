@@ -25,11 +25,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-class HaloFilter(object):
+from .halo_callbacks import HaloCallback
+
+class HaloFilter(HaloCallback):
     def __init__(self, function, args, kwargs):
-        self.function = function
-        self.args = args
-        self.kwargs = kwargs
+        HaloCallback.__init__(self, function, args, kwargs)
 
     def __call__(self, halo_catalog, halo):
         return self.function(halo_catalog, halo, *self.args, **self.kwargs)

@@ -32,4 +32,5 @@ class HaloCallback(object):
         self.kwargs
 
     def __call__(self, halo_catalog, halo):
-        return self.function(halo_catalog, halo, *self.args, **self.kwargs)
+        self.function(halo_catalog, halo, *self.args, **self.kwargs)
+        return True
