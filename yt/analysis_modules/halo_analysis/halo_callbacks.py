@@ -34,3 +34,26 @@ class HaloCallback(object):
     def __call__(self, halo_catalog, halo):
         self.function(halo_catalog, halo, *self.args, **self.kwargs)
         return True
+
+    def initialize(self, halo_catalog):
+        pass
+
+    def finalize(self, halo_catalog):
+        pass
+
+class SaveParticles(object):
+    def __init__(self, filename, arr_names = ("particle_ids")):
+        self.filename = filename
+        self.arr_names = arr_names
+        self.handle = None
+
+    def initialize(self, halo_catalog):
+        self.handle = h5py.File(self.filename)
+
+    def __call__(self, halo_catalog, halo):
+        g = self.handle.create_group("/Halo%08i" % halo.halo_id)
+        for arr in arr_names:
+            g.create_dataset(arr, data=halo[arr])
+
+    def finalize(self, halo_catalog):
+        self.handle.close()

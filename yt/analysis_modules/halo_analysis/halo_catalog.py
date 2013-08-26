@@ -57,6 +57,15 @@ class HaloCatalog(object):
         self.run_callbacks(halo_list)
 
     def run_callbacks(self, halo_list):
+        for cb in self.callbacks:
+            cb.initialize(self)
         for halo in halo_list:
             if all(cb(self, halo) for cb in self.callbacks):
                 self.add_halo(halo)
+        for cb in self.callbacks:
+            cb.finalize(self)
+
+    def add_halo(self, halo):
+        q = halo.quantities
+        for record in q:
+            self.values.append(record)

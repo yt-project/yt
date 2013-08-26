@@ -27,7 +27,7 @@ License:
 """
 
 from .operator_registry import \
-    hf_methods
+    hf_registry
 from .halo_object import \
     Halo
 
@@ -49,13 +49,28 @@ class HOPFindingMethod(HaloFindingMethod):
             ds["particle_position_x"], ds["particle_position_y"],
             ds["particle_position_z"], ds["ParticleMassMsun"],
             self.threshold)
-        tids = np.unique(tags)
+        hids = np.unique(tags)
         pind = np.zeros(tags.shape, dtype="bool")
-        for tid in tids:
+        for hid in hids:
             # In-place equal op
-            np.equal(tags, tid, pind)
+            np.equal(tags, hid, pind)
             halo = Halo(pind)
             yield halo
 
-hf_methods["hop"] = HOPFindingMethod
+hf_registry["hop"] = HOPFindingMethod
 
+class LoadParticlesMethod(HaloFindingMethod):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __call__(self, halo_catalog):
+        f = h5py.File(self.filename)
+        for hgroup in f["/"]:
+            g = f["%s" % hgroup]
+            if "particle_indices" in g:
+                pind = g["particle_indices"][:]
+            else:
+                pind = None
+            Halo(halo, pind)
+            halo.quantities.update(g.attrs)
+            yield halo
