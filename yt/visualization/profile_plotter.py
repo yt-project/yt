@@ -148,15 +148,19 @@ class ImagePlotContainer(object):
         else:
             norm = mpl.matplotlib.colors.Normalize()
         if use_mesh:
-            pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
+            mappable = axes.pcolormesh(
+                                  x_bins, y_bins, self.image, norm=norm,
                                   shading='flat', cmap = self.cbar.cmap,
                                   rasterized=True)
             if self.x_spec.scale == 'log': axes.set_xscale("log")
             if self.y_spec.scale == 'log': axes.set_yscale("log")
         else:
-            axes.imshow(self.image, origin='lower', interpolation='nearest',
+            mappable = axes.imshow(
+                        self.image, origin='lower', interpolation='nearest',
                         cmap = self.cbar.cmap, extent = [xmi,xma,ymi,yma],
                         norm = norm)
+        cbar = figure.colorbar(mappable)
+        cbar.set_label(self.cbar.title)
         if self.x_spec.title is not None:
             axes.set_xlabel(self.x_spec.title)
         if self.y_spec.title is not None:

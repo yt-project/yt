@@ -237,7 +237,7 @@ class Camera(ParallelAnalysisInterface):
                    max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
-        By mapping grid level to a color, drawes edges of grids on 
+        By mapping grid level to a color, draws edges of grids on 
         a volume rendering using the camera orientation.
 
         Parameters
