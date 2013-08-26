@@ -24,3 +24,13 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+from halo_callbacks import HaloCallback
+
+class HaloQuantity(object):
+    def __init__(self, quantity, function, args, kwargs):
+        self.quantity = quantity
+        self.callback = HaloCallback(function, args, kwargs)
+        
+    def __call__(self, halo, halo_catalog):
+        halo.quantities[self.quantity] = self.callback(halo_catalog, halo)
