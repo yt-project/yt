@@ -95,6 +95,7 @@ class HaloCatalog(object):
             for quantity in self.quantity_operators:
                 quantity(self, halo)
 
-    def run_callbacks(self):
-        for callback in self.callbacks:
-            callback(self)
+    def run_callbacks(self, halo_list):
+        for halo in halo_list:
+            for callback in self.callbacks:
+                callback(self, halo)
