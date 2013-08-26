@@ -38,7 +38,7 @@ class Halo(YTSelectionContainer3D):
         super(Halo, self).__init__(None, halo_catalog.pf, None)
 
     def reset_halo(self, halo_id, particle_indices):
-        self.quantities = {}
+        self.quantities = {'halo_id':halo_id}
         self.particle_indices = particle_indices
         self.halo_id = halo_id
         self.field_data.clear()
