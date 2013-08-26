@@ -29,11 +29,16 @@ import h5py
 from .operator_registry import \
     callback_registry
 
+def add_callback(name, function):
+    callback_registry[name] =  HaloCallback(function)
+
 class HaloCallback(object):
-    def __init__(self, function, args, kwargs):
+    def __init__(self, function, args=None, kwargs=None):
         self.function = function
-        self.args
-        self.kwargs
+        self.args = args
+        if self.args is None: self.args = []
+        self.kwargs = kwargs
+        if self.kwargs is None: self.kwargs = {}
 
     def __call__(self, halo_catalog, halo):
         self.function(halo_catalog, halo, *self.args, **self.kwargs)
@@ -63,3 +68,12 @@ class SaveParticles(object):
         self.handle.close()
 
 callback_registry["save_particles"] = SaveParticles
+
+def center_of_mass(halo_catalog, halo):
+    return (halo['particle_mass'] * 
+            np.array(halo['particle_position_x'],
+                     halo['particle_position_y'],
+                     halo['particle_position_z'])).sum(axis=1) / \ 
+                               halo['particle_mass'].sum()
+
+add_callback('center_of_mass', center_of_mass)
