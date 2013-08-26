@@ -25,12 +25,13 @@ TMIN = 8.08e-2
 TMAX = 50.
 FOUR_PI = 4.*np.pi
 
-class XRayPhotonList(object):
+comm = communication_system.communicators[-1]
+        
+class PhotonList(object):
 
-    def __init__(self, photons=None, comm=None, cosmo=None, p_bins=None):
+    def __init__(self, photons=None, cosmo=None, p_bins=None):
         if photons is None: photons = {}
         self.photons = photons
-        self.comm = comm
         self.cosmo = cosmo
         self.p_bins = p_bins
         self.num_cells = len(photons["x"])
@@ -66,20 +67,15 @@ class XRayPhotonList(object):
     @classmethod
     def from_file(cls, filename, cosmology=None):
         """
-        Initialize a XRayPhotonList from an HDF5 file given by filename.
+        Initialize a PhotonList from an HDF5 file given by filename.
         """
         photons = {}
 
-        comm = communication_system.communicators[-1]
-                
         f = h5py.File(filename, "r")
 
         photons["FiducialExposureTime"] = f["/fid_exp_time"].value
         photons["FiducialArea"] = f["/fid_area"].value
         photons["FiducialRedshift"] = f["/fid_redshift"].value
-        photons["Hubble0"] = f["/hubble"].value
-        photons["OmegaMatter"] = f["/omega_matter"].value
-        photons["OmegaLambda"] = f["/omega_lambda"].value                    
         photons["FiducialAngularDiameterDistance"] = f["/fid_d_a"].value
 
         num_cells = f["/x"][:].shape[0]
@@ -110,36 +106,32 @@ class XRayPhotonList(object):
         photons["Energy"] = f["/energy"][start_e:end_e]
         
         f.close()
-
-        if cosmology is None:
-            cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
-                              OmegaLambdaNow=0.73)
-        else:
-            cosmo = cosmology
                                         
-        return cls(photons=photons, comm=comm, cosmo=cosmo, p_bins=p_bins)
+        return cls(photons=photons, cosmo=cosmology, p_bins=p_bins)
 
     @classmethod
-    def from_scratch(cls, data_source, redshift, eff_A,
-                     exp_time, emission_model, center="c",
-                     X_H=0.75, Zmet=0.3, cosmology=None):
+    def from_thermal_model(cls, data_source, redshift, eff_A,
+                           exp_time, emission_model, center="c",
+                           X_H=0.75, Zmet=0.3, dist=None, cosmology=None):
         """
-        Initialize a XRayPhotonList from a data container. 
+        Initialize a PhotonList from a data container. 
         """
         pf = data_source.pf
-
-        comm = communication_system.communicators[-1]
                 
         vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
 
-        if cosmology is None:
+        if cosmology is None and dist is None:
             cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
                               OmegaLambdaNow=0.73)
         else:
-            cosmo = cosmology
-        
-        D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
-        cosmo_fac = 1.0/(FOUR_PI*D_A*D_A*(1.+redshift)**3)
+            if cosmology is None:
+                D_A = dist*cm_per_mpc
+                cosmo = None
+            else:
+                cosmo = cosmology
+        if cosmo is not None:
+            D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
+        dist_fac = 1.0/(FOUR_PI*D_A*D_A*(1.+redshift)**3)
 
         num_cells = data_source["Temperature"].shape[0]
         start_c = comm.rank*num_cells/comm.size
@@ -215,7 +207,7 @@ class XRayPhotonList(object):
             vol_sum = cell_vol[ibegin:iend].sum()
             em_avg = em_sum/vol_sum
             
-            tot_norm = cosmo_fac*em_sum/vol_scale
+            tot_norm = dist_fac*em_sum/vol_scale
             
             spec = emission_model.get_spectrum(kT, Zmet)
             spec *= tot_norm
@@ -259,16 +251,43 @@ class XRayPhotonList(object):
         photons["FiducialExposureTime"] = exp_time
         photons["FiducialArea"] = eff_A
         photons["FiducialRedshift"] = redshift
-        photons["Hubble0"] = cosmo.HubbleConstantNow
-        photons["OmegaMatter"] = cosmo.OmegaMatterNow
-        photons["OmegaLambda"] = cosmo.OmegaLambdaNow
         photons["FiducialAngularDiameterDistance"] = D_A/cm_per_mpc
 
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
         
-        return cls(photons=photons, comm=comm, cosmo=cosmo, p_bins=p_bins)
+        return cls(photons=photons, cosmo=cosmo, p_bins=p_bins)
 
+    @classmethod
+    def from_user_model(cls, data_source, redshift, eff_A,
+                        exp_time, user_function, parameters={}
+                        dist=None, cosmology=None):
+
+        if cosmology is None and dist is None:
+            cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
+                              OmegaLambdaNow=0.73)
+        else:
+            if cosmology is None:
+                D_A = dist*cm_per_mpc
+                cosmo = None
+            else:
+                cosmo = cosmology
+        if cosmo is not None:
+            D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
+                    
+        photons = user_function(data_source, redshift, eff_A,
+                                exp_time, D_A, parameters)
+        
+        photons["FiducialExposureTime"] = exp_time
+        photons["FiducialArea"] = eff_A
+        photons["FiducialRedshift"] = redshift
+        photons["FiducialAngularDiameterDistance"] = D_A
+
+        p_bins = np.cumsum(photons["NumberOfPhotons"])
+        p_bins = np.insert(p_bins, 0, [np.uint64(0)])
+                        
+        return cls(photons=photons, cosmo=cosmo, p_bins=p_bins)
+        
     def write_h5_file(self, photonfile):
 
         if parallel_capable:
@@ -277,12 +296,12 @@ class XRayPhotonList(object):
             mpi_double = get_mpi_type("float64")
         
             local_num_cells = len(self.photons["x"])
-            sizes_c = self.comm.comm.gather(local_num_cells, root=0)
+            sizes_c = comm.comm.gather(local_num_cells, root=0)
             
             local_num_photons = self.photons["NumberOfPhotons"].sum()
-            sizes_p = self.comm.comm.gather(local_num_photons, root=0)
+            sizes_p = comm.comm.gather(local_num_photons, root=0)
             
-            if self.comm.rank == 0:
+            if comm.rank == 0:
                 num_cells = sum(sizes_c)
                 num_photons = sum(sizes_p)        
                 disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
@@ -311,24 +330,24 @@ class XRayPhotonList(object):
                 n_ph = np.empty([])
                 e = np.empty([])
                                                 
-            self.comm.comm.Gatherv([self.photons["x"], local_num_cells, mpi_double],
-                                   [x, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["y"], local_num_cells, mpi_double],
-                                   [y, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["z"], local_num_cells, mpi_double],
-                                   [z, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["vx"], local_num_cells, mpi_double],
-                                   [vx, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["vy"], local_num_cells, mpi_double],
-                                   [vy, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["vz"], local_num_cells, mpi_double],
-                                   [vz, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["dx"], local_num_cells, mpi_double],
-                                   [dx, (sizes_c, disps_c), mpi_double], root=0)
-            self.comm.comm.Gatherv([self.photons["NumberOfPhotons"], local_num_cells, mpi_long],
-                                   [n_ph, (sizes_c, disps_c), mpi_long], root=0)
-            self.comm.comm.Gatherv([self.photons["Energy"], local_num_photons, mpi_double],
-                                   [e, (sizes_p, disps_p), mpi_double], root=0) 
+            comm.comm.Gatherv([self.photons["x"], local_num_cells, mpi_double],
+                              [x, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["y"], local_num_cells, mpi_double],
+                              [y, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["z"], local_num_cells, mpi_double],
+                              [z, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["vx"], local_num_cells, mpi_double],
+                              [vx, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["vy"], local_num_cells, mpi_double],
+                              [vy, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["vz"], local_num_cells, mpi_double],
+                              [vz, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["dx"], local_num_cells, mpi_double],
+                              [dx, (sizes_c, disps_c), mpi_double], root=0)
+            comm.comm.Gatherv([self.photons["NumberOfPhotons"], local_num_cells, mpi_long],
+                              [n_ph, (sizes_c, disps_c), mpi_long], root=0)
+            comm.comm.Gatherv([self.photons["Energy"], local_num_photons, mpi_double],
+                              [e, (sizes_p, disps_p), mpi_double], root=0) 
 
         else:
 
@@ -342,7 +361,7 @@ class XRayPhotonList(object):
             n_ph = self.photons["NumberOfPhotons"]
             e = self.photons["Energy"]
                                                 
-        if self.comm.rank == 0:
+        if comm.rank == 0:
             
             f = h5py.File(photonfile, "w")
 
@@ -351,9 +370,6 @@ class XRayPhotonList(object):
             f.create_dataset("fid_area", data=self.photons["FiducialArea"])
             f.create_dataset("fid_exp_time", data=self.photons["FiducialExposureTime"])
             f.create_dataset("fid_redshift", data=self.photons["FiducialRedshift"])
-            f.create_dataset("omega_matter", data=self.photons["OmegaMatter"])
-            f.create_dataset("omega_lambda", data=self.photons["OmegaLambda"])
-            f.create_dataset("hubble", data=self.photons["Hubble0"])
             f.create_dataset("fid_d_a", data=self.photons["FiducialAngularDiameterDistance"])
         
             # Arrays
@@ -370,14 +386,21 @@ class XRayPhotonList(object):
 
             f.close()
 
-        self.comm.barrier()
+        comm.barrier()
 
     def project_photons(self, L, area_new=None, texp_new=None, 
-                        redshift_new=None, absorb_model=None, psf_sigma=None):
+                        redshift_new=None, dist_new=None,
+                        absorb_model=None, psf_sigma=None):
         """
         Projects photons onto an image plane given a line of sight. 
         """
 
+        if redshift_new is not None and dist_new is not None:
+            mylog.error("You may specify a new redshift or distance, but not both!")
+
+        if redshift_new is not Done and self.cosmo is None:
+            mylog.error("Specified a new redshift, but no cosmology!")
+            
         dx = self.photons["dx"]
         
         L /= np.sqrt(np.dot(L, L))
@@ -397,7 +420,8 @@ class XRayPhotonList(object):
         
         eff_area = None
         
-        if texp_new is None and area_new is None and redshift_new is None:
+        if (texp_new is None and area_new is None and
+            redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
         else:
             if texp_new is None:
@@ -417,23 +441,27 @@ class XRayPhotonList(object):
             else:
                 mylog.info("Using constant effective area.")
                 Aratio = area_new/self.photons["FiducialArea"]
-            if redshift_new is None:
-                Zratio = 1.
+            if redshift_new is None and dist_new is None:
+                Dratio = 1.
                 zobs = self.photons["FiducialRedshift"]
                 D_A = self.photons["FiducialAngularDiameterDistance"]*1000.                    
             else:
-                zobs = redshift_new
+                if redshift_new is None:
+                    zobs = self.photons["FiducialRedshift"]
+                    D_A = dist_new*1000.
+                else:
+                    zobs = redshift_new
+                    D_A = self.cosmo.AngularDiameterDistance(0.0,zobs)*1000.
                 fid_D_A = self.photons["FiducialAngularDiameterDistance"]*1000.
-                D_A = self.cosmo.AngularDiameterDistance(0.0,zobs)*1000.
-                Zratio = fid_D_A*fid_D_A*(1.+self.photons["FiducialRedshift"]**3) / \
+                Dratio = fid_D_A*fid_D_A*(1.+self.photons["FiducialRedshift"]**3) / \
                          (D_A*D_A*(1.+zobs)**3)
-            fak = Aratio*Tratio*Zratio
+            fak = Aratio*Tratio*Dratio
             if fak > 1:
                 raise ValueError("Spectrum scaling factor = %g, cannot be greater than unity." % (fak))
             my_n_obs = np.uint64(n_ph_tot*fak)
 
-        n_obs_all = self.comm.mpi_allreduce(my_n_obs)
-        if self.comm.rank == 0: mylog.info("Total number of photons to use: %d" % (n_obs_all))
+        n_obs_all = comm.mpi_allreduce(my_n_obs)
+        if comm.rank == 0: mylog.info("Total number of photons to use: %d" % (n_obs_all))
         
         x = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
         y = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
@@ -503,11 +531,11 @@ class XRayPhotonList(object):
             events["xsky"] += np.random.normal(sigma=psf_sigma)
             events["ysky"] += np.random.normal(sigma=psf_sigma)
 
-        events = self.comm.par_combine_object(events, datatype="dict", op="cat")
+        events = comm.par_combine_object(events, datatype="dict", op="cat")
         
         num_events = len(events["xsky"])
             
-        if self.comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
+        if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
                         
         if texp_new is None:
             events["ExposureTime"] = self.photons["FiducialExposureTime"]
@@ -517,15 +545,12 @@ class XRayPhotonList(object):
             events["Area"] = self.photons["FiducialArea"]
         else:
             events["Area"] = area_new
-        events["Hubble0"] = self.photons["Hubble0"]
         events["Redshift"] = zobs
-        events["OmegaMatter"] = self.photons["OmegaMatter"]
-        events["OmegaLambda"] = self.photons["OmegaLambda"] 
         events["AngularDiameterDistance"] = D_A/1000.
                 
-        return XRayEventList(events)
+        return EventList(events)
 
-class XRayEventList(object) :
+class EventList(object) :
 
     def __init__(self, events = None) :
 
@@ -548,7 +573,7 @@ class XRayEventList(object) :
     @classmethod
     def from_h5_file(cls, h5file):
         """
-        Initialize a XRayEventList from a HDF5 file with filename h5file.
+        Initialize an EventList from a HDF5 file with filename h5file.
         """
         events = {}
         
@@ -556,10 +581,7 @@ class XRayEventList(object) :
 
         events["ExposureTime"] = f["/exp_time"].value
         events["Area"] = f["/area"].value
-        events["Hubble0"] = f["/hubble"].value
         events["Redshift"] = f["/redshift"].value
-        events["OmegaMatter"] = f["/omega_matter"].value
-        events["OmegaLambda"] = f["/omega_lambda"].value
         events["AngularDiameterDistance"] = f["/d_a"].value
         
         events["xsky"] = f["/xsky"][:]
@@ -573,7 +595,7 @@ class XRayEventList(object) :
     @classmethod
     def from_fits_file(cls, fitsfile):
         """
-        Initialize a XRayEventList from a FITS file with filename fitsfile.
+        Initialize an EventList from a FITS file with filename fitsfile.
         """
         hdulist = pyfits.open(fitsfile)
 
@@ -583,10 +605,7 @@ class XRayEventList(object) :
         
         events["ExposureTime"] = tblhdu.header["EXPOSURE"]
         events["Area"] = tblhdu.header["AREA"]
-        events["Hubble0"] = tblhdu.header["HUBBLE"]
         events["Redshift"] = tblhdu.header["REDSHIFT"]
-        events["OmegaMatter"] = tblhdu.header["OMEGA_M"]
-        events["OmegaLambda"] = tblhdu.header["OMEGA_L"]
         events["AngularDiameterDistance"] = tblhdu.header["D_A"]
         
         events["xsky"] = tblhdu.data.field("POS_X")
@@ -628,9 +647,6 @@ class XRayEventList(object) :
 
         tbhdu.header.update("EXPOSURE", self.events["ExposureTime"])
         tbhdu.header.update("AREA", self.events["Area"])
-        tbhdu.header.update("HUBBLE", self.events["Hubble0"])
-        tbhdu.header.update("OMEGA_M", self.events["OmegaMatter"])
-        tbhdu.header.update("OMEGA_L", self.events["OmegaLambda"])
         tbhdu.header.update("D_A", self.evenets["AngularDiameterDistance"])
                 
         tbhdu.writeto(fitsfile, clobber=clobber)
@@ -707,16 +723,13 @@ class XRayEventList(object) :
     @parallel_root_only
     def write_h5_file(self, h5file):
         """
-        Write a XRayEventList to the HDF5 file given by h5file.
+        Write an EventList to the HDF5 file given by h5file.
         """
         f = h5py.File(h5file, "w")
 
         f.create_dataset("/exp_time", data=self.events["ExposureTime"])
         f.create_dataset("/area", data=self.events["Area"])
         f.create_dataset("/redshift", data=self.events["Redshift"])
-        f.create_dataset("/hubble", data=self.events["Hubble0"])
-        f.create_dataset("/omega_matter", data=self.events["OmegaMatter"])
-        f.create_dataset("/omega_lambda", data=self.events["OmegaLambda"])        
         f.create_dataset("/d_a", data=self.events["AngularDiameterDistance"])        
         f.create_dataset("/xsky", data=self.events["xsky"])
         f.create_dataset("/ysky", data=self.events["ysky"])
@@ -751,7 +764,7 @@ class XRayEventList(object) :
                                            self.events["ysky"][mask],
                                            bins=[xbins,xbins])
         
-        hdu = pyfits.PrimaryHDU(H.T[::-1,::])
+        hdu = pyfits.PrimaryHDU(H.T[::,::])
 
         hdu.header.update("MTYPE1", "EQPOS")
         hdu.header.update("MFORM1", "RA,DEC")

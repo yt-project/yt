@@ -122,8 +122,8 @@ from .radmc3d_export.api import \
     RadMC3DWriter
 
 from .synthetic_xray_obs.api import \
-     XRayPhotonList, \
-     XRayEventList, \
+     PhotonList, \
+     EventList, \
      XSpecThermalModel, \
      XSpecAbsorbModel, \
      TableApecModel, \

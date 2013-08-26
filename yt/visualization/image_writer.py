@@ -438,14 +438,15 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     return filename
 
 
-def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
+def write_fits(image, filename_prefix, clobber=True, coords=None,
+               other_keys=None, gzip_file=False) :
     """
     This will export a FITS image of a floating point array. The output filename is
     *filename_prefix*. If clobber is set to True, this will overwrite any existing
     FITS file.
     
-    This requires the *pyfits* module, which is a standalone module
-    provided by STSci to interface with FITS-format files.
+    This requires the *pyfits* module, which comes as a standalone module
+    provided by STSci or as a part of the AstroPy package.
     """
     r"""Write out a floating point array directly to a FITS file, optionally
     adding coordinates. 
@@ -461,46 +462,59 @@ def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=Fals
         If the file exists, this governs whether we will overwrite.
     coords : dictionary, optional
         A set of header keys and values to write to the FITS header to set up
-        a coordinate system. 
+        a coordinate system.
+        "type": the type of coordinate system, default is "LINEAR"
+        "units": the length units
+        "xctr","yctr": the center of the image
+        "dx","dy": the pixel width in each direction
+    other_keys : dictionary, optional
+        A set of header keys and values to write into the FITS header.            
     gzip_file : boolean, optional
         gzip the file after writing, default False
     """
-    
-    import pyfits
+
+    try:
+        import pyfits
+    except:
+        try:
+            import astropy.io.fits as pyfits
+        except:
+            mylog.error("You don't have pyFITS or AstroPy installed!")
+            
     from os import system
     
     if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
     
-    hdu = pyfits.PrimaryHDU(image)
+    hdu = pyfits.ImageHDU(image)
+    
+    if coords is not None:
 
-    if (coords is not None) :
-
-        hdu.header.update('WCSNAMEP', "PHYSICAL")
-        hdu.header.update('CTYPE1P', "LINEAR")
-        hdu.header.update('CTYPE2P', "LINEAR")
-        hdu.header.update('CRPIX1P', 0.5)
-        hdu.header.update('CRPIX2P', 0.5)
-        hdu.header.update('CRVAL1P', coords["xmin"])
-        hdu.header.update('CRVAL2P', coords["ymin"])
-        hdu.header.update('CDELT1P', coords["dx"])
-        hdu.header.update('CDELT2P', coords["dy"])
-        
-        hdu.header.update('CTYPE1', "LINEAR")
-        hdu.header.update('CTYPE2', "LINEAR")
+        if not coords.has_key("type"):
+            type = "LINEAR"
+        else:
+            type = coords["type"]
+            
+        hdu.header.update('CTYPE1', type)
+        hdu.header.update('CTYPE2', type)
         hdu.header.update('CUNIT1', coords["units"])
         hdu.header.update('CUNIT2', coords["units"])
-        hdu.header.update('CRPIX1', 0.5)
-        hdu.header.update('CRPIX2', 0.5)
-        hdu.header.update('CRVAL1', coords["xmin"])
-        hdu.header.update('CRVAL2', coords["ymin"])
+        hdu.header.update('CRPIX1', 0.5*(nx+1))
+        hdu.header.update('CRPIX2', 0.5*(ny+1))
+        hdu.header.update('CRVAL1', coords["xctr"])
+        hdu.header.update('CRVAL2', coords["yctr"])
         hdu.header.update('CDELT1', coords["dx"])
         hdu.header.update('CDELT2', coords["dy"])
 
-    hdu.writeto("%s.fits" % (filename_prefix), clobber=clobber)
+    if other_keys is not None:
+        for k,v in other_keys.items():
+            hdu.header.update(k,v)
+                                    
+    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),hdu])
+    hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)
 
-    if (gzip_file) :
+    if gzip_file:
         clob = ""
-        if (clobber) : clob="-f"
+        if clobber: clob="-f"
         system("gzip "+clob+" %s.fits" % (filename_prefix))
 
 def display_in_notebook(image, max_val=None):

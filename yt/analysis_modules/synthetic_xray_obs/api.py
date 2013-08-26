@@ -25,8 +25,8 @@ License:
 """
 
 from .photon_simulator import \
-     XRayPhotonList, \
-     XRayEventList
+     PhotonList, \
+     EventList
 
 from .photon_models import \
      XSpecThermalModel, \
