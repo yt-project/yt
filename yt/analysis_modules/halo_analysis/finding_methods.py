@@ -47,13 +47,14 @@ class HOPFindingMethod(HaloFindingMethod):
         ds = halo_catalog.data_source
         densities, tags = RunHOP(
             ds["particle_position_x"], ds["particle_position_y"],
-            ds["particle_position_z"], self.threshold)
+            ds["particle_position_z"], ds["ParticleMassMsun"],
+            self.threshold)
         tids = np.unique(tags)
-        pi = np.zeros(tags.shape, dtype="bool")
+        pind = np.zeros(tags.shape, dtype="bool")
         for tid in tids:
             # In-place equal op
-            pi = np.equal(tags, tid, pi)
-            halo = Halo(pi)
+            np.equal(tags, tid, pind)
+            halo = Halo(pind)
             yield halo
 
 hf_methods["hop"] = HOPFindingMethod

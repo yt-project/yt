@@ -57,8 +57,6 @@ class HaloCatalog(object):
         self.run_callbacks(halo_list)
 
     def run_callbacks(self, halo_list):
-        new_list = []
         for halo in halo_list:
             if all(cb(self, halo) for cb in self.callbacks):
                 self.add_halo(halo)
-        return new_list
