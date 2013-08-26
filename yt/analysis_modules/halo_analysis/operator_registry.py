@@ -26,19 +26,14 @@ License:
 
 """
 
+import types
+
 class OperatorRegistry(dict):
-    def find(self, op):
-        args = None
-        if isinstance(op, tuple):
-            op, args = op
-        if not callable(op):
+    def find(self, op, *args, **kwargs):
+        if isinstance(op, types.StringTypes):
             # Lookup, assuming string or hashable object
             op = self[op]
-        # We assume that if we are fed args, and a callable, it is arguments
-        # for a class instantiation.
-        if args is not None:
-            op = op(*args)
-        # This should at this point be a final operation.
+            op = op(*args, **kwargs)
         return op
 
 callback_registry = OperatorRegistry()

@@ -33,19 +33,24 @@ from .operator_registry import \
 class HaloCatalog(object):
     def __init__(self, pf, finding_method, data_source = None):
         self.pf = pf
-        if not callable(finding_method):
-            finding_method = hf_registry.find(finding_method)
-        self.finding_method = finding_method
+        self.finding_method = hf_registry.find(finding_method)
         if data_source is None:
             data_source = pf.h.all_data()
         self.data_source = data_source
 
         self.callbacks = []
 
-    def add_callback(self, callback):
-        if not callable(callback):
-            callback = callback_registry.find(callback)
+    def add_callback(self, callback, *args, **kwargs):
+        callback = callback_registry.find(callback, *args, **kwargs)
         self.callbacks.append(callback)
+
+    def add_quantities(self, quantity, *args, **kwargs):
+        quantity = callback_registry.find(quantity, *args, **kwargs)
+        self.callbacks.append(quantity)
+
+    def add_filter(self, filter, *args, **kwargs):
+        filter = callback_registry.find(filter, *args, **kwargs)
+        self.callbacks.append(filter)
 
     def run(self):
         # Here's the basic rundown.
