@@ -1,5 +1,5 @@
 """
-API for spectral_integrator
+API for synthetic_obs
 
 Author: John ZuHone <jzuhone@gmail.com>
 Affiliation: NASA/GSFC
