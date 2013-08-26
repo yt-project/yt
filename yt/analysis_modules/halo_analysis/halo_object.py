@@ -26,13 +26,29 @@ License:
 
 """
 
-class Halo(object):
+from yt.data_objects.data_containers import \
+    YTSelectionContainer3D
+
+class Halo(YTSelectionContainer3D):
     particles = None
-    def __init__(self, hid, particle_indices = None):
+    _type_name = "halo_particles"
+    _skip_add = True
+    def __init__(self, halo_catalog):
+        self.base_source = halo_catalog.data_source
+        super(Halo, self).__init__(None, halo_catalog.pf, None)
+
+    def reset_halo(self, halo_id, particle_indices):
         self.quantities = {}
         self.particle_indices = particle_indices
-        self.halo_id = hid
+        self.halo_id = halo_id
+        self.field_data.clear()
+        self.field_parameters.clear()
 
     def __getitem__(self, key):
-        if key == "particle_indices":
-            return self.particle_indices
+        fields = self._determine_fields(key)
+        if fields[0] in self.field_data:
+            return self.field_data[fields[0]]
+        finfo = self.pf._get_field_info(*fields[0])
+        if not finfo.particle_type:
+            raise NotImplementedError
+        return self.base_source[fields[0]][self.particle_indices]

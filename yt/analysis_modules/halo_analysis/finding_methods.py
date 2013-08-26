@@ -36,7 +36,6 @@ import numpy as np
 class HaloFindingMethod(object):
     pass
 
-
 class HOPFindingMethod(HaloFindingMethod):
     def __init__(self, threshold = 160):
         self.threshold = 160
@@ -51,11 +50,12 @@ class HOPFindingMethod(HaloFindingMethod):
             self.threshold)
         hids = np.unique(tags)
         pind = np.zeros(tags.shape, dtype="bool")
+        halo = Halo(halo_catalog)
         for hid in hids:
             if hid == -1: continue
             # In-place equal op
             np.equal(tags, hid, pind)
-            halo = Halo(hid, pind)
+            halo.reset_halo(hid, pind)
             yield halo
 
 hf_registry["hop"] = HOPFindingMethod
