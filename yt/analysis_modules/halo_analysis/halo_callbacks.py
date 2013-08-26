@@ -24,3 +24,13 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+class HaloCallback(object):
+    def __init__(self, function, args, kwargs):
+        self.function = function
+        self.args
+        self.kwargs
+
+    def __call__(self, halo_catalog, halo):
+        self.function(halo_catalog, halo, *self.args, **self.kwargs)
+        return True
