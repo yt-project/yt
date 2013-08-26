@@ -41,7 +41,5 @@ class OperatorRegistry(dict):
         # This should at this point be a final operation.
         return op
         
-hf_registry = OperatorRegistry()
 callback_registry = OperatorRegistry()
-filter_registry = OperatorRegistry()
-quantity_registry = OperatorRegistry()
+hf_registry = OperatorRegistry()
