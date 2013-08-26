@@ -73,7 +73,7 @@ def center_of_mass(halo_catalog, halo):
     return (halo['particle_mass'] * 
             np.array(halo['particle_position_x'],
                      halo['particle_position_y'],
-                     halo['particle_position_z'])).sum(axis=1) / \ 
+                     halo['particle_position_z'])).sum(axis=1) / \
                                halo['particle_mass'].sum()
 
 add_callback('center_of_mass', center_of_mass)
