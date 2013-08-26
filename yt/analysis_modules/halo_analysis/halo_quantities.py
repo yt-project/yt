@@ -26,13 +26,28 @@ License:
 """
 
 from .halo_callbacks import HaloCallback
+from .operator_registry import quantity_registry
+
+import numpy as np
 
 class HaloQuantity(HaloCallback):
-    def __init__(self, quantity, function, args, kwargs):
+    def __init__(self, quantity, function, *args, **kwargs):
         HaloCallback.__init__(self, function, args, kwargs)
         self.quantity = quantity
         
-    def __call__(self, halo, halo_catalog):
+    def __call__(self, halo_catalog, halo):
         halo.quantities[self.quantity] = self.function(halo_catalog, halo, 
                                                        *self.args, **self.kwargs)
         return True
+
+def add_quantity(name, function):
+    quantity_registry[name] = HaloQuantity(name, function)
+
+def center_of_mass(halo_catalog, halo):
+    return (halo['particle_mass'] * 
+            np.array([halo['particle_position_x'],
+                      halo['particle_position_y'],
+                      halo['particle_position_z']])).sum(axis=1) / \
+                               halo['particle_mass'].sum()
+
+add_quantity('center_of_mass', center_of_mass)

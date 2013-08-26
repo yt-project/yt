@@ -28,6 +28,7 @@ License:
 
 from .operator_registry import \
     callback_registry, \
+    quantity_registry, \
     hf_registry
 
 class HaloCatalog(object):
@@ -37,15 +38,15 @@ class HaloCatalog(object):
         if data_source is None:
             data_source = pf.h.all_data()
         self.data_source = data_source
-
+        self.values = []
         self.callbacks = []
 
     def add_callback(self, callback, *args, **kwargs):
         callback = callback_registry.find(callback, *args, **kwargs)
         self.callbacks.append(callback)
 
-    def add_quantities(self, quantity, *args, **kwargs):
-        quantity = callback_registry.find(quantity, *args, **kwargs)
+    def add_quantity(self, quantity, *args, **kwargs):
+        quantity = quantity_registry.find(quantity, *args, **kwargs)
         self.callbacks.append(quantity)
 
     def add_filter(self, filter, *args, **kwargs):
@@ -73,4 +74,5 @@ class HaloCatalog(object):
     def add_halo(self, halo):
         q = halo.quantities
         for record in q:
-            self.values.append(record)
+            self.values.append(q)
+

@@ -33,8 +33,10 @@ class OperatorRegistry(dict):
         if isinstance(op, types.StringTypes):
             # Lookup, assuming string or hashable object
             op = self[op]
-            op = op(*args, **kwargs)
+            if not getattr(op, "_hc_setup", False):
+                op = op(*args, **kwargs)
         return op
 
 callback_registry = OperatorRegistry()
 hf_registry = OperatorRegistry()
+quantity_registry = OperatorRegistry()

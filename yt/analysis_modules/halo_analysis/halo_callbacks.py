@@ -33,7 +33,9 @@ def add_callback(name, function):
     callback_registry[name] =  HaloCallback(function)
 
 class HaloCallback(object):
+    _hc_setup = False
     def __init__(self, function, args=None, kwargs=None):
+        self._hc_setup = True
         self.function = function
         self.args = args
         if self.args is None: self.args = []
@@ -50,7 +52,7 @@ class HaloCallback(object):
     def finalize(self, halo_catalog):
         pass
 
-class SaveParticles(object):
+class SaveParticles(HaloCallback):
     def __init__(self, filename, arr_names = ("particle_ids")):
         self.filename = filename
         self.arr_names = arr_names
@@ -63,17 +65,10 @@ class SaveParticles(object):
         g = self.handle.create_group("/Halo%08i" % halo.halo_id)
         for arr in self.arr_names:
             g.create_dataset(arr, data=halo[arr])
+        return True
 
     def finalize(self, halo_catalog):
         self.handle.close()
 
 callback_registry["save_particles"] = SaveParticles
 
-def center_of_mass(halo_catalog, halo):
-    return (halo['particle_mass'] * 
-            np.array(halo['particle_position_x'],
-                     halo['particle_position_y'],
-                     halo['particle_position_z'])).sum(axis=1) / \
-                               halo['particle_mass'].sum()
-
-add_callback('center_of_mass', center_of_mass)
