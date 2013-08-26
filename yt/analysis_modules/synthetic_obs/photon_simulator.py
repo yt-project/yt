@@ -121,8 +121,7 @@ class PhotonList(object):
         vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
 
         if cosmology is None and dist is None:
-            cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
-                              OmegaLambdaNow=0.73)
+            cosmo = Cosmology()
         else:
             if cosmology is None:
                 D_A = dist*cm_per_mpc
@@ -193,7 +192,9 @@ class PhotonList(object):
         
         number_of_photons = np.zeros(dshape, dtype='uint64')
         energies = []
-                                
+        
+        u = np.random.random((ecell[-1]))
+        
         pbar = get_pbar("Generating Photons", dshape[0])
 
         for i, ikT in enumerate(kT_idxs):
@@ -204,21 +205,18 @@ class PhotonList(object):
             kT = kT_bins[ikT] + 0.5*dkT
             
             em_sum = cell_em[ibegin:iend].sum()
-            vol_sum = cell_vol[ibegin:iend].sum()
-            em_avg = em_sum/vol_sum
-            
             tot_norm = dist_fac*em_sum/vol_scale
-            
+
             spec = emission_model.get_spectrum(kT, Zmet)
             spec *= tot_norm
             cumspec = np.cumsum(spec)
             counts = cumspec[:]/cumspec[-1]
             tot_ph = cumspec[-1]*eff_A*exp_time
-            
+
             for icell in xrange(ibegin, iend):
                 
-                cell_norm = tot_ph * (cell_emd[icell]/em_avg) * (cell_vol[icell]/vol_sum)                    
-                cell_Nph = int(cell_norm) + int(np.modf(cell_norm)[0] >= np.random.random())
+                cell_norm = tot_ph*cell_em[icell]/em_sum
+                cell_Nph = np.uint64(cell_norm) + np.uint64(np.modf(cell_norm)[0] >= u[icell])
                 
                 if cell_Nph > 0:
                     number_of_photons[icell] = cell_Nph                    
@@ -232,7 +230,7 @@ class PhotonList(object):
             
         pbar.finish()
 
-        del cell_emd, cell_vol, cell_em
+        del cell_vol, cell_em
 
         active_cells = number_of_photons > 0
         idxs = idxs[active_cells]
@@ -260,7 +258,7 @@ class PhotonList(object):
 
     @classmethod
     def from_user_model(cls, data_source, redshift, eff_A,
-                        exp_time, user_function, parameters={}
+                        exp_time, user_function, parameters={},
                         dist=None, cosmology=None):
 
         if cosmology is None and dist is None:
@@ -398,7 +396,7 @@ class PhotonList(object):
         if redshift_new is not None and dist_new is not None:
             mylog.error("You may specify a new redshift or distance, but not both!")
 
-        if redshift_new is not Done and self.cosmo is None:
+        if redshift_new is not None and self.cosmo is None:
             mylog.error("Specified a new redshift, but no cosmology!")
             
         dx = self.photons["dx"]
@@ -423,6 +421,8 @@ class PhotonList(object):
         if (texp_new is None and area_new is None and
             redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
+            zobs = self.photons["FiducialRedshift"]
+            D_A = self.photons["FiducialAngularDiameterDistance"]*1000.
         else:
             if texp_new is None:
                 Tratio = 1.
@@ -764,8 +764,8 @@ class EventList(object) :
                                            self.events["ysky"][mask],
                                            bins=[xbins,xbins])
         
-        hdu = pyfits.PrimaryHDU(H.T[::,::])
-
+        hdu = pyfits.PrimaryHDU(H.T)
+        
         hdu.header.update("MTYPE1", "EQPOS")
         hdu.header.update("MFORM1", "RA,DEC")
         hdu.header.update("CTYPE1", "RA---TAN")

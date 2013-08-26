@@ -195,21 +195,21 @@ class TableApecModel(PhotonModel):
 
 class TableAbsorbModel(PhotonModel):
 
-    def __init__(self, filename):
+    def __init__(self, filename, nH):
         if not os.path.exists(filename):
             raise IOError("File does not exist: %s." % filename)
         self.filename = filename
         f = h5py.File(self.filename,"r")
         emin = f["energ_lo"][:].min()
         emax = f["energ_hi"][:].max()
-        self.abs = f["absorb_coeff"][:]
-        nchan = self.abs.shape[0]
+        self.sigma = f["cross_section"][:]
+        nchan = self.sigma.shape[0]
         f.close()
         PhotonModel.__init__(self, emin, emax, nchan)
-                                                                    
+        self.nH = nH
+        
     def prepare(self):
         pass
-
+        
     def get_spectrum(self):
-        return self.abs ** nH
-    
+        return np.exp(-self.sigma*self.nH)
