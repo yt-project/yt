@@ -29,6 +29,7 @@ import numpy as np
 import matplotlib
 import cStringIO
 import types
+import os
 import __builtin__
 
 from matplotlib.mathtext import MathTextParser
@@ -1056,8 +1057,8 @@ class PWViewerMPL(PWViewer):
         Parameters
         ----------
         name : string
-           the base of the filename.  If not set the filename of
-           the parameter file is used
+           The base of the filename.  If name is a directory or if name is not
+           set, the filename of the dataset is used.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -1068,6 +1069,11 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         if name is None:
             name = str(self.pf)
+        name = os.path.expanduser(name)
+        if name[-1] == os.sep and not os.path.isdir(name):
+            os.mkdir(name)
+        if os.path.isdir(name):
+            name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
         suffix = get_image_suffix(name)
         if suffix != '':
             for k, v in self.plots.iteritems():
