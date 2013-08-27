@@ -90,8 +90,6 @@ class ARTIOOctreeSubset(OctreeSubset):
         return self.sfc_end
 
     def fill(self, fields, selector):
-        # Here we get a copy of the file, which we skip through and read the
-        # bits we want.
         handle = self.oct_handler.artio_handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
@@ -364,7 +362,8 @@ class ARTIOGeometryHandler(GeometryHandler):
                 ci += [ARTIOOctreeSubset(base_region, start, end, self.pf)
                        for (start, end) in list_sfc_ranges]
             dobj._chunk_info = ci
-            mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
+            if len(list_sfc_ranges) > 1:
+                mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _data_size(self, dobj, dobjs):
@@ -531,40 +530,45 @@ class ARTIOStaticOutput(StaticOutput):
         self.max_level = self.artio_parameters["max_refinement_level"][0]
 
         # TODO: detect if particles exist
-        self.num_species = self.artio_parameters["num_particle_species"][0]
-        self.particle_variables = [["PID", "SPECIES"]
+        if self._handle.has_particles:
+            self.num_species = self.artio_parameters["num_particle_species"][0]
+            self.particle_variables = [["PID", "SPECIES"]
                                    for i in range(self.num_species)]
-        self.particle_species =\
-            self.artio_parameters["particle_species_labels"]
-        self.particle_type_map = {}
-        for i, s in enumerate(self.particle_species):
-            f = art_to_yt[s]
-            if f not in self.particle_type_map:
-                self.particle_type_map[f] = []
-            self.particle_type_map[f].append(i)
+            self.particle_species = \
+                self.artio_parameters["particle_species_labels"]
+            self.particle_type_map = {}
+            for i, s in enumerate(self.particle_species):
+                f = art_to_yt[s]
+                if f not in self.particle_type_map:
+                    self.particle_type_map[f] = []
+                self.particle_type_map[f].append(i)
 
-        for species in range(self.num_species):
-            # Mass would be best as a derived field,
-            # but wouldn't detect under 'all'
-            if self.artio_parameters["particle_species_labels"][species]\
-                    == "N-BODY":
-                self.particle_variables[species].append("MASS")
+            for species in range(self.num_species):
+                # Mass would be best as a derived field,
+                # but wouldn't detect under 'all'
+                if self.artio_parameters["particle_species_labels"][species]\
+                        == "N-BODY":
+                    self.particle_variables[species].append("MASS")
 
-            if self.artio_parameters["num_primary_variables"][species] > 0:
-                self.particle_variables[species].extend(
-                    self.artio_parameters[
-                        "species_%02d_primary_variable_labels"
-                        % (species, )])
-            if self.artio_parameters["num_secondary_variables"][species] > 0:
-                self.particle_variables[species].extend(
-                    self.artio_parameters[
-                        "species_%02d_secondary_variable_labels"
-                        % (species, )])
+                if self.artio_parameters["num_primary_variables"][species] > 0:
+                    self.particle_variables[species].extend(
+                        self.artio_parameters[
+                            "species_%02d_primary_variable_labels"
+                            % (species, )])
+                if self.artio_parameters["num_secondary_variables"][species] > 0:
+                    self.particle_variables[species].extend(
+                            self.artio_parameters[
+                            "species_%02d_secondary_variable_labels"
+                            % (species, )])
 
-        self.particle_types = ("all",) + tuple(
-            set(art_to_yt[s] for s in
-                self.artio_parameters["particle_species_labels"]))
-        self.particle_types = tuple(self.particle_types)
+            self.particle_types = ("all",) + tuple(
+                set(art_to_yt[s] for s in
+                    self.artio_parameters["particle_species_labels"]))
+            self.particle_types = tuple(self.particle_types)
+        else:
+            self.num_species = 0
+            self.particle_variables = []
+            self.particle_types = ()
 
         self.current_time = b2t(self.artio_parameters["tl"][0])
 

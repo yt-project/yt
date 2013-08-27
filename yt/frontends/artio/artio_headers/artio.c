@@ -1,10 +1,24 @@
-/*
- * artio.c
+/**********************************************************************
+ * Copyright (c) 2012-2013, Douglas H. Rudd
+ * All rights reserved.
  *
- *  Created on: Feb 21, 2010
- *  Author: Yongen Yu
- */
-
+ * This file is part of the artio library.
+ *
+ * artio is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * artio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * Copies of the GNU Lesser General Public License and the GNU General
+ * Public License are available in the file LICENSE, included with this
+ * distribution.  If you failed to receive a copy of this file, see 
+ * <http://www.gnu.org/licenses/>
+ **********************************************************************/
 #include "artio.h"
 #include "artio_internal.h"
 
@@ -20,7 +34,7 @@ void artio_fileset_destroy( artio_fileset *handle );
 
 int artio_fh_buffer_size = ARTIO_DEFAULT_BUFFER_SIZE;
 
-int artio_set_buffer_size( int buffer_size ) {
+int artio_fileset_set_buffer_size( int buffer_size ) {
 	if ( buffer_size < 0 ) {
 		return ARTIO_ERR_INVALID_BUFFER_SIZE;
 	}
@@ -199,16 +213,18 @@ artio_fileset *artio_fileset_allocate( char *file_prefix, int mode,
 	if ( handle != NULL ) {
 		handle->parameters = artio_parameter_list_init();
 
+#ifdef ARTIO_MPI
 		handle->context = (artio_context *)malloc(sizeof(artio_context));
 		if ( handle->context == NULL ) {
 			return NULL;
 		}
 		memcpy( handle->context, context, sizeof(artio_context) );
 
-#ifdef ARTIO_MPI
 		MPI_Comm_size(handle->context->comm, &num_procs);
 		MPI_Comm_rank(handle->context->comm, &my_rank);
 #else
+		handle->context = NULL;
+
 		num_procs = 1;
 		my_rank = 0;
 #endif /* MPI */

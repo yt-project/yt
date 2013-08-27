@@ -8,7 +8,6 @@ import sys
 
 from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
 from yt.geometry.oct_container cimport \
-    OctreeContainer, OctAllocationContainer, \
     SparseOctreeContainer
 from yt.geometry.oct_visitors cimport \
     OctVisitorData, oct_visitor_function, Oct
@@ -65,6 +64,9 @@ cdef extern from "artio.h":
     int artio_fileset_open_particle( artio_fileset_handle *handle )
     int artio_fileset_open_grid(artio_fileset_handle *handle) 
     int artio_fileset_close_grid(artio_fileset_handle *handle) 
+
+    int artio_fileset_has_grid( artio_fileset_handle *handle )
+    int artio_fileset_has_particles( artio_fileset_handle *handle )
 
     # selection functions
     artio_selection *artio_selection_allocate( artio_fileset_handle *handle )
@@ -136,12 +138,14 @@ cdef class artio_fileset :
     cdef int64_t sfc_min, sfc_max
 
     # grid attributes
+    cdef public int has_grid
     cdef public int min_level, max_level
     cdef public int num_grid_variables
     cdef int *num_octs_per_level
     cdef float *grid_variables
 
     # particle attributes
+    cdef public int has_particles
     cdef public int num_species
     cdef int *particle_position_index
     cdef int *num_particles_per_species
@@ -178,32 +182,48 @@ cdef class artio_fileset :
         if (not self.num_octs_per_level) or (not self.grid_variables) :
             raise MemoryError
 
-        status = artio_fileset_open_grid( self.handle )
-        check_artio_status(status)
+        if artio_fileset_has_grid(self.handle):
+            status = artio_fileset_open_grid(self.handle)
+            check_artio_status(status)
+            self.has_grid = 1
+        else:
+            self.has_grid = 0
 
         # particle detection
-        self.num_species = self.parameters['num_particle_species'][0]
-        self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)
-        if not self.particle_position_index :
-            raise MemoryError
-        for ispec in range(self.num_species) :
-            labels = self.parameters["species_%02d_primary_variable_labels"% (ispec,)]
-            try :
-                self.particle_position_index[3*ispec+0] = labels.index('POSITION_X')
-                self.particle_position_index[3*ispec+1] = labels.index('POSITION_Y')
-                self.particle_position_index[3*ispec+2] = labels.index('POSITION_Z')
-            except ValueError :
-                raise RuntimeError("Unable to locate position information for particle species", ispec )
+        if ( artio_fileset_has_particles(self.handle) ):
+            status = artio_fileset_open_particles(self.handle)
+            check_artio_status(status)
+            self.has_particles = 1
 
-        self.num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
-        self.primary_variables = <double *>malloc(sizeof(double)*max(self.parameters['num_primary_variables']))  
-        self.secondary_variables = <float *>malloc(sizeof(float)*max(self.parameters['num_secondary_variables']))  
-        if (not self.num_particles_per_species) or (not self.primary_variables) or (not self.secondary_variables) :
-            raise MemoryError
+            for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
+                if not self.parameters.has_key(v):
+                    raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
 
-        status = artio_fileset_open_particles( self.handle )
-        check_artio_status(status)
-   
+            self.num_species = self.parameters['num_particle_species'][0]
+            self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)
+            if not self.particle_position_index :
+                raise MemoryError
+            for ispec in range(self.num_species) :
+                species_labels = "species_%02d_primary_variable_labels"% (ispec,)
+                if not self.parameters.has_key(species_labels):
+                    raise RuntimeError("Unable to locate variable labels for species",ispec)
+
+                labels = self.parameters[species_labels]
+                try :
+                    self.particle_position_index[3*ispec+0] = labels.index('POSITION_X')
+                    self.particle_position_index[3*ispec+1] = labels.index('POSITION_Y')
+                    self.particle_position_index[3*ispec+2] = labels.index('POSITION_Z')
+                except ValueError :
+                    raise RuntimeError("Unable to locate position information for particle species", ispec)
+    
+            self.num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
+            self.primary_variables = <double *>malloc(sizeof(double)*max(self.parameters['num_primary_variables']))  
+            self.secondary_variables = <float *>malloc(sizeof(float)*max(self.parameters['num_secondary_variables']))  
+            if (not self.num_particles_per_species) or (not self.primary_variables) or (not self.secondary_variables) :
+                raise MemoryError
+        else:
+            self.has_particles = 0
+
     def __dealloc__(self) :
         if self.num_octs_per_level : free(self.num_octs_per_level)
         if self.grid_variables : free(self.grid_variables)
@@ -390,7 +410,6 @@ cdef class artio_fileset :
                 raise RuntimeError("Field",f,"is not known to ARTIO")
             field_order[i] = var_labels.index(f)
 
-        # dhr - cache the entire domain (replace later)
         status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
         check_artio_status(status) 
 
@@ -702,7 +721,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 raise RuntimeError
             si = ei
             domain = 2
-        artio_grid_clear_sfc_cache(handle)
+        #status = artio_grid_clear_sfc_cache(handle)
+        #check_artio_status(status)
         free(mask)
         free(num_octs_per_level)
         free(tot_octs_per_level)
@@ -951,11 +971,11 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         status = artio_particle_read_root_cell_end( handle )
         check_artio_status(status)
 
-    status = artio_particle_clear_sfc_cache(handle)
-    check_artio_status(status)
+    #status = artio_particle_clear_sfc_cache(handle)
+    #check_artio_status(status)
 
-    status = artio_grid_clear_sfc_cache(handle)
-    check_artio_status(status)
+    #status = artio_grid_clear_sfc_cache(handle)
+    #check_artio_status(status)
 
     free(num_octs_per_level)
     free(num_particles_per_species)
@@ -1010,6 +1030,8 @@ cdef class ARTIORootMeshContainer:
     cdef np.int64_t count_cells(self, SelectorObject selector):
         # We visit each cell if it is not refined and determine whether it is
         # included or not.
+        # DHR - selector was used to construct the initial sfc list, so 
+        #  this should always equal the number of root cells
         cdef np.int64_t sfc
         cdef np.float64_t pos[3], right_edge[3]
         cdef int num_cells = 0
@@ -1161,7 +1183,8 @@ cdef class ARTIORootMeshContainer:
             # If refined, we skip
             if num_oct_levels > 0: continue
             mask[sfc - self.sfc_start] = 1
-        artio_grid_clear_sfc_cache(self.handle)
+        #status = artio_grid_clear_sfc_cache(self.handle)
+        #check_artio_status(status)
         free(num_octs_per_level)
         return mask.astype("bool")
 
@@ -1220,8 +1243,8 @@ cdef class ARTIORootMeshContainer:
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
         # Now we have all our sources.
-        status = artio_grid_clear_sfc_cache(handle)
-        check_artio_status(status)
+        #status = artio_grid_clear_sfc_cache(handle)
+        #check_artio_status(status)
         free(field_ind)
         free(field_vals)
         free(grid_variables)
