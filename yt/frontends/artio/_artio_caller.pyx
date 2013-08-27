@@ -975,12 +975,16 @@ cdef class ARTIORootMeshContainer:
     cdef artio_fileset_handle *handle
     cdef np.uint64_t sfc_start
     cdef np.uint64_t sfc_end
+    cdef public object _last_mask
+    cdef public object _last_selector_id
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
                  domain_right_edge,
                  artio_fileset artio_handle,
                  sfc_start, sfc_end):
+        self._last_selector_id = None
+        self._last_mask = None
         self.artio_handle = artio_handle
         self.handle = artio_handle.handle
         cdef int i
@@ -1086,6 +1090,9 @@ cdef class ARTIORootMeshContainer:
         res = np.zeros(num_octs, dtype="int64")
         return res
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def selector_fill(self, SelectorObject selector,
                       np.ndarray source,
                       np.ndarray dest = None,
@@ -1130,15 +1137,21 @@ cdef class ARTIORootMeshContainer:
             return dest
         return filled
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def mask(self, SelectorObject selector, np.int64_t num_octs = -1):
         cdef int i, status
         cdef double dpos[3]
         cdef np.float64_t pos[3]
+        cdef np.int64_t sfc
+        if self._last_selector_id == hash(selector):
+            return self._last_mask
         if num_octs == -1:
             # We need to count, but this process will only occur one time,
             # since num_octs will later be cached.
             num_octs = self.sfc_end - self.sfc_start + 1
-        assert(num_octs == (self.sfc_end - self.sfc_start + 1))
+        #assert(num_octs == (self.sfc_end - self.sfc_start + 1))
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef int num_oct_levels
         cdef int max_level = self.artio_handle.max_level
@@ -1165,7 +1178,9 @@ cdef class ARTIORootMeshContainer:
             mask[sfc - self.sfc_start] = 1
         artio_grid_clear_sfc_cache(self.handle)
         free(num_octs_per_level)
-        return mask.astype("bool")
+        self._last_mask = mask.astype("bool")
+        self._last_selector_id = hash(selector)
+        return self._last_mask
 
     def fill_sfc_particles(self, fields):
         rv = read_sfc_particles(self.artio_handle,
