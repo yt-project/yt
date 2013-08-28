@@ -215,6 +215,7 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.pf.min_level
+        max_level = min_level
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -248,6 +249,8 @@ class RAMSESDomainFile(object):
                     assert(pos.shape[0] == ng)
                     n = self.oct_handler.add(cpu + 1, level - min_level, pos)
                     assert(n == ng)
+                    if n > 0: max_level = max(level - min_level, max_level)
+        self.max_level = max_level
         self.oct_handler.finalize()
 
     def included(self, selector):
@@ -297,7 +300,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self.max_level = pf.max_level
+        self.max_level = None
 
         self.float_type = np.float64
         super(RAMSESGeometryHandler, self).__init__(pf, data_style)
@@ -308,6 +311,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                         for i in range(self.parameter_file['ncpu'])]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
+        self.max_level = max(dom.max_level for dom in self.domains)
         self.num_grids = total_octs
 
     def _detect_fields(self):
