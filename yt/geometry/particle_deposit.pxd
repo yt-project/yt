@@ -5,7 +5,7 @@ Author: Christopher Moody <chris.e.moody@gmail.com>
 Affiliation: UC Santa Cruz
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
@@ -32,7 +32,7 @@ cimport cython
 from libc.math cimport sqrt
 
 from fp_utils cimport *
-from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from .oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 
 cdef extern from "alloca.h":
     void *alloca(int)
@@ -62,7 +62,6 @@ cdef inline np.float64_t sph_kernel(np.float64_t x) nogil:
 cdef class ParticleDepositOperation:
     # We assume each will allocate and define their own temporary storage
     cdef public object nvals
-    cdef public int bad_indices
     cdef public int update_values
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.int64_t offset,

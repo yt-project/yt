@@ -43,6 +43,15 @@ def configuration(parent_package='',top_path=None):
                          "yt/geometry/oct_container.pxd",
                          "yt/geometry/selection_routines.pxd",
                          "yt/geometry/particle_deposit.pxd"])
+    config.add_extension("particle_smooth", 
+                ["yt/geometry/particle_smooth.pyx"],
+                include_dirs=["yt/utilities/lib/"],
+                libraries=["m"],
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/geometry/oct_container.pxd",
+                         "yt/geometry/selection_routines.pxd",
+                         "yt/geometry/particle_deposit.pxd",
+                         "yt/geometry/particle_smooth.pxd"])
     config.add_extension("fake_octree", 
                 ["yt/geometry/fake_octree.pyx"],
                 include_dirs=["yt/utilities/lib/"],
