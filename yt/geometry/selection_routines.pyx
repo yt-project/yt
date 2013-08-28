@@ -122,15 +122,17 @@ cdef class SelectorObject:
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0
 
-        if dobj is None:
-            for i in range(3):
-                self.periodicity[i] = False
-                self.domain_width[i] = 0.0
-        else:
-            for i in range(3) :
-                self.domain_width[i] = dobj.pf.domain_right_edge[i] - \
-                                       dobj.pf.domain_left_edge[i]
-                self.periodicity[i] = dobj.pf.periodicity[i]
+        for i in range(3) :
+            pf = getattr(dobj, 'pf', None)
+            if pf is None:
+                for i in range(3):
+                    self.domain_width[i] = 1.0
+                    self.periodicity[i] = False
+            else:
+                for i in range(3):
+                    self.domain_width[i] = pf.domain_right_edge[i] - \
+                                           pf.domain_left_edge[i]
+                    self.periodicity[i] = pf.periodicity[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

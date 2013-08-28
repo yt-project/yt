@@ -20,36 +20,37 @@ def check_for_openmp():
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
-    os.chdir(tmpdir)
+    exit_code = 1
 
-    # Get compiler invocation
-    compiler = os.getenv('CC', 'cc')
+    try:
+        os.chdir(tmpdir)
 
-    # Attempt to compile a test script.
-    # See http://openmp.org/wp/openmp-compilers/
-    filename = r'test.c'
-    file = open(filename,'w', 0)
-    file.write(
-        "#include <omp.h>\n"
-        "#include <stdio.h>\n"
-        "int main() {\n"
-        "#pragma omp parallel\n"
-        "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
-        "}"
-        )
-    with open(os.devnull, 'w') as fnull:
-        exit_code = subprocess.call([compiler, '-fopenmp', filename],
-                                    stdout=fnull, stderr=fnull)
+        # Get compiler invocation
+        compiler = os.getenv('CC', 'cc')
 
-    # Clean up
-    file.close()
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+        # Attempt to compile a test script.
+        # See http://openmp.org/wp/openmp-compilers/
+        filename = r'test.c'
+        file = open(filename,'w', 0)
+        file.write(
+            "#include <omp.h>\n"
+            "#include <stdio.h>\n"
+            "int main() {\n"
+            "#pragma omp parallel\n"
+            "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
+            "}"
+            )
+        with open(os.devnull, 'w') as fnull:
+            exit_code = subprocess.call([compiler, '-fopenmp', filename],
+                                        stdout=fnull, stderr=fnull)
 
-    if exit_code == 0:
-        return True
-    else:
-        return False
+        # Clean up
+        file.close()
+    finally:
+        os.chdir(curdir)
+        shutil.rmtree(tmpdir)
+
+    return exit_code == 0
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration

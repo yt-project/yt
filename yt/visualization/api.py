@@ -29,7 +29,8 @@ License:
 """
 
 from color_maps import \
-    add_cmap
+    add_cmap, \
+    show_colormaps
 
 from plot_collection import \
     PlotCollection, \
