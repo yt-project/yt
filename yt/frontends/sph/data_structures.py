@@ -371,8 +371,9 @@ class TipsyStaticOutput(ParticleStaticOutput):
                  unit_base = None,
                  cosmology_parameters = None,
                  parameter_file = None,
-                 n_ref = 64):
+                 n_ref = 64, over_refine_factor = 1):
         self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
         self.endian = endian
         self.storage_filename = None
         if domain_left_edge is None:
