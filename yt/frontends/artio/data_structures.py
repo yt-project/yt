@@ -374,7 +374,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, None)
+        yield YTDataChunk(dobj, "all", oobjs, None, cache = True)
 
     def _chunk_spatial(self, dobj, ngz):
         if ngz > 0:
@@ -386,7 +386,7 @@ class ARTIOGeometryHandler(GeometryHandler):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
-            yield YTDataChunk(dobj, "spatial", [g], None)
+            yield YTDataChunk(dobj, "spatial", [g], None, cache = True)
 
     def _chunk_io(self, dobj, cache = True):
         # _current_chunk is made from identify_base_chunk

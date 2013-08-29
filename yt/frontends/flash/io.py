@@ -82,7 +82,9 @@ class IOHandlerFLASH(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            rv[field] = np.empty(size, dtype=f["/%s" % fname].dtype)
+            dt = f["/%s" % fname].dtype
+            if dt == "float32": dt = "float64"
+            rv[field] = np.empty(size, dtype=dt)
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)

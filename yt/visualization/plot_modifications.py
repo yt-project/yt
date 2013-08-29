@@ -45,6 +45,7 @@ from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
+from yt.visualization.image_writer import apply_colormap
 
 import _MPL
 
@@ -176,7 +177,8 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     """
-    annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None, 
+                    normalize=False, bv_x=0, bv_y=0):
 
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints
@@ -230,8 +232,8 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     """
-    annotate_contour(self, field, ncont=5, factor=4, take_log=None, clim=None,
-                     plot_args = None):
+    annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
+                     plot_args=None, label=False, label_args=None):
 
     Add contours in *field* to the plot.  *ncont* governs the number of
     contours generated, *factor* governs the number of points used in the
@@ -338,18 +340,21 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
+    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
 
-    Adds grid boundaries to a plot, optionally with *alpha*-blending.
-    Cuttoff for display is at *min_pix* wide.
-    *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
-    Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *min_level* 
-    is specified, only draw grids at or above min_level.  If *max_level* is specified, only 
-    draw grids at or below max_level.
+    Draws grids on an existing PlotWindow object.
+    Adds grid boundaries to a plot, optionally with alpha-blending. By default, 
+    colors different levels of grids with different colors going from white to
+    black, but you can change to any arbitrary colormap with cmap keyword 
+    (or all black cells for all levels with cmap=None).  Cuttoff for display is at 
+    min_pix wide. draw_ids puts the grid id in the corner of the grid. 
+    (Not so great in projections...).  One can set min and maximum level of
+    grids to display.
     """
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None):
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -358,6 +363,7 @@ class GridBoundaryCallback(PlotCallback):
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
+        self.cmap = cmap
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -375,15 +381,16 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
         else:
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
-        GLE = plot.data.pf.h.grid_left_edge
-        GRE = plot.data.pf.h.grid_right_edge
-        grid_levels = plot.data.pf.h.grid_levels[:,0]
+        GLE = plot.data.grid_left_edge
+        GRE = plot.data.grid_right_edge
+        levels = plot.data.grid_levels[:,0]
         min_level = self.min_level
-        max_level = self.min_level
-        if min_level is None:
-            min_level = 0
+        max_level = self.max_level
         if max_level is None:
             max_level = plot.data.pf.h.max_level
+        if min_level is None:
+            min_level = 0
+
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
@@ -393,19 +400,28 @@ class GridBoundaryCallback(PlotCallback):
             right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
                        ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
-                       ( grid_levels >= min_level) & \
-                       ( grid_levels <= max_level)
+                       ( levels >= min_level) & \
+                       ( levels <= max_level)
+
+            if self.cmap is not None: 
+                edgecolors = apply_colormap(levels[(levels <= max_level) & (levels >= min_level)]*1.0,
+                                  color_bounds=[0,plot.data.pf.h.max_level],
+                                  cmap_name=self.cmap)[0,:,:]*1.0/255.
+                edgecolors[:,3] = self.alpha
+            else:
+                edgecolors = (0.0,0.0,0.0,self.alpha)
+
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
                 [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
-            edgecolors = (0.0,0.0,0.0,self.alpha)
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
                 edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
+
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
                                ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )

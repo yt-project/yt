@@ -237,7 +237,7 @@ class Camera(ParallelAnalysisInterface):
                    max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
-        By mapping grid level to a color, drawes edges of grids on 
+        By mapping grid level to a color, draws edges of grids on 
         a volume rendering using the camera orientation.
 
         Parameters
@@ -2034,6 +2034,9 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             return temp_weightfield
         pf.field_info.add_field("temp_weightfield",
             function=_make_wf(field, weight))
+        # Now we have to tell the parameter file to add it and to calculate its
+        # dependencies..
+        pf.h._derived_fields_add(["temp_weightfield"], [])
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
@@ -2083,6 +2086,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     else:
         image[:,:,0] /= image[:,:,1]
         pf.field_info.pop("temp_weightfield")
+        pf.field_dependencies.pop("temp_weightfield")
         for g in pf.h.grids:
             if "temp_weightfield" in g.keys():
                 del g["temp_weightfield"]
@@ -2133,6 +2137,9 @@ class ProjectionCamera(Camera):
                 return temp_weightfield
             pf.field_info.add_field("temp_weightfield",
                 function=_make_wf(self.field, self.weight))
+            # Now we have to tell the parameter file to add it and to calculate
+            # its dependencies..
+            pf.h._derived_fields_add(["temp_weightfield"], [])
             fields = ["temp_weightfield", self.weight]
         
         self.fields = fields
@@ -2327,6 +2334,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     image = projcam.snapshot()
     if weight is not None:
         pf.field_info.pop("temp_weightfield")
+        pf.field_dependencies.pop("temp_weightfield")
     del projcam
     return image[:,:]
 
