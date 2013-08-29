@@ -159,7 +159,7 @@ class OctreeSubset(YTSelectionContainer):
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
         op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
-            self.domain_id, self._domain_offset)
+            self.domain_id, self._domain_offset, self.pf.periodicity)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):

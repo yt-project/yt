@@ -45,7 +45,8 @@ cdef struct NeighborList:
 
 cdef inline np.float64_t r2dist(np.float64_t ppos[3],
                                 np.float64_t cpos[3],
-                                np.float64_t DW[3]):
+                                np.float64_t DW[3],
+                                bint periodicity[3]):
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
@@ -65,6 +66,7 @@ cdef class ParticleSmoothOperation:
     cdef int nfields
     cdef int maxn
     cdef int curn
+    cdef bint periodicity[3]
     cdef np.int64_t *doffs
     cdef np.int64_t *pinds
     cdef np.int64_t *pcounts

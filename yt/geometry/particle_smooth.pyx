@@ -71,7 +71,7 @@ cdef class ParticleSmoothOperation:
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None, int domain_id = -1,
                      int domain_offset = 0,
-                     int test_neighbors = 0):
+                     periodicity = (True, True, True)):
         # This will be a several-step operation.
         #
         # We first take all of our particles and assign them to Octs.  If they
@@ -127,6 +127,7 @@ cdef class ParticleSmoothOperation:
             field_pointers[i] = <np.float64_t *> tarr.data
         for i in range(3):
             self.DW[i] = (octree.DRE[i] - octree.DLE[i])
+            self.periodicity[i] = periodicity[i]
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
@@ -229,7 +230,7 @@ cdef class ParticleSmoothOperation:
         if self.curn < self.maxn:
             cur = &self.neighbors[self.curn]
             cur.pn = pn
-            cur.r2 = r2dist(ppos, cpos, self.DW)
+            cur.r2 = r2dist(ppos, cpos, self.DW, self.periodicity)
             self.curn += 1
             if self.curn == self.maxn:
                 # This time we sort it, so that future insertions will be able
@@ -238,7 +239,7 @@ cdef class ParticleSmoothOperation:
                       Neighbor_compare)
             return
         # This will go (curn - 1) through 0.
-        r2_c = r2dist(ppos, cpos, self.DW)
+        r2_c = r2dist(ppos, cpos, self.DW, self.periodicity)
         pn_c = pn
         for i in range((self.curn - 1), -1, -1):
             # First we evaluate against i.  If our candidate radius is greater
