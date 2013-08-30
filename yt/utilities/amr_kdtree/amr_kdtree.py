@@ -57,7 +57,10 @@ class Tree(object):
         min_level=None, max_level=None, data_source=None):
 
         self.pf = pf
-        self._id_offset = self.pf.h.grids[0]._id_offset
+        try:
+            self._id_offset = pf.h.grids[0]._id_offset
+        except AttributeError:
+            self._id_offset = 0
 
         if data_source is None:
             data_source = pf.h.all_data()
