@@ -40,6 +40,8 @@ cdef struct OctKey:
 cdef struct OctInfo:
     np.float64_t left_edge[3]
     np.float64_t dds[3]
+    np.int64_t ipos[3]
+    np.int32_t level
 
 cdef struct OctAllocationContainer
 cdef struct OctAllocationContainer:
@@ -49,6 +51,16 @@ cdef struct OctAllocationContainer:
     OctAllocationContainer *next
     Oct *my_octs
 
+cdef struct OctList
+
+cdef struct OctList:
+    OctList *next
+    Oct *o
+
+cdef OctList *OctList_append(OctList *list, Oct *o)
+cdef int OctList_count(OctList *list)
+cdef void OctList_delete(OctList *list)
+
 cdef class OctreeContainer:
     cdef OctAllocationContainer *cont
     cdef OctAllocationContainer **domains
@@ -56,12 +68,13 @@ cdef class OctreeContainer:
     cdef oct_visitor_function *fill_func
     cdef int partial_coverage
     cdef int nn[3]
+    cdef np.uint8_t oref
     cdef np.float64_t DLE[3], DRE[3]
     cdef public np.int64_t nocts
     cdef public int max_domain
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef int get_root(self, int ind[3], Oct **o)
-    cdef void neighbors(self, Oct *, Oct **)
+    cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
     # OctAllocationContainer.offset if such a thing exists.
@@ -71,6 +84,7 @@ cdef class OctreeContainer:
                         OctVisitorData *data)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
+    cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
 
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
