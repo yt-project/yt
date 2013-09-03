@@ -811,10 +811,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                     need_per = True
                     break
 
-            if need_per:
-                region = self.pf.h.periodic_region(halo['center'], leftEdge, rightEdge)
-            else:
-                region = self.pf.h.region(halo['center'], leftEdge, rightEdge)
+            # We use the same type of region regardless.  The selection will be
+            # correct, but we need the need_per variable for projection
+            # shifting.
+            region = self.pf.h.region(halo['center'], leftEdge, rightEdge)
 
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])

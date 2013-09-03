@@ -1058,7 +1058,7 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.hierarchy.region_strict(self.center, LE, RE)
+        reg = self.hierarchy.region(self.center, LE, RE)
         return True, reg
 
     def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
@@ -1074,8 +1074,7 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.hierarchy.periodic_region_strict(self.center,
-                LE-padding, RE+padding)
+            self.hierarchy.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -1102,10 +1101,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center,
+                LE, RE, self.hierarchy.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1130,7 +1129,7 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
+                LE, RE, self.hierarchy.region(self.center, LE-padding,
                     RE+padding)
 
         return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
