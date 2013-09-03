@@ -208,14 +208,16 @@ def add_pygrid(Node node,
     The entire purpose of this function is to move everything from ndarrays
     to internal C pointers. 
     """
-    pgles = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-    pgres = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+    pgles = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    pgres = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
     cdef int j
     for j in range(3):
         pgles[j] = gle[j]
         pgres[j] = gre[j]
 
     add_grid(node, pgles, pgres, gid, rank, size)
+    free(pgles)
+    free(pgres)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -285,6 +287,8 @@ def add_pygrids(Node node,
         free(pgres[i])
     free(pgles)
     free(pgres)
+    free(pgids)
+
 
  
 @cython.boundscheck(False)
@@ -363,17 +367,17 @@ cdef add_grids(Node node,
     for i in range(nless):
         free(less_gles[i])
         free(less_gres[i])
-    free(l_ids)
-    free(less_ids)
     free(less_gles)
     free(less_gres)
+    free(less_ids)
+    free(l_ids)
     for i in range(ngreater):
         free(greater_gles[i])
         free(greater_gres[i])
-    free(g_ids)
-    free(greater_ids)
     free(greater_gles)
     free(greater_gres)
+    free(greater_ids)
+    free(g_ids)
 
     return
 
@@ -491,10 +495,10 @@ cdef kdtree_get_choices(int n_grids,
                        ):
     cdef int i, j, k, dim, n_unique, best_dim, n_best, addit, my_split
     cdef np.float64_t **uniquedims, *uniques, split
-    uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
+    uniquedims = <np.float64_t **> malloc(3 * sizeof(np.float64_t*))
     for i in range(3):
         uniquedims[i] = <np.float64_t *> \
-                alloca(2*n_grids * sizeof(np.float64_t))
+                malloc(2*n_grids * sizeof(np.float64_t))
     my_max = 0
     my_split = 0
     best_dim = -1
@@ -542,6 +546,11 @@ cdef kdtree_get_choices(int n_grids,
             ngreater += 1
         else:
             greater_ids[i] = 0
+
+    for i in range(3):
+        free(uniquedims[i])
+    free(uniquedims)
+
     # Return out unique values
     return best_dim, split, nless, ngreater
 
@@ -574,13 +583,6 @@ cdef int split_grids(Node node,
         kdtree_get_choices(ngrids, data, node.left_edge, node.right_edge,
                           less_ids, greater_ids)
  
-    for i in range(ngrids):
-        for j in range(2):
-            free(data[i][j])
-        free(data[i])
-    free(data)
-    free(less_ids)
-    free(greater_ids)
 
     # If best_dim is -1, then we have found a place where there are no choices.
     # Exit out and set the node to None.
@@ -653,18 +655,25 @@ cdef int split_grids(Node node,
     for i in range(nless):
         free(less_gles[i])
         free(less_gres[i])
-    free(l_ids)
-    free(less_index)
     free(less_gles)
     free(less_gres)
+    free(less_ids)
+    free(less_index)
+    free(l_ids)
     for i in range(ngreater):
         free(greater_gles[i])
         free(greater_gres[i])
-    free(g_ids)
-    free(greater_index)
     free(greater_gles)
     free(greater_gres)
+    free(greater_ids)
+    free(greater_index)
+    free(g_ids)
 
+    for i in range(ngrids):
+        for j in range(2):
+            free(data[i][j])
+        free(data[i])
+    free(data)
 
     return 0
 
