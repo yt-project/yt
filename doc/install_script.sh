@@ -419,7 +419,7 @@ get_willwont ${INST_0MQ}
 echo "be installing ZeroMQ"
 
 printf "%-15s = %s so I " "INST_ROCKSTAR" "${INST_ROCKSTAR}"
-get_willwont ${INST_0MQ}
+get_willwont ${INST_ROCKSTAR}
 echo "be installing Rockstar"
 
 echo
