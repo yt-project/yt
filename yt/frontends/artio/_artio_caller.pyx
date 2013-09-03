@@ -8,6 +8,7 @@ cimport numpy as np
 import sys 
 
 from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
+from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     SparseOctreeContainer
 from yt.geometry.oct_visitors cimport \
@@ -550,6 +551,75 @@ def artio_is_valid( char *file_prefix ) :
         artio_fileset_close(handle) 
     return True
 
+cdef class ARTIOSFCRangeHandler:
+    cdef public np.int64_t sfc_start
+    cdef public np.int64_t sfc_end
+    cdef public artio_fileset artio_handle
+    cdef public object root_mesh_handler
+    cdef public object octree_handlers
+    cdef public object oct_count
+    cdef artio_fileset_handle *handle
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
+    cdef np.float64_t dds[3]
+    cdef np.int64_t dims[3]
+
+    def __init__(self, domain_dimensions, # cells
+                 domain_left_edge,
+                 domain_right_edge,
+                 artio_fileset artio_handle,
+                 sfc_start, sfc_end):
+        cdef int i
+        self.sfc_start = sfc_start
+        self.sfc_end = sfc_end
+        self.artio_handle = artio_handle
+        self.root_mesh_handler = None
+        self.octree_handlers = {}
+        self.handle = artio_handle.handle
+        self.oct_count = None
+        for i in range(3):
+            self.dims[i] = domain_dimensions[i]
+            self.DLE[i] = domain_left_edge[i]
+            self.DRE[i] = domain_right_edge[i]
+            self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
+
+    def construct_mesh(self):
+        cdef int status, level
+        cdef np.int64_t sfc, oc
+        cdef double dpos[3]
+        cdef int num_oct_levels
+        cdef int max_level = self.artio_handle.max_level
+        cdef int *num_octs_per_level = <int *>malloc(
+            (max_level + 1)*sizeof(int))
+        cdef ARTIOOctreeContainer octree
+        cdef np.ndarray[np.int64_t, ndim=1] oct_count
+        oct_count = np.zeros(self.sfc_end - self.sfc_start + 1, dtype="int64")
+        status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
+                                            self.sfc_end)
+        check_artio_status(status) 
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            status = artio_grid_read_root_cell_begin( self.handle,
+                sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+            check_artio_status(status)
+            if num_oct_levels > 0:
+                oc = 0
+                for level in range(num_oct_levels):
+                    oc += num_octs_per_level[level]
+                oct_count[sfc - self.sfc_start] = oc
+                octree = ARTIOOctreeContainer(self.artio_handle, sfc, oc)
+                octree.initialize_mesh(oc, num_oct_levels, num_octs_per_level)
+                self.octree_handlers[sfc] = octree
+            status = artio_grid_read_root_cell_end( self.handle )
+            check_artio_status(status)
+        free(num_octs_per_level)
+        self.root_mesh_handler = ARTIORootMeshContainer(self)
+        self.oct_count = oct_count
+
+    def free_mesh(self):
+        self.octree_handlers.clear()
+        self.root_mesh_handler = None
+        self.oct_count = None
+
 def get_coords(artio_fileset handle, np.int64_t s):
     cdef int coords[3]
     artio_sfc_coords(handle.handle, s, coords)
@@ -575,7 +645,7 @@ cdef struct particle_var_pointers:
     np.float64_t *pvars[16]
     np.float64_t *svars[16]
 
-    cdef class ARTIOOctreeContainer(SparseOctreeContainer):
+cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     # This is a transitory, created-on-demand OctreeContainer.  It should not
     # be considered to be long-lasting, and during its creation it will read
     # the index file.  This means that when created it will then be able to
@@ -583,141 +653,80 @@ cdef struct particle_var_pointers:
     # the file again, despite knowing the indexing system already.  Because of
     # this, we will avoid creating it as long as possible.
 
-    cdef public np.int64_t sfc_start
-    cdef public np.int64_t sfc_end
+    cdef public np.int64_t sfc
+    cdef public np.int64_t sfc_offset
     cdef public artio_fileset artio_handle
     cdef Oct **root_octs
     cdef np.int64_t *level_indices
 
-    def __init__(self, oct_dimensions, domain_left_edge, domain_right_edge,
-                 int64_t sfc_start, int64_t sfc_end, artio_fileset artio_handle):
-        self.artio_handle = artio_handle
-        self.sfc_start = sfc_start
-        self.sfc_end = sfc_end
+    def __init__(self, ARTIOSFCRangeHandler range_handler, np.int64_t sfc):
+        self.artio_handle = range_handler.artio_handle
+        self.sfc = sfc
         # Note the final argument is partial_coverage, which indicates whether
         # or not an Oct can be partially refined.
-        super(ARTIOOctreeContainer, self).__init__(oct_dimensions,
-            domain_left_edge, domain_right_edge)
+        dims, DLE, DRE = [], [], []
+        for i in range(3):
+            dims.append(range_handler.dims[i])
+            DLE.append(range_handler.DLE[i])
+            DRE.append(range_handler.DRE[i])
+        super(ARTIOOctreeContainer, self).__init__(dims, DLE, DRE)
+        self.artio_handle = range_handler.artio_handle
+        self.sfc_offset = range_handler.sfc_start
         self.level_indices = NULL
-        self._initialize_root_mesh()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def _initialize_root_mesh(self):
+    cdef void initialize_mesh(self, np.int64_t oct_count,
+                              int num_oct_levels, int *num_octs_per_level):
         # We actually will not be initializing the root mesh here, we will be
         # initializing the entire mesh between sfc_start and sfc_end.
         cdef np.int64_t oct_ind, sfc, tot_octs, ipos
-        cdef int i, status, level, num_oct_levels, num_root, num_octs
+        cdef int i, status, level, num_root, num_octs
         cdef int num_level_octs
         cdef artio_fileset_handle *handle = self.artio_handle.handle
         cdef int coords[3]
         cdef int max_level = self.artio_handle.max_level
-        cdef double *dpos
-        cdef double rpos[3]
-        cdef int *olevel
-        cdef int *num_octs_per_level = <int *>malloc(
-            (max_level + 1)*sizeof(int))
+        cdef double dpos[3]
+        cdef np.float64_t f64pos[3]
         self.level_indices = <np.int64_t *>malloc(
-            (max_level + 1)*sizeof(np.int64_t))
-        for i in range(max_level+1):
-            self.level_indices[i] = 0
-        cdef np.float64_t dds[3]
+            num_oct_levels*sizeof(np.int64_t))
+        # NOTE: We do not cache any SFC ranges here, as we should only ever be
+        # called from within a pre-cached operation in the SFC handler.
+
+        # We only allow one root oct.
+        self.allocate_domains([1, oct_count], 1)
+        pos = np.empty((1, 3), dtype="float64")
+        self.range_handler.sfc
+        artio_sfc_coords(self.artio_handle.handle, self.sfc, coords)
         for i in range(3):
-            dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-
-        status = artio_grid_cache_sfc_range(handle,
-            self.sfc_start, self.sfc_end )
-        check_artio_status(status)
-
-        # compute total octs in sfc range (not including root level)
-        status = artio_grid_count_octs_in_sfc_range(handle,self.sfc_start,self.sfc_end,&tot_octs)
-        check_artio_status(status)
-
-        # now determine the number of root octs we touch
-        root_octs = {}
-        for sfc in range(self.sfc_start, self.sfc_end + 1):
-            artio_sfc_coords(handle, sfc, coords)
-            for i in range(3):
-                coords[i] = <int> (coords[i]/2)
-            ipos = (coords[0]*self.nn[1]+coords[1])*self.nn[2]+coords[2]
-            root_octs[ipos] = 1
-        num_root = len(root_octs)
-
-        self.allocate_domains([num_root, tot_octs], num_root)
-        pos = np.empty((num_root, 3), dtype="float64")
-
-        for sfc in range(self.sfc_start, self.sfc_end + 1):
-            artio_sfc_coords(handle, sfc, coords)
-            for i in range(3):
-                coords[i] = <int> (coords[i]/2)
-            ipos = (coords[0]*self.nn[1]+coords[1])*self.nn[2]+coords[2]
-            if root_octs[ipos] == 1:
-                for i in range(3):
-                    pos[self.level_indices[0], i] = \
-                            self.DLE[i] + (coords[i]+0.5)*dds[i]
-                self.level_indices[0] += 1
-                root_octs[ipos] = 0
-        del root_octs
-
-        # add all root octs
+            pos[0, i] = self.DLE[i] + (coords[i] + 0.5) * self.dds[i]
         self.add(1, 0, pos)
-        del pos
 
-        # now scan through grid file to load oct positions
-        if tot_octs > 0:
-            dpos = <double *>malloc(3*tot_octs*sizeof(double))
-            olevel = <int *>malloc(tot_octs*sizeof(int))
+        # Now we set up our position array and our level_indices.
+        ipos = 0
+        oct_ind = -1
+        for level in range(num_oct_levels):
+            self.level_indices[level] = ipos
+            ipos += num_octs_per_level[level]
+            oct_ind = imax(oct_ind, num_octs_per_level[level])
+        pos = np.empty((oct_ind, 3), dtype="float64")
 
-            num_octs = 0
-            for sfc in range(self.sfc_start, self.sfc_end + 1):
-                status = artio_grid_read_root_cell_begin( handle, sfc,
-                    rpos, NULL, &num_oct_levels, num_octs_per_level)
-                check_artio_status(status)
-                for level in range(1, num_oct_levels+1):
-                    self.level_indices[level] += num_octs_per_level[level - 1]
-                    status = artio_grid_read_level_begin(handle, level)
-                    check_artio_status(status)
-                    for oct_ind in range(num_octs_per_level[level - 1]):
-                        status = artio_grid_read_oct(handle, &dpos[3*num_octs], NULL, NULL)
-                        check_artio_status(status)
-                        olevel[num_octs] = level
-                        num_octs += 1
-                    status = artio_grid_read_level_end(handle)
-                    check_artio_status(status)
-                status = artio_grid_read_root_cell_end(handle)
-                check_artio_status(status)
-
-            num_level_octs = 0
-            for level in range(1, max_level+1):
-                if self.level_indices[level] > num_level_octs: 
-                    num_level_octs = self.level_indices[level]
-            pos = np.empty((num_level_octs, 3), dtype="float64")
-            for level in range(1, max_level+1):
-                if self.level_indices[level] == 0: continue
-                num_level_octs = 0
-                for oct_ind in range(num_octs):
-                    if olevel[oct_ind] == level:
-                        for i in range(3):
-                            pos[num_level_octs,i] = dpos[3*oct_ind+i]
-                        num_level_octs += 1
-                assert(num_level_octs == self.level_indices[level])
-                num_level_octs = self.add( 2, level, pos[:num_level_octs, :])
-                if num_level_octs != self.level_indices[level]:
-                    print self.sfc_start, self.sfc_end
-                    print level, self.level_indices[level], num_level_octs
-                    raise RuntimeError
-     
-            free(olevel)
-            free(dpos)
-        free(num_octs_per_level)
- 
+        # Now we initialize
         num_octs = 0
-        for level in range(max_level + 1):
-            num_level_octs = self.level_indices[level]
-            self.level_indices[level] = num_octs
-            num_octs += num_level_octs
-
+        # Note that we also assume we have already started reading the level.
+        for level in range(1, num_oct_levels+1):
+            status = artio_grid_read_level_begin(handle, level)
+            check_artio_status(status)
+            for oct_ind in range(num_octs_per_level[level - 1]):
+                status = artio_grid_read_oct(handle, dpos, NULL, NULL)
+                for i in range(3):
+                    pos[oct_ind, i] = dpos[i]
+                check_artio_status(status)
+            status = artio_grid_read_level_end(handle)
+            check_artio_status(status)
+            self.add(2, level, pos[:num_octs_per_level[level - 1]])
+ 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -988,24 +997,21 @@ cdef class ARTIORootMeshContainer:
     cdef np.uint64_t sfc_end
     cdef public object _last_mask
     cdef public object _last_selector_id
+    cdef ARTIOSFCRangeHandler range_handler
 
-    def __init__(self, domain_dimensions, # cells
-                 domain_left_edge,
-                 domain_right_edge,
-                 artio_fileset artio_handle,
-                 sfc_start, sfc_end):
-        self._last_selector_id = None
-        self._last_mask = None
-        self.artio_handle = artio_handle
-        self.handle = artio_handle.handle
+    def __init__(self, ARTIOSFCRangeHandler range_handler):
         cdef int i
         for i in range(3):
-            self.dims[i] = domain_dimensions[i]
-            self.DLE[i] = domain_left_edge[i]
-            self.DRE[i] = domain_right_edge[i]
-            self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
-        self.sfc_start = sfc_start
-        self.sfc_end = sfc_end
+            self.DLE[i] = range_handler.DLE[i]
+            self.DRE[i] = range_handler.DRE[i]
+            self.dims[i] = range_handler.dims[i]
+            self.dds[i] = range_handler.dds[i]
+        self.handle = range_handler.handle
+        self.artio_handle = range_handler.artio_handle
+        self._last_mask = self._last_selector_id = None
+        self.sfc_start = range_handler.sfc_start
+        self.sfc_end = range_handler.sfc_end
+        self.range_handler = range_handler
 
     @cython.cdivision(True)
     cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
@@ -1149,18 +1155,8 @@ cdef class ARTIORootMeshContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask(self, SelectorObject selector, np.int64_t num_octs = -1):
-        if self._last_selector_id == hash(selector):
-            return self._last_mask
-        else:
-            return self.mask2(selector,num_octs)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def mask2(self, SelectorObject selector, np.int64_t num_cells = -1):
-        cdef int i, status
-        cdef double dpos[3]
+    def mask(self, SelectorObject selector, np.int64_t num_cells = -1):
+        cdef int i
         cdef np.float64_t pos[3]
         cdef np.int64_t sfc
         if self._last_selector_id == hash(selector):
@@ -1169,37 +1165,12 @@ cdef class ARTIORootMeshContainer:
             # We need to count, but this process will only occur one time,
             # since num_cells will later be cached.
             num_cells = self.sfc_end - self.sfc_start + 1
-        cdef np.ndarray[np.uint8_t, ndim=1] mask
-        cdef int num_oct_levels
-        cdef int max_level = self.artio_handle.max_level
-        cdef int *num_octs_per_level = <int *>malloc(
-            (max_level + 1)*sizeof(int))
         mask = np.zeros((num_cells), dtype="uint8")
-        status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
-                                            self.sfc_end)
-        check_artio_status(status) 
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            # We check if the SFC is in our selector, and if so, we copy
-            # Note that because we initialize to zeros, we can just continue if
-            # it's not included.
-            #self.sfc_to_pos(sfc, pos)
-            #if selector.select_cell(pos, self.dds) == 0: continue
-            # Now we just need to check if the cells are refined.
-            status = artio_grid_read_root_cell_begin( self.handle,
-                sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
-            check_artio_status(status)
-            status = artio_grid_read_root_cell_end( self.handle )
-            check_artio_status(status)
-            # If refined, we skip
-            if num_oct_levels > 0: continue
-            # check selector
-            for i in range(3):
-                pos[i] = dpos[i]
+            if self.range_handler.oct_count[sfc - self.sfc_start] > 0: continue
+            self.sfc_to_pos(sfc, pos)
             if selector.select_cell(pos, self.dds) == 0: continue
             mask[sfc - self.sfc_start] = 1
-        #status = artio_grid_clear_sfc_cache(self.handle)
-        #check_artio_status(status)
-        free(num_octs_per_level)
         self._last_mask = mask.astype("bool")
         self._last_selector_id = hash(selector)
         return self._last_mask
