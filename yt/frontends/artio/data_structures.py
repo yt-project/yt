@@ -54,7 +54,7 @@ from yt.data_objects.field_info_container import \
 
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
-    domain_id = 2
+    domain_id = 1
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
     _type_name = 'octree_subset'
     _num_zones = 2
