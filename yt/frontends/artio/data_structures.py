@@ -363,7 +363,7 @@ class ARTIOGeometryHandler(GeometryHandler):
                             range_handler.root_mesh_handler, self.pf))
                 for sfc in sorted(range_handler.octree_handlers):
                     ci.append(ARTIOOctreeSubset(base_region, sfc,
-                      range_handler, self.pf))
+                    range_handler, self.pf))
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
                 mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
