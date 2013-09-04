@@ -1140,6 +1140,7 @@ cdef class ARTIORootMeshContainer:
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.int64_t sfc
+        cdef np.ndarray[np.int64_t, ndim=1] oct_count
         if self._last_selector_id == hash(selector):
             return self._last_mask
         if num_cells == -1:
@@ -1147,8 +1148,9 @@ cdef class ARTIORootMeshContainer:
             # since num_cells will later be cached.
             num_cells = self.sfc_end - self.sfc_start + 1
         mask = np.zeros((num_cells), dtype="uint8")
+        oct_count = self.range_handler.oct_count
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if self.range_handler.oct_count[sfc - self.sfc_start] > 0: continue
+            if oct_count[sfc - self.sfc_start] > 0: continue
             self.sfc_to_pos(sfc, pos)
             if selector.select_cell(pos, self.dds) == 0: continue
             mask[sfc - self.sfc_start] = 1
