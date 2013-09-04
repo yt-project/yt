@@ -763,17 +763,17 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         status = artio_grid_read_root_cell_begin( handle, self.sfc, 
                 dpos, NULL, &num_oct_levels, num_octs_per_level)
         check_artio_status(status) 
-        ipos = 0
-        for level in range(1, num_oct_levels+1):
-            status = artio_grid_read_level_begin(handle, level)
+        for level in range(num_oct_levels):
+            status = artio_grid_read_level_begin(handle, level + 1)
             check_artio_status(status) 
-            for oct_ind in range(num_octs_per_level[level - 1]):
+            ipos = self.level_indices[level]
+            for oct_ind in range(num_octs_per_level[level]):
                 status = artio_grid_read_oct(handle, dpos, grid_variables, NULL)
                 check_artio_status(status)
                 for j in range(8):
                     for i in range(nf):
-                        field_vals[i][ipos*8+j] = grid_variables[ngv*j+i]
-                ipos += 1
+                        field_vals[i][(ipos+oct_ind)*8+j] = \
+                            grid_variables[ngv*j+field_ind[i]]
             status = artio_grid_read_level_end(handle)
             check_artio_status(status)
         status = artio_grid_read_root_cell_end( handle )
@@ -783,9 +783,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             dest = dest_fields[j]
             source = source_arrays[j]
             for i in range(levels.shape[0]):
-                if levels[i] == 0: continue
-                oct_ind = self.level_indices[levels[i] - 1]
-                dest[i] = source[file_inds[i], cell_inds[i]]
+                level = levels[i]
+                oct_ind = self.level_indices[level]
+                dest[i] = source[file_inds[i] + oct_ind, cell_inds[i]]
         free(field_ind)
         free(field_vals)
         free(grid_variables)
