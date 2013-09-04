@@ -30,7 +30,7 @@ import cStringIO
 from .definitions import yt_to_art, art_to_yt, ARTIOconstants
 from _artio_caller import \
     artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
-    ARTIORootMeshContainer
+    ARTIORootMeshContainer, ARTIOSFCRangeHandler
 import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -50,6 +50,8 @@ from yt.data_objects.data_containers import \
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
+
+
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = 2
@@ -57,11 +59,11 @@ class ARTIOOctreeSubset(OctreeSubset):
     _type_name = 'octree_subset'
     _num_zones = 2
 
-    def __init__(self, base_region, sfc_start, sfc_end, pf):
+    def __init__(self, base_region, sfc, root_mesh, pf):
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.sfc_start = sfc_start
-        self.sfc_end = sfc_end
+        self.sfc = sfc
+        self.root_mesh = root_mesh
         self.pf = pf
         self.hierarchy = self.pf.hierarchy
         self._last_mask = None
@@ -70,17 +72,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.pf.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
-
-    _oct_handler = None
-
-    @property
-    def oct_handler(self):
-        if self._oct_handler is None: 
-            self._oct_handler = ARTIOOctreeContainer(
-                self.pf.domain_dimensions/2, # Octs, not cells
-                self.pf.domain_left_edge, self.pf.domain_right_edge,
-                self.sfc_start, self.sfc_end, self.pf._handle)
-        return self._oct_handler
+        self.oct_handler = root_mesh.octree_handlers[sfc]
 
     @property
     def min_ind(self):
@@ -142,15 +134,20 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
     _selector_module = _artio_caller
     domain_id = 1
 
-    @property
-    def oct_handler(self):
-        if self._oct_handler is None: 
-            self._oct_handler = ARTIORootMeshContainer(
-                self.pf.domain_dimensions, # Cells, not octs
-                self.pf.domain_left_edge, self.pf.domain_right_edge,
-                self.pf._handle,
-                self.sfc_start, self.sfc_end)
-        return self._oct_handler
+    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, pf):
+        self.field_data = YTFieldData()
+        self.field_parameters = {}
+        self.sfc_start = sfc_start
+        self.sfc_end = sfc_end
+        self.oct_handler = oct_handler
+        self.pf = pf
+        self.hierarchy = self.pf.hierarchy
+        self._last_mask = None
+        self._last_selector_id = None
+        self._current_particle_type = 'all'
+        self._current_fluid_type = self.pf.default_fluid_type
+        self.base_region = base_region
+        self.base_selector = base_region.selector
 
     def fill(self, fields, selector):
         # We know how big these will be.
@@ -356,12 +353,17 @@ class ARTIOGeometryHandler(GeometryHandler):
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
             ci = []
-            if domain != 2:
-                ci += [ARTIORootMeshSubset(base_region, start, end, self.pf)
-                        for (start, end) in list_sfc_ranges]
-            if domain != 1:
-                ci += [ARTIOOctreeSubset(base_region, start, end, self.pf)
-                       for (start, end) in list_sfc_ranges]
+            for (start, end) in list_sfc_ranges:
+                range_handler = ARTIOSFCRangeHandler(
+                    self.pf.domain_dimensions,
+                    self.pf.domain_left_edge, self.pf.domain_right_edge,
+                    self.pf._handle, start, end)
+                range_handler.construct_mesh()
+                ci.append(ARTIORootMeshSubset(base_region, start, end,
+                            range_handler.root_mesh_handler, self.pf))
+                for sfc in sorted(range_handler.octree_handlers):
+                    ci.append(ARTIOOctreeSubset(base_region, sfc,
+                      range_handler, self.pf))
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
                 mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))

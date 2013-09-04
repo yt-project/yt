@@ -606,7 +606,7 @@ cdef class ARTIOSFCRangeHandler:
                 for level in range(num_oct_levels):
                     oc += num_octs_per_level[level]
                 oct_count[sfc - self.sfc_start] = oc
-                octree = ARTIOOctreeContainer(self.artio_handle, sfc, oc)
+                octree = ARTIOOctreeContainer(self, sfc)
                 octree.initialize_mesh(oc, num_oct_levels, num_octs_per_level)
                 self.octree_handlers[sfc] = octree
             status = artio_grid_read_root_cell_end( self.handle )
@@ -657,7 +657,6 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     cdef public np.int64_t sfc_offset
     cdef public artio_fileset artio_handle
     cdef Oct **root_octs
-    cdef np.int64_t *level_indices
 
     def __init__(self, ARTIOSFCRangeHandler range_handler, np.int64_t sfc):
         self.artio_handle = range_handler.artio_handle
@@ -666,17 +665,16 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         # or not an Oct can be partially refined.
         dims, DLE, DRE = [], [], []
         for i in range(3):
-            dims.append(range_handler.dims[i])
+            dims.append(range_handler.dims[i]/2)
             DLE.append(range_handler.DLE[i])
             DRE.append(range_handler.DRE[i])
         super(ARTIOOctreeContainer, self).__init__(dims, DLE, DRE)
         self.artio_handle = range_handler.artio_handle
         self.sfc_offset = range_handler.sfc_start
-        self.level_indices = NULL
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
     cdef void initialize_mesh(self, np.int64_t oct_count,
                               int num_oct_levels, int *num_octs_per_level):
         # We actually will not be initializing the root mesh here, we will be
@@ -688,28 +686,22 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef int coords[3]
         cdef int max_level = self.artio_handle.max_level
         cdef double dpos[3]
-        cdef np.float64_t f64pos[3]
-        self.level_indices = <np.int64_t *>malloc(
-            num_oct_levels*sizeof(np.int64_t))
+        cdef np.float64_t f64pos[3], dds[3]
         # NOTE: We do not cache any SFC ranges here, as we should only ever be
         # called from within a pre-cached operation in the SFC handler.
 
         # We only allow one root oct.
         self.allocate_domains([1, oct_count], 1)
         pos = np.empty((1, 3), dtype="float64")
-        self.range_handler.sfc
         artio_sfc_coords(self.artio_handle.handle, self.sfc, coords)
         for i in range(3):
-            pos[0, i] = self.DLE[i] + (coords[i] + 0.5) * self.dds[i]
+            dds[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i]*2)
+            pos[0, i] = self.DLE[i] + (coords[i] + 0.5) * dds[i]
         self.add(1, 0, pos)
 
-        # Now we set up our position array and our level_indices.
-        ipos = 0
         oct_ind = -1
-        for level in range(num_oct_levels):
-            self.level_indices[level] = ipos
-            ipos += num_octs_per_level[level]
-            oct_ind = imax(oct_ind, num_octs_per_level[level])
+        for level in range(1, num_oct_levels+1):
+            oct_ind = imax(oct_ind, num_octs_per_level[level - 1])
         pos = np.empty((oct_ind, 3), dtype="float64")
 
         # Now we initialize
@@ -725,7 +717,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 check_artio_status(status)
             status = artio_grid_read_level_end(handle)
             check_artio_status(status)
-            self.add(2, level, pos[:num_octs_per_level[level - 1]])
+            self.add(2, level, pos[:num_octs_per_level[level - 1],:])
  
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -755,45 +747,32 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             nf * sizeof(int))
         cdef np.float32_t **field_vals = <np.float32_t**> malloc(
             nf * sizeof(np.float32_t*))
-        cdef np.int64_t *local_ind = <np.int64_t *> malloc(
-            (max_level + 1) * sizeof(np.int64_t))
-        for i in range(max_level + 1):
-            # This will help us keep track of where we are in the flattened
-            # array, which will be indexed by file_ind.
-            local_ind[i] = self.level_indices[i]
         source_arrays = []
         for i in range(nf):
             field_ind[i] = field_indices[i]
-            # This zeros should be an empty once we handle the root grid
-            source = np.zeros((self.nocts, 8), dtype="float32")
+            # Note that we subtract one, because we're not using the root mesh.
+            source = np.zeros((self.nocts - 1, 8), dtype="float32")
             source_arrays.append(source)
             field_vals[i] = <np.float32_t*> source.data
         # First we need to walk the mesh in the file.  Then we fill in the dest
         # location based on the file index.
-        status = artio_grid_cache_sfc_range(handle,
-            self.sfc_start, self.sfc_end )
+        status = artio_grid_read_root_cell_begin( handle, self.sfc, 
+                dpos, NULL, &num_oct_levels, num_octs_per_level)
         check_artio_status(status) 
-        for sfc in range(self.sfc_start, self.sfc_end + 1):
-            status = artio_grid_read_root_cell_begin( handle, sfc, 
-                    dpos, NULL, &num_oct_levels, num_octs_per_level)
+        for level in range(1, num_oct_levels+1):
+            status = artio_grid_read_level_begin(handle, level)
             check_artio_status(status) 
-            for level in range(1, num_oct_levels+1):
-                status = artio_grid_read_level_begin(handle, level)
-                check_artio_status(status) 
-                for oct_ind in range(num_octs_per_level[level - 1]):
-                    status = artio_grid_read_oct(handle, dpos, grid_variables, NULL)
-                    check_artio_status(status)
-                    for j in range(8):
-                        for i in range(nf):
-                            field_vals[i][local_ind[level] * 8 + j] = \
-                                grid_variables[ngv * j + i]
-                    local_ind[level] += 1
-                status = artio_grid_read_level_end(handle)
+            for oct_ind in range(num_octs_per_level[level - 1]):
+                status = artio_grid_read_oct(handle, dpos, grid_variables, NULL)
                 check_artio_status(status)
-            status = artio_grid_read_root_cell_end( handle )
+                for j in range(8):
+                    for i in range(nf):
+                        field_vals[i][oct_ind*8+j] = grid_variables[ngv*j+i]
+            status = artio_grid_read_level_end(handle)
             check_artio_status(status)
+        status = artio_grid_read_root_cell_end( handle )
+        check_artio_status(status)
         # Now we have all our sources.
-        artio_grid_clear_sfc_cache(handle)
         for j in range(nf):
             dest = dest_fields[j]
             source = source_arrays[j]
@@ -803,7 +782,6 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 dest[i] = source[file_inds[i] + oct_ind, cell_inds[i]]
         free(field_ind)
         free(field_vals)
-        free(local_ind)
         free(grid_variables)
         free(num_octs_per_level)
 
