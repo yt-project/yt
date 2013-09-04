@@ -55,14 +55,14 @@ from yt.data_objects.field_info_container import \
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = 1
-    _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
+    _con_args = ("base_region", "sfc", "root_mesh", "pf")
     _type_name = 'octree_subset'
     _num_zones = 2
 
     def __init__(self, base_region, sfc, root_mesh, pf):
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.sfc = sfc
+        self.sfc = self.sfc_start = self.sfc_end = sfc
         self.root_mesh = root_mesh
         self.pf = pf
         self.hierarchy = self.pf.hierarchy
@@ -130,6 +130,7 @@ class ARTIOOctreeSubset(OctreeSubset):
 # only manage the root mesh.
 class ARTIORootMeshSubset(ARTIOOctreeSubset):
     _num_zones = 1
+    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "pf")
     _type_name = 'sfc_subset'
     _selector_module = _artio_caller
     domain_id = 1
@@ -341,7 +342,7 @@ class ARTIOGeometryHandler(GeometryHandler):
             base_region = getattr(dobj, "base_region", dobj)
             sfc_start = getattr(dobj, "sfc_start", None)
             sfc_end = getattr(dobj, "sfc_end", None)
-            domain = getattr(dobj, "domain_id", 0)
+            nz = getattr(dobj, "_num_zones", 0)
             if all_data:
                 mylog.debug("Selecting entire artio domain")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
@@ -359,11 +360,13 @@ class ARTIOGeometryHandler(GeometryHandler):
                     self.pf.domain_left_edge, self.pf.domain_right_edge,
                     self.pf._handle, start, end)
                 range_handler.construct_mesh()
-                ci.append(ARTIORootMeshSubset(base_region, start, end,
-                            range_handler.root_mesh_handler, self.pf))
-                for sfc in sorted(range_handler.octree_handlers):
-                    ci.append(ARTIOOctreeSubset(base_region, sfc,
-                    range_handler, self.pf))
+                if nz != 2:
+                    ci.append(ARTIORootMeshSubset(base_region, start, end,
+                                range_handler.root_mesh_handler, self.pf))
+                if nz != 1:
+                    for sfc in sorted(range_handler.octree_handlers):
+                        ci.append(ARTIOOctreeSubset(base_region, sfc,
+                        range_handler, self.pf))
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
                 mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
