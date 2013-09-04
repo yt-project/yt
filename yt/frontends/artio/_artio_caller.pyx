@@ -678,6 +678,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         super(ARTIOOctreeContainer, self).__init__(dims, DLE, DRE)
         self.artio_handle = range_handler.artio_handle
         self.sfc_offset = range_handler.sfc_start
+        self.level_offset = 1
 
     #@cython.boundscheck(False)
     #@cython.wraparound(False)
@@ -703,10 +704,10 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 
         oct_ind = -1
         ipos = 0
-        for level in range(1, num_oct_levels+1):
-            oct_ind = imax(oct_ind, num_octs_per_level[level - 1])
+        for level in range(num_oct_levels):
+            oct_ind = imax(oct_ind, num_octs_per_level[level])
             self.level_indices[level] = ipos
-            ipos += num_octs_per_level[level - 1]
+            ipos += num_octs_per_level[level]
         pos = np.empty((oct_ind, 3), dtype="float64")
 
         # Now we initialize

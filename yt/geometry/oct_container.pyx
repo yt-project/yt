@@ -105,6 +105,7 @@ cdef class OctreeContainer:
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
         self.max_domain = -1
+        self.level_offset = 0
         p = 0
         self.nocts = 0 # Increment when initialized
         for i in range(3):
@@ -382,6 +383,7 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     def ires(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
+        cdef int i
         if num_cells == -1:
             num_cells = selector.count_oct_cells(self, domain_id)
         cdef OctVisitorData data
@@ -391,6 +393,9 @@ cdef class OctreeContainer:
         res = np.empty(num_cells, dtype="int64")
         data.array = <void *> res.data
         self.visit_all_octs(selector, oct_visitors.ires_octs, &data)
+        if self.level_offset > 0:
+            for i in range(num_cells):
+                res[i] += self.level_offset
         return res
 
     @cython.boundscheck(False)
@@ -664,6 +669,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
         self.max_domain = -1
+        self.level_offset = 0
         self.nocts = 0 # Increment when initialized
         self.root_mesh = NULL
         self.root_nodes = NULL

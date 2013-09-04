@@ -67,6 +67,7 @@ cdef class OctreeContainer:
     cdef Oct ****root_mesh
     cdef oct_visitor_function *fill_func
     cdef int partial_coverage
+    cdef int level_offset
     cdef int nn[3]
     cdef np.uint8_t oref
     cdef np.float64_t DLE[3], DRE[3]
