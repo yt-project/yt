@@ -1,7 +1,3 @@
-#cython: profile=True
-"""
-
-"""
 cimport cython
 import numpy as np
 cimport numpy as np
@@ -680,9 +676,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         self.sfc_offset = range_handler.sfc_start
         self.level_offset = 1
 
-    #@cython.boundscheck(False)
-    #@cython.wraparound(False)
-    #@cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void initialize_mesh(self, np.int64_t oct_count,
                               int num_oct_levels, int *num_octs_per_level):
         # We actually will not be initializing the root mesh here, we will be
@@ -724,9 +720,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             check_artio_status(status)
             nadded = self.add(1, level, pos[:num_octs_per_level[level],:])
  
-    #@cython.boundscheck(False)
-    #@cython.wraparound(False)
-    #@cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fill_sfc(self, 
                  np.ndarray[np.uint8_t, ndim=1] levels,
                  np.ndarray[np.uint8_t, ndim=1] cell_inds,
