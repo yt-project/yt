@@ -708,7 +708,7 @@ def _Shear(field, data):
 
 add_field("Shear", function=_Shear,
           validators=[ValidateSpatial(ghost_zones=1,
-          fields=["x-velocity","y-velocity","z-velocity","SoundSpeed"])],
+          fields=["x-velocity","y-velocity","z-velocity","SoundSpeed","dx"])],
           units=r"\rm{Mach}", take_log=False)
 
 def _Contours(field, data):
