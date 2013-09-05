@@ -25,7 +25,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from libc.stdlib cimport malloc, free, qsort
+from libc.stdlib cimport malloc, free, qsort, realloc
 from libc.math cimport floor
 cimport numpy as np
 import numpy as np
@@ -104,8 +104,9 @@ cdef class OctreeContainer:
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
-        self.max_domain = -1
+        self.num_domains = 0
         self.level_offset = 0
+        self.domains = NULL
         p = 0
         self.nocts = 0 # Increment when initialized
         for i in range(3):
@@ -269,14 +270,14 @@ cdef class OctreeContainer:
 
     def domain_identify(self, SelectorObject selector):
         cdef np.ndarray[np.uint8_t, ndim=1] domain_mask
-        domain_mask = np.zeros(self.max_domain, dtype="uint8")
+        domain_mask = np.zeros(self.num_domains, dtype="uint8")
         cdef OctVisitorData data
         self.setup_data(&data)
         data.array = domain_mask.data
         self.visit_all_octs(selector, oct_visitors.identify_octs, &data)
         cdef int i
         domain_ids = []
-        for i in range(self.max_domain):
+        for i in range(self.num_domains):
             if domain_mask[i] == 1:
                 domain_ids.append(i+1)
         return domain_ids
@@ -512,7 +513,7 @@ cdef class OctreeContainer:
         cdef Oct *cur, *next = NULL
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0] #number of octs
-        if curdom > self.max_domain: return 0
+        if curdom > self.num_domains: return 0
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
@@ -556,13 +557,27 @@ cdef class OctreeContainer:
         cdef int count, i
         cdef OctAllocationContainer *cur = self.cont
         assert(cur == NULL)
-        self.max_domain = len(domain_counts) # 1-indexed
+        self.num_domains = len(domain_counts) # 1-indexed
         self.domains = <OctAllocationContainer **> malloc(
             sizeof(OctAllocationContainer *) * len(domain_counts))
         for i, count in enumerate(domain_counts):
             cur = allocate_octs(count, cur)
             if self.cont == NULL: self.cont = cur
             self.domains[i] = cur
+
+    def append_domain(self, domain_count):
+        self.num_domains += 1
+        self.domains = <OctAllocationContainer **> realloc(self.domains, 
+                sizeof(OctAllocationContainer *) * self.num_domains)
+        self.domains[self.num_domains - 1] = NULL
+        cdef OctAllocationContainer *cur
+        if self.num_domains == 1:
+            cur = NULL
+        else:
+            cur = self.domains[self.num_domains - 2]
+        cur = allocate_octs(domain_count, cur)
+        if self.cont == NULL: self.cont = cur
+        self.domains[self.num_domainss - 1] = cur
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
@@ -668,7 +683,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         self.oref = over_refine
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
-        self.max_domain = -1
+        self.num_domains = 0
         self.level_offset = 0
         self.nocts = 0 # Increment when initialized
         self.root_mesh = NULL
@@ -770,6 +785,15 @@ cdef class SparseOctreeContainer(OctreeContainer):
         for i in range(root_nodes):
             self.root_nodes[i].key = -1
             self.root_nodes[i].node = NULL
+
+    def append_domain(self, domain_count, bint new_root = False):
+        OctreeContainer.append_domain(self, domain_count)
+        if not new_root: return
+        self.max_root += 1
+        self.root_nodes = <OctKey *> realloc(self.root_nodes,
+                                  sizeof(OctKey) * self.max_root)
+        self.root_nodes[self.max_root - 1].key = -1
+        self.root_nodes[self.max_root - 1].node = NULL
 
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get

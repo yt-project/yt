@@ -72,7 +72,7 @@ cdef class OctreeContainer:
     cdef np.uint8_t oref
     cdef np.float64_t DLE[3], DRE[3]
     cdef public np.int64_t nocts
-    cdef public int max_domain
+    cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef int get_root(self, int ind[3], Oct **o)
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors)
