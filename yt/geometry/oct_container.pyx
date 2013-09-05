@@ -566,7 +566,7 @@ cdef class OctreeContainer:
             if self.cont == NULL: self.cont = cur
             self.domains[i] = cur
 
-    def append_domain(self, domain_count):
+    def append_domain(self, np.int64_t domain_count):
         self.num_domains += 1
         self.domains = <OctAllocationContainer **> realloc(self.domains, 
                 sizeof(OctAllocationContainer *) * self.num_domains)

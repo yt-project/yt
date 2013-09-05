@@ -53,15 +53,16 @@ from yt.data_objects.field_info_container import \
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = -1
-    _con_args = ("base_region", "sfc", "root_mesh", "pf")
+    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "pf")
     _type_name = 'octree_subset'
     _num_zones = 2
 
-    def __init__(self, base_region, sfc, root_mesh, pf):
+    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, pf):
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.sfc = self.sfc_start = self.sfc_end = sfc
-        self.root_mesh = root_mesh
+        self.sfc_start = sfc_start
+        self.sfc_end = sfc_end
+        self.oct_handler = oct_handler
         self.pf = pf
         self.hierarchy = self.pf.hierarchy
         self._last_mask = None
@@ -70,7 +71,6 @@ class ARTIOOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.pf.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
-        self.oct_handler = root_mesh.octree_handlers[sfc]
 
     @property
     def min_ind(self):
@@ -128,25 +128,9 @@ class ARTIOOctreeSubset(OctreeSubset):
 # only manage the root mesh.
 class ARTIORootMeshSubset(ARTIOOctreeSubset):
     _num_zones = 1
-    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "pf")
     _type_name = 'sfc_subset'
     _selector_module = _artio_caller
     domain_id = -1
-
-    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, pf):
-        self.field_data = YTFieldData()
-        self.field_parameters = {}
-        self.sfc_start = sfc_start
-        self.sfc_end = sfc_end
-        self.oct_handler = oct_handler
-        self.pf = pf
-        self.hierarchy = self.pf.hierarchy
-        self._last_mask = None
-        self._last_selector_id = None
-        self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
-        self.base_region = base_region
-        self.base_selector = base_region.selector
 
     def fill(self, fields, selector):
         # We know how big these will be.
@@ -362,9 +346,8 @@ class ARTIOGeometryHandler(GeometryHandler):
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
                                 range_handler.root_mesh_handler, self.pf))
                 if nz != 1:
-                    for sfc in sorted(range_handler.octree_handlers):
-                        ci.append(ARTIOOctreeSubset(base_region, sfc,
-                        range_handler, self.pf))
+                    ci.append(ARTIOOctreeSubset(base_region, start, end,
+                      range_handler.octree_handler, self.pf))
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
                 mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))

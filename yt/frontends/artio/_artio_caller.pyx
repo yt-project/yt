@@ -552,8 +552,8 @@ cdef class ARTIOSFCRangeHandler:
     cdef public np.int64_t sfc_end
     cdef public artio_fileset artio_handle
     cdef public object root_mesh_handler
-    cdef public object octree_handlers
     cdef public object oct_count
+    cdef public object octree_handler
     cdef artio_fileset_handle *handle
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
@@ -570,7 +570,7 @@ cdef class ARTIOSFCRangeHandler:
         self.sfc_end = sfc_end
         self.artio_handle = artio_handle
         self.root_mesh_handler = None
-        self.octree_handlers = {}
+        self.octree_handler = None
         self.handle = artio_handle.handle
         self.oct_count = None
         for i in range(3):
@@ -579,6 +579,9 @@ cdef class ARTIOSFCRangeHandler:
             self.DRE[i] = domain_right_edge[i]
             self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def construct_mesh(self):
         cdef int status, level
         cdef np.int64_t sfc, oc
@@ -588,7 +591,7 @@ cdef class ARTIOSFCRangeHandler:
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
         cdef ARTIOOctreeContainer octree
-        octree = ARTIOOctreeContainer(self)
+        self.octree_handler = octree = ARTIOOctreeContainer(self)
         # We want to pre-allocate an array of root pointers.  In the future,
         # this will be pre-determined by the ARTIO library.  However, because
         # realloc plays havoc with our tree searching, we can't utilize an
@@ -616,7 +619,7 @@ cdef class ARTIOSFCRangeHandler:
         self.oct_count = oct_count
 
     def free_mesh(self):
-        self.octree_handlers.clear()
+        self.octree_handler = None
         self.root_mesh_handler = None
         self.oct_count = None
 
@@ -682,7 +685,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                               int num_oct_levels, int *num_octs_per_level):
         # We actually will not be initializing the root mesh here, we will be
         # initializing the entire mesh between sfc_start and sfc_end.
-        cdef np.int64_t oct_ind, sfc, tot_octs, ipos
+        cdef np.int64_t oct_ind, sfc, tot_octs, ipos, nadded
         cdef int i, status, level, num_root, num_octs
         cdef int num_level_octs
         cdef artio_fileset_handle *handle = self.artio_handle.handle
@@ -690,6 +693,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef int max_level = self.artio_handle.max_level
         cdef double dpos[3]
         cdef np.float64_t f64pos[3], dds[3]
+        cdef np.ndarray[np.float64_t, ndim=2] pos
         # NOTE: We do not cache any SFC ranges here, as we should only ever be
         # called from within a pre-cached operation in the SFC handler.
 
@@ -718,7 +722,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             status = artio_grid_read_level_end(handle)
             check_artio_status(status)
             nadded = self.add(self.num_domains, level, pos[:num_octs_per_level[level],:])
-            if nadded != num_octs_per_level[level]: raise RuntimeError
+            if nadded != num_octs_per_level[level]:
+                raise RuntimeError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
