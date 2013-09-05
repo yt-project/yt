@@ -1320,7 +1320,7 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = pf.current_time*pf['Time']*pf['years']
+                time = pf.current_time*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
