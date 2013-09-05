@@ -50,11 +50,9 @@ from yt.data_objects.data_containers import \
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 
-
-
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
-    domain_id = 1
+    domain_id = -1
     _con_args = ("base_region", "sfc", "root_mesh", "pf")
     _type_name = 'octree_subset'
     _num_zones = 2
@@ -133,7 +131,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
     _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "pf")
     _type_name = 'sfc_subset'
     _selector_module = _artio_caller
-    domain_id = 1
+    domain_id = -1
 
     def __init__(self, base_region, sfc_start, sfc_end, oct_handler, pf):
         self.field_data = YTFieldData()

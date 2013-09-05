@@ -588,6 +588,12 @@ cdef class ARTIOSFCRangeHandler:
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
         cdef ARTIOOctreeContainer octree
+        octree = ARTIOOctreeContainer(self)
+        # We want to pre-allocate an array of root pointers.  In the future,
+        # this will be pre-determined by the ARTIO library.  However, because
+        # realloc plays havoc with our tree searching, we can't utilize an
+        # expanding array at the present time.
+        octree.allocate_domains([], self.sfc_end - self.sfc_start + 1)
         cdef np.ndarray[np.int64_t, ndim=1] oct_count
         oct_count = np.zeros(self.sfc_end - self.sfc_start + 1, dtype="int64")
         status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
@@ -602,9 +608,7 @@ cdef class ARTIOSFCRangeHandler:
                 for level in range(num_oct_levels):
                     oc += num_octs_per_level[level]
                 oct_count[sfc - self.sfc_start] = oc
-                octree = ARTIOOctreeContainer(self, sfc)
-                octree.initialize_mesh(oc, num_oct_levels, num_octs_per_level)
-                self.octree_handlers[sfc] = octree
+                octree.initialize_local_mesh(oc, num_oct_levels, num_octs_per_level)
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status)
         free(num_octs_per_level)
@@ -649,22 +653,16 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     # the file again, despite knowing the indexing system already.  Because of
     # this, we will avoid creating it as long as possible.
 
-    cdef public np.int64_t sfc
-    cdef public np.int64_t sfc_offset
     cdef public artio_fileset artio_handle
-    cdef Oct **root_octs
     cdef np.int64_t level_indices[32]
-    cdef np.int64_t oct_count[32]
 
-    def __init__(self, ARTIOSFCRangeHandler range_handler, np.int64_t sfc):
+    def __init__(self, ARTIOSFCRangeHandler range_handler):
         self.artio_handle = range_handler.artio_handle
-        self.sfc = sfc
         # Note the final argument is partial_coverage, which indicates whether
         # or not an Oct can be partially refined.
         dims, DLE, DRE = [], [], []
         for i in range(32):
             self.level_indices[i] = 0
-            self.oct_count[i] = 0
         for i in range(3):
             # range_handler has dims in cells, which is the same as the number
             # of possible octs.  This is because we have a forest of octrees.
@@ -673,13 +671,14 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             DRE.append(range_handler.DRE[i])
         super(ARTIOOctreeContainer, self).__init__(dims, DLE, DRE)
         self.artio_handle = range_handler.artio_handle
-        self.sfc_offset = range_handler.sfc_start
         self.level_offset = 1
+        self.domains = NULL
+        self.root_nodes = NULL
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void initialize_mesh(self, np.int64_t oct_count,
+    cdef void initialize_local_mesh(self, np.int64_t oct_count,
                               int num_oct_levels, int *num_octs_per_level):
         # We actually will not be initializing the root mesh here, we will be
         # initializing the entire mesh between sfc_start and sfc_end.
@@ -695,8 +694,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         # called from within a pre-cached operation in the SFC handler.
 
         # We only allow one root oct.
-        self.allocate_domains([oct_count], 1)
-        pos = np.empty((1, 3), dtype="float64")
+        self.append_domain(oct_count)
 
         oct_ind = -1
         ipos = 0
@@ -708,6 +706,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 
         # Now we initialize
         # Note that we also assume we have already started reading the level.
+        ipos = 0
         for level in range(num_oct_levels):
             status = artio_grid_read_level_begin(handle, level + 1)
             check_artio_status(status)
@@ -718,16 +717,17 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                 check_artio_status(status)
             status = artio_grid_read_level_end(handle)
             check_artio_status(status)
-            nadded = self.add(1, level, pos[:num_octs_per_level[level],:])
- 
+            nadded = self.add(self.num_domains, level, pos[:num_octs_per_level[level],:])
+            if nadded != num_octs_per_level[level]: raise RuntimeError
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_sfc(self, 
-                 np.ndarray[np.uint8_t, ndim=1] levels,
-                 np.ndarray[np.uint8_t, ndim=1] cell_inds,
-                 np.ndarray[np.int64_t, ndim=1] file_inds,
-                 field_indices, dest_fields):
+             np.ndarray[np.uint8_t, ndim=1] levels,
+             np.ndarray[np.uint8_t, ndim=1] cell_inds,
+             np.ndarray[np.int64_t, ndim=1] file_inds,
+             field_indices, dest_fields):
         cdef np.ndarray[np.float32_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level

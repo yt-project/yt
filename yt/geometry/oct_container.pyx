@@ -101,6 +101,7 @@ cdef class OctreeContainer:
         # This will just initialize the root mesh octs
         self.oref = over_refine
         self.partial_coverage = partial_coverage
+        self.cont = NULL
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
@@ -569,15 +570,14 @@ cdef class OctreeContainer:
         self.num_domains += 1
         self.domains = <OctAllocationContainer **> realloc(self.domains, 
                 sizeof(OctAllocationContainer *) * self.num_domains)
+        if self.domains == NULL: raise RuntimeError
         self.domains[self.num_domains - 1] = NULL
-        cdef OctAllocationContainer *cur
-        if self.num_domains == 1:
-            cur = NULL
-        else:
+        cdef OctAllocationContainer *cur = NULL
+        if self.num_domains > 1:
             cur = self.domains[self.num_domains - 2]
         cur = allocate_octs(domain_count, cur)
         if self.cont == NULL: self.cont = cur
-        self.domains[self.num_domainss - 1] = cur
+        self.domains[self.num_domains - 1] = cur
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
@@ -690,6 +690,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         self.root_nodes = NULL
         self.tree_root = NULL
         self.num_root = 0
+        self.max_root = 0
         # We don't initialize the octs yet
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
@@ -700,23 +701,24 @@ cdef class SparseOctreeContainer(OctreeContainer):
         o[0] = NULL
         cdef int i
         cdef np.int64_t key = self.ipos_to_key(ind)
-        cdef OctKey okey, **oresult
+        cdef OctKey okey, **oresult = NULL
         okey.key = key
         okey.node = NULL
         oresult = <OctKey **> tfind(<void*>&okey,
             &self.tree_root, root_node_compare)
         if oresult != NULL:
             o[0] = oresult[0].node
+            return 1
+        return 0
 
     cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3]):
         # Note: this is the result of doing
-        # ukey = 0
         # for i in range(20):
         #     ukey |= (1 << i)
         cdef np.int64_t ukey = 1048575
         cdef int j
         for j in range(3):
-            pos[2 - j] = (key & ukey)
+            pos[2 - j] = (<np.int64_t>(key & ukey))
             key = key >> 20
 
     cdef np.int64_t ipos_to_key(self, int pos[3]):
@@ -724,7 +726,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
         cdef int i
         cdef np.int64_t key = 0
         for i in range(3):
-            key |= (pos[i] << 20 * (2 - i))
+            # Note the casting here.  Bitshifting can cause issues otherwise.
+            key |= ((<np.int64_t>pos[i]) << 20 * (2 - i))
         return key
 
     @cython.cdivision(True)
@@ -756,7 +759,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         cdef int i
-        cdef Oct *next
+        cdef Oct *next = NULL
         self.get_root(ind, &next)
         if next != NULL: return next
         cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
@@ -770,6 +773,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         cont.n_assigned += 1
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
+        cdef np.int64_t okey = ikey.key
         key = self.ipos_to_key(ind)
         self.root_nodes[self.num_root].key = key
         self.root_nodes[self.num_root].node = next
@@ -785,15 +789,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
         for i in range(root_nodes):
             self.root_nodes[i].key = -1
             self.root_nodes[i].node = NULL
-
-    def append_domain(self, domain_count, bint new_root = False):
-        OctreeContainer.append_domain(self, domain_count)
-        if not new_root: return
-        self.max_root += 1
-        self.root_nodes = <OctKey *> realloc(self.root_nodes,
-                                  sizeof(OctKey) * self.max_root)
-        self.root_nodes[self.max_root - 1].key = -1
-        self.root_nodes[self.max_root - 1].node = NULL
 
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
