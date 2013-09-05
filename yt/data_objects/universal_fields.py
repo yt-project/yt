@@ -698,7 +698,7 @@ def _Shear(field, data):
     if data.pf.dimensionality == 2:
         shear = (fxy**2 + fyx**2) * (dx/c_s)**2
 
-    if data.pf.dimensionality == 3:o
+    if data.pf.dimensionality == 3:
         shear = (fxy**2 + fxz**2 + fyx**2 + fyz**2 + fzx**2 + fzy**2) * (dx/c_s)**2
     shear = shear**0.5
 
