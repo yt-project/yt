@@ -345,7 +345,7 @@ class ARTIOGeometryHandler(GeometryHandler):
                 if nz != 2:
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
                                 range_handler.root_mesh_handler, self.pf))
-                if nz != 1:
+                if nz != 1 and range_handler.total_octs > 0:
                     ci.append(ARTIOOctreeSubset(base_region, start, end,
                       range_handler.octree_handler, self.pf))
             dobj._chunk_info = ci

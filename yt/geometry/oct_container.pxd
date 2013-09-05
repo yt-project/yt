@@ -86,6 +86,7 @@ cdef class OctreeContainer:
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
     cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
+    cdef void append_domain(self, np.int64_t domain_count)
 
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes

@@ -559,6 +559,7 @@ cdef class ARTIOSFCRangeHandler:
     cdef np.float64_t DRE[3]
     cdef np.float64_t dds[3]
     cdef np.int64_t dims[3]
+    cdef public np.int64_t total_octs
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
@@ -610,6 +611,7 @@ cdef class ARTIOSFCRangeHandler:
                 oc = 0
                 for level in range(num_oct_levels):
                     oc += num_octs_per_level[level]
+                self.total_octs += oc
                 oct_count[sfc - self.sfc_start] = oc
                 octree.initialize_local_mesh(oc, num_oct_levels, num_octs_per_level)
             status = artio_grid_read_root_cell_end( self.handle )
