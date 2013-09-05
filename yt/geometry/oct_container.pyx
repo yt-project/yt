@@ -684,9 +684,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL
         cdef int i
-        cdef np.int64_t key = 0
-        for i in range(3):
-            key |= ((<np.int64_t>ind[i]) << 20 * (2 - i))
+        cdef np.int64_t key = self.ipos_to_key(ind)
         cdef OctKey okey, **oresult
         okey.key = key
         okey.node = NULL
@@ -694,6 +692,25 @@ cdef class SparseOctreeContainer(OctreeContainer):
             &self.tree_root, root_node_compare)
         if oresult != NULL:
             o[0] = oresult[0].node
+
+    cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3]):
+        # Note: this is the result of doing
+        # ukey = 0
+        # for i in range(20):
+        #     ukey |= (1 << i)
+        cdef np.int64_t ukey = 1048575
+        cdef int j
+        for j in range(3):
+            pos[2 - j] = (key & ukey)
+            key = key >> 20
+
+    cdef np.int64_t ipos_to_key(self, int pos[3]):
+        # We (hope) that 20 bits is enough for each index.
+        cdef int i
+        cdef np.int64_t key = 0
+        for i in range(3):
+            key |= (pos[i] << 20 * (2 - i))
+        return key
 
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
@@ -710,15 +727,10 @@ cdef class SparseOctreeContainer(OctreeContainer):
             dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
         # Pos is the center of the octs
         cdef Oct *o
-        ukey = 0
-        for i in range(20):
-            ukey |= (1 << i)
         for i in range(self.num_root):
             o = self.root_nodes[i].node
             key = self.root_nodes[i].key
-            for j in range(3):
-                data.pos[2 - j] = (key & ukey)
-                key = key >> 20
+            self.key_to_ipos(key, data.pos)
             for j in range(3):
                 pos[j] = self.DLE[j] + (data.pos[j] + 0.5) * dds[j]
             selector.recursively_visit_octs(
@@ -728,7 +740,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
         return 0 # We no longer have a domain offset.
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
-        # We assume that 20 bits is enough for each index.
         cdef int i
         cdef Oct *next
         self.get_root(ind, &next)
@@ -744,8 +755,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         cont.n_assigned += 1
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
-        for i in range(3):
-            key |= ((<np.int64_t>ind[i]) << 20 * (2 - i))
+        key = self.ipos_to_key(ind)
         self.root_nodes[self.num_root].key = key
         self.root_nodes[self.num_root].node = next
         tsearch(<void*>ikey, &self.tree_root, root_node_compare)

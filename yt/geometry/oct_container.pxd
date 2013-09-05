@@ -92,6 +92,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef void *tree_root
     cdef int num_root
     cdef int max_root
+    cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3])
+    cdef np.int64_t ipos_to_key(self, int pos[3])
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass
