@@ -171,7 +171,7 @@ class TableApecModel(PhotonModel):
         pseudo = self.coco_handle[tindex].data.field('Pseudo')[ind][:n_pseudo]
         
         tmpspec += self.expand_E_grid(self.ebins, n_pseudo, e_pseudo, pseudo)
-                                                        
+
         return tmpspec
 
     def get_spectrum(self, kT, Zmet):
@@ -200,13 +200,13 @@ class TableAbsorbModel(PhotonModel):
             raise IOError("File does not exist: %s." % filename)
         self.filename = filename
         f = h5py.File(self.filename,"r")
-        emin = f["energ_lo"][:].min()
-        emax = f["energ_hi"][:].max()
+        emin = f["energy"][:].min()
+        emax = f["energy"][:].max()
         self.sigma = f["cross_section"][:]
         nchan = self.sigma.shape[0]
         f.close()
         PhotonModel.__init__(self, emin, emax, nchan)
-        self.nH = nH
+        self.nH = nH*1.0e22
         
     def prepare(self):
         pass
