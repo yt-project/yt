@@ -731,6 +731,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef np.ndarray[np.float32_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef int level, j, oct_ind
         cdef np.int64_t sfc, ipos
         cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
