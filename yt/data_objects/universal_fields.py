@@ -645,6 +645,72 @@ def _AbsDivV(field, data):
 add_field("AbsDivV", function=_AbsDivV,
           units=r"\rm{s}^{-1}")
 
+#     Shear prescription taken from Enzo source:
+#           enzo-dev/src/enzo/Grid_FlagCellsToBeRefinedByShear.C
+#
+#       For shear: [(du/dy)^2 + (dv/dx)^2 + (dw/dy)^2 +
+#                   (du/dz)^2 + (dv/dz)^2 + (dw/dx)^2  ] * (dx/c_s)^2
+#       where:  du/dy = [u(j-1) - u(j+1)]/[2dy],
+#       Shear is defined relative to the sound speed (i.e. mach)
+
+def _Shear(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2: # Zeus -- velocities are face centered
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else: # PPM -- velocities are cell centered
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    # only works for 2d and 3d data:
+    if data.pf.dimensionality > 1:
+        # first the dx direction
+        ds = div_fac * data['dx'].flat[0]
+        fxy  = data["y-velocity"][1:-1,sl_right,1:-1]/ds
+        fxy -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+        ds = div_fac * data['dy'].flat[0]
+        fyx  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
+        fyx -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
+
+    if data.pf.dimensionality > 2:
+        ds = div_fac * data['dx'].flat[0]
+        fxz  = data["z-velocity"][1:-1,1:-1,sl_right]/ds
+        fxz -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+        ds = div_fac * data['dy'].flat[0]
+        fyz  = data["z-velocity"][1:-1,1:-1,sl_right]/ds
+        fyz -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+
+        # lastly the dz direction
+        ds = div_fac * data['dz'].flat[0]
+        fzx  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
+        fzx -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
+        fzy  = data["y-velocity"][1:-1,sl_right,1:-1]/ds
+        fzy -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    if data.pf.dimensionality <= 1:
+        print "Shear only valid when dimensionality > 2"
+
+    # and the sound speed (make sure it has the right dimension)
+    c_s = data["SoundSpeed"][1:-1,1:-1,1:-1]
+    # assumes dx = dy = dz; valid for enzo sims
+    dx = data['dx'][1:-1,1:-1,1:-1]
+
+    if data.pf.dimensionality == 2:
+        shear = (fxy**2 + fyx**2) * (dx/c_s)**2
+
+    if data.pf.dimensionality == 3:o
+        shear = (fxy**2 + fxz**2 + fyx**2 + fyz**2 + fzx**2 + fzy**2) * (dx/c_s)**2
+    shear = shear**0.5
+
+    new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
+    new_field[1:-1,1:-1,1:-1] = shear
+    return new_field
+
+add_field("Shear", function=_Shear,
+          validators=[ValidateSpatial(ghost_zones=1,
+          fields=["x-velocity","y-velocity","z-velocity","SoundSpeed"])],
+          units=r"\rm{Mach}", take_log=False)
+
 def _Contours(field, data):
     return -np.ones_like(data["Ones"])
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
