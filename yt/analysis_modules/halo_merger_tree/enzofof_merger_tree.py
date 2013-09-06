@@ -54,7 +54,7 @@ import cPickle
 import glob
 
 from yt.funcs import *
-from yt.utilities.pykdtree import KDTree
+from yt.extern.pykdtree import KDTree
 import yt.extern.pydot as pydot
 
 # We don't currently use this, but we may again find a use for it in the
