@@ -1589,17 +1589,26 @@ class YTStatsCmd(YTCommand):
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
+        vals = {}
         if args.field in pf.h.derived_field_list:
             if args.max == True:
-                v, c = pf.h.find_max(args.field)
-                print "Maximum %s: %0.5e at %s" % (args.field, v, c)
+                vals['min'] = pf.h.find_max(args.field)
+                print "Maximum %s: %0.5e at %s" % (args.field,
+                    vals['min'][0], vals['min'][1])
             if args.min == True:
-                v, c = pf.h.find_min(args.field)
-                print "Minimum %s: %0.5e at %s" % (args.field, v, c)
+                vals['max'] = pf.h.find_min(args.field)
+                print "Minimum %s: %0.5e at %s" % (args.field,
+                    vals['max'][0], vals['max'][1])
         if args.output is not None:
             t = pf.current_time * pf['years']
-            open(args.output, "a").write(
-                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
+            with open(args.output, "a") as f:
+                f.write("%s (%0.5e years)\n" % (pf, t))
+                if 'min' in vals:
+                    f.write('Minimum %s is %0.5e at %s\n' % (
+                        args.field, vals['min'][0], vals['min'][1]))
+                if 'max' in vals:
+                    f.write('Maximum %s is %0.5e at %s\n' % (
+                        args.field, vals['max'][0], vals['max'][1]))
 
 class YTUpdateCmd(YTCommand):
     args = ("all", )
