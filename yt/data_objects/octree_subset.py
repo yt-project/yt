@@ -127,6 +127,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def deposit(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
+        if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -148,6 +149,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def smooth(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
+        if fields is None: fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
