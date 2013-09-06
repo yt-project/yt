@@ -452,10 +452,10 @@ class ARTIOStaticOutput(StaticOutput):
                 self.units["%sh" % unit] = self.units[unit] * \
                     self.hubble_constant
                 self.units["%shcm" % unit] = \
-                    (self.units["%sh" % unit] /
+                    (self.units["%sh" % unit] *
                         (1 + self.current_redshift))
                 self.units["%scm" % unit] = \
-                    self.units[unit] / (1 + self.current_redshift)
+                    self.units[unit] * (1 + self.current_redshift)
 
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t']\

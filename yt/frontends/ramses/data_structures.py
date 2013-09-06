@@ -411,9 +411,9 @@ class RAMSESStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = unit_l * mpc_conversion[unit] / mpc_conversion["cm"]
             self.units['%sh' % unit] = self.units[unit] * self.hubble_constant
-            self.units['%scm' % unit] = (self.units[unit] /
+            self.units['%scm' % unit] = (self.units[unit] *
                                           (1 + self.current_redshift))
-            self.units['%shcm' % unit] = (self.units['%sh' % unit] /
+            self.units['%shcm' % unit] = (self.units['%sh' % unit] *
                                           (1 + self.current_redshift))
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t'] / sec_conversion[unit]
