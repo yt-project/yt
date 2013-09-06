@@ -270,7 +270,7 @@ class EnzoSimulation(SimulationTimeSeries):
             if '#' in line: line = line[0:line.find('#')]
             if '//' in line: line = line[0:line.find('//')]
             if len(line) < 2: continue
-            param, vals = (i.strip() for i in line.split("="), 1)
+            param, vals = (i.strip() for i in line.split("=", 1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.
