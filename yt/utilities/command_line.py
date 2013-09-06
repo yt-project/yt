@@ -1604,10 +1604,10 @@ class YTStatsCmd(YTCommand):
             with open(args.output, "a") as f:
                 f.write("%s (%0.5e years)\n" % (pf, t))
                 if 'min' in vals:
-                    f.write('Minimum %s is %0.5e at %s' % (
+                    f.write('Minimum %s is %0.5e at %s\n' % (
                         args.field, vals['min'][0], vals['min'][1]))
                 if 'max' in vals:
-                    f.write('Maximum %s is %0.5e at %s' % (
+                    f.write('Maximum %s is %0.5e at %s\n' % (
                         args.field, vals['max'][0], vals['max'][1]))
 
 class YTUpdateCmd(YTCommand):
