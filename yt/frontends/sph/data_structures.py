@@ -96,6 +96,7 @@ class GadgetBinaryFile(ParticleFile):
 
 class ParticleStaticOutput(StaticOutput):
     _unit_base = None
+    over_refine_factor = 1
 
     def _set_units(self):
         self.units = {}
@@ -154,8 +155,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
     def __init__(self, filename, data_style="gadget_binary",
                  additional_fields = (),
-                 unit_base = None, n_ref = 64):
+                 unit_base = None, n_ref = 64,
+                 over_refine_factor = 1):
         self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -188,7 +191,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * 2
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
         self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
@@ -268,11 +272,13 @@ class OWLSStaticOutput(GadgetStaticOutput):
     _particle_coordinates_name = "Coordinates"
     _header_spec = None # Override so that there's no confusion
 
-    def __init__(self, filename, data_style="OWLS", n_ref = 64):
+    def __init__(self, filename, data_style="OWLS", n_ref = 64,
+                 over_refine_factor = 1):
         self.storage_filename = None
-        super(OWLSStaticOutput, self).__init__(filename, data_style,
-                                               unit_base = None,
-                                               n_ref = n_ref)
+        super(OWLSStaticOutput, self).__init__(
+                               filename, data_style,
+                               unit_base = None, n_ref = n_ref,
+                               over_refine_factor = over_refine_factor)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
@@ -292,7 +298,8 @@ class OWLSStaticOutput(GadgetStaticOutput):
         self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        self.domain_dimensions = np.ones(3, "int32") * 2
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]
@@ -364,8 +371,9 @@ class TipsyStaticOutput(ParticleStaticOutput):
                  unit_base = None,
                  cosmology_parameters = None,
                  parameter_file = None,
-                 n_ref = 64):
+                 n_ref = 64, over_refine_factor = 1):
         self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
         self.endian = endian
         self.storage_filename = None
         if domain_left_edge is None:
@@ -438,7 +446,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
                 self.parameters[param] = val
 
         self.current_time = hvals["time"]
-        self.domain_dimensions = np.ones(3, "int32") * 2
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
         else:

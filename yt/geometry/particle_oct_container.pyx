@@ -205,6 +205,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int i, j, k, m, n, ind[3]
         cdef Oct *noct
         cdef np.uint64_t prefix1, prefix2
+        # TODO: This does not need to be changed.
         o.children = <Oct **> malloc(sizeof(Oct *)*8)
         for i in range(2):
             for j in range(2):
