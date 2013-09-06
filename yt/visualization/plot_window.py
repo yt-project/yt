@@ -31,6 +31,7 @@ import cStringIO
 import types
 import __builtin__
 
+from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
 from matplotlib.font_manager import FontProperties
 from distutils import version
@@ -49,7 +50,6 @@ from .plot_modifications import get_smallest_appropriate_unit, \
 from .tick_locators import LogLocator, LinearLocator
 from .base_plot_types import ImagePlotMPL
 
-from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
     fix_axis, get_image_suffix, get_ipython_api_version
