@@ -110,6 +110,53 @@ then
   echo
   echo "NOTE: you must have the Xcode command line tools installed."
   echo
+  echo "The instructions for obtaining these tools varies according"
+  echo "to your exact OS version.  On older versions of OS X, you"
+  echo "must register for an account on the apple developer tools"
+  echo "website: https://developer.apple.com/downloads to obtain the"
+  echo "download link."
+  echo
+  echo "We have gathered some additional instructions for each"
+  echo "version of OS X below. If you have trouble installing yt"
+  echo "after following these instructions, don't hesitate to contact"
+  echo "the yt user's e-mail list."
+  echo
+  echo "You can see which version of OSX you are running by clicking"
+  echo "'About This Mac' in the apple menu on the left hand side of"
+  echo "menu bar.  We're assuming that you've installed all operating"
+  echo "system updates; if you have an older version, we suggest"
+  echo "running software update and installing all available updates."
+  echo
+  echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the"
+  echo "Apple developer tools website."
+  echo
+  echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
+  echo "developer tools website.  You can either download the"
+  echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+  echo "Software Update to update to XCode 3.2.6 or"
+  echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
+  echo "bundle (4.1 GB)."
+  echo
+  echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
+  echo "(search for Xcode)."
+  echo "Alternatively, download the Xcode command line tools from"
+  echo "the Apple developer tools website."
+  echo
+  echo "OS X 10.8.2: download Xcode 4.6.1 from the mac app store."
+  echo "(search for Xcode)."
+  echo "Additionally, you will have to manually install the Xcode"
+  echo "command line tools, see:"
+  echo "http://stackoverflow.com/questions/9353444"
+  echo "Alternatively, download the Xcode command line tools from"
+  echo "the Apple developer tools website."
+  echo
+  echo "NOTE: It's possible that the installation will fail, if so,"
+  echo "please set the following environment variables, remove any"
+  echo "broken installation tree, and re-run this script verbatim."
+  echo
+  echo "$ export CC=gcc"
+  echo "$ export CXX=g++"
+  echo
   MINICONDA_OS="MacOSX-x86_64"
 fi
 if [ "${MYOS##Linux}" != "${MYOS}" ]
@@ -118,8 +165,44 @@ then
   echo
   echo "Please make sure you have the developer tools for your OS installed."
   echo
-  echo "For Ubuntu, Redhat variants and the like, this includes the"
-  echo "chrpath utility.  This is not installed by default."
+  if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
+  then
+    echo "Looks like you're on an OpenSUSE-compatible machine."
+    echo
+    echo "You need to have these packages installed:"
+    echo
+    echo "  * devel_C_C++"
+    echo "  * libopenssl-devel"
+    echo "  * libuuid-devel"
+    echo "  * zip"
+    echo "  * gcc-c++"
+    echo "  * chrpath"
+    echo
+    echo "You can accomplish this by executing:"
+    echo
+    echo "$ sudo zypper install -t pattern devel_C_C++"
+    echo "$ sudo zypper install gcc-c++ libopenssl-devel libuuid-devel zip"
+    echo "$ sudo zypper install chrpath"
+  fi
+  if [ -f /etc/lsb-release ] && [ `grep --count buntu /etc/lsb-release` -gt 0 ]
+  then
+    echo "Looks like you're on an Ubuntu-compatible machine."
+    echo
+    echo "You need to have these packages installed:"
+    echo
+    echo "  * libssl-dev"
+    echo "  * build-essential"
+    echo "  * libncurses5"
+    echo "  * libncurses5-dev"
+    echo "  * zip"
+    echo "  * uuid-dev"
+    echo "  * chrpath"
+    echo
+    echo "You can accomplish this by executing:"
+    echo
+    echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev chrpath"
+    echo
+  fi
   echo
   echo "If you are running on a supercomputer or other module-enabled"
   echo "system, please make sure that the GNU module has been loaded."
@@ -238,6 +321,11 @@ then
   echo "You must now modify your PATH variable by prepending:"
   echo 
   echo "   $DEST_DIR/bin"
+  echo
+  echo "For example, if you use bash, place something like this at the end"
+  echo "of your ~/.bashrc :"
+  echo
+  echo "   export PATH=$DEST_DIR/bin:$PATH"
 else
   echo "To run from this new installation, use the activate script for this "
   echo "environment."
