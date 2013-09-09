@@ -664,6 +664,7 @@ def _Shear(field, data):
         sl_right = slice(2,None,None)
         div_fac = 2.0
     # only works for 2d and 3d data:
+    # Just get f to be zeros array of the right dimension as base
     f = np.zeros(data["x-velocity"][2:,2:,2:].shape, dtype='float64')
     if data.pf.dimensionality > 1:
         # first the dx direction
@@ -674,6 +675,7 @@ def _Shear(field, data):
         f += ((data["x-velocity"][sl_right,1:-1,1:-1]/ds) - 
               (data["x-velocity"][sl_left ,1:-1,1:-1]/ds))**2
 
+    # if 3D sim, take into account additional shear directions
     if data.pf.dimensionality > 2:
         ds = div_fac * data['dx'].flat[0]
         f += ((data["z-velocity"][1:-1,1:-1,sl_right]/ds) - 
@@ -688,13 +690,11 @@ def _Shear(field, data):
         f += ((data["y-velocity"][1:-1,sl_right,1:-1]/ds) - 
               (data["y-velocity"][1:-1,sl_left ,1:-1]/ds))**2
     if data.pf.dimensionality <= 1:
-        print "Shear only valid when dimensionality > 2"
+        raise NotImplementedError("Shear field undefined for 1D datasets")
 
-    # and the sound speed (make sure it has the right dimension)
-    c_s = data["SoundSpeed"][1:-1,1:-1,1:-1]
-    # assumes dx = dy = dz; valid for enzo sims
-    dx = data['dx'][1:-1,1:-1,1:-1]
-    shear = (f * (dx/c_s)**2)**0.5
+    # Calc the sound speed (make sure it has the right dimension)
+    c_s = (data["SoundSpeed"][1:-1,1:-1,1:-1])**2
+    shear = (f / c_s)**0.5
     new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = shear
     return new_field
