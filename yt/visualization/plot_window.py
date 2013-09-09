@@ -1863,7 +1863,7 @@ class WindowPlotMPL(ImagePlotMPL):
         self._cbar_inches[False] = 0
 
         # add buffers for text, and a bit of whitespace on top
-        self._text_buffx[True] = self._fontscale * 1.0/(size[0])
+        self._text_buffx[True] = self._fontscale * 1.0/(size[0] + self._cbar_inches[True])
         self._text_bottomy[True] = self._fontscale * 0.7/size[1]
         self._text_topy[True] = self._fontscale * 0.3/size[1]
 
