@@ -1083,7 +1083,9 @@ class PWViewerMPL(PWViewer):
         weight = None
         type = self._plot_type
         if type in ['Projection','OffAxisProjection']:
-            weight = self.data_source.weight_field.replace(' ', '_')
+            weight = self.data_source.weight_field
+            if weight is not None:
+                weight = weight.replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
