@@ -31,8 +31,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.enzo.api import EnzoStaticOutput
 
-_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV",
-           "particle_density")
+_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
 
 m7 = "DD0010/moving7_0010"
 @requires_pf(m7)

@@ -308,7 +308,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
         self.hubble_constant = hvals["HubbleParam"]
         self.parameters = hvals
 
-        prefix = self.parameter_filename.split(".", 1)[0]
+        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.file_count = hvals["NumFilesPerSnapshot"]

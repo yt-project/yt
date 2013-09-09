@@ -315,7 +315,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields()
         self.field_list = self.fluid_field_list + self.particle_field_list
-        mylog.debug("Detected fields:", (self.field_list,))
+        mylog.debug("Detected fields: %s", (self.field_list,))
 
     def _detect_fluid_fields(self):
         return [art_to_yt[f] for f in yt_to_art.values() if f in
