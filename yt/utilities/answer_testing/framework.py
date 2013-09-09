@@ -492,8 +492,9 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         frb[self.field]
         frb[self.weight_field]
         d = frb.data
-        d.update( dict( (("%s_sum" % f, proj[f].sum(dtype="float64"))
-                         for f in proj.field_data.keys()) ) )
+        for f in proj.field_data:
+            # Sometimes f will be a tuple.
+            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
