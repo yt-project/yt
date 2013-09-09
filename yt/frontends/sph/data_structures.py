@@ -275,6 +275,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
     def __init__(self, filename, data_style="OWLS", n_ref = 64,
                  over_refine_factor = 1):
         self.storage_filename = None
+        filename = os.path.abspath(filename)
         super(OWLSStaticOutput, self).__init__(
                                filename, data_style,
                                unit_base = None, n_ref = n_ref,
