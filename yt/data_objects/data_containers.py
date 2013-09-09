@@ -3702,6 +3702,7 @@ class AMRCoveringGridBase(AMR3DData):
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
+        dims = np.array(dims)
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
         rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.dds = self.pf.domain_width / rdx.astype("float64")
