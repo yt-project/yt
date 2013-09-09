@@ -1173,7 +1173,7 @@ class YTMapserverCmd(YTCommand):
             p = pc.add_slice(args.field, args.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
         mapper = PannableMapServer(p.data, args.field)
-        import yt.utilities.bottle as bottle
+        import yt.extern.bottle as bottle
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1326,7 +1326,7 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = pf.current_time*pf['Time']*pf['years']
+                time = pf.current_time*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
@@ -1561,7 +1561,7 @@ class YTGUICmd(YTCommand):
         except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
+        import yt.extern.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(reasonjs_path, use_pyro=args.use_pyro)
@@ -1595,17 +1595,26 @@ class YTStatsCmd(YTCommand):
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
+        vals = {}
         if args.field in pf.h.derived_field_list:
             if args.max == True:
-                v, c = pf.h.find_max(args.field)
-                print "Maximum %s: %0.5e at %s" % (args.field, v, c)
+                vals['min'] = pf.h.find_max(args.field)
+                print "Maximum %s: %0.5e at %s" % (args.field,
+                    vals['min'][0], vals['min'][1])
             if args.min == True:
-                v, c = pf.h.find_min(args.field)
-                print "Minimum %s: %0.5e at %s" % (args.field, v, c)
+                vals['max'] = pf.h.find_min(args.field)
+                print "Minimum %s: %0.5e at %s" % (args.field,
+                    vals['max'][0], vals['max'][1])
         if args.output is not None:
             t = pf.current_time * pf['years']
-            open(args.output, "a").write(
-                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
+            with open(args.output, "a") as f:
+                f.write("%s (%0.5e years)\n" % (pf, t))
+                if 'min' in vals:
+                    f.write('Minimum %s is %0.5e at %s\n' % (
+                        args.field, vals['min'][0], vals['min'][1]))
+                if 'max' in vals:
+                    f.write('Maximum %s is %0.5e at %s\n' % (
+                        args.field, vals['max'][0], vals['max'][1]))
 
 class YTUpdateCmd(YTCommand):
     args = ("all", )

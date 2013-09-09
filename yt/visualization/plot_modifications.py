@@ -248,7 +248,7 @@ class ContourCallback(PlotCallback):
         self.ncont = ncont
         self.field = field
         self.factor = factor
-        from yt.utilities.delaunay.triangulate import Triangulation as triang
+        from matplotlib.delaunay.triangulate import Triangulation as triang
         self.triang = triang
         self.clim = clim
         self.take_log = take_log

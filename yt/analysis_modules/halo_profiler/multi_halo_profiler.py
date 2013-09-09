@@ -1254,7 +1254,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("Output directory exists, but is not a directory: %s." % my_output_dir)
                 raise IOError(my_output_dir)
         else:
-            os.mkdir(my_output_dir)
+            os.makedirs(my_output_dir)
 
 def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """
