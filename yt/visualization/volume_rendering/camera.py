@@ -1,27 +1,20 @@
 """
 Import the components of the volume rendering extension
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
+Authors:
+ * Matthew Turk 
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import __builtin__
 import numpy as np
@@ -1168,6 +1161,10 @@ class HEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False, use_light=False,
                  inner_radius = 10):
+        print "Because of recent relicensing, we currently cannot provide"
+        print "HEALpix functionality.  Please visit yt-users for more"
+        print "information."
+        raise NotImplementedError
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = np.array(center, dtype='float64')
@@ -1311,6 +1308,7 @@ class AdaptiveHEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False,
                  rays_per_cell = 0.1, max_nside = 8192):
+        raise NotImplementedError
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf
         self.center = np.array(center, dtype='float64')
@@ -2058,6 +2056,10 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     """
     # We manually modify the ProjectionTransferFunction to get it to work the
     # way we want, with a second field that's also passed through.
+    print "Because of recent relicensing, we currently cannot provide"
+    print "HEALpix functionality.  Please visit yt-users for more"
+    print "information."
+    raise NotImplementedError
     fields = [field]
     center = np.array(center, dtype='float64')
     if weight is not None:
@@ -2122,6 +2124,10 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
                         take_log = True, resolution=512, cmin=None, cmax=None):
+    print "Because of recent relicensing, we currently cannot provide"
+    print "HEALpix functionality.  Please visit yt-users for more"
+    print "information."
+    raise NotImplementedError
     import matplotlib.figure
     import matplotlib.backends.backend_agg
     if rotation is None: rotation = np.eye(3).astype("float64")

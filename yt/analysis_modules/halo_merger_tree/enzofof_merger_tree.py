@@ -3,31 +3,22 @@ A very simple, purely-serial, merger tree script that knows how to parse FOF
 catalogs, either output by Enzo or output by yt's FOF halo finder, and then 
 compare parent/child relationships.
 
-Author: Matthew J. Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Author: John H. Wise <jwise@astro.princeton.edu>
-Affiliation: Princeton
-Author: Cameron Hummels <chummels@gmail.com>
-Affiliation: Arizona
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
+Authors:
+ * Matthew J. Turk 
+ * John H. Wise 
+ * Cameron Hummels 
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-  
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-  
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 # plot_halo_evolution() gives a good full example of how to use the framework
 
 # First pass at a simplified merger tree
