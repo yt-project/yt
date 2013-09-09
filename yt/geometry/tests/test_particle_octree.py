@@ -59,6 +59,35 @@ def test_particle_octree_counts():
         v = np.bincount(bi.astype("int64"))
         yield assert_equal, v.max() <= n_ref, True
 
+def test_particle_overrefine():
+    np.random.seed(int(0x4d3d3d3))
+    pos = []
+    data = {}
+    bbox = []
+    for i, ax in enumerate('xyz'):
+        DW = DRE[i] - DLE[i]
+        LE = DLE[i]
+        data["particle_position_%s" % ax] = \
+            np.random.normal(0.5, scale=0.05, size=(NPART)) * DW + LE
+        bbox.append( [DLE[i], DRE[i]] )
+    bbox = np.array(bbox)
+    _attrs = ('icoords', 'fcoords', 'fwidth', 'ires')
+    for n_ref in [16, 32, 64, 512, 1024]:
+        pf1 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
+        dd1 = pf1.h.all_data()
+        v1 = dict((a, getattr(dd1, a)) for a in _attrs)
+        cv1 = dd1["CellVolumeCode"].sum(dtype="float64")
+        for over_refine in [1, 2, 3]:
+            f = 1 << (3*(over_refine-1))
+            pf2 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref,
+                                over_refine_factor = over_refine)
+            dd2 = pf2.h.all_data()
+            v2 = dict((a, getattr(dd2, a)) for a in _attrs)
+            for a in sorted(v1):
+                yield assert_equal, v1[a].size * f, v2[a].size
+            cv2 = dd2["CellVolumeCode"].sum(dtype="float64")
+            yield assert_equal, cv1, cv2
+
 if __name__=="__main__":
     for i in test_add_particles_random():
         i[0](*i[1:])

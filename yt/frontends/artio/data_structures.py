@@ -55,6 +55,7 @@ class ARTIOOctreeSubset(OctreeSubset):
     domain_id = 2
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
     _type_name = 'octree_subset'
+    _num_zones = 2
 
     def __init__(self, base_region, sfc_start, sfc_end, pf):
         self.field_data = YTFieldData()
@@ -165,6 +166,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
     def deposit(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
+        if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -313,7 +315,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields()
         self.field_list = self.fluid_field_list + self.particle_field_list
-        mylog.debug("Detected fields:", (self.field_list,))
+        mylog.debug("Detected fields: %s", (self.field_list,))
 
     def _detect_fluid_fields(self):
         return [art_to_yt[f] for f in yt_to_art.values() if f in
@@ -452,10 +454,10 @@ class ARTIOStaticOutput(StaticOutput):
                 self.units["%sh" % unit] = self.units[unit] * \
                     self.hubble_constant
                 self.units["%shcm" % unit] = \
-                    (self.units["%sh" % unit] /
+                    (self.units["%sh" % unit] *
                         (1 + self.current_redshift))
                 self.units["%scm" % unit] = \
-                    self.units[unit] / (1 + self.current_redshift)
+                    self.units[unit] * (1 + self.current_redshift)
 
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t']\

@@ -33,6 +33,7 @@ import sys
 import cPickle
 import shelve
 import zlib
+import tempfile
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -45,7 +46,7 @@ from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.utilities.progressbar as progressbar
+import yt.extern.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -491,8 +492,9 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         frb[self.field]
         frb[self.weight_field]
         d = frb.data
-        d.update( dict( (("%s_sum" % f, proj[f].sum(dtype="float64"))
-                         for f in proj.field_data.keys()) ) )
+        for f in proj.field_data:
+            # Sometimes f will be a tuple.
+            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
@@ -604,9 +606,11 @@ class PlotWindowAttributeTest(AnswerTestingTest):
                                 self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
-        fn = plot.save()[0]
-        image = mpimg.imread(fn)
-        os.remove(fn)
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):

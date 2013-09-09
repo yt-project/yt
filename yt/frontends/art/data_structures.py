@@ -433,6 +433,7 @@ class ARTStaticOutput(StaticOutput):
         """
         f = ("%s" % args[0])
         prefix, suffix = filename_pattern['amr']
+        if not os.path.isfile(f): return False
         with open(f, 'rb') as fh:
             try:
                 amr_header_vals = read_attrs(fh, amr_header_struct, '>')

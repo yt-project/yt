@@ -1,11 +1,11 @@
 """
-ARTIO frontend tests 
+RAMSES frontend tests 
 
-Author: Samuel Leitner <sam.leitner@gmail.com>
-Affiliation: University of Maryland College Park
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -34,18 +34,19 @@ from yt.frontends.artio.api import ARTIOStaticOutput
 _fields = ("Temperature", "Density", "VelocityMagnitude",
            ("deposit", "all_density"), ("deposit", "all_count")) 
 
-sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art"
-@requires_pf(sizmbhloz)
-def test_sizmbhloz():
-    pf = data_dir_load(sizmbhloz)
-    yield assert_equal, str(pf), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
+output_00080 = "output_00080/info_00080.txt"
+@requires_pf(output_00080)
+def test_output_00080():
+    pf = data_dir_load(output_00080)
+    yield assert_equal, str(pf), "info_00080"
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     for field in _fields:
         for axis in [0, 1, 2]:
             for ds in dso:
                 for weight_field in [None, "Density"]:
                     yield PixelizedProjectionValuesTest(
-                        sizmbhloz, axis, field, weight_field,
+                        output_00080, axis, field, weight_field,
                         ds)
                 yield FieldValuesTest(
-                        sizmbhloz, field, ds)
+                        output_00080, field, ds)
+

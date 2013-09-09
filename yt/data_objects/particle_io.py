@@ -122,16 +122,6 @@ class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
                 int(self.periodic), DLE, DRE)
         return (0, args)
 
-class ParticleIOHandlerRegionStrict(ParticleIOHandlerRegion):
-    _source_type = "region_strict"
-
-class ParticleIOHandlerPeriodicRegion(ParticleIOHandlerRegion):
-    periodic = True
-    _source_type = "periodic_region"
-
-class ParticleIOHandlerPeriodicRegionStrict(ParticleIOHandlerPeriodicRegion):
-    _source_type = "periodic_region_strict"
-
 class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
     _source_type = "sphere"
 

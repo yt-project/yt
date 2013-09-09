@@ -36,7 +36,7 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
 from yt.utilities.logger import ytLogger as mylog
-import yt.utilities.pydot as pydot
+import yt.extern.pydot as pydot
 from yt.utilities.spatial import cKDTree
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \

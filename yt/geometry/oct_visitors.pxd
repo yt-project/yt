@@ -3,7 +3,7 @@ Oct visitor definitions file
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt-project.org/
 License:
   Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
@@ -43,6 +43,10 @@ cdef struct OctVisitorData:
     int dims
     np.int32_t domain
     np.int8_t level
+    np.int8_t oref # This is the level of overref.  1 => 8 zones, 2 => 64, etc.
+                   # To calculate nzones, 1 << (oref * 3)
+    np.int32_t nz
+                            
 
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
                                    np.uint8_t selected)
@@ -64,10 +68,13 @@ cdef oct_visitor_function fill_file_indices_oind
 cdef oct_visitor_function fill_file_indices_rind
 
 cdef inline int cind(int i, int j, int k):
+    # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
 
 cdef inline int oind(OctVisitorData *data):
-    return (((data.ind[0]*2)+data.ind[1])*2+data.ind[2])
+    cdef int d = (1 << data.oref)
+    return (((data.ind[0]*d)+data.ind[1])*d+data.ind[2])
 
 cdef inline int rind(OctVisitorData *data):
-    return (((data.ind[2]*2)+data.ind[1])*2+data.ind[0])
+    cdef int d = (1 << data.oref)
+    return (((data.ind[2]*d)+data.ind[1])*d+data.ind[0])

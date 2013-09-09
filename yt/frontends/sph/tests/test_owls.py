@@ -1,11 +1,11 @@
 """
-ARTIO frontend tests 
+Tipsy tests using the OWLS HDF5-Gadget dataset
 
-Author: Samuel Leitner <sam.leitner@gmail.com>
-Affiliation: University of Maryland College Park
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: Columbia University
 Homepage: http://yt-project.org/
 License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -26,26 +26,36 @@ License:
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
     requires_pf, \
+    small_patch_amr, \
+    big_patch_amr, \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest
-from yt.frontends.artio.api import ARTIOStaticOutput
+from yt.frontends.sph.api import OWLSStaticOutput
 
-_fields = ("Temperature", "Density", "VelocityMagnitude",
-           ("deposit", "all_density"), ("deposit", "all_count")) 
+_fields = (("deposit", "all_density"), ("deposit", "all_count"),
+           ("deposit", "PartType0_density"),
+           ("deposit", "PartType4_density"))
 
-sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art"
-@requires_pf(sizmbhloz)
-def test_sizmbhloz():
-    pf = data_dir_load(sizmbhloz)
-    yield assert_equal, str(pf), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+os33 = "snapshot_033/snap_033.0.hdf5"
+@requires_pf(os33)
+def test_snapshot_033():
+    pf = data_dir_load(os33)
+    yield assert_equal, str(pf), "snap_033"
+    dso = [ None, ("sphere", ("c", (0.1, 'unitary')))]
+    dd = pf.h.all_data()
+    yield assert_equal, dd["Coordinates"].shape[0], 2*(128*128*128)
+    yield assert_equal, dd["Coordinates"].shape[1], 3
+    tot = sum(dd[ptype,"Coordinates"].shape[0]
+              for ptype in pf.particle_types if ptype != "all")
+    yield assert_equal, tot, (2*128*128*128)
     for field in _fields:
         for axis in [0, 1, 2]:
             for ds in dso:
                 for weight_field in [None, "Density"]:
                     yield PixelizedProjectionValuesTest(
-                        sizmbhloz, axis, field, weight_field,
+                        os33, axis, field, weight_field,
                         ds)
                 yield FieldValuesTest(
-                        sizmbhloz, field, ds)
+                        os33, field, ds)
+

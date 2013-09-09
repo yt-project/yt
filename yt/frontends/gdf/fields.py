@@ -84,8 +84,11 @@ add_gdf_field("mag_field_z", function=NullFunc, take_log=False,
           units=r"\rm{cm}/\rm{s}")
 
 for f,v in log_translation_dict.items():
-    add_field(f, TranslationFunc(v), take_log=True)
+    add_field(f, TranslationFunc(v), take_log=True,
+              units=KnownGDFFields[v].get_units(),
+              projected_units=KnownGDFFields[v].get_projected_units())
 
 for f,v in translation_dict.items():
-    add_field(f, TranslationFunc(v), take_log=False)
-
+    add_field(f, TranslationFunc(v), take_log=False,
+              units=KnownGDFFields[v].get_units(),
+              projected_units=KnownGDFFields[v].get_projected_units())
