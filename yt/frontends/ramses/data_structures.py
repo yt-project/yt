@@ -63,7 +63,8 @@ class RAMSESDomainFile(object):
         num = os.path.basename(pf.parameter_filename).split("."
                 )[0].split("_")[1]
         basename = "%s/%%s_%s.out%05i" % (
-            os.path.dirname(pf.parameter_filename),
+            os.path.abspath(
+              os.path.dirname(pf.parameter_filename)),
             num, domain_id)
         for t in ['grav', 'hydro', 'part', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
