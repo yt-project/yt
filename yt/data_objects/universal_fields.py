@@ -664,29 +664,29 @@ def _Shear(field, data):
         sl_right = slice(2,None,None)
         div_fac = 2.0
     # only works for 2d and 3d data:
+    f = np.zeros(data["x-velocity"][2:,2:,2:].shape, dtype='float64')
     if data.pf.dimensionality > 1:
         # first the dx direction
         ds = div_fac * data['dx'].flat[0]
-        fxy  = data["y-velocity"][1:-1,sl_right,1:-1]/ds
-        fxy -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+        f += ((data["y-velocity"][1:-1,sl_right,1:-1]/ds) - 
+              (data["y-velocity"][1:-1,sl_left ,1:-1]/ds))**2
         ds = div_fac * data['dy'].flat[0]
-        fyx  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
-        fyx -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
+        f += ((data["x-velocity"][sl_right,1:-1,1:-1]/ds) - 
+              (data["x-velocity"][sl_left ,1:-1,1:-1]/ds))**2
 
     if data.pf.dimensionality > 2:
         ds = div_fac * data['dx'].flat[0]
-        fxz  = data["z-velocity"][1:-1,1:-1,sl_right]/ds
-        fxz -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+        f += ((data["z-velocity"][1:-1,1:-1,sl_right]/ds) - 
+              (data["z-velocity"][1:-1,1:-1,sl_left ]/ds))**2
         ds = div_fac * data['dy'].flat[0]
-        fyz  = data["z-velocity"][1:-1,1:-1,sl_right]/ds
-        fyz -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
-
+        f += ((data["z-velocity"][1:-1,1:-1,sl_right]/ds) - 
+              (data["z-velocity"][1:-1,1:-1,sl_left ]/ds))**2
         # lastly the dz direction
         ds = div_fac * data['dz'].flat[0]
-        fzx  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
-        fzx -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-        fzy  = data["y-velocity"][1:-1,sl_right,1:-1]/ds
-        fzy -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+        f += ((data["x-velocity"][sl_right,1:-1,1:-1]/ds) - 
+              (data["x-velocity"][sl_left ,1:-1,1:-1]/ds))**2
+        f += ((data["y-velocity"][1:-1,sl_right,1:-1]/ds) - 
+              (data["y-velocity"][1:-1,sl_left ,1:-1]/ds))**2
     if data.pf.dimensionality <= 1:
         print "Shear only valid when dimensionality > 2"
 
@@ -694,21 +694,14 @@ def _Shear(field, data):
     c_s = data["SoundSpeed"][1:-1,1:-1,1:-1]
     # assumes dx = dy = dz; valid for enzo sims
     dx = data['dx'][1:-1,1:-1,1:-1]
-
-    if data.pf.dimensionality == 2:
-        shear = (fxy**2 + fyx**2) * (dx/c_s)**2
-
-    if data.pf.dimensionality == 3:
-        shear = (fxy**2 + fxz**2 + fyx**2 + fyz**2 + fzx**2 + fzy**2) * (dx/c_s)**2
-    shear = shear**0.5
-
+    shear = (f * (dx/c_s)**2)**0.5
     new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = shear
     return new_field
 
 add_field("Shear", function=_Shear,
           validators=[ValidateSpatial(ghost_zones=1,
-          fields=["x-velocity","y-velocity","z-velocity","SoundSpeed","dx"])],
+          fields=["x-velocity","y-velocity","z-velocity","SoundSpeed"])],
           units=r"\rm{Mach}", take_log=False)
 
 def _Contours(field, data):
