@@ -766,7 +766,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                     for j in range(8):
                         for i in range(nf):
                             field_vals[i][local_ind[level] * 8 + j] = \
-                                grid_variables[ngv * j + i]
+                                grid_variables[ngv * j + field_ind[i]]
                     local_ind[level] += 1
                 status = artio_grid_read_level_end(handle)
                 check_artio_status(status)
