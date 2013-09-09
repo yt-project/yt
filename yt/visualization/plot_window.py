@@ -29,8 +29,10 @@ import numpy as np
 import matplotlib
 import cStringIO
 import types
+import os
 import __builtin__
 
+from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
 from matplotlib.font_manager import FontProperties
 from distutils import version
@@ -49,7 +51,6 @@ from .plot_modifications import get_smallest_appropriate_unit, \
 from .tick_locators import LogLocator, LinearLocator
 from .base_plot_types import ImagePlotMPL
 
-from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
     fix_axis, get_image_suffix, get_ipython_api_version
@@ -1084,8 +1085,8 @@ class PWViewerMPL(PWViewer):
         Parameters
         ----------
         name : string
-           the base of the filename.  If not set the filename of
-           the parameter file is used
+           The base of the filename.  If name is a directory or if name is not
+           set, the filename of the dataset is used.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -1096,6 +1097,11 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         if name is None:
             name = str(self.pf)
+        name = os.path.expanduser(name)
+        if name[-1] == os.sep and not os.path.isdir(name):
+            os.mkdir(name)
+        if os.path.isdir(name):
+            name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
         suffix = get_image_suffix(name)
         if suffix != '':
             for k, v in self.plots.iteritems():

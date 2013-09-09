@@ -58,8 +58,19 @@ def load(*args ,**kwargs):
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
             else arg for arg in args]
-    valid_file = [os.path.exists(arg) if isinstance(arg, types.StringTypes) 
-            else False for arg in args]
+    valid_file = []
+    for argno, arg in enumerate(args):
+        if isinstance(arg, types.StringTypes):
+            if os.path.exists(arg):
+                valid_file.append(True)
+            else:
+                if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
+                    valid_file.append(True)
+                    args[argno] = os.path.join(ytcfg.get("yt", "test_data_dir"), arg)
+                else:
+                    valid_file.append(False)
+        else:
+            valid_file.append(False)
     if not any(valid_file):
         try:
             from yt.data_objects.time_series import TimeSeriesData

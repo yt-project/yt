@@ -347,6 +347,7 @@ class SimulationTimeSeries(TimeSeriesData):
         # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
         # Get all possible datasets.
+        self.all_time_outputs = []
         self._get_all_outputs(find_outputs=find_outputs)
         
         self.print_key_parameters()
