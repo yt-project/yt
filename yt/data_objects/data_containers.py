@@ -955,7 +955,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         interpolated using the nearest neighbor method, with *side* points on a
         side.
         """
-        import yt.utilities.delaunay as de
+        import matplotlib.delaunay.triangulate as de
         if log_spacing:
             zz = np.log10(self[field])
         else:
