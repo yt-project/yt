@@ -29,24 +29,18 @@ import stat
 import weakref
 import struct
 import glob
-from itertools import izip
+import os
 
 from yt.utilities.fortran_utils import read_record
-from yt.funcs import *
+from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
-from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
     StaticOutput
-from yt.data_objects.octree_subset import \
-    OctreeSubset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.physical_constants import \
     G, \
-    gravitational_constant_cgs, \
-    km_per_pc, \
     cm_per_kpc, \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
@@ -58,8 +52,6 @@ from .fields import \
     TipsyFieldInfo, \
     KnownTipsyFields
 
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
 
 class ParticleFile(object):
     def __init__(self, pf, io, filename, file_id):
@@ -78,6 +70,7 @@ class ParticleFile(object):
     def _calculate_offsets(self, fields):
         pass
 
+
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
         with open(filename, "rb") as f:
@@ -86,13 +79,13 @@ class GadgetBinaryFile(ParticleFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(GadgetBinaryFile, self).__init__(pf, io,
-                filename, file_id)
+        super(GadgetBinaryFile, self).__init__(pf, io, filename, file_id)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(
-                field_list, self.total_particles,
-                self._position_offset, self._file_size)
+            field_list, self.total_particles,
+            self._position_offset, self._file_size)
+
 
 class ParticleStaticOutput(StaticOutput):
     _unit_base = None
@@ -105,7 +98,7 @@ class ParticleStaticOutput(StaticOutput):
         self.units['1'] = 1.0
         DW = self.domain_right_edge - self.domain_left_edge
         self.units["unitary"] = 1.0 / DW.max()
-        # Check 
+        # Check
         base = None
         mpch = {}
         mpch.update(mpc_conversion)
@@ -114,19 +107,21 @@ class ParticleStaticOutput(StaticOutput):
             for unit in mpc_conversion:
                 mpch['%sh' % unit] = mpch[unit] * self.hubble_constant
                 mpch['%shcm' % unit] = (mpch["%sh" % unit] *
-                                (1 + self.current_redshift))
+                                        (1 + self.current_redshift))
                 mpch['%scm' % unit] = mpch[unit] * (1 + self.current_redshift)
         # ud == unit destination
         # ur == unit registry
         for ud, ur in [(self.units, mpch), (self.time_units, sec_conversion)]:
             for unit in sorted(unit_base):
                 if unit in ur:
-                    ratio = (ur[unit] / ur['mpc'] )
+                    ratio = (ur[unit] / ur['mpc'])
                     base = unit_base[unit] * ratio
                     break
-            if base is None: continue
+            if base is None:
+                continue
             for unit in ur:
                 ud[unit] = ur[unit] / base
+
 
 class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
@@ -151,12 +146,12 @@ class GadgetStaticOutput(ParticleStaticOutput):
                     ('FlagAge', 1, 'i'),
                     ('FlagMEtals', 1, 'i'),
                     ('NallHW', 6, 'i'),
-                    ('unused', 16, 'i') )
+                    ('unused', 16, 'i'))
 
     def __init__(self, filename, data_style="gadget_binary",
-                 additional_fields = (),
-                 unit_base = None, n_ref = 64,
-                 over_refine_factor = 1):
+                 additional_fields=(),
+                 unit_base=None, n_ref=64,
+                 over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
@@ -180,14 +175,13 @@ class GadgetStaticOutput(ParticleStaticOutput):
         for i in hvals:
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
-        
+
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Set standard values
-
 
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
@@ -209,7 +203,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # somehow, but opinions on this vary.
         if self.omega_lambda == 0.0:
             mylog.info("Omega Lambda is 0.0, so we are turning off Cosmology.")
-            self.hubble_constant = 1.0 # So that scaling comes out correct
+            self.hubble_constant = 1.0  # So that scaling comes out correct
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
@@ -220,14 +214,14 @@ class GadgetStaticOutput(ParticleStaticOutput):
             # factor, not the actual integration time, so we re-calculate
             # global time from our Cosmology.
             cosmo = Cosmology(self.hubble_constant * 100.0,
-                        self.omega_matter, self.omega_lambda)
+                              self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.UniverseAge(self.current_redshift)
             mylog.info("Calculating time from %0.3e to be %0.3e seconds",
                        hvals["Time"], self.current_time)
         self.parameters = hvals
 
         prefix = self.parameter_filename.split(".", 1)[0]
-        suffix = self.parameter_filename.rsplit(".", 1)[-1]
+        # suffix = self.parameter_filename.rsplit(".", 1)[-1]
 
         if hvals["NumFiles"] > 1:
             self.filename_template = "%s.%%(num)s" % (prefix)
@@ -243,14 +237,15 @@ class GadgetStaticOutput(ParticleStaticOutput):
         length_unit = self.units['cm']
         unit_base = self._unit_base or {}
         velocity_unit = unit_base.get("velocity", 1e5)
-        velocity_unit = unit_base.get("UnitVelocity_in_cm_per_s", velocity_unit)
+        velocity_unit = unit_base.get("UnitVelocity_in_cm_per_s",
+                                      velocity_unit)
         # We set hubble_constant = 1.0 for non-cosmology
         msun10 = mass_sun_cgs * 1e10 / self.hubble_constant
         mass_unit = unit_base.get("g", msun10)
         mass_unit = unit_base.get("UnitMass_in_g", mass_unit)
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
-        self.conversion_factors["density"] = mass_unit / length_unit**3
+        self.conversion_factors["density"] = mass_unit / length_unit ** 3
         # Currently, setting time_units is disabled.  The current_time is
         # accurately set, but until a time that we can confirm how
         # FormationTime for stars is set I am disabling these.
@@ -263,23 +258,23 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # We do not allow load() of these files.
         return False
 
+
 class OWLSStaticOutput(GadgetStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = ParticleFile
-    _fieldinfo_fallback = OWLSFieldInfo # For now we have separate from Gadget
+    _fieldinfo_fallback = OWLSFieldInfo  # For now we have separate from Gadget
     _fieldinfo_known = KnownOWLSFields
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
-    _header_spec = None # Override so that there's no confusion
+    _header_spec = None  # Override so that there's no confusion
 
-    def __init__(self, filename, data_style="OWLS", n_ref = 64,
-                 over_refine_factor = 1):
+    def __init__(self, filename, data_style="OWLS", n_ref=64,
+                 over_refine_factor=1):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         super(OWLSStaticOutput, self).__init__(
-                               filename, data_style,
-                               unit_base = None, n_ref = n_ref,
-                               over_refine_factor = over_refine_factor)
+            filename, data_style, unit_base=None, n_ref=n_ref,
+            over_refine_factor=over_refine_factor)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
@@ -316,7 +311,8 @@ class OWLSStaticOutput(GadgetStaticOutput):
 
         # To avoid having to open files twice
         self._unit_base = {}
-        self._unit_base.update((str(k), v) for k, v in handle["/Units"].attrs.items())
+        self._unit_base.update(
+            (str(k), v) for k, v in handle["/Units"].attrs.items())
         # Comoving cm is given in the Units
         self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
 
@@ -325,7 +321,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0],'r')
+            fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys():
                 fileh.close()
@@ -334,6 +330,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
         except:
             pass
         return False
+
 
 class TipsyFile(ParticleFile):
 
@@ -344,8 +341,7 @@ class TipsyFile(ParticleFile):
         # To go above 1 domain, we need to include an indexing step in the
         # IOHandler, rather than simply reading from a single file.
         assert file_id == 0
-        super(TipsyFile, self).__init__(pf, io,
-                filename, file_id)
+        super(TipsyFile, self).__init__(pf, io, filename, file_id)
         io._create_dtypes(self)
 
 
@@ -365,14 +361,14 @@ class TipsyStaticOutput(ParticleStaticOutput):
                     ('dummy',   'i'))
 
     def __init__(self, filename, data_style="tipsy",
-                 endian = ">",
-                 field_dtypes = None,
-                 domain_left_edge = None,
-                 domain_right_edge = None,
-                 unit_base = None,
-                 cosmology_parameters = None,
-                 parameter_file = None,
-                 n_ref = 64, over_refine_factor = 1):
+                 endian=">",
+                 field_dtypes=None,
+                 domain_left_edge=None,
+                 domain_right_edge=None,
+                 unit_base=None,
+                 cosmology_parameters=None,
+                 parameter_file=None,
+                 n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.endian = endian
@@ -387,7 +383,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         # My understanding is that dtypes are set on a field by field basis,
         # not on a (particle type, field) basis
-        if field_dtypes is None: field_dtypes = {}
+        if field_dtypes is None:
+            field_dtypes = {}
         self._field_dtypes = field_dtypes
 
         self._unit_base = unit_base or {}
@@ -404,7 +401,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
         # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
-        hh = self.endian + "".join(["%s" % (b) for a,b in self._header_spec])
+        hh = self.endian + "".join(["%s" % (b) for a, b in self._header_spec])
         hvals = dict([(a, c) for (a, b), c in zip(self._header_spec,
                      struct.unpack(hh, f.read(struct.calcsize(hh))))])
         self.parameters.update(hvals)
@@ -437,7 +434,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
                 if l.startswith('#') or l == '':
                     continue
                 # parse parameters according to tipsy parameter type
-                param, val = (i.strip() for i in line.split('=',1))
+                param, val = (i.strip() for i in line.split('=', 1))
                 if param.startswith('n') or param.startswith('i'):
                     val = long(val)
                 elif param.startswith('d'):
@@ -457,10 +454,10 @@ class TipsyStaticOutput(ParticleStaticOutput):
         if self.parameters.get('bComove', True):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}
-            dcosm = dict(current_redshift = 0.0,
-                         omega_lambda = 0.0,
-                         omega_matter = 0.0,
-                         hubble_constant = 1.0)
+            dcosm = dict(current_redshift=0.0,
+                         omega_lambda=0.0,
+                         omega_matter=0.0,
+                         hubble_constant=1.0)
             for param in ['current_redshift', 'omega_lambda',
                           'omega_matter', 'hubble_constant']:
                 pval = cosm.get(param, dcosm[param])
@@ -481,14 +478,14 @@ class TipsyStaticOutput(ParticleStaticOutput):
             DW = (self.domain_right_edge - self.domain_left_edge).max()
             cosmo = Cosmology(self.hubble_constant * 100.0,
                               self.omega_matter, self.omega_lambda)
-            length_unit = DW * self.units['cm'] # Get it in proper cm
+            length_unit = DW * self.units['cm']  # Get it in proper cm
             density_unit = cosmo.CriticalDensity(self.current_redshift)
-            mass_unit = density_unit * length_unit**3
+            mass_unit = density_unit * length_unit ** 3
         else:
             mass_unit = self.parameters.get('dMsolUnit', 1.0) * mass_sun_cgs
             length_unit = self.parameters.get('dKpcUnit', 1.0) * cm_per_kpc
-            density_unit = mass_unit / length_unit**3
-        time_unit = 1.0 / np.sqrt(G*density_unit)
+            density_unit = mass_unit / length_unit ** 3
+        time_unit = 1.0 / np.sqrt(G * density_unit)
         velocity_unit = length_unit / time_unit
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
