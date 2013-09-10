@@ -239,8 +239,8 @@ class ContourCallback(PlotCallback):
     contours generated, *factor* governs the number of points used in the
     interpolation, *take_log* governs how it is contoured and *clim* gives
     the (upper, lower) limits for contouring.  An alternate data source can be
-    specified with *data_source*, but by default the plot being annotated will
-    be queried.
+    specified with *data_source*, but by default the plot's data source will be
+    queried.
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
