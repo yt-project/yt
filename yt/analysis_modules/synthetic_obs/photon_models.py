@@ -1,3 +1,29 @@
+"""
+
+Spectral models for generating photons
+
+Author: John ZuHone <jzuhone@gmail.com>
+Affiliation: NASA/GSFC
+Homepage: http://yt-project.org/
+License:
+Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+
+This file is part of yt.
+
+yt is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import numpy as np
 import os
 from yt.funcs import *
@@ -8,13 +34,17 @@ except:
     try:
         import astropy.io.fits as pyfits
     except:
-        mylog.error("Your mom doesn't have pyFITS")
+        mylog.error("You don't have pyFITS installed. The APEC table model won't be available.")
 try:
     import xspec
 except ImportError:
     mylog.warning("You don't have PyXSpec installed. Some models won't be available.")
-from scipy.integrate import cumtrapz
-from scipy import stats
+try:
+    from scipy.integrate import cumtrapz
+    from scipy import stats
+except ImportError:
+    mylog.warning("You don't have SciPy installed. The APEC table model won't be avabilable.")
+    
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 
 hc = 1.0e8*hcgs*clight/erg_per_keV
@@ -26,7 +56,8 @@ class PhotonModel(object):
         self.emax = emax
         self.nchan = nchan
         self.ebins = np.linspace(emin, emax, nchan+1)
-        self.de = self.ebins[1]-self.ebins[0]
+        self.de = np.diff(self.ebins)
+        self.emid = 0.5*(self.ebins[1:]+self.ebins[:-1])
         
     def prepare(self):
         pass
@@ -45,15 +76,25 @@ class XSpecThermalModel(PhotonModel):
         xspec.AllModels.setEnergies("%f %f %d lin" %
                                     (self.emin, self.emax, self.nchan))
         self.model = xspec.Model(self.model_name)
+        if self.model_name == "bremss":
+            self.norm = 3.02e-15
+        else:
+            self.norm = 1.0e-14
         
-    def get_spectrum(self, kT, Zmet):
+    def get_spectrum(self, kT):
         m = getattr(self.model,self.model_name)
         m.kT = kT
-        m.Abundanc = Zmet
+        m.Abundanc = 0.0
         m.norm = 1.0
         m.Redshift = 0.0
-        return 1.0e-14*np.array(self.model.values(0))
-    
+        cosmic_spec = self.norm*np.array(self.model.values(0))
+        m.Abundanc = 1.0
+        if self.model_name == "bremss":
+            metal_spec = np.zeros((self.nchan))
+        else:
+            metal_spec = self.norm*np.array(self.model.values(0)) - cosmic_spec
+        return cosmic_spec, metal_spec
+        
 class XSpecAbsorbModel(PhotonModel):
 
     def __init__(self, model_name, nH, emin=0.01, emax=50.0, nchan=100000):
@@ -111,26 +152,7 @@ class TableApecModel(PhotonModel):
         self.dTvals = np.diff(self.Tvals)
         self.minlam = self.wvbins.min()
         self.maxlam = self.wvbins.max()
-
-    def expand_E_grid(self, Eedges, Ncont, Econt, cont):
-        # linearly interpolate onto wvedges
-        # All energies should be in keV
-        newx = np.array(Econt[:Ncont])
-        newx = np.append(newx,Eedges)
-        newxargs = newx.argsort()
-        newx.sort()
-        newy = np.interp(newx, Econt, cont)
-        # simple integration
-        ct = cumtrapz(newy,newx)
-        ret = np.zeros((self.nchan))
-        iinew = np.where(newxargs==Ncont)[0][0]
-        for i in range(self.nchan):
-            ind = i + 1 + Ncont
-            iiold = iinew
-            iinew = np.where(newxargs==ind)[0][0]
-            ret[i] = ct[iinew-1]-ct[iiold-1]
-        return ret
-
+    
     def make_spectrum(self, element, tindex):
         
         tmpspec = np.zeros((self.nchan))
@@ -163,18 +185,18 @@ class TableApecModel(PhotonModel):
         n_cont=self.coco_handle[tindex].data.field('N_Cont')[ind]
         e_cont=self.coco_handle[tindex].data.field('E_Cont')[ind][:n_cont]
         continuum = self.coco_handle[tindex].data.field('Continuum')[ind][:n_cont]
-        
-        tmpspec += self.expand_E_grid(self.ebins, n_cont, e_cont, continuum)
+
+        tmpspec += np.interp(self.emid, e_cont, continuum)*self.de
         
         n_pseudo=self.coco_handle[tindex].data.field('N_Pseudo')[ind]
         e_pseudo=self.coco_handle[tindex].data.field('E_Pseudo')[ind][:n_pseudo]
         pseudo = self.coco_handle[tindex].data.field('Pseudo')[ind][:n_pseudo]
         
-        tmpspec += self.expand_E_grid(self.ebins, n_pseudo, e_pseudo, pseudo)
-
+        tmpspec += np.interp(self.emid, e_pseudo, pseudo)*self.de
+        
         return tmpspec
 
-    def get_spectrum(self, kT, Zmet):
+    def get_spectrum(self, kT):
         cspec_l = np.zeros((self.nchan))
         mspec_l = np.zeros((self.nchan))
         cspec_r = np.zeros((self.nchan))
@@ -191,7 +213,7 @@ class TableApecModel(PhotonModel):
             mspec_r += self.make_spectrum(elem, tindex+3)
         cosmic_spec = cspec_l*(1.-dT)+cspec_r*dT
         metal_spec = mspec_l*(1.-dT)+mspec_r*dT        
-        return cosmic_spec+Zmet*metal_spec
+        return cosmic_spec, metal_spec
 
 class TableAbsorbModel(PhotonModel):
 
