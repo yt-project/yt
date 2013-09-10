@@ -285,7 +285,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename)
+        handle = h5py.File(self.parameter_filename, mode="r")
         hvals = {}
         hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
 
