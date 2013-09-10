@@ -1,5 +1,5 @@
 """
-API for synthetic_obs
+API for yt.analysis_modules.synthetic_obs
 
 Author: John ZuHone <jzuhone@gmail.com>
 Affiliation: NASA/GSFC
@@ -21,7 +21,6 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
 from .photon_simulator import \

@@ -1,4 +1,30 @@
+"""
+Classes for generating lists of photons and detected events
+
+Author: John ZuHone <jzuhone@gmail.com>
+Affiliation: NASA/GSFC
+Homepage: http://yt-project.org/
+License:
+Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
+
+This file is part of yt.
+
+yt is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import numpy as np
+from numpy.testing import assert_allclose
 from yt.funcs import *
 from yt.utilities.physical_constants import mp, clight, cm_per_kpc, \
      cm_per_mpc, cm_per_km, K_per_keV, erg_per_keV
@@ -151,7 +177,12 @@ class PhotonList(object):
         vx = data_source["x-velocity"][start_c:end_c].copy()
         vy = data_source["y-velocity"][start_c:end_c].copy()
         vz = data_source["z-velocity"][start_c:end_c].copy()
-        
+
+        if isinstance(Zmet, basestring):
+            metalZ = data_source[zmet][start_c:end_c].copy()
+        else:
+            metalZ = Zmet*np.ones(EM.shape)
+            
         data_source.clear_data()
                 
         idxs = np.argsort(kT)
@@ -181,9 +212,7 @@ class PhotonList(object):
 
         emission_model.prepare()
         energy = emission_model.ebins
-        de = emission_model.de
-        emid = 0.5*(energy[1:]+energy[:-1])
-        
+              
         cell_em = EM[idxs]*vol_scale
         cell_vol = vol[idxs]*vol_scale
         
@@ -201,33 +230,46 @@ class PhotonList(object):
             iend = ecell[i]
             kT = kT_bins[ikT] + 0.5*dkT
             
-            em_sum = cell_em[ibegin:iend].sum()
-            tot_norm = dist_fac*em_sum/vol_scale
+            em_sum_c = cell_em[ibegin:iend].sum()
+            em_sum_m = (metalZ[ibegin:iend]*cell_em[ibegin:iend]).sum() 
 
-            spec = emission_model.get_spectrum(kT, Zmet)
-            spec *= tot_norm
-            cumspec = np.cumsum(spec)
-            counts = cumspec[:]/cumspec[-1]
-            counts = np.insert(counts, 0, 0.0)
-            tot_ph = cumspec[-1]*eff_A*exp_time
+            cspec, mspec = emission_model.get_spectrum(kT)
+            cspec *= dist_fac*em_sum_c/vol_scale
+            mspec *= dist_fac*em_sum_m/vol_scale
+            
+            cumspec_c = np.cumsum(cspec)
+            counts_c = cumspec_c[:]/cumspec_c[-1]
+            counts_c = np.insert(counts_c, 0, 0.0)
+            tot_ph_c = cumspec_c[-1]*eff_A*exp_time
 
+            cumspec_m = np.cumsum(mspec)
+            counts_m = cumspec_m[:]/cumspec_m[-1]
+            counts_m = np.insert(counts_m, 0, 0.0)
+            tot_ph_m = cumspec_m[-1]*eff_A*exp_time
+            
             for icell in xrange(ibegin, iend):
                 
-                cell_norm = tot_ph*cell_em[icell]/em_sum
-                cell_Nph = np.uint64(cell_norm) + np.uint64(np.modf(cell_norm)[0] >= u[icell])
+                cell_norm_c = tot_ph_c*cell_em[icell]/em_sum_c
+                cell_n_c = np.uint64(cell_norm_c) + np.uint64(np.modf(cell_norm_c)[0] >= u[icell])
+
+                cell_norm_m = tot_ph_m*metalZ[icell]*cell_em[icell]/em_sum_m
+                cell_n_m = np.uint64(cell_norm_m) + np.uint64(np.modf(cell_norm_m)[0] >= u[icell])
+                                                
+                cell_n = cell_n_c + cell_n_m
                 
-                if cell_Nph > 0:
-                    number_of_photons[icell] = cell_Nph                    
-                    randvec = np.random.uniform(low=counts[0], high=counts[-1], size=cell_Nph)
-                    randvec.sort()
-                    cell_e = np.interp(randvec, counts, energy)
-                    energies.append(cell_e)
-                            
+                if cell_n > 0:
+                    number_of_photons[icell] = cell_n                    
+                    randvec_c = np.random.uniform(size=cell_n_c)
+                    randvec_c.sort()
+                    randvec_m = np.random.uniform(size=cell_n_m)
+                    randvec_m.sort()
+                    cell_e_c = np.interp(randvec_c, counts_c, energy)
+                    cell_e_m = np.interp(randvec_m, counts_m, energy)
+                    energies.append(np.concatenate([cell_e_c,cell_e_m]))
+                    
                 pbar.update(icell)
             
         pbar.finish()
-
-        del cell_vol, cell_em
 
         active_cells = number_of_photons > 0
         idxs = idxs[active_cells]
@@ -391,7 +433,8 @@ class PhotonList(object):
         """
 
         if redshift_new is not None and dist_new is not None:
-            mylog.error("You may specify a new redshift or distance, but not both!")
+            mylog.error("You may specify a new redshift or distance, "+
+                        "but not both!")
 
         if redshift_new is not None and self.cosmo is None:
             mylog.error("Specified a new redshift, but no cosmology!")
@@ -494,8 +537,7 @@ class PhotonList(object):
         else:
             mylog.info("Absorbing.")
             absorb_model.prepare()
-            energy = absorb_model.ebins
-            emid = 0.5*(energy[1:]+energy[:-1])
+            emid = absorb_model.emid
             aspec = absorb_model.get_spectrum()
             absorb = np.interp(eobs, emid, aspec, left=0.0, right=0.0)
             randvec = aspec.max()*np.random.random(eobs.shape)
@@ -644,7 +686,12 @@ class EventList(object) :
         return cls(events)
 
     def convolve_with_response(self, respfile):
-        
+
+        if not "ARF" in self.events:
+            mylog.warning("Photons have not been processed with an"+
+                          " auxiliary response file. Spectral fitting"+
+                          " may be inaccurate.")
+
         mylog.info("Reading response matrix file (RMF): %s" % (respfile))
         
         hdulist = pyfits.open(respfile)
@@ -654,8 +701,22 @@ class EventList(object) :
         mylog.info("Number of Energy Bins: %d" % (n_de))
         de = tblhdu.data["ENERG_HI"] - tblhdu.data["ENERG_LO"]
 
-        mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]), max(tblhdu.data["ENERG_HI"] )))
-        
+        mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
+                                             max(tblhdu.data["ENERG_HI"] )))
+
+        if "ARF" in self.events:
+            f = pyfits.open(self.events["ARF"])
+            elo = f[1].data.field("ENERG_LO")
+            ehi = f[1].data.field("ENERG_HI")
+            f.close()
+            try:
+                assert_allclose(elo, tblhdu.data["ENERG_LO"])
+                assert_allclose(ehi, tblhdu.data["ENERG_HI"])
+            except AssertionError:
+                mylog.warning("Energy binning does not match for "+
+                              "ARF and RMF. This will make spectral"+
+                              "fitting difficult.")
+                                              
         tblhdu2 = hdulist[2]
         n_ch = len(tblhdu2.data["CHANNEL"])
         mylog.info("Number of Channels: %d" % (n_ch))
@@ -680,9 +741,11 @@ class EventList(object) :
             # weight function for probabilities from RMF
             weights = tblhdu.data[k]["MATRIX"][:]
             weights /= weights.sum()
-            # build channel number list associated to array value, there are groups of channels in rmfs with nonzero probabilities
+            # build channel number list associated to array value,
+            # there are groups of channels in rmfs with nonzero probabilities
             trueChannel = []
-            for start,nchan in zip(tblhdu.data[k]["F_CHAN"],tblhdu.data[k]["N_CHAN"]):
+            for start,nchan in zip(tblhdu.data[k]["F_CHAN"],
+                                   tblhdu.data[k]["N_CHAN"]):
                 end = start + nchan
                 for j in range(start,end):
                     trueChannel.append(j)
