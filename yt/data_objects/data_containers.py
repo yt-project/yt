@@ -3690,7 +3690,6 @@ class AMRCoveringGridBase(AMR3DData):
     Examples
     --------
     cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                              right_edge=[1.0, 1.0, 1.0],
                               dims=[128, 128, 128])
     """
     _spatial = True
