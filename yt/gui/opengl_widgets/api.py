@@ -2,11 +2,6 @@
 API for yt.visualization.opengl_widgets
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

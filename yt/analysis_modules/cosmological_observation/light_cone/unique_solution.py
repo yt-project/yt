@@ -2,9 +2,6 @@
 Functions to generate unique light cone solutions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

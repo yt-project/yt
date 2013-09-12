@@ -2,11 +2,6 @@
 Data structures for GDF.
 
 
-Authors:
- * Samuel W. Skillman 
- * Matthew Turk 
- * J. S. Oishi 
-
 
 """
 

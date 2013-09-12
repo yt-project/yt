@@ -2,9 +2,6 @@
 A mechanism for listing available analysis modules.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

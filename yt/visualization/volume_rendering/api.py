@@ -2,11 +2,6 @@
 API for yt.visualization.volume_rendering
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

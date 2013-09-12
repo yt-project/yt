@@ -2,12 +2,6 @@
 Data structures for Athena.
 
 
-Authors:
- * Samuel W. Skillman 
- * Matthew Turk 
- * J. S. Oishi 
- * John ZuHone 
-
 
 """
 

@@ -2,9 +2,6 @@
 API for radial_column_density
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

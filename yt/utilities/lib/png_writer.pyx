@@ -2,9 +2,6 @@
 A light interface to libpng
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,10 +2,6 @@
 Profile classes, to deal with generating and obtaining profiles
 
 
-Authors:
- * Matthew Turk 
- * Samuel Skillman 
-
 
 """
 

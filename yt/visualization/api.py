@@ -2,11 +2,6 @@
 API for yt.visualization
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

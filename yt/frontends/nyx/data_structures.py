@@ -2,10 +2,6 @@
 Data structures for Nyx.
 
 
-Authors:
- * Casey W. Stark 
- * J. S. Oishi 
-
 
 """
 

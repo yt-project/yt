@@ -2,11 +2,6 @@
 API for star_analysis
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

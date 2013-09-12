@@ -2,9 +2,6 @@
 This module contains a routine to search for topologically connected sets
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

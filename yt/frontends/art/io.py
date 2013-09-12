@@ -2,9 +2,6 @@
 ART-specific IO
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

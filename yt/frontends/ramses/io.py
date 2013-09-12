@@ -2,9 +2,6 @@
 RAMSES-specific IO
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

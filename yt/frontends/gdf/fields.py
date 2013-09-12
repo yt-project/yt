@@ -2,10 +2,6 @@
 GDF-specific fields
 
 
-Authors:
- * Samuel W. Skillman 
- * J. S. Oishi 
-
 
 """
 

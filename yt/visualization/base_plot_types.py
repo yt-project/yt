@@ -2,9 +2,6 @@
 This is a place for base classes of the various plot types.
 
 
-Authors:
- * Nathan Goldbaum 
-
 
 """
 

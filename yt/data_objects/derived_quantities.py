@@ -4,9 +4,6 @@ arguments.  (Standard arguments -- such as the center of a distribution of
 points -- are excluded here, and left to the EnzoDerivedFields.)
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

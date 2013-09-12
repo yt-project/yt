@@ -2,9 +2,6 @@
 A refine-by-two AMR-specific octree
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,11 +2,6 @@
 API for yt.data_objects
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

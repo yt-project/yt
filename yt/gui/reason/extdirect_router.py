@@ -185,8 +185,6 @@ class DirectProviderDefinition(object):
         return '<script type="text/javascript"> %s </script>' % source.strip()
 
 
-Authors:
-
 
 """
 

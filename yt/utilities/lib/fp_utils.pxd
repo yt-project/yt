@@ -2,9 +2,6 @@
 Shareable definitions for common fp/int Cython utilities
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

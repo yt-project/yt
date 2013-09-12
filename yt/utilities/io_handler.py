@@ -2,9 +2,6 @@
 The data-file handling functions
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

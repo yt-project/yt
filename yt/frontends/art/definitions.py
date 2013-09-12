@@ -2,9 +2,6 @@
 Definitions specific to ART
 
 
-Authors:
- * Christopher E. Moody 
-
 
 """
 

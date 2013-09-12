@@ -2,9 +2,6 @@
 Base classes for answer testing
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

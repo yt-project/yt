@@ -2,9 +2,6 @@
 Data structures for Orion. 
 
 
-Authors:
- * J. S. Oishi 
-
 
 """
 

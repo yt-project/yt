@@ -2,9 +2,6 @@
 This is a library of yt-defined exceptions
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

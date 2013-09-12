@@ -2,11 +2,6 @@
 API for yt.frontends.art
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

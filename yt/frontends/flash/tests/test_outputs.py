@@ -2,9 +2,6 @@
 FLASH frontend tests
 
 
-Authors:
- * John ZuHone 
-
 
 """
 

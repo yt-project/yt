@@ -3,9 +3,6 @@ Function to calculate volume in common between two n-cubes, with optional
 periodic boundary conditions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

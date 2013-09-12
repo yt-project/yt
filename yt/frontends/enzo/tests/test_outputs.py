@@ -2,9 +2,6 @@
 Enzo frontend tests using moving7
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

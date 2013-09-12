@@ -2,9 +2,6 @@
 Useful functions.  If non-original, see function for citation.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

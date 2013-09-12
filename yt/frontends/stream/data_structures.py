@@ -2,9 +2,6 @@
 Data structures for Streaming, in-memory datasets
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

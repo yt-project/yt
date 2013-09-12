@@ -3,10 +3,6 @@ Various definitions for various other modules and routines - modified
 from Orion frontend.
 
 
-Authors:
- * J. S. Oishi 
- * Chris Malone 
-
 
 """
 

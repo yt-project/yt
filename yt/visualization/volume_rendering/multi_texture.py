@@ -301,8 +301,6 @@ def visvis_plot(vp):
 
     return mtex, ax
 
-Authors:
-
 
 """
 

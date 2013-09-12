@@ -2,9 +2,6 @@
 Import the components of the volume rendering extension
 
 
-Authors:
- * Samuel Skillman 
-
 
 """
 

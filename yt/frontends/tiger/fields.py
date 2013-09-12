@@ -2,9 +2,6 @@
 Tiger-specific fields
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

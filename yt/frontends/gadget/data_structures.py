@@ -2,10 +2,6 @@
 Data structures for Gadget.
 
 
-Authors:
- * Matthew Turk 
- * Chris Moody 
-
 
 """
 

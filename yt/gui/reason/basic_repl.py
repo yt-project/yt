@@ -4,9 +4,6 @@ initially, but has been heavily modified and again re-released in compliance
 with the terms of its original license.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

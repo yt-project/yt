@@ -2,9 +2,6 @@
 A means of extracting a subset of the hierarchy
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -1,9 +1,6 @@
 """
 AMR kD-Tree Framework
 
-Authors:
- * Samuel Skillman
-
 
 """
 

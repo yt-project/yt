@@ -2,9 +2,6 @@
 Definitions specific to the Streaming API
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

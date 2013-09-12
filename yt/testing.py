@@ -1,9 +1,6 @@
 """
 
 
-Authors:
- * Anthony Scpatz 
-
 
 """
 

@@ -2,9 +2,6 @@
 halo_mass_function - Halo Mass Function and supporting functions.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

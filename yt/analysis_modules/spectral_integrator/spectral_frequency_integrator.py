@@ -3,10 +3,6 @@ Integrator classes to deal with interpolation and integration of input spectral
 bins.  Currently only supports Cloudy-style data.
 
 
-Authors:
- * Matthew Turk 
- * Britton Smith 
-
 
 """
 

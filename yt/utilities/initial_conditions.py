@@ -2,9 +2,6 @@
 Painting zones in a grid
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,9 +2,6 @@
 Code to export from yt to RadMC3D
 
 
-Authors:
- * Andrew Myers 
-
 
 """
 

@@ -2,9 +2,6 @@
 FLASH-specific data structures
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

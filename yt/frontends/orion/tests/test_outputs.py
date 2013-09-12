@@ -2,9 +2,6 @@
 Orion frontend tests
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

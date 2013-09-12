@@ -2,9 +2,6 @@
 Fields specific to Streaming data
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

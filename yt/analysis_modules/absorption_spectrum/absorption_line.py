@@ -2,9 +2,6 @@
 Absorption line generating functions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

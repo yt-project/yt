@@ -2,9 +2,6 @@
 Unit test the kD trees in yt.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

@@ -2,9 +2,6 @@
 This is a simple mechanism for interfacing with Profile and Phase plots
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

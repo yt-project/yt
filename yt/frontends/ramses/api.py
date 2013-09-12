@@ -2,11 +2,6 @@
 API for yt.frontends.ramses
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

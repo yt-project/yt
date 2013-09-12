@@ -2,9 +2,6 @@
 Test suite for cartesian domain decomposition.
 
 
-Authors:
- * Kacper Kowalik 
-
 
 """
 

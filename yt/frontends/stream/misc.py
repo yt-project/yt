@@ -2,9 +2,6 @@
 Miscellaneous functions that are Streaming-specific
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

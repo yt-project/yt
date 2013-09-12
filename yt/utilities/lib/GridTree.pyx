@@ -2,9 +2,6 @@
 Matching points on the grid to specific grids
 
 
-Authors:
- * John ZuHone 
-
 
 """
 

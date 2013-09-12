@@ -2,9 +2,6 @@
 Marching cubes implementation
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

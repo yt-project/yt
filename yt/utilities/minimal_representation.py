@@ -2,9 +2,6 @@
 Skeleton objects that represent a few fundamental yt data types.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -1,9 +1,6 @@
 """
 AMR kD-Tree Tools
 
-Authors:
- * Samuel Skillman
-
 
 """
 

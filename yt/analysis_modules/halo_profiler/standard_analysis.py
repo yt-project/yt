@@ -2,9 +2,6 @@
 This module contains a near-replacement for enzo_anyl
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

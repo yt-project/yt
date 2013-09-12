@@ -2,9 +2,6 @@
 A light interface to kdtree, from http://code.google.com/p/kdtree/
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

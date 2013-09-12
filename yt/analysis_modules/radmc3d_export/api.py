@@ -2,10 +2,6 @@
 API for RadMC3D Export code
 
 
-Authors:
- * Matthew Turk 
- * Andrew Myers 
-
 
 """
 

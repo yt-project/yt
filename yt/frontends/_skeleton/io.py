@@ -2,9 +2,6 @@
 Skeleton-specific IO functions
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

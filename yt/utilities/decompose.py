@@ -2,10 +2,6 @@
 Automagical cartesian domain decomposition.
 
 
-Authors:
- * Kacper Kowalik 
- * Artur Gawryszczak 
-
 
 """
 

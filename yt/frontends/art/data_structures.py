@@ -2,10 +2,6 @@
 ART-specific data structures
 
 
-Authors:
- * Matthew Turk 
- * Christopher Moody 
-
 
 """
 

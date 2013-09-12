@@ -2,9 +2,6 @@
 Create a Catmull-Rom spline.
 
 
-Authors:
- * John Wise 
-
 
 """
 

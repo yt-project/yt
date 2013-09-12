@@ -2,9 +2,6 @@
 Checks for points contained in a volume
 
 
-Authors:
- * John Wise 
-
 
 """
 

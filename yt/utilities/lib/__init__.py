@@ -2,9 +2,6 @@
 Compatibility module
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

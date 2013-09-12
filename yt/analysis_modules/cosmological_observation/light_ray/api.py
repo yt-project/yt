@@ -2,11 +2,6 @@
 API for light_ray
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

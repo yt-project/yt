@@ -2,9 +2,6 @@
 Clump tools for use with the yt Clump object
 
 
-Authors:
- * David Collins 
-
 
 """
 

@@ -2,9 +2,6 @@
 FLASH-specific fields
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

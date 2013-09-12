@@ -2,9 +2,6 @@
 Data structures for Enzo
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

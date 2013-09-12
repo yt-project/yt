@@ -2,9 +2,6 @@
 Operations to get Rockstar loaded up
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

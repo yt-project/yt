@@ -2,11 +2,6 @@
 API for absorption_spectrum
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

@@ -2,9 +2,6 @@
 Testsuite for PlotWindow class
 
 
-Authors:
- * Nathan Goldbaum 
-
 
 """
 

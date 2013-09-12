@@ -2,9 +2,6 @@
 Pluto-specific fields
 
 
-Authors:
- * J. S. Oishi 
-
 
 """
 

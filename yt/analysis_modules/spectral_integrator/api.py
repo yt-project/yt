@@ -2,11 +2,6 @@
 API for spectral_integrator
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

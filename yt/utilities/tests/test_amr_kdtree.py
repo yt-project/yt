@@ -2,9 +2,6 @@
 Unit test the ARMKDTree in yt.
 
 
-Authors:
- * Samuel Skillman 
-
 
 """
 

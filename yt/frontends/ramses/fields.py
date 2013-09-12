@@ -2,9 +2,6 @@
 RAMSES-specific fields
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

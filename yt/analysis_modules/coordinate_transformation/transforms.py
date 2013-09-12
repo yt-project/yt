@@ -2,10 +2,6 @@
 Transformations between coordinate systems
 
 
-Authors:
- * Matthew Turk 
- * JS Oishi 
-
 
 """
 

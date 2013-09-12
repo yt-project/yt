@@ -2,11 +2,6 @@
 API for yt.frontends.orion
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

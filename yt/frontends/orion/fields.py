@@ -2,9 +2,6 @@
 Orion-specific fields
 
 
-Authors:
- * J. S. Oishi 
-
 
 """
 

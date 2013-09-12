@@ -3,9 +3,6 @@ Very simple convenience function for importing all the modules, setting up
 the namespace and getting the last argument on the command line.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

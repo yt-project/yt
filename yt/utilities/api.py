@@ -2,11 +2,6 @@
 API for yt.utilities
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

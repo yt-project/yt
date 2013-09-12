@@ -2,10 +2,6 @@
 Task queue for reason.
 
 
-Authors:
- * Britton Smith 
- * Matthew Turk 
-
 
 """
 

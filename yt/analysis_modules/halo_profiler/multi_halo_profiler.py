@@ -2,9 +2,6 @@
 HaloProfiler class and member functions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

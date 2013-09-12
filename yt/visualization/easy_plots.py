@@ -2,9 +2,6 @@
 Easy plotting.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

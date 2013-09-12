@@ -61,9 +61,6 @@ All broadly useful code that doesn't clearly fit in one of the other
 categories goes here.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

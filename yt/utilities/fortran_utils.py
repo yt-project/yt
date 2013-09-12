@@ -2,9 +2,6 @@
 Utilities for reading Fortran files.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

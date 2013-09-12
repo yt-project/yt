@@ -2,9 +2,6 @@
 Export/Import of volume rendered images.
 
 
-Authors:
- * Samuel Skillman 
-
 
 """
 

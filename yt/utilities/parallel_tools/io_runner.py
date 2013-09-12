@@ -2,9 +2,6 @@
 A simple IO staging mechanism
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

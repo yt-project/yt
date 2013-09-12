@@ -2,11 +2,6 @@
 API for halo_mass_function
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

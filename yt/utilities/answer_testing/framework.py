@@ -2,9 +2,6 @@
 Answer Testing using Nose as a starting point
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

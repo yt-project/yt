@@ -4,9 +4,6 @@ universal, are the means by which we access fields across YT, both derived and
 native.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,9 +2,6 @@
 Simple interpolators
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

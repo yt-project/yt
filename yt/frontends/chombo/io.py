@@ -2,10 +2,6 @@
 The data-file handling functions
 
 
-Authors:
- * Matthew Turk 
- * J. S. Oishi 
-
 
 """
 

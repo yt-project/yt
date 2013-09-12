@@ -1,9 +1,6 @@
 """
 API for yt.utilities.amr_kdtree
 
-Authors:
- * Samuel Skillman
-
 
 """
 

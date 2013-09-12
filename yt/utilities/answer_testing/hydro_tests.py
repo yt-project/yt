@@ -2,9 +2,6 @@
 Hydro tests
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

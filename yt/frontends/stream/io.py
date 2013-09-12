@@ -2,9 +2,6 @@
 Enzo-specific IO functions
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

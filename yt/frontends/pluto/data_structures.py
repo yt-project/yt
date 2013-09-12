@@ -2,10 +2,6 @@
 Data structures for Pluto.
 
 
-Authors:
- * Matthew Turk 
- * J. S. Oishi 
-
 
 """
 

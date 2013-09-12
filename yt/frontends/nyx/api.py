@@ -2,9 +2,6 @@
 API for yt.frontends.nyx
 
 
-Authors:
- * Casey W. Stark 
-
 
 """
 

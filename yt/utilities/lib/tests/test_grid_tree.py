@@ -2,9 +2,6 @@
 Tests for GridTree
 
 
-Authors:
- * John ZuHone 
-
 
 """
 

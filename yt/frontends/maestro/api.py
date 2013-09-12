@@ -2,12 +2,6 @@
 API for yt.frontends.maestro
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
- * Chris Malone 
-
 
 """
 

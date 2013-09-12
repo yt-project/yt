@@ -2,11 +2,6 @@
 API for yt.analysis_modules
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

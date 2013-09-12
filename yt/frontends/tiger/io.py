@@ -2,9 +2,6 @@
 TIGER-specific IO functions
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

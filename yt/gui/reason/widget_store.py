@@ -2,9 +2,6 @@
 This is a place to store widgets, and to create them.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

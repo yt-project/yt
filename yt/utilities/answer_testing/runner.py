@@ -2,9 +2,6 @@
 Runner mechanism for answer testing
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

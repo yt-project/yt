@@ -2,9 +2,6 @@
 A light interface to FreeType2
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

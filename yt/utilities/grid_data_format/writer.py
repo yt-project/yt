@@ -2,11 +2,6 @@
 Writing yt data to a GDF file.
 
 
-Authors:
- * Casey Stark
- * Kacper Kowalik
- * Andrew Myers
-
 """
 
 #-----------------------------------------------------------------------------

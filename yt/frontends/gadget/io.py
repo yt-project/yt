@@ -2,9 +2,6 @@
 Gadget-specific data-file handling function
 
 
-Authors:
- * Christopher E Moody 
-
 
 """
 

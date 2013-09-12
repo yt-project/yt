@@ -2,9 +2,6 @@
 MergerTree class and member functions.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

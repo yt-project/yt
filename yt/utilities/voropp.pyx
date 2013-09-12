@@ -2,9 +2,6 @@
 Wrapping code for voro++
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

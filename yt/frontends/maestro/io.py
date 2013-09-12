@@ -3,11 +3,6 @@ Maestro data-file handling functions - identical to Orion frontend,
 but with all instances of "orion" changed to "maestro".
 
 
-Authors:
- * Matthew Turk 
- * J. S. Oishi 
- * Chris Malone 
-
 
 """
 

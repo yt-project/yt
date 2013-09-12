@@ -2,9 +2,6 @@
 Time series analysis functions.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

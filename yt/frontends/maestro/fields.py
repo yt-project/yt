@@ -2,10 +2,6 @@
 Maestro-specific fields - borrows heavily from Orion frontend.
 
 
-Authors:
- * J. S. Oishi 
- * Chris Malone 
-
 
 """
 

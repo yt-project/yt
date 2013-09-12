@@ -2,11 +2,6 @@
 Athena-specific fields
 
 
-Authors:
- * Samuel W. Skillman 
- * J. S. Oishi 
- * John A. ZuHone 
-
 
 """
 

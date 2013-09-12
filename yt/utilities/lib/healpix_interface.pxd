@@ -2,9 +2,6 @@
 A light interface to a few HEALPix routines
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,9 +2,6 @@
 Skeleton-specific fields
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

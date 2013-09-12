@@ -1,12 +1,6 @@
 """
 Tests for AMRSlice
 
-Authors: Samuel Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-
-Authors:
- * Kacper Kowalik 
-
 
 """
 

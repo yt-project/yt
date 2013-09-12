@@ -6,9 +6,6 @@ This is all probably overly-complicated, and should be removed at first
 opportunity to ditch numarray.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

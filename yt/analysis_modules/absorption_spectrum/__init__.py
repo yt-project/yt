@@ -2,9 +2,6 @@
 Import stuff for light cone generator.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

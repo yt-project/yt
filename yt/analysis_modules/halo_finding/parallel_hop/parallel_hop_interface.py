@@ -2,9 +2,6 @@
 A implementation of the HOP algorithm that runs in parallel.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

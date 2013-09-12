@@ -2,9 +2,6 @@
 Minimalist performance counting for yt
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

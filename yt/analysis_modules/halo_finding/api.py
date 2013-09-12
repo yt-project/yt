@@ -2,11 +2,6 @@
 API for halo_finding
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

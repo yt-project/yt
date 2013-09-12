@@ -2,9 +2,6 @@
 Analyzer objects for time series datasets
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

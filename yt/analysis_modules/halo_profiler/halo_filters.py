@@ -2,9 +2,6 @@
 Halo filters to be used with the HaloProfiler.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

@@ -2,11 +2,6 @@
 Commonly used mathematical functions.
 
 
-Authors:
- * Matthew Turk 
- * Stephen Skory 
- * Geoffrey So 
-
 
 """
 

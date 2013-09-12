@@ -2,11 +2,6 @@
 API for coordinate_transformation
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

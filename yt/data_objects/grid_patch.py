@@ -2,9 +2,6 @@
 Python-based grid handler, not to be confused with the SWIG-handler
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

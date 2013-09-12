@@ -2,9 +2,6 @@
 These widget objects provide the interaction to yt tasks.
 
 
-Authors:
- * Samuel Skillman 
-
 
 """
 

@@ -2,11 +2,6 @@
 Tools for parallelism.
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

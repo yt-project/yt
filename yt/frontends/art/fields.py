@@ -2,9 +2,6 @@
 ART-specific fields
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

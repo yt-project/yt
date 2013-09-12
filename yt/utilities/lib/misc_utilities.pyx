@@ -2,9 +2,6 @@
 Simple utilities that don't fit anywhere else
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

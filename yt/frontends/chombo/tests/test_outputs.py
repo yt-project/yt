@@ -2,9 +2,6 @@
 Chombo frontend tests
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

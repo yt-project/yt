@@ -2,9 +2,6 @@
 The particle-IO handler
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

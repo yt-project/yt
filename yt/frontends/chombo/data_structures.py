@@ -2,10 +2,6 @@
 Data structures for Chombo.
 
 
-Authors:
- * Matthew Turk 
- * J. S. Oishi 
-
 
 """
 

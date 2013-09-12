@@ -2,9 +2,6 @@
 Some simple localhost-only remote pdb hacks
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

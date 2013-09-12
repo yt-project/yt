@@ -2,9 +2,6 @@
 Light cone halo mask functions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

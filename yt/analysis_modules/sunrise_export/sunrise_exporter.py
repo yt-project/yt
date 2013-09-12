@@ -2,10 +2,6 @@
 Code to export from yt to Sunrise
 
 
-Authors:
- * Chris Moody 
- * Matthew Turk 
-
 
 """
 

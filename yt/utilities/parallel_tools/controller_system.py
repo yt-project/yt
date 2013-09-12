@@ -2,9 +2,6 @@
 A queueing system based on MPI
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

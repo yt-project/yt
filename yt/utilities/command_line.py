@@ -2,9 +2,6 @@
 A means of running standalone commands with a shared set of options.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,9 +2,6 @@
 Test for off_axis_projection and write_projection
 
 
-Authors:
- * Cameron Hummels 
-
 
 """
 

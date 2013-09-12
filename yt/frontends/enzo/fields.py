@@ -2,9 +2,6 @@
 Fields specific to Enzo
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

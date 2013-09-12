@@ -2,9 +2,6 @@
 Faster, cythonized file IO
 
 
-Authors:
- * Andrew Myers 
-
 
 """
 

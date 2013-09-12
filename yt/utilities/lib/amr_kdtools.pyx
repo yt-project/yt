@@ -2,9 +2,6 @@
 AMR kD-Tree Cython Tools
 
 
-Authors:
- * Sam Skillman
-
 
 """
 

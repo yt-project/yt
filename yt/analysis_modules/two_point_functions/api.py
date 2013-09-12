@@ -2,11 +2,6 @@
 API for two_point_functions
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

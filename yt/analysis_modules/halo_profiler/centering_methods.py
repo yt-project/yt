@@ -2,9 +2,6 @@
 HaloProfiler re-centering functions.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

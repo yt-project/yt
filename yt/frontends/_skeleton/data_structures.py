@@ -2,9 +2,6 @@
 Skeleton data structures
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

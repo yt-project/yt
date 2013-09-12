@@ -2,10 +2,6 @@
 Utilities for Reason
 
 
-Authors:
- * Britton Smith 
- * Matthew Turk 
-
 
 """
 

@@ -7,9 +7,6 @@ different engines.  Well, two for now, but maybe more later.
 Who knows?
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

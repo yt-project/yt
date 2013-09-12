@@ -3,9 +3,6 @@ A read-eval-print-loop that is served up through Bottle and accepts its
 commands through ExtDirect calls
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,9 +2,6 @@
 API for Sunrise Export code
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

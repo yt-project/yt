@@ -2,9 +2,6 @@
 Castro-specific fields
 
 
-Authors:
- * J. S. Oishi 
-
 
 """
 

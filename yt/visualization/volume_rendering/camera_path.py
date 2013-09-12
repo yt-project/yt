@@ -2,9 +2,6 @@
 Create smooth camera paths from keyframes.
 
 
-Authors:
- * John Wise 
-
 
 """
 

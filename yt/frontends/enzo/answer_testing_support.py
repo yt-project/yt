@@ -2,9 +2,6 @@
 Answer Testing support for Enzo.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

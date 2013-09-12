@@ -2,9 +2,6 @@
 Default tests
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

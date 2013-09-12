@@ -2,10 +2,6 @@
 Definitions specific to Nyx
 
 
-Authors:
- * Casey W. Stark 
- * J. S. Oishi 
-
 
 """
 

@@ -2,9 +2,6 @@
 Testsuite for pickling yt objects.
 
 
-Authors:
- * Elizabeth Tasker 
-
 
 """
 

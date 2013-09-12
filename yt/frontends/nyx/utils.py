@@ -2,9 +2,6 @@
 Utilities for dealing with Nyx data
 
 
-Authors:
- * Casey W. Stark 
-
 
 """
 

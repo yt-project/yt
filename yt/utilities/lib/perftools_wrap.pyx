@@ -2,9 +2,6 @@
 Turn on and off perftools profiling
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

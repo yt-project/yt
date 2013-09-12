@@ -2,10 +2,6 @@
 Field specifications for Nyx
 
 
-Authors:
- * Casey W. Stark 
- * J. S. Oishi 
-
 
 """
 

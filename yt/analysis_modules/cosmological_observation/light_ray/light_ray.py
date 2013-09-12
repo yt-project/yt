@@ -2,9 +2,6 @@
 LightRay class and member functions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

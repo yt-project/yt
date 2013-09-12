@@ -2,9 +2,6 @@
 A simple CSV database for grabbing and storing parameter files
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

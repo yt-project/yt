@@ -2,11 +2,6 @@
 API for yt.frontends.enzo
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

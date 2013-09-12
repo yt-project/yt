@@ -2,9 +2,6 @@
 API for cosmology analysis.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

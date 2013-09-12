@@ -2,9 +2,6 @@
 API for Rockstar halo finding
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

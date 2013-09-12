@@ -2,11 +2,6 @@
 API for enzo_test
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

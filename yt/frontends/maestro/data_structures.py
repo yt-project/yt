@@ -2,10 +2,6 @@
 Data structures for Maestro - borrows heavily from Orion frontend.
 
 
-Authors:
- * J. S. Oishi 
- * Chris Malone 
-
 
 """
 

@@ -2,9 +2,6 @@
 API for yt.frontends._skeleton
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

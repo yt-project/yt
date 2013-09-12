@@ -2,9 +2,6 @@
 StarAnalysis - Functions to analyze stars.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

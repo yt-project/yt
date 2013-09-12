@@ -2,9 +2,6 @@
 The components of the Enzo testing mechanism
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

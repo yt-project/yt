@@ -2,10 +2,6 @@
 Task queue in yt
 
 
-Authors:
- * Britton Smith 
- * Matthew Turk 
-
 
 """
 

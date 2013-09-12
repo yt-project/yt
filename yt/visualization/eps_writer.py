@@ -2,9 +2,6 @@
 DualEPS: A class to combine bitmap compression and vector graphics
 
 
-Authors:
- * John Wise 
-
 
 """
 

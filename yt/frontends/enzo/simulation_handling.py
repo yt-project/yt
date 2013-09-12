@@ -2,9 +2,6 @@
 EnzoSimulation class and member functions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

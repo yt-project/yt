@@ -2,9 +2,6 @@
 A simple leaflet-based pannable map server
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

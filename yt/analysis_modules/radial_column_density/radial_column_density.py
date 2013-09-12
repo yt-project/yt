@@ -2,9 +2,6 @@
 Calculate the radial column density around a point.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

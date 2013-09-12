@@ -2,9 +2,6 @@
 Testsuite for writing yt data to GDF
 
 
-Authors:
- * Kacper Kowalik 
-
 
 """
 

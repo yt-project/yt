@@ -2,9 +2,6 @@
 Fixed interpolator includes
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

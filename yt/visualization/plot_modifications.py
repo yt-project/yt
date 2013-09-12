@@ -2,13 +2,6 @@
 Callbacks to add additional functionality on to plots.
 
 
-Authors:
- * Matthew Turk 
- * J. S. Oishi 
- * Stephen Skory 
- * Anthony Scopatz 
- * Nathan Goldbaum 
-
 
 """
 

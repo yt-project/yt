@@ -2,9 +2,6 @@
 Create randomly centered, tiled projections to be used in light cones.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

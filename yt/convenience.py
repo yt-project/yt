@@ -2,9 +2,6 @@
 Some convenience functions, objects, and iterators
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

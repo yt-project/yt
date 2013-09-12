@@ -2,9 +2,6 @@
 RAMSES-specific data structures
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

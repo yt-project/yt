@@ -2,9 +2,6 @@
 Utilities for flagging zones for refinement in a dataset
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

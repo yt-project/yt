@@ -3,9 +3,6 @@ Modifications and extensions to Bottle, to make it slightly more useful for
 yt's purposes
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

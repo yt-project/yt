@@ -3,9 +3,6 @@ A collection of helper functions, most generally for things
 that SciPy doesn't have that I expected it to
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

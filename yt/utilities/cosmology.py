@@ -3,9 +3,6 @@ Cosmology calculator based on http://www.kempner.net/cosmic.php.  Also,
 conversion functions between time and redshift pulled from Enzo.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

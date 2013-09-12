@@ -2,9 +2,6 @@
 AMR hierarchy container class
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,11 +2,6 @@
 Nyx data-file handling functions (basically a boxlib reader)
 
 
-Authors:
- * Casey W. Stark 
- * Matthew Turk 
- * J. S. Oishi 
-
 
 """
 

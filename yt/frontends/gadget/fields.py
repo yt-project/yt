@@ -2,9 +2,6 @@
 Gadget-specific fields
 
 
-Authors:
- * Christopher E Moody 
-
 
 """
 

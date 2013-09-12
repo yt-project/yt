@@ -2,9 +2,6 @@
 An attempt at putting the ray-casting operation into CUDA
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

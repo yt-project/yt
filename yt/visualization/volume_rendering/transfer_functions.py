@@ -2,9 +2,6 @@
 Simple transfer function editor
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

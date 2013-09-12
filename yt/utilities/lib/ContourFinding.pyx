@@ -2,9 +2,6 @@
 A two-pass contour finding algorithm
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

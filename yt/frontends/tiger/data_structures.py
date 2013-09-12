@@ -2,9 +2,6 @@
 TIGER-specific data structures
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

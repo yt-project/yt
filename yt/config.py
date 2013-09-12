@@ -4,9 +4,6 @@ we have written for yt.
 Everything will be returned in a global config dictionary: ytcfg
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

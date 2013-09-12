@@ -2,11 +2,6 @@
 API for lightcone
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

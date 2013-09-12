@@ -2,11 +2,6 @@
 API for halo_merger_tree
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

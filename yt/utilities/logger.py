@@ -3,9 +3,6 @@ Logging facility for yt
 Will initialize everything, and associate one with each module
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,9 +2,6 @@
 Two Point Functions Framework.
 
 
-Authors:
- * Stephen Skory 
-
 
 """
 

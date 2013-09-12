@@ -2,9 +2,6 @@
 Clump finding helper classes
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

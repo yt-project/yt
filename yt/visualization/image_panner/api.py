@@ -2,11 +2,6 @@
 API for yt.visualization.image_panner
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

@@ -1,8 +1,5 @@
 """
 
-Authors:
- * Matthew Turk 
-
 
 """
 

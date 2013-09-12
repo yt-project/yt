@@ -4,11 +4,6 @@ catalogs, either output by Enzo or output by yt's FOF halo finder, and then
 compare parent/child relationships.
 
 
-Authors:
- * Matthew J. Turk 
- * John H. Wise 
- * Cameron Hummels 
-
 
 """
 

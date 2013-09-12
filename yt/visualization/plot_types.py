@@ -4,9 +4,6 @@ irregularly shaped grids, with the presumption that at any point we could have
 data that is "hidden" in deeper levels of refinement.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

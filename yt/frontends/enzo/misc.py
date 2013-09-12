@@ -2,9 +2,6 @@
 Miscellaneous functions that are Enzo-specific
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

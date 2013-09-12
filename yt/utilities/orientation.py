@@ -3,9 +3,6 @@ A class that manages the coordinate system for orientable data
 containers and cameras.
 
 
-Authors:
- * Nathan Goldbaum 
-
 
 """
 

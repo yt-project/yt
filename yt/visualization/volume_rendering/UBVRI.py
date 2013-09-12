@@ -2,9 +2,6 @@
 Johnson Filters
 
 
-Authors:
- * JS Oishi
-
 
 
 """

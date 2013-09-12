@@ -1,9 +1,5 @@
 """
 
-Authors:
- * Britton Smith 
- * Matthew Turk 
-
 
 """
 

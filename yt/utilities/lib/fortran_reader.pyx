@@ -2,9 +2,6 @@
 Simple readers for fortran unformatted data, specifically for the Tiger code.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

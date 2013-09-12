@@ -2,11 +2,6 @@
 Various non-grid data containers.
 
 
-Authors:
- * Matthew Turk 
- * Britton Smith 
- * Geoffrey So 
-
 
 """
 

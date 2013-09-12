@@ -2,9 +2,6 @@
 All of the base-level stuff for plotting.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

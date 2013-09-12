@@ -2,9 +2,6 @@
 Data structures for Castro.
 
 
-Authors:
- * J. S. Oishi 
-
 
 """
 

@@ -2,11 +2,6 @@
 API for level_sets
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

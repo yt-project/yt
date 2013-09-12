@@ -2,10 +2,6 @@
 A plotting mechanism based on the idea of a "window" into the data.
 
 
-Authors:
- * J. S. Oishi 
- * Nathan Goldbaum 
-
 
 """
 

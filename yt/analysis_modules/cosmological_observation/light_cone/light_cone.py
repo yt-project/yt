@@ -2,9 +2,6 @@
 LightCone class and member functions.
 
 
-Authors:
- * Britton Smith 
-
 
 """
 

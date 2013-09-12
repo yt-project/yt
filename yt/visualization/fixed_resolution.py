@@ -2,9 +2,6 @@
 Fixed resolution buffer support, along with a primitive image analysis tool.
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

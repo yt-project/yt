@@ -2,11 +2,6 @@
 HOP-output data handling
 
 
-Authors:
- * Matthew Turk 
- * Stephen Skory 
- * Geoffrey So 
-
 
 """
 

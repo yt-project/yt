@@ -2,11 +2,6 @@
 API for hierarchy_subset
 
 
-Authors:
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 

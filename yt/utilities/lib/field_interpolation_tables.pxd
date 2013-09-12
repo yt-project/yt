@@ -2,9 +2,6 @@
 Field Interpolation Tables
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

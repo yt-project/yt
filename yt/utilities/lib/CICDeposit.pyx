@@ -2,10 +2,6 @@
 Simple integrators for the radiative transfer equation
 
 
-Authors:
- * Britton Smith 
- * Christopher Moody 
-
 
 """
 

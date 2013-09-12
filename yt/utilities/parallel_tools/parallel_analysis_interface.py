@@ -2,9 +2,6 @@
 Parallel data mapping techniques for yt
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

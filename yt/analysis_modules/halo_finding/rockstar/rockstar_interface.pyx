@@ -2,9 +2,6 @@
 Particle operations for Lagrangian Volume
 
 
-Authors:
- * Matthew Turk 
-
 
 """
 

@@ -2,12 +2,6 @@
 API for yt.frontends.gdf
 
 
-Authors:
- * Samuel W. Skillman 
- * Matthew Turk 
- * J.S. Oishi 
- * Britton Smith 
-
 
 """
 
