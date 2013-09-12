@@ -174,12 +174,6 @@ def configuration(parent_package='', top_path=None):
                          define_macros=[("H5_USE_16_API", True)],
                          libraries=["m", "hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
-    config.add_extension("libconfig_wrapper",
-                         ["yt/utilities/libconfig_wrapper.pyx"] +
-                         glob.glob("yt/utilities/_libconfig/*.c"),
-                         include_dirs=["yt/utilities/_libconfig/"],
-                         define_macros=[("HAVE_XLOCALE_H", True)]
-                         )
     config.make_config_py()  # installs __config__.py
     # config.make_svn_version_py()
     return config

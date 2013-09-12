@@ -1,51 +1,55 @@
-YT is a group effort.
+yt is a group effort.
 
-Contributors:                   Tom Abel (tabel@stanford.edu)
-				David Collins (dcollins@physics.ucsd.edu)
-				Brian Crosby (crosby.bd@gmail.com)
-				Andrew Cunningham (ajcunn@gmail.com)
-				Nathan Goldbaum (goldbaum@ucolick.org)
-				Markus Haider (markus.haider@uibk.ac.at)
-				Cameron Hummels (chummels@gmail.com)
-				Christian Karch (chiffre@posteo.de)
-				Ji-hoon Kim (me@jihoonkim.org)
-				Steffen Klemer (sklemer@phys.uni-goettingen.de)
-				Kacper Kowalik (xarthisius.kk@gmail.com)
-				Michael Kuhlen (mqk@astro.berkeley.edu)
-				Eve Lee (elee@cita.utoronto.ca)
-				Yuan Li (yuan@astro.columbia.edu)
-				Chris Malone (chris.m.malone@gmail.com)
-				Josh Maloney (joshua.moloney@colorado.edu)
-				Chris Moody (cemoody@ucsc.edu)
-				Andrew Myers (atmyers@astro.berkeley.edu)
-				Jeff Oishi (jsoishi@gmail.com)
-				Jean-Claude Passy (jcpassy@uvic.ca)
-				Mark Richardson (Mark.L.Richardson@asu.edu)
-				Thomas Robitaille (thomas.robitaille@gmail.com)
-				Anna Rosen (rosen@ucolick.org)
-				Anthony Scopatz (scopatz@gmail.com)
-				Devin Silvia (devin.silvia@colorado.edu)
-				Sam Skillman (samskillman@gmail.com)
-				Stephen Skory (s@skory.us)
-				Britton Smith (brittonsmith@gmail.com)
-				Geoffrey So (gsiisg@gmail.com)
-				Casey Stark (caseywstark@gmail.com)
-				Elizabeth Tasker (tasker@astro1.sci.hokudai.ac.jp)
-				Stephanie Tonnesen (stonnes@gmail.com)
-				Matthew Turk (matthewturk@gmail.com)
-				Rich Wagner (rwagner@physics.ucsd.edu)
-				John Wise (jwise@physics.gatech.edu)
-				John ZuHone (jzuhone@gmail.com)
+Contributors:   
+                Tom Abel (tabel@stanford.edu)
+                David Collins (dcollins@physics.ucsd.edu)
+                Brian Crosby (crosby.bd@gmail.com)
+                Andrew Cunningham (ajcunn@gmail.com)
+                Hilary Egan (hilaryye@gmail.com)
+                John Forces (jforbes@ucolick.org)
+                Nathan Goldbaum (goldbaum@ucolick.org)
+                Markus Haider (markus.haider@uibk.ac.at)
+                Cameron Hummels (chummels@gmail.com)
+                Christian Karch (chiffre@posteo.de)
+                Ji-hoon Kim (me@jihoonkim.org)
+                Steffen Klemer (sklemer@phys.uni-goettingen.de)
+                Kacper Kowalik (xarthisius.kk@gmail.com)
+                Michael Kuhlen (mqk@astro.berkeley.edu)
+                Eve Lee (elee@cita.utoronto.ca)
+                Sam Leitner (sam.leitner@gmail.com)
+                Yuan Li (yuan@astro.columbia.edu)
+                Chris Malone (chris.m.malone@gmail.com)
+                Josh Maloney (joshua.moloney@colorado.edu)
+                Chris Moody (cemoody@ucsc.edu)
+                Andrew Myers (atmyers@astro.berkeley.edu)
+                Jill Naiman (jnaiman@ucolick.org)
+                Kaylea Nelson (kaylea.nelson@yale.edu)
+                Jeff Oishi (jsoishi@gmail.com)
+                Jean-Claude Passy (jcpassy@uvic.ca)
+                Mark Richardson (Mark.L.Richardson@asu.edu)
+                Thomas Robitaille (thomas.robitaille@gmail.com)
+                Anna Rosen (rosen@ucolick.org)
+                Douglas Rudd (drudd@uchicago.edu)
+                Anthony Scopatz (scopatz@gmail.com)
+                Noel Scudder (noel.scudder@stonybrook.edu)
+                Devin Silvia (devin.silvia@colorado.edu)
+                Sam Skillman (samskillman@gmail.com)
+                Stephen Skory (s@skory.us)
+                Britton Smith (brittonsmith@gmail.com)
+                Geoffrey So (gsiisg@gmail.com)
+                Casey Stark (caseywstark@gmail.com)
+                Elizabeth Tasker (tasker@astro1.sci.hokudai.ac.jp)
+                Stephanie Tonnesen (stonnes@gmail.com)
+                Matthew Turk (matthewturk@gmail.com)
+                Rich Wagner (rwagner@physics.ucsd.edu)
+                Andrew Wetzel (andrew.wetzel@yale.edu)
+                John Wise (jwise@physics.gatech.edu)
+                John ZuHone (jzuhone@gmail.com)
 
-We also include the Delaunay Triangulation module written by Robert Kern of
-Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
+Several items included in the yt/extern directory were written by other
+individuals and may bear their own license, including the progressbar module by
 Nilton Volpato.  The PasteBin interface code (as well as the PasteBin itself)
-was written by the Pocoo collective (pocoo.org).  The RamsesRead++ library was
-developed by Oliver Hahn.  yt also includes a slightly-modified version of
-libconfig (http://www.hyperrealm.com/libconfig/) and an unmodified version of
-several routines from HEALpix (http://healpix.jpl.nasa.gov/).
-
-Large parts of development of yt were guided by discussions with Tom Abel, Ralf
-Kaehler, Mike Norman and Greg Bryan.
+was written by the Pocoo collective (pocoo.org).  
+developed by Oliver Hahn.  
 
 Thanks to everyone for all your contributions!
