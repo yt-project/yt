@@ -65,7 +65,7 @@ def arbitrary_regrid(new_grid, data_source, fields, smoothed=True):
     new_grid['handled'] = np.zeros(new_grid['x'].shape, dtype='bool')
     for field in fields:
         new_grid[field] = np.zeros(new_grid['x'].shape, dtype='float64')
-    grid_order = np.argsort(data_source.gridLevels)
+    grid_order = np.argsort(data_source.grid_levels[:,0])
     ng = len(data_source._grids)
 
     for i,grid in enumerate(data_source._grids[grid_order][::-1]):
