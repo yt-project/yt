@@ -54,7 +54,7 @@ from io import _read_struct
 from io import b2t
 
 
-import yt.frontends.ramses._ramses_reader as _ramses_reader
+#import yt.frontends.ramses._ramses_reader as _ramses_reader
 
 from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
