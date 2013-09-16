@@ -322,6 +322,35 @@ cdef class SelectorObject:
                 rel += self.domain_width[d]
         return rel
 
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
+    def fill_mesh_mask(self, mesh):
+        cdef int dim[3]
+        cdef np.float64_t pos[3]
+        cdef np.ndarray[np.int64_t, ndim=2] indices
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef int i, j, k, selected
+        cdef int npoints, nv = mesh._connectivity_length
+        cdef int total = 0
+        cdef int offset = mesh._index_offset
+        coords = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
+        npoints = indices.shape[0]
+        mask = np.zeros(npoints, dtype='uint8')
+        for i in range(npoints):
+            selected = 0
+            for j in range(nv):
+                for k in range(3):
+                    pos[k] = coords[indices[i, j] - offset, k]
+                selected = self.select_point(pos)
+                if selected == 1: break
+            total += selected
+            mask[i] = selected
+        if total == 0: return None
+        return mask.astype("bool")
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)

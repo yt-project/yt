@@ -22,13 +22,10 @@ def field_dname(field_name):
 
 # TODO all particle bits were removed
 class IOHandlerMoabH5MHex8(BaseIOHandler):
-    _data_style = "h5m"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
+    _data_style = "moab_hex8"
 
     def __init__(self, pf, *args, **kwargs):
         # TODO check if _num_per_stride is needed
-        self._num_per_stride = kwargs.pop("num_per_stride", 1000000)
         BaseIOHandler.__init__(self, *args, **kwargs)
         self.pf = pf
         self._handle = pf._handle
