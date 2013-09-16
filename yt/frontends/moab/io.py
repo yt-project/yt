@@ -30,6 +30,7 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
         self._handle = pf._handle
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
+        assert size
         chunks = list(chunks)
         assert(len(chunks) == 1)
         fhandle = self._handle

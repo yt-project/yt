@@ -157,7 +157,7 @@ class SemiStructuredMesh(YTSelectionContainer):
         if hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            self._last_mask = mask = selector.fill_mesh_mask(self)
+            self._last_mask = mask = selector.fill_mesh_cell_mask(self)
             self._last_selector_id = hash(selector)
             if mask is None:
                 self._last_count = 0

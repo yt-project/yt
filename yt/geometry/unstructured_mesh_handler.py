@@ -73,11 +73,18 @@ class UnstructuredGeometryHandler(GeometryHandler):
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             dobj._chunk_info = self.meshes
+        if getattr(dobj, "size", None) is None:
+            dobj.size = self._count_selection(dobj)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
-    def _chunk_all(self, dobj):
+    def _count_selection(self, dobj, meshes = None):
+        if meshes is None: meshes = dobj._chunk_info
+        count = sum((m.count(dobj.selector) for m in meshes))
+        return count
+
+    def _chunk_all(self, dobj, cache = True):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", oobjs, None)
+        yield YTDataChunk(dobj, "all", oobjs, dobj.size, cache)
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -91,9 +98,12 @@ class UnstructuredGeometryHandler(GeometryHandler):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
-            yield YTDataChunk(dobj, "spatial", [g])
+            size = self._count_selection(dobj, [og])
+            if size == 0: continue
+            yield YTDataChunk(dobj, "spatial", [g], size)
 
     def _chunk_io(self, dobj, cache = True):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
+            s = self._count_selection(dobj, oobjs)
+            yield YTDataChunk(dobj, "io", [subset], s, cache = cache)

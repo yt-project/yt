@@ -76,22 +76,6 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-    def _chunk_all(self, dobj, cache = True):
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", gobjs, None, cache)
-        
-    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
-        raise NotImplementedError
-
-    def _chunk_io(self, dobj, cache = True):
-        gfiles = defaultdict(list)
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for g in gobjs:
-            gfiles[g.filename].append(g)
-        for fn in sorted(gfiles):
-            gs = gfiles[fn]
-            yield YTDataChunk(dobj, "io", gs, None, cache = cache)
-
 class MoabHex8StaticOutput(StaticOutput):
     _hierarchy_class = MoabHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
