@@ -19,7 +19,6 @@ from yt.utilities.io_handler import BaseIOHandler
 def field_dname(field_name):
     return "/tstt/elements/Hex8/tags/{0}".format(field_name)
 
-
 # TODO all particle bits were removed
 class IOHandlerMoabH5MHex8(BaseIOHandler):
     _data_style = "moab_hex8"
@@ -32,6 +31,7 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
+        assert(len(chunks) == 1)
         fhandle = self._handle
         rv = {}
         for field in fields:
@@ -40,10 +40,11 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ftype, fname in fields], ngrids)
-        x, y, z = fhandle['/tstt/nodes/coordinates'][:].T
-        mask = selector.select_points(x, y, z)
         for field in fields:
             ftype, fname = field
-            data = fhandle[field_dname(fname)][mask]
-            rv[field][:] = data
+            ds = np.array(fhandle[field_dname(fname)][:], dtype="float64")
+            ind = 0
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
