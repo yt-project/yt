@@ -1,27 +1,18 @@
 """
 ARTIO-specific data structures
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import numpy as np
 import stat
 import weakref
@@ -55,6 +46,7 @@ class ARTIOOctreeSubset(OctreeSubset):
     domain_id = 2
     _con_args = ("base_region", "sfc_start", "sfc_end", "pf")
     _type_name = 'octree_subset'
+    _num_zones = 2
 
     def __init__(self, base_region, sfc_start, sfc_end, pf):
         self.field_data = YTFieldData()
@@ -165,6 +157,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
     def deposit(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
+        if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -313,7 +306,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields()
         self.field_list = self.fluid_field_list + self.particle_field_list
-        mylog.debug("Detected fields:", (self.field_list,))
+        mylog.debug("Detected fields: %s", (self.field_list,))
 
     def _detect_fluid_fields(self):
         return [art_to_yt[f] for f in yt_to_art.values() if f in
@@ -377,7 +370,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, None)
 
-    def _chunk_spatial(self, dobj, ngz):
+    def _chunk_spatial(self, dobj, ngz, preload_fields = None):
         if ngz > 0:
             raise NotImplementedError
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -452,10 +445,10 @@ class ARTIOStaticOutput(StaticOutput):
                 self.units["%sh" % unit] = self.units[unit] * \
                     self.hubble_constant
                 self.units["%shcm" % unit] = \
-                    (self.units["%sh" % unit] /
+                    (self.units["%sh" % unit] *
                         (1 + self.current_redshift))
                 self.units["%scm" % unit] = \
-                    self.units[unit] / (1 + self.current_redshift)
+                    self.units[unit] * (1 + self.current_redshift)
 
         for unit in sec_conversion.keys():
             self.time_units[unit] = self.parameters['unit_t']\

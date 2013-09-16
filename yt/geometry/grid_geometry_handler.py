@@ -1,27 +1,17 @@
 """
 AMR hierarchy container class
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -35,7 +25,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
+from yt.geometry.geometry_handler import \
+    GeometryHandler, YTDataChunk, ChunkDataCache
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
@@ -47,6 +38,7 @@ from yt.data_objects.data_containers import data_object_registry
 
 class GridGeometryHandler(GeometryHandler):
     float_type = 'float64'
+    _preload_implemented = False
 
     def _setup_geometry(self):
         mylog.debug("Counting grids.")
@@ -256,7 +248,7 @@ class GridGeometryHandler(GeometryHandler):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size, cache)
         
-    def _chunk_spatial(self, dobj, ngz, sort = None):
+    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         if sort in ("+level", "level"):
             giter = sorted(gobjs, key = g.Level)
@@ -264,7 +256,9 @@ class GridGeometryHandler(GeometryHandler):
             giter = sorted(gobjs, key = -g.Level)
         elif sort is None:
             giter = gobjs
-        for i,og in enumerate(giter):
+        if self._preload_implemented and preload_fields is not None and ngz == 0:
+            giter = ChunkDataCache(list(giter), preload_fields, self)
+        for i, og in enumerate(giter):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -284,3 +278,4 @@ class GridGeometryHandler(GeometryHandler):
             gs = gfiles[fn]
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
+

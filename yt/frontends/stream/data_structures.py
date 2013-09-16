@@ -1,27 +1,17 @@
 """
 Data structures for Streaming, in-memory datasets
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import weakref
 import numpy as np
@@ -738,10 +728,11 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     file_count = 1
     filename_template = "stream_file"
     n_ref = 64
+    over_refine_factor = 1
 
 def load_particles(data, sim_unit_to_cm, bbox=None,
                       sim_time=0.0, periodicity=(True, True, True),
-                      n_ref = 64):
+                      n_ref = 64, over_refine_factor = 1):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -828,6 +819,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
 
     spf = StreamParticlesStaticOutput(handler)
     spf.n_ref = n_ref
+    spf.over_refine_factor = over_refine_factor
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0

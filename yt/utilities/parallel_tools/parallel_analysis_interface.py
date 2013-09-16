@@ -1,27 +1,17 @@
 """
 Parallel data mapping techniques for yt
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import cPickle
 import cStringIO
@@ -1058,7 +1048,7 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.hierarchy.region_strict(self.center, LE, RE)
+        reg = self.hierarchy.region(self.center, LE, RE)
         return True, reg
 
     def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
@@ -1074,8 +1064,7 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.hierarchy.periodic_region_strict(self.center,
-                LE-padding, RE+padding)
+            self.hierarchy.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -1102,10 +1091,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center,
+                LE, RE, self.hierarchy.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1130,7 +1119,7 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
+                LE, RE, self.hierarchy.region(self.center, LE-padding,
                     RE+padding)
 
         return False, LE, RE, self.hierarchy.region(self.center, LE, RE)

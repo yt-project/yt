@@ -718,6 +718,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef np.ndarray[np.float32_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef int j, oct_ind, level
         cdef np.int64_t sfc
         cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
@@ -766,7 +767,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                     for j in range(8):
                         for i in range(nf):
                             field_vals[i][local_ind[level] * 8 + j] = \
-                                grid_variables[ngv * j + i]
+                                grid_variables[ngv * j + field_ind[i]]
                     local_ind[level] += 1
                 status = artio_grid_read_level_end(handle)
                 check_artio_status(status)

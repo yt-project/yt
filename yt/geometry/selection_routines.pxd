@@ -1,27 +1,18 @@
 """
 Geometry selection routine imports.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 cimport numpy as np
 from oct_visitors cimport Oct, OctVisitorData, \
@@ -40,6 +31,9 @@ cdef class SelectorObject:
                         oct_visitor_function *func,
                         OctVisitorData *data,
                         int visit_covered = ?)
+    cdef void visit_oct_cells(self, OctVisitorData *data, Oct *root, Oct *ch,
+                              np.float64_t spos[3], np.float64_t sdds[3],
+                              oct_visitor_function *func, int i, int j, int k)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = ?) nogil

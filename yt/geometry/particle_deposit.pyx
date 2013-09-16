@@ -1,29 +1,18 @@
 """
 Particle Deposition onto Cells
 
-Author: Christopher Moody <chris.e.moody@gmail.com>
-Affiliation: UC Santa Cruz
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 cimport numpy as np
 import numpy as np
@@ -54,7 +43,6 @@ cdef class ParticleDepositOperation:
                      fields = None, int domain_id = -1,
                      int domain_offset = 0):
         cdef int nf, i, j
-        self.bad_indices = 0
         if fields is None:
             fields = []
         nf = len(fields)
@@ -66,7 +54,8 @@ cdef class ParticleDepositOperation:
             tarr = fields[i]
             field_pointers[i] = <np.float64_t *> tarr.data
         cdef int dims[3]
-        dims[0] = dims[1] = dims[2] = 2
+        dims[0] = dims[1] = dims[2] = (1 << octree.oref)
+        cdef int nz = dims[0] * dims[1] * dims[2]
         cdef OctInfo oi
         cdef np.int64_t offset, moff
         cdef Oct *oct
@@ -98,7 +87,7 @@ cdef class ParticleDepositOperation:
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Note that this has to be our local index, not our in-file index.
-            offset = dom_ind[oct.domain_ind - moff] * 8
+            offset = dom_ind[oct.domain_ind - moff] * nz
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
@@ -218,11 +207,14 @@ cdef class SimpleSmooth(ParticleDepositOperation):
             ib0[i] = iclip(ib0[i], 0, dim[i] - 1)
             ib1[i] = iclip(ib1[i], 0, dim[i] - 1)
         for i from ib0[0] <= i <= ib1[0]:
-            idist[0] = (ii[0] - i) * (ii[0] - i) * dds[0]
+            idist[0] = (ii[0] - i) * dds[0]
+            idist[0] *= idist[0]
             for j from ib0[1] <= j <= ib1[1]:
-                idist[1] = (ii[1] - j) * (ii[1] - j) * dds[1] 
+                idist[1] = (ii[1] - j) * dds[1] 
+                idist[1] *= idist[1]
                 for k from ib0[2] <= k <= ib1[2]:
-                    idist[2] = (ii[2] - k) * (ii[2] - k) * dds[2]
+                    idist[2] = (ii[2] - k) * dds[2]
+                    idist[2] *= idist[2]
                     dist = idist[0] + idist[1] + idist[2]
                     # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / fields[0]

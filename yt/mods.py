@@ -2,27 +2,17 @@
 Very simple convenience function for importing all the modules, setting up
 the namespace and getting the last argument on the command line.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from __future__ import absolute_import
 
@@ -64,7 +54,8 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray
+    ParticleTrajectoryCollection, ImageArray, \
+    particle_filter
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -121,7 +112,8 @@ from yt.frontends.pluto.api import \
 
 from yt.frontends.stream.api import \
     StreamStaticOutput, StreamFieldInfo, add_stream_field, \
-    StreamHandler, load_uniform_grid, load_amr_grids
+    StreamHandler, load_uniform_grid, load_amr_grids, \
+    load_particles
 
 from yt.frontends.sph.api import \
     OWLSStaticOutput, OWLSFieldInfo, add_owls_field, \
@@ -145,7 +137,8 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
+    show_colormaps
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

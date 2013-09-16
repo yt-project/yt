@@ -1,29 +1,18 @@
 """
 Oct container tuned for Particles
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Author: Christopher Moody <chris.e.moody@gmail.com>
-Affiliation: UC Santa Cruz
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX
 cimport oct_visitors
@@ -205,6 +194,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int i, j, k, m, n, ind[3]
         cdef Oct *noct
         cdef np.uint64_t prefix1, prefix2
+        # TODO: This does not need to be changed.
         o.children = <Oct **> malloc(sizeof(Oct *)*8)
         for i in range(2):
             for j in range(2):

@@ -1,27 +1,18 @@
 """
 Particle-only geometry handler
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as na
@@ -86,7 +77,8 @@ class ParticleGeometryHandler(GeometryHandler):
                 sum(d.total_particles.values()) for d in self.data_files)
         pf = self.parameter_file
         self.oct_handler = ParticleOctreeContainer(
-            [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge)
+            [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge,
+            over_refine = pf.over_refine_factor)
         self.oct_handler.n_ref = pf.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
@@ -147,8 +139,9 @@ class ParticleGeometryHandler(GeometryHandler):
                 data_files = [self.data_files[i] for i in
                               self.regions.identify_data_files(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
+            oref = self.parameter_file.over_refine_factor
             subset = [ParticleOctreeSubset(base_region, data_files, 
-                        self.parameter_file)]
+                        self.parameter_file, over_refine_factor = oref)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -156,7 +149,7 @@ class ParticleGeometryHandler(GeometryHandler):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, None)
 
-    def _chunk_spatial(self, dobj, ngz, sort = None):
+    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # We actually do not really use the data files except as input to the
         # ParticleOctreeSubset.

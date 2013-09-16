@@ -1,27 +1,17 @@
 """
 Answer Testing using Nose as a starting point
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import logging
 import os
@@ -33,6 +23,7 @@ import sys
 import cPickle
 import shelve
 import zlib
+import tempfile
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -45,7 +36,7 @@ from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.utilities.progressbar as progressbar
+import yt.extern.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -393,7 +384,7 @@ class FieldValuesTest(AnswerTestingTest):
         return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
-        err_msg = "Field values for %s not equal." % self.field
+        err_msg = "Field values for %s not equal." % (self.field,)
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -491,8 +482,9 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         frb[self.field]
         frb[self.weight_field]
         d = frb.data
-        d.update( dict( (("%s_sum" % f, proj[f].sum(dtype="float64"))
-                         for f in proj.field_data.keys()) ) )
+        for f in proj.field_data:
+            # Sometimes f will be a tuple.
+            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
@@ -604,9 +596,11 @@ class PlotWindowAttributeTest(AnswerTestingTest):
                                 self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
-        fn = plot.save()[0]
-        image = mpimg.imread(fn)
-        os.remove(fn)
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):
