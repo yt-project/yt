@@ -1,13 +1,17 @@
-"""Data structures for MOAB Hex8.
+"""
+Data structures for MOAB Hex8.
 
-Author: Samuel W. Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: Matthew Turk <matthewturk@gmail.com>
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
+
 
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np

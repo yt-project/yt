@@ -1,12 +1,15 @@
 """MOAB-specific fields
 
-Author: Samuel W. Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
 
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
