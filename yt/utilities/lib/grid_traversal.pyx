@@ -953,6 +953,14 @@ cdef int walk_volume(VolumeContainer *vc,
             tl = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
         temp_x = (v_pos[x] + tl*v_dir[x])
         temp_y = (v_pos[y] + tl*v_dir[y])
+        if fabs(temp_x - vc.left_edge[x]) < 1e-10*vc.dds[x]:
+            temp_x = vc.left_edge[x]
+        elif fabs(temp_x - vc.right_edge[x]) < 1e-10*vc.dds[x]:
+            temp_x = vc.right_edge[x]
+        if fabs(temp_y - vc.left_edge[y]) < 1e-10*vc.dds[y]:
+            temp_y = vc.left_edge[y]
+        elif fabs(temp_y - vc.right_edge[y]) < 1e-10*vc.dds[y]:
+            temp_y = vc.right_edge[y]
         if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
            vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
            0.0 <= tl and tl < intersect_t:
