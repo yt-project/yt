@@ -31,6 +31,7 @@ from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, ParticleRegions
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
+from yt.utilities.lib import smallest_fwidth
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 
@@ -57,7 +58,11 @@ class UnstructuredGeometryHandler(GeometryHandler):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        raise NotImplementedError
+        dx = min(smallest_fwidth(mesh.connectivity_coords,
+                                 mesh.connectivity_indices,
+                                 mesh._index_offset)
+                 for mesh in self.meshes)
+        return dx
 
     def convert(self, unit):
         return self.parameter_file.conversion_factors[unit]

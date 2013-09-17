@@ -70,3 +70,29 @@ def fill_fwidths(np.ndarray[np.float64_t, ndim=2] coords,
             fwidths[i, j] = RE[j] - LE[j]
     return fwidths
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def smallest_fwidth(np.ndarray[np.float64_t, ndim=2] coords,
+                    np.ndarray[np.int64_t, ndim=2] indices,
+                    int offset = 0):
+    cdef np.float64_t fwidth = 1e60
+    cdef int nc = indices.shape[0]
+    cdef int nv = indices.shape[1]
+    if nv != 8:
+        raise NotImplementedError
+    cdef np.float64_t LE[3], RE[3]
+    cdef int i, j, k
+    for i in range(nc):
+        for j in range(3):
+            LE[j] = 1e60
+            RE[j] = -1e60
+        for j in range(nv):
+            for k in range(3):
+                pos = coords[indices[i, j] - offset, k]
+                LE[k] = fmin(pos, LE[k])
+                RE[k] = fmax(pos, RE[k])
+        for j in range(3):
+            fwidth = fmin(fwidth, RE[j] - LE[j])
+    return fwidth
+
