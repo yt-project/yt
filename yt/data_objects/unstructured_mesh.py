@@ -135,7 +135,9 @@ class SemiStructuredMesh(YTSelectionContainer):
         return ind[mask]
 
     def tcoords(self, dobj):
-        dt, t = dobj.selector.get_dt(self)
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None: return np.empty(0, dtype='float64')
+        dt, t = dobj.selector.get_dt_mesh(self, mask.sum(), self._index_offset)
         return dt, t
 
     def deposit(self, positions, fields = None, method = None):
