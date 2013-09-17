@@ -351,6 +351,9 @@ cdef class SelectorObject:
         if total == 0: return None
         return mask.astype("bool")
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fill_mesh_cell_mask(self, mesh):
         cdef int dim[3]
         cdef np.float64_t pos, le[3], re[3]

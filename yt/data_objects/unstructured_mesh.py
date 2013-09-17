@@ -21,6 +21,8 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.definitions import x_dict, y_dict
+from yt.utilities.lib import \
+    fill_fcoords, fill_fwidths
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
@@ -113,18 +115,18 @@ class SemiStructuredMesh(YTSelectionContainer):
     def select_fcoords(self, dobj = None):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
-        ind = self.connectivity_indices - self._index_offset
-        centers = self.connectivity_coords[ind, :].sum(axis=1)
-        np.divide(centers, 8, centers)
+        centers = fill_fcoords(self.connectivity_coords,
+                               self.connectivity_indices,
+                               self._index_offset)
         return centers[mask, :]
 
     def select_fwidth(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
-        ind = self.connectivity_indices - self._index_offset
-        LE = self.connectivity_coords[ind, :].min(axis=1)
-        RE = self.connectivity_coords[ind, :].max(axis=1)
-        return (RE - LE)[mask, :]
+        widths = fill_fwidths(self.connectivity_coords,
+                              self.connectivity_indices,
+                              self._index_offset)
+        return widths[mask, :]
 
     def select_ires(self, dobj):
         ind = np.zeros(self.connectivity_indices.shape[0])

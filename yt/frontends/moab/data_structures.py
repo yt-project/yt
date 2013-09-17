@@ -61,9 +61,9 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
 
     def _initialize_mesh(self):
         con = self._fhandle["/tstt/elements/Hex8/connectivity"][:]
-        con = np.array(con, dtype="int64")
+        con = np.asarray(con, dtype="int64")
         coords = self._fhandle["/tstt/nodes/coordinates"][:]
-        coords = np.array(coords, dtype="float64")
+        coords = np.asarray(coords, dtype="float64")
         self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
                                     coords, self)]
 
