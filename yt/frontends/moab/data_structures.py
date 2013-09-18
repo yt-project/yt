@@ -155,8 +155,16 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
                                     vind, coords, self)]
 
     def _detect_fields(self):
-        self.field_list = self.pyne_mesh.mesh.getAllTags(
-            self.pyne_mesh.mesh.rootSet)
+        # Currently, I don't know a better way to do this.  This code, for
+        # example, does not work:
+        #self.field_list = self.pyne_mesh.mesh.getAllTags(
+        #    self.pyne_mesh.mesh.rootSet)
+        # So we have to look at each entity.
+        tags = set([])
+        for ent in self.pyne_mesh.mesh.rootSet:
+            for tag in self.pyne_mesh.mesh.getAllTags(ent):
+                tags.add(tag.name)
+        self.field_list = list(tags)
 
     def _count_grids(self):
         self.num_grids = 1

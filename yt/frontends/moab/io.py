@@ -30,7 +30,6 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
         self._handle = pf._handle
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        assert size
         chunks = list(chunks)
         assert(len(chunks) == 1)
         fhandle = self._handle
@@ -59,20 +58,24 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
         self.pf = pf
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        assert size
         chunks = list(chunks)
         assert(len(chunks) == 1)
-        fhandle = self._handle
+        tags = {}
         rv = {}
+        mesh = self.pf.pyne_mesh.mesh
         for field in fields:
             ftype, fname = field
-            rv[field] = np.empty(size, dtype=fhandle[field_dname(fname)].dtype)
+            rv[field] = np.empty(size, dtype="float64")
+            tags[field] = mesh.getTagHandle(fname)
+        from itaps import iBase
+        ents = self.pf.pyne_mesh.structured_set.getEntities(
+            iBase.Type.region)
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ftype, fname in fields], ngrids)
         for field in fields:
             ftype, fname = field
-            ds = np.array(fhandle[field_dname(fname)][:], dtype="float64")
+            ds = tags[field][ents]
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
