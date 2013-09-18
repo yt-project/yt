@@ -14,27 +14,22 @@ Data structures for MOAB Hex8.
 #-----------------------------------------------------------------------------
 
 import h5py
+import os
 import numpy as np
 import weakref
-from yt.funcs import *
+from yt.funcs import mylog
 from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
 from yt.geometry.unstructured_mesh_handler import \
            UnstructuredGeometryHandler
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
            StaticOutput
-from yt.utilities.lib import \
-    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 
 from .fields import MoabFieldInfo, KnownMoabFields
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
-import pdb
 
 def _get_convert(fname):
     def _conv(data):
