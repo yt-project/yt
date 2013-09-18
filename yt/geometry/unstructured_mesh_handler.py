@@ -14,29 +14,12 @@ Unstructured-mesh geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-import numpy as na
-import string, re, gc, time, cPickle
 import weakref
-
-from itertools import chain, izip
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.arraytypes import blankRecordArray
-from yt.config import ytcfg
-from yt.data_objects.field_info_container import NullFunc
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
-from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer, ParticleRegions
-from yt.utilities.definitions import MAXLEVEL
-from yt.utilities.io_handler import io_registry
 from yt.utilities.lib import smallest_fwidth
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
-
-from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.octree_subset import ParticleOctreeSubset
 
 class UnstructuredGeometryHandler(GeometryHandler):
     _global_mesh = False
