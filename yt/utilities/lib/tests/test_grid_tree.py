@@ -88,15 +88,16 @@ def test_find_points():
 
     for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz):
 
+        pos = np.array([ixx, iyy, izz])
         pt_level = -1
 
         for grid in test_pf.h.grids:
 
-            if grid.is_in_grid(ixx, iyy, izz):
-
-                if grid.Level > pt_level:
-                    pt_level = grid.Level
-                    grid_inds[ind] = grid.id - grid._id_offset
+            if np.all(pos >= grid.LeftEdge) and \
+               np.all(pos <= grid.RightEdge) and \
+               grid.Level > pt_level:
+                pt_level = grid.Level
+                grid_inds[ind] = grid.id - grid._id_offset
 
     yield assert_equal, point_grid_inds, grid_inds
 
