@@ -16,7 +16,8 @@ API for yt.frontends.moab
 from .data_structures import \
       MoabHex8Mesh, \
       MoabHex8Hierarchy, \
-      MoabHex8StaticOutput
+      MoabHex8StaticOutput, \
+      PyneMoabHex8StaticOutput
 
 from .fields import \
       MoabFieldInfo, \

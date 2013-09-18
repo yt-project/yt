@@ -126,3 +126,89 @@ class MoabHex8StaticOutput(StaticOutput):
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
 
+class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
+
+    def __init__(self, pf, data_style='moab_hex8_pyne'):
+        self.parameter_file = weakref.proxy(pf)
+        self.data_style = data_style
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.getcwd()
+        self.pyne_mesh = pf.pyne_mesh
+
+        super(PyneMeshHex8Hierarchy, self).__init__(pf, data_style)
+
+    def _initialize_mesh(self):
+        con = self.pyne_mesh.mesh.adjTable.astype("int64")
+        from itaps import iBase
+        ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
+        coords = self.pyne_mesh.mesh.getVtxCoords(ent).astype("float64")
+        self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
+                                    coords, self)]
+
+    def _detect_fields(self):
+        self.field_list = self.pyne_mesh.mesh.getAllTags(
+            self.pyne_mesh.mesh.rootSet)
+
+    def _count_grids(self):
+        self.num_grids = 1
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.parameter_file)
+
+class PyneMoabHex8StaticOutput(StaticOutput):
+    _hierarchy_class = PyneMeshHex8Hierarchy
+    _fieldinfo_fallback = MoabFieldInfo
+    _fieldinfo_known = KnownMoabFields
+    periodicity = (False, False, False)
+
+    def __init__(self, pyne_mesh, data_style='moab_hex8_pyne',
+                 storage_filename = None):
+        filename = "pyne_mesh_" + str(id(pyne_mesh))
+        self.pyne_mesh = pyne_mesh
+        StaticOutput.__init__(self, str(filename), data_style)
+        self.storage_filename = storage_filename
+        self.filename = filename
+
+    def _set_units(self):
+        """Generates the conversion to various physical _units based on the parameter file
+        """
+        self.units = {}
+        self.time_units = {}
+        if len(self.parameters) == 0:
+            self._parse_parameter_file()
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['cm'] = 1.0
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
+        for unit in mpc_conversion.keys():
+            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = 1.0 / sec_conversion[unit]
+
+    def _parse_parameter_file(self):
+        from itaps import iBase
+        ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
+        coords = self.pyne_mesh.mesh.getVtxCoords(ent)
+        self.domain_left_edge = coords[0]
+        self.domain_right_edge = coords[-1]
+        self.domain_dimensions = self.domain_right_edge - self.domain_left_edge
+        self.refine_by = 2
+        self.dimensionality = len(self.domain_dimensions)
+        self.current_time = 0.0
+        self.unique_identifier = self.parameter_filename
+        self.cosmological_simulation = False
+        self.num_ghost_zones = 0
+        self.current_redshift = self.omega_lambda = self.omega_matter \
+                              = self.hubble_constant \
+                              = self.cosmological_simulation = 0.0
+        self.parameters['Time'] = 1.0 # Hardcode time conversion for now.
+        self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        return False
+
+    def __repr__(self):
+        return self.basename.rsplit(".", 1)[0]
+

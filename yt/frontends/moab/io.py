@@ -49,3 +49,32 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
                 for g in chunk.objs:
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
+
+class IOHandlerMoabPyneHex8(BaseIOHandler):
+    _data_style = "moab_hex8_pyne"
+
+    def __init__(self, pf, *args, **kwargs):
+        # TODO check if _num_per_stride is needed
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        assert size
+        chunks = list(chunks)
+        assert(len(chunks) == 1)
+        fhandle = self._handle
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = np.empty(size, dtype=fhandle[field_dname(fname)].dtype)
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ftype, fname = field
+            ds = np.array(fhandle[field_dname(fname)][:], dtype="float64")
+            ind = 0
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv
