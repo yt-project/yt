@@ -13,29 +13,17 @@ Unstructured mesh base container.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import exceptions
-import pdb
 import weakref
-import itertools
 import numpy as np
 
-from yt.funcs import *
+from yt.funcs import mylog
 from yt.utilities.definitions import x_dict, y_dict
 from yt.utilities.lib import \
     fill_fcoords, fill_fwidths
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
-    YTDataContainer, \
     YTSelectionContainer
-from yt.utilities.definitions import x_dict, y_dict
-from .field_info_container import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter
-from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
 
 class SemiStructuredMesh(YTSelectionContainer):
@@ -69,7 +57,6 @@ class SemiStructuredMesh(YTSelectionContainer):
 
     def _check_consistency(self):
         for gi in range(self.connectivity_indices.shape[0]):
-            v = set([])
             ind = self.connectivity_indices[gi, :] - self._index_offset
             coords = self.connectivity_coords[ind, :]
             for i in range(3):
