@@ -104,7 +104,7 @@ def apply_callback(f):
     def newfunc(*args, **kwargs):
         rv = f(*args[1:], **kwargs)
         args[0]._callbacks.append((f.__name__,(args,kwargs)))
-        return rv
+        return args[0]
     return newfunc
 
 field_transforms = {}
@@ -515,6 +515,7 @@ class PlotWindow(object):
             mw = max([width[0][0], width[1][0]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
+        return self
 
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -537,6 +538,7 @@ class PlotWindow(object):
             new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
         self.set_window(self.bounds)
+        return self
 
     @invalidate_data
     def set_antialias(self,aa):
@@ -556,6 +558,7 @@ class PlotWindow(object):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
+        return self
 
     @invalidate_plot
     @invalidate_figure
@@ -569,11 +572,12 @@ class PlotWindow(object):
             including the margins but not the colorbar.
         """
         self.window_size = float(size)
+        return self
 
     @invalidate_data
     def refresh(self):
         # invalidate_data will take care of everything
-        pass
+        return self
 
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
@@ -619,12 +623,14 @@ class PWViewer(PlotWindow):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+        return self
 
     @invalidate_plot
     def set_transform(self, field, name):
         if name not in field_transforms:
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
+        return self
 
     @invalidate_plot
     def set_cmap(self, field, cmap_name):
@@ -647,6 +653,7 @@ class PWViewer(PlotWindow):
         for field in fields:
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
+        return self
 
     @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
@@ -693,6 +700,7 @@ class PWViewer(PlotWindow):
 
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
+        return self
 
     def setup_callbacks(self):
         for key in callback_registry:
@@ -754,6 +762,7 @@ class PWViewer(PlotWindow):
                 except KeyError:
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
+        return self
 
 class PWViewerMPL(PWViewer):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
@@ -1007,7 +1016,7 @@ class PWViewerMPL(PWViewer):
             self._font_color = font_dict.pop('color')
         self._font_properties = \
             FontProperties(**font_dict)
-
+        return self
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
@@ -1038,6 +1047,7 @@ class PWViewerMPL(PWViewer):
             if not is_colormap(cmap) and cmap is not None:
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
