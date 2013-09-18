@@ -126,6 +126,10 @@ class MoabHex8StaticOutput(StaticOutput):
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
 
+class PyneHex8Mesh(SemiStructuredMesh):
+    _connectivity_length = 8
+    _index_offset = 0
+
 class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
 
     def __init__(self, pf, data_style='moab_hex8_pyne'):
@@ -144,11 +148,11 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
         coords = self.pyne_mesh.mesh.getVtxCoords(ent).astype("float64")
         vind = self.pyne_mesh.structured_set.getAdjEntIndices(
             iBase.Type.region, iMesh.Topology.hexahedron,
-            iBase.Type.vertex)[1].indices.data
-        vind.shape = (vind.size/8.0, 8)
-        con = vind.astype("int64")
-        self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
-                                    coords, self)]
+            iBase.Type.vertex)[1].indices.data.astype("int64")
+        # Divide by float so it throws an error if it's not 8
+        vind.shape = (vind.shape[0] / 8.0, 8)
+        self.meshes = [PyneHex8Mesh(0, self.hierarchy_filename,
+                                    vind, coords, self)]
 
     def _detect_fields(self):
         self.field_list = self.pyne_mesh.mesh.getAllTags(
