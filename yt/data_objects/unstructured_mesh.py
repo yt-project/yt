@@ -17,7 +17,8 @@ import weakref
 import numpy as np
 
 from yt.funcs import mylog
-from yt.exceptions import YTParticleDepositionNotImplemented
+from yt.utilities.exceptions import \
+    YTParticleDepositionNotImplemented
 from yt.utilities.lib import \
     fill_fcoords, fill_fwidths
 
