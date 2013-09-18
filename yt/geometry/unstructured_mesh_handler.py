@@ -23,6 +23,7 @@ from yt.utilities.lib import smallest_fwidth
 
 class UnstructuredGeometryHandler(GeometryHandler):
     _global_mesh = False
+    _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 
     def __init__(self, pf, data_style):
         self.data_style = data_style
