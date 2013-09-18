@@ -903,10 +903,23 @@ class PWViewerMPL(PWViewer):
                                           cax)
 
             axes_unit_labels = ['', '']
+            comoving = False
+            hinv = False
             for i, un in enumerate((unit_x, unit_y)):
+                if un.endswith('cm') and un != 'cm':
+                    comoving = True
+                    un = un[:-2]
+                # no length units end in h so this is safe
+                if un.endswith('h'):
+                    hinv = True
+                    un = un[:-1]
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
+                    if hinv:
+                        un = un + '\,h^{-1}'
+                    if comoving:
+                        un = 'Comoving\/'+un
                     axes_unit_labels[i] = '\/\/('+un+')'
 
             if self.oblique:
