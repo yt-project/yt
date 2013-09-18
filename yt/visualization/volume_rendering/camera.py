@@ -2043,29 +2043,17 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     positions += inner_radius * dx * vs
     vs *= radius
     uv = np.ones(3, dtype='float64')
-    if data_source is not None:
-        grids = data_source._grids
-    else:
-        grids = pf.h.sphere(center, radius)._grids
+    if data_source is None:
+        data_source = pf.h.sphere(center, radius)
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
-    pb = get_pbar("Sampling ", len(grids))
-    for i,grid in enumerate(grids):
-        if data_source is not None:
-            data = [grid[field] * data_source._get_cut_mask(grid) * \
-                grid.child_mask.astype('float64')
-                for field in fields]
-        else:
-            data = [grid[field] * grid.child_mask.astype('float64')
-                for field in fields]
+    for i, (grid, mask) in enumerate(data_source.blocks):
+        data = [(grid[field] * mask).astype("float64") for field in fields]
         pg = PartitionedGrid(
             grid.id, data,
             grid.LeftEdge, grid.RightEdge,
             grid.ActiveDimensions.astype("int64"))
-        grid.clear_data()
         sampler(pg)
-        pb.update(i)
-    pb.finish()
     image = sampler.aimage
     dd = self.pf.h.all_data()
     field = dd._determine_fields([field])[0]
