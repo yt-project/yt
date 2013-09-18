@@ -139,10 +139,14 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
         super(PyneMeshHex8Hierarchy, self).__init__(pf, data_style)
 
     def _initialize_mesh(self):
-        con = self.pyne_mesh.mesh.adjTable.astype("int64")
-        from itaps import iBase
+        from itaps import iBase, iMesh
         ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
         coords = self.pyne_mesh.mesh.getVtxCoords(ent).astype("float64")
+        vind = self.pyne_mesh.structured_set.getAdjEntIndices(
+            iBase.Type.region, iMesh.Topology.hexahedron,
+            iBase.Type.vertex)[1].indices.data
+        vind.shape = (vind.size/8.0, 8)
+        con = vind.astype("int64")
         self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
                                     coords, self)]
 
