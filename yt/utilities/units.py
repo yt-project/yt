@@ -28,6 +28,7 @@ License:
 from sympy import Expr, Mul, Number, Pow, Rational, Symbol
 from sympy import nsimplify, posify, sympify
 from sympy.parsing.sympy_parser import parse_expr
+from collections import defaultdict
 
 # Define a sympy one object.
 sympy_one = sympify(1)
@@ -171,6 +172,7 @@ class UnitRegistry:
 
     def __init__(self, add_default_symbols=True):
         self.lut = {}
+        self.unit_objs = {}
 
         if add_default_symbols:
             self.lut.update(default_unit_symbol_lut)
@@ -217,6 +219,16 @@ class UnitRegistry:
 
 default_unit_registry = UnitRegistry()
 
+def cache_op(ufunc):
+    def _cfunc(self, other):
+        s = id(other)
+        if s in self.cached_ops:
+            return self.cached_ops[s]
+        rv = ufunc(self, other)
+        self.cached_ops[s] = rv
+        return rv
+    return _cfunc
+
 class Unit(Expr):
     """
     A symbolic unit, using sympy functionality. We only add "dimensions" so
@@ -230,7 +242,8 @@ class Unit(Expr):
     is_number = False
 
     # Extra attributes
-    __slots__ = ["expr", "is_atomic", "cgs_value", "dimensions", "registry"]
+    __slots__ = ["expr", "is_atomic", "cgs_value", "dimensions", "registry",
+                 "cached_ops"]
 
     def __new__(cls, unit_expr=sympify(1), cgs_value=None, dimensions=None,
                 registry=None, **assumptions):
@@ -252,11 +265,16 @@ class Unit(Expr):
 
         """
         # Simplest case. If user passes a Unit object, just use the expr.
-        if isinstance(unit_expr, Unit):
+        unit_key = None
+        if isinstance(unit_expr, str) and registry and \
+                unit_expr in registry.unit_objs:
+            return registry.unit_objs[unit_expr]
+        elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
         # If we have a string, have sympy parse it into an Expr.
         elif isinstance(unit_expr, str):
+            unit_key = unit_expr
             if not unit_expr:
                 # Bug catch...
                 # if unit_expr is an empty string, parse_expr fails hard...
@@ -316,7 +334,10 @@ class Unit(Expr):
         obj.cgs_value = cgs_value
         obj.dimensions = dimensions
         obj.registry = registry
+        obj.cached_ops = defaultdict(dict)
 
+        if unit_key:
+            registry.unit_objs[unit_key] = obj
         # Return `obj` so __init__ can handle it.
         return obj
 
@@ -353,6 +374,7 @@ class Unit(Expr):
     # Start unit operations
     #
 
+    @cache_op
     def __mul__(self, u):
         """ Multiply Unit with u (Unit object). """
         if not isinstance(u, Unit):
@@ -365,6 +387,7 @@ class Unit(Expr):
                     dimensions=(self.dimensions * u.dimensions),
                     registry=self.registry)
 
+    @cache_op
     def __div__(self, u):
         """ Divide Unit by u (Unit object). """
         if not isinstance(u, Unit):
@@ -377,6 +400,7 @@ class Unit(Expr):
                     dimensions=(self.dimensions / u.dimensions),
                     registry=self.registry)
 
+    @cache_op
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
@@ -389,6 +413,7 @@ class Unit(Expr):
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
                     dimensions=(self.dimensions**p), registry=self.registry)
 
+    @cache_op
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
@@ -399,6 +424,7 @@ class Unit(Expr):
         return \
           (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
+    @cache_op
     def __ne__(self, u):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
