@@ -835,7 +835,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
 
 class StreamHexahedralMesh(SemiStructuredMesh):
     _connectivity_length = 8
-    _index_offset = 1
+    _index_offset = 0
 
 class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
 
