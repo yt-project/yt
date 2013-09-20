@@ -22,7 +22,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest
-from yt.frontends.moab.api import MoabHex8StaticOutput
+from yt.frontends.moab.api import MoabHex8Dataset
 
 _fields = (("gas", "flux"),
           )

@@ -96,8 +96,8 @@ from yt.frontends.gdf.api import \
     GDFDataset, GDFFieldInfo, add_gdf_field
 
 from yt.frontends.moab.api import \
-    MoabHex8StaticOutput, MoabFieldInfo, add_moab_field, \
-    PyneMoabHex8StaticOutput
+    MoabHex8Dataset, MoabFieldInfo, add_moab_field, \
+    PyneMoabHex8Dataset
 
 from yt.frontends.athena.api import \
     AthenaDataset, AthenaFieldInfo, add_athena_field

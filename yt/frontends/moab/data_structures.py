@@ -23,7 +23,7 @@ from yt.data_objects.unstructured_mesh import \
 from yt.geometry.unstructured_mesh_handler import \
            UnstructuredGeometryHandler
 from yt.data_objects.static_output import \
-           StaticOutput
+           Dataset
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.definitions import \
@@ -71,7 +71,7 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class MoabHex8StaticOutput(StaticOutput):
+class MoabHex8Dataset(Dataset):
     _hierarchy_class = MoabHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
     _fieldinfo_known = KnownMoabFields
@@ -79,7 +79,7 @@ class MoabHex8StaticOutput(StaticOutput):
 
     def __init__(self, filename, data_style='moab_hex8',
                  storage_filename = None):
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
         self._handle = h5py.File(self.parameter_filename, "r")
@@ -172,7 +172,7 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class PyneMoabHex8StaticOutput(StaticOutput):
+class PyneMoabHex8Dataset(Dataset):
     _hierarchy_class = PyneMeshHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
     _fieldinfo_known = KnownMoabFields
@@ -182,7 +182,7 @@ class PyneMoabHex8StaticOutput(StaticOutput):
                  storage_filename = None):
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
-        StaticOutput.__init__(self, str(filename), data_style)
+        Dataset.__init__(self, str(filename), data_style)
         self.storage_filename = storage_filename
         self.filename = filename
 
