@@ -199,3 +199,32 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         return [ ("all", k) for k in self.fields[data_file.filename].keys()]
+
+class IOHandlerStreamHexahedral(BaseIOHandler):
+    _data_style = "stream_hexahedral"
+
+    def __init__(self, stream_handler):
+        self.fields = stream_handler.fields
+        BaseIOHandler.__init__(self)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        assert(len(chunks) == 1)
+        chunk = chunks[0]
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = np.empty(size, dtype="float64")
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ind = 0
+            ftype, fname = field
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ds = self.fields[g.mesh_id].get(field, None)
+                    if ds is None:
+                        ds = self.fields[g.mesh_id][fname]
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv

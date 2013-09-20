@@ -21,6 +21,7 @@ from .data_structures import \
       load_uniform_grid, \
       load_amr_grids, \
       load_particles, \
+      load_hexahedral_mesh, \
       refine_amr
 
 from .fields import \
