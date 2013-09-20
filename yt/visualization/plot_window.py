@@ -919,7 +919,7 @@ class PWViewerMPL(PWViewer):
                     if hinv:
                         un = un + '\,h^{-1}'
                     if comoving:
-                        un = 'Comoving\/'+un
+                        un = un + '\,(1+z)^{-1}'
                     axes_unit_labels[i] = '\/\/('+un+')'
 
             if self.oblique:
