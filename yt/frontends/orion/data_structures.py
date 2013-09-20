@@ -27,7 +27,7 @@ from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -428,7 +428,7 @@ class OrionLevel:
         self.grids = []
     
 
-class OrionStaticOutput(StaticOutput):
+class OrionDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Orion hierarchy.
@@ -455,7 +455,7 @@ class OrionStaticOutput(StaticOutput):
 
         self.fparameters = {}
 
-        StaticOutput.__init__(self, plotname.rstrip("/"),
+        Dataset.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
 
         # These should maybe not be hardcoded?

@@ -30,7 +30,7 @@ from nose.plugins import Plugin
 from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -253,7 +253,7 @@ def temp_cwd(cwd):
     os.chdir(oldcwd)
 
 def can_run_pf(pf_fn):
-    if isinstance(pf_fn, StaticOutput):
+    if isinstance(pf_fn, Dataset):
         return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
@@ -267,7 +267,7 @@ def can_run_pf(pf_fn):
 
 def data_dir_load(pf_fn):
     path = ytcfg.get("yt", "test_data_dir")
-    if isinstance(pf_fn, StaticOutput): return pf_fn
+    if isinstance(pf_fn, Dataset): return pf_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):

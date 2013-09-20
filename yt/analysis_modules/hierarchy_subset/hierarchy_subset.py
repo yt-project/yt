@@ -21,7 +21,7 @@ from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 
@@ -316,7 +316,7 @@ class ExtractedHierarchy(GridGeometryHandler):
         GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
-class ExtractedParameterFile(StaticOutput):
+class ExtractedParameterFile(Dataset):
     _hierarchy_class = ExtractedHierarchy
     data_style = "extracted"
     
@@ -334,7 +334,7 @@ class ExtractedParameterFile(StaticOutput):
         # This won't get called if 'name' is found already
         # and we'd like it to raise AttributeError if it's not anywhere
         if name in ['h', 'hierarchy']:
-            return StaticOutput._get_hierarchy(self)
+            return Dataset._get_hierarchy(self)
         return getattr(self.base_pf, name)
 
     def __getitem__(self, key):

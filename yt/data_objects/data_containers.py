@@ -91,7 +91,7 @@ class YTDataContainer(object):
     def __init__(self, pf, field_parameters):
         """ 
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
+        It associates a :class:`~yt.data_objects.api.Dataset` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """

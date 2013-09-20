@@ -59,7 +59,7 @@ def periodic_position(pos, pf):
     pos : array
         An array of floats.
 
-    pf : StaticOutput
+    pf : Dataset
         A simulation static output.
     
     Examples

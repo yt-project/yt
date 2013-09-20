@@ -29,7 +29,7 @@ _field_names = ('hash', 'bn', 'fp', 'tt', 'ctid', 'class_name', 'last_seen')
 class NoParameterShelf(Exception):
     pass
 
-class UnknownStaticOutputType(Exception):
+class UnknownDatasetType(Exception):
     def __init__(self, name):
         self.name = name
 
@@ -123,7 +123,7 @@ class ParameterFileStore(object):
         fn = os.path.join(fp, bn)
         class_name = pf_dict['class_name']
         if class_name not in output_type_registry:
-            raise UnknownStaticOutputType(class_name)
+            raise UnknownDatasetType(class_name)
         mylog.info("Checking %s", fn)
         if os.path.exists(fn):
             pf = output_type_registry[class_name](os.path.join(fp, bn))

@@ -28,7 +28,7 @@ class Streamlines(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    pf : `~yt.data_objects.StaticOutput`
+    pf : `~yt.data_objects.Dataset`
         This is the parameter file to streamline
     pos : array_like
         An array of initial starting positions of the streamlines.

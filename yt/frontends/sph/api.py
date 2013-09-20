@@ -15,9 +15,9 @@ API for yt.frontends.sph
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      OWLSStaticOutput, \
-      GadgetStaticOutput, \
-      TipsyStaticOutput
+      OWLSDataset, \
+      GadgetDataset, \
+      TipsyDataset
 
 from .io import \
       IOHandlerOWLS, \

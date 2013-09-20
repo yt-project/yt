@@ -27,7 +27,7 @@ from yt.geometry.oct_geometry_handler import \
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
@@ -179,7 +179,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                               cache = cache)
 
 
-class ARTStaticOutput(StaticOutput):
+class ARTDataset(Dataset):
     _hierarchy_class = ARTGeometryHandler
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
@@ -208,7 +208,7 @@ class ARTStaticOutput(StaticOutput):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):

@@ -19,7 +19,7 @@ from yt.utilities.answer_testing.framework import \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
-from yt.frontends.flash.api import FLASHStaticOutput
+from yt.frontends.flash.api import FLASHDataset
 
 _fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
 

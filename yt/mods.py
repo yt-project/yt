@@ -61,61 +61,61 @@ from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
 
 from yt.frontends.enzo.api import \
-    EnzoStaticOutput, EnzoStaticOutputInMemory, \
+    EnzoDataset, EnzoDatasetInMemory, \
     EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
 from yt.frontends.castro.api import \
-    CastroStaticOutput, CastroFieldInfo, add_castro_field
+    CastroDataset, CastroFieldInfo, add_castro_field
 
 from yt.frontends.nyx.api import \
-    NyxStaticOutput, NyxFieldInfo, add_nyx_field
+    NyxDataset, NyxFieldInfo, add_nyx_field
 
 from yt.frontends.orion.api import \
-    OrionStaticOutput, OrionFieldInfo, add_orion_field
+    OrionDataset, OrionFieldInfo, add_orion_field
 
 from yt.frontends.flash.api import \
-    FLASHStaticOutput, FLASHFieldInfo, add_flash_field
+    FLASHDataset, FLASHFieldInfo, add_flash_field
 
 from yt.frontends.tiger.api import \
-    TigerStaticOutput, TigerFieldInfo, add_tiger_field
+    TigerDataset, TigerFieldInfo, add_tiger_field
 
 from yt.frontends.artio.api import \
-    ARTIOStaticOutput, ARTIOFieldInfo, add_artio_field
+    ARTIODataset, ARTIOFieldInfo, add_artio_field
 
 #from yt.frontends.artio2.api import \
-#    Artio2StaticOutput
+#    Artio2Dataset
 
 from yt.frontends.ramses.api import \
-    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
+    RAMSESDataset, RAMSESFieldInfo, add_ramses_field
 
 from yt.frontends.chombo.api import \
-    ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
+    ChomboDataset, ChomboFieldInfo, add_chombo_field
 
 from yt.frontends.gdf.api import \
-    GDFStaticOutput, GDFFieldInfo, add_gdf_field
+    GDFDataset, GDFFieldInfo, add_gdf_field
 
 from yt.frontends.athena.api import \
-    AthenaStaticOutput, AthenaFieldInfo, add_athena_field
+    AthenaDataset, AthenaFieldInfo, add_athena_field
 
 from yt.frontends.art.api import \
-    ARTStaticOutput, ARTFieldInfo, add_art_field
+    ARTDataset, ARTFieldInfo, add_art_field
 
 from yt.frontends.pluto.api import \
-     PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
+     PlutoDataset, PlutoFieldInfo, add_pluto_field
 
 #from yt.frontends.maestro.api import \
-#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
+#    MaestroDataset, MaestroFieldInfo, add_maestro_field
 
 from yt.frontends.stream.api import \
-    StreamStaticOutput, StreamFieldInfo, add_stream_field, \
+    StreamDataset, StreamFieldInfo, add_stream_field, \
     StreamHandler, load_uniform_grid, load_amr_grids, \
     load_particles
 
 from yt.frontends.sph.api import \
-    OWLSStaticOutput, OWLSFieldInfo, add_owls_field, \
-    GadgetStaticOutput, GadgetFieldInfo, add_gadget_field, \
-    TipsyStaticOutput, TipsyFieldInfo, add_tipsy_field
+    OWLSDataset, OWLSFieldInfo, add_owls_field, \
+    GadgetDataset, GadgetFieldInfo, add_gadget_field, \
+    TipsyDataset, TipsyFieldInfo, add_tipsy_field
 
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods

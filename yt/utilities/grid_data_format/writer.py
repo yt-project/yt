@@ -27,7 +27,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
 
     Parameters
     ----------
-    pf : StaticOutput object
+    pf : Dataset object
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
@@ -51,7 +51,7 @@ def save_field(pf, field_name, field_parameters=None):
 
     Parameters
     ----------
-    pf : StaticOutput object
+    pf : Dataset object
         The yt parameter file that the field is associated with.
     field_name : string
         The name of the field to save.

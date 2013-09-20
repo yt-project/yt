@@ -27,7 +27,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -247,7 +247,7 @@ class StreamHierarchy(GridGeometryHandler):
         self._detect_fields()
         self._setup_unknown_fields()
                 
-class StreamStaticOutput(StaticOutput):
+class StreamDataset(Dataset):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields
@@ -263,7 +263,7 @@ class StreamStaticOutput(StaticOutput):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_pfs
         _cached_pfs[name] = self
-        StaticOutput.__init__(self, name, self._data_style)
+        Dataset.__init__(self, name, self._data_style)
 
         self.units = {}
         self.time_units = {}
@@ -476,7 +476,7 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
@@ -595,7 +595,7 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
@@ -611,7 +611,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
 
     Parameters
     ----------
-    base_pf : StaticOutput
+    base_pf : Dataset
         This is any static output.  It can also be a stream static output, for
         instance as returned by load_uniform_data.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
@@ -719,7 +719,7 @@ class StreamParticleGeometryHandler(ParticleGeometryHandler):
 class StreamParticleFile(ParticleFile):
     pass
 
-class StreamParticlesStaticOutput(StreamStaticOutput):
+class StreamParticlesDataset(StreamDataset):
     _hierarchy_class = StreamParticleGeometryHandler
     _file_class = StreamParticleFile
     _fieldinfo_fallback = StreamFieldInfo
@@ -817,7 +817,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesStaticOutput(handler)
+    spf = StreamParticlesDataset(handler)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
     spf.units["cm"] = sim_unit_to_cm

@@ -21,7 +21,7 @@ from yt.testing import \
 from yt.utilities.grid_data_format.writer import \
     write_to_gdf
 from yt.frontends.gdf.data_structures import \
-    GDFStaticOutput
+    GDFDataset
 from yt.mods import \
     load
 
@@ -45,7 +45,7 @@ def test_write_gdf():
         write_to_gdf(test_pf, tmpfile, data_author=TEST_AUTHOR,
                      data_comment=TEST_COMMENT)
         del test_pf
-        assert isinstance(load(tmpfile), GDFStaticOutput)
+        assert isinstance(load(tmpfile), GDFDataset)
 
         h5f = h5.File(tmpfile, 'r')
         gdf = h5f['gridded_data_format'].attrs

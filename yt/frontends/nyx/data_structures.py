@@ -26,7 +26,7 @@ import numpy as np
 from yt.funcs import *
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.lib import get_box_grids_level
@@ -465,7 +465,7 @@ class NyxLevel:
         self.ngrids = ngrids
         self.grids = []
 
-class NyxStaticOutput(StaticOutput):
+class NyxDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses *filename*,
     without looking at the Nyx hierarchy.
@@ -531,7 +531,7 @@ class NyxStaticOutput(StaticOutput):
         # @todo: first line
         # runs ``self._parse_parameter_file()``, ``self._set_units()``, and
         # ``self.print_key_parameters()``
-        StaticOutput.__init__(self, plotname.rstrip("/"), data_style=data_style)
+        Dataset.__init__(self, plotname.rstrip("/"), data_style=data_style)
 
         # @todo: check all of these and hopefully factor out of the constructor.
         # These should maybe not be hardcoded?

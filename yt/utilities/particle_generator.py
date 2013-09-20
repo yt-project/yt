@@ -192,7 +192,7 @@ class FromListParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         num_particles : int
             The number of particles in the dict.
@@ -240,7 +240,7 @@ class LatticeParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         particles_dims : int, array-like 
             The number of particles along each dimension
@@ -304,7 +304,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         data_source : `yt.data_objects.api.AMRData`
             The data source containing the density field.

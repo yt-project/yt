@@ -17,7 +17,7 @@ from .data_structures import \
       ARTDomainFile,\
       ARTDomainSubset,\
       ARTGeometryHandler,\
-      ARTStaticOutput
+      ARTDataset
 
 from .fields import \
       ARTFieldInfo, \

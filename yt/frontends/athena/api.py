@@ -15,7 +15,7 @@ API for yt.frontends.athena
 from .data_structures import \
       AthenaGrid, \
       AthenaHierarchy, \
-      AthenaStaticOutput
+      AthenaDataset
 
 from .fields import \
       AthenaFieldInfo, \

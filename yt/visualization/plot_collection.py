@@ -72,7 +72,7 @@ class PlotCollection(object):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         The parameter file from which all the plots will be created.
     center : array_like, optional
         The 'center' supplied to plots like sphere plots, slices, and so

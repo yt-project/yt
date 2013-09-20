@@ -15,7 +15,7 @@ API for yt.frontends.artio
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-    ARTIOStaticOutput
+    ARTIODataset
 
 from .fields import \
     ARTIOFieldInfo, \

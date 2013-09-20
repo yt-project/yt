@@ -30,7 +30,7 @@ from yt.data_objects.field_info_container import \
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.utilities.minimal_representation import \
-    MinimalStaticOutput
+    MinimalDataset
 
 from yt.geometry.coordinate_handler import \
     CartesianCoordinateHandler, \
@@ -39,12 +39,12 @@ from yt.geometry.coordinate_handler import \
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
-# to here, and then have it instantiate EnzoStaticOutputs as appropriate.
+# to here, and then have it instantiate EnzoDatasets as appropriate.
 
 _cached_pfs = weakref.WeakValueDictionary()
 _pf_store = ParameterFileStore()
 
-class StaticOutput(object):
+class Dataset(object):
 
     default_fluid_type = "gas"
     fluid_types = ("gas","deposit")
@@ -148,7 +148,7 @@ class StaticOutput(object):
 
     @property
     def _mrep(self):
-        return MinimalStaticOutput(self)
+        return MinimalDataset(self)
 
     @property
     def _skip_cache(self):
@@ -210,7 +210,7 @@ class StaticOutput(object):
     def hierarchy(self):
         if self._instantiated_hierarchy is None:
             if self._hierarchy_class == None:
-                raise RuntimeError("You should not instantiate StaticOutput.")
+                raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_hierarchy = self._hierarchy_class(
                 self, data_style=self.data_style)
         return self._instantiated_hierarchy

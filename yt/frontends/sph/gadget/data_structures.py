@@ -23,7 +23,7 @@ from yt.geometry.oct_geometry_handler import \
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc

@@ -34,7 +34,7 @@ from .centering_methods import \
 from yt.data_objects.field_info_container import \
     add_field
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 
 from yt.utilities.exceptions import \
     YTException
@@ -270,7 +270,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             return None
 
         # Create dataset object.
-        if isinstance(self.dataset, StaticOutput):
+        if isinstance(self.dataset, Dataset):
             self.pf = self.dataset
         else:
             self.pf = load(self.dataset)

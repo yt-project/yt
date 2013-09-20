@@ -19,7 +19,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
            GridGeometryHandler
 from yt.data_objects.static_output import \
-           StaticOutput
+           Dataset
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -121,14 +121,14 @@ class TigerHierarchy(GridGeometryHandler):
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
-class TigerStaticOutput(StaticOutput):
+class TigerDataset(Dataset):
     _hierarchy_class = TigerHierarchy
     _fieldinfo_fallback = TigerFieldInfo
     _fieldinfo_known = KnownTigerFields
 
     def __init__(self, rhobname, root_size, max_grid_size=128,
                  data_style='tiger', storage_filename = None):
-        StaticOutput.__init__(self, rhobname, data_style)
+        Dataset.__init__(self, rhobname, data_style)
         self.storage_filename = storage_filename
         self.basename = rhobname[:-4]
         if not os.path.exists(self.basename + "rhob"):

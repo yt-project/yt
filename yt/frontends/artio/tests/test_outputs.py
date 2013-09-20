@@ -20,7 +20,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest
-from yt.frontends.artio.api import ARTIOStaticOutput
+from yt.frontends.artio.api import ARTIODataset
 
 _fields = ("Temperature", "Density", "VelocityMagnitude",
            ("deposit", "all_density"), ("deposit", "all_count")) 

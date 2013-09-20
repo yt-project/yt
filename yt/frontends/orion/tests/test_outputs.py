@@ -19,7 +19,7 @@ from yt.utilities.answer_testing.framework import \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
-from yt.frontends.orion.api import OrionStaticOutput
+from yt.frontends.orion.api import OrionDataset
 
 _fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
 

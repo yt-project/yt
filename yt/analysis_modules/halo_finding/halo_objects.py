@@ -2103,7 +2103,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         The parameter file on which halo finding will be conducted.
     threshold : float
         The density threshold used when building halos. Default = 160.0.
@@ -2427,7 +2427,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         The parameter file on which halo finding will be conducted.
     subvolume : `yt.data_objects.api.AMRData`, optional
         A region over which HOP will be run, which can be used to run HOP
@@ -2529,7 +2529,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         The parameter file on which halo finding will be conducted.
     subvolume : `yt.data_objects.api.AMRData`, optional
         A region over which HOP will be run, which can be used to run HOP

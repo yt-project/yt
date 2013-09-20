@@ -113,7 +113,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    ts   : TimeSeriesData, StaticOutput
+    ts   : TimeSeriesData, Dataset
         This is the data source containing the DM particles. Because 
         halo IDs may change from one snapshot to the next, the only
         way to keep a consistent halo ID across time is to feed 

@@ -27,7 +27,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -202,7 +202,7 @@ class FLASHHierarchy(GridGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class FLASHStaticOutput(StaticOutput):
+class FLASHDataset(Dataset):
     _hierarchy_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo
     _fieldinfo_known = KnownFLASHFields
@@ -228,7 +228,7 @@ class FLASHStaticOutput(StaticOutput):
             except :
                 raise IOError(self.particle_filename)
                                                                 
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
         # These should be explicitly obtained from the file, but for now that

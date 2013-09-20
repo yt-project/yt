@@ -27,7 +27,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.physical_constants import \
@@ -78,7 +78,7 @@ class GadgetBinaryFile(ParticleFile):
             self._position_offset, self._file_size)
 
 
-class ParticleStaticOutput(StaticOutput):
+class ParticleDataset(Dataset):
     _unit_base = None
     over_refine_factor = 1
 
@@ -114,7 +114,7 @@ class ParticleStaticOutput(StaticOutput):
                 ud[unit] = ur[unit] / base
 
 
-class GadgetStaticOutput(ParticleStaticOutput):
+class GadgetDataset(ParticleDataset):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = GadgetBinaryFile
     _fieldinfo_fallback = GadgetFieldInfo
@@ -151,7 +151,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
             # integration the redshift will be zero.
             unit_base['cmcm'] = unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
-        super(GadgetStaticOutput, self).__init__(filename, data_style)
+        super(GadgetDataset, self).__init__(filename, data_style)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
@@ -224,7 +224,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         f.close()
 
     def _set_units(self):
-        super(GadgetStaticOutput, self)._set_units()
+        super(GadgetDataset, self)._set_units()
         length_unit = self.units['cm']
         unit_base = self._unit_base or {}
         velocity_unit = unit_base.get("velocity", 1e5)
@@ -250,7 +250,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         return False
 
 
-class OWLSStaticOutput(GadgetStaticOutput):
+class OWLSDataset(GadgetDataset):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = ParticleFile
     _fieldinfo_fallback = OWLSFieldInfo  # For now we have separate from Gadget
@@ -263,7 +263,7 @@ class OWLSStaticOutput(GadgetStaticOutput):
                  over_refine_factor=1):
         self.storage_filename = None
         filename = os.path.abspath(filename)
-        super(OWLSStaticOutput, self).__init__(
+        super(OWLSDataset, self).__init__(
             filename, data_style, unit_base=None, n_ref=n_ref,
             over_refine_factor=over_refine_factor)
 
@@ -336,7 +336,7 @@ class TipsyFile(ParticleFile):
         io._create_dtypes(self)
 
 
-class TipsyStaticOutput(ParticleStaticOutput):
+class TipsyDataset(ParticleDataset):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = TipsyFile
     _fieldinfo_fallback = TipsyFieldInfo
@@ -381,7 +381,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
         self._unit_base = unit_base or {}
         self._cosmology_parameters = cosmology_parameters
         self._param_file = parameter_file
-        super(TipsyStaticOutput, self).__init__(filename, data_style)
+        super(TipsyDataset, self).__init__(filename, data_style)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -464,7 +464,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
         f.close()
 
     def _set_units(self):
-        super(TipsyStaticOutput, self)._set_units()
+        super(TipsyDataset, self)._set_units()
         if self.cosmological_simulation:
             DW = (self.domain_right_edge - self.domain_left_edge).max()
             cosmo = Cosmology(self.hubble_constant * 100.0,

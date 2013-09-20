@@ -19,7 +19,7 @@ from yt.utilities.answer_testing.framework import \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
-from yt.frontends.chombo.api import ChomboStaticOutput
+from yt.frontends.chombo.api import ChomboDataset
 
 _fields = ("Density", "VelocityMagnitude", "DivV", "X-magnfield")
 

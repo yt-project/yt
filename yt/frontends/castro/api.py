@@ -16,7 +16,7 @@ API for yt.frontends.castro
 from .data_structures import \
       CastroGrid, \
       CastroHierarchy, \
-      CastroStaticOutput
+      CastroDataset
 
 from .fields import \
       CastroFieldInfo, \

@@ -24,7 +24,7 @@ from yt.geometry.oct_geometry_handler import \
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
@@ -348,7 +348,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
-class RAMSESStaticOutput(StaticOutput):
+class RAMSESDataset(Dataset):
     _hierarchy_class = RAMSESGeometryHandler
     _fieldinfo_fallback = RAMSESFieldInfo
     _fieldinfo_known = KnownRAMSESFields
@@ -363,7 +363,7 @@ class RAMSESStaticOutput(StaticOutput):
             fields = ["Density", "x-velocity", "y-velocity",
 	                  "z-velocity", "Pressure", "Metallicity"]
         self._fields_in_file = fields
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
     def __repr__(self):

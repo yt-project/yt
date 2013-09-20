@@ -16,7 +16,7 @@ API for yt.frontends.tiger
 from .data_structures import \
       TigerGrid, \
       TigerHierarchy, \
-      TigerStaticOutput
+      TigerDataset
 
 from .fields import \
       TigerFieldInfo, \

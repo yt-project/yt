@@ -16,7 +16,7 @@ API for yt.frontends.orion
 from .data_structures import \
       OrionGrid, \
       OrionHierarchy, \
-      OrionStaticOutput
+      OrionDataset
 
 from .fields import \
       OrionFieldInfo, \

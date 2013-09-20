@@ -22,7 +22,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest
-from yt.frontends.sph.api import OWLSStaticOutput
+from yt.frontends.sph.api import OWLSDataset
 
 _fields = (("deposit", "all_density"), ("deposit", "all_count"),
            ("deposit", "PartType0_density"),

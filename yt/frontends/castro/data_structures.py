@@ -27,7 +27,7 @@ from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib import get_box_grids_level
@@ -471,7 +471,7 @@ class CastroLevel:
         self.ngrids = ngrids
         self.grids = []
 
-class CastroStaticOutput(StaticOutput):
+class CastroDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses *filename*,
     without looking at the Castro hierarchy.
@@ -502,7 +502,7 @@ class CastroStaticOutput(StaticOutput):
         self.fparameter_filename = fparamFilename
         self.__ipfn = paramFilename
         self.fparameters = {}
-        super(CastroStaticOutput, self).__init__(plotname.rstrip("/"),
+        super(CastroDataset, self).__init__(plotname.rstrip("/"),
                                                  data_style='castro_native')
 
 

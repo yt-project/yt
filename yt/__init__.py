@@ -18,7 +18,7 @@ frontends
 This is where interfaces to codes are created.  Within each subdirectory of
 yt/frontends/ there must exist the following files, even if empty:
 
-* data_structures.py, where subclasses of AMRGridPatch, StaticOutput and
+* data_structures.py, where subclasses of AMRGridPatch, Dataset and
   AMRHierarchy are defined.
 * io.py, where a subclass of IOHandler is defined.
 * misc.py, where any miscellaneous functions or classes are defined.

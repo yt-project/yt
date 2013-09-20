@@ -32,7 +32,7 @@ from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.data_objects.data_containers import \
@@ -409,7 +409,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         return fields_to_return, fields_to_generate
 
 
-class ARTIOStaticOutput(StaticOutput):
+class ARTIODataset(Dataset):
     _handle = None
     _hierarchy_class = ARTIOGeometryHandler
     _fieldinfo_fallback = ARTIOFieldInfo
@@ -426,7 +426,7 @@ class ARTIOStaticOutput(StaticOutput):
         self._handle = artio_fileset(self._fileset_prefix)
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
     def _set_units(self):

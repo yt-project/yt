@@ -32,7 +32,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
            GridGeometryHandler
 from yt.data_objects.static_output import \
-           StaticOutput
+           Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 
@@ -394,7 +394,7 @@ class MaestroLevel:
         self.grids = []
     
 
-class MaestroStaticOutput(StaticOutput):
+class MaestroDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Maestro hierarchy.
@@ -419,7 +419,7 @@ class MaestroStaticOutput(StaticOutput):
         self.paranoid_read = paranoia
         self.__ipfn = paramFilename
 
-        StaticOutput.__init__(self, plotname.rstrip("/"),
+        Dataset.__init__(self, plotname.rstrip("/"),
                               data_style='maestro')
 
         # this is the unit of time; NOT the current time

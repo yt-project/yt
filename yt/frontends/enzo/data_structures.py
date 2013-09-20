@@ -33,7 +33,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.definitions import \
@@ -694,7 +694,7 @@ class EnzoHierarchy2D(EnzoHierarchy):
         if nap is not None:
             raise NotImplementedError
 
-class EnzoStaticOutput(StaticOutput):
+class EnzoDataset(Dataset):
     """
     Enzo-specific output, set at a fixed time.
     """
@@ -725,7 +725,7 @@ class EnzoStaticOutput(StaticOutput):
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, filename, data_style, file_style=file_style)
+        Dataset.__init__(self, filename, data_style, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
 
@@ -993,7 +993,7 @@ class EnzoStaticOutput(StaticOutput):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
 
-class EnzoStaticOutputInMemory(EnzoStaticOutput):
+class EnzoDatasetInMemory(EnzoDataset):
     _hierarchy_class = EnzoHierarchyInMemory
     _data_style = 'enzo_inline'
 
@@ -1008,7 +1008,7 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
 
-        StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
+        Dataset.__init__(self, "InMemoryParameterFile", self._data_style)
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()

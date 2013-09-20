@@ -38,7 +38,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
      GridGeometryHandler
 from yt.data_objects.static_output import \
-     StaticOutput
+     Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -171,7 +171,7 @@ class PlutoHierarchy(GridGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class PlutoStaticOutput(StaticOutput):
+class PlutoDataset(Dataset):
     _hierarchy_class = PlutoHierarchy
     _fieldinfo_fallback = PlutoFieldInfo
     _fieldinfo_known = KnownPlutoFields
@@ -182,7 +182,7 @@ class PlutoStaticOutput(StaticOutput):
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        StaticOutput.__init__(self,filename,data_style)
+        Dataset.__init__(self,filename,data_style)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 

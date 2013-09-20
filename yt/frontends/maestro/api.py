@@ -16,7 +16,7 @@ API for yt.frontends.maestro
 from .data_structures import \
       MaestroGrid, \
       MaestroHierarchy, \
-      MaestroStaticOutput
+      MaestroDataset
 
 from .fields import \
       MaestroFieldInfo, \
