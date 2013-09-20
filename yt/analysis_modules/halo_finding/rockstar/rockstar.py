@@ -113,11 +113,11 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    ts   : TimeSeriesData, Dataset
+    ts   : DatasetSeries, Dataset
         This is the data source containing the DM particles. Because 
         halo IDs may change from one snapshot to the next, the only
         way to keep a consistent halo ID across time is to feed 
-        Rockstar a set of snapshots, ie, via TimeSeriesData.
+        Rockstar a set of snapshots, ie, via DatasetSeries.
     num_readers: int
         The number of reader can be increased from the default
         of 1 in the event that a single snapshot is split among
@@ -177,7 +177,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     from yt.mods import *
     import sys
 
-    ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
+    ts = DatasetSeries.from_filenames('/u/cmoody3/data/a*')
     pm = 7.81769027e+11
     rh = RockstarHaloFinder(ts)
     rh.run()
@@ -201,8 +201,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         # Note that Rockstar does not support subvolumes.
         # We assume that all of the snapshots in the time series
         # use the same domain info as the first snapshots.
-        if not isinstance(ts, TimeSeriesData):
-            ts = TimeSeriesData([ts])
+        if not isinstance(ts, DatasetSeries):
+            ts = DatasetSeries([ts])
         self.ts = ts
         self.dm_type = dm_type
         self.outbase = outbase

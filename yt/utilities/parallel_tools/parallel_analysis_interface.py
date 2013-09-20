@@ -355,7 +355,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     Calls to this function can be nested.
 
     This should not be used to iterate over parameter files --
-    :class:`~yt.data_objects.time_series.TimeSeriesData` provides a much nicer
+    :class:`~yt.data_objects.time_series.DatasetSeries` provides a much nicer
     interface for that.
 
     Parameters

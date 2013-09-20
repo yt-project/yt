@@ -53,7 +53,7 @@ from yt.utilities.exceptions import \
      YTUnitNotRecognized, YTInvalidWidthError, YTCannotParseUnitDisplayName, \
      YTNotInsideNotebook
 from yt.data_objects.time_series import \
-    TimeSeriesData
+    DatasetSeries
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -318,9 +318,9 @@ class PlotWindow(object):
         self._initfinished = True
 
     def _initialize_dataset(self, ts):
-        if not isinstance(ts, TimeSeriesData):
+        if not isinstance(ts, DatasetSeries):
             if not iterable(ts): ts = [ts]
-            ts = TimeSeriesData(ts)
+            ts = DatasetSeries(ts)
         return ts
 
     def __iter__(self):

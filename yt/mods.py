@@ -53,7 +53,7 @@ from yt.data_objects.api import \
     derived_field, add_field, add_grad, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
-    TimeSeriesData, AnalysisTask, analysis_task, \
+    DatasetSeries, AnalysisTask, analysis_task, \
     ParticleTrajectoryCollection, ImageArray, \
     particle_filter
 

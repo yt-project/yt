@@ -63,8 +63,8 @@ def load(*args ,**kwargs):
             valid_file.append(False)
     if not any(valid_file):
         try:
-            from yt.data_objects.time_series import TimeSeriesData
-            ts = TimeSeriesData.from_filenames(*args, **kwargs)
+            from yt.data_objects.time_series import DatasetSeries
+            ts = DatasetSeries.from_filenames(*args, **kwargs)
             return ts
         except YTOutputNotIdentified:
             pass

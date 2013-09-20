@@ -741,7 +741,7 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
     --------
 
     >>> # generates mass history plots for the 20 most massive halos at t_fin.
-    >>> ts = TimeSeriesData.from_filenames("DD????/DD????")
+    >>> ts = DatasetSeries.from_filenames("DD????/DD????")
     >>> # long step--must run FOF on each DD, but saves outputs for later use
     >>> for pf in ts:   
     ...     halo_list = FOFHaloFinder(pf)
