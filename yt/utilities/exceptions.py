@@ -288,3 +288,13 @@ class YTIllDefinedBounds(YTException):
         v += "Typically this happens when a log binning is specified "
         v += "and zero or negative values are given for the bounds."
         return v
+
+class YTObjectNotImplemented(YTException):
+    def __init__(self, pf, obj_name):
+        self.pf = pf
+        self.obj_name = obj_name
+
+    def __str__(self):
+        v  = r"The object type '%s' is not implemented for the parameter file "
+        v += r"'%s'."
+        return v % (self.obj_name, self.pf)

@@ -141,6 +141,13 @@ def configuration(parent_package='',top_path=None):
                           "yt/utilities/lib/FixedInterpolator.h",
                           "yt/utilities/lib/kdtree.h"],
           )
+    config.add_extension("mesh_utilities",
+              ["yt/utilities/lib/mesh_utilities.pyx"],
+               include_dirs=["yt/utilities/lib/"],
+               libraries=["m"], 
+               depends = ["yt/utilities/lib/fp_utils.pxd",
+                          ],
+          )
     config.add_extension("grid_traversal", 
                ["yt/utilities/lib/grid_traversal.pyx",
                 "yt/utilities/lib/FixedInterpolator.c",

@@ -38,8 +38,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.exceptions import YTFieldNotFound
 
+def _unsupported_object(pf, obj_name):
+    def _raise_unsupp(*args, **kwargs):
+        raise YTObjectNotImplemented(pf, obj_name)
+    return _raise_unsupp
+
 class GeometryHandler(ParallelAnalysisInterface):
     _global_mesh = True
+    _unsupported_objects = ()
 
     def __init__(self, pf, data_style):
         ParallelAnalysisInterface.__init__(self)
@@ -107,6 +113,10 @@ class GeometryHandler(ParallelAnalysisInterface):
         self.objects = []
         self.plots = []
         for name, cls in sorted(data_object_registry.items()):
+            if name in self._unsupported_objects:
+                setattr(self, name,
+                    _unsupported_object(self.parameter_file, name))
+                continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cname, cls, dd)

@@ -18,7 +18,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
-from fp_utils cimport fclip, iclip
+from fp_utils cimport fclip, iclip, fmax, fmin
 from selection_routines cimport SelectorObject
 from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
@@ -321,6 +321,70 @@ cdef class SelectorObject:
             elif rel < -self.domain_width[d]/2.0 :
                 rel += self.domain_width[d]
         return rel
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mesh_mask(self, mesh):
+        cdef int dim[3]
+        cdef np.float64_t pos[3]
+        cdef np.ndarray[np.int64_t, ndim=2] indices
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef int i, j, k, selected
+        cdef int npoints, nv = mesh._connectivity_length
+        cdef int total = 0
+        cdef int offset = mesh._index_offset
+        coords = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
+        npoints = indices.shape[0]
+        mask = np.zeros(npoints, dtype='uint8')
+        for i in range(npoints):
+            selected = 0
+            for j in range(nv):
+                for k in range(3):
+                    pos[k] = coords[indices[i, j] - offset, k]
+                selected = self.select_point(pos)
+                if selected == 1: break
+            total += selected
+            mask[i] = selected
+        if total == 0: return None
+        return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_mesh_cell_mask(self, mesh):
+        cdef int dim[3]
+        cdef np.float64_t pos, le[3], re[3]
+        cdef np.ndarray[np.int64_t, ndim=2] indices
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef int i, j, k, selected
+        cdef int npoints, nv = mesh._connectivity_length
+        cdef int total = 0
+        cdef int offset = mesh._index_offset
+        if nv != 8:
+            raise RuntimeError
+        coords = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
+        npoints = indices.shape[0]
+        mask = np.zeros(npoints, dtype='uint8')
+        for i in range(npoints):
+            selected = 0
+            for k in range(3):
+                le[k] = 1e60
+                re[k] = -1e60
+            for j in range(nv):
+                for k in range(3):
+                    pos = coords[indices[i, j] - offset, k]
+                    le[k] = fmin(pos, le[k])
+                    re[k] = fmax(pos, re[k])
+            selected = self.select_bbox(le, re)
+            total += selected
+            mask[i] = selected
+        if total == 0: return None
+        return mask.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1057,6 +1121,59 @@ cdef class RaySelector(SelectorObject):
             print ni, ia.hits
         return dtr, tr
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def get_dt_mesh(self, mesh, nz, int offset):
+        cdef np.ndarray[np.float64_t, ndim=3] t, dt
+        cdef np.ndarray[np.float64_t, ndim=1] tr, dtr
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef int i, j, k, ni
+        cdef np.float64_t LE[3], RE[3], pos
+        cdef IntegrationAccumulator ia
+        cdef np.ndarray[np.float64_t, ndim=2] coords
+        cdef np.ndarray[np.int64_t, ndim=2] indices
+        indices = mesh.connectivity_indices
+        coords = mesh.connectivity_coords
+        cdef int nc = indices.shape[0]
+        cdef int nv = indices.shape[1]
+        if nv != 8:
+            raise NotImplementedError
+        cdef VolumeContainer vc
+        cdef int selected
+        child_mask = np.ones((1,1,1), dtype="uint8")
+        t = np.zeros((1,1,1), dtype="float64")
+        dt = np.zeros((1,1,1), dtype="float64") - 1
+        tr = np.zeros(nz, dtype="float64")
+        dtr = np.zeros(nz, dtype="float64")
+        ia.t = <np.float64_t *> t.data
+        ia.dt = <np.float64_t *> dt.data
+        ia.child_mask = <np.uint8_t *> child_mask.data
+        ia.hits = 0
+        ni = 0
+        for i in range(nc):
+            for j in range(3):
+                LE[j] = 1e60
+                RE[j] = -1e60
+            for j in range(nv):
+                for k in range(3):
+                    pos = coords[indices[i, j] - offset, k]
+                    LE[k] = fmin(pos, LE[k])
+                    RE[k] = fmax(pos, RE[k])
+            for j in range(3):
+                vc.left_edge[j] = LE[j]
+                vc.right_edge[j] = RE[j]
+                vc.dds[j] = RE[j] - LE[j]
+                vc.idds[j] = 1.0/vc.dds[j]
+                vc.dims[j] = 1
+            t[0,0,0] = dt[0,0,0] = -1
+            walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+            if dt[0,0,0] >= 0:
+                tr[ni] = t[0,0,0]
+                dtr[ni] = dt[0,0,0]
+                ni += 1
+        return dtr, tr
+
     cdef int select_point(self, np.float64_t pos[3]) nogil:
         # two 0-volume constructs don't intersect
         return 0
@@ -1070,37 +1187,25 @@ cdef class RaySelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        cdef int i, ax
-        cdef int i1, i2
-        cdef np.float64_t vs[3], t, v[3]
-
-        # if either point is fully enclosed, we select the bounding box
-        if left_edge[0] <= self.p1[0] <= right_edge[0] and \
-           left_edge[1] <= self.p1[1] <= right_edge[1] and \
-           left_edge[2] <= self.p1[2] <= right_edge[2]:
+        cdef int i
+        cdef np.uint8_t cm = 1
+        cdef VolumeContainer vc
+        cdef IntegrationAccumulator ia
+        cdef np.float64_t dt, t
+        for i in range(3):
+            vc.left_edge[i] = left_edge[i]
+            vc.right_edge[i] = right_edge[i]
+            vc.dds[i] = right_edge[i] - left_edge[i]
+            vc.idds[i] = 1.0/vc.dds[i]
+            vc.dims[i] = 1
+        t = dt = 0.0
+        ia.t = &t
+        ia.dt = &dt
+        ia.child_mask = &cm
+        ia.hits = 0
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        if ia.hits > 0:
             return 1
-        if left_edge[0] <= self.p2[0] <= right_edge[0] and \
-           left_edge[1] <= self.p2[1] <= right_edge[1] and \
-           left_edge[2] <= self.p2[2] <= right_edge[2]:
-            return 1
-
-        for ax in range(3):
-            i1 = (ax+1) % 3
-            i2 = (ax+2) % 3
-            t = (left_edge[ax] - self.p1[ax])/self.vec[ax]
-            if 0.0 <= t <= 1.0 :
-                for i in range(3):
-                    vs[i] = t * self.vec[i] + self.p1[i]
-                if left_edge[i1] <= vs[i1] <= right_edge[i1] and \
-                   left_edge[i2] <= vs[i2] <= right_edge[i2] :
-                    return 1
-            t = (right_edge[ax] - self.p1[ax])/self.vec[ax]
-            if 0.0 <= t <= 1.0 :
-                for i in range(3):
-                    vs[i] = t * self.vec[i] + self.p1[i]
-                if left_edge[i1] <= vs[i1] <= right_edge[i1] and \
-                   left_edge[i2] <= vs[i2] <= right_edge[i2] :
-                    return 1
         return 0
 
     def _hash_vals(self):

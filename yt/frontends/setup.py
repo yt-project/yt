@@ -15,6 +15,8 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("flash")
     config.add_subpackage("gdf")
     config.add_subpackage("maestro")
+    config.add_subpackage("moab")
+    config.add_subpackage("moab/tests")
     config.add_subpackage("nyx")
     config.add_subpackage("orion")
     config.add_subpackage("artio")
