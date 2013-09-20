@@ -16,9 +16,9 @@ Hydro tests
 import matplotlib
 import pylab
 from yt.mods import *
-from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
+from output_tests import SingleOutputTest, DatasetTest, create_test
 
-class TestProjection(YTStaticOutputTest):
+class TestProjection(DatasetTest):
 
     field = None
     axis = None
@@ -56,7 +56,7 @@ class TestProjection(YTStaticOutputTest):
         pylab.savefig(fn)
         return [fn]
 
-class TestOffAxisProjection(YTStaticOutputTest):
+class TestOffAxisProjection(DatasetTest):
 
     field = None
     weight_field = None
@@ -84,7 +84,7 @@ class TestOffAxisProjection(YTStaticOutputTest):
         write_image(self.result, fn)
         return [fn]
 
-class TestRay(YTStaticOutputTest):
+class TestRay(DatasetTest):
 
     field = None
 
@@ -112,7 +112,7 @@ class TestRay(YTStaticOutputTest):
     def plot(self):
         return
 
-class TestSlice(YTStaticOutputTest):
+class TestSlice(DatasetTest):
 
     field = None
     axis = None
@@ -145,7 +145,7 @@ for axis in range(3):
         create_test(TestProjection, "projection_test_%s_%s" % (axis, field),
                     field = field, axis = axis)
 
-class TestGasDistribution(YTStaticOutputTest):
+class TestGasDistribution(DatasetTest):
     field_x = None
     field_y = None
     weight = "CellMassMsun"

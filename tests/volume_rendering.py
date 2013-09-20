@@ -2,7 +2,7 @@ from yt.mods import *
 import numpy as na
 
 from yt.utilities.answer_testing.output_tests import \
-    YTStaticOutputTest, RegressionTestException
+    DatasetTest, RegressionTestException
 from yt.funcs import ensure_list
 
 
@@ -10,7 +10,7 @@ class VolumeRenderingInconsistent(RegressionTestException):
     pass
 
 
-class VolumeRenderingConsistency(YTStaticOutputTest):
+class VolumeRenderingConsistency(DatasetTest):
     name = "volume_rendering_consistency"
 
     def run(self):

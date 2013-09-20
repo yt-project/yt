@@ -1,13 +1,13 @@
 from yt.mods import *
 import matplotlib
 import pylab
-from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
+from output_tests import SingleOutputTest, DatasetTest, create_test
 from yt.analysis_modules.halo_finding.api import *
 import hashlib
 import numpy as np
 
 # Tests the number of halos returned by the HOP halo finder on a dataset
-class TestHaloCountHOP(YTStaticOutputTest):
+class TestHaloCountHOP(DatasetTest):
     threshold = 80.0
 
     def run(self):
@@ -24,7 +24,7 @@ class TestHaloCountHOP(YTStaticOutputTest):
         return []
 
 # Tests the number of halos returned by the FOF halo finder on a dataset
-class TestHaloCountFOF(YTStaticOutputTest):
+class TestHaloCountFOF(DatasetTest):
     link = 0.2
     padding = 0.02
 
@@ -44,7 +44,7 @@ class TestHaloCountFOF(YTStaticOutputTest):
 
 # Tests the number of halos returned by the Parallel HOP halo finder on a 
 # dataset
-class TestHaloCountPHOP(YTStaticOutputTest):
+class TestHaloCountPHOP(DatasetTest):
     threshold = 80.0
 
     def run(self):
@@ -60,7 +60,7 @@ class TestHaloCountPHOP(YTStaticOutputTest):
     def plot(self):
         return []
 
-class TestHaloComposition(YTStaticOutputTest):
+class TestHaloComposition(DatasetTest):
     threshold=80.0
     
     def run(self):
@@ -84,7 +84,7 @@ class TestHaloComposition(YTStaticOutputTest):
 # Tests the content of the halos returned by the HOP halo finder on a dataset 
 # by comparing the hash of the arrays of all the particles contained in each
 # halo.  Evidently breaks on parallel runtime.  DO NOT USE.
-class TestHaloCompositionHashHOP(YTStaticOutputTest):
+class TestHaloCompositionHashHOP(DatasetTest):
     threshold=80.0
     
     def run(self):
@@ -111,7 +111,7 @@ class TestHaloCompositionHashHOP(YTStaticOutputTest):
 # Tests the content of the halos returned by the FOF halo finder on a dataset 
 # by comparing the hash of the arrays of all the particles contained in each
 # halo.  Evidently breaks on parallel runtime.  DO NOT USE.
-class TestHaloCompositionHashFOF(YTStaticOutputTest):
+class TestHaloCompositionHashFOF(DatasetTest):
     link = 0.2
     padding = 0.02
     
@@ -140,7 +140,7 @@ class TestHaloCompositionHashFOF(YTStaticOutputTest):
 # Tests the content of the halos returned by the Parallel HOP halo finder on a 
 # dataset by comparing the hash of the arrays of all the particles contained 
 # in each halo.  Evidently breaks on parallel runtime.  DO NOT USE.
-class TestHaloCompositionHashPHOP(YTStaticOutputTest):
+class TestHaloCompositionHashPHOP(DatasetTest):
     threshold=80.0
     
     def run(self):

@@ -1,13 +1,13 @@
 from yt.mods import *
 import matplotlib
 import pylab
-from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
+from output_tests import SingleOutputTest, DatasetTest, create_test
 import hashlib
 import numpy as np
 
 # Tests to make sure that grid quantities are identical that should
 # be identical for the AND operator.
-class TestBooleanANDGridQuantity(YTStaticOutputTest):
+class TestBooleanANDGridQuantity(DatasetTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -30,7 +30,7 @@ class TestBooleanANDGridQuantity(YTStaticOutputTest):
         return []
 
 # OR
-class TestBooleanORGridQuantity(YTStaticOutputTest):
+class TestBooleanORGridQuantity(DatasetTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -53,7 +53,7 @@ class TestBooleanORGridQuantity(YTStaticOutputTest):
         return []
 
 # NOT
-class TestBooleanNOTGridQuantity(YTStaticOutputTest):
+class TestBooleanNOTGridQuantity(DatasetTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -86,7 +86,7 @@ class TestBooleanNOTGridQuantity(YTStaticOutputTest):
 
 # Tests to make sure that particle quantities are identical that should
 # be identical for the AND operator.
-class TestBooleanANDParticleQuantity(YTStaticOutputTest):
+class TestBooleanANDParticleQuantity(DatasetTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -109,7 +109,7 @@ class TestBooleanANDParticleQuantity(YTStaticOutputTest):
         return []
 
 # OR
-class TestBooleanORParticleQuantity(YTStaticOutputTest):
+class TestBooleanORParticleQuantity(DatasetTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge
@@ -132,7 +132,7 @@ class TestBooleanORParticleQuantity(YTStaticOutputTest):
         return []
 
 # NOT
-class TestBooleanNOTParticleQuantity(YTStaticOutputTest):
+class TestBooleanNOTParticleQuantity(DatasetTest):
     def run(self):
         domain = self.pf.domain_right_edge - self.pf.domain_left_edge
         four = 0.4 * domain + self.pf.domain_left_edge

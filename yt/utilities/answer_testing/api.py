@@ -20,7 +20,7 @@ from .runner import \
     registry_entries
 
 from .output_tests import \
-    YTStaticOutputTest, \
+    DatasetTest, \
     create_test
 
 from .default_tests import \

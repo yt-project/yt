@@ -99,7 +99,7 @@ Currently, a few exist:
                      ...
                 to have it return all the filenames in the IO log.
         
-    YTStaticOutputTest
+    DatasetTest
         This test case is designed to work with YT, and provides a couple
         additional things that YT can provide.
 
@@ -130,9 +130,9 @@ Sample Tests
 There are some example tests in the distribution.  But, a simple test case
 would also work well.  This is a test case using yt to find the maximum density
 in the simulation.  Note that we don't have to provide a setup function, as
-that's taken care of in the base class (YTStaticOutputTest.)
+that's taken care of in the base class (DatasetTest.)
 
-    class TestMaximumDensity(YTStaticOutputTest):
+    class TestMaximumDensity(DatasetTest):
         name = "maximum_density"
 
         def run(self):
@@ -217,7 +217,7 @@ Going back to our example of the maximum density location function, we could
 rewrite it slightly to make it work with the create_test function.  We remove
 the name and we make our parameter, field, known, but we don't set it.
 
-    class TestMaximumValue(YTStaticOutputTest):
+    class TestMaximumValue(DatasetTest):
 
         field = None
 

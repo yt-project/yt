@@ -2,7 +2,7 @@ import hashlib
 import numpy as na
 
 from yt.utilities.answer_testing.output_tests import \
-    YTStaticOutputTest, RegressionTestException, create_test
+    DatasetTest, RegressionTestException, create_test
 from yt.funcs import ensure_list, iterable
 from fields_to_test import field_list, particle_field_list
 
@@ -70,7 +70,7 @@ for field in ["Density"]:  # field_list:
 known_objects.update(_new_known_objects)
 
 
-class YTFieldValuesTest(YTStaticOutputTest):
+class YTFieldValuesTest(DatasetTest):
 
     def run(self):
         vals = self.data_object[self.field].copy()
@@ -81,7 +81,7 @@ class YTFieldValuesTest(YTStaticOutputTest):
         if self.result != old_result: raise FieldHashesDontMatch
 
     def setup(self):
-        YTStaticOutputTest.setup(self)
+        DatasetTest.setup(self)
         known_objects[self.object_name](self)
 
 
@@ -126,10 +126,10 @@ for object_name in known_objects:
                 object_name=object_name)
 
 
-class YTDerivedQuantityTest(YTStaticOutputTest):
+class YTDerivedQuantityTest(DatasetTest):
 
     def setup(self):
-        YTStaticOutputTest.setup(self)
+        DatasetTest.setup(self)
         known_objects[self.object_name](self)
 
     def compare(self, old_result):

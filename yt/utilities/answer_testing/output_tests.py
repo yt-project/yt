@@ -167,7 +167,7 @@ def create_test(base, new_name, **attrs):
     attrs['name'] = new_name
     return type(new_name, (base,), attrs)
 
-class YTStaticOutputTest(SingleOutputTest):
+class DatasetTest(SingleOutputTest):
 
     def setup(self):
         self.pf = load(self.filename)
