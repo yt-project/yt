@@ -1,0 +1,31 @@
+To cite yt in publications, please use:
+
+Turk, M. J., Smith, B. D., Oishi, J. S., et al. 2011, ApJS, 192, 9
+
+In the body of the text, please add a footnote to the yt webpage:
+
+http://yt-project.org/
+
+For LaTex and BibTex users:
+
+\bibitem[Turk et al.(2011)]{2011ApJS..192....9T} Turk, M.~J., Smith, B.~D.,
+Oishi, J.~S., et al.\ 2011, \apjs, 192, 9
+
+@ARTICLE{2011ApJS..192....9T,
+   author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and
+{Skillman}, S.~W. and {Abel}, T. and {Norman}, M.~L.},
+    title = "{yt: A Multi-code Analysis Toolkit for Astrophysical Simulation Data}",
+  journal = {\apjs},
+archivePrefix = "arXiv",
+   eprint = {1011.3514},
+ primaryClass = "astro-ph.IM",
+ keywords = {cosmology: theory, methods: data analysis, methods: numerical},
+     year = 2011,
+    month = jan,
+   volume = 192,
+      eid = {9},
+    pages = {9},
+      doi = {10.1088/0067-0049/192/1/9},
+   adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
+  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}

@@ -1,36 +1,26 @@
 """
 A plotting mechanism based on the idea of a "window" into the data.
 
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Nathan Goldbaum <goldbaum@ucolick.org>
-Affiliation: UCSC Astronomy
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2013 J. S. Oishi., Nathan Goldbaum  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import base64
 import numpy as np
 import matplotlib
 import cStringIO
 import types
+import os
 import __builtin__
 
+from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
 from matplotlib.font_manager import FontProperties
 from distutils import version
@@ -49,10 +39,9 @@ from .plot_modifications import get_smallest_appropriate_unit, \
 from .tick_locators import LogLocator, LinearLocator
 from .base_plot_types import ImagePlotMPL
 
-from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
-    fix_axis, get_image_suffix
+    fix_axis, get_image_suffix, get_ipython_api_version
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -115,7 +104,7 @@ def apply_callback(f):
     def newfunc(*args, **kwargs):
         rv = f(*args[1:], **kwargs)
         args[0]._callbacks.append((f.__name__,(args,kwargs)))
-        return rv
+        return args[0]
     return newfunc
 
 field_transforms = {}
@@ -526,6 +515,7 @@ class PlotWindow(object):
             mw = max([width[0][0], width[1][0]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
+        return self
 
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -548,6 +538,7 @@ class PlotWindow(object):
             new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
         self.set_window(self.bounds)
+        return self
 
     @invalidate_data
     def set_antialias(self,aa):
@@ -567,6 +558,7 @@ class PlotWindow(object):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
+        return self
 
     @invalidate_plot
     @invalidate_figure
@@ -580,11 +572,12 @@ class PlotWindow(object):
             including the margins but not the colorbar.
         """
         self.window_size = float(size)
+        return self
 
     @invalidate_data
     def refresh(self):
         # invalidate_data will take care of everything
-        pass
+        return self
 
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
@@ -630,12 +623,14 @@ class PWViewer(PlotWindow):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+        return self
 
     @invalidate_plot
     def set_transform(self, field, name):
         if name not in field_transforms:
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
+        return self
 
     @invalidate_plot
     def set_cmap(self, field, cmap_name):
@@ -658,6 +653,7 @@ class PWViewer(PlotWindow):
         for field in fields:
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
+        return self
 
     @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
@@ -704,6 +700,7 @@ class PWViewer(PlotWindow):
 
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
+        return self
 
     def setup_callbacks(self):
         for key in callback_registry:
@@ -765,6 +762,7 @@ class PWViewer(PlotWindow):
                 except KeyError:
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
+        return self
 
 class PWViewerMPL(PWViewer):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
@@ -905,10 +903,23 @@ class PWViewerMPL(PWViewer):
                                           cax)
 
             axes_unit_labels = ['', '']
+            comoving = False
+            hinv = False
             for i, un in enumerate((unit_x, unit_y)):
+                if un.endswith('cm') and un != 'cm':
+                    comoving = True
+                    un = un[:-2]
+                # no length units end in h so this is safe
+                if un.endswith('h'):
+                    hinv = True
+                    un = un[:-1]
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
+                    if hinv:
+                        un = un + '\,h^{-1}'
+                    if comoving:
+                        un = un + '\,(1+z)^{-1}'
                     axes_unit_labels[i] = '\/\/('+un+')'
 
             if self.oblique:
@@ -1018,7 +1029,7 @@ class PWViewerMPL(PWViewer):
             self._font_color = font_dict.pop('color')
         self._font_properties = \
             FontProperties(**font_dict)
-
+        return self
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
@@ -1049,6 +1060,7 @@ class PWViewerMPL(PWViewer):
             if not is_colormap(cmap) and cmap is not None:
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
@@ -1056,8 +1068,8 @@ class PWViewerMPL(PWViewer):
         Parameters
         ----------
         name : string
-           the base of the filename.  If not set the filename of
-           the parameter file is used
+           The base of the filename.  If name is a directory or if name is not
+           set, the filename of the dataset is used.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -1068,6 +1080,11 @@ class PWViewerMPL(PWViewer):
         if mpl_kwargs is None: mpl_kwargs = {}
         if name is None:
             name = str(self.pf)
+        name = os.path.expanduser(name)
+        if name[-1] == os.sep and not os.path.isdir(name):
+            os.mkdir(name)
+        if os.path.isdir(name):
+            name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
         suffix = get_image_suffix(name)
         if suffix != '':
             for k, v in self.plots.iteritems():
@@ -1078,14 +1095,16 @@ class PWViewerMPL(PWViewer):
         type = self._plot_type
         if type in ['Projection','OffAxisProjection']:
             weight = self.data_source.weight_field
+            if weight is not None:
+                weight = weight.replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
             if axis:
-                n = "%s_%s_%s_%s" % (name, type, axis, k)
+                n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))
             else:
                 # for cutting planes
-                n = "%s_%s_%s" % (name, type, k)
+                n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
                 n += "_%s" % (weight)
             names.append(v.save(n,mpl_kwargs))
@@ -1123,7 +1142,12 @@ class PWViewerMPL(PWViewer):
 
         """
         if "__IPYTHON__" in dir(__builtin__):
-            self._send_zmq()
+            api_version = get_ipython_api_version()
+            if api_version in ('0.10', '0.11'):
+                self._send_zmq()
+            else:
+                from IPython.display import display
+                display(self)
         else:
             raise YTNotInsideNotebook
 
@@ -1135,10 +1159,14 @@ class PWViewerMPL(PWViewer):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
-    def __repr__(self):
-        if "__IPYTHON__" in dir(__builtin__):
-            self.show()
-        return super(PWViewerMPL, self).__repr__()
+    def _repr_html_(self):
+        """Return an html representation of the plot object. Will display as a
+        png for each WindowPlotMPL instance in self.plots"""
+        ret = ''
+        for field in self.plots:
+            img = base64.b64encode(self.plots[field]._repr_png_())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret
 
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
@@ -1774,7 +1802,16 @@ class WindowPlotMPL(ImagePlotMPL):
     def __init__(
             self, data, cbname, cmap, extent, aspect, zlim, size, fontsize,
             figure, axes, cax):
-        fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
+        self._draw_colorbar = True
+        self._draw_axes = True
+        self._cache_layout(size, fontsize)
+
+        # Make room for a colorbar
+        self.input_size = size
+        self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
+
+        # Compute layout
+        axrect, caxrect = self._get_best_layout(fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
@@ -1783,7 +1820,7 @@ class WindowPlotMPL(ImagePlotMPL):
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
         ImagePlotMPL.__init__(
-            self, fsize, axrect, caxrect, zlim, figure, axes, cax)
+            self, self.fsize, axrect, caxrect, zlim, figure, axes, cax)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
         if cbname == 'linear':
@@ -1791,31 +1828,74 @@ class WindowPlotMPL(ImagePlotMPL):
             self.cb.formatter.set_powerlimits((-2,3))
             self.cb.update_ticks()
 
-    def _get_best_layout(self, size, fontsize=18):
-        aspect = 1.0*size[0]/size[1]
-        fontscale = fontsize / 18.0
+    def _toggle_axes(self, choice):
+        self._draw_axes = choice
+        self.axes.get_xaxis().set_visible(choice)
+        self.axes.get_yaxis().set_visible(choice)
+        axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
 
-        # add room for a colorbar
-        cbar_inches = fontscale*0.7
-        newsize = [size[0] + cbar_inches, size[1]]
+    def _toggle_colorbar(self, choice):
+        self._draw_colorbar = choice
+        self.cax.set_visible(choice)
+        self.fsize = [self.input_size[0] + self._cbar_inches[choice], self.input_size[1]]
+        axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
+
+    def hide_axes(self):
+        self._toggle_axes(False)
+        return self
+
+    def show_axes(self):
+        self._toggle_axes(True)
+        return self
+
+    def hide_colorbar(self):
+        self._toggle_colorbar(False)
+        return self
+
+    def show_colorbar(self):
+        self._toggle_colorbar(True)
+        return self
+
+    def _cache_layout(self, size, fontsize):
+        self._cbar_inches = {}
+        self._text_buffx = {}
+        self._text_bottomy = {}
+        self._text_topy = {}
+
+        self._aspect = 1.0*size[0]/size[1]
+        self._fontscale = fontsize / 18.0
+
+        # Leave room for a colorbar, if we are drawing it.
+        self._cbar_inches[True] = self._fontscale*0.7
+        self._cbar_inches[False] = 0
 
         # add buffers for text, and a bit of whitespace on top
-        text_buffx = fontscale * 1.0/(newsize[0])
-        text_bottomy = fontscale * 0.7/size[1]
-        text_topy = fontscale * 0.3/size[1]
+        self._text_buffx[True] = self._fontscale * 1.0/(size[0] + self._cbar_inches[True])
+        self._text_bottomy[True] = self._fontscale * 0.7/size[1]
+        self._text_topy[True] = self._fontscale * 0.3/size[1]
 
+        # No buffer for text if we're not drawing axes
+        self._text_buffx[False] = 0
+        self._text_bottomy[False] = 0
+        self._text_topy[False] = 0
+
+    def _get_best_layout(self, fontsize=18):
         # calculate how much room the colorbar takes
-        cbar_frac = cbar_inches/newsize[0]
+        cbar_frac = self._cbar_inches[self._draw_colorbar]/self.fsize[0]
 
         # Calculate y fraction, then use to make x fraction.
-        yfrac = 1.0-text_bottomy-text_topy
-        ysize = yfrac*size[1]
-        xsize = aspect*ysize
-        xfrac = xsize/newsize[0]
+        yfrac = 1.0-self._text_bottomy[self._draw_axes]-self._text_topy[self._draw_axes]
+        ysize = yfrac*self.fsize[1]
+        xsize = self._aspect*ysize
+        xfrac = xsize/self.fsize[0]
 
         # Now make sure it all fits!
-        xbig = xfrac + text_buffx + 2.0*cbar_frac
-        ybig = yfrac + text_bottomy + text_topy
+        xbig = xfrac + self._text_buffx[self._draw_axes] + 2.0*cbar_frac
+        ybig = yfrac + self._text_bottomy[self._draw_axes] + self._text_topy[self._draw_axes]
 
         if xbig > 1:
             xsize /= xbig
@@ -1823,9 +1903,20 @@ class WindowPlotMPL(ImagePlotMPL):
         if ybig > 1:
             xsize /= ybig
             ysize /= ybig
-        xfrac = xsize/newsize[0]
-        yfrac = ysize/newsize[1]
+        xfrac = xsize/self.fsize[0]
+        yfrac = ysize/self.fsize[1]
 
-        axrect = (text_buffx, text_bottomy, xfrac, yfrac )
-        caxrect = (text_buffx+xfrac, text_bottomy, cbar_frac/4., yfrac )
-        return newsize, axrect, caxrect
+        axrect = (
+            self._text_buffx[self._draw_axes],
+            self._text_bottomy[self._draw_axes],
+            xfrac,
+            yfrac
+        )
+
+        caxrect = (
+            self._text_buffx[self._draw_axes]+xfrac,
+            self._text_bottomy[self._draw_axes],
+            cbar_frac/4.,
+            yfrac
+        )
+        return axrect, caxrect
