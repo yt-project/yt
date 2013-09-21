@@ -1,35 +1,17 @@
 """
 Callbacks to add additional functionality on to plots.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
-Affiliation: UC Berkeley
-Author: Stephen Skory <s@skory.us>
-Affiliation: UC San Diego
-Author: Anthony Scopatz <scopatz@gmail.com>
-Affiliation: The University of Chicago
-Homepage: http://yt-project.org/
-Author: Nathan Goldbaum <goldbaum@ucolick.org>
-Affiliation: UC Santa Cruz
-License:
-  Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -232,22 +214,25 @@ class QuiverCallback(PlotCallback):
 class ContourCallback(PlotCallback):
     """
     annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
-                     plot_args=None, label=False, label_args=None):
+                     plot_args=None, label=False, label_args=None,
+                     data_source=None):
 
     Add contours in *field* to the plot.  *ncont* governs the number of
     contours generated, *factor* governs the number of points used in the
     interpolation, *take_log* governs how it is contoured and *clim* gives
-    the (upper, lower) limits for contouring.
+    the (upper, lower) limits for contouring.  An alternate data source can be
+    specified with *data_source*, but by default the plot's data source will be
+    queried.
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args = None, label = False, take_log = None, 
-                 label_args = None):
+                 label_args = None, data_source = None):
         PlotCallback.__init__(self)
         self.ncont = ncont
         self.field = field
         self.factor = factor
-        from yt.utilities.delaunay.triangulate import Triangulation as triang
+        from matplotlib.delaunay.triangulate import Triangulation as triang
         self.triang = triang
         self.clim = clim
         self.take_log = take_log
@@ -257,6 +242,7 @@ class ContourCallback(PlotCallback):
         if label_args is None:
             label_args = {}
         self.label_args = label_args
+        self.data_source = data_source
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -277,26 +263,27 @@ class ContourCallback(PlotCallback):
         # We want xi, yi in plot coordinates
         xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),
                           yy0:yy1:numPoints_y/(self.factor*1j)]
+        data = self.data_source or plot.data
 
         if plot._type_name in ['CuttingPlane','Projection','Slice']:
             if plot._type_name == 'CuttingPlane':
-                x = plot.data["px"]*dx
-                y = plot.data["py"]*dy
-                z = plot.data[self.field]
+                x = data["px"]*dx
+                y = data["py"]*dy
+                z = data[self.field]
             elif plot._type_name in ['Projection','Slice']:
                 #Makes a copy of the position fields "px" and "py" and adds the
                 #appropriate shift to the copied field.  
 
-                AllX = np.zeros(plot.data["px"].size, dtype='bool')
-                AllY = np.zeros(plot.data["py"].size, dtype='bool')
-                XShifted = plot.data["px"].copy()
-                YShifted = plot.data["py"].copy()
+                AllX = np.zeros(data["px"].size, dtype='bool')
+                AllY = np.zeros(data["py"].size, dtype='bool')
+                XShifted = data["px"].copy()
+                YShifted = data["py"].copy()
                 dom_x, dom_y = plot._period
                 for shift in np.mgrid[-1:1:3j]:
-                    xlim = ((plot.data["px"] + shift*dom_x >= x0) &
-                            (plot.data["px"] + shift*dom_x <= x1))
-                    ylim = ((plot.data["py"] + shift*dom_y >= y0) &
-                            (plot.data["py"] + shift*dom_y <= y1))
+                    xlim = ((data["px"] + shift*dom_x >= x0) &
+                            (data["px"] + shift*dom_x <= x1))
+                    ylim = ((data["py"] + shift*dom_y >= y0) &
+                            (data["py"] + shift*dom_y <= y1))
                     XShifted[xlim] += shift * dom_x
                     YShifted[ylim] += shift * dom_y
                     AllX |= xlim
@@ -309,7 +296,7 @@ class ContourCallback(PlotCallback):
                 # This converts XShifted and YShifted into plot coordinates
                 x = (XShifted[wI]-x0)*dx + xx0
                 y = (YShifted[wI]-y0)*dy + yy0
-                z = plot.data[self.field][wI]
+                z = data[self.field][wI]
         
             # Both the input and output from the triangulator are in plot
             # coordinates

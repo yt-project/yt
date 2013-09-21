@@ -419,7 +419,7 @@ get_willwont ${INST_0MQ}
 echo "be installing ZeroMQ"
 
 printf "%-15s = %s so I " "INST_ROCKSTAR" "${INST_ROCKSTAR}"
-get_willwont ${INST_0MQ}
+get_willwont ${INST_ROCKSTAR}
 echo "be installing Rockstar"
 
 echo
@@ -877,6 +877,11 @@ fi
 mkdir -p ${DEST_DIR}/src/$MATPLOTLIB
 echo "[directories]" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
 echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
+if [ `uname` = "Darwin" ]
+then
+   echo "[gui_support]" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
+   echo "macosx = False" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
+fi
 do_setup_py $MATPLOTLIB
 if [ -n "${OLD_LDFLAGS}" ]
 then
