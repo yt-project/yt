@@ -103,7 +103,7 @@ from .two_point_functions.api import \
     TwoPointFunctions, \
     FcnSet
 
-from .sunyaev_zeldovich.api import SZprojection
+from .sunyaev_zeldovich.api import SZProjection
 
 from .radmc3d_export.api import \
     RadMC3DWriter
