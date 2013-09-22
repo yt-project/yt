@@ -85,7 +85,7 @@ class SZProjection(object):
         self.high_order = high_order
         self.freqs = np.array(freqs)
         self.mueinv = 1./mue
-        self.xinit = hcgs*freqs*1.0e9/(kboltz*Tcmb)
+        self.xinit = hcgs*self.freqs*1.0e9/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
         self.field_dict = {}
 
@@ -99,7 +99,7 @@ class SZProjection(object):
 
         for f, field in zip(self.freqs, self.freq_fields):
             self.units[field] = r"$\mathrm{MJy\ sr^{-1}}$"
-            self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % (int(freq))
+            self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % (int(f))
             
     def on_axis(self, axis, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an on-axis projection of the SZ signal.
@@ -234,7 +234,7 @@ class SZProjection(object):
                 SZpack.compute_combo_means(xo, tau[i,j], Te[i,j],
                                            bpar[i,j], omega1[i,j],
                                            sigma1[i,j], kappa1[i,j], bperp2[i,j])
-                signal[:,i,j] = -xo[:]
+                signal[:,i,j] = xo[:]
                 pbar.update(k)
                 k += 1
 
