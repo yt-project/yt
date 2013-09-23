@@ -636,6 +636,17 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, self.fill_func, &data)
         return levels, cell_inds, file_inds
 
+    def domain_count(self, SelectorObject selector):
+        # We create oct arrays of the correct size
+        cdef np.int64_t i, num_octs
+        cdef np.ndarray[np.int64_t, ndim=1] domain_counts
+        domain_counts = np.zeros(self.num_domains, dtype="int64")
+        cdef OctVisitorData data
+        self.setup_data(&data, -1)
+        data.array = <void*> domain_counts.data
+        self.visit_all_octs(selector, oct_visitors.count_by_domain, &data)
+        return domain_counts
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)

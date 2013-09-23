@@ -89,8 +89,10 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.data_size = cell_count
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
+        domain_counts = self.oct_handler.domain_count(selector)
         tr = [np.zeros(cell_count, dtype="float64") for field in fields]
-        self.oct_handler.fill_sfc(levels, cell_inds, file_inds, field_indices, tr)
+        self.oct_handler.fill_sfc(levels, cell_inds, file_inds,
+            domain_counts, field_indices, tr)
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
 

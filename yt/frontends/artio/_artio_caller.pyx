@@ -8,7 +8,8 @@ from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     SparseOctreeContainer
 from yt.geometry.oct_visitors cimport \
-    OctVisitorData, oct_visitor_function, Oct
+    OctVisitorData, oct_visitor_function, Oct, \
+    fill_file_indices_oind, fill_file_indices_rind
 from yt.geometry.particle_deposit cimport \
     ParticleDepositOperation
 from libc.stdint cimport int32_t, int64_t
@@ -737,11 +738,12 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
              np.ndarray[np.uint8_t, ndim=1] levels,
              np.ndarray[np.uint8_t, ndim=1] cell_inds,
              np.ndarray[np.int64_t, ndim=1] file_inds,
+             np.ndarray[np.int64_t, ndim=1] domain_counts,
              field_indices, dest_fields):
         cdef np.ndarray[np.float32_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
-        cdef int level, j, oct_ind
+        cdef int level, j, oct_ind, si
         cdef np.int64_t sfc, ipos
         cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
@@ -760,40 +762,58 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef np.float32_t **field_vals = <np.float32_t**> malloc(
             nf * sizeof(np.float32_t*))
         source_arrays = []
+        ipos = -1
+        for i in range(self.num_domains):
+            ipos = imax(ipos, self.domains[i].n)
         for i in range(nf):
             field_ind[i] = field_indices[i]
             # Note that we subtract one, because we're not using the root mesh.
-            source = np.zeros((self.nocts, 8), dtype="float32")
+            source = np.zeros((ipos, 8), dtype="float32")
             source_arrays.append(source)
             field_vals[i] = <np.float32_t*> source.data
+        cdef np.int64_t level_position[32], lp
         # First we need to walk the mesh in the file.  Then we fill in the dest
         # location based on the file index.
-        status = artio_grid_read_root_cell_begin( handle, self.sfc, 
-                dpos, NULL, &num_oct_levels, num_octs_per_level)
-        check_artio_status(status) 
-        for level in range(num_oct_levels):
-            status = artio_grid_read_level_begin(handle, level + 1)
+        # A few ways this could be improved:
+        #   * Create a new visitor function that actually queried the data,
+        #     rather than our somewhat hokey double-loop over SFC arrays.
+        #   * Go to pointers for the dest arrays.
+        #   * Enable preloading during mesh initialization
+        #   * Calculate domain indices on the fly rather than with a
+        #     double-loop to calculate domain_counts
+        cdef np.int64_t offset = 0 
+        for si in range(self.num_domains):
+            sfc = self.domains[si].con_id
+            status = artio_grid_read_root_cell_begin( handle, sfc, 
+                    dpos, NULL, &num_oct_levels, num_octs_per_level)
             check_artio_status(status) 
-            ipos = self.level_indices[level]
-            for oct_ind in range(num_octs_per_level[level]):
-                status = artio_grid_read_oct(handle, dpos, grid_variables, NULL)
+            lp = 0
+            for level in range(num_oct_levels):
+                status = artio_grid_read_level_begin(handle, level + 1)
+                check_artio_status(status) 
+                level_position[level] = lp
+                for oct_ind in range(num_octs_per_level[level]):
+                    status = artio_grid_read_oct(handle, dpos, grid_variables, NULL)
+                    check_artio_status(status)
+                    for j in range(8):
+                        for i in range(nf):
+                            field_vals[i][(oct_ind + lp)*8+j] = \
+                                grid_variables[ngv*j+field_ind[i]]
+                status = artio_grid_read_level_end(handle)
                 check_artio_status(status)
-                for j in range(8):
-                    for i in range(nf):
-                        field_vals[i][(ipos+oct_ind)*8+j] = \
-                            grid_variables[ngv*j+field_ind[i]]
-            status = artio_grid_read_level_end(handle)
+                lp += num_octs_per_level[level]
+            status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
-        status = artio_grid_read_root_cell_end( handle )
-        check_artio_status(status)
-        # Now we have all our sources.
-        for j in range(nf):
-            dest = dest_fields[j]
-            source = source_arrays[j]
-            for i in range(levels.shape[0]):
-                level = levels[i]
-                oct_ind = self.level_indices[level]
-                dest[i] = source[file_inds[i] + oct_ind, cell_inds[i]]
+            # Now we have all our sources.
+            for j in range(nf):
+                dest = dest_fields[j]
+                source = source_arrays[j]
+                for i in range(domain_counts[si]):
+                    level = levels[i + offset]
+                    oct_ind = file_inds[i + offset] + level_position[level]
+                    dest[i + offset] = source[oct_ind, cell_inds[i + offset]]
+            # Now, we offset by the actual number filled here.
+            offset += domain_counts[si]
         free(field_ind)
         free(field_vals)
         free(grid_variables)
