@@ -132,10 +132,11 @@ class EnzoGridGZ(EnzoGrid):
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
                              smoothed=False):
-        # We ignore smoothed in this case.
-        if n_zones > 3:
+        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        if n_zones > NGZ:
             return EnzoGrid.retrieve_ghost_zones(
                 self, n_zones, fields, all_levels, smoothed)
+
         # ----- Below is mostly the original code, except we remove the field
         # ----- access section
         # We will attempt this by creating a datacube that is exactly bigger
@@ -163,7 +164,12 @@ class EnzoGridGZ(EnzoGrid):
                 level, new_left_edge, **kwargs)
         # ----- This is EnzoGrid.get_data, duplicated here mostly for
         # ----  efficiency's sake.
-        sl = [slice(3 - n_zones, -(3 - n_zones)) for i in range(3)]
+        start_zone = NGZ - n_zones
+        if start_zone == 0:
+            end_zone = None
+        else:
+            end_zone = -(NGZ - n_zones)
+        sl = [slice(start_zone, end_zone) for i in range(3)]
         if fields is None: return cube
         for field in ensure_list(fields):
             if field in self.hierarchy.field_list:
