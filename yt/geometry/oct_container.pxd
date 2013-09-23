@@ -48,6 +48,7 @@ cdef struct OctAllocationContainer:
     np.int64_t n
     np.int64_t n_assigned
     np.int64_t offset
+    np.int64_t con_id
     OctAllocationContainer *next
     Oct *my_octs
 

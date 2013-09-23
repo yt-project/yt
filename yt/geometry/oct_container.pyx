@@ -61,6 +61,7 @@ cdef OctAllocationContainer *allocate_octs(
         raise MemoryError
     n_cont.n = n_octs
     n_cont.n_assigned = 0
+    n_cont.con_id = -1
     for n in range(n_octs):
         oct = &n_cont.my_octs[n]
         oct.file_ind = oct.domain = -1

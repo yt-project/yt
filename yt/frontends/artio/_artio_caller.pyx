@@ -613,7 +613,8 @@ cdef class ARTIOSFCRangeHandler:
                     oc += num_octs_per_level[level]
                 self.total_octs += oc
                 oct_count[sfc - self.sfc_start] = oc
-                octree.initialize_local_mesh(oc, num_oct_levels, num_octs_per_level)
+                octree.initialize_local_mesh(oc, num_oct_levels,
+                    num_octs_per_level, sfc)
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status)
         free(num_octs_per_level)
@@ -684,10 +685,11 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void initialize_local_mesh(self, np.int64_t oct_count,
-                              int num_oct_levels, int *num_octs_per_level):
+                              int num_oct_levels, int *num_octs_per_level,
+                              np.int64_t sfc):
         # We actually will not be initializing the root mesh here, we will be
         # initializing the entire mesh between sfc_start and sfc_end.
-        cdef np.int64_t oct_ind, sfc, tot_octs, ipos, nadded
+        cdef np.int64_t oct_ind, tot_octs, ipos, nadded
         cdef int i, status, level, num_root, num_octs
         cdef int num_level_octs
         cdef artio_fileset_handle *handle = self.artio_handle.handle
@@ -701,6 +703,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 
         # We only allow one root oct.
         self.append_domain(oct_count)
+        self.domains[self.num_domains - 1].con_id = sfc
 
         oct_ind = -1
         ipos = 0
