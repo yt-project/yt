@@ -46,6 +46,7 @@ for f in fluid_fields:
 
 def _convertDensity(data):
     return data.convert("Density")
+KnownARTFields["Density"].take_log = True
 KnownARTFields["Density"]._units = r"\rm{g}/\rm{cm}^3"
 KnownARTFields["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
 KnownARTFields["Density"]._convert_function = _convertDensity
