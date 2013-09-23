@@ -16,6 +16,7 @@ Data structures for Streaming, in-memory datasets
 import weakref
 import numpy as np
 import uuid
+from itertools import chain, product
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -833,6 +834,23 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
 
     return spf
 
+def hexahedral_connectivity(xgrid, ygrid, zgrid):
+    nx = len(xgrid)
+    ny = len(ygrid)
+    nz = len(zgrid)
+    coords = np.fromiter(chain.from_iterable(product(xgrid, ygrid, zgrid)),
+                    dtype=np.float64, count = nx*ny*nz*3)
+    coords.shape = (nx*ny*nz, 3)
+    cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
+                    dtype=np.int64, count = 8*3)
+    cis.shape = (8, 3)
+    cycle = np.fromiter(chain.from_iterable(product(*map(range, (nx-1, ny-1, nz-1)))),
+                    dtype=np.int64, count = (nx-1)*(ny-1)*(nz-1)*3)
+    cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
+    off = cis + cycle[:, np.newaxis]
+    connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+    return coords, connectivity
+
 class StreamHexahedralMesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
@@ -891,8 +909,6 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     coordinates : array_like
         This should be of size (M,3) where M is the number of vertices
         indicated in the connectivity matrix.
-    domain_dimensions : array_like
-        This is the domain dimensions of the grid
     sim_unit_to_cm : float
         Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
