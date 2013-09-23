@@ -40,6 +40,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities import hdf5_light_reader
+from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
@@ -542,6 +543,9 @@ class EnzoHierarchy(AMRHierarchy):
                 for p in pfields:
                     result[p] = result[p][0:max_num]
         return result
+
+    def _setup_data_io(self):
+            self.io = io_registry[self.data_style](self.parameter_file)
 
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
