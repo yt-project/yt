@@ -8,7 +8,7 @@
 # http://physics.nist.gov/cuu/Constants/index.html
 
 # Masses
-mass_electron_cgs = 9.109382-28  # g
+mass_electron_cgs = 9.109382e-28  # g
 amu_cgs           = 1.660538921e-24  # g
 mass_hydrogen_cgs = 1.007947*amu_cgs  # g
 mass_sun_cgs = 1.98841586e33  # g
