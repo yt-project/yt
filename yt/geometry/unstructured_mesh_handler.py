@@ -18,10 +18,10 @@ import weakref
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.lib import smallest_fwidth
 
-class UnstructuredGeometryHandler(GeometryHandler):
+class UnstructuredIndex(Index):
     _global_mesh = False
     _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 
@@ -32,7 +32,7 @@ class UnstructuredGeometryHandler(GeometryHandler):
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.float_type = np.float64
-        super(UnstructuredGeometryHandler, self).__init__(pf, data_style)
+        super(UnstructuredIndex, self).__init__(pf, data_style)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Unstructured Mesh Geometry Handler.")
@@ -56,7 +56,7 @@ class UnstructuredGeometryHandler(GeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(UnstructuredGeometryHandler, self)._setup_classes(dd)
+        super(UnstructuredIndex, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):

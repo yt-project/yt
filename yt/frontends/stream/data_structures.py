@@ -23,9 +23,9 @@ from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
@@ -126,7 +126,7 @@ class StreamHandler(object):
         else :
             return False
         
-class StreamHierarchy(GridGeometryHandler):
+class StreamHierarchy(GridIndex):
 
     grid = StreamGrid
 
@@ -137,7 +137,7 @@ class StreamHierarchy(GridGeometryHandler):
         self.stream_handler = pf.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
 
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
@@ -195,12 +195,12 @@ class StreamHierarchy(GridGeometryHandler):
                 child._parent_id = i
 
     def _initialize_grid_arrays(self):
-        GridGeometryHandler._initialize_grid_arrays(self)
+        GridIndex._initialize_grid_arrays(self)
         self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
 
     def _detect_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
@@ -703,12 +703,12 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     
     return pf
 
-class StreamParticleGeometryHandler(ParticleGeometryHandler):
+class StreamParticleIndex(ParticleIndex):
 
     
     def __init__(self, pf, data_style = None):
         self.stream_handler = pf.stream_handler
-        super(StreamParticleGeometryHandler, self).__init__(pf, data_style)
+        super(StreamParticleIndex, self).__init__(pf, data_style)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -720,7 +720,7 @@ class StreamParticleFile(ParticleFile):
     pass
 
 class StreamParticlesDataset(StreamDataset):
-    _hierarchy_class = StreamParticleGeometryHandler
+    _hierarchy_class = StreamParticleIndex
     _file_class = StreamParticleFile
     _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields

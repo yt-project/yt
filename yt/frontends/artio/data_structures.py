@@ -29,7 +29,7 @@ from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
 
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
     Dataset
@@ -254,7 +254,7 @@ class ARTIOChunk(object):
                     cp += np
 
 
-class ARTIOGeometryHandler(GeometryHandler):
+class ARTIOIndex(Index):
 
     def __init__(self, pf, data_style='artio'):
         self.data_style = data_style
@@ -265,7 +265,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
         self.max_level = pf.max_level
         self.float_type = np.float64
-        super(ARTIOGeometryHandler, self).__init__(pf, data_style)
+        super(ARTIOIndex, self).__init__(pf, data_style)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Geometry Handler empty for now.")
@@ -325,7 +325,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(ARTIOGeometryHandler, self)._setup_classes(dd)
+        super(ARTIOIndex, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
@@ -411,7 +411,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
 class ARTIODataset(Dataset):
     _handle = None
-    _hierarchy_class = ARTIOGeometryHandler
+    _hierarchy_class = ARTIOIndex
     _fieldinfo_fallback = ARTIOFieldInfo
     _fieldinfo_known = KnownARTIOFields
     _particle_mass_name = "particle_mass"

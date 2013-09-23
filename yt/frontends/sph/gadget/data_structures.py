@@ -19,9 +19,9 @@ from itertools import izip
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
+    OctreeIndex
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
 

@@ -21,7 +21,7 @@ from yt.funcs import mylog
 from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredGeometryHandler
+           UnstructuredIndex
 from yt.data_objects.static_output import \
            Dataset
 from yt.utilities.io_handler import \
@@ -40,7 +40,7 @@ class MoabHex8Mesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 1
 
-class MoabHex8Hierarchy(UnstructuredGeometryHandler):
+class MoabHex8Hierarchy(UnstructuredIndex):
 
     def __init__(self, pf, data_style='h5m'):
         self.parameter_file = weakref.proxy(pf)
@@ -50,7 +50,7 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = h5py.File(self.hierarchy_filename,'r')
 
-        UnstructuredGeometryHandler.__init__(self, pf, data_style)
+        UnstructuredIndex.__init__(self, pf, data_style)
 
         self._fhandle.close()
 
@@ -130,7 +130,7 @@ class PyneHex8Mesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
 
-class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
+class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
     def __init__(self, pf, data_style='moab_hex8_pyne'):
         self.parameter_file = weakref.proxy(pf)

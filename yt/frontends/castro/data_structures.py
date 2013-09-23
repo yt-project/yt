@@ -26,7 +26,7 @@ import numpy as np
 from yt.funcs import *
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.geometry.grid_geometry_handler import GridGeometryHandler
+from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -101,7 +101,7 @@ class CastroGrid(AMRGridPatch):
     def __repr__(self):
         return "CastroGrid_%04i" % (self.id)
 
-class CastroHierarchy(GridGeometryHandler):
+class CastroHierarchy(GridIndex):
     grid = CastroGrid
 
     def __init__(self, pf, data_style='castro_native'):
@@ -402,7 +402,7 @@ class CastroHierarchy(GridGeometryHandler):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         #self._add_object_class('grid', "CastroGrid", CastroGridBase, dd)
         self.object_types.sort()
 
@@ -457,7 +457,7 @@ class CastroHierarchy(GridGeometryHandler):
         pass
 
     def _initialize_state_variables(self):
-        """override to not re-initialize num_grids in GridGeometryHandler.__init__
+        """override to not re-initialize num_grids in GridIndex.__init__
 
         """
         self._parallel_locking = False

@@ -26,7 +26,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, ParticleRegions
 from yt.utilities.definitions import MAXLEVEL
@@ -37,7 +37,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 
-class ParticleGeometryHandler(GeometryHandler):
+class ParticleIndex(Index):
     _global_mesh = False
 
     def __init__(self, pf, data_style):
@@ -47,7 +47,7 @@ class ParticleGeometryHandler(GeometryHandler):
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.float_type = np.float64
-        super(ParticleGeometryHandler, self).__init__(pf, data_style)
+        super(ParticleIndex, self).__init__(pf, data_style)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Particle Geometry Handler.")
@@ -129,7 +129,7 @@ class ParticleGeometryHandler(GeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(ParticleGeometryHandler, self)._setup_classes(dd)
+        super(ParticleIndex, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):

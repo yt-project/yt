@@ -43,7 +43,7 @@ def _unsupported_object(pf, obj_name):
         raise YTObjectNotImplemented(pf, obj_name)
     return _raise_unsupp
 
-class GeometryHandler(ParallelAnalysisInterface):
+class Index(ParallelAnalysisInterface):
     _global_mesh = True
     _unsupported_objects = ()
 

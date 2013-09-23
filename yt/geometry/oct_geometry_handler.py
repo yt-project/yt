@@ -26,7 +26,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -34,7 +34,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 from yt.data_objects.data_containers import data_object_registry
 
-class OctreeGeometryHandler(GeometryHandler):
+class OctreeIndex(Index):
 
     def _setup_geometry(self):
         mylog.debug("Initializing Octree Geometry Handler.")

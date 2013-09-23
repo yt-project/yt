@@ -17,7 +17,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-           GridGeometryHandler
+           GridIndex
 from yt.data_objects.static_output import \
            Dataset
 
@@ -47,14 +47,14 @@ class TigerGrid(AMRGridPatch):
     def __repr__(self):
         return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class TigerHierarchy(GridGeometryHandler):
+class TigerHierarchy(GridIndex):
 
     grid = TigerGrid
 
     def __init__(self, pf, data_style):
         self.directory = pf.fullpath
         self.data_style = data_style
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
 
     def _count_grids(self):
         # Tiger is unigrid
@@ -65,7 +65,7 @@ class TigerHierarchy(GridGeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
     def _parse_hierarchy(self):

@@ -25,7 +25,7 @@ import os
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.definitions import \
@@ -115,7 +115,7 @@ class ParticleDataset(Dataset):
 
 
 class GadgetDataset(ParticleDataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _fieldinfo_fallback = GadgetFieldInfo
     _fieldinfo_known = KnownGadgetFields
@@ -251,7 +251,7 @@ class GadgetDataset(ParticleDataset):
 
 
 class OWLSDataset(GadgetDataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = ParticleFile
     _fieldinfo_fallback = OWLSFieldInfo  # For now we have separate from Gadget
     _fieldinfo_known = KnownOWLSFields
@@ -337,7 +337,7 @@ class TipsyFile(ParticleFile):
 
 
 class TipsyDataset(ParticleDataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = TipsyFile
     _fieldinfo_fallback = TipsyFieldInfo
     _fieldinfo_known = KnownTipsyFields

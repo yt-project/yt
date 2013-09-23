@@ -31,7 +31,7 @@ from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.field_info_container import \
@@ -187,7 +187,7 @@ class EnzoGridGZ(EnzoGrid):
                 cube.field_data[field] = np.multiply(temp, conv_factor, temp)[sl]
         return cube
 
-class EnzoHierarchy(GridGeometryHandler):
+class EnzoHierarchy(GridIndex):
 
     _strip_path = False
     grid = EnzoGrid
@@ -213,13 +213,13 @@ class EnzoHierarchy(GridGeometryHandler):
         else:
             self.float_type = 'float64'
 
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
         # sync it back
         self.parameter_file.data_style = self.data_style
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):
@@ -584,7 +584,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
         self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
 
     def _initialize_data_storage(self):
         pass

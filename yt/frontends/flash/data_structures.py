@@ -23,7 +23,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
@@ -54,7 +54,7 @@ class FLASHGrid(AMRGridPatch):
     def filename(self):
         return None
 
-class FLASHHierarchy(GridGeometryHandler):
+class FLASHHierarchy(GridIndex):
 
     grid = FLASHGrid
     
@@ -68,7 +68,7 @@ class FLASHHierarchy(GridGeometryHandler):
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         self.float_type = np.float64
-        GridGeometryHandler.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
         pass
@@ -82,7 +82,7 @@ class FLASHHierarchy(GridGeometryHandler):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):

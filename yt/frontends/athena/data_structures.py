@@ -21,7 +21,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.data_objects.static_output import \
            Dataset
 from yt.utilities.definitions import \
@@ -95,7 +95,7 @@ def parse_line(line, grid):
         grid['read_field'] = field
         grid['read_type'] = 'vector'
 
-class AthenaHierarchy(GridGeometryHandler):
+class AthenaHierarchy(GridIndex):
 
     grid = AthenaGrid
     _data_style='athena'

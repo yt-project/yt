@@ -20,9 +20,9 @@ import cStringIO
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
+    OctreeIndex
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
@@ -282,7 +282,7 @@ class RAMSESDomainSubset(OctreeSubset):
             oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
         return tr
 
-class RAMSESGeometryHandler(OctreeGeometryHandler):
+class RAMSESIndex(OctreeIndex):
 
     def __init__(self, pf, data_style='ramses'):
         self.fluid_field_list = pf._fields_in_file
@@ -294,7 +294,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESGeometryHandler, self).__init__(pf, data_style)
+        super(RAMSESIndex, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
         nv = len(self.fluid_field_list)
@@ -315,7 +315,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(RAMSESGeometryHandler, self)._setup_classes(dd)
+        super(RAMSESIndex, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
@@ -349,7 +349,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
 class RAMSESDataset(Dataset):
-    _hierarchy_class = RAMSESGeometryHandler
+    _hierarchy_class = RAMSESIndex
     _fieldinfo_fallback = RAMSESFieldInfo
     _fieldinfo_known = KnownRAMSESFields
     _particle_mass_name = "ParticleMass"

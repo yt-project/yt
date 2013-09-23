@@ -26,7 +26,7 @@ from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.data_objects.field_info_container import NullFunc
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk, ChunkDataCache
+    Index, YTDataChunk, ChunkDataCache
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
@@ -36,7 +36,7 @@ from yt.utilities.lib import GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
 
-class GridGeometryHandler(GeometryHandler):
+class GridIndex(Index):
     float_type = 'float64'
     _preload_implemented = False
 

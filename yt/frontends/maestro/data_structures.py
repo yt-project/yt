@@ -30,7 +30,7 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-           GridGeometryHandler
+           GridIndex
 from yt.data_objects.static_output import \
            Dataset
 from yt.utilities.definitions import \
@@ -100,7 +100,7 @@ class MaestroGrid(AMRGridPatch):
     def __repr__(self):
         return "MaestroGrid_%04i" % (self.id)
 
-class MaestroHierarchy(GridGeometryHandler):
+class MaestroHierarchy(GridIndex):
     grid = MaestroGrid
     def __init__(self, pf, data_style='maestro'):
         self.field_indexes = {}
@@ -116,7 +116,7 @@ class MaestroHierarchy(GridGeometryHandler):
         pf.current_time = self.Time
         
         self.__cache_endianness(self.levels[-1].grids[-1])
-        GridGeometryHandler.__init__(self,pf, self.data_style)
+        GridIndex.__init__(self,pf, self.data_style)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
@@ -332,7 +332,7 @@ class MaestroHierarchy(GridGeometryHandler):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
     def _get_grid_children(self, grid):
@@ -379,7 +379,7 @@ class MaestroHierarchy(GridGeometryHandler):
         pass
 
     def _initialize_state_variables(self):
-        """override to not re-initialize num_grids in GridGeometryHandler.__init__
+        """override to not re-initialize num_grids in GridIndex.__init__
 
         """
         self._parallel_locking = False
