@@ -308,6 +308,8 @@ class PlotWindow(object):
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
         if fields is None:
             fields = []
+        else:
+            fields = ensure_list(fields)
         self.override_fields = list(np.intersect1d(fields, skip))
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
