@@ -290,7 +290,8 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, window_size=10.0):
+                 periodic=True, origin='center-window', oblique=False,
+                 window_size=10.0, fields=None):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
@@ -304,8 +305,13 @@ class PlotWindow(object):
         self.buff_size = buff_size
         self.window_size = window_size
         self.antialias = antialias
+        skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
+        if fields is None:
+            fields = []
+        self.override_fields = list(np.intersect1d(fields, skip))
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
+
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center))
                       if i != self.data_source.axis]
@@ -359,6 +365,8 @@ class PlotWindow(object):
             self._frb._get_data_source_fields()
         else:
             for key in old_fields: self._frb[key]
+        for key in self.override_fields:
+            self._frb[key]
         self._data_valid = True
 
     def _setup_plots(self):
@@ -366,7 +374,7 @@ class PlotWindow(object):
 
     @property
     def fields(self):
-        return self._frb.data.keys()
+        return self._frb.data.keys() + self.override_fields
 
     @property
     def width(self):
@@ -1274,7 +1282,8 @@ class SlicePlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis], center=center, fields=fields, **field_parameters)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin,
+                             fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1391,7 +1400,8 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
                          center=center, source=data_source, **field_parameters)
-        PWViewerMPL.__init__(self, proj, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, proj, bounds, origin=origin,
+                             fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1450,8 +1460,9 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector, **field_parameters)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window', periodic=False,
-                             oblique=True, fontsize=fontsize)
+        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window',
+                             periodic=False, oblique=True, fontsize=fontsize,
+                             fields=fields)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
