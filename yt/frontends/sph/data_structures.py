@@ -142,7 +142,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
     def __init__(self, filename, data_style="gadget_binary",
                  additional_fields=(),
                  unit_base=None, n_ref=64,
-                 over_refine_factor=1):
+                 over_refine_factor=1,
+                 bounding_box = None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
@@ -151,13 +152,18 @@ class GadgetStaticOutput(ParticleStaticOutput):
             # integration the redshift will be zero.
             unit_base['cmcm'] = unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
+        if bounding_box is not None:
+            bbox = np.array(bounding_box, dtype="float64")
+            self.domain_left_edge = bbox[:,0]
+            self.domain_right_edge = bbox[:,1]
+        else:
+            self.domain_left_edge = self.domain_right_edge = None
         super(GadgetStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
-    def _parse_parameter_file(self):
-
+    def _get_hvals(self):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
 
@@ -167,6 +173,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
 
+    def _parse_parameter_file(self):
+
+        hvals = self._get_hvals()
+
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
@@ -174,8 +184,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Set standard values
 
-        self.domain_left_edge = np.zeros(3, "float64")
-        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        # We may have an overridden bounding box.
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         self.periodicity = (True, True, True)
@@ -220,8 +232,6 @@ class GadgetStaticOutput(ParticleStaticOutput):
             self.filename_template = self.parameter_filename
 
         self.file_count = hvals["NumFiles"]
-
-        f.close()
 
     def _set_units(self):
         super(GadgetStaticOutput, self)._set_units()
@@ -322,6 +332,45 @@ class OWLSStaticOutput(GadgetStaticOutput):
             pass
         return False
 
+class GadgetHDF5StaticOutput(GadgetStaticOutput):
+    _hierarchy_class = ParticleGeometryHandler
+    _file_class = ParticleFile
+    _fieldinfo_fallback = OWLSFieldInfo
+    _fieldinfo_known = KnownOWLSFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
+
+    def __init__(self, filename, data_style="OWLS", 
+                 unit_base = None, n_ref=64,
+                 over_refine_factor=1,
+                 bounding_box = None):
+        self.storage_filename = None
+        filename = os.path.abspath(filename)
+        super(GadgetHDF5StaticOutput, self).__init__(
+            filename, data_style, unit_base=unit_base, n_ref=n_ref,
+            over_refine_factor=over_refine_factor,
+            bounding_box = bounding_box)
+
+    def _get_hvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        hvals = {}
+        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        # Compat reasons.
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        return hvals
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            if "Constants" not in fileh["/"].keys() and \
+               "Header" in fileh["/"].keys():
+                fileh.close()
+                return True
+            fileh.close()
+        except:
+            pass
+        return False
 
 class TipsyFile(ParticleFile):
 
