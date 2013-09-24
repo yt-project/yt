@@ -40,6 +40,8 @@ from .fields import \
     KnownOWLSFields, \
     GadgetFieldInfo, \
     KnownGadgetFields, \
+    GadgetHDF5FieldInfo, \
+    KnownGadgetHDF5Fields, \
     TipsyFieldInfo, \
     KnownTipsyFields
 
@@ -100,6 +102,8 @@ class ParticleStaticOutput(StaticOutput):
                 mpch['%shcm' % unit] = (mpch["%sh" % unit] *
                                         (1 + self.current_redshift))
                 mpch['%scm' % unit] = mpch[unit] * (1 + self.current_redshift)
+        elif 'cmcm' in unit_base:
+            unit_base['cm'] = self.units['cm'] = unit_base.pop("cmcm")
         # ud == unit destination
         # ur == unit registry
         for ud, ur in [(self.units, mpch), (self.time_units, sec_conversion)]:
@@ -150,7 +154,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
-            unit_base['cmcm'] = unit_base["UnitLength_in_cm"]
+            unit_base['cmcm'] = 1.0 / unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
         if bounding_box is not None:
             bbox = np.array(bounding_box, dtype="float64")
@@ -333,14 +337,11 @@ class OWLSStaticOutput(GadgetStaticOutput):
         return False
 
 class GadgetHDF5StaticOutput(GadgetStaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
     _file_class = ParticleFile
-    _fieldinfo_fallback = OWLSFieldInfo
-    _fieldinfo_known = KnownOWLSFields
-    _particle_mass_name = "Mass"
-    _particle_coordinates_name = "Coordinates"
+    _fieldinfo_fallback = GadgetHDF5FieldInfo
+    _fieldinfo_known = KnownGadgetHDF5Fields
 
-    def __init__(self, filename, data_style="OWLS", 
+    def __init__(self, filename, data_style="gadget_hdf5", 
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None):
@@ -357,6 +358,7 @@ class GadgetHDF5StaticOutput(GadgetStaticOutput):
         hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
         # Compat reasons.
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
         return hvals
 
     @classmethod

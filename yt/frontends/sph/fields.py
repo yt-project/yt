@@ -47,6 +47,9 @@ add_gadget_field = GadgetFieldInfo.add_field
 KnownGadgetFields = FieldInfoContainer()
 add_gadget_field = KnownGadgetFields.add_field
 
+GadgetHDF5FieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
+KnownGadgetHDF5Fields = FieldInfoContainer()
+
 TipsyFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_Tipsy_field = TipsyFieldInfo.add_field
 
@@ -98,55 +101,68 @@ for iname, oname in [("Coordinates", "particle_position_"),
 
 # Among other things we need to set up Coordinates
 
-_gadget_ptypes = ("Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry")
+def _setup_gadget_fields(ptypes, field_registry, known_registry):
 
-# This has to be done manually for Gadget, because some of the particles will
-# have uniform mass
-def _gadget_particle_fields(ptype):
-    def _Mass(field, data):
-        pind = _gadget_ptypes.index(ptype)
-        if data.pf["Massarr"][pind] == 0.0:
-            return data[ptype, "Masses"].copy()
-        mass = np.ones(data[ptype, "ParticleIDs"].shape[0], dtype="float64")
-        # Note that this is an alias, which is why we need to apply conversion
-        # here.  Otherwise we'd have an asymmetry.
-        mass *= data.pf["Massarr"][pind] * data.convert("mass")
-        return mass
-    GadgetFieldInfo.add_field((ptype, "Mass"), function=_Mass,
-                              particle_type = True)
+    # This has to be done manually for Gadget, because some of the particles will
+    # have uniform mass
+    def _gadget_particle_fields(ptype):
+        def _Mass(field, data):
+            pind = ptypes.index(ptype)
+            if data.pf["Massarr"][pind] == 0.0:
+                return data[ptype, "Masses"].copy()
+            mass = np.ones(data[ptype, "ParticleIDs"].shape[0], dtype="float64")
+            # Note that this is an alias, which is why we need to apply conversion
+            # here.  Otherwise we'd have an asymmetry.
+            mass *= data.pf["Massarr"][pind] * data.convert("mass")
+            return mass
+        field_registry.add_field((ptype, "Mass"), function=_Mass,
+                                  particle_type = True)
 
-for fname in ["Coordinates", "Velocities", "ParticleIDs",
-              # Note: Mass, not Masses
-              "Mass"]:
-    func = _field_concat(fname)
-    GadgetFieldInfo.add_field(("all", fname), function=func,
-            particle_type = True)
-
-for ptype in _gadget_ptypes:
-    KnownGadgetFields.add_field((ptype, "Masses"), function=NullFunc,
-        particle_type = True,
-        convert_function=_get_conv("mass"),
-        units = r"\mathrm{g}")
-    _gadget_particle_fields(ptype)
-    KnownGadgetFields.add_field((ptype, "Velocities"), function=NullFunc,
-        particle_type = True,
-        convert_function=_get_conv("velocity"),
-        units = r"\mathrm{cm}/\mathrm{s}")
-    particle_deposition_functions(ptype, "Coordinates", "Mass", GadgetFieldInfo)
-    particle_scalar_functions(ptype, "Coordinates", "Velocities", GadgetFieldInfo)
-    KnownGadgetFields.add_field((ptype, "Coordinates"), function=NullFunc,
-        particle_type = True)
-particle_deposition_functions("all", "Coordinates", "Mass", GadgetFieldInfo)
-
-# Now we have to manually apply the splits for "all", since we don't want to
-# use the splits defined above.
-
-for iname, oname in [("Coordinates", "particle_position_"),
-                     ("Velocities", "particle_velocity_")]:
-    for axi, ax in enumerate("xyz"):
-        func = _field_concat_slice(iname, axi)
-        GadgetFieldInfo.add_field(("all", oname + ax), function=func,
+    for fname in ["Coordinates", "Velocities", "ParticleIDs",
+                  # Note: Mass, not Masses
+                  "Mass"]:
+        func = _field_concat(fname)
+        field_registry.add_field(("all", fname), function=func,
                 particle_type = True)
+
+    for ptype in ptypes:
+        known_registry.add_field((ptype, "Masses"), function=NullFunc,
+            particle_type = True,
+            convert_function=_get_conv("mass"),
+            units = r"\mathrm{g}")
+        _gadget_particle_fields(ptype)
+        known_registry.add_field((ptype, "Velocities"), function=NullFunc,
+            particle_type = True,
+            convert_function=_get_conv("velocity"),
+            units = r"\mathrm{cm}/\mathrm{s}")
+        particle_deposition_functions(ptype, "Coordinates", "Mass", field_registry)
+        particle_scalar_functions(ptype, "Coordinates", "Velocities", field_registry)
+        known_registry.add_field((ptype, "Coordinates"), function=NullFunc,
+            particle_type = True)
+    particle_deposition_functions("all", "Coordinates", "Mass", field_registry)
+
+    # Now we have to manually apply the splits for "all", since we don't want to
+    # use the splits defined above.
+
+    for iname, oname in [("Coordinates", "particle_position_"),
+                         ("Velocities", "particle_velocity_")]:
+        for axi, ax in enumerate("xyz"):
+            func = _field_concat_slice(iname, axi)
+            field_registry.add_field(("all", oname + ax), function=func,
+                    particle_type = True)
+
+# Note that we call the same function a few times here.
+_gadget_ptypes = ("Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry")
+_ghdf5_ptypes  = ("PartType0", "PartType1", "PartType2", "PartType3",
+                  "PartType4", "PartType5")
+
+_setup_gadget_fields(_gadget_ptypes,
+    GadgetFieldInfo,
+    KnownGadgetFields)
+_setup_gadget_fields(_ghdf5_ptypes,
+    GadgetHDF5FieldInfo,
+    KnownGadgetHDF5Fields)
+
 
 # OWLS
 # ====
@@ -155,7 +171,7 @@ for iname, oname in [("Coordinates", "particle_position_"),
 # make OWLS a subclass of Gadget fields.
 
 _owls_ptypes = ("PartType0", "PartType1", "PartType2", "PartType3",
-                "PartType4")
+                "PartType4", "PartType5")
 
 for fname in ["Coordinates", "Velocities", "ParticleIDs",
               # Note: Mass, not Masses
