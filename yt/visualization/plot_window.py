@@ -313,7 +313,6 @@ class PlotWindow(object):
         self.override_fields = list(np.intersect1d(fields, skip))
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center))
                       if i != self.data_source.axis]
