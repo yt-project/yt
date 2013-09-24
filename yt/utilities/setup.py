@@ -157,7 +157,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("amr_kdtree")
     config.add_subpackage("poster")
     config.add_subpackage("answer_testing")
-    config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
     config.add_subpackage("spatial")
     config.add_subpackage("grid_data_format")
@@ -175,12 +174,6 @@ def configuration(parent_package='', top_path=None):
                          define_macros=[("H5_USE_16_API", True)],
                          libraries=["m", "hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
-    config.add_extension("libconfig_wrapper",
-                         ["yt/utilities/libconfig_wrapper.pyx"] +
-                         glob.glob("yt/utilities/_libconfig/*.c"),
-                         include_dirs=["yt/utilities/_libconfig/"],
-                         define_macros=[("HAVE_XLOCALE_H", True)]
-                         )
     config.make_config_py()  # installs __config__.py
     # config.make_svn_version_py()
     return config

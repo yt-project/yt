@@ -1,29 +1,18 @@
 """
 Particle Deposition onto Octs
 
-Author: Christopher Moody <chris.e.moody@gmail.com>
-Affiliation: UC Santa Cruz
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 cimport numpy as np
 import numpy as np
@@ -45,7 +34,8 @@ cdef struct NeighborList:
 
 cdef inline np.float64_t r2dist(np.float64_t ppos[3],
                                 np.float64_t cpos[3],
-                                np.float64_t DW[3]):
+                                np.float64_t DW[3],
+                                bint periodicity[3]):
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
@@ -65,6 +55,7 @@ cdef class ParticleSmoothOperation:
     cdef int nfields
     cdef int maxn
     cdef int curn
+    cdef bint periodicity[3]
     cdef np.int64_t *doffs
     cdef np.int64_t *pinds
     cdef np.int64_t *pcounts

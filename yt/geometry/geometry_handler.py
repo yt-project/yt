@@ -1,27 +1,18 @@
-""" 
+"""
 Geometry container base class.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import os
 import cPickle
@@ -47,8 +38,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.exceptions import YTFieldNotFound
 
+def _unsupported_object(pf, obj_name):
+    def _raise_unsupp(*args, **kwargs):
+        raise YTObjectNotImplemented(pf, obj_name)
+    return _raise_unsupp
+
 class GeometryHandler(ParallelAnalysisInterface):
     _global_mesh = True
+    _unsupported_objects = ()
 
     def __init__(self, pf, data_style):
         ParallelAnalysisInterface.__init__(self)
@@ -116,6 +113,10 @@ class GeometryHandler(ParallelAnalysisInterface):
         self.objects = []
         self.plots = []
         for name, cls in sorted(data_object_registry.items()):
+            if name in self._unsupported_objects:
+                setattr(self, name,
+                    _unsupported_object(self.parameter_file, name))
+                continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cname, cls, dd)
@@ -607,3 +608,36 @@ class YTDataChunk(object):
             cdt[ind:ind+gdt.size] = gdt
             ind += gt.size
         return cdt
+
+class ChunkDataCache(object):
+    def __init__(self, base_iter, preload_fields, geometry_handler,
+                 max_length = 256):
+        # At some point, max_length should instead become a heuristic function,
+        # potentially looking at estimated memory usage.  Note that this never
+        # initializes the iterator; it assumes the iterator is already created,
+        # and it calls next() on it.
+        self.base_iter = base_iter.__iter__()
+        self.queue = []
+        self.max_length = max_length
+        self.preload_fields = preload_fields
+        self.geometry_handler = geometry_handler
+        self.cache = {}
+
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        if len(self.queue) == 0:
+            for i in range(self.max_length):
+                try:
+                    self.queue.append(self.base_iter.next())
+                except StopIteration:
+                    break
+            # If it's still zero ...
+            if len(self.queue) == 0: raise StopIteration
+            chunk = YTDataChunk(None, "cache", self.queue, cache=False)
+            self.cache = self.geometry_handler.io._read_chunk_data(
+                chunk, self.preload_fields)
+        g = self.queue.pop(0)
+        g._initialize_cache(self.cache.pop(g.id, {}))
+        return g

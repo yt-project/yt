@@ -1,29 +1,18 @@
 """
 Oct container
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Author: Christopher Moody <chris.e.moody@gmail.com>
-Affiliation: UC Santa Cruz
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from libc.stdlib cimport malloc, free, qsort, realloc
 from libc.math cimport floor
@@ -812,47 +801,13 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass
 
 cdef class ARTOctreeContainer(OctreeContainer):
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fill_level_from_grid(self, int domain, int level, dest_fields, 
-                             source_fields, 
-                             np.ndarray[np.uint8_t, ndim=2, cast=True] mask,
-                             int offset):
-        #Fill  level, but instead of assuming that the source
-        #order is that of the oct order, we look up the oct position
-        #and fill its children from the the source field
-        #As a result, source is 3D grid with 8 times as many
-        #elements as the number of octs on this level in this domain
-        #and with the shape of an equal-sided cube
-        cdef np.ndarray[np.float64_t, ndim=3] source
-        cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef OctAllocationContainer *dom = self.domains[domain - 1]
-        cdef Oct *o
-        cdef int n
-        cdef int i, j, k, ii
-        cdef int local_pos, local_filled
-        cdef np.float64_t val
-        cdef np.int64_t ox,oy,oz
-        for key in dest_fields:
-            local_filled = 0
-            dest = dest_fields[key]
-            source = source_fields[key]
-            for n in range(dom.n):
-                o = &dom.my_octs[n]
-                #if o.level != level: continue
-                for i in range(2):
-                    for j in range(2):
-                        for k in range(2):
-                            ii = ((k*2)+j)*2+i
-                            if mask[o.domain_ind, ii] == 0: continue
-                            #ox = (o.pos[0] << 1) + i
-                            #oy = (o.pos[1] << 1) + j
-                            #oz = (o.pos[2] << 1) + k
-                            dest[local_filled + offset] = source[ox,oy,oz]
-                            local_filled += 1
-        return local_filled
+    def __init__(self, oct_domain_dimensions, domain_left_edge,
+                 domain_right_edge, partial_coverage = 0,
+                 over_refine = 1):
+        OctreeContainer.__init__(self, oct_domain_dimensions,
+                domain_left_edge, domain_right_edge, partial_coverage,
+                 over_refine)
+        self.fill_func = oct_visitors.fill_file_indices_rind
 
 cdef OctList *OctList_append(OctList *olist, Oct *o):
     cdef OctList *this = olist

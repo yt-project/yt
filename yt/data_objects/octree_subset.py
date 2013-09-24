@@ -1,27 +1,18 @@
 """
 Subsets of octrees
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -137,6 +128,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def deposit(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
+        if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -158,6 +150,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def smooth(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
+        if fields is None: fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -169,7 +162,7 @@ class OctreeSubset(YTSelectionContainer):
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
         op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
-            self.domain_id, self._domain_offset)
+            self.domain_id, self._domain_offset, self.pf.periodicity)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):
