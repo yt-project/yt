@@ -35,6 +35,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     _data_style = "enzo_packed_3d"
     _base = slice(None)
 
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+
     def _read_field_names(self, grid):
         return hdf5_light_reader.ReadListOfDatasets(
                     grid.filename, "/Grid%08i" % grid.id)
@@ -198,7 +202,14 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
-    _base = (slice(3, -3), slice(3, -3), slice(3, -3))
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        self._base = (slice(NGZ, -NGZ),
+                      slice(NGZ, -NGZ),
+                      slice(NGZ, -NGZ))
 
     def _read_raw_data_set(self, grid, field):
         return hdf5_light_reader.ReadData(grid.filename,
@@ -208,7 +219,8 @@ class IOHandlerInMemory(BaseIOHandler):
 
     _data_style = "enzo_inline"
 
-    def __init__(self, ghost_zones=3):
+    def __init__(self, pf, ghost_zones=3):
+        self.pf = pf
         import enzo
         self.enzo = enzo
         self.grids_in_memory = enzo.grid_data

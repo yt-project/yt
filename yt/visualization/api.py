@@ -20,8 +20,7 @@ from color_maps import \
 from plot_collection import \
     PlotCollection, \
     PlotCollectionInteractive, \
-    concatenate_pdfs, \
-    get_multi_plot
+    concatenate_pdfs
 
 from fixed_resolution import \
     FixedResolutionBuffer, \
@@ -54,5 +53,7 @@ from plot_window import \
     OffAxisSlicePlot, \
     ProjectionPlot, \
     OffAxisProjectionPlot
-    
+
+from base_plot_types import \
+    get_multi_plot
 
