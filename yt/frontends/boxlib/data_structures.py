@@ -36,6 +36,8 @@ from yt.utilities.lib import \
     get_box_grids_level
 from yt.geometry.selection_routines import \
     RegionSelector
+from yt.utilities.io_handler import \
+    io_registry
 
 from .definitions import \
     orion2enzoDict, \
@@ -59,11 +61,12 @@ _header_pattern = re.compile(r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), " +
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
+    _offset = -1
 
     def __init__(self, grid_id, offset, filename = None,
                  hierarchy = None):
         super(BoxlibGrid, self).__init__(grid_id, filename, hierarchy)
-        self._offset = offset
+        self._base_offset = offset
         self._parent_id = []
         self._children_ids = []
 
@@ -95,6 +98,16 @@ class BoxlibGrid(AMRGridPatch):
     def Children(self):
         return [self.hierarchy.grids[cid - self._id_offset]
                 for cid in self._children_ids]
+
+    def _seek(self, f):
+        # This will either seek to the _offset or figure out the correct
+        # _offset.
+        if self._offset == -1:
+            f.seek(self._base_offset, os.SEEK_SET)
+            f.readline()
+            self._offset = f.tell()
+        else:
+            f.seek(self._offset)
 
 class BoxlibHierarchy(GridGeometryHandler):
     grid = BoxlibGrid
@@ -289,6 +302,9 @@ class BoxlibHierarchy(GridGeometryHandler):
         dd = self._get_data_reader_dict()
         GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.parameter_file)
 
 class BoxlibStaticOutput(StaticOutput):
     """

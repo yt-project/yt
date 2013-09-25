@@ -15,35 +15,72 @@ Orion data-file handling functions
 
 import os
 import numpy as np
-from yt.utilities.lib import read_castro_particles, read_and_seek
+from yt.utilities.lib import \
+    read_castro_particles, \
+    read_and_seek
 from yt.utilities.io_handler import \
            BaseIOHandler
+from yt.funcs import mylog, defaultdict
 
 class IOHandlerBoxlib(BaseIOHandler):
 
     _data_style = "boxlib_native"
 
-    def modify(self, field):
-        return field.swapaxes(0,2)
+    def __init__(self, pf, *args, **kwargs):
+        self.pf = pf
 
-    def _read_data(self, grid, field):
-        """
-        reads packed multiFABs output by BoxLib in "NATIVE" format.
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
+        rv = {}
+        for field in fields:
+            rv[field] = np.empty(size, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                    size, [f2 for f1, f2 in fields], ng)
+        ind = 0
+        for chunk in chunks:
+            data = self._read_chunk_data(chunk, fields)
+            for g in chunk.objs:
+                for field in fields:
+                    ftype, fname = field
+                    ds = data[g.id].pop(fname)
+                    nd = g.select(selector, ds, rv[field], ind) # caches
+                ind += nd
+                data.pop(g.id)
+        return rv
 
-        """
-
-        filen = os.path.expanduser(grid.filename)
-        offset1 = grid._offset
-        dtype = grid.hierarchy._dtype
-        bpr = grid.hierarchy._dtype.itemsize
-        ne = grid.ActiveDimensions.prod()
-        field_index = grid.hierarchy.field_indexes[field]
-        offset2 = int(ne*bpr*field_index)
-
-        field = np.empty(grid.ActiveDimensions, dtype=dtype, order='F')
-        read_and_seek(filen, offset1, offset2, field, ne * bpr)
-
-        return field
+    def _read_chunk_data(self, chunk, fields):
+        data = {}
+        grids_by_file = defaultdict(list)
+        if len(chunk.objs) == 0: return data
+        for g in chunk.objs:
+            if g.filename is None:
+                continue
+            grids_by_file[g.filename].append(g)
+        dtype = self.pf.hierarchy._dtype
+        bpr = dtype.itemsize
+        field_indices = self.pf.hierarchy.field_indexes
+        field_list = set(f[1] for f in fields)
+        for filename in grids_by_file:
+            grids = grids_by_file[filename]
+            grids.sort(key = lambda a: a._offset)
+            f = open(filename, "rb")
+            for grid in grids:
+                data[grid.id] = {}
+                grid._seek(f)
+                count = grid.ActiveDimensions.prod()
+                size = count * bpr
+                for field in field_indices:
+                    if field in field_list:
+                        # We read it ...
+                        v = np.fromfile(f, dtype=dtype, count=count)
+                        v = v.reshape(grid.ActiveDimensions, order='F')
+                        data[grid.id][field] = v
+                    else:
+                        f.seek(size, os.SEEK_CUR)
+        return data
 
 class IOHandlerOrion(IOHandlerBoxlib):
     _data_style = "orion_native"
