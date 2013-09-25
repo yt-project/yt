@@ -1,30 +1,18 @@
 """
 Export/Import of volume rendered images.
 
-Author: Samuel Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import h5py
-try: import pyfits
-except: pass
 import numpy as np
 
 from yt.funcs import *
@@ -44,13 +32,16 @@ def export_rgba(image, fn, h5=True, fits=False, ):
         f.close()
     if fits:
         try:
-            hdur = pyfits.PrimaryHDU(image[:,:,0])
-            hdug = pyfits.ImageHDU(image[:,:,1])
-            hdub = pyfits.ImageHDU(image[:,:,2])
-            hdua = pyfits.ImageHDU(image[:,:,3])
-            hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
-            hdulist.writeto('%s.fits'%fn,clobber=True)
-        except: mylog.error('You do not have pyfits, install before attempting to use fits exporter')
+            import pyfits
+        except ImportError:
+            mylog.error('You do not have pyfits, install before attempting to use fits exporter')
+            raise
+        hdur = pyfits.PrimaryHDU(image[:,:,0])
+        hdug = pyfits.ImageHDU(image[:,:,1])
+        hdub = pyfits.ImageHDU(image[:,:,2])
+        hdua = pyfits.ImageHDU(image[:,:,3])
+        hdulist = pyfits.HDUList([hdur,hdug,hdub,hdua])
+        hdulist.writeto('%s.fits'%fn,clobber=True)
 
 def import_rgba(name, h5=True):
     """

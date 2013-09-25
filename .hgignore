@@ -12,6 +12,7 @@ yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
 yt/utilities/libconfig_wrapper.c
 yt/utilities/spatial/ckdtree.c
+yt/utilities/lib/amr_kdtools.c
 yt/utilities/lib/CICDeposit.c
 yt/utilities/lib/ContourFinding.c
 yt/utilities/lib/DepthFirstOctree.c
@@ -32,6 +33,7 @@ yt/utilities/lib/grid_traversal.c
 yt/utilities/lib/GridTree.c
 yt/utilities/lib/marching_cubes.c
 yt/utilities/lib/png_writer.h
+yt/utilities/lib/write_array.c
 syntax: glob
 *.pyc
 .*.swp

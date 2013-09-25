@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import inspect
@@ -271,12 +261,14 @@ class FieldDetector(defaultdict):
                 else: self[item] = vv.ravel()
                 return self[item]
         self.requested.append(item)
-        return defaultdict.__missing__(self, item)
+        if item not in self:
+            self[item] = self._read_data(item)
+        return self[item]
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
         FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(field_name) and FI[field_name].particle_type:
+        if field_name in FI and FI[field_name].particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)

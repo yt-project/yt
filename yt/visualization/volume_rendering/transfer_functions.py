@@ -1,27 +1,17 @@
 """
 Simple transfer function editor
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -236,8 +226,15 @@ class MultiVariateTransferFunction(object):
     this is fine.  However, more complicated schema are possible by using
     this object.  For instance, density-weighted emission that produces
     colors based on the temperature of the fluid.
+
+    Parameters
+    ----------
+    grey_opacity : bool
+        Should opacity be calculated on a channel-by-channel basis, or
+        overall?  Useful for opaque renderings. Default: False
+ 
     """
-    def __init__(self):
+    def __init__(self, grey_opacity=False):
         self.n_field_tables = 0
         self.tables = [] # Tables are interpolation tables
         self.field_ids = [0] * 6 # This correlates fields with tables
@@ -246,6 +243,7 @@ class MultiVariateTransferFunction(object):
         self.weight_table_ids = [-1] * 6
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, 'float64')
+        self.grey_opacity = grey_opacity
 
     def add_field_table(self, table, field_id, weight_field_id = -1,
                         weight_table_id = -1):
@@ -641,6 +639,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
             self.x_bounds[0]))
+        rel0 = max(rel0, 0)
+        rel1 = min(rel1, self.nbins-1)
         tomap = np.linspace(0.,1.,num=rel1-rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)
@@ -801,6 +801,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             self.link_channels(i+3, i+3)
 
         self._normalize()
+        self.grey_opacity = False
 
     def _normalize(self):
         fmax  = np.array([f.y for f in self.tables[:3]])

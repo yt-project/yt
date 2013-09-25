@@ -1,27 +1,17 @@
 """
 FLASH-specific fields
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2012 Matthew Turk, John ZuHone, Anthony Scopatz.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from yt.utilities.exceptions import *
@@ -366,5 +356,21 @@ def _nion(field, data):
 add_field('nion', function=_nion, take_log=True, units=r"\rm{cm}^{-3}")
 
 def _abar(field, data):
-    return 1.0 / data['sumy']
+    try:
+        return 1.0 / data['sumy']
+    except:
+        pass
+    return data['dens']*Na*kboltz*data['temp']/data['pres']
 add_field('abar', function=_abar, take_log=False)
+	
+
+def _NumberDensity(fields,data) :
+    try:
+        return data["nele"]+data["nion"]
+    except:
+        pass
+    return data['pres']/(data['temp']*kboltz)
+add_field("NumberDensity", function=_NumberDensity,
+        units=r'\rm{cm}^{-3}')
+
+

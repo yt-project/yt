@@ -1,35 +1,17 @@
 """
 Callbacks to add additional functionality on to plots.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
-Affiliation: UC Berkeley
-Author: Stephen Skory <s@skory.us>
-Affiliation: UC San Diego
-Author: Anthony Scopatz <scopatz@gmail.com>
-Affiliation: The University of Chicago
-Homepage: http://yt-project.org/
-Author: Nathan Goldbaum <goldbaum@ucolick.org>
-Affiliation: UC Santa Cruz
-License:
-  Copyright (C) 2008-2011 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -44,6 +26,7 @@ from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
+from yt.visualization.image_writer import apply_colormap
 
 import _MPL
 
@@ -129,7 +112,16 @@ class VelocityCallback(PlotCallback):
         else:
             xv = "%s-velocity" % (x_names[plot.data.axis])
             yv = "%s-velocity" % (y_names[plot.data.axis])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
+
+            bv = plot.data.get_field_parameter("bulk_velocity")
+            if bv is not None:
+                bv_x = bv[x_dict[plot.data.axis]]
+                bv_y = bv[y_dict[plot.data.axis]]
+            else: bv_x = bv_y = 0
+
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+                                 scale_units=self.scale_units, 
+                                 normalize=self.normalize, bv_x=bv_x, bv_y=bv_y)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
@@ -166,7 +158,8 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     """
-    annotate_quiver(field_x, field_y, factor, scale=None, scale_units=None, normalize=False):
+    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None, 
+                    normalize=False, bv_x=0, bv_y=0):
 
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints
@@ -174,11 +167,12 @@ class QuiverCallback(PlotCallback):
     (see matplotlib.axes.Axes.quiver for more info)
     """
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False):
+    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False, bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.bv_x = self.bv_y = 0
+        self.bv_x = bv_x
+        self.bv_y = bv_y
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
@@ -219,30 +213,36 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     """
-    annotate_contour(self, field, ncont=5, factor=4, take_log=False, clim=None,
-                     plot_args = None):
+    annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
+                     plot_args=None, label=False, label_args=None,
+                     data_source=None):
 
     Add contours in *field* to the plot.  *ncont* governs the number of
     contours generated, *factor* governs the number of points used in the
     interpolation, *take_log* governs how it is contoured and *clim* gives
-    the (upper, lower) limits for contouring.
+    the (upper, lower) limits for contouring.  An alternate data source can be
+    specified with *data_source*, but by default the plot's data source will be
+    queried.
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args = None, label = False, label_args = None):
+                 plot_args = None, label = False, take_log = None, 
+                 label_args = None, data_source = None):
         PlotCallback.__init__(self)
         self.ncont = ncont
         self.field = field
         self.factor = factor
-        from yt.utilities.delaunay.triangulate import Triangulation as triang
+        from matplotlib.delaunay.triangulate import Triangulation as triang
         self.triang = triang
         self.clim = clim
+        self.take_log = take_log
         if plot_args is None: plot_args = {'colors':'k'}
         self.plot_args = plot_args
         self.label = label
         if label_args is None:
             label_args = {}
         self.label_args = label_args
+        self.data_source = data_source
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -263,26 +263,27 @@ class ContourCallback(PlotCallback):
         # We want xi, yi in plot coordinates
         xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),
                           yy0:yy1:numPoints_y/(self.factor*1j)]
+        data = self.data_source or plot.data
 
         if plot._type_name in ['CuttingPlane','Projection','Slice']:
             if plot._type_name == 'CuttingPlane':
-                x = plot.data["px"]*dx
-                y = plot.data["py"]*dy
-                z = plot.data[self.field]
+                x = data["px"]*dx
+                y = data["py"]*dy
+                z = data[self.field]
             elif plot._type_name in ['Projection','Slice']:
                 #Makes a copy of the position fields "px" and "py" and adds the
                 #appropriate shift to the copied field.  
 
-                AllX = np.zeros(plot.data["px"].size, dtype='bool')
-                AllY = np.zeros(plot.data["py"].size, dtype='bool')
-                XShifted = plot.data["px"].copy()
-                YShifted = plot.data["py"].copy()
+                AllX = np.zeros(data["px"].size, dtype='bool')
+                AllY = np.zeros(data["py"].size, dtype='bool')
+                XShifted = data["px"].copy()
+                YShifted = data["py"].copy()
                 dom_x, dom_y = plot._period
                 for shift in np.mgrid[-1:1:3j]:
-                    xlim = ((plot.data["px"] + shift*dom_x >= x0) &
-                            (plot.data["px"] + shift*dom_x <= x1))
-                    ylim = ((plot.data["py"] + shift*dom_y >= y0) &
-                            (plot.data["py"] + shift*dom_y <= y1))
+                    xlim = ((data["px"] + shift*dom_x >= x0) &
+                            (data["px"] + shift*dom_x <= x1))
+                    ylim = ((data["py"] + shift*dom_y >= y0) &
+                            (data["py"] + shift*dom_y <= y1))
                     XShifted[xlim] += shift * dom_x
                     YShifted[ylim] += shift * dom_y
                     AllX |= xlim
@@ -295,7 +296,7 @@ class ContourCallback(PlotCallback):
                 # This converts XShifted and YShifted into plot coordinates
                 x = (XShifted[wI]-x0)*dx + xx0
                 y = (YShifted[wI]-y0)*dy + yy0
-                z = plot.data[self.field][wI]
+                z = data[self.field][wI]
         
             # Both the input and output from the triangulator are in plot
             # coordinates
@@ -303,9 +304,12 @@ class ContourCallback(PlotCallback):
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         
-        if plot.pf.field_info[self.field].take_log: zi=np.log10(zi)
+        if self.take_log is None:
+            self.take_log = plot.pf.field_info[self.field].take_log
 
-        if plot.pf.field_info[self.field].take_log and self.clim is not None: 
+        if self.take_log: zi=np.log10(zi)
+
+        if self.take_log and self.clim is not None: 
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
         
         if self.clim is not None: 
@@ -322,18 +326,21 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=1.0, min_pix=1, draw_ids=False, periodic=True)
+    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
 
-    Adds grid boundaries to a plot, optionally with *alpha*-blending.
-    Cuttoff for display is at *min_pix* wide.
-    *draw_ids* puts the grid id in the corner of the grid.  (Not so great in projections...)
-    Grids must be wider than *min_pix_ids* otherwise the ID will not be drawn.  If *min_level* 
-    is specified, only draw grids at or above min_level.  If *max_level* is specified, only 
-    draw grids at or below max_level.
+    Draws grids on an existing PlotWindow object.
+    Adds grid boundaries to a plot, optionally with alpha-blending. By default, 
+    colors different levels of grids with different colors going from white to
+    black, but you can change to any arbitrary colormap with cmap keyword 
+    (or all black cells for all levels with cmap=None).  Cuttoff for display is at 
+    min_pix wide. draw_ids puts the grid id in the corner of the grid. 
+    (Not so great in projections...).  One can set min and maximum level of
+    grids to display.
     """
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None):
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -342,6 +349,7 @@ class GridBoundaryCallback(PlotCallback):
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
+        self.cmap = cmap
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -361,13 +369,13 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.grid_left_edge
         GRE = plot.data.grid_right_edge
-        grid_levels = plot.data.grid_levels[:,0]
+        levels = plot.data.grid_levels[:,0]
         min_level = self.min_level
         max_level = self.max_level
-        if min_level is None:
-            min_level = 0
         if max_level is None:
             max_level = plot.data.pf.h.max_level
+        if min_level is None:
+            min_level = 0
 
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
@@ -378,19 +386,28 @@ class GridBoundaryCallback(PlotCallback):
             right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
                        ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
-                       ( grid_levels >= min_level) & \
-                       ( grid_levels <= max_level)
+                       ( levels >= min_level) & \
+                       ( levels <= max_level)
+
+            if self.cmap is not None: 
+                edgecolors = apply_colormap(levels[(levels <= max_level) & (levels >= min_level)]*1.0,
+                                  color_bounds=[0,plot.data.pf.h.max_level],
+                                  cmap_name=self.cmap)[0,:,:]*1.0/255.
+                edgecolors[:,3] = self.alpha
+            else:
+                edgecolors = (0.0,0.0,0.0,self.alpha)
+
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
                 [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
-            edgecolors = (0.0,0.0,0.0,self.alpha)
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
                 edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
+
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
                                ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
@@ -472,7 +489,7 @@ class LabelCallback(PlotCallback):
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
     good_u = None
-    for unit in ['mpc','kpc','pc','au','rsun','cm']:
+    for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
         vv = v*pf[unit]
         if vv < max_nu and vv > 1.0:
             good_u = unit
@@ -694,7 +711,7 @@ class ClumpContourCallback(PlotCallback):
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
-        self.rv = plot._axes.contour(buff, len(self.clumps)+1,
+        self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent,**self.plot_args)
         plot._axes.hold(False)
 

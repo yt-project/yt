@@ -1,27 +1,17 @@
 """
 Fields specific to Enzo
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -37,7 +27,8 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    mh
+    mh, \
+    kpc_per_cm
 from yt.funcs import *
 
 import yt.utilities.lib as amr_utils
@@ -77,6 +68,7 @@ def _SpeciesNumberDensity(field, data):
 
 def _convertCellMassMsun(data):
     return 5.027854e-34 # g^-1
+
 def _ConvertNumberDensity(data):
     return 1.0/mh
 
@@ -315,6 +307,10 @@ add_field("RadiationAcceleration",
 
 def _convertDensity(data):
     return data.convert("Density")
+
+def _convertCmToKpc(data):
+    return 1/(kpc_per_cm)**3
+
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
         ["SN_Colour"]:
     KnownEnzoFields[field]._units = r"\rm{g}/\rm{cm}^3"
@@ -352,24 +348,51 @@ for ax in ['x','y','z']:
     f.take_log = False
 
 def _spdensity(field, data):
-    blank = np.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return blank
     filter = data['creation_time'] > 0.0
     if not filter.any(): return blank
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),
                            data["particle_position_z"][filter].astype(np.float64),
-                           data["particle_mass"][filter].astype(np.float32),
+                           data["particle_mass"][filter],
                            np.int64(np.where(filter)[0].size),
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
     return blank
+
 add_field("star_density", function=_spdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          units = r"\rm{g}/\rm{cm}^3",
+          projected_units = r"\rm{g}/\rm{cm}^2",
+          display_name = "Stellar\/Density")
+
+def _tpdensity(field, data): 
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
+    if data["particle_position_x"].size == 0: return blank
+    filter = data['particle_type'] == 3 # tracer particles
+    if not filter.any(): return blank
+    amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
+                           data["particle_position_y"][filter].astype(np.float64),
+                           data["particle_position_z"][filter].astype(np.float64),
+                           np.ones(filter.sum(), dtype="float64"),
+                           np.int64(np.where(filter)[0].size),
+                           blank, np.array(data.LeftEdge).astype(np.float64),
+                           np.array(data.ActiveDimensions).astype(np.int32), 
+                           np.float64(data['dx']))
+    blank /= data['CellVolume']
+    return blank
+
+add_field("tracer_number_density", function=_tpdensity,
+          validators=[ValidateSpatial(0)], convert_function=_convertCmToKpc,
+          units = r"\rm{particles}/\rm{kpc}^3",
+          projected_units = r"\rm{particles}/\rm{kpc}^2",
+          display_name = "Tracer\/Particle\/Number\/Density",
+          projection_conversion='kpc')
 
 def _dmpdensity(field, data):
-    blank = np.zeros(data.ActiveDimensions, dtype='float32')
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return blank
     if 'creation_time' in data.pf.field_info:
         filter = data['creation_time'] <= 0.0
@@ -381,14 +404,18 @@ def _dmpdensity(field, data):
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),
                            data["particle_position_z"][filter].astype(np.float64),
-                           data["particle_mass"][filter].astype(np.float32),
+                           data["particle_mass"][filter],
                            num,
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
     return blank
+
 add_field("dm_density", function=_dmpdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          units = r"\rm{g}/\rm{cm}^3",
+          projected_units = r"\rm{g}/\rm{cm}^2",
+          display_name = "Dark\/Matter\/Density")
 
 def _cic_particle_field(field, data):
     """
@@ -396,24 +423,24 @@ def _cic_particle_field(field, data):
     using cloud-in-cell deposit.
     """
     particle_field = field.name[4:]
-    top = np.zeros(data.ActiveDimensions, dtype='float32')
+    top = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return top
     particle_field_data = data[particle_field] * data['particle_mass']
     amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
                            data["particle_position_y"].astype(np.float64),
                            data["particle_position_z"].astype(np.float64),
-                           particle_field_data.astype(np.float32),
+                           particle_field_data,
                            data["particle_position_x"].size,
                            top, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
                            np.float64(data['dx']))
     del particle_field_data
 
-    bottom = np.zeros(data.ActiveDimensions, dtype='float32')
+    bottom = np.zeros(data.ActiveDimensions, dtype='float64')
     amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
                            data["particle_position_y"].astype(np.float64),
                            data["particle_position_z"].astype(np.float64),
-                           data["particle_mass"].astype(np.float32),
+                           data["particle_mass"],
                            data["particle_position_x"].size,
                            bottom, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
@@ -435,7 +462,7 @@ def _star_field(field, data):
     Create a grid field for star quantities, weighted by star mass.
     """
     particle_field = field.name[5:]
-    top = np.zeros(data.ActiveDimensions, dtype='float32')
+    top = np.zeros(data.ActiveDimensions, dtype='float64')
     if data["particle_position_x"].size == 0: return top
     filter = data['creation_time'] > 0.0
     if not filter.any(): return top
@@ -443,18 +470,18 @@ def _star_field(field, data):
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                           data["particle_position_y"][filter].astype(np.float64),
                           data["particle_position_z"][filter].astype(np.float64),
-                          particle_field_data.astype(np.float32),
+                          particle_field_data,
                           np.int64(np.where(filter)[0].size),
                           top, np.array(data.LeftEdge).astype(np.float64),
                           np.array(data.ActiveDimensions).astype(np.int32), 
                           np.float64(data['dx']))
     del particle_field_data
 
-    bottom = np.zeros(data.ActiveDimensions, dtype='float32')
+    bottom = np.zeros(data.ActiveDimensions, dtype='float64')
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                           data["particle_position_y"][filter].astype(np.float64),
                           data["particle_position_z"][filter].astype(np.float64),
-                          data["particle_mass"][filter].astype(np.float32),
+                          data["particle_mass"][filter],
                           np.int64(np.where(filter)[0].size),
                           bottom, np.array(data.LeftEdge).astype(np.float64),
                           np.array(data.ActiveDimensions).astype(np.int32), 

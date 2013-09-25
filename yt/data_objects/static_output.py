@@ -2,27 +2,17 @@
 Generalized Enzo output objects, both static and time-series.
 
 Presumably at some point EnzoRun will be absorbed into here.
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import string, re, gc, time, os, os.path, weakref
 
@@ -57,14 +47,22 @@ class StaticOutput(object):
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, types.StringTypes):
             obj = object.__new__(cls)
-            obj.__init__(filename, *args, **kwargs)
+            # The Stream frontend uses a StreamHandler object to pass metadata
+            # to __init__.
+            is_stream = (hasattr(filename, 'get_fields') and
+                         hasattr(filename, 'get_particle_type'))
+            if not is_stream:
+                obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            _cached_pfs[apath] = obj
-        return _cached_pfs[apath]
+            if obj._skip_cache is False:
+                _cached_pfs[apath] = obj
+        else:
+            obj = _cached_pfs[apath]
+        return obj
 
     def __init__(self, filename, data_style=None, file_style=None):
         """
@@ -132,6 +130,10 @@ class StaticOutput(object):
     def _mrep(self):
         return MinimalStaticOutput(self)
 
+    @property
+    def _skip_cache(self):
+        return False
+
     def hub_upload(self):
         self._mrep.upload()
 
@@ -165,7 +167,7 @@ class StaticOutput(object):
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
-        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'cm']:
+        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
             vv = v*self[unit]
             if vv < max_nu and vv > 1.0:
                 good_u = unit

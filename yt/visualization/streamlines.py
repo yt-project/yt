@@ -1,27 +1,17 @@
 """
 Import the components of the volume rendering extension
 
-Author: Samuel Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from yt.funcs import *
@@ -169,8 +159,8 @@ class Streamlines(ParallelAnalysisInterface):
                    np.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
 
-            if np.any(stream[-step+1,:] < node.left_edge) | \
-                   np.any(stream[-step+1,:] >= node.right_edge):
+            if np.any(stream[-step+1,:] < node.get_left_edge()) | \
+                   np.any(stream[-step+1,:] >= node.get_right_edge()):
                 return step-1
             step -= 1
         return step

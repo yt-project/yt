@@ -1,27 +1,17 @@
 """
 ART-specific fields
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
@@ -280,12 +270,12 @@ add_field("particle_cell_mass_dm", function=mass_dm, units = r"\mathrm{M_{sun}}"
         projection_conversion="1")
 
 def _spdensity(field, data):
-    grid_mass = np.zeros(data.ActiveDimensions, dtype='float32')
+    grid_mass = np.zeros(data.ActiveDimensions, dtype='float64')
     if data.star_mass.shape[0] ==0 : return grid_mass 
     amr_utils.CICDeposit_3(data.star_position_x,
                            data.star_position_y,
                            data.star_position_z,
-                           data.star_mass.astype('float32'),
+                           data.star_mass,
                            data.star_mass.shape[0],
                            grid_mass, 
                            np.array(data.LeftEdge).astype(np.float64),

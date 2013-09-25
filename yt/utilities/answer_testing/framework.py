@@ -1,27 +1,17 @@
 """
 Answer Testing using Nose as a starting point
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import logging
 import os
@@ -33,6 +23,7 @@ import sys
 import cPickle
 import shelve
 import zlib
+import tempfile
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -45,7 +36,7 @@ from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.utilities.progressbar as progressbar
+import yt.extern.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -270,7 +261,7 @@ def can_run_pf(pf_fn):
     with temp_cwd(path):
         try:
             load(pf_fn)
-        except:
+        except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
@@ -604,16 +595,18 @@ class PlotWindowAttributeTest(AnswerTestingTest):
                                 self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
-        fn = plot.save()[0]
-        image = mpimg.imread(fn)
-        os.remove(fn)
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):
         fns = ['old.png', 'new.png']
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
-        compare_images(fns[0], fns[1], 10**(-self.decimals))
+        assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
         for fn in fns: os.remove(fn)
 
 def requires_pf(pf_fn, big_data = False):

@@ -1,40 +1,30 @@
 """
 Useful functions.  If non-original, see function for citation.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
-from distutils import version
+from distutils.version import LooseVersion
 from math import floor, ceil
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
-import yt.utilities.progressbar as pb
+import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from collections import defaultdict
 from functools import wraps
@@ -250,6 +240,17 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
+def get_ipython_api_version():
+    import IPython
+    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
+        api_version = '0.10'
+    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
+        api_version = '0.11'
+    else:
+        api_version = '1.0'
+
+    return api_version
+
 def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
@@ -259,11 +260,7 @@ def insert_ipython(num_up=1):
     defaults to 1 so that this function itself is stripped off.
     """
 
-    import IPython
-    if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
-        api_version = '0.10'
-    else:
-        api_version = '0.11'
+    api_version = get_ipython_api_version()
 
     stack = inspect.stack()
     frame = inspect.stack()[num_up]
@@ -281,7 +278,10 @@ def insert_ipython(num_up=1):
         cfg.InteractiveShellEmbed.local_ns = loc
         cfg.InteractiveShellEmbed.global_ns = glo
         IPython.embed(config=cfg, banner2 = __header % dd)
-        from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        if api_version == '0.11':
+            from IPython.frontend.terminal.embed import InteractiveShellEmbed
+        else:
+            from IPython.terminal.embed import InteractiveShellEmbed
         ipshell = InteractiveShellEmbed(config=cfg)
 
     del ipshell
@@ -368,6 +368,20 @@ def only_on_root(func, *args, **kwargs):
         return func(*args,**kwargs)
     if ytcfg.getint("yt", cfg_option) > 0: return
     return func(*args, **kwargs)
+
+def is_root():
+    """
+    This function returns True if it is on the root processor of the
+    topcomm and False otherwise.
+    """
+    from yt.config import ytcfg
+    cfg_option = "__topcomm_parallel_rank"
+    if not ytcfg.getboolean("yt","__parallel"):
+        return True
+    if ytcfg.getint("yt", cfg_option) > 0: 
+        return False
+    return True
+
 
 #
 # Our signal and traceback handling functions
@@ -602,3 +616,12 @@ def fix_axis(axis):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+
+
+def ensure_dir_exists(path):
+    r"""Create all directories in path recursively in a parallel safe manner"""
+    my_dir = os.path.dirname(path)
+    if not my_dir:
+        return
+    if not os.path.exists(my_dir):
+        only_on_root(os.makedirs, my_dir)

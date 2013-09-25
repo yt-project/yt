@@ -1,6 +1,6 @@
 #!python
 import os, re
-from distutils import version
+from distutils.version import LooseVersion
 from yt.mods import *
 from yt.data_objects.data_containers import AMRData
 namespace = locals().copy()
@@ -23,10 +23,12 @@ except:
     code.interact(doc, None, namespace)
     sys.exit()
 
-if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
+if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
     api_version = '0.10'
-else:
+elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
     api_version = '0.11'
+else:
+    api_version = '1.0'
 
 if api_version == "0.10" and "DISPLAY" in os.environ:
     from matplotlib import rcParams
@@ -42,13 +44,18 @@ if api_version == "0.10" and "DISPLAY" in os.environ:
         ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
 elif api_version == "0.10":
     ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
-elif api_version == "0.11":
-    from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell
+else:
+    if api_version == "0.11":
+        from IPython.frontend.terminal.interactiveshell import \
+            TerminalInteractiveShell
+    elif api_version == "1.0":
+        from IPython.terminal.interactiveshell import TerminalInteractiveShell
+    else:
+        raise RuntimeError
     ip_shell = TerminalInteractiveShell(user_ns=namespace, banner1 = doc,
                     display_banner = True)
     if "DISPLAY" in os.environ: ip_shell.enable_pylab(import_all=False)
-else:
-    raise RuntimeError
+
 
 # The rest is a modified version of the IPython default profile code
 
@@ -77,7 +84,7 @@ if api_version == "0.10":
     ip = ip_shell.IP.getapi()
     try_next = IPython.ipapi.TryNext
     kwargs = dict(sys_exit=1, banner=doc)
-elif api_version == "0.11":
+elif api_version in ("0.11", "1.0"):
     ip = ip_shell
     try_next = IPython.core.error.TryNext
     kwargs = dict()
