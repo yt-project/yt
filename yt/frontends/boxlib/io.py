@@ -74,7 +74,12 @@ class IOHandlerOrion(IOHandlerBoxlib):
                  'particle_angmomen_x': 7,
                  'particle_angmomen_y': 8,
                  'particle_angmomen_z': 9,
-                 'particle_id': -1}
+                 'particle_mlast': 10,
+                 'particle_mdeut': 11,
+                 'particle_n': 12,
+                 'particle_mdot': 13,
+                 'particle_burnstate': 14,
+                 'particle_id': 15}
 
         if len(line.strip().split()) == 11:
             # these are vanilla sinks, do nothing
