@@ -65,14 +65,14 @@ from yt.frontends.enzo.api import \
     EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
-from yt.frontends.castro.api import \
-    CastroStaticOutput, CastroFieldInfo, add_castro_field
+# from yt.frontends.castro.api import \
+#     CastroStaticOutput, CastroFieldInfo, add_castro_field
 
-from yt.frontends.nyx.api import \
-    NyxStaticOutput, NyxFieldInfo, add_nyx_field
+# from yt.frontends.nyx.api import \
+#     NyxStaticOutput, NyxFieldInfo, add_nyx_field
 
-from yt.frontends.orion.api import \
-    OrionStaticOutput, OrionFieldInfo, add_orion_field
+# from yt.frontends.orion.api import \
+#     OrionStaticOutput, OrionFieldInfo, add_orion_field
 
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
