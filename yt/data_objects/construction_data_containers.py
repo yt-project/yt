@@ -327,7 +327,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         icoords = chunk.icoords
         i1 = icoords[:,x_dict[self.axis]]
         i2 = icoords[:,y_dict[self.axis]]
-        ilevel = chunk.ires
+        ilevel = chunk.ires * self.pf.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
@@ -347,7 +347,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         icoords = chunk.icoords
         i1 = icoords[:,x_dict[self.axis]]
         i2 = icoords[:,y_dict[self.axis]]
-        ilevel = chunk.ires
+        ilevel = chunk.ires * self.pf.ires_factor
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
     def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
