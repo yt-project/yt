@@ -575,6 +575,10 @@ class BoxlibStaticOutput(StaticOutput):
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
 
+    def relative_refinement(self, l0, l1):
+        offset = self.level_offsets[l1] - self.level_offsets[l0]
+        return self.refine_by**(l1-l0 + offset)
+
 class OrionHierarchy(BoxlibHierarchy):
     
     def __init__(self, pf, data_style='orion_native'):
