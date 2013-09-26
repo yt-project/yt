@@ -1,9 +1,24 @@
-/*
- * artio_parameter.c
+/**********************************************************************
+ * Copyright (c) 2012-2013, Douglas H. Rudd
+ * All rights reserved.
  *
- *  Created on: Jun 8, 2010
- *      Author: Yongen Yu
- */
+ * This file is part of the artio library.
+ *
+ * artio is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * artio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * Copies of the GNU Lesser General Public License and the GNU General
+ * Public License are available in the file LICENSE, included with this
+ * distribution.  If you failed to receive a copy of this file, see
+ * <http://www.gnu.org/licenses/>
+ **********************************************************************/
 
 #include "artio.h"
 #include "artio_internal.h"
@@ -68,7 +83,7 @@ int artio_parameter_read(artio_fh *handle, parameter_list *parameters) {
 	if ( endian_tag != ARTIO_ENDIAN_MAGIC ) {
 		artio_int_swap( &endian_tag, 1 );
 		if ( endian_tag == ARTIO_ENDIAN_MAGIC ) {
-			artio_set_endian_swap_tag(handle);
+			artio_file_set_endian_swap_tag(handle);
 		} else {
 			return ARTIO_ERR_PARAM_CORRUPTED_MAGIC;
 		}
