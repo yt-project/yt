@@ -1429,7 +1429,9 @@ cdef class OctreeSubsetSelector(SelectorObject):
         # checking this.
         cdef int res
         res = self.base_selector.select_grid(left_edge, right_edge, level, o)
-        if res == 1 and o != NULL and o.domain != self.domain_id:
+        if self.domain_id == -1:
+            return res
+        elif res == 1 and o != NULL and o.domain != self.domain_id:
             return -1
         return res
     

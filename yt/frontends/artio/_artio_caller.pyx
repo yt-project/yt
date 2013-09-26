@@ -820,8 +820,11 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         free(num_octs_per_level)
 
     def fill_sfc_particles(self, fields):
-        rv = read_sfc_particles(self.artio_handle,
-                                self.sfc_start, self.sfc_end,
+        # This handles not getting particles for refined sfc values.
+        cdef np.int64_t sfc_start, sfc_end
+        sfc_start = self.domains[0].con_id
+        sfc_end = self.domains[self.num_domains - 1].con_id
+        rv = read_sfc_particles(self.artio_handle, sfc_start, sfc_end,
                                 0, fields)
         return rv
 
