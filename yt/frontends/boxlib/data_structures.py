@@ -109,6 +109,14 @@ class BoxlibGrid(AMRGridPatch):
         else:
             f.seek(self._offset)
 
+    # We override here because we can have varying refinement levels
+    def select_ires(self, dobj):
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None: return np.empty(0, dtype='int64')
+        coords = np.empty(self._last_count, dtype='int64')
+        coords[:] = self.Level + self.pf.level_offsets[self.Level]
+        return coords
+
 class BoxlibHierarchy(GridGeometryHandler):
     grid = BoxlibGrid
     def __init__(self, pf, data_style='boxlib_native'):
@@ -254,13 +262,6 @@ class BoxlibHierarchy(GridGeometryHandler):
         for i, grid in enumerate(self.grids): # Second pass
             for child in grid.Children:
                 child._parent_id.append(i + grid._id_offset)
-
-    def _get_grid_children(self, grid):
-        mask = np.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
-        mask[grid_ind] = True
-        mask = np.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
-        return np.where(mask)
 
     def _count_grids(self):
         # We can get everything from the Header file, but note that we're
@@ -489,13 +490,29 @@ class BoxlibStaticOutput(StaticOutput):
                                 header_file.readline().split()])
         if ref_factors.size == 0:
             # We use a default of two, as Nyx doesn't always output this value
-            ref_factors = [2]
+            ref_factors = [2] * self._max_level
         # We can't vary refinement factors based on dimension, or whatever else
         # they are vaied on.  In one curious thing, I found that some Castro 3D
         # data has only two refinement factors, which I don't know how to
         # understand.
-        assert(np.unique(ref_factors).size == 1)
-        self.refine_by = ref_factors[0]
+        self.ref_factors = ref_factors
+        if np.unique(ref_factors).size > 1:
+            # We want everything to be a multiple of this.
+            self.refine_by = min(ref_factors)
+            # Check that they're all multiples of the minimum.
+            if not all(float(rf)/self.refine_by ==
+                   int(float(rf)/self.refine_by) for rf in ref_factors):
+                raise RuntimeError
+            base_log = np.log2(self.refine_by)
+            self.level_offsets = [0] # level 0 has to have 0 offset
+            lo = 0
+            for lm1, rf in enumerate(self.ref_factors):
+                lo += int(np.log2(rf) / base_log) - 1
+                self.level_offsets.append(lo)
+        #assert(np.unique(ref_factors).size == 1)
+        else:
+            self.refine_by = ref_factors[0]
+            self.level_offsets = [0 for l in range(self._max_level + 1)]
         # Now we read the global index space, to get 
         index_space = header_file.readline()
         # This will be of the form:
