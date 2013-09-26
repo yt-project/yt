@@ -147,26 +147,27 @@ def _SpeciesComovingDensity(field, data):
     ef = (1.0 + data.pf.current_redshift)**3.0
     return data[sp] / ef
 
+def _SpeciesFraction(field, data):
+    species = field.name.split("_")[0]
+    sp = "%s_NumberDensity" % species
+    return mh * data[sp] * _speciesMass[species]
+
 def _SpeciesMass(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp] * data["CellVolume"]
 
-def _SpeciesNumberDensity(field, data):
-    species = field.name.split("_")[0]
-    sp = field.name.split("_")[0] + "_Density"
-    return data[sp] / _speciesMass[species]
-
 def _SpeciesDensity(field, data):
     species = field.name.split("_")[0]
-    sp = field.name.split("_")[0] + "_Fraction"
-    return data[sp] * data["Density"]
+    sp = "%s_NumberDensity" % species
+    return mh * data[sp] * _speciesMass[species] * data["Density"]
 
 def _convertCellMassMsun(data):
     return 1.0/mass_sun_cgs # g^-1
-def _ConvertNumberDensity(data):
-    return 1.0/mh
 
 for species in _speciesList:
+    add_field("%s_Fraction" % species,
+             function = _SpeciesFraction,
+             display_name = "%s\/Fraction" % species)
     add_field("%s_Density" % species,
              function = _SpeciesDensity,
              display_name = "%s\/Density" % species,
@@ -185,11 +186,6 @@ for species in _speciesList:
               convert_function=_convertCellMassMsun,
               validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
-    if _speciesMass.has_key(species):
-        add_field("%s_NumberDensity" % species,
-                  function=_SpeciesNumberDensity,
-                  convert_function=_ConvertNumberDensity,
-                  validators=ValidateDataField("%s_Density" % species))
 
 # PARTICLE FIELDS
 particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
@@ -200,8 +196,12 @@ particle_deposition_functions("all", "Coordinates", "particle_mass",
 _cool_axes = ("lognH", "logT", "logTeq")
 _cool_arrs = ("metal", "cool", "heat", "metal_prime", "cool_prime",
               "heat_prime", "mu", "abundances")
-_cool_species = ("Electron_Fraction", "HI_Fraction", "HII_Fraction",
-                 "HeI_Fraction", "HeII_Fraction", "HeIII_Fraction")
+_cool_species = ("Electron_NumberDensity",
+                 "HI_NumberDensity",
+                 "HII_NumberDensity",
+                 "HeI_NumberDensity",
+                 "HeII_NumberDensity",
+                 "HeIII_NumberDensity")
 
 def create_cooling_fields(filename, field_info):
     if not os.path.exists(filename): return
@@ -213,8 +213,8 @@ def create_cooling_fields(filename, field_info):
             rv = 10**interp_object(d).reshape(shape)
             return rv
         field_info.add_field(name = name, function=_func,
-                             units = r"\rm{g}/\rm{cm}^3",
-                             projected_units = r"\rm{g}/\rm{cm}^2")
+                             units = r"\rm{cm}^{-3}",
+                             projected_units = r"\rm{cm}^{-2}")
     avals = {}
     tvals = {}
     with open(filename, "rb") as f:
