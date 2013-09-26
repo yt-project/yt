@@ -30,6 +30,16 @@ import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 from yt.funcs import *
 
+def cell_count_cache(func):
+    def cc_cache_func(self, dobj):
+        if hash(dobj.selector) != self._last_selector_id:
+            self._cell_count = -1
+        rv = func(self, dobj)
+        self._cell_count = rv.shape[0]
+        self._last_selector_id = hash(dobj.selector)
+        return rv
+    return cc_cache_func
+
 class OctreeSubset(YTSelectionContainer):
     _spatial = True
     _num_ghost_zones = 0
@@ -38,7 +48,7 @@ class OctreeSubset(YTSelectionContainer):
     _con_args = ('base_region', 'domain', 'pf')
     _container_fields = ("dx", "dy", "dz")
     _domain_offset = 0
-    _num_octs = -1
+    _cell_count = -1
 
     def __init__(self, base_region, domain, pf, over_refine_factor = 1):
         self._num_zones = 1 << (over_refine_factor)
@@ -161,37 +171,25 @@ class OctreeSubset(YTSelectionContainer):
             vals = np.asfortranarray(vals)
         return vals
 
+    @cell_count_cache
     def select_icoords(self, dobj):
-        d = self.oct_handler.icoords(self.selector, domain_id = self.domain_id,
-                                     num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / (self.nz**3)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
-                                            domain_id = self.domain_id)
-        return tr
+        return self.oct_handler.icoords(dobj.selector, domain_id = self.domain_id,
+                                     num_cells = self._cell_count)
 
+    @cell_count_cache
     def select_fcoords(self, dobj):
-        d = self.oct_handler.fcoords(self.selector, domain_id = self.domain_id,
-                                     num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / (self.nz**3)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
-                                            domain_id = self.domain_id)
-        return tr
+        return self.oct_handler.fcoords(dobj.selector, domain_id = self.domain_id,
+                                        num_cells = self._cell_count)
 
+    @cell_count_cache
     def select_fwidth(self, dobj):
-        d = self.oct_handler.fwidth(self.selector, domain_id = self.domain_id,
-                                  num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / (self.nz**3)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 3,
-                                            domain_id = self.domain_id)
-        return tr
+        return self.oct_handler.fwidth(dobj.selector, domain_id = self.domain_id,
+                                       num_cells = self._cell_count)
 
+    @cell_count_cache
     def select_ires(self, dobj):
-        d = self.oct_handler.ires(self.selector, domain_id = self.domain_id,
-                                  num_octs = self._num_octs)
-        self._num_octs = d.shape[0] / (self.nz**3)
-        tr = self.oct_handler.selector_fill(dobj.selector, d, None, 0, 1,
-                                            domain_id = self.domain_id)
-        return tr
+        return self.oct_handler.ires(dobj.selector, domain_id = self.domain_id,
+                                     num_cells = self._cell_count)
 
     def select(self, selector, source, dest, offset):
         n = self.oct_handler.selector_fill(selector, source, dest, offset,
@@ -199,11 +197,7 @@ class OctreeSubset(YTSelectionContainer):
         return n
 
     def count(self, selector):
-        if hash(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
+        return -1
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results

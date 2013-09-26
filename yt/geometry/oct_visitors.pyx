@@ -166,3 +166,10 @@ cdef void fill_file_indices_rind(Oct *o, OctVisitorData *data, np.uint8_t select
     find_arr[data.index] = o.file_ind
     cell_arr[data.index] = rind(data)
     data.index +=1
+
+cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    cdef np.int64_t *arr
+    if selected == 0: return
+    # NOTE: We do this for every *cell*.
+    arr = <np.int64_t *> data.array
+    arr[o.domain - 1] += 1
