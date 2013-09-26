@@ -1,27 +1,17 @@
 """
 FLASH-specific data structures
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import stat
@@ -444,6 +434,12 @@ class FLASHStaticOutput(StaticOutput):
                     mylog.warning('Identical domain left edge and right edges '
                                   'along dummy dimension (%i), attempting to read anyway' % d)
                     self.domain_right_edge[d] = self.domain_left_edge[d]+1.0
+        if self.dimensionality < 3 and self.geometry == "cylindrical":
+            mylog.warning("Extending theta dimension to 2PI + left edge.")
+            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+        elif self.dimensionality < 3 and self.geometry == "polar":
+            mylog.warning("Extending theta dimension to 2PI + left edge.")
+            self.domain_right_edge[1] = self.domain_left_edge[1] + 2*np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 

@@ -1,27 +1,18 @@
 """
 ARTIO-specific fields
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
@@ -36,7 +27,9 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 from yt.data_objects.particle_fields import \
     particle_deposition_functions, \
-    particle_vector_functions
+    particle_vector_functions, \
+    particle_scalar_functions, \
+    _field_concat, _field_concat_slice
 import numpy as np
 
 KnownARTIOFields = FieldInfoContainer()
@@ -246,24 +239,23 @@ ARTIOFieldInfo["Metal_Density"]._projected_units = r""
 ##################################################
 #Particle fields
 
-for ax in 'xyz':
-    pf = "particle_velocity_%s" % ax
-    add_artio_field(pf, function=NullFunc,
-                    particle_type=True)
+for ptype in ("nbody", "stars"):
+    for ax in 'xyz':
+        add_artio_field((ptype, "particle_velocity_%s" % ax),
+                        function=NullFunc,
+                        particle_type=True)
+        add_artio_field((ptype, "particle_position_%s" % ax),
+                        function=NullFunc,
+                        particle_type=True)
 
-for ax in 'xyz':
-    pf = "particle_position_%s" % ax
-    add_artio_field(pf, function=NullFunc,
-                    particle_type=True)
-
-def _convertParticleMass(data):
-    return np.float64(data.convert('particle_mass'))
-add_field("particle_mass",
-          function=NullFunc,
-          convert_function=_convertParticleMass,
-          units=r"\rm{g}",
-          particle_type=True)
-add_artio_field("particle_index", function=NullFunc, particle_type=True)
+    def _convertParticleMass(data):
+        return np.float64(data.convert('particle_mass'))
+    add_artio_field((ptype, "particle_mass"),
+              function=NullFunc,
+              convert_function=_convertParticleMass,
+              units=r"\rm{g}",
+              particle_type=True)
+    add_artio_field((ptype, "particle_index"), function=NullFunc, particle_type=True)
 
 #add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field, data):
@@ -277,7 +269,15 @@ add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
 
 # We can now set up particle vector and particle deposition fields.
 
-for ptype in ("all", "nbody", "stars"):
+for fname in ["particle_position_%s" % ax for ax in 'xyz'] + \
+             ["particle_velocity_%s" % ax for ax in 'xyz'] + \
+             ["particle_index", "particle_species",
+              "particle_mass"]:
+    func = _field_concat(fname)
+    ARTIOFieldInfo.add_field(("all", fname), function=func,
+            particle_type = True)
+
+for ptype in ("nbody", "stars", "all"):
     particle_vector_functions(ptype,
         ["particle_position_%s" % ax for ax in 'xyz'],
         ["particle_velocity_%s" % ax for ax in 'xyz'],

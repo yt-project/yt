@@ -1,27 +1,17 @@
 """
 This is a library of yt-defined exceptions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 # We don't need to import 'exceptions'
 #import exceptions
@@ -109,7 +99,7 @@ class YTCannotParseFieldDisplayName(YTException):
                 % (self.display_name, self.field_name) + self.mathtext_error
 
 class YTCannotParseUnitDisplayName(YTException):
-    def __init__(self, field_name, display_unit, mathtext_error):
+    def __init__(self, field_name, unit_name, mathtext_error):
         self.field_name = field_name
         self.unit_name = unit_name
         self.mathtext_error = mathtext_error
@@ -287,3 +277,24 @@ class YTIllDefinedFilter(YTException):
     def __str__(self):
         return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
             self.filter, self.s1, self.s2)
+
+class YTIllDefinedBounds(YTException):
+    def __init__(self, lb, ub):
+        self.lb = lb
+        self.ub = ub
+
+    def __str__(self):
+        v =  "The bounds %0.3e and %0.3e are ill-defined. " % (self.lb, self.ub)
+        v += "Typically this happens when a log binning is specified "
+        v += "and zero or negative values are given for the bounds."
+        return v
+
+class YTObjectNotImplemented(YTException):
+    def __init__(self, pf, obj_name):
+        self.pf = pf
+        self.obj_name = obj_name
+
+    def __str__(self):
+        v  = r"The object type '%s' is not implemented for the parameter file "
+        v += r"'%s'."
+        return v % (self.obj_name, self.pf)

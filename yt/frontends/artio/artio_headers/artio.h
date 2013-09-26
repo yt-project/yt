@@ -1,20 +1,30 @@
-/*
- * artio.h
+/**********************************************************************
+ * Copyright (c) 2012-2013, Douglas H. Rudd
+ * All rights reserved.
  *
- *  Created on: Feb 21, 2010
- *      Author: Yongen Yu
- *  Modified: Jun 6, 2010 - Doug Rudd
- *            Nov 18, 2010 - Doug Rudd
- *            Nov 14, 2012 - Doug Rudd
- *            Feb 7, 2013 - Doug Rudd - Version 1.0
- *            March 3, 2013 - Doug Rudd - Version 1.1 (inc. selectors)
- */
+ * This file is part of the artio library.
+ *
+ * artio is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * artio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * Copies of the GNU Lesser General Public License and the GNU General
+ * Public License are available in the file LICENSE, included with this
+ * distribution.  If you failed to receive a copy of this file, see
+ * <http://www.gnu.org/licenses/>
+ **********************************************************************/
 
 #ifndef __ARTIO_H__
 #define __ARTIO_H__
 
 #define ARTIO_MAJOR_VERSION     1
-#define ARTIO_MINOR_VERSION     1
+#define ARTIO_MINOR_VERSION     2
 
 #ifdef ARTIO_MPI
 #include <mpi.h>
@@ -146,7 +156,7 @@ artio_fileset *artio_fileset_create(char * file_prefix,
  * Description	Close the file
  */
 int artio_fileset_close(artio_fileset *handle);
-
+int artio_fileset_set_buffer_size( int buffer_size );
 int artio_fileset_has_grid( artio_fileset *handle );
 int artio_fileset_has_particles( artio_fileset *handle );
 
@@ -228,8 +238,6 @@ int artio_fileset_add_grid(artio_fileset *handle,
 
 int artio_fileset_open_grid(artio_fileset *handle);
 int artio_fileset_close_grid(artio_fileset *handle);
-int artio_fileset_open_particle(artio_fileset *handle);
-int artio_fileset_close_particle(artio_fileset *handle);
 
 /*
  * Description:	Output the variables of the root level cell and the hierarchy of the Oct tree correlated with this root level cell
@@ -305,7 +313,7 @@ int artio_grid_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int64_t
 int artio_grid_clear_sfc_cache(artio_fileset *handle );
 
 int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
-        int64_t start, int64_t end, int64_t *num_octs);
+        int64_t start, int64_t end, int64_t *num_octs_in_range );
 
 /*
  * Description:	Read a segment of oct nodes

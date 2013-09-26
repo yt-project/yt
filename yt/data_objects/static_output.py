@@ -2,27 +2,17 @@
 Generalized Enzo output objects, both static and time-series.
 
 Presumably at some point EnzoRun will be absorbed into here.
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import string, re, gc, time, os, os.path, weakref
 
@@ -86,8 +76,11 @@ class StaticOutput(object):
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            _cached_pfs[apath] = obj
-        return _cached_pfs[apath]
+            if obj._skip_cache is False:
+                _cached_pfs[apath] = obj
+        else:
+            obj = _cached_pfs[apath]
+        return obj
 
     def __init__(self, filename, data_style=None, file_style=None):
         """
@@ -156,6 +149,10 @@ class StaticOutput(object):
     @property
     def _mrep(self):
         return MinimalStaticOutput(self)
+
+    @property
+    def _skip_cache(self):
+        return False
 
     def hub_upload(self):
         self._mrep.upload()
@@ -261,6 +258,10 @@ class StaticOutput(object):
             raise YTGeometryNotSupported(self.geometry)
 
     def add_particle_filter(self, filter):
+        # This is a dummy, which we set up to enable passthrough of "all"
+        # concatenation fields.
+        n = getattr(filter, "name", filter)
+        self.known_filters[n] = None
         if isinstance(filter, types.StringTypes):
             used = False
             for f in filter_registry[filter]:
@@ -271,6 +272,7 @@ class StaticOutput(object):
         else:
             used = self.h._setup_filtered_type(filter)
         if not used:
+            self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
         return True
@@ -290,22 +292,34 @@ class StaticOutput(object):
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
         if fname == self._last_freq[1]:
-            mylog.debug("Guessing field %s is (%s, %s)", fname,
-                        self._last_freq[0], self._last_freq[1])
             return self._last_finfo
         if fname in self.field_info:
+            # Sometimes, if guessing_type == True, this will be switched for
+            # the type of field it is.  So we look at the field type and
+            # determine if we need to change the type.
+            fi = self._last_finfo = self.field_info[fname]
+            if fi.particle_type and self._last_freq[0] \
+                not in self.particle_types:
+                    field = "all", field[1]
+            elif not fi.particle_type and self._last_freq[0] \
+                not in self.fluid_types:
+                    field = self.default_fluid_type, field[1]
             self._last_freq = field
-            self._last_finfo = self.field_info[fname]
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type and ("all", fname) in self.field_info:
             self._last_freq = ("all", fname)
             self._last_finfo = self.field_info["all", fname]
-            mylog.debug("Guessing field %s is (%s, %s)", fname,
-                        "all", fname)
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
+
+    @property
+    def ires_factor(self):
+        o2 = np.log2(self.refine_by)
+        if o2 != int(o2):
+            raise RuntimeError
+        return int(o2)
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

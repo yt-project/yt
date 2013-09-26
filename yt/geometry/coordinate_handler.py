@@ -1,27 +1,18 @@
 """
 Coordinate handler base class.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import abc
@@ -36,7 +27,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
-import yt.visualization._MPL
+import yt.visualization._MPL as _MPL
 
 from .cartesian_fields import CartesianFieldInfo
 from .cylindrical_fields import CylindricalFieldInfo, PolarFieldInfo
@@ -103,7 +94,7 @@ def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2[...,0] = ((coord[...,0] - center[0])**2.0
               +  (coord[...,1] - center[1])**2.0)**0.5
     c2[...,1] = coord[...,2] # rzt
-    c2[...,2] = np.arctans(coord[...,1] - center[1],
+    c2[...,2] = np.arctan2(coord[...,1] - center[1],
                            coord[...,0] - center[0])
     return c2
 
@@ -145,7 +136,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],
                               data_source.center, data_source._inv_mat, indices,
-                              data_source[item], size[0], size[1], bounds).transpose()
+                              data_source[field], size[0], size[1], bounds).transpose()
         return buff
 
     def convert_from_cartesian(self, coord):
@@ -189,8 +180,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
 class PolarCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rzt'):
-        if ordering != 'rzt': raise NotImplementedError
+    def __init__(self, pf, ordering = 'rtz'):
+        if ordering != 'rtz': raise NotImplementedError
         super(PolarCoordinateHandler, self).__init__(pf)
 
     def coordinate_fields(self):
@@ -198,16 +189,17 @@ class PolarCoordinateHandler(CoordinateHandler):
         return PolarFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
-        raise NotImplementedError
-        if dimension == 1:
+        ax_name = self.axis_name[dimension]
+        if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
-        elif dimension == 2:
-            return self._polar_pixelize(data_source, field, bounds, size,
+        elif ax_name == "z":
+            return self._cyl_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
+
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
@@ -222,20 +214,20 @@ class PolarCoordinateHandler(CoordinateHandler):
                                  data_source['dr']/2.0,
                                  data_source['theta'],
                                  data_source['dtheta']/2.0,
-                                 size[0], field, bounds[0])
+                                 size[0], data_source[field], bounds[0])
         return buff
 
-    axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
-                 'r' : 'r', 'z' : 'z', 'theta' : 'theta',
-                 'R' : 'r', 'Z' : 'z', 'Theta' : 'theta'}
+    axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',
+                 'r' : 'r', 'theta' : 'theta', 'z' : 'z',
+                 'R' : 'r', 'Theta' : 'theta', 'Z' : 'z'}
 
-    axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
+    axis_id = { 'r' : 0, 'theta' : 1, 'z' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
-    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
+    x_axis = { 'r' : 1, 'theta' : 0, 'z' : 0,
                 0  : 1,  1  : 0,  2  : 0}
 
-    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
+    y_axis = { 'r' : 2, 'theta' : 2, 'z' : 1,
                 0  : 2,  1  : 2,  2  : 1}
 
     def convert_from_cartesian(self, coord):
@@ -258,12 +250,12 @@ class PolarCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return na.array([0.0, 0.0, 2.0*np.pi])
+        return np.array([0.0, 0.0, 2.0*np.pi])
 
 class CylindricalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rtz'):
-        if ordering != 'rtz': raise NotImplementedError
+    def __init__(self, pf, ordering = 'rzt'):
+        if ordering != 'rzt': raise NotImplementedError
         super(CylindricalCoordinateHandler, self).__init__(pf)
 
     def coordinate_fields(self):
@@ -271,11 +263,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return CylindricalFieldInfo
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
-        raise NotImplementedError
-        if dimension == 1:
+        ax_name = self.axis_name[dimension]
+        if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
-        elif dimension == 2:
+        elif ax_name == "z":
             return self._cyl_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
@@ -295,7 +287,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                                  data_source['dr']/2.0,
                                  data_source['theta'],
                                  data_source['dtheta']/2.0,
-                                 size[0], field, bounds[0])
+                                 size[0], data_source[field], bounds[0])
         return buff
 
     axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
@@ -331,5 +323,5 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return na.array([0.0, 0.0, 2.0*np.pi])
+        return np.array([0.0, 0.0, 2.0*np.pi])
 

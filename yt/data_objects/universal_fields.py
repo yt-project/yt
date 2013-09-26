@@ -3,29 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Chris Moody <chrisemoody@gmail.com>
-Affiliation: UCSC
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import numpy as np
@@ -376,12 +364,6 @@ def _DynamicalTime(field, data):
 add_field("DynamicalTime", function=_DynamicalTime,
            units=r"\rm{s}")
 
-def JeansMassMsun(field,data):
-    return (MJ_constant * 
-            ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
-            (data["Density"]**(-0.5)))
-add_field("JeansMassMsun",function=JeansMassMsun,units=r"\rm{Msun}")
-
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
 def _convertCellMassMsun(data):
@@ -619,7 +601,7 @@ def obtain_velocities(data):
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
 def _convertSpecificAngularMomentumKMSMPC(data):
-    return data.convert("mpc")/1e5
+    return km_per_cm*data.convert("mpc")
 
 def _SpecificAngularMomentumX(field, data):
     xv, yv, zv = obtain_velocities(data)
@@ -678,8 +660,6 @@ def _ParticleSpecificAngularMomentum(field, data):
 #          function=_ParticleSpecificAngularMomentum, particle_type=True,
 #          convert_function=_convertSpecificAngularMomentum, vector_field=True,
 #          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
-def _convertSpecificAngularMomentumKMSMPC(data):
-    return km_per_cm*data.convert("mpc")
 #add_field("ParticleSpecificAngularMomentumKMSMPC",
 #          function=_ParticleSpecificAngularMomentum, particle_type=True,
 #          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
@@ -761,6 +741,8 @@ def get_radius(data, field_prefix):
         rdw = radius.copy()
     for i, ax in enumerate('xyz'):
         np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
+        if data.pf.dimensionality < i+1:
+            break
         if data.pf.periodicity[i] == True:
             np.abs(r, r)
             np.subtract(r, DW[i], rdw)
@@ -909,7 +891,7 @@ def _ParticleThetaVelocity(field, data):
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     spht = get_sph_theta_component(vel, theta, phi, normal)
-    return sphrt
+    return spht
 
 add_field("ParticleThetaVelocity", function=_ParticleThetaVelocity,
           particle_type=True, units=r"\rm{cm}/\rm{s}",
@@ -928,8 +910,8 @@ def _ParticlePhiVelocity(field, data):
     phi = get_sph_phi(pos.copy(), center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
-    sphp = get_sph_phi_component(vel, theta, phi, normal)
-    return sphrp
+    sphp = get_sph_phi_component(vel, phi, normal)
+    return sphp
 
 add_field("ParticlePhiVelocity", function=_ParticleThetaVelocity,
           particle_type=True, units=r"\rm{cm}/\rm{s}",

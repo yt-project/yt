@@ -2,27 +2,17 @@
 Very simple convenience function for importing all the modules, setting up
 the namespace and getting the last argument on the command line.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 # This handles the command line.
 
@@ -36,9 +26,11 @@ exe_name = os.path.basename(sys.executable)
 def turn_on_parallelism():
     try:
         from mpi4py import MPI
-        parallel_capable = (MPI.COMM_WORLD.size > 1)
-    except ImportError:
-        parallel_capable = False
+    except ImportError as e:
+        mylog.error("Warning: Attempting to turn on parallelism, " +
+                    "but mpi4py import failed. Try pip install mpi4py.")
+        raise e
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
         mylog.info("Global parallel computation enabled: %s / %s",
                    MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)

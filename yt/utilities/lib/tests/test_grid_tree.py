@@ -1,27 +1,17 @@
 """
 Tests for GridTree
 
-Author: John ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/Goddard Space Flight Center
-Homepage: http://yt-project.org/
-License:
-Copyright (C) 2012 John ZuHone.  All Rights Reserved.
 
-This file is part of yt.
 
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import numpy as np
 import random
 
@@ -98,15 +88,16 @@ def test_find_points():
 
     for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz):
 
+        pos = np.array([ixx, iyy, izz])
         pt_level = -1
 
         for grid in test_pf.h.grids:
 
-            if grid.is_in_grid(ixx, iyy, izz):
-
-                if grid.Level > pt_level:
-                    pt_level = grid.Level
-                    grid_inds[ind] = grid.id - grid._id_offset
+            if np.all(pos >= grid.LeftEdge) and \
+               np.all(pos <= grid.RightEdge) and \
+               grid.Level > pt_level:
+                pt_level = grid.Level
+                grid_inds[ind] = grid.id - grid._id_offset
 
     yield assert_equal, point_grid_inds, grid_inds
 

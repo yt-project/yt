@@ -1,27 +1,17 @@
 """
 Enzo-specific IO functions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from collections import defaultdict
 
@@ -209,3 +199,32 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         return [ ("all", k) for k in self.fields[data_file.filename].keys()]
+
+class IOHandlerStreamHexahedral(BaseIOHandler):
+    _data_style = "stream_hexahedral"
+
+    def __init__(self, stream_handler):
+        self.fields = stream_handler.fields
+        BaseIOHandler.__init__(self)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        assert(len(chunks) == 1)
+        chunk = chunks[0]
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = np.empty(size, dtype="float64")
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ind = 0
+            ftype, fname = field
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ds = self.fields[g.mesh_id].get(field, None)
+                    if ds is None:
+                        ds = self.fields[g.mesh_id][fname]
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv

@@ -1,27 +1,17 @@
 """ 
 All of the base-level stuff for plotting.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from matplotlib import figure
 import shutil
@@ -596,99 +586,6 @@ class PlotCollection(object):
                          size=fig_size))
         mylog.info("Added plane of %s with 'center' = %s and normal = %s", field,
                     list(center), list(normal))
-        p["Axis"] = "CuttingPlane"
-        return p
-
-    def add_fixed_res_cutting_plane(self, field, normal, width, res=512,
-             center=None, use_colorbar=True, figure = None, axes = None,
-             fig_size=None, obj=None, field_parameters = None):
-        r"""Create a fixed resolution cutting plane, from that a plot, and add
-        it to the current collection.
-
-        A cutting plane is an oblique slice through the simulation volume,
-        oriented by a specified normal vector that is perpendicular to the
-        image plane.  This function will slice through, but instead of
-        retaining all the data necessary to rescale the cutting plane at any
-        width, it only retains the pixels for a single width.  This function
-        will generate a `yt.data_objects.api.YTFixedResCuttingPlaneBase` from the given
-        parameters.  This image buffer then gets passed to a
-        `yt.visualization.plot_types.FixedResolutionPlot`, and the resultant plot is added to the
-        current collection.  Various parameters allow control of the way the
-        slice is displayed, as well as how the plane is generated.
-
-        Parameters
-        ----------
-        field : string
-            The initial field to slice and display.
-        normal : array_like
-            The vector that defines the desired plane.  For instance, the
-            angular momentum of a sphere.
-        width : float
-            The width, in code units, of the image plane.
-        res : int
-            The returned image buffer must be square; this number is how many
-            pixels on a side it will have.
-        center : array_like, optional
-            The center to be used for things like radius and radial velocity.
-            Defaults to the center of the plot collection.
-        use_colorbar : bool, optional
-            Whether we should leave room for and create a colorbar.
-        figure : `matplotlib.figure.Figure`, optional
-            The figure onto which the axes will be placed.  Typically not used
-            unless *axes* is also specified.
-        axes : `matplotlib.axes.Axes`, optional
-            The axes object which will be used to create the image plot.
-            Typically used for things like multiplots and the like.
-        fig_size : tuple of floats
-            This parameter can act as a proxy for the manual creation of a
-            figure.  By specifying it, you can create plots with an arbitrarily
-            large or small size.  It is in inches, defaulting to 100 dpi.
-        obj : `YTCuttingPlaneBase`, optional
-            If you would like to use an existing cutting plane, you may specify
-            it here, in which case a new cutting plane will not be created.
-        field_parameters : dict, optional
-            This set of parameters will be passed to the cutting plane upon
-            creation, which can be used for passing variables to derived
-            fields.
-
-        Returns
-        -------
-        plot : `yt.visualization.plot_types.FixedResolutionPlot`
-            The plot that has been added to the PlotCollection.
-
-        See Also
-        --------
-        yt.data_objects.api.YTFixedResCuttingPlaneBase : This is the type created by this
-                                               function.
-
-        Examples
-        --------
-
-        Here's a simple mechanism for getting the angular momentum of a
-        collapsing cloud and generating a cutting plane aligned with the
-        angular momentum vector.
-
-        >>> pf = load("RD0005-mine/RedshiftOutput0005")
-        >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, 1000.0/pf['au'])
-        >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> pc = PlotCollection(pf)
-        >>> p = pc.add_fixed_res_cutting_plane("Density", L, 1000.0/pf['au'])
-        """
-        if center == None:
-            center = self.c
-        if not obj:
-            if field_parameters is None: field_parameters = {}
-            data = self.pf.hierarchy.fixed_res_cutting \
-                 (normal, center, width, res, **field_parameters)
-            #data = frc[field]
-        else:
-            data = obj
-        p = self._add_plot(FixedResolutionPlot(data, field,
-                         use_colorbar=use_colorbar, axes=axes, figure=figure,
-                         size=fig_size))
-        mylog.info("Added fixed-res plane of %s with 'center' = %s and "
-                   "normal = %s", field, list(center), list(normal))
         p["Axis"] = "CuttingPlane"
         return p
 
@@ -1708,90 +1605,6 @@ class PlotCollectionIPython(PlotCollection):
         for plot in self.plots:
             canvas = FigureCanvasAgg(plot._figure)
             send_figure(plot._figure)
-
-def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
-                   cbar_padding = 0.4):
-    r"""Construct a multiple axes plot object, with or without a colorbar, into
-    which multiple plots may be inserted.
-
-    This will create a set of :class:`matplotlib.axes.Axes`, all lined up into
-    a grid, which are then returned to the user and which can be used to plot
-    multiple plots on a single figure.
-
-    Parameters
-    ----------
-    nx : int
-        Number of axes to create along the x-direction
-    ny : int
-        Number of axes to create along the y-direction
-    colorbar : {'vertical', 'horizontal', None}, optional
-        Should Axes objects for colorbars be allocated, and if so, should they
-        correspond to the horizontal or vertical set of axes?
-    bw : number
-        The base height/width of an axes object inside the figure, in inches
-    dpi : number
-        The dots per inch fed into the Figure instantiation
-
-    Returns
-    -------
-    fig : :class:`matplotlib.figure.Figure`
-        The figure created inside which the axes reside
-    tr : list of list of :class:`matplotlib.axes.Axes` objects
-        This is a list, where the inner list is along the x-axis and the outer
-        is along the y-axis
-    cbars : list of :class:`matplotlib.axes.Axes` objects
-        Each of these is an axes onto which a colorbar can be placed.
-
-    Notes
-    -----
-    This is a simple implementation for a common use case.  Viewing the source
-    can be instructure, and is encouraged to see how to generate more
-    complicated or more specific sets of multiplots for your own purposes.
-    """
-    hf, wf = 1.0/ny, 1.0/nx
-    fudge_x = fudge_y = 1.0
-    if colorbar is None:
-        fudge_x = fudge_y = 1.0
-    elif colorbar.lower() == 'vertical':
-        fudge_x = nx/(cbar_padding+nx)
-        fudge_y = 1.0
-    elif colorbar.lower() == 'horizontal':
-        fudge_x = 1.0
-        fudge_y = ny/(cbar_padding+ny)
-    fig = figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
-    from _mpl_imports import FigureCanvasAgg
-    fig.set_canvas(FigureCanvasAgg(fig))
-    fig.subplots_adjust(wspace=0.0, hspace=0.0,
-                        top=1.0, bottom=0.0,
-                        left=0.0, right=1.0)
-    tr = []
-    print fudge_x, fudge_y
-    for j in range(ny):
-        tr.append([])
-        for i in range(nx):
-            left = i*wf*fudge_x
-            bottom = fudge_y*(1.0-(j+1)*hf) + (1.0-fudge_y)
-            ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
-            tr[-1].append(ax)
-    cbars = []
-    if colorbar is None:
-        pass
-    elif colorbar.lower() == 'horizontal':
-        for i in range(nx):
-            # left, bottom, width, height
-            # Here we want 0.10 on each side of the colorbar
-            # We want it to be 0.05 tall
-            # And we want a buffer of 0.15
-            ax = fig.add_axes([wf*(i+0.10)*fudge_x, hf*fudge_y*0.20,
-                               wf*(1-0.20)*fudge_x, hf*fudge_y*0.05])
-            cbars.append(ax)
-    elif colorbar.lower() == 'vertical':
-        for j in range(ny):
-            ax = fig.add_axes([wf*(nx+0.05)*fudge_x, hf*fudge_y*(ny-(j+0.95)),
-                               wf*fudge_x*0.05, hf*fudge_y*0.90])
-            ax.clear()
-            cbars.append(ax)
-    return fig, tr, cbars
 
 def _MPLFixImage(data_source, image_obj, field, cbar, cls):
     nx, ny = image_obj.get_size()

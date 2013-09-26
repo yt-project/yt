@@ -24,6 +24,7 @@ _sample_parameters = dict(
 _base_fields = ["Density", "x-velocity", "y-velocity", "z-velocity"]
 
 def realistic_pf(fields, nprocs):
+    np.random.seed(int(0x4d3d3d3))
     pf = fake_random_pf(16, fields = fields, nprocs = nprocs)
     pf.parameters["HydroMethod"] = "streaming"
     pf.parameters["Gamma"] = 5.0/3.0
@@ -52,7 +53,7 @@ class TestFieldAccess(object):
     def __call__(self):
         field = FieldInfo[self.field_name]
         deps = field.get_dependencies()
-        fields = deps.requested + _base_fields
+        fields = list(set(deps.requested + _base_fields))
         skip_grids = False
         needs_spatial = False
         for v in field.validators:
@@ -98,4 +99,10 @@ def test_all_fields():
         if fname.startswith("Overdensity"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
+            test_all_fields.__name__ = "%s_%s" % (field, nproc)
             yield TestFieldAccess(field, nproc)
+
+if __name__ == "__main__":
+    setup()
+    for t in test_all_fields():
+        t()

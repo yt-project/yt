@@ -1,29 +1,17 @@
-""" 
-The base classes for selecting and returning data.
-
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Author: Britton Smith <Britton.Smith@colorado.edu>
-Affiliation: University of Colorado at Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
-
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+Various non-grid data containers.
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import itertools
 import types
@@ -47,7 +35,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
-    NeedsGridType
+    NeedsGridType, ValidateSpatial
 import yt.geometry.selection_routines
 
 def force_array(item, shape):
@@ -92,6 +80,7 @@ class YTDataContainer(object):
     _con_args = ()
     _skip_add = False
     _container_fields = ()
+    _field_cache = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -192,13 +181,17 @@ class YTDataContainer(object):
         Returns a single field.  Will add if necessary.
         """
         f = self._determine_fields(key)[0]
-        if f not in self.field_data:
+        if f not in self.field_data and key not in self.field_data:
             if f in self._container_fields:
                 self.field_data[f] = self._generate_container_field(f)
                 return self.field_data[f]
             else:
                 self.get_data(f)
-        return self.field_data[f]
+        # Note that this is less succinct so that we can account for the case
+        # when there are, for example, no elements in the object.
+        rv = self.field_data.get(f, None)
+        if rv is None: rv = self.field_data[key]
+        return rv
 
     def __setitem__(self, key, val):
         """
@@ -249,10 +242,14 @@ class YTDataContainer(object):
         rv = np.empty(self.ires.size, dtype="float64")
         ind = 0
         if ngz == 0:
+            deps = self._identify_dependencies([field], spatial = True)
+            deps = self._determine_fields(deps)
             for io_chunk in self.chunks([], "io", cache = False):
-                for i,chunk in enumerate(self.chunks(field, "spatial", ngz = 0)):
-                    ind += self._current_chunk.objs[0].select(
-                            self.selector, self[field], rv, ind)
+                for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
+                                                    preload_fields = deps)):
+                    o = self._current_chunk.objs[0]
+                    with o._activate_cache():
+                        ind += o.select(self.selector, self[field], rv, ind)
         else:
             chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
@@ -411,10 +408,12 @@ class YTDataContainer(object):
     def blocks(self):
         for io_chunk in self.chunks([], "io"):
             for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
-                g = self._current_chunk.objs[0]
-                mask = g._get_selector_mask(self.selector)
-                if mask is None: continue
-                yield g, mask
+                # For grids this will be a grid object, and for octrees it will
+                # be an OctreeSubset.  Note that we delegate to the sub-object.
+                o = self._current_chunk.objs[0]
+                for b, m in o.select_blocks(self.selector):
+                    if m is None: continue
+                    yield b, m
 
 class GenerationInProgress(Exception):
     def __init__(self, fields):
@@ -433,7 +432,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     @property
     def selector(self):
         if self._selector is not None: return self._selector
-        sclass = getattr(yt.geometry.selection_routines,
+        s_module = getattr(self, '_selector_module',
+                           yt.geometry.selection_routines)
+        sclass = getattr(s_module,
                          "%s_selector" % self._type_name, None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
@@ -450,13 +451,21 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
-    def _identify_dependencies(self, fields_to_get):
+    def _identify_dependencies(self, fields_to_get, spatial = False):
         inspected = 0
         fields_to_get = fields_to_get[:]
         for field in itertools.cycle(fields_to_get):
             if inspected >= len(fields_to_get): break
             inspected += 1
-            if field not in self.pf.field_dependencies: continue
+            fi = self.pf._get_field_info(*field)
+            if not spatial and any(
+                    isinstance(v, ValidateSpatial) for v in fi.validators):
+                # We don't want to pre-fetch anything that's spatial, as that
+                # will be done later.
+                continue
+            fd = self.pf.field_dependencies.get(field, None) or \
+                 self.pf.field_dependencies.get(field[1], None)
+            if fd is None: continue
             fd = self.pf.field_dependencies[field]
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
@@ -563,6 +572,25 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.field_data = old_field_data
         self._current_chunk = old_chunk
         self._locked = old_locked
+
+    @contextmanager
+    def _activate_cache(self):
+        cache = self._field_cache or {}
+        old_fields = {}
+        for field in (f for f in cache if f in self.field_data):
+            old_fields[field] = self.field_data[field]
+        self.field_data.update(cache)
+        yield
+        for field in cache:
+            self.field_data.pop(field)
+            if field in old_fields:
+                self.field_data[field] = old_fields.pop(field)
+        self._field_cache = None
+
+    def _initialize_cache(self, cache):
+        # Wipe out what came before
+        self._field_cache = {}
+        self._field_cache.update(cache)
 
     @property
     def icoords(self):

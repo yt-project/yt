@@ -1,29 +1,18 @@
 """
 Oct visitor functions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Author: Christopher Moody <chris.e.moody@gmail.com>
-Affiliation: UC Santa Cruz
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 cimport cython
 cimport numpy
@@ -38,7 +27,7 @@ cdef void copy_array_f64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef int i
     # There are this many records between "octs"
-    cdef np.int64_t index = (data.global_index * 8)*data.dims
+    cdef np.int64_t index = (data.global_index * data.nz)*data.dims
     cdef np.float64_t **p = <np.float64_t**> data.array
     index += oind(data)*data.dims
     for i in range(data.dims):
@@ -50,7 +39,7 @@ cdef void copy_array_i64(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # "last" here tells us the dimensionality of the array.
     if selected == 0: return
     cdef int i
-    cdef np.int64_t index = (data.global_index * 8)*data.dims
+    cdef np.int64_t index = (data.global_index * data.nz)*data.dims
     cdef np.int64_t **p = <np.int64_t**> data.array
     index += oind(data)*data.dims
     for i in range(data.dims):
@@ -75,7 +64,7 @@ cdef void mark_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if data.last != o.domain_ind:
         data.last = o.domain_ind
         data.index += 1
-    cdef np.int64_t index = data.index * 8
+    cdef np.int64_t index = data.index * data.nz
     index += oind(data)
     arr[index] = 1
 
@@ -83,7 +72,7 @@ cdef void mask_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef int i
     cdef np.uint8_t *arr = <np.uint8_t *> data.array
-    cdef np.int64_t index = data.global_index * 8
+    cdef np.int64_t index = data.global_index * data.nz
     index += oind(data)
     arr[index] = 1
 
@@ -102,7 +91,7 @@ cdef void icoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.int64_t *coords = <np.int64_t*> data.array
     cdef int i
     for i in range(3):
-        coords[data.index * 3 + i] = (data.pos[i] << 1) + data.ind[i]
+        coords[data.index * 3 + i] = (data.pos[i] << data.oref) + data.ind[i]
     data.index += 1
 
 cdef void ires_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
@@ -120,9 +109,9 @@ cdef void fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.float64_t *fcoords = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t c, dx 
-    dx = 1.0 / (2 << data.level)
+    dx = 1.0 / ((1 << data.oref) << data.level)
     for i in range(3):
-        c = <np.float64_t> ((data.pos[i] << 1 ) + data.ind[i]) 
+        c = <np.float64_t> ((data.pos[i] << data.oref ) + data.ind[i]) 
         fcoords[data.index * 3 + i] = (c + 0.5) * dx
     data.index += 1
 
@@ -135,7 +124,7 @@ cdef void fwidth_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.float64_t *fwidth = <np.float64_t*> data.array
     cdef int i
     cdef np.float64_t dx 
-    dx = 1.0 / (2 << data.level)
+    dx = 1.0 / ((1 << data.oref) << data.level)
     for i in range(3):
         fwidth[data.index * 3 + i] = dx
     data.index += 1
@@ -152,7 +141,7 @@ cdef void assign_domain_ind(Oct *o, OctVisitorData *data, np.uint8_t selected):
     o.domain_ind = data.global_index
     data.index += 1
 
-cdef void fill_file_indices(Oct *o, OctVisitorData *data, np.uint8_t selected):
+cdef void fill_file_indices_oind(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # We fill these arrays, then inside the level filler we use these as
     # indices as we fill a second array from the data.
     if selected == 0: return
@@ -164,3 +153,23 @@ cdef void fill_file_indices(Oct *o, OctVisitorData *data, np.uint8_t selected):
     find_arr[data.index] = o.file_ind
     cell_arr[data.index] = oind(data)
     data.index +=1
+
+cdef void fill_file_indices_rind(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    # We fill these arrays, then inside the level filler we use these as
+    # indices as we fill a second array from the data.
+    if selected == 0: return
+    cdef void **p = <void **> data.array
+    cdef np.uint8_t *level_arr = <np.uint8_t *> p[0]
+    cdef np.int64_t *find_arr = <np.int64_t *> p[1]
+    cdef np.uint8_t *cell_arr = <np.uint8_t *> p[2]
+    level_arr[data.index] = data.level
+    find_arr[data.index] = o.file_ind
+    cell_arr[data.index] = rind(data)
+    data.index +=1
+
+cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    cdef np.int64_t *arr
+    if selected == 0: return
+    # NOTE: We do this for every *cell*.
+    arr = <np.int64_t *> data.array
+    arr[o.domain - 1] += 1

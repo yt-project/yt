@@ -1,27 +1,18 @@
 """
 Gadget-specific data-file handling function
 
-Author: Christopher E Moody <juxtaposicion@gmail.com>
-Affiliation: UC Santa Cruz
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Christopher E Moody, Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -380,6 +371,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 rv[field] = np.empty(size, dtype="float64")
                 if size == 0: continue
                 rv[field][:] = vals[field][mask]
+            if field == "Coordinates":
+                eps = np.finfo(rv[field].dtype).eps
+                for i in range(3):
+                  rv[field][:,i] = np.clip(rv[field][:,i],
+                      self.domain_left_edge[i] + eps,
+                      self.domain_right_edge[i] - eps)
         return rv
 
     def _read_particle_selection(self, chunks, selector, fields):
@@ -421,6 +418,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ind = 0
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         dx = (DRE - DLE) / (2**_ORDER_MAX)
+        self.domain_left_edge = DLE
+        self.domain_right_edge = DRE
         with open(data_file.filename, "rb") as f:
             f.seek(pf._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
@@ -446,9 +445,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                                pf.domain_left_edge,
                                                pf.domain_right_edge)
                     pos = np.empty((pp.size, 3), dtype="float64")
-                    pos[:,0] = pp["Coordinates"]["x"]
-                    pos[:,1] = pp["Coordinates"]["y"]
-                    pos[:,2] = pp["Coordinates"]["z"]
+                    for i, ax in enumerate("xyz"):
+                        eps = np.finfo(pp["Coordinates"][ax].dtype).eps
+                        pos[:,i] = np.clip(pp["Coordinates"][ax],
+                                    pf.domain_left_edge[i] + eps,
+                                    pf.domain_right_edge[i] - eps)
                     regions.add_data_file(pos, data_file.file_id)
                     morton[ind:ind+c] = compute_morton(
                         pos[:,0], pos[:,1], pos[:,2],

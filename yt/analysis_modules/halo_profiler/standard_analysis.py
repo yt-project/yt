@@ -1,27 +1,17 @@
 """
 This module contains a near-replacement for enzo_anyl
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import os
 
@@ -30,6 +20,7 @@ from yt.funcs import *
 
 class StandardRadialAnalysis(object):
     def __init__(self, pf, center, radius, n_bins = 128, inner_radius = None):
+        raise NotImplementedError  # see TODO
         self.pf = pf
         # We actually don't want to replicate the handling of setting the
         # center here, so we will pass it to the sphere creator.
@@ -53,6 +44,7 @@ class StandardRadialAnalysis(object):
         prof = BinnedProfile1D(self.obj, self.n_bins, "Radius",
                                self.inner_radius, self.outer_radius)
         by_weights = defaultdict(list)
+        # TODO: analysis_field_list is undefined
         for fspec in analysis_field_list:
             if isinstance(fspec, types.TupleType) and len(fspec) == 2:
                 field, weight = fspec

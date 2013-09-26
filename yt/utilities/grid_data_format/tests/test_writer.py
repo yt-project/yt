@@ -1,27 +1,17 @@
 """
 Testsuite for writing yt data to GDF
 
-Author: Kacper Kowalik <xarthisius.kk@gmail.com>
-Affiliation: Torun Center for Astronomy, NCU
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Kacper Kowalik.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import tempfile
 import shutil
 import os
@@ -50,17 +40,18 @@ def test_write_gdf():
     tmpdir = tempfile.mkdtemp()
     tmpfile = os.path.join(tmpdir, 'test_gdf.h5')
 
-    test_pf = fake_random_pf(64)
-    write_to_gdf(test_pf, tmpfile, data_author=TEST_AUTHOR,
-                 data_comment=TEST_COMMENT)
-    del test_pf
+    try:
+        test_pf = fake_random_pf(64)
+        write_to_gdf(test_pf, tmpfile, data_author=TEST_AUTHOR,
+                     data_comment=TEST_COMMENT)
+        del test_pf
+        assert isinstance(load(tmpfile), GDFStaticOutput)
 
-    assert isinstance(load(tmpfile), GDFStaticOutput)
+        h5f = h5.File(tmpfile, 'r')
+        gdf = h5f['gridded_data_format'].attrs
+        assert_equal(gdf['data_author'], TEST_AUTHOR)
+        assert_equal(gdf['data_comment'], TEST_COMMENT)
+        h5f.close()
 
-    h5f = h5.File(tmpfile, 'r')
-    gdf = h5f['gridded_data_format'].attrs
-    assert_equal(gdf['data_author'], TEST_AUTHOR)
-    assert_equal(gdf['data_comment'], TEST_COMMENT)
-    h5f.close()
-
-    shutil.rmtree(tmpdir)
+    finally:
+        shutil.rmtree(tmpdir)
