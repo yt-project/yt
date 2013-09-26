@@ -154,86 +154,6 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         if vals is None: return
         return np.asfortranarray(vals)
 
-class ARTIOChunk(object):
-
-    def __init__(self, pf, sfc_start, sfc_end):
-        self.pf = pf
-        self.sfc_start = sfc_start
-        self.sfc_end = sfc_end
-
-    _data_size = None
-
-    @property
-    def data_size(self):
-        if self._data_size is None:
-            mylog.error("ARTIOChunk.data_size called before fill")
-            raise RuntimeError
-        return self._data_size
-
-    _fcoords = None
-    def select_fcoords(self, dobj):
-        if self._fcoords is None:
-            mylog.error("ARTIOChunk.fcoords called before fill")
-            raise RuntimeError
-        return self._fcoords
-
-    _ires = None
-    def select_ires(self, dobj):
-        if self._ires is None:
-            raise RuntimeError("ARTIOChunk.select_ires called before fill")
-        return self._ires
-
-    def select_fwidth(self, dobj):
-        if self._ires is None:
-            raise RuntimeErorr("ARTIOChunk.fwidth called before fill")
-        return np.array([2.**-self._ires, 2.**-self._ires,
-                         2.**-self._ires]).transpose()
-
-    def select_icoords(self, dobj):
-        if self._fcoords is None or self._ires is None:
-            raise RuntimeError("ARTIOChunk.icoords called before fill")
-        return (int)(self._fcoords/2**-self._ires)
-
-    def fill(self, fields, selector):
-        art_fields = [yt_to_art[f[1]] for f in fields]
-        (self._fcoords, self._ires, artdata) = \
-            self.pf._handle.read_grid_chunk(selector,
-                                            self.sfc_start,
-                                            self.sfc_end, art_fields)
-        data = {}
-        for i, f in enumerate(fields):
-            data[f] = artdata[i]
-        self._data_size = len(self._fcoords)
-        return data
-
-    def fill_particles(self, field_data, fields, selector):
-        art_fields = {}
-        for s, f in fields:
-            for i in range(self.pf.num_species):
-                if s == "all" or self.pf.particle_species[i] == yt_to_art[s]:
-                    if yt_to_art[f] in self.pf.particle_variables[i]:
-                        art_fields[(i, yt_to_art[f])] = 1
-
-        species_data = self.pf._handle.read_particle_chunk(
-            selector, self.sfc_start, self.sfc_end, art_fields.keys())
-
-        for s, f in fields:
-            af = yt_to_art[f]
-            np = sum(len(species_data[(i, af)])
-                     for i in range(self.pf.num_species)
-                     if s == "all"
-                     or self.pf.particle_species[i] == yt_to_art[s])
-
-            cp = len(field_data[(s, f)])
-            field_data[(s, f)].resize(cp + np)
-            for i in range(self.pf.num_species):
-                if s == "all" or self.pf.particle_species[i] == yt_to_art[s]:
-                    np = len(species_data[(i, yt_to_art[f])])
-                    field_data[(s, f)][cp:cp+np] = \
-                        species_data[(i, yt_to_art[f])]
-                    cp += np
-
-
 class ARTIOGeometryHandler(GeometryHandler):
 
     def __init__(self, pf, data_style='artio'):
@@ -361,7 +281,6 @@ class ARTIOGeometryHandler(GeometryHandler):
         if ngz > 0:
             raise NotImplementedError
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        # These are ARTIOChunk objects
         for i,og in enumerate(sobjs):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
