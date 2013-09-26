@@ -117,6 +117,20 @@ class BoxlibGrid(AMRGridPatch):
         coords[:] = self.Level + self.pf.level_offsets[self.Level]
         return coords
 
+    # Override this as well, since refine_by can vary
+    def _fill_child_mask(self, child, mask, tofill, dlevel = 1):
+        rf = self.pf.ref_factors[self.Level]
+        if dlevel != 1:
+            raise NotImplementedError
+        gi, cgi = self.get_global_startindex(), child.get_global_startindex()
+        startIndex = np.maximum(0, cgi / rf - gi)
+        endIndex = np.minimum((cgi + child.ActiveDimensions) / rf - gi,
+                              self.ActiveDimensions)
+        endIndex += (startIndex == endIndex)
+        mask[startIndex[0]:endIndex[0],
+             startIndex[1]:endIndex[1],
+             startIndex[2]:endIndex[2]] = tofill
+
 class BoxlibHierarchy(GridGeometryHandler):
     grid = BoxlibGrid
     def __init__(self, pf, data_style='boxlib_native'):
