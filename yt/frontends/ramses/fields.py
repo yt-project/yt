@@ -150,7 +150,8 @@ def _SpeciesComovingDensity(field, data):
 def _SpeciesFraction(field, data):
     species = field.name.split("_")[0]
     sp = "%s_NumberDensity" % species
-    return mh * data[sp] * _speciesMass[species]
+    rv = mh * _speciesMass[species] * data[sp] / data["Density"]
+    return rv
 
 def _SpeciesMass(field, data):
     sp = field.name.split("_")[0] + "_Density"
@@ -159,7 +160,7 @@ def _SpeciesMass(field, data):
 def _SpeciesDensity(field, data):
     species = field.name.split("_")[0]
     sp = "%s_NumberDensity" % species
-    return mh * data[sp] * _speciesMass[species] * data["Density"]
+    return mh * data[sp] * _speciesMass[species]
 
 def _convertCellMassMsun(data):
     return 1.0/mass_sun_cgs # g^-1
@@ -203,12 +204,15 @@ _cool_species = ("Electron_NumberDensity",
                  "HeII_NumberDensity",
                  "HeIII_NumberDensity")
 
+_X = 0.76 # H fraction, hardcoded
+_Y = 0.24 # He fraction, hardcoded
+
 def create_cooling_fields(filename, field_info):
     if not os.path.exists(filename): return
     def _create_field(name, interp_object):
         def _func(field, data):
             shape = data["Temperature"].shape
-            d = {'lognH': np.log10(data["Density"]/mh).ravel(),
+            d = {'lognH': np.log10(_X*data["Density"]/mh).ravel(),
                  'logT' : np.log10(data["Temperature"]).ravel()}
             rv = 10**interp_object(d).reshape(shape)
             return rv
