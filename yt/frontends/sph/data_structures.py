@@ -176,6 +176,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         for i in hvals:
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
+        return hvals
 
     def _parse_parameter_file(self):
 
@@ -238,6 +239,9 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self.file_count = hvals["NumFiles"]
 
     def _set_units(self):
+        if self._unit_base is None and self.cosmological_simulation == 1:
+            mylog.info("Assuming length units are in Mpc/h (comoving)")
+            self._unit_base = dict(mpchcm = 1.0)
         super(GadgetStaticOutput, self)._set_units()
         length_unit = self.units['cm']
         unit_base = self._unit_base or {}
