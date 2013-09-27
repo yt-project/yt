@@ -120,7 +120,7 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
 
     for fname in ["Coordinates", "Velocities", "ParticleIDs",
                   # Note: Mass, not Masses
-                  "Mass"]:
+                  "Mass", "particle_index"]:
         func = _field_concat(fname)
         field_registry.add_field(("all", fname), function=func,
                 particle_type = True)
@@ -138,6 +138,10 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
         particle_deposition_functions(ptype, "Coordinates", "Mass", field_registry)
         particle_scalar_functions(ptype, "Coordinates", "Velocities", field_registry)
         known_registry.add_field((ptype, "Coordinates"), function=NullFunc,
+            particle_type = True)
+        # Now we add some translations.
+        GadgetFieldInfo.add_field( (ptype, "particle_index"),
+            function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
     particle_deposition_functions("all", "Coordinates", "Mass", field_registry)
 

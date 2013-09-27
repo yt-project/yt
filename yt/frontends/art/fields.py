@@ -283,6 +283,18 @@ ARTFieldInfo.add_field(("deposit", "baryon_density"),
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
 
+def baryon_mass(field, data):
+    rho = data["deposit", "baryon_density"]
+    return rho * data['CellVolume']
+
+ARTFieldInfo.add_field(("deposit", "baryon_mass"),
+         function = baryon_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Baryon Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
 def total_density(field, data):
     rho = data["deposit", "baryon_density"]
     rho += data["deposit", "specie0_density"]
@@ -296,6 +308,18 @@ ARTFieldInfo.add_field(("deposit", "total_density"),
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
 
+def total_mass(field, data):
+    rho = data["deposit", "total_density"]
+    return rho * data['CellVolume']
+
+ARTFieldInfo.add_field(("deposit", "total_mass"),
+         function = total_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Total Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
 def multimass_density(field, data):
     rho = data["deposit", "baryon_density"]
     rho += data["deposit", "darkmatter_density"]
@@ -305,6 +329,18 @@ ARTFieldInfo.add_field(("deposit", "multimass_density"),
          function = multimass_density,
          validators = [ValidateSpatial()],
          display_name = "\\mathrm{Multimass Density}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
+def multimass_mass(field, data):
+    rho = data["deposit", "multimass_density"]
+    return rho * data['CellVolume']
+
+ARTFieldInfo.add_field(("deposit", "multimass_mass"),
+         function = multimass_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Multimass Mass}",
          units = r"\mathrm{g}/\mathrm{cm}^{3}",
          projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
          projection_conversion = 'cm')
