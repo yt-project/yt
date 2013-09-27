@@ -160,6 +160,8 @@ cdef import from "config_vars.h":
 cdef class RockstarInterface
 
 cdef void rh_analyze_halo(halo *h, particle *hp):
+    # I don't know why, but sometimes we get halos with 0 particles.
+    if h.num_p == 0: return
     cdef particleflat[:] pslice
     pslice = <particleflat[:h.num_p]> (<particleflat *>hp)
     parray = np.asarray(pslice)
@@ -174,7 +176,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     cdef np.ndarray[np.float64_t, ndim=1] arr
     cdef unsigned long long pi,fi,i
     cdef np.int64_t local_parts = 0
-    pf = rh.tsl.next()
+    pf = rh.pf = rh.tsl.next()
     block = int(str(filename).rsplit(".")[-1])
     n = rh.block_ratio
 
@@ -230,6 +232,7 @@ cdef class RockstarInterface:
     cdef public object data_source
     cdef public object ts
     cdef public object tsl
+    cdef public object pf
     cdef int rank
     cdef int size
     cdef public int block_ratio
