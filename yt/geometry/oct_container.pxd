@@ -39,6 +39,7 @@ cdef struct OctAllocationContainer:
     np.int64_t n
     np.int64_t n_assigned
     np.int64_t offset
+    np.int64_t con_id
     OctAllocationContainer *next
     Oct *my_octs
 
@@ -58,11 +59,12 @@ cdef class OctreeContainer:
     cdef Oct ****root_mesh
     cdef oct_visitor_function *fill_func
     cdef int partial_coverage
+    cdef int level_offset
     cdef int nn[3]
     cdef np.uint8_t oref
     cdef np.float64_t DLE[3], DRE[3]
     cdef public np.int64_t nocts
-    cdef public int max_domain
+    cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef int get_root(self, int ind[3], Oct **o)
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors)
@@ -76,12 +78,15 @@ cdef class OctreeContainer:
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
     cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
+    cdef void append_domain(self, np.int64_t domain_count)
 
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
     cdef void *tree_root
     cdef int num_root
     cdef int max_root
+    cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3])
+    cdef np.int64_t ipos_to_key(self, int pos[3])
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass

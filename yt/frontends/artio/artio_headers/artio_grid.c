@@ -1,9 +1,25 @@
-/*
- * artio_grid.c
+/**********************************************************************
+ * Copyright (c) 2012-2013, Douglas H. Rudd
+ * All rights reserved.
  *
- *  Created on: May 10, 2011
- *      Author: Yongen Yu
- */
+ * This file is part of the artio library.
+ *
+ * artio is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * artio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * Copies of the GNU Lesser General Public License and the GNU General
+ * Public License are available in the file LICENSE, included with this
+ * distribution.  If you failed to receive a copy of this file, see
+ * <http://www.gnu.org/licenses/>
+ **********************************************************************/
+
 #include "artio.h"
 #include "artio_internal.h"
 
@@ -310,7 +326,7 @@ int artio_fileset_add_grid(artio_fileset *handle,
 		}
 	}
 
-		handle->grid = ghandle;
+	handle->grid = ghandle;
 
 	artio_parameter_set_long_array(handle, "grid_file_sfc_index",
 			ghandle->num_grid_files + 1, ghandle->file_sfc_index);
@@ -396,7 +412,7 @@ int artio_fileset_close_grid(artio_fileset *handle) {
 }
 
 int artio_grid_count_octs_in_sfc_range(artio_fileset *handle, 
-		int64_t start, int64_t end, int64_t *num_octs) {
+		int64_t start, int64_t end, int64_t *num_octs_in_range ) {
     int i;
 	int ret;
 	int file, first;
@@ -428,7 +444,7 @@ int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
 		return ARTIO_ERR_INVALID_STATE;
 	}
 
-	*num_octs = 0;
+	*num_octs_in_range = 0;
 
 	if ( 8*ghandle->num_grid_variables <= ghandle->file_max_level ) {
 		/* we can't compute the number of octs through the offset table */
@@ -446,7 +462,7 @@ int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
 			if ( ret != ARTIO_SUCCESS ) return ret;
 
 			for ( i = 0; i < num_oct_levels; i++ ) {
-				*num_octs += num_octs_per_level[i];
+				*num_octs_in_range += num_octs_per_level[i];
 			}	
 
 			ret = artio_grid_read_root_cell_end( handle );
@@ -490,7 +506,7 @@ int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
 			/* this assumes (num_levels_per_root_tree)*sizeof(int) <
 			 *   size of an oct, or 8*num_variables > max_level so the 
 			 *   number of levels drops off in rounding to int */
-			*num_octs += (size_offset - offset - 
+			*num_octs_in_range += (size_offset - offset - 
 				sizeof(float)*ghandle->num_grid_variables - sizeof(int) ) /
 				(8*(sizeof(float)*ghandle->num_grid_variables + sizeof(int) ));
 			offset = next_offset;

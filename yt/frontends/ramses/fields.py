@@ -13,6 +13,8 @@ RAMSES-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import os
+
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
@@ -32,6 +34,10 @@ from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, \
     mass_sun_cgs, \
     mh
+from yt.utilities.linear_interpolators import \
+    BilinearFieldInterpolator
+import yt.utilities.fortran_utils as fpu
+from yt.funcs import mylog
 import numpy as np
 
 RAMSESFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "RFI")
@@ -142,34 +148,32 @@ def _SpeciesComovingDensity(field, data):
     return data[sp] / ef
 
 def _SpeciesFraction(field, data):
-    sp = field.name.split("_")[0] + "_Density"
-    return data[sp] / data["Density"]
+    species = field.name.split("_")[0]
+    sp = "%s_NumberDensity" % species
+    rv = mh * _speciesMass[species] * data[sp] / data["Density"]
+    return rv
 
 def _SpeciesMass(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp] * data["CellVolume"]
 
-def _SpeciesNumberDensity(field, data):
+def _SpeciesDensity(field, data):
     species = field.name.split("_")[0]
-    sp = field.name.split("_")[0] + "_Density"
-    return data[sp] / _speciesMass[species]
+    sp = "%s_NumberDensity" % species
+    return mh * data[sp] * _speciesMass[species]
 
 def _convertCellMassMsun(data):
     return 1.0/mass_sun_cgs # g^-1
-def _ConvertNumberDensity(data):
-    return 1.0/mh
 
 for species in _speciesList:
-    add_ramses_field("%s_Density" % species,
-             function = NullFunc,
+    add_field("%s_Fraction" % species,
+             function = _SpeciesFraction,
+             display_name = "%s\/Fraction" % species)
+    add_field("%s_Density" % species,
+             function = _SpeciesDensity,
              display_name = "%s\/Density" % species,
-             convert_function = _convertDensity,
              units = r"\rm{g}/\rm{cm}^3",
              projected_units = r"\rm{g}/\rm{cm}^2")
-    add_field("%s_Fraction" % species,
-             function=_SpeciesFraction,
-             validators=ValidateDataField("%s_Density" % species),
-             display_name="%s\/Fraction" % species)
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species),
@@ -183,11 +187,6 @@ for species in _speciesList:
               convert_function=_convertCellMassMsun,
               validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
-    if _speciesMass.has_key(species):
-        add_field("%s_NumberDensity" % species,
-                  function=_SpeciesNumberDensity,
-                  convert_function=_ConvertNumberDensity,
-                  validators=ValidateDataField("%s_Density" % species))
 
 # PARTICLE FIELDS
 particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
@@ -195,3 +194,49 @@ particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
                           RAMSESFieldInfo)
 particle_deposition_functions("all", "Coordinates", "particle_mass",
                                RAMSESFieldInfo)
+_cool_axes = ("lognH", "logT", "logTeq")
+_cool_arrs = ("metal", "cool", "heat", "metal_prime", "cool_prime",
+              "heat_prime", "mu", "abundances")
+_cool_species = ("Electron_NumberDensity",
+                 "HI_NumberDensity",
+                 "HII_NumberDensity",
+                 "HeI_NumberDensity",
+                 "HeII_NumberDensity",
+                 "HeIII_NumberDensity")
+
+_X = 0.76 # H fraction, hardcoded
+_Y = 0.24 # He fraction, hardcoded
+
+def create_cooling_fields(filename, field_info):
+    if not os.path.exists(filename): return
+    def _create_field(name, interp_object):
+        def _func(field, data):
+            shape = data["Temperature"].shape
+            d = {'lognH': np.log10(_X*data["Density"]/mh).ravel(),
+                 'logT' : np.log10(data["Temperature"]).ravel()}
+            rv = 10**interp_object(d).reshape(shape)
+            return rv
+        field_info.add_field(name = name, function=_func,
+                             units = r"\rm{cm}^{-3}",
+                             projected_units = r"\rm{cm}^{-2}")
+    avals = {}
+    tvals = {}
+    with open(filename, "rb") as f:
+        n1, n2 = fpu.read_vector(f, 'i')
+        n = n1 * n2
+        for ax in _cool_axes:
+            avals[ax] = fpu.read_vector(f, 'd')
+        for tname in _cool_arrs:
+            var = fpu.read_vector(f, 'd')
+            if var.size == n1*n2:
+                tvals[tname] = var.reshape((n1, n2), order='F')
+            else:
+                var = var.reshape((n1, n2, var.size / (n1*n2)), order='F')
+                for i in range(var.shape[-1]):
+                    tvals[_cool_species[i]] = var[:,:,i]
+    
+    for n in tvals:
+        interp = BilinearFieldInterpolator(tvals[n],
+                    (avals["lognH"], avals["logT"]),
+                    ["lognH", "logT"], truncate = True)
+        _create_field(n, interp)
