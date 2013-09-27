@@ -18,6 +18,8 @@ import os, sys
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 from yt.config import ytcfg
 
@@ -171,8 +173,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
     cdef unsigned long long pi,fi,i
+    cdef np.int64_t local_parts = 0
     pf = rh.tsl.next()
-    print 'reading from particle filename %s: %s'%(filename,pf.basename)
     block = int(str(filename).rsplit(".")[-1])
     n = rh.block_ratio
 
@@ -186,7 +188,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     if NUM_BLOCKS > 1:
         local_parts = 0
-        for chunk in dd.chunks([(rh.particle_type, "particle_ones")], "io"):
+        for chunk in parallel_objects(
+                dd.chunks([(rh.particle_type, "particle_ones")], "io")):
             local_parts += chunk[rh.particle_type, "particle_ones"].sum()
     else:
         local_parts = TOTAL_PARTICLES
@@ -204,11 +207,12 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                 ["particle_position_%s" % ax for ax in 'xyz'] + 
                 ["particle_velocity_%s" % ax for ax in 'xyz'] +
                 ["particle_index"]]
-    for chunk in dd.chunks(fields, "io"):
-        arri = chunk[rh.particle_type, "particle_index"]
+    for chunk in parallel_objects(dd.chunks(fields, "io")):
+        arri = np.asarray(chunk[rh.particle_type, "particle_index"],
+                          dtype="int64")
         npart = arri.size
         for i in range(npart):
-            p[0][i+pi].id = arri[i]
+            p[0][i+pi].id = <np.int64_t> arri[i]
         fi = 0
         for field in ["particle_position_x", "particle_position_y",
                       "particle_position_z",
@@ -275,7 +279,9 @@ cdef class RockstarInterface:
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
+        TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
+        self.particle_type = particle_type
         
         tpf = self.ts[0]
         h0 = tpf.hubble_constant
