@@ -26,9 +26,27 @@ cdef import from "particle.h":
         np.int64_t id
         float pos[6]
 
+ctypedef struct particleflat:
+    np.int64_t id
+    float pos_x
+    float pos_y
+    float pos_z
+    float vel_x
+    float vel_y
+    float vel_z
+
+cdef import from "halo.h":
+    struct halo:
+        np.int64_t id
+        float pos[6], corevel[3], bulkvel[3]
+        float m, r, child_r, mgrav, vmax, rvmax, rs, vrms, J[3], energy, spin
+        np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
+        float min_pos_err, min_vel_err, min_bulkvel_err
+
 cdef import from "io_generic.h":
     ctypedef void (*LPG) (char *filename, particle **p, np.int64_t *num_p)
-    void set_load_particles_generic(LPG func)
+    ctypedef void (*AHG) (halo *h, particle *hp)
+    void set_load_particles_generic(LPG func, AHG afunc)
 
 cdef import from "rockstar.h":
     void rockstar(float *bounds, np.int64_t manual_subs)
@@ -139,7 +157,15 @@ cdef import from "config_vars.h":
 # Forward declare
 cdef class RockstarInterface
 
-cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) with gil:
+cdef void rh_analyze_halo(halo *h, particle *hp):
+    cdef particleflat[:] pslice
+    pslice = <particleflat[:h.num_p]> (<particleflat *>hp)
+    parray = np.asarray(pslice)
+    for cb in rh.callbacks:
+        cb(rh.pf, parray)
+    # This is where we call our functions
+
+cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     global SCALE_NOW
     cdef np.float64_t conv[6], left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
@@ -236,6 +262,7 @@ cdef class RockstarInterface:
     cdef public int total_particles
     cdef public int dm_only
     cdef public int hires_only
+    cdef public object callbacks
 
     def __cinit__(self, ts):
         self.ts = ts
@@ -250,7 +277,8 @@ cdef class RockstarInterface:
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, force_res=None,
                        int min_halo_size = 25, outbase = "None",
-                       int dm_only = 0, int hires_only = False):
+                       int dm_only = 0, int hires_only = False,
+                       callbacks = None):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -279,7 +307,6 @@ cdef class RockstarInterface:
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
         MIN_HALO_OUTPUT_SIZE=min_halo_size
-        TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
         self.dm_only = dm_only
         self.hires_only = hires_only
@@ -289,6 +316,8 @@ cdef class RockstarInterface:
         Ol = tpf.omega_lambda
         Om = tpf.omega_matter
         SCALE_NOW = 1.0/(tpf.current_redshift+1.0)
+        if callbacks is None: callbacks = []
+        self.callbacks = callbacks
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
             #workaround is to make a new directory
@@ -300,9 +329,9 @@ cdef class RockstarInterface:
                     tpf.domain_left_edge[0]) * tpf['mpchcm']
         setup_config()
         rh = self
-        rh.dm_type = dm_type
         cdef LPG func = rh_read_particles
-        set_load_particles_generic(func)
+        cdef AHG afunc = rh_analyze_halo
+        set_load_particles_generic(func, afunc)
 
     def call_rockstar(self):
         read_particles("generic")
@@ -320,3 +349,4 @@ cdef class RockstarInterface:
     def start_writer(self):
         cdef np.int64_t in_type = np.int64(WRITER_TYPE)
         client(in_type)
+
