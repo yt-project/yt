@@ -125,6 +125,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
     _fieldinfo_known = KnownGadgetFields
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
+    _suffix = ""
     _header_spec = (('Npart', 6, 'i'),
                     ('Massarr', 6, 'd'),
                     ('Time', 1, 'd'),
@@ -229,10 +230,9 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self.parameters = hvals
 
         prefix = self.parameter_filename.split(".", 1)[0]
-        # suffix = self.parameter_filename.rsplit(".", 1)[-1]
 
         if hvals["NumFiles"] > 1:
-            self.filename_template = "%s.%%(num)s" % (prefix)
+            self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
         else:
             self.filename_template = self.parameter_filename
 
@@ -344,6 +344,7 @@ class GadgetHDF5StaticOutput(GadgetStaticOutput):
     _file_class = ParticleFile
     _fieldinfo_fallback = GadgetHDF5FieldInfo
     _fieldinfo_known = KnownGadgetHDF5Fields
+    _suffix = ".hdf5"
 
     def __init__(self, filename, data_style="gadget_hdf5", 
                  unit_base = None, n_ref=64,
