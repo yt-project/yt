@@ -312,6 +312,9 @@ class BoxlibHierarchy(GridGeometryHandler):
         self.field_list = self.parameter_file._field_list[:]
         self.field_indexes = dict((f, i)
                                 for i, f in enumerate(self.field_list))
+        # There are times when field_list may change.  We copy it here to
+        # avoid that possibility.
+        self.field_order = [f for f in self.field_list]
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
