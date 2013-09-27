@@ -40,6 +40,8 @@ from .fields import \
     KnownOWLSFields, \
     GadgetFieldInfo, \
     KnownGadgetFields, \
+    GadgetHDF5FieldInfo, \
+    KnownGadgetHDF5Fields, \
     TipsyFieldInfo, \
     KnownTipsyFields
 
@@ -100,6 +102,8 @@ class ParticleStaticOutput(StaticOutput):
                 mpch['%shcm' % unit] = (mpch["%sh" % unit] *
                                         (1 + self.current_redshift))
                 mpch['%scm' % unit] = mpch[unit] * (1 + self.current_redshift)
+        elif 'cmcm' in unit_base:
+            unit_base['cm'] = self.units['cm'] = unit_base.pop("cmcm")
         # ud == unit destination
         # ur == unit registry
         for ud, ur in [(self.units, mpch), (self.time_units, sec_conversion)]:
@@ -142,22 +146,28 @@ class GadgetStaticOutput(ParticleStaticOutput):
     def __init__(self, filename, data_style="gadget_binary",
                  additional_fields=(),
                  unit_base=None, n_ref=64,
-                 over_refine_factor=1):
+                 over_refine_factor=1,
+                 bounding_box = None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
-            unit_base['cmcm'] = unit_base["UnitLength_in_cm"]
+            unit_base['cmcm'] = 1.0 / unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
+        if bounding_box is not None:
+            bbox = np.array(bounding_box, dtype="float64")
+            self.domain_left_edge = bbox[:,0]
+            self.domain_right_edge = bbox[:,1]
+        else:
+            self.domain_left_edge = self.domain_right_edge = None
         super(GadgetStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
-    def _parse_parameter_file(self):
-
+    def _get_hvals(self):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
 
@@ -166,6 +176,11 @@ class GadgetStaticOutput(ParticleStaticOutput):
         for i in hvals:
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
+        return hvals
+
+    def _parse_parameter_file(self):
+
+        hvals = self._get_hvals()
 
         self.dimensionality = 3
         self.refine_by = 2
@@ -174,8 +189,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Set standard values
 
-        self.domain_left_edge = np.zeros(3, "float64")
-        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        # We may have an overridden bounding box.
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         self.periodicity = (True, True, True)
@@ -221,9 +238,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
         self.file_count = hvals["NumFiles"]
 
-        f.close()
-
     def _set_units(self):
+        if self._unit_base is None and self.cosmological_simulation == 1:
+            mylog.info("Assuming length units are in Mpc/h (comoving)")
+            self._unit_base = dict(mpchcm = 1.0)
         super(GadgetStaticOutput, self)._set_units()
         length_unit = self.units['cm']
         unit_base = self._unit_base or {}
@@ -322,6 +340,43 @@ class OWLSStaticOutput(GadgetStaticOutput):
             pass
         return False
 
+class GadgetHDF5StaticOutput(GadgetStaticOutput):
+    _file_class = ParticleFile
+    _fieldinfo_fallback = GadgetHDF5FieldInfo
+    _fieldinfo_known = KnownGadgetHDF5Fields
+
+    def __init__(self, filename, data_style="gadget_hdf5", 
+                 unit_base = None, n_ref=64,
+                 over_refine_factor=1,
+                 bounding_box = None):
+        self.storage_filename = None
+        filename = os.path.abspath(filename)
+        super(GadgetHDF5StaticOutput, self).__init__(
+            filename, data_style, unit_base=unit_base, n_ref=n_ref,
+            over_refine_factor=over_refine_factor,
+            bounding_box = bounding_box)
+
+    def _get_hvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        hvals = {}
+        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        # Compat reasons.
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
+        return hvals
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            if "Constants" not in fileh["/"].keys() and \
+               "Header" in fileh["/"].keys():
+                fileh.close()
+                return True
+            fileh.close()
+        except:
+            pass
+        return False
 
 class TipsyFile(ParticleFile):
 
