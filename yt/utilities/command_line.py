@@ -1244,6 +1244,8 @@ class YTNotebookUploadCmd(YTCommand):
             t = json.loads(open(filename).read())['metadata']['name']
         except (ValueError, KeyError):
             print "File does not appear to be an IPython notebook."
+        if len(t) == 0:
+            t = filename.strip(".ipynb")
         from yt.utilities.minimal_representation import MinimalNotebook
         mn = MinimalNotebook(filename, t)
         rv = mn.upload()
