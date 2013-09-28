@@ -118,7 +118,8 @@ from yt.frontends.stream.api import \
 
 from yt.frontends.sph.api import \
     OWLSStaticOutput, OWLSFieldInfo, add_owls_field, \
-    GadgetStaticOutput, GadgetFieldInfo, add_gadget_field, \
+    GadgetStaticOutput, GadgetHDF5StaticOutput, \
+    GadgetFieldInfo, add_gadget_field, \
     TipsyStaticOutput, TipsyFieldInfo, add_tipsy_field
 
 from yt.analysis_modules.list_modules import \
