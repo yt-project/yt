@@ -99,6 +99,7 @@ class IOHandlerOWLS(BaseIOHandler):
         ind = 0
         for key in f.keys():
             if not key.startswith("PartType"): continue
+            if "Coordinates" not in f[key]: continue
             ds = f[key]["Coordinates"]
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
@@ -125,6 +126,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for key in f.keys():
             if not key.startswith("PartType"): continue
             g = f[key]
+            if "Coordinates" not in g: continue
             #ptype = int(key[8:])
             ptype = str(key)
             for k in g.keys():
