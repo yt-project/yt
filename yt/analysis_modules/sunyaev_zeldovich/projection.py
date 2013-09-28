@@ -18,7 +18,7 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mp
+from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.data_objects.image_array import ImageArray
 from yt.data_objects.field_info_container import add_field
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
@@ -27,9 +27,9 @@ from yt.visualization.image_writer import write_fits, write_projection
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
+from yt.utilities.exceptions import YTException
 import numpy as np
 
-Tcmb = 2.726
 I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
         
 try:
@@ -44,15 +44,15 @@ def _t_squared(field, data):
 add_field("TSquared", function=_t_squared)
 
 def _beta_perp_squared(field, data):
-    return data["Density"]*(data["VelocityMagnitude"]**2/clight/clight - data["BetaParSquared"])
+    return data["Density"]*data["VelocityMagnitude"]**2/clight/clight - data["BetaParSquared"]
 add_field("BetaPerpSquared", function=_beta_perp_squared)
 
 def _beta_par_squared(field, data):
-    return data["Density"]*data["BetaPar"]**2
+    return data["BetaPar"]**2/data["Density"]
 add_field("BetaParSquared", function=_beta_par_squared)
 
 def _t_beta_par(field, data):
-    return data["Density"]*data["TempkeV"]*data["BetaPar"]
+    return data["TempkeV"]*data["BetaPar"]
 add_field("TBetaPar", function=_t_beta_par)
 
 def _t_sz(field, data):
@@ -136,24 +136,24 @@ class SZProjection(object):
         Te = frb["TeSZ"]/dens
         bpar = frb["BetaPar"]/dens
         omega1 = frb["TSquared"]/dens/(Te*Te) - 1.
+        bperp2 = np.zeros((nx,nx))
+        sigma1 = np.zeros((nx,nx))
+        kappa1 = np.zeros((nx,nx))                                    
         if self.high_order:
             bperp2 = frb["BetaPerpSquared"]/dens
             sigma1 = frb["TBetaPar"]/dens/Te - bpar
-            kappa1 = frb["BetaParSquared"]/dens - bpar
-        else:
-            bperp2 = np.zeros((nx,nx))
-            sigma1 = np.zeros((nx,nx))
-            kappa1 = np.zeros((nx,nx))
-        tau = sigma_thompson*dens*self.mueinv/mp
+            kappa1 = frb["BetaParSquared"]/dens - bpar*bpar
+        tau = sigma_thompson*dens*self.mueinv/mh
 
         nx,ny = frb.buff_size
         self.bounds = frb.bounds
         self.dx = (frb.bounds[1]-frb.bounds[0])/nx
         self.dy = (frb.bounds[3]-frb.bounds[2])/ny
+        self.nx = nx
         
         self._compute_intensity(tau, Te, bpar, omega1, sigma1, kappa1, bperp2)
                                                                                                                 
-    def off_axis(self, L, center="c", width=(1, "unitary"), nx=800):
+    def off_axis(self, L, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an off-axis projection of the SZ signal.
         
         Parameters
@@ -166,6 +166,9 @@ class SZProjection(object):
             The width of the projection.
         nx : integer, optional
             The dimensions on a side of the projection image.
+        source : yt.data_objects.api.AMRData, optional
+            If specified, this will be the data source used for selecting regions to project.
+            Currently unsupported in yt 2.x.
                     
         Examples
         --------
@@ -182,7 +185,10 @@ class SZProjection(object):
             ctr = self.pf.h.find_max("Density")
         else:
             ctr = center
-            
+
+        if source is not None:
+            raise YTException("Source argument is not currently supported for off-axis S-Z projections.")
+        
         def _beta_par(field, data):
             vpar = data["Density"]*(data["x-velocity"]*L[0]+
                                     data["y-velocity"]*L[1]+
@@ -205,20 +211,25 @@ class SZProjection(object):
             bperp2 = np.zeros((nx,nx))
             sigma1 = np.zeros((nx,nx))
             kappa1 = np.zeros((nx,nx))
-        tau = sigma_thompson*dens*self.mueinv/mp
+        tau = sigma_thompson*dens*self.mueinv/mh
 
         self.bounds = np.array([-0.5*w, 0.5*w, -0.5*w, 0.5*w])
         self.dx = w/nx
         self.dy = w/nx
-        
+        self.nx = nx
+
         self._compute_intensity(tau, Te, bpar, omega1, sigma1, kappa1, bperp2)
 
     def _compute_intensity(self, tau, Te, bpar, omega1, sigma1, kappa1, bperp2):
 
+        # Bad hack, but we get NaNs if we don't do something like this
+        small_beta = np.abs(bpar) < 1.0e-20
+        bpar[small_beta] = 1.0e-20
+                                                                   
         comm = communication_system.communicators[-1]
-        
-        nx, ny = tau.shape
-        signal = np.zeros((self.num_freqs,nx,nx))
+
+        nx, ny = self.nx,self.nx
+        signal = np.zeros((self.num_freqs,nx,ny))
         xo = np.zeros((self.num_freqs))
         
         k = int(0)
@@ -227,7 +238,7 @@ class SZProjection(object):
         end_i = (comm.rank+1)*nx/comm.size
                         
         pbar = get_pbar("Computing SZ signal.", nx*nx)
-        
+
         for i in xrange(start_i, end_i):
             for j in xrange(ny):
                 xo[:] = self.xinit[:]
@@ -290,7 +301,7 @@ class SZProjection(object):
         >>> szprj.write_png("SZsloshing")
         """     
         extent = tuple([bound*self.pf.units["kpc"] for bound in self.bounds])
-        for field, image in self.field_dict.items():
+        for field, image in self.items():
             filename=filename_prefix+"_"+field+".png"
             label = self.display_names[field]
             if self.units[field] is not None:
@@ -299,11 +310,40 @@ class SZProjection(object):
                              extent=extent, xlabel=r"$\mathrm{x\ (kpc)}$",
                              ylabel=r"$\mathrm{y\ (kpc)}$")
 
+    @parallel_root_only
+    def write_hdf5(self, filename):
+        r"""Export the set of S-Z fields to a set of HDF5 datasets.
+        
+        Parameters
+        ----------
+        filename : string
+            This file will be opened in "write" mode.
+        
+        Examples
+        --------
+        >>> szprj.write_hdf5("SZsloshing.h5")                        
+        """
+        import h5py
+        f = h5py.File(filename, "w")
+        for field, data in self.items():
+            f.create_dataset(field,data=data)
+        f.close()
+                                                
     def keys(self):
         return self.field_dict.keys()
 
+    def items(self):
+        return self.field_dict.items()
+
+    def values(self):
+        return self.field_dict.values()
+    
     def has_key(self, key):
         return key in self.field_dict.keys()
 
     def __getitem__(self, key):
         return self.field_dict[key]
+
+    @property
+    def shape(self):
+        return (self.nx,self.nx)
