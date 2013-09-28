@@ -17,6 +17,7 @@ API for yt.frontends.sph
 from .data_structures import \
       OWLSStaticOutput, \
       GadgetStaticOutput, \
+      GadgetHDF5StaticOutput, \
       TipsyStaticOutput
 
 from .io import \

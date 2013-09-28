@@ -134,6 +134,8 @@ class IOHandlerOWLS(BaseIOHandler):
         f.close()
         return fields
 
+class IOHandlerGadgetHDF5(IOHandlerOWLS):
+    _data_style = "gadget_hdf5"
 
 ZeroMass = object()
 
