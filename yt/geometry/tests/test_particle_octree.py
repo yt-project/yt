@@ -110,9 +110,11 @@ class FakeRegion:
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))
     # We are going to test having 31, 127, 128 and 257 data files.
-    for nfiles in [31, 127, 128, 257]:
+    for nfiles in [2, 31, 127, 128, 129]:
         # Now we create particles 
-        N = min(nfiles, 256)
+        # Note: we set N to nfiles here for testing purposes.  Inside the code 
+        # we set it to min(N, 256)
+        N = nfiles
         reg = ParticleRegions([0.0, 0.0, 0.0, 0.0],
                               [nfiles, nfiles, nfiles],
                               [N, N, N], nfiles)
