@@ -6,6 +6,7 @@ from yt.geometry.particle_oct_container import \
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.utilities.lib.geometry_utils import get_morton_indices
 from yt.frontends.stream.api import load_particles
+from yt.geometry.selection_routines import RegionSelector
 import yt.data_objects.api
 import time, os
 
@@ -90,6 +91,22 @@ def test_particle_overrefine():
             cv2 = dd2["CellVolumeCode"].sum(dtype="float64")
             yield assert_equal, cv1, cv2
 
+class FakePF:
+    domain_left_edge = None
+    domain_right_edge = None
+    periodicity = (False, False, False)
+
+class FakeRegion:
+    def __init__(self, nfiles):
+        self.pf = FakePF()
+        self.pf.domain_left_edge = [0.0, 0.0, 0.0]
+        self.pf.domain_right_edge = [nfiles, nfiles, nfiles]
+        self.nfiles = nfiles
+
+    def set_edges(self, file_id):
+        self.left_edge = [file_id + 0.1, 0.0, 0.0]
+        self.right_edge = [file_id+1 - 0.1, self.nfiles, self.nfiles]
+
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))
     # We are going to test having 31, 127, 128 and 257 data files.
@@ -107,6 +124,16 @@ def test_particle_regions():
         for i in range(nfiles):
             reg.add_data_file(pos, i)
             pos[:,0] += 1.0
+        pos[:,0] = 0.5
+        fr = FakeRegion(nfiles)
+        for i in range(nfiles):
+            fr.set_edges(i)
+            selector = RegionSelector(fr)
+            df = reg.identify_data_files(selector)
+            yield assert_equal, len(df), 1
+            yield assert_equal, df[0], i
+            pos[:,0] += 1.0
+
         for mask in reg.masks:
             maxs = np.unique(mask.max(axis=-1).max(axis=-1))
             mins = np.unique(mask.min(axis=-1).min(axis=-1))
