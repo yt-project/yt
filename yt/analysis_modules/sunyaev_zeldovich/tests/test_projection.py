@@ -15,6 +15,8 @@ from yt.funcs import get_pbar
 from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
      mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
 from yt.testing import *
+from yt.utilities.answer_testing.framework import requires_pf, \
+     GenericArrayTest, data_dir_load
 from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
 import numpy as np
 try:
@@ -26,7 +28,9 @@ mue = 1./0.88
 freqs = np.array([30., 90., 240.])
     
 def setup():
-    pass
+    """Test specific setup."""
+    from yt.config import ytcfg
+    ytcfg["yt", "__withintesting"] = "True"        
 
 def full_szpack3d(pf, xo):
     data = pf.h.grids[0]
@@ -88,10 +92,9 @@ def setup_cluster():
 
     return pf
 
-pf = setup_cluster()
-
 @requires_module("SZpack")
 def test_projection():
+    pf = setup_cluster()
     nx,ny,nz = pf.domain_dimensions
     xinit = 1.0e9*hcgs*freqs/(kboltz*Tcmb)
     szprj = SZProjection(pf, freqs, mue=mue, high_order=True)
@@ -100,4 +103,24 @@ def test_projection():
     for i in xrange(3):
         deltaI[i,:,:] = full_szpack3d(pf, xinit[i])
         yield assert_almost_equal, deltaI[i,:,:], szprj["%d_GHz" % int(freqs[i])], 6
+
+M7 = "DD0010/moving7_0010"
+@requires_module("SZpack")
+@requires_pf(M7)
+def test_M7_onaxis():
+    pf = data_dir_load(M7)
+    def onaxis_func():
+        szprj = SZProjection(pf, freqs)
+        szprj.on_axis(2)
+        return szprj
+    yield GenericArrayTest(pf, onaxis_func)
         
+@requires_module("SZpack")
+@requires_pf(M7)
+def test_M7_offaxis():
+    pf = data_dir_load(sloshing)
+    def offaxis_func():
+        szprj = SZProjection(pf, freqs)
+        szprj.off_axis(np.array([0.1,-0.2,0.4]))
+        return szprj                    
+    yield GenericArrayTest(pf, offaxis_func)

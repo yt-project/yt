@@ -609,6 +609,25 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
         for fn in fns: os.remove(fn)
 
+class GenericArrayTest(AnswerTestingTest):
+    _type_name = "GenericArray"
+    _attrs = ('array_func','args','kwargs')
+    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
+        super(AnalysisModuleResultTest, self).__init__(pf_fn)
+        self.array_func = array_func
+        self.decimals = decimals
+    def run(self):
+        return self.array_func(*args, **kwargs)
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result),
+                                          err_msg="Number of outputs not equal.",
+                                          verbose=True)
+        for k in new_result:
+            if self.decimals is None:
+                assert_equal(new_result[k], old_result[k])
+            else:
+                assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
+            
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
         return lambda: None
