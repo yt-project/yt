@@ -107,9 +107,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             data = self._read_chunk_data(chunk, pfields, 'any')
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
-                x, y, z = (data[g.id].pop("particle_position_%s" % ax)
-                           for ax in 'xyz')
-                x, y, z = (np.array(arr, dtype='float64') for arr in (x, y, z))
+                x, y, z = (
+                    np.asarray(data[g.id].pop("particle_position_%s" % ax),
+                               dtype="float64")
+                    for ax in 'xyz')
                 size += g.count_particles(selector, x, y, z)
         read_fields = fields[:]
         for field in fields:
