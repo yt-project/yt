@@ -18,6 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
 from yt.config import ytcfg
+from yt.utilities.exceptions import YTRockstarMultiMassNotSupported
 
 import rockstar_interface
 
@@ -229,8 +230,11 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
         particle_mass = self.particle_mass
         if particle_mass is None:
-            particle_mass = dd.quantities["Extrema"](
-                (ptype, "ParticleMassMsun"), non_zero = True)[0][0]
+            pmass_min, pmass_max = dd.quantities["Extrema"](
+                (ptype, "ParticleMassMsun"), non_zero = True)[0]
+            if pmass_min != pmass_max:
+                raise YTRockstarMultiMassNotSupported
+            particle_mass = pmass_min
         # NOTE: We want to take our Msun and turn it into Msun/h .  Its value
         # should be such that dividing by little h gives the original value.
         particle_mass *= tpf.hubble_constant
