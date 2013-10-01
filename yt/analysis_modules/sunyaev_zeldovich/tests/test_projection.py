@@ -11,12 +11,12 @@ Unit test the sunyaev_zeldovich analysis module.
 #-----------------------------------------------------------------------------
 
 from yt.frontends.stream.api import load_uniform_grid
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, mylog
 from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
      mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
 from yt.testing import *
 from yt.utilities.answer_testing.framework import requires_pf, \
-     GenericArrayTest, data_dir_load
+     GenericArrayTest, data_dir_load, GenericImageTest
 from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
 import numpy as np
 try:
@@ -91,7 +91,7 @@ def setup_cluster():
     pf = load_uniform_grid(data, ddims, L, bbox=bbox)
 
     return pf
-
+"""
 @requires_module("SZpack")
 def test_projection():
     pf = setup_cluster()
@@ -103,18 +103,23 @@ def test_projection():
     for i in xrange(3):
         deltaI[i,:,:] = full_szpack3d(pf, xinit[i])
         yield assert_almost_equal, deltaI[i,:,:], szprj["%d_GHz" % int(freqs[i])], 6
+"""
 
 M7 = "DD0010/moving7_0010"
 @requires_module("SZpack")
 @requires_pf(M7)
 def test_M7_onaxis():
     pf = data_dir_load(M7)
-    def onaxis_func():
-        szprj = SZProjection(pf, freqs)
-        szprj.on_axis(2)
+    szprj = SZProjection(pf, freqs)
+    szprj.on_axis(2, nx=200)
+    def array_func():
         return szprj
-    yield GenericArrayTest(pf, onaxis_func)
-        
+    def image_func(filename_prefix):
+        szprj.write_png(filename_prefix)
+    yield GenericArrayTest(pf, array_func)
+    yield GenericImageTest(pf, image_func, 3)
+    
+"""        
 @requires_module("SZpack")
 @requires_pf(M7)
 def test_M7_offaxis():
@@ -124,3 +129,4 @@ def test_M7_offaxis():
         szprj.off_axis(np.array([0.1,-0.2,0.4]))
         return szprj                    
     yield GenericArrayTest(pf, offaxis_func)
+"""
