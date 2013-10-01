@@ -17,7 +17,10 @@ from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
 from yt.testing import *
 from yt.utilities.answer_testing.framework import requires_pf, \
      GenericArrayTest, data_dir_load, GenericImageTest
-from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
+try:
+    from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
+except ImportError:
+    pass
 import numpy as np
 try:
     import SZpack
