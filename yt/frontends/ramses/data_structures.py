@@ -241,7 +241,8 @@ class RAMSESDomainFile(object):
                 # Note that we're adding *grids*, not individual cells.
                 if level >= min_level:
                     assert(pos.shape[0] == ng)
-                    n = self.oct_handler.add(cpu + 1, level - min_level, pos)
+                    n = self.oct_handler.add(cpu + 1, level - min_level, pos,
+                                count_boundary = 1)
                     assert(n == ng)
                     if n > 0: max_level = max(level - min_level, max_level)
         self.max_level = max_level
