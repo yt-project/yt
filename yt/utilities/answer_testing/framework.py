@@ -612,15 +612,24 @@ class PlotWindowAttributeTest(AnswerTestingTest):
 
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
-    _attrs = ('array_func','args','kwargs')
-    def __init__(self, pf_fn, array_func, args=[], kwargs={}, decimals=None):
+    _attrs = ('array_func_name','args','kwargs')
+    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
         super(GenericArrayTest, self).__init__(pf_fn)
         self.array_func = array_func
+        self.array_func_name = array_func.func_name
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals
     def run(self):
-        return self.array_func(*self.args, **self.kwargs)
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        return self.array_func(*args, **kwargs)
     def compare(self, new_result, old_result):
         assert_equal(len(new_result), len(old_result),
                                           err_msg="Number of outputs not equal.",
@@ -633,19 +642,29 @@ class GenericArrayTest(AnswerTestingTest):
 
 class GenericImageTest(AnswerTestingTest):
     _type_name = "GenericImage"
-    _attrs = ('image_func','args','kwargs')
-    def __init__(self, pf_fn, image_func, decimals, args=[], kwargs={}):
+    _attrs = ('image_func_name','args','kwargs')
+    def __init__(self, pf_fn, image_func, decimals, args=None, kwargs=None):
         super(GenericImageTest, self).__init__(pf_fn)
         self.image_func = image_func
+        self.image_func_name = image_func.func_name
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals
     def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
         comp_imgs = []
         tmpdir = tempfile.mkdtemp()
-        image_prefix = os.path.join(tmpdir,"test_img_")
-        self.image_func(image_prefix, *self.args, **self.kwargs)
-        imgs = glob.glob(image_prefix)
+        image_prefix = os.path.join(tmpdir,"test_img")
+        self.image_func(image_prefix, *args, **kwargs)
+        imgs = glob.glob(image_prefix+"*")
+        assert(len(imgs) > 0)
         for img in imgs:
             img_data = mpimg.imread(img)
             os.remove(img)
@@ -654,6 +673,7 @@ class GenericImageTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         fns = ['old.png', 'new.png']
         num_images = len(old_result)
+        assert(num_images > 0)
         for i in xrange(num_images):
             mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
             mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
