@@ -24,6 +24,7 @@ import cPickle
 import shelve
 import zlib
 import tempfile
+import glob
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -612,12 +613,14 @@ class PlotWindowAttributeTest(AnswerTestingTest):
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
     _attrs = ('array_func','args','kwargs')
-    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
-        super(AnalysisModuleResultTest, self).__init__(pf_fn)
+    def __init__(self, pf_fn, array_func, args=[], kwargs={}, decimals=None):
+        super(GenericArrayTest, self).__init__(pf_fn)
         self.array_func = array_func
+        self.args = args
+        self.kwargs = kwargs
         self.decimals = decimals
     def run(self):
-        return self.array_func(*args, **kwargs)
+        return self.array_func(*self.args, **self.kwargs)
     def compare(self, new_result, old_result):
         assert_equal(len(new_result), len(old_result),
                                           err_msg="Number of outputs not equal.",
@@ -627,7 +630,36 @@ class GenericArrayTest(AnswerTestingTest):
                 assert_equal(new_result[k], old_result[k])
             else:
                 assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
-            
+
+class GenericImageTest(AnswerTestingTest):
+    _type_name = "GenericImage"
+    _attrs = ('image_func','args','kwargs')
+    def __init__(self, pf_fn, image_func, decimals, args=[], kwargs={}):
+        super(GenericImageTest, self).__init__(pf_fn)
+        self.image_func = image_func
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        comp_imgs = []
+        tmpdir = tempfile.mkdtemp()
+        image_prefix = os.path.join(tmpdir,"test_img_")
+        self.image_func(image_prefix, *self.args, **self.kwargs)
+        imgs = glob.glob(image_prefix)
+        for img in imgs:
+            img_data = mpimg.imread(img)
+            os.remove(img)
+            comp_imgs.append(zlib.compress(img_data.dumps()))
+        return comp_imgs
+    def compare(self, new_result, old_result):
+        fns = ['old.png', 'new.png']
+        num_images = len(old_result)
+        for i in xrange(num_images):
+            mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+            mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+            assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
+            for fn in fns: os.remove(fn)
+
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
         return lambda: None
