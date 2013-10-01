@@ -91,7 +91,7 @@ def setup_cluster():
     pf = load_uniform_grid(data, ddims, L, bbox=bbox)
 
     return pf
-"""
+
 @requires_module("SZpack")
 def test_projection():
     pf = setup_cluster()
@@ -103,7 +103,6 @@ def test_projection():
     for i in xrange(3):
         deltaI[i,:,:] = full_szpack3d(pf, xinit[i])
         yield assert_almost_equal, deltaI[i,:,:], szprj["%d_GHz" % int(freqs[i])], 6
-"""
 
 M7 = "DD0010/moving7_0010"
 @requires_module("SZpack")
@@ -111,22 +110,23 @@ M7 = "DD0010/moving7_0010"
 def test_M7_onaxis():
     pf = data_dir_load(M7)
     szprj = SZProjection(pf, freqs)
-    szprj.on_axis(2, nx=200)
-    def array_func():
-        return szprj
-    def image_func(filename_prefix):
+    szprj.on_axis(2, nx=100)
+    def onaxis_array_func():
+        return szprj.data
+    def onaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
-    yield GenericArrayTest(pf, array_func)
-    yield GenericImageTest(pf, image_func, 3)
-    
-"""        
+    yield GenericArrayTest(pf, onaxis_array_func)
+    yield GenericImageTest(pf, onaxis_image_func, 3)
+       
 @requires_module("SZpack")
 @requires_pf(M7)
 def test_M7_offaxis():
-    pf = data_dir_load(sloshing)
-    def offaxis_func():
-        szprj = SZProjection(pf, freqs)
-        szprj.off_axis(np.array([0.1,-0.2,0.4]))
-        return szprj                    
-    yield GenericArrayTest(pf, offaxis_func)
-"""
+    pf = data_dir_load(M7)
+    szprj = SZProjection(pf, freqs)
+    szprj.off_axis(np.array([0.1,-0.2,0.4]), nx=100)
+    def offaxis_array_func():
+        return szprj.data
+    def offaxis_image_func(filename_prefix):
+        szprj.write_png(filename_prefix)
+    yield GenericArrayTest(pf, offaxis_array_func)
+    yield GenericImageTest(pf, offaxis_image_func, 3)
