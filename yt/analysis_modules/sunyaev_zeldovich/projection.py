@@ -87,7 +87,7 @@ class SZProjection(object):
         self.mueinv = 1./mue
         self.xinit = hcgs*self.freqs*1.0e9/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
-        self.field_dict = {}
+        self.data = {}
 
         self.units = {}
         self.units["TeSZ"] = r"$\mathrm{keV}$"
@@ -254,9 +254,9 @@ class SZProjection(object):
         pbar.finish()
                 
         for i, field in enumerate(self.freq_fields):
-            self.field_dict[field] = ImageArray(I0*self.xinit[i]**3*signal[i,:,:])
-        self.field_dict["Tau"] = ImageArray(tau)
-        self.field_dict["TeSZ"] = ImageArray(Te)
+            self.data[field] = ImageArray(I0*self.xinit[i]**3*signal[i,:,:])
+        self.data["Tau"] = ImageArray(tau)
+        self.data["TeSZ"] = ImageArray(Te)
 
     @parallel_root_only
     def write_fits(self, filename_prefix, clobber=True):
@@ -282,7 +282,7 @@ class SZProjection(object):
         coords["yctr"] = 0.0
         coords["units"] = "kpc"
         other_keys = {"Time" : self.pf.current_time}
-        write_fits(self.field_dict, filename_prefix, clobber=clobber, coords=coords,
+        write_fits(self.data, filename_prefix, clobber=clobber, coords=coords,
                    other_keys=other_keys)
 
     @parallel_root_only
@@ -328,21 +328,21 @@ class SZProjection(object):
         for field, data in self.items():
             f.create_dataset(field,data=data)
         f.close()
-                                                
+   
     def keys(self):
-        return self.field_dict.keys()
+        return self.data.keys()
 
     def items(self):
-        return self.field_dict.items()
+        return self.data.items()
 
     def values(self):
-        return self.field_dict.values()
+        return self.data.values()
     
     def has_key(self, key):
-        return key in self.field_dict.keys()
+        return key in self.data.keys()
 
     def __getitem__(self, key):
-        return self.field_dict[key]
+        return self.data[key]
 
     @property
     def shape(self):
