@@ -676,7 +676,7 @@ class PlotCollection(object):
             center = self.c
         if obj is None:
             obj = self.pf.hierarchy.proj(field, axis, weight_field,
-                                         source = data_source, center=center,
+                                         data_source = data_source, center=center,
                                          field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
