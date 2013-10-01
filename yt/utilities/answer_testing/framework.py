@@ -577,6 +577,16 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+def compare_image_lists(new_result, old_result, decimals):
+    fns = ['old.png', 'new.png']
+    num_images = len(old_result)
+    assert(num_images > 0)
+    for i in xrange(num_images):
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        for fn in fns: os.remove(fn)
+            
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
@@ -604,12 +614,8 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):
-        fns = ['old.png', 'new.png']
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
-        assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
-        for fn in fns: os.remove(fn)
-
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
     _attrs = ('array_func_name','args','kwargs')
@@ -671,15 +677,8 @@ class GenericImageTest(AnswerTestingTest):
             comp_imgs.append(zlib.compress(img_data.dumps()))
         return comp_imgs
     def compare(self, new_result, old_result):
-        fns = ['old.png', 'new.png']
-        num_images = len(old_result)
-        assert(num_images > 0)
-        for i in xrange(num_images):
-            mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
-            mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-            assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
-            for fn in fns: os.remove(fn)
-
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
         return lambda: None
