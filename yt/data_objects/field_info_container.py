@@ -301,7 +301,8 @@ class FieldDetector(defaultdict):
                 return self[item]
         elif finfo is not None and finfo.particle_type:
             if item == "Coordinates" or item[1] == "Coordinates" or \
-               item == "Velocities" or item[1] == "Velocities":
+               item == "Velocities" or item[1] == "Velocities" or \
+               item == "Velocity" or item[1] == "Velocity":
                 # A vector
                 self[item] = np.ones((self.NumberOfParticles, 3))
             else:

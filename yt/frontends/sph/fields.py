@@ -140,7 +140,7 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
         known_registry.add_field((ptype, "Coordinates"), function=NullFunc,
             particle_type = True)
         # Now we add some translations.
-        GadgetFieldInfo.add_field( (ptype, "particle_index"),
+        field_registry.add_field( (ptype, "particle_index"),
             function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
     particle_deposition_functions("all", "Coordinates", "Mass", field_registry)
@@ -177,9 +177,9 @@ _setup_gadget_fields(_ghdf5_ptypes,
 _owls_ptypes = ("PartType0", "PartType1", "PartType2", "PartType3",
                 "PartType4", "PartType5")
 
-for fname in ["Coordinates", "Velocities", "ParticleIDs",
+for fname in ["Coordinates", "Velocity", "ParticleIDs",
               # Note: Mass, not Masses
-              "Mass"]:
+              "Mass", "particle_index"]:
     func = _field_concat(fname)
     OWLSFieldInfo.add_field(("all", fname), function=func,
             particle_type = True)
@@ -207,13 +207,16 @@ for ptype in _owls_ptypes:
         convert_function=_get_conv("mass"),
         units = r"\mathrm{g}")
     _owls_particle_fields(ptype)
-    KnownOWLSFields.add_field((ptype, "Velocities"), function=NullFunc,
+    KnownOWLSFields.add_field((ptype, "Velocity"), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("velocity"),
         units = r"\mathrm{cm}/\mathrm{s}")
     particle_deposition_functions(ptype, "Coordinates", "Mass", OWLSFieldInfo)
-    particle_scalar_functions(ptype, "Coordinates", "Velocities", OWLSFieldInfo)
+    particle_scalar_functions(ptype, "Coordinates", "Velocity", OWLSFieldInfo)
     KnownOWLSFields.add_field((ptype, "Coordinates"), function=NullFunc,
+        particle_type = True)
+    OWLSFieldInfo.add_field( (ptype, "particle_index"),
+        function = TranslationFunc((ptype, "ParticleIDs")),
         particle_type = True)
 particle_deposition_functions("all", "Coordinates", "Mass", OWLSFieldInfo)
 
@@ -221,7 +224,7 @@ particle_deposition_functions("all", "Coordinates", "Mass", OWLSFieldInfo)
 # use the splits defined above.
 
 for iname, oname in [("Coordinates", "particle_position_"),
-                     ("Velocities", "particle_velocity_")]:
+                     ("Velocity", "particle_velocity_")]:
     for axi, ax in enumerate("xyz"):
         func = _field_concat_slice(iname, axi)
         OWLSFieldInfo.add_field(("all", oname + ax), function=func,
