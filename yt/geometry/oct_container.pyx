@@ -523,8 +523,7 @@ cdef class OctreeContainer:
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
             if skip_boundary == in_boundary == 1:
-                if count_boundary == 1:
-                    nb += 1
+                nb += count_boundary
                 continue
             cur = self.next_root(curdom, ind)
             if cur == NULL: raise RuntimeError

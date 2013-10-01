@@ -249,7 +249,9 @@ class RAMSESDomainFile(object):
         self.oct_handler.finalize()
 
     def _error_check(self, cpu, level, pos, n, ng, nn):
-        if n == ng:
+        # NOTE: We have the second conditional here because internally, it will
+        # not add any octs in that case.
+        if n == ng or cpu + 1 > self.oct_handler.num_domains:
             return
         # This is where we now check for issues with creating the new octs, and
         # we attempt to determine what precisely is going wrong.
