@@ -124,13 +124,13 @@ class SZProjection(object):
         axis = fix_axis(axis)
 
         def _beta_par(field, data):
-            axis = data.get_field_parameter("axis")
+            axis = data.get_field_parameter("SZaxis")
             vpar = data["Density"]*data["%s-velocity" % (vlist[axis])]
             return vpar/clight
         add_field("BetaPar", function=_beta_par)    
 
         proj = self.pf.h.proj(axis, "Density", source=source)
-        proj.set_field_parameter("axis", axis)
+        proj.set_field_parameter("SZaxis", axis)
         frb = proj.to_frb(width, nx)
         dens = frb["Density"]
         Te = frb["TeSZ"]/dens
