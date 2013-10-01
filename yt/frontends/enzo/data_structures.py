@@ -572,10 +572,6 @@ class EnzoHierarchy(GridGeometryHandler):
                     result[p] = result[p][0:max_num]
         return result
 
-    def _setup_data_io(self):
-            self.io = io_registry[self.data_style](self.parameter_file)
-
-
 class EnzoHierarchyInMemory(EnzoHierarchy):
 
     grid = EnzoGridInMemory

@@ -36,8 +36,9 @@ class BaseIOHandler(object):
             if hasattr(cls, "_data_style"):
                 io_registry[cls._data_style] = cls
 
-    def __init__(self):
+    def __init__(self, pf):
         self.queue = defaultdict(dict)
+        self.pf = pf
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
