@@ -16,17 +16,19 @@ The data-file handling functions
 from collections import defaultdict
 
 import yt.utilities.lib as au
+from yt.funcs import mylog
 import exceptions
 import cPickle
 import os
 import h5py
+import numpy as np
 
 _axis_ids = {0:2,1:1,2:0}
 
 io_registry = {}
 
 class BaseIOHandler(object):
-
+    _vector_fields = ()
     _data_style = None
     _particle_reader = False
 
@@ -111,6 +113,62 @@ class BaseIOHandler(object):
 
     def _read_chunk_data(self, chunk, fields):
         return None
+
+    def _read_particle_selection(self, chunks, selector, fields):
+        rv = {}
+        ind = {}
+        # We first need a set of masks for each particle type
+        ptf = defaultdict(list)        # ON-DISK TO READ
+        psize = defaultdict(lambda: 0) # COUNT PTYPES ON DISK
+        fsize = defaultdict(lambda: 0) # COUNT RV
+        field_maps = defaultdict(list) # ptypes -> fields
+        chunks = list(chunks)
+        # What we need is a mapping from particle types to return types
+        ondisk_ptypes = [pt for pt in self.pf.particle_types
+                         if pt not in self.pf.known_filters
+                         and pt != "all"]
+        for field in fields:
+            ftype, fname = field
+            fsize[field] = 0
+            # We should add a check for p.fparticle_unions or something here
+            if ftype == "all":
+                for pt in ondisk_ptypes:
+                    ptf[pt].append(fname)
+                    field_maps[pt, fname].append(field)
+            else:
+                ptf[ftype].append(fname)
+                field_maps[field].append(field)
+        # Now we have our full listing.
+        # Here, ptype_map means which particles contribute to a given type.
+        # And ptf is the actual fields from disk to read.
+        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+            psize[ptype] += selector.count_points(x, y, z)
+        # Now we allocate
+        # ptf, remember, is our mapping of what we want to read
+        #for ptype in ptf:
+        for field in fields:
+            if field[0] == "all":
+                for pt in ondisk_ptypes:
+                    fsize[field] += psize[pt]
+            else:
+                fsize[field] += psize[field[0]]
+        for field in fields:
+            if field[1] in self._vector_fields:
+                shape = (fsize[field], 3)
+            else:
+                shape = (fsize[field], )
+            rv[field] = np.empty(shape, dtype="float64")
+            ind[field] = 0
+        # Now we read.
+        for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
+            # Note that we now need to check the mappings
+            for field_f in field_maps[field_r]:
+                my_ind = ind[field_f]
+                mylog.debug("Filling %s from %s to %s with %s",
+                    field_f, my_ind, my_ind+vals.shape[0], field_r)
+                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                ind[field_f] += vals.shape[0]
+        return rv
 
 class IOHandlerExtracted(BaseIOHandler):
 

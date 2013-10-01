@@ -28,6 +28,9 @@ from yt.data_objects.field_info_container import \
     NullFunc, \
     TranslationFunc
 import yt.data_objects.universal_fields
+from .definitions import \
+    gadget_ptypes, \
+    ghdf5_ptypes
 from yt.data_objects.particle_fields import \
     particle_deposition_functions, \
     particle_scalar_functions, \
@@ -105,24 +108,9 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
 
     # This has to be done manually for Gadget, because some of the particles will
     # have uniform mass
-    def _gadget_particle_fields(ptype):
-        def _Mass(field, data):
-            pind = ptypes.index(ptype)
-            if data.pf["Massarr"][pind] == 0.0:
-                return data[ptype, "Masses"].copy()
-            mass = np.ones(data[ptype, "ParticleIDs"].shape[0], dtype="float64")
-            # Note that this is an alias, which is why we need to apply conversion
-            # here.  Otherwise we'd have an asymmetry.
-            mass *= data.pf["Massarr"][pind] * data.convert("mass")
-            return mass
-        field_registry.add_field((ptype, "Mass"), function=_Mass,
-                                  particle_type = True)
-
     for fname in ["Coordinates", "Velocities", "ParticleIDs",
-                  # Note: Mass, not Masses
-                  "Mass", "particle_index"]:
-        func = _field_concat(fname)
-        field_registry.add_field(("all", fname), function=func,
+                  "Masses", "Mass", "particle_index"]:
+        field_registry.add_field(("all", fname), function=NullFunc,
                 particle_type = True)
 
     for ptype in ptypes:
@@ -130,12 +118,11 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
             particle_type = True,
             convert_function=_get_conv("mass"),
             units = r"\mathrm{g}")
-        _gadget_particle_fields(ptype)
         known_registry.add_field((ptype, "Velocities"), function=NullFunc,
             particle_type = True,
             convert_function=_get_conv("velocity"),
             units = r"\mathrm{cm}/\mathrm{s}")
-        particle_deposition_functions(ptype, "Coordinates", "Mass", field_registry)
+        particle_deposition_functions(ptype, "Coordinates", "Masses", field_registry)
         particle_scalar_functions(ptype, "Coordinates", "Velocities", field_registry)
         known_registry.add_field((ptype, "Coordinates"), function=NullFunc,
             particle_type = True)
@@ -143,7 +130,7 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
         GadgetFieldInfo.add_field( (ptype, "particle_index"),
             function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
-    particle_deposition_functions("all", "Coordinates", "Mass", field_registry)
+    particle_deposition_functions("all", "Coordinates", "Masses", field_registry)
 
     # Now we have to manually apply the splits for "all", since we don't want to
     # use the splits defined above.
@@ -156,14 +143,10 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
                     particle_type = True)
 
 # Note that we call the same function a few times here.
-_gadget_ptypes = ("Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry")
-_ghdf5_ptypes  = ("PartType0", "PartType1", "PartType2", "PartType3",
-                  "PartType4", "PartType5")
-
-_setup_gadget_fields(_gadget_ptypes,
+_setup_gadget_fields(gadget_ptypes,
     GadgetFieldInfo,
     KnownGadgetFields)
-_setup_gadget_fields(_ghdf5_ptypes,
+_setup_gadget_fields(ghdf5_ptypes,
     GadgetHDF5FieldInfo,
     KnownGadgetHDF5Fields)
 
