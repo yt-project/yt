@@ -18,6 +18,7 @@ cimport cython
 cimport numpy
 import numpy
 from fp_utils cimport *
+from libc.stdlib cimport malloc, free
 
 # Now some visitor functions
 
@@ -183,4 +184,25 @@ cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
             arr[data.index] = 0
         if o.children != NULL:
             arr[data.index] = 1
+        data.index += 1
+
+cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    cdef void **p = <void **> data.array
+    cdef np.uint8_t *arr = <np.uint8_t *> p[0]
+    cdef Oct* octs = <Oct*> p[1]
+    cdef np.int64_t *nocts = <np.int64_t*> p[2]
+    cdef int i
+   
+    if data.last != o.domain_ind:
+        data.last = o.domain_ind
+        if arr[data.index] == 0:
+            o.children = NULL
+        if arr[data.index] == 1:
+            o.children = <Oct **> malloc(sizeof(Oct *) * 8)
+            for i in range(8):
+                o.children[i] = &octs[nocts[0]]
+                o.children[i].file_ind = nocts[0]
+                o.children[i].domain_ind = nocts[0]
+                o.children[i].domain = 1
+                nocts[0] += 1
         data.index += 1

@@ -115,6 +115,58 @@ cdef class OctreeContainer:
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = NULL
 
+    @classmethod
+    def load_octree(cls, header):
+        cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
+        ref_mask = header['octree']
+        cdef OctreeContainer obj = cls(header['dims'], header['left_edge'], header['right_edge'])
+        # NOTE: We do not allow domain/file indices to be specified.
+        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef OctVisitorData data
+        obj.setup_data(&data, -1)
+        obj.allocate_domains([ref_mask.shape[0]])
+        cdef int i, j, k, n
+        data.global_index = -1
+        data.level = 0
+        cdef np.float64_t pos[3], dds[3]
+        # This dds is the oct-width
+        for i in range(3):
+            dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
+        # Pos is the center of the octs
+        cdef OctAllocationContainer *cur = obj.domains[0]
+        cdef Oct *o
+        cdef void *p[3]
+        p[0] = ref_mask.data
+        p[1] = <void *> cur.my_octs
+        p[2] = <void *> &cur.n_assigned
+        data.array = p
+        pos[0] = obj.DLE[0] + dds[0]/2.0
+        for i in range(obj.nn[0]):
+            pos[1] = obj.DLE[1] + dds[1]/2.0
+            for j in range(obj.nn[1]):
+                pos[2] = obj.DLE[2] + dds[2]/2.0
+                for k in range(obj.nn[2]):
+                    if obj.root_mesh[i][j][k] != NULL:
+                        raise RuntimeError
+                    o = &cur.my_octs[cur.n_assigned]
+                    o.domain_ind = o.file_ind = 0
+                    o.domain = 1
+                    obj.root_mesh[i][j][k] = o
+                    cur.n_assigned += 1
+                    data.pos[0] = i
+                    data.pos[1] = j
+                    data.pos[2] = k
+                    selector.recursively_visit_octs(
+                        obj.root_mesh[i][j][k],
+                        pos, dds, 0, oct_visitors.load_octree,
+                        &data, 1)
+                    pos[2] += dds[2]
+                pos[1] += dds[1]
+            pos[0] += dds[0]
+        obj.nocts = cur.n_assigned
+        assert(obj.nocts == ref_mask.size)
+        return obj
+
     cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
         cdef int i
         data.index = 0
@@ -717,6 +769,10 @@ cdef class SparseOctreeContainer(OctreeContainer):
             self.DLE[i] = domain_left_edge[i] #0
             self.DRE[i] = domain_right_edge[i] #num_grid
         self.fill_func = oct_visitors.fill_file_indices_rind
+
+    @classmethod
+    def load_octree(self, header):
+        raise NotImplementedError
 
     def save_octree(self):
         raise NotImplementedError
