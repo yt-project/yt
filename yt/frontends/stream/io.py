@@ -228,3 +228,26 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
                         ds = self.fields[g.mesh_id][fname]
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
+
+class IOHandlerStreamOctree(BaseIOHandler):
+    _data_style = "stream_octree"
+
+    def __init__(self, stream_handler):
+        self.fields = stream_handler.fields
+        BaseIOHandler.__init__(self)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        rv = {}
+        ind = {}
+        chunks = list(chunks)
+        assert(len(chunks) == 1)
+        for field in fields:
+            rv[field] = np.empty(size, dtype="float64")
+            ind[field] = 0
+        for chunk in chunks:
+            for subset in chunk.objs:
+                for field in fields:
+                    content = self.fields[subset.domain_id].get(field, None)
+                    ind[field] += subset.select(selector, content, rv[field],
+                                                ind[field])
+        return tr
