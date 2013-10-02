@@ -499,8 +499,10 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     def add(self, int curdom, int curlevel,
             np.ndarray[np.float64_t, ndim=2] pos,
-            int skip_boundary = 1):
+            int skip_boundary = 1,
+            int count_boundary = 0):
         cdef int level, no, p, i, j, k, ind[3]
+        cdef int nb = 0
         cdef Oct *cur, *next = NULL
         cdef np.float64_t pp[3], cp[3], dds[3]
         no = pos.shape[0] #number of octs
@@ -520,7 +522,9 @@ cdef class OctreeContainer:
                 cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
                 if ind[i] < 0 or ind[i] >= self.nn[i]:
                     in_boundary = 1
-            if skip_boundary == in_boundary == 1: continue
+            if skip_boundary == in_boundary == 1:
+                nb += count_boundary
+                continue
             cur = self.next_root(curdom, ind)
             if cur == NULL: raise RuntimeError
             # Now we find the location we want
@@ -542,7 +546,7 @@ cdef class OctreeContainer:
             # Now we should be at the right level
             cur.domain = curdom
             cur.file_ind = p
-        return cont.n_assigned - initial
+        return cont.n_assigned - initial + nb
 
     def allocate_domains(self, domain_counts):
         cdef int count, i
