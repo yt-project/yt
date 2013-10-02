@@ -173,3 +173,14 @@ cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
     # NOTE: We do this for every *cell*.
     arr = <np.int64_t *> data.array
     arr[o.domain - 1] += 1
+
+cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
+    cdef np.uint8_t *arr
+    if data.last != o.domain_ind:
+        data.last = o.domain_ind
+        arr = <np.uint8_t *> data.array
+        if o.children == NULL:
+            arr[data.index] = 0
+        if o.children != NULL:
+            arr[data.index] = 1
+        data.index += 1

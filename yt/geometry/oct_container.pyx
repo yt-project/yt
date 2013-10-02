@@ -157,9 +157,11 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
-                        OctVisitorData *data):
-        cdef int i, j, k, n, vc
-        vc = self.partial_coverage
+                        OctVisitorData *data,
+                        int vc = -1):
+        cdef int i, j, k, n
+        if vc == -1:
+            vc = self.partial_coverage
         data.global_index = -1
         data.level = 0
         cdef np.float64_t pos[3], dds[3]
@@ -431,6 +433,24 @@ cdef class OctreeContainer:
             coords[:,i] += self.DLE[i]
         return coords
 
+    def save_octree(self):
+        # Get the header
+        header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
+                      left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
+                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]))
+        if self.partial_coverage == 1:
+            raise NotImplementedError
+        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        # domain_id = -1 here, because we want *every* oct
+        cdef OctVisitorData data
+        self.setup_data(&data, -1)
+        cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
+        ref_mask = np.zeros(self.nocts, dtype="uint8") - 1
+        data.array = <void *> ref_mask.data
+        self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
+        header['octree'] = ref_mask
+        return header
+
     def selector_fill(self, SelectorObject selector,
                       np.ndarray source,
                       np.ndarray dest = None,
@@ -698,6 +718,9 @@ cdef class SparseOctreeContainer(OctreeContainer):
             self.DRE[i] = domain_right_edge[i] #num_grid
         self.fill_func = oct_visitors.fill_file_indices_rind
 
+    def save_octree(self):
+        raise NotImplementedError
+
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL
         cdef int i
@@ -734,12 +757,14 @@ cdef class SparseOctreeContainer(OctreeContainer):
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
-                        OctVisitorData *data):
-        cdef int i, j, k, n, vc
+                        OctVisitorData *data,
+                        int vc = -1):
+        cdef int i, j, k, n
         cdef np.int64_t key, ukey
         data.global_index = -1
         data.level = 0
-        vc = self.partial_coverage
+        if vc == -1:
+            vc = self.partial_coverage
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
