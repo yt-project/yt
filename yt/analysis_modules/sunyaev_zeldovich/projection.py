@@ -27,7 +27,6 @@ from yt.visualization.image_writer import write_fits, write_projection
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
-from yt.utilities.exceptions import YTException
 import numpy as np
 
 I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
@@ -187,8 +186,9 @@ class SZProjection(object):
             ctr = center
 
         if source is not None:
-            raise YTException("Source argument is not currently supported for off-axis S-Z projections.")
-        
+            mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
+            raise NotImplementedError
+                
         def _beta_par(field, data):
             vpar = data["Density"]*(data["x-velocity"]*L[0]+
                                     data["y-velocity"]*L[1]+
