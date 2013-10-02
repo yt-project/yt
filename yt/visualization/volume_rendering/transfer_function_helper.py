@@ -2,27 +2,18 @@
 A helper class to build, display, and modify transfer functions for volume
 rendering.
 
-Author: Samuel Skillman <samskillman@gmail.com>
-Affiliation: DOE CSGF, U. of Colorado at Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2013 Samuel Skillman.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 from yt.funcs import mylog
 from yt.data_objects.profiles import BinnedProfile1D
 from yt.visualization.volume_rendering.api import ColorTransferFunction
