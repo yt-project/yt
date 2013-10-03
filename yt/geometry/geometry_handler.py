@@ -31,7 +31,8 @@ from yt.data_objects.data_containers import \
 from yt.data_objects.field_info_container import \
     NullFunc
 from yt.data_objects.particle_fields import \
-    particle_deposition_functions
+    particle_deposition_functions, \
+    particle_scalar_functions
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -72,6 +73,9 @@ class GeometryHandler(ParallelAnalysisInterface):
 
         mylog.debug("Detecting fields in backup.")
         self._detect_fields_backup()
+
+        mylog.debug("Setting up particle fields")
+        self._setup_particle_types()
 
         mylog.debug("Adding unknown detected fields")
         self._setup_unknown_fields()
@@ -131,6 +135,34 @@ class GeometryHandler(ParallelAnalysisInterface):
                         + " overlap_proj")
             self.proj = self.overlap_proj
         self.object_types.sort()
+
+    def _setup_particle_types(self, ptypes = None):
+        mname = self.pf._particle_mass_name
+        cname = self.pf._particle_coordinates_name
+        vname = self.pf._particle_velocity_name
+        # We require overriding if any of this is true
+        if None in (mname, cname, vname): return
+        if ptypes is None: ptypes = self.pf.particle_types_raw
+        fi = self.pf.field_info
+        def _get_conv(cf):
+            def _convert(data):
+                return data.convert(cf)
+            return _convert
+        for ptype in ptypes:
+            fi.add_field((ptype, vname), function=NullFunc,
+                particle_type = True,
+                convert_function=_get_conv("velocity"),
+                units = r"\mathrm{cm}/\mathrm{s}")
+            fi.add_field((ptype, mname), function=NullFunc,
+                particle_type = True,
+                convert_function=_get_conv("mass"),
+                units = r"\mathrm{g}")
+            particle_deposition_functions(ptype, cname, mname, fi)
+            particle_scalar_functions(ptype, cname, vname, fi)
+            fi.add_field((ptype, cname), function=NullFunc,
+                         particle_type = True)
+            # Now we add some translations.
+            self.pf._setup_particle_type(ptype)
 
     def _setup_unknown_fields(self, list_of_fields = None):
         known_fields = self.parameter_file._fieldinfo_known

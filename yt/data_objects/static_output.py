@@ -55,6 +55,7 @@ class StaticOutput(object):
     storage_filename = None
     _particle_mass_name = None
     _particle_coordinates_name = None
+    _particle_velocity_name = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -325,7 +326,7 @@ class StaticOutput(object):
         fields = [ (union.name, field) for field in fields]
         self.h.field_list.extend(fields)
         self.h._setup_unknown_fields(fields)
-        self.h._setup_particle_fields(union.name)
+        self.h._setup_particle_types([union.name])
 
     @property
     def particle_fields_by_type(self):

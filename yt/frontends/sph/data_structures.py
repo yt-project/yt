@@ -42,6 +42,11 @@ from .fields import \
     KnownGadgetHDF5Fields, \
     TipsyFieldInfo, \
     KnownTipsyFields
+from yt.data_objects.field_info_container import \
+    NullFunc, \
+    TranslationFunc
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions
 
 
 class ParticleFile(object):
@@ -115,14 +120,19 @@ class ParticleStaticOutput(StaticOutput):
             for unit in ur:
                 ud[unit] = ur[unit] / base
 
+    def _setup_particle_type(self, ptype):
+        self.field_info.add_field((ptype, "particle_index"),
+            function = TranslationFunc((ptype, "ParticleIDs")),
+            particle_type = True)
 
 class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = GadgetBinaryFile
     _fieldinfo_fallback = GadgetFieldInfo
     _fieldinfo_known = KnownGadgetFields
-    _particle_mass_name = "Mass"
+    _particle_mass_name = "Masses"
     _particle_coordinates_name = "Coordinates"
+    _particle_velocity_name = "Velocities"
     _suffix = ""
     _header_spec = (('Npart', 6, 'i'),
                     ('Massarr', 6, 'd'),
@@ -265,6 +275,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # We do not allow load() of these files.
         return False
 
+
 class GadgetHDF5StaticOutput(GadgetStaticOutput):
     _file_class = ParticleFile
     _fieldinfo_fallback = GadgetHDF5FieldInfo
@@ -305,6 +316,7 @@ class GadgetHDF5StaticOutput(GadgetStaticOutput):
         return False
 
 class OWLSStaticOutput(GadgetHDF5StaticOutput):
+    _particle_mass_name = "Mass"
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")

@@ -94,7 +94,8 @@ class IOHandlerOWLS(BaseIOHandler):
                 del coords
                 if mask is None: continue
                 for field in field_list:
-                    if field == "Masses" and ptype not in self.var_mass:
+                    if field in ("Masses", "Mass") and \
+                        ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype) 
                         data[:] = self.pf["Massarr"][ind]
@@ -134,19 +135,21 @@ class IOHandlerOWLS(BaseIOHandler):
     def _identify_fields(self, data_file):
         f = _get_h5_handle(data_file.filename)
         fields = []
+        cname = self.pf._particle_coordinates_name
+        mname = self.pf._particle_mass_name
         for key in f.keys():
             if not key.startswith("PartType"): continue
             g = f[key]
-            if "Coordinates" not in g: continue
+            if cname not in g: continue
             #ptype = int(key[8:])
             ptype = str(key)
             for k in g.keys():
                 if not hasattr(g[k], "shape"): continue
                 # str => not unicode!
                 fields.append((ptype, str(k)))
-            if "Masses" not in g.keys():
+            if mname not in g.keys():
                 # We'll append it anyway.
-                fields.append((ptype, "Masses"))
+                fields.append((ptype, mname))
         f.close()
         return fields
 

@@ -91,50 +91,6 @@ for fname in ["Coordinates", "Velocities", "ParticleIDs", "Mass",
     TipsyFieldInfo.add_field(("all", fname), function=NullFunc,
             particle_type = True)
 
-# GADGET
-# ======
-
-# Among other things we need to set up Coordinates
-
-def _setup_gadget_fields(ptypes, field_registry, known_registry):
-
-    # This has to be done manually for Gadget, because some of the particles will
-    # have uniform mass
-    for fname in ["Coordinates", "Velocities", "ParticleIDs",
-                  "Masses", "Mass", "particle_index"]:
-        field_registry.add_field(("all", fname), function=NullFunc,
-                particle_type = True)
-
-    for ptype in ptypes:
-        known_registry.add_field((ptype, "Masses"), function=NullFunc,
-            particle_type = True,
-            convert_function=_get_conv("mass"),
-            units = r"\mathrm{g}")
-        known_registry.add_field((ptype, "Velocities"), function=NullFunc,
-            particle_type = True,
-            convert_function=_get_conv("velocity"),
-            units = r"\mathrm{cm}/\mathrm{s}")
-        particle_deposition_functions(ptype, "Coordinates", "Masses", field_registry)
-        particle_scalar_functions(ptype, "Coordinates", "Velocities", field_registry)
-        known_registry.add_field((ptype, "Coordinates"), function=NullFunc,
-            particle_type = True)
-        # Now we add some translations.
-        field_registry.add_field( (ptype, "particle_index"),
-            function = TranslationFunc((ptype, "ParticleIDs")),
-            particle_type = True)
-    particle_deposition_functions("all", "Coordinates", "Masses", field_registry)
-
-    # Now we have to manually apply the splits for "all", since we don't want to
-    # use the splits defined above.
-
-# Note that we call the same function a few times here.
-_setup_gadget_fields(gadget_ptypes,
-    GadgetFieldInfo,
-    KnownGadgetFields)
-_setup_gadget_fields(ghdf5_ptypes,
-    GadgetHDF5FieldInfo,
-    KnownGadgetHDF5Fields)
-
 def SmoothedGas(field, data):
     pos = data["PartType0", "Coordinates"]
     sml = data["PartType0", "SmoothingLength"]
