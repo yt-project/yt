@@ -31,8 +31,25 @@ from yt.utilities.lib import \
 
 parallel_capable = ytcfg.getboolean("yt", "__parallel")
 
+dtype_names = dict(
+        float32 = "MPI.FLOAT",
+        float64 = "MPI.DOUBLE",
+        int32   = "MPI.INT",
+        int64   = "MPI.LONG",
+        c       = "MPI.CHAR",
+)
+op_names = dict(
+        sum = "MPI.SUM",
+        min = "MPI.MIN",
+        max = "MPI.MAX"
+)
+
 # Set up translation table and import things
-if parallel_capable:
+
+def enable_parallelism():
+    global parallel_capable
+    parallel_capable = ytcfg.getboolean("yt", "__parallel")
+    if not parallel_capable: return False
     from mpi4py import MPI
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
@@ -46,32 +63,18 @@ if parallel_capable:
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
-    dtype_names = dict(
+    dtype_names.update(dict(
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
             int32   = MPI.INT,
             int64   = MPI.LONG,
             c       = MPI.CHAR,
-    )
-    op_names = dict(
+    ))
+    op_names.update(dict(
         sum = MPI.SUM,
         min = MPI.MIN,
         max = MPI.MAX
-    )
-
-else:
-    dtype_names = dict(
-            float32 = "MPI.FLOAT",
-            float64 = "MPI.DOUBLE",
-            int32   = "MPI.INT",
-            int64   = "MPI.LONG",
-            c       = "MPI.CHAR",
-    )
-    op_names = dict(
-            sum = "MPI.SUM",
-            min = "MPI.MIN",
-            max = "MPI.MAX"
-    )
+    ))
 
 # Because the dtypes will == correctly but do not hash the same, we need this
 # function for dictionary access.

@@ -47,3 +47,26 @@ try:
     from .framework import AnswerTesting
 except ImportError:
     raise
+
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+    import nose, os, sys, yt
+    from yt.funcs import mylog
+    orig_level = mylog.getEffectiveLevel()
+    mylog.setLevel(50)
+    nose_argv = sys.argv
+    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    if verbose:
+        nose_argv.append('-v')
+    if run_answer_tests:
+        nose_argv.append('--with-answer-testing')
+    if answer_big_data:
+        nose_argv.append('--answer-big-data')
+    initial_dir = os.getcwd()
+    yt_file = os.path.abspath(yt.__file__)
+    yt_dir = os.path.dirname(yt_file)
+    os.chdir(yt_dir)
+    try:
+        nose.run(argv=nose_argv)
+    finally:
+        os.chdir(initial_dir)
+        mylog.setLevel(orig_level)

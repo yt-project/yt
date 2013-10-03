@@ -18,8 +18,10 @@ the namespace and getting the last argument on the command line.
 
 import argparse, os, sys
 
-from yt.config import ytcfg
-from yt.funcs import *
+from .config import ytcfg
+from .funcs import *
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    enable_parallelism
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
@@ -47,6 +49,9 @@ def turn_on_parallelism():
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
+        # Now we have to turn on the parallelism from the perspective of the
+        # parallel_analysis_interface
+        enable_parallelism()
     return parallel_capable
 
 # This fallback is for Paraview:

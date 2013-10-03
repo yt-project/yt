@@ -74,25 +74,73 @@ categories goes here.
 
 __version__ = "3.0-dev"
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
-    import nose, os, sys
-    from yt.config import ytcfg
-    nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors']
-    if verbose:
-        nose_argv.append('-v')
-    if run_answer_tests:
-        nose_argv.append('--with-answer-testing')
-    if answer_big_data:
-        nose_argv.append('--answer-big-data')
-    log_suppress = ytcfg.getboolean("yt","suppressStreamLogging")
-    ytcfg.set("yt","suppressStreamLogging", 'True')
-    initial_dir = os.getcwd()
-    yt_file = os.path.abspath(__file__)
-    yt_dir = os.path.dirname(yt_file)
-    os.chdir(yt_dir)
-    try:
-        nose.run(argv=nose_argv)
-    finally:
-        os.chdir(initial_dir)
-        ytcfg.set("yt","suppressStreamLogging", str(log_suppress))
+import numpy as np # For modern purposes
+
+from yt.funcs import \
+    iterable, \
+    get_memory_usage, \
+    print_tb, \
+    rootonly, \
+    insert_ipython, \
+    get_pbar, \
+    only_on_root, \
+    is_root, \
+    get_version_stack, \
+    get_yt_supp, \
+    get_yt_version, \
+    parallel_profile, \
+    enable_plugins
+
+from yt.data_objects.api import \
+    BinnedProfile1D, \
+    BinnedProfile2D, \
+    BinnedProfile3D, \
+    derived_field, \
+    add_field, \
+    add_grad, \
+    FieldInfo, \
+    ValidateParameter, \
+    ValidateDataField, \
+    ValidateProperty, \
+    ValidateSpatial, \
+    ValidateGridType, \
+    DatasetSeries, \
+    ParticleTrajectoryCollection, \
+    ImageArray, \
+    particle_filter
+
+from yt.utilities.logger import ytLogger as mylog
+
+from yt.frontends.api import _frontend_container
+frontends = _frontend_container()
+
+from yt.analysis_modules.list_modules import \
+    amods
+
+# Now individual component imports from the visualization API
+from yt.visualization.api import \
+    PlotCollection, PlotCollectionInteractive, \
+    get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
+    write_bitmap, write_image, annotate_image, \
+    apply_colormap, scale_image, write_projection, write_fits, \
+    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
+    show_colormaps
+
+from yt.visualization.volume_rendering.api import \
+    off_axis_projection
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
+
+from yt.convenience import \
+    load, simulation
+
+# Import some helpful math utilities
+from yt.utilities.math_utils import \
+    ortho_find, quartiles, periodic_position
+
+import yt.utilities.physical_constants as physical_constants
+
+def run_nose():
+    from yt.utilities.answer_testing.api import run_nose
+    return run_nose()
