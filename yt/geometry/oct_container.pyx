@@ -301,6 +301,8 @@ cdef class OctreeContainer:
             else:
                 next = NULL
         if oinfo == NULL: return cur
+        cdef np.float64_t factor = 1.0 / (1 << (self.oref-1))
+        if self.oref == 0: factor = 1.0
         for i in range(3):
             # This will happen *after* we quit out, so we need to back out the
             # last change to cp
@@ -312,9 +314,11 @@ cdef class OctreeContainer:
             # from the oct width, thus making it already the cell width.
             # But, for some cases where the oref != 1, this needs to be
             # changed.
-            oinfo.dds[i] = dds[i] / (1 << (self.oref-1)) # Cell width
+            oinfo.dds[i] = dds[i] * factor # Cell width
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
             oinfo.ipos[i] = ipos[i]
+        if self.oref == 0:
+            oinfo.dds[i] = dds[i] # Same here as elsewhere
         oinfo.level = level
         return cur
 
