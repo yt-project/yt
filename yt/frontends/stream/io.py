@@ -238,16 +238,13 @@ class IOHandlerStreamOctree(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
-        ind = {}
+        ind = 0
         chunks = list(chunks)
         assert(len(chunks) == 1)
-        for field in fields:
-            rv[field] = np.empty(size, dtype="float64")
-            ind[field] = 0
         for chunk in chunks:
+            assert(len(chunk.objs) == 1)
             for subset in chunk.objs:
-                for field in fields:
-                    content = self.fields[subset.domain_id].get(field, None)
-                    ind[field] += subset.select(selector, content, rv[field],
-                                                ind[field])
-        return tr
+                field_vals = self.fields[subset.domain_id -
+                                    subset._domain_offset]
+                subset.fill(field_vals, rv, selector, ind)
+        return rv

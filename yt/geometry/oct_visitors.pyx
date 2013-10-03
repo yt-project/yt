@@ -191,18 +191,22 @@ cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.uint8_t *arr = <np.uint8_t *> p[0]
     cdef Oct* octs = <Oct*> p[1]
     cdef np.int64_t *nocts = <np.int64_t*> p[2]
+    cdef np.int64_t *nfinest = <np.int64_t*> p[3]
     cdef int i
    
     if data.last != o.domain_ind:
         data.last = o.domain_ind
         if arr[data.index] == 0:
             o.children = NULL
+            o.file_ind = nfinest[0]
+            o.domain = 1
+            nfinest[0] += 1
         if arr[data.index] == 1:
             o.children = <Oct **> malloc(sizeof(Oct *) * 8)
             for i in range(8):
                 o.children[i] = &octs[nocts[0]]
-                o.children[i].file_ind = nocts[0]
                 o.children[i].domain_ind = nocts[0]
-                o.children[i].domain = 1
+                o.children[i].file_ind = -1
+                o.children[i].domain = -1
                 nocts[0] += 1
         data.index += 1

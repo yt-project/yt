@@ -21,8 +21,14 @@ from itertools import chain, product
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
 from yt.config import ytcfg
+from yt.data_objects.data_containers import \
+    YTFieldData, \
+    YTDataContainer, \
+    YTSelectionContainer
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 from yt.data_objects.octree_subset import \
@@ -31,6 +37,8 @@ from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
+from yt.geometry.oct_container import \
+    OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
            UnstructuredGeometryHandler
 from yt.data_objects.static_output import \
@@ -978,10 +986,11 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     return spf
 
 class StreamOctreeSubset(OctreeSubset):
-  domain_id = 1
-  _num_zones = 2
+    domain_id = 1
+    _domain_offset = 1
+    _num_zones = 2
 
-  def __init__(self, base_region, pf, oct_handler):
+    def __init__(self, base_region, pf, oct_handler):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
@@ -994,11 +1003,27 @@ class StreamOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
+    def fill(self, content, dest, selector, offset):
+        # Here we get a copy of the file, which we skip through and read the
+        # bits we want.
+        oct_handler = self.oct_handler
+        cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
+        levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
+            selector, self.domain_id, cell_count)
+        levels[:] = 0
+        dest.update((field, np.empty(cell_count, dtype="float64"))
+                    for field in content)
+        # Make references ...
+        count = oct_handler.fill_level(0, levels, cell_inds, file_inds, 
+                                       dest, content, offset)
+        return count
+
 class StreamOctreeHandler(OctreeGeometryHandler):
 
     def __init__(self, pf, data_style = None):
         self.stream_handler = pf.stream_handler
-        super(StreamParticleGeometryHandler, self).__init__(pf, data_style)
+        self.data_style = data_style
+        super(StreamOctreeHandler, self).__init__(pf, data_style)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -1007,24 +1032,17 @@ class StreamOctreeHandler(OctreeGeometryHandler):
             self.io = io_registry[self.data_style](self.stream_handler)
 
     def _initialize_oct_handler(self):
-        self.oct_handler = None
-
-class StreamOctreeStaticOutput(StreamStaticOutput):
-    _hierarchy_class = StreamOctreeHandler
-    _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
-    _data_style = "stream_octree"
+        header = dict(dims = self.pf.domain_dimensions/2,
+                      left_edge = self.pf.domain_left_edge,
+                      right_edge = self.pf.domain_right_edge,
+                      octree = self.pf.octree_mask)
+        self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
-            data_files = getattr(dobj, "data_files", None)
-            if data_files is None:
-                data_files = [self.data_files[i] for i in
-                              self.regions.identify_data_files(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
-            oref = self.parameter_file.over_refine_factor
-            subset = [ParticleOctreeSubset(base_region, data_files, 
-                        self.parameter_file, over_refine_factor = oref)]
+            subset = [StreamOctreeSubset(base_region, self.parameter_file,
+                                         self.oct_handler)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -1051,28 +1069,38 @@ class StreamOctreeStaticOutput(StreamStaticOutput):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
-def load_octree(data, sim_unit_to_cm, bbox=None,
-                      sim_time=0.0, periodicity=(True, True, True),
-                      n_ref = 64, over_refine_factor = 1):
-    r"""Load a set of particles into yt as a
-    :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        super(StreamOctreeHandler, self)._setup_classes(dd)
 
-    This should allow a collection of particle data to be loaded directly into
-    yt and analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
+    def _detect_fields(self):
+        self.field_list = list(set(self.stream_handler.get_fields()))
+
+class StreamOctreeStaticOutput(StreamStaticOutput):
+    _hierarchy_class = StreamOctreeHandler
+    _fieldinfo_fallback = StreamFieldInfo
+    _fieldinfo_known = KnownStreamFields
+    _data_style = "stream_octree"
+
+def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
+                bbox=None, sim_time=0.0, periodicity=(True, True, True)):
+    r"""Load an octree mask into yt.
+
+    Octrees can be saved out by calling save_octree on an OctreeContainer.
+    This enables them to be loaded back in.
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
     
     Parameters
     ----------
+    octree_mask : np.ndarray[uint8_t]
+        This is a depth-first refinement mask for an Octree.
+    domain_dimensions : array_like
+        This is the domain dimensions of the grid
     data : dict
-        This is a dict of numpy arrays, where the keys are the field names.
-        Particles positions must be named "particle_position_x",
-        "particle_position_y", "particle_position_z".
+        A dictionary of 1D arrays.  Note that these must of the size of the
+        number of "False" values in the ``octree_mask``.
     sim_unit_to_cm : float
         Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
@@ -1082,23 +1110,10 @@ def load_octree(data, sim_unit_to_cm, bbox=None,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    n_ref : int
-        The number of particles that result in refining an oct used for
-        indexing the particles.
-
-    Examples
-    --------
-
-    >>> pos = [np.random.random(128*128*128) for i in range(3)]
-    >>> data = dict(particle_position_x = pos[0],
-    ...             particle_position_y = pos[1],
-    ...             particle_position_z = pos[2])
-    >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
-    >>> pf = load_particles(data, 3.08e24, bbox=bbox)
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * 2
+    domain_dimensions = np.array(domain_dimensions)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
@@ -1110,7 +1125,7 @@ def load_octree(data, sim_unit_to_cm, bbox=None,
     
     particle_types = set_particle_types(data)
     
-    sfh.update({'stream_file':data})
+    sfh.update({0:data})
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
@@ -1129,7 +1144,7 @@ def load_octree(data, sim_unit_to_cm, bbox=None,
         periodicity=periodicity
     )
 
-    handler.name = "ParticleData"
+    handler.name = "OctreeData"
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
@@ -1138,9 +1153,8 @@ def load_octree(data, sim_unit_to_cm, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesStaticOutput(handler)
-    spf.n_ref = n_ref
-    spf.over_refine_factor = over_refine_factor
+    spf = StreamOctreeStaticOutput(handler)
+    spf.octree_mask = octree_mask
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0

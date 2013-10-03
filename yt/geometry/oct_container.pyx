@@ -135,10 +135,12 @@ cdef class OctreeContainer:
         # Pos is the center of the octs
         cdef OctAllocationContainer *cur = obj.domains[0]
         cdef Oct *o
-        cdef void *p[3]
+        cdef void *p[4]
+        cdef np.int64_t nfinest = 0
         p[0] = ref_mask.data
         p[1] = <void *> cur.my_octs
         p[2] = <void *> &cur.n_assigned
+        p[3] = <void *> &nfinest
         data.array = p
         pos[0] = obj.DLE[0] + dds[0]/2.0
         for i in range(obj.nn[0]):
@@ -715,19 +717,21 @@ cdef class OctreeContainer:
                    np.ndarray[np.uint8_t, ndim=1] levels,
                    np.ndarray[np.uint8_t, ndim=1] cell_inds,
                    np.ndarray[np.int64_t, ndim=1] file_inds,
-                   dest_fields, source_fields):
+                   dest_fields, source_fields,
+                   np.int64_t offset = 0):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n
         cdef int i, di
-        cdef int local_pos, local_filled
+        cdef np.int64_t local_pos, local_filled = 0
         cdef np.float64_t val
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
             for i in range(levels.shape[0]):
                 if levels[i] != level: continue
-                dest[i] = source[file_inds[i], cell_inds[i]]
+                dest[i + offset] = source[file_inds[i], cell_inds[i]]
+                local_filled += 1
 
     def finalize(self):
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
