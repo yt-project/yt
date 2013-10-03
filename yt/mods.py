@@ -21,7 +21,6 @@ from __future__ import absolute_import
 #
 
 # First module imports
-import sys, types, os, glob, cPickle, time, importlib
 import numpy as np # For modern purposes
 
 # This next item will handle most of the actual startup procedures, but it will
@@ -77,31 +76,7 @@ from yt.data_objects.api import \
     ImageArray, \
     particle_filter
 
-_frontends = [
-    'enzo',
-    'castro',
-    'nyx',
-    'orion',
-    'flash',
-    'tiger',
-    'artio',
-    'ramses',
-    'chombo',
-    'gdf',
-    'moab',
-    'athena',
-    'art',
-    'pluto',
-    'stream',
-    'sph',
-]
-
-class _frontend_container:
-    def __init__(self):
-        for frontend in _frontends:
-            _mod = "yt.frontends.%s.api" % frontend
-            setattr(self, frontend, importlib.import_module(_mod))
-
+from yt.frontends.api import _frontend_container
 frontends = _frontend_container()
 
 from yt.analysis_modules.list_modules import \
