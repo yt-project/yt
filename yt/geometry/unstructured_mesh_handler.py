@@ -32,7 +32,7 @@ class UnstructuredMeshIndex(Index):
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.float_type = np.float64
-        super(UnstructuredIndex, self).__init__(pf, data_style)
+        super(UnstructuredMeshIndex, self).__init__(pf, data_style)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Unstructured Mesh Geometry Handler.")
@@ -56,7 +56,7 @@ class UnstructuredMeshIndex(Index):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(UnstructuredIndex, self)._setup_classes(dd)
+        super(UnstructuredMeshIndex, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
