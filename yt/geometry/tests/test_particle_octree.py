@@ -1,9 +1,12 @@
 from yt.testing import *
 import numpy as np
-from yt.geometry.particle_oct_container import ParticleOctreeContainer
+from yt.geometry.particle_oct_container import \
+    ParticleOctreeContainer, \
+    ParticleRegions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.utilities.lib.geometry_utils import get_morton_indices
 from yt.frontends.stream.api import load_particles
+from yt.geometry.selection_routines import RegionSelector
 import yt.data_objects.api
 import time, os
 
@@ -87,6 +90,57 @@ def test_particle_overrefine():
                 yield assert_equal, v1[a].size * f, v2[a].size
             cv2 = dd2["CellVolumeCode"].sum(dtype="float64")
             yield assert_equal, cv1, cv2
+
+class FakePF:
+    domain_left_edge = None
+    domain_right_edge = None
+    periodicity = (False, False, False)
+
+class FakeRegion:
+    def __init__(self, nfiles):
+        self.pf = FakePF()
+        self.pf.domain_left_edge = [0.0, 0.0, 0.0]
+        self.pf.domain_right_edge = [nfiles, nfiles, nfiles]
+        self.nfiles = nfiles
+
+    def set_edges(self, file_id):
+        self.left_edge = [file_id + 0.1, 0.0, 0.0]
+        self.right_edge = [file_id+1 - 0.1, self.nfiles, self.nfiles]
+
+def test_particle_regions():
+    np.random.seed(int(0x4d3d3d3))
+    # We are going to test having 31, 127, 128 and 257 data files.
+    for nfiles in [2, 31, 127, 128, 129]:
+        # Now we create particles 
+        # Note: we set N to nfiles here for testing purposes.  Inside the code 
+        # we set it to min(N, 256)
+        N = nfiles
+        reg = ParticleRegions([0.0, 0.0, 0.0, 0.0],
+                              [nfiles, nfiles, nfiles],
+                              [N, N, N], nfiles)
+        Y, Z = np.mgrid[0.1 : nfiles - 0.1 : nfiles * 1j,
+                        0.1 : nfiles - 0.1 : nfiles * 1j]
+        X = 0.5 * np.ones(Y.shape, dtype="float64")
+        pos = np.array([X.ravel(),Y.ravel(),Z.ravel()],
+            dtype="float64").transpose()
+        for i in range(nfiles):
+            reg.add_data_file(pos, i)
+            pos[:,0] += 1.0
+        pos[:,0] = 0.5
+        fr = FakeRegion(nfiles)
+        for i in range(nfiles):
+            fr.set_edges(i)
+            selector = RegionSelector(fr)
+            df = reg.identify_data_files(selector)
+            yield assert_equal, len(df), 1
+            yield assert_equal, df[0], i
+            pos[:,0] += 1.0
+
+        for mask in reg.masks:
+            maxs = np.unique(mask.max(axis=-1).max(axis=-1))
+            mins = np.unique(mask.min(axis=-1).min(axis=-1))
+            yield assert_equal, maxs, mins
+            yield assert_equal, maxs, np.unique(mask)
 
 if __name__=="__main__":
     for i in test_add_particles_random():

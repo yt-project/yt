@@ -21,7 +21,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.lib import smallest_fwidth
 
-class UnstructuredIndex(Index):
+class UnstructuredMeshIndex(Index):
     _global_mesh = False
     _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 

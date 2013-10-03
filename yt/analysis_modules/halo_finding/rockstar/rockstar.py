@@ -18,6 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
 from yt.config import ytcfg
+from yt.utilities.exceptions import YTRockstarMultiMassNotSupported
 
 import rockstar_interface
 
@@ -132,9 +133,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     outbase: str
         This is where the out*list files that Rockstar makes should be
         placed. Default is 'rockstar_halos'.
-    dm_type: 1
-        In order to exclude stars and other particle types, define
-        the dm_type. Default is 1, as Enzo has the DM particle type=1.
+    particle_type: str
+        This is the "particle type" that can be found in the data.  This can be
+        a filtered particle or an inherent type.
     force_res: float
         This parameter specifies the force resolution that Rockstar uses
         in units of Mpc/h.
@@ -144,23 +145,17 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         longest) in the time series:
         ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
     total_particles : int
-        If supplied, this is a pre-calculated total number of dark matter
-        particles present in the simulation. For example, this is useful
-        when analyzing a series of snapshots where the number of dark
-        matter particles should not change and this will save some disk
-        access time. If left unspecified, it will
-        be calculated automatically. Default: ``None``.
-    dm_only : boolean
-        If set to ``True``, it will be assumed that there are only dark
-        matter particles present in the simulation. This can save analysis
-        time if this is indeed the case. Default: ``False``.
-    hires_dm_mass : float
-        If supplied, use only the highest resolution dark matter
-        particles, with a mass less than (1.1*hires_dm_mass), in units
-        of ParticleMassMsun. This is useful for multi-dm-mass
-        simulations. Note that this will only give sensible results for
-        halos that are not "polluted" by lower resolution
-        particles. Default: ``None``.
+        If supplied, this is a pre-calculated total number of particles present
+        in the simulation. For example, this is useful when analyzing a series
+        of snapshots where the number of dark matter particles should not
+        change and this will save some disk access time. If left unspecified,
+        it will be calculated automatically. Default: ``None``.
+    particle_mass : float
+        If supplied, use this as the particle mass supplied to rockstar.
+        Otherwise, the smallest particle mass will be identified and calculated
+        internally.  This is useful for multi-dm-mass simulations. Note that
+        this will only give sensible results for halos that are not "polluted"
+        by lower resolution particles. Default: ``None``.
         
     Returns
     -------
@@ -183,9 +178,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     rh.run()
     """
     def __init__(self, ts, num_readers = 1, num_writers = None,
-            outbase="rockstar_halos", dm_type=1, 
+            outbase="rockstar_halos", particle_type="all",
             force_res=None, total_particles=None, dm_only=False,
-            hires_dm_mass=None):
+            particle_mass=None):
         mylog.warning("The citation for the Rockstar halo finder can be found at")
         mylog.warning("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)
@@ -204,7 +199,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if not isinstance(ts, DatasetSeries):
             ts = DatasetSeries([ts])
         self.ts = ts
-        self.dm_type = dm_type
+        self.particle_type = particle_type
         self.outbase = outbase
         if force_res is None:
             tpf = ts[-1] # Cache a reference
@@ -215,7 +210,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.force_res = force_res
         self.total_particles = total_particles
         self.dm_only = dm_only
-        self.hires_dm_mass = hires_dm_mass
+        self.particle_mass = particle_mass
         # Setup pool and workgroups.
         self.pool, self.workgroup = self.runner.setup_pool()
         p = self._setup_parameters(ts)
@@ -226,62 +221,34 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     def _setup_parameters(self, ts):
         if self.workgroup.name != "readers": return None
         tpf = ts[0]
+        ptype = self.particle_type
 
-        def _particle_count(field, data):
-            if data.NumberOfParticles == 0: return 0
-            try:
-                data["particle_type"]
-                has_particle_type=True
-            except KeyError:
-                has_particle_type=False
-                
-            if (self.dm_only or (not has_particle_type)):
-                if self.hires_dm_mass is None:
-                    return np.prod(data["particle_position_x"].shape)
-                else:
-                    return (data['ParticleMassMsun'] < self.hires_dm_mass*1.1).sum()
-            elif has_particle_type:
-                if self.hires_dm_mass is None:
-                    return (data["particle_type"]==self.dm_type).sum()
-                else:
-                    return ( (data["particle_type"]==self.dm_type) & 
-                             (data['ParticleMassMsun'] < self.hires_dm_mass*1.1) ).sum()
-            else:                
-                raise RuntimeError() # should never get here
-
-        add_field("particle_count", function=_particle_count,
-                  not_in_all=True, particle_type=True)
         dd = tpf.h.all_data()
         # Get DM particle mass.
         all_fields = set(tpf.h.derived_field_list + tpf.h.field_list)
         has_particle_type = ("particle_type" in all_fields)
 
-        if self.hires_dm_mass is None:
-            for g in tpf.h._get_objs("grids"):
-                if g.NumberOfParticles == 0: continue
-
-                if (self.dm_only or (not has_particle_type)):
-                    iddm = Ellipsis
-                elif has_particle_type:
-                    iddm = g["particle_type"] == self.dm_type
-                else:                    
-                    iddm = Ellipsis # should never get here
-
-                particle_mass = g['ParticleMassMsun'][iddm][0] / tpf.hubble_constant
-                break
-        else:
-            particle_mass = self.hires_dm_mass / tpf.hubble_constant
+        particle_mass = self.particle_mass
+        if particle_mass is None:
+            pmass_min, pmass_max = dd.quantities["Extrema"](
+                (ptype, "ParticleMassMsun"), non_zero = True)[0]
+            if pmass_min != pmass_max:
+                raise YTRockstarMultiMassNotSupported
+            particle_mass = pmass_min
+        # NOTE: We want to take our Msun and turn it into Msun/h .  Its value
+        # should be such that dividing by little h gives the original value.
+        particle_mass *= tpf.hubble_constant
 
         p = {}
         if self.total_particles is None:
             # Get total_particles in parallel.
-            p['total_particles'] = int(dd.quantities['TotalQuantity']('particle_count')[0])
+            tp = dd.quantities['TotalQuantity']((ptype, "particle_ones"))[0]
+            p['total_particles'] = int(tp)
         p['left_edge'] = tpf.domain_left_edge
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
-        p['particle_mass'] = particle_mass
+        p['particle_mass'] = self.particle_mass = particle_mass
         return p
-
 
     def __del__(self):
         try:
@@ -306,7 +273,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             (server_address, port))
         self.port = str(self.port)
 
-    def run(self, block_ratio = 1,**kwargs):
+    def run(self, block_ratio = 1, callbacks = None):
         """
         
         """
@@ -315,7 +282,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self._get_hosts()
         self.handler.setup_rockstar(self.server_address, self.port,
                     len(self.ts), self.total_particles, 
-                    self.dm_type,
+                    self.particle_type,
+                    particle_mass = self.particle_mass,
                     parallel = self.comm.size > 1,
                     num_readers = self.num_readers,
                     num_writers = self.num_writers,
@@ -323,10 +291,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     block_ratio = block_ratio,
                     outbase = self.outbase,
                     force_res = self.force_res,
-                    particle_mass = float(self.particle_mass),
-                    dm_only = int(self.dm_only),
-                    hires_only = (self.hires_dm_mass is not None),
-                    **kwargs)
+                    callbacks = callbacks)
         # Make the directory to store the halo lists in.
         if not self.outbase:
             self.outbase = os.getcwd()
@@ -357,4 +322,4 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         Reads in the out_0.list file and generates RockstarHaloList
         and RockstarHalo objects.
         """
-        return RockstarHaloList(self.pf,self.outbase+'/%s'%file_name)
+        return RockstarHaloList(self.ts[0], self.outbase+'/%s'%file_name)

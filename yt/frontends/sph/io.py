@@ -31,6 +31,18 @@ CHUNKSIZE = 10000000
 
 _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
+def _get_h5_handle(fn):
+    try:
+        f = h5py.File(fn, "r")
+    except IOError as e:
+        print "ERROR OPENING %s" % (fn)
+        if os.path.exists(fn):
+            print "FILENAME EXISTS"
+        else:
+            print "FILENAME DOES NOT EXIST"
+        raise
+    return f
+
 class IOHandlerOWLS(BaseIOHandler):
     _data_style = "OWLS"
 
@@ -55,7 +67,7 @@ class IOHandlerOWLS(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in data_files:
-            f = h5py.File(data_file.filename, "r")
+            f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
                 coords = f["/%s/Coordinates" % ptype][:].astype("float64")
@@ -74,7 +86,7 @@ class IOHandlerOWLS(BaseIOHandler):
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         for data_file in data_files:
-            f = h5py.File(data_file.filename, "r")
+            f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][:].astype("float64")
@@ -93,12 +105,13 @@ class IOHandlerOWLS(BaseIOHandler):
         return rv
 
     def _initialize_index(self, data_file, regions):
-        f = h5py.File(data_file.filename, "r")
+        f = _get_h5_handle(data_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
         for key in f.keys():
             if not key.startswith("PartType"): continue
+            if "Coordinates" not in f[key]: continue
             ds = f[key]["Coordinates"]
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
@@ -113,18 +126,19 @@ class IOHandlerOWLS(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        f = h5py.File(data_file.filename, "r")
+        f = _get_h5_handle(data_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount)) 
         return npart
 
     def _identify_fields(self, data_file):
-        f = h5py.File(data_file.filename, "r")
+        f = _get_h5_handle(data_file.filename)
         fields = []
         for key in f.keys():
             if not key.startswith("PartType"): continue
             g = f[key]
+            if "Coordinates" not in g: continue
             #ptype = int(key[8:])
             ptype = str(key)
             for k in g.keys():
@@ -134,6 +148,8 @@ class IOHandlerOWLS(BaseIOHandler):
         f.close()
         return fields
 
+class IOHandlerGadgetHDF5(IOHandlerOWLS):
+    _data_style = "gadget_hdf5"
 
 ZeroMass = object()
 

@@ -314,6 +314,13 @@ class Dataset(object):
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
+    @property
+    def ires_factor(self):
+        o2 = np.log2(self.refine_by)
+        if o2 != int(o2):
+            raise RuntimeError
+        return int(o2)
+
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)

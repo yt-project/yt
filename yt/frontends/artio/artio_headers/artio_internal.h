@@ -1,10 +1,24 @@
-/*
- * artio_internal.h
+/**********************************************************************
+ * Copyright (c) 2012-2013, Douglas H. Rudd
+ * All rights reserved.
  *
- *  Created on: Apr 9, 2010
- *      Author: Yongen Yu
- *  Renamed/Modified: Nov 18, 2010 - Douglas Rudd
- */
+ * This file is part of the artio library.
+ *
+ * artio is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * artio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * Copies of the GNU Lesser General Public License and the GNU General
+ * Public License are available in the file LICENSE, included with this
+ * distribution.  If you failed to receive a copy of this file, see
+ * <http://www.gnu.org/licenses/>
+ **********************************************************************/
 
 #ifndef __ARTIO_INTERNAL_H__
 #define __ARTIO_INTERNAL_H__
@@ -160,6 +174,7 @@ struct artio_selection_struct {
 #define ARTIO_SEEK_CUR          1
 #define ARTIO_SEEK_END			2
 
+/* wrapper functions for profiling and debugging */
 artio_fh *artio_file_fopen( char * filename, int amode, const artio_context *context );
 int artio_file_attach_buffer( artio_fh *handle, void *buf, int buf_size );
 int artio_file_detach_buffer( artio_fh *handle );
@@ -169,7 +184,19 @@ int artio_file_fflush(artio_fh *handle);
 int artio_file_fseek(artio_fh *ffh, int64_t offset, int whence);
 int artio_file_fread(artio_fh *handle, void *buf, int64_t count, int type );
 int artio_file_fclose(artio_fh *handle);
-void artio_set_endian_swap_tag(artio_fh *handle);
+void artio_file_set_endian_swap_tag(artio_fh *handle);
+
+/* internal versions */
+artio_fh *artio_file_fopen_i( char * filename, int amode, const artio_context *context );
+int artio_file_attach_buffer_i( artio_fh *handle, void *buf, int buf_size );
+int artio_file_detach_buffer_i( artio_fh *handle );
+int artio_file_fwrite_i(artio_fh *handle, const void *buf, int64_t count, int type );
+int artio_file_ftell_i( artio_fh *handle, int64_t *offset );
+int artio_file_fflush_i(artio_fh *handle);
+int artio_file_fseek_i(artio_fh *ffh, int64_t offset, int whence);
+int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type );
+int artio_file_fclose_i(artio_fh *handle);
+void artio_file_set_endian_swap_tag_i(artio_fh *handle);
 
 #define ARTIO_ENDIAN_MAGIC	0x1234
 

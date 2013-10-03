@@ -18,6 +18,8 @@ import os, sys
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 from yt.config import ytcfg
 
@@ -26,9 +28,27 @@ cdef import from "particle.h":
         np.int64_t id
         float pos[6]
 
+ctypedef struct particleflat:
+    np.int64_t id
+    float pos_x
+    float pos_y
+    float pos_z
+    float vel_x
+    float vel_y
+    float vel_z
+
+cdef import from "halo.h":
+    struct halo:
+        np.int64_t id
+        float pos[6], corevel[3], bulkvel[3]
+        float m, r, child_r, mgrav, vmax, rvmax, rs, vrms, J[3], energy, spin
+        np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
+        float min_pos_err, min_vel_err, min_bulkvel_err
+
 cdef import from "io_generic.h":
     ctypedef void (*LPG) (char *filename, particle **p, np.int64_t *num_p)
-    void set_load_particles_generic(LPG func)
+    ctypedef void (*AHG) (halo *h, particle *hp)
+    void set_load_particles_generic(LPG func, AHG afunc)
 
 cdef import from "rockstar.h":
     void rockstar(float *bounds, np.int64_t manual_subs)
@@ -139,48 +159,42 @@ cdef import from "config_vars.h":
 # Forward declare
 cdef class RockstarInterface
 
-cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) with gil:
+cdef void rh_analyze_halo(halo *h, particle *hp):
+    # I don't know why, but sometimes we get halos with 0 particles.
+    if h.num_p == 0: return
+    cdef particleflat[:] pslice
+    pslice = <particleflat[:h.num_p]> (<particleflat *>hp)
+    parray = np.asarray(pslice)
+    for cb in rh.callbacks:
+        cb(rh.pf, parray)
+    # This is where we call our functions
+
+cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     global SCALE_NOW
     cdef np.float64_t conv[6], left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
     cdef unsigned long long pi,fi,i
-    pf = rh.tsl.next()
-    print 'reading from particle filename %s: %s'%(filename,pf.basename)
+    cdef np.int64_t local_parts = 0
+    pf = rh.pf = rh.tsl.next()
     block = int(str(filename).rsplit(".")[-1])
     n = rh.block_ratio
 
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
     all_fields = set(pf.h.derived_field_list + pf.h.field_list)
-    has_particle_type = ("particle_type" in all_fields)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
+    dd = pf.h.all_data()
+
     if NUM_BLOCKS > 1:
         local_parts = 0
-        for g in pf.h._get_objs("grids"):
-            if g.NumberOfParticles == 0: continue
-            if (rh.dm_only or (not has_particle_type)):
-                if rh.hires_only:
-                    iddm = (g['ParticleMassMsun'] < PARTICLE_MASS*1.1)
-                else:
-                    iddm = Ellipsis
-            elif has_particle_type:
-                if rh.hires_only:
-                    iddm = ( (g["particle_type"]==rh.dm_type) &
-                             (g['ParticleMassMsun'] < PARTICLE_MASS*1.1) )                    
-                else:
-                    iddm = g["particle_type"] == rh.dm_type
-            else:
-                iddm = Ellipsis # should never get here
-            arri = g["particle_index"].astype("int64")
-            arri = arri[iddm] #pick only DM
-            local_parts += arri.size
+        for chunk in parallel_objects(
+                dd.chunks([(rh.particle_type, "particle_ones")], "io")):
+            local_parts += chunk[rh.particle_type, "particle_ones"].sum()
     else:
         local_parts = TOTAL_PARTICLES
-
-    #print "local_parts", local_parts
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
@@ -191,33 +205,22 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     left_edge[2] = pf.domain_left_edge[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
-    for g in pf.h._get_objs("grids"):
-        if g.NumberOfParticles == 0: continue
-        if (rh.dm_only or (not has_particle_type)):
-            if rh.hires_only:
-                iddm = (g['ParticleMassMsun'] < PARTICLE_MASS*1.1)
-            else:
-                iddm = Ellipsis
-        elif has_particle_type:
-            if rh.hires_only:
-                iddm = ( (g["particle_type"]==rh.dm_type) &
-                         (g['ParticleMassMsun'] < PARTICLE_MASS*1.1) )                    
-            else:
-                iddm = g["particle_type"] == rh.dm_type
-        else:            
-            iddm = Ellipsis # should never get here
-        arri = g["particle_index"].astype("int64")
-        arri = arri[iddm] #pick only DM
+    fields = [ (rh.particle_type, f) for f in
+                ["particle_position_%s" % ax for ax in 'xyz'] + 
+                ["particle_velocity_%s" % ax for ax in 'xyz'] +
+                ["particle_index"]]
+    for chunk in parallel_objects(dd.chunks(fields, "io")):
+        arri = np.asarray(chunk[rh.particle_type, "particle_index"],
+                          dtype="int64")
         npart = arri.size
         for i in range(npart):
-            p[0][i+pi].id = arri[i]
+            p[0][i+pi].id = <np.int64_t> arri[i]
         fi = 0
         for field in ["particle_position_x", "particle_position_y",
                       "particle_position_z",
                       "particle_velocity_x", "particle_velocity_y",
                       "particle_velocity_z"]:
-            arr = g[field].astype("float64")
-            arr = arr[iddm] #pick DM
+            arr = chunk[rh.particle_type, field].astype("float64")
             for i in range(npart):
                 p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
             fi += 1
@@ -229,13 +232,13 @@ cdef class RockstarInterface:
     cdef public object data_source
     cdef public object ts
     cdef public object tsl
+    cdef public object pf
     cdef int rank
     cdef int size
     cdef public int block_ratio
-    cdef public int dm_type
+    cdef public object particle_type
     cdef public int total_particles
-    cdef public int dm_only
-    cdef public int hires_only
+    cdef public object callbacks
 
     def __cinit__(self, ts):
         self.ts = ts
@@ -243,14 +246,14 @@ cdef class RockstarInterface:
 
     def setup_rockstar(self, char *server_address, char *server_port,
                        int num_snaps, np.int64_t total_particles,
-                       int dm_type,
+                       particle_type,
                        np.float64_t particle_mass,
                        int parallel = False, int num_readers = 1,
                        int num_writers = 1,
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, force_res=None,
                        int min_halo_size = 25, outbase = "None",
-                       int dm_only = 0, int hires_only = False):
+                       callbacks = None):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -281,14 +284,15 @@ cdef class RockstarInterface:
         MIN_HALO_OUTPUT_SIZE=min_halo_size
         TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
-        self.dm_only = dm_only
-        self.hires_only = hires_only
+        self.particle_type = particle_type
         
         tpf = self.ts[0]
         h0 = tpf.hubble_constant
         Ol = tpf.omega_lambda
         Om = tpf.omega_matter
         SCALE_NOW = 1.0/(tpf.current_redshift+1.0)
+        if callbacks is None: callbacks = []
+        self.callbacks = callbacks
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
             #workaround is to make a new directory
@@ -300,9 +304,9 @@ cdef class RockstarInterface:
                     tpf.domain_left_edge[0]) * tpf['mpchcm']
         setup_config()
         rh = self
-        rh.dm_type = dm_type
         cdef LPG func = rh_read_particles
-        set_load_particles_generic(func)
+        cdef AHG afunc = rh_analyze_halo
+        set_load_particles_generic(func, afunc)
 
     def call_rockstar(self):
         read_particles("generic")
@@ -320,3 +324,4 @@ cdef class RockstarInterface:
     def start_writer(self):
         cdef np.int64_t in_type = np.int64(WRITER_TYPE)
         client(in_type)
+

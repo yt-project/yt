@@ -40,7 +40,10 @@ from yt.data_objects.field_info_container import \
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
-from .fields import RAMSESFieldInfo, KnownRAMSESFields
+from .fields import \
+    RAMSESFieldInfo, \
+    KnownRAMSESFields, \
+    create_cooling_fields
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -238,11 +241,39 @@ class RAMSESDomainFile(object):
                 # Note that we're adding *grids*, not individual cells.
                 if level >= min_level:
                     assert(pos.shape[0] == ng)
-                    n = self.oct_handler.add(cpu + 1, level - min_level, pos)
-                    assert(n == ng)
+                    n = self.oct_handler.add(cpu + 1, level - min_level, pos,
+                                count_boundary = 1)
+                    self._error_check(cpu, level, pos, n, ng, (nx, ny, nz))
                     if n > 0: max_level = max(level - min_level, max_level)
         self.max_level = max_level
         self.oct_handler.finalize()
+
+    def _error_check(self, cpu, level, pos, n, ng, nn):
+        # NOTE: We have the second conditional here because internally, it will
+        # not add any octs in that case.
+        if n == ng or cpu + 1 > self.oct_handler.num_domains:
+            return
+        # This is where we now check for issues with creating the new octs, and
+        # we attempt to determine what precisely is going wrong.
+        # These are all print statements.
+        print "We have detected an error with the construction of the Octree."
+        print "  The number of Octs to be added :  %s" % ng
+        print "  The number of Octs added       :  %s" % n
+        print "  Level                          :  %s" % level
+        print "  CPU Number (0-indexed)         :  %s" % cpu
+        for i, ax in enumerate('xyz'):
+            print "  extent [%s]                     :  %s %s" % \
+            (ax, pos[:,i].min(), pos[:,i].max())
+        print "  domain left                    :  %s" % \
+            (self.pf.domain_left_edge,)
+        print "  domain right                   :  %s" % \
+            (self.pf.domain_right_edge,)
+        print "  offset applied                 :  %s %s %s" % \
+            (nn[0], nn[1], nn[2])
+        print "AMR Header:"
+        for key in sorted(self.amr_header):
+            print "   %-30s: %s" % (key, self.amr_header[key])
+        raise RuntimeError
 
     def included(self, selector):
         if getattr(selector, "domain_id", None) is not None:
@@ -312,6 +343,10 @@ class RAMSESIndex(OctreeIndex):
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
         self.field_list = self.fluid_field_list + self.particle_field_list
+
+    def _setup_derived_fields(self):
+        self._parse_cooling()
+        super(RAMSESIndex, self)._setup_derived_fields()
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -347,6 +382,14 @@ class RAMSESIndex(OctreeIndex):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
+
+    def _parse_cooling(self):
+        pf = self.parameter_file
+        num = os.path.basename(pf.parameter_filename).split("."
+                )[0].split("_")[1]
+        basename = "%s/cooling_%05i.out" % (
+            os.path.dirname(pf.parameter_filename), int(num))
+        create_cooling_fields(basename, pf.field_info)
 
 class RAMSESDataset(Dataset):
     _hierarchy_class = RAMSESIndex

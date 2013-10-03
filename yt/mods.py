@@ -114,11 +114,12 @@ from yt.frontends.pluto.api import \
 from yt.frontends.stream.api import \
     StreamDataset, StreamFieldInfo, add_stream_field, \
     StreamHandler, load_uniform_grid, load_amr_grids, \
-    load_particles
+    load_particles, load_hexahedral_mesh
 
 from yt.frontends.sph.api import \
     OWLSDataset, OWLSFieldInfo, add_owls_field, \
-    GadgetDataset, GadgetFieldInfo, add_gadget_field, \
+    GadgetDataset, GadgetHDF5Dataset, \
+    GadgetFieldInfo, add_gadget_field, \
     TipsyDataset, TipsyFieldInfo, add_tipsy_field
 
 from yt.analysis_modules.list_modules import \

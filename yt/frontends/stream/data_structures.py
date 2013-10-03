@@ -16,6 +16,7 @@ Data structures for Streaming, in-memory datasets
 import weakref
 import numpy as np
 import uuid
+from itertools import chain, product
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -26,6 +27,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.geometry.unstructured_mesh_handler import \
+           UnstructuredMeshIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
@@ -41,6 +44,8 @@ from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.frontends.sph.data_structures import \
     ParticleFile
+from yt.data_objects.unstructured_mesh import \
+           SemiStructuredMesh
 
 from .fields import \
     StreamFieldInfo, \
@@ -820,6 +825,145 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     spf = StreamParticlesDataset(handler)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
+    spf.units["cm"] = sim_unit_to_cm
+    spf.units['1'] = 1.0
+    spf.units["unitary"] = 1.0
+    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    for unit in mpc_conversion.keys():
+        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+
+    return spf
+
+def hexahedral_connectivity(xgrid, ygrid, zgrid):
+    nx = len(xgrid)
+    ny = len(ygrid)
+    nz = len(zgrid)
+    coords = np.fromiter(chain.from_iterable(product(xgrid, ygrid, zgrid)),
+                    dtype=np.float64, count = nx*ny*nz*3)
+    coords.shape = (nx*ny*nz, 3)
+    cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
+                    dtype=np.int64, count = 8*3)
+    cis.shape = (8, 3)
+    cycle = np.fromiter(chain.from_iterable(product(*map(range, (nx-1, ny-1, nz-1)))),
+                    dtype=np.int64, count = (nx-1)*(ny-1)*(nz-1)*3)
+    cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
+    off = cis + cycle[:, np.newaxis]
+    connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+    return coords, connectivity
+
+class StreamHexahedralMesh(SemiStructuredMesh):
+    _connectivity_length = 8
+    _index_offset = 0
+
+class StreamHexahedralIndex(UnstructuredMeshIndex):
+
+    def __init__(self, pf, data_style = None):
+        self.stream_handler = pf.stream_handler
+        super(StreamHexahedralIndex, self).__init__(pf, data_style)
+
+    def _initialize_mesh(self):
+        coords = self.stream_handler.fields.pop('coordinates')
+        connec = self.stream_handler.fields.pop('connectivity')
+        self.meshes = [StreamHexahedralMesh(0,
+          self.hierarchy_filename, connec, coords, self)]
+
+    def _setup_data_io(self):
+        if self.stream_handler.io is not None:
+            self.io = self.stream_handler.io
+        else:
+            self.io = io_registry[self.data_style](self.stream_handler)
+
+    def _detect_fields(self):
+        self.field_list = list(set(self.stream_handler.get_fields()))
+
+class StreamHexahedralDataset(StreamDataset):
+    _hierarchy_class = StreamHexahedralIndex
+    _fieldinfo_fallback = StreamFieldInfo
+    _fieldinfo_known = KnownStreamFields
+    _data_style = "stream_hexahedral"
+
+def load_hexahedral_mesh(data, connectivity, coordinates,
+                         sim_unit_to_cm, bbox=None,
+                         sim_time=0.0, periodicity=(True, True, True)):
+    r"""Load a hexahedral mesh of data into yt as a
+    :class:`~yt.frontends.stream.data_structures.StreamHandler`.
+
+    This should allow a semistructured grid of data to be loaded directly into
+    yt and analyzed as would any others.  This comes with several caveats:
+        * Units will be incorrect unless the data has already been converted to
+          cgs.
+        * Some functions may behave oddly, and parallelism will be
+          disappointing or non-existent in most cases.
+        * Particles may be difficult to integrate.
+
+    Particle fields are detected as one-dimensional fields. The number of particles
+    is set by the "number_of_particles" key in data.
+    
+    Parameters
+    ----------
+    data : dict
+        This is a dict of numpy arrays, where the keys are the field names.
+        There must only be one.
+    connectivity : array_like
+        This should be of size (N,8) where N is the number of zones.
+    coordinates : array_like
+        This should be of size (M,3) where M is the number of vertices
+        indicated in the connectivity matrix.
+    sim_unit_to_cm : float
+        Conversion factor from simulation units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units sim_unit_to_cm
+    sim_time : float, optional
+        The simulation time in seconds
+    periodicity : tuple of booleans
+        Determines whether the data will be treated as periodic along
+        each axis
+
+    """
+
+    domain_dimensions = np.ones(3, "int32") * 2
+    nprocs = 1
+    if bbox is None:
+        bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    domain_left_edge = np.array(bbox[:, 0], 'float64')
+    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+
+    sfh = StreamDictFieldHandler()
+    
+    particle_types = set_particle_types(data)
+    
+    sfh.update({'connectivity': connectivity,
+                'coordinates': coordinates,
+                0: data})
+    grid_left_edges = domain_left_edge
+    grid_right_edges = domain_right_edge
+    grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+
+    # I'm not sure we need any of this.
+    handler = StreamHandler(
+        grid_left_edges,
+        grid_right_edges,
+        grid_dimensions,
+        grid_levels,
+        -np.ones(nprocs, dtype='int64'),
+        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
+        np.zeros(nprocs).reshape((nprocs,1)),
+        sfh,
+        particle_types=particle_types,
+        periodicity=periodicity
+    )
+
+    handler.name = "HexahedralMeshData"
+    handler.domain_left_edge = domain_left_edge
+    handler.domain_right_edge = domain_right_edge
+    handler.refine_by = 2
+    handler.dimensionality = 3
+    handler.domain_dimensions = domain_dimensions
+    handler.simulation_time = sim_time
+    handler.cosmology_simulation = 0
+
+    spf = StreamHexahedralDataset(handler)
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0

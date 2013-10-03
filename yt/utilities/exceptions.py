@@ -298,3 +298,16 @@ class YTObjectNotImplemented(YTException):
         v  = r"The object type '%s' is not implemented for the parameter file "
         v += r"'%s'."
         return v % (self.obj_name, self.pf)
+
+class YTRockstarMultiMassNotSupported(YTException):
+    def __init__(self, mi, ma, ptype):
+        self.mi = mi
+        self.ma = ma
+        self.ptype = ptype
+
+    def __str__(self):
+        v = "Particle type '%s' has minimum mass %0.3e and maximum " % (
+            self.ptype, self.mi)
+        v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
+            self.ma)
+        return v

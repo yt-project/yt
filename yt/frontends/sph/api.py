@@ -17,6 +17,7 @@ API for yt.frontends.sph
 from .data_structures import \
       OWLSDataset, \
       GadgetDataset, \
+      GadgetHDF5Dataset, \
       TipsyDataset
 
 from .io import \

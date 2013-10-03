@@ -255,12 +255,14 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
+cdef np.uint64_t ONEBIT=1
+
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
-    cdef public int nfiles
+    cdef public np.uint64_t nfiles
     cdef public object masks
 
     def __init__(self, left_edge, right_edge, dims, nfiles):
@@ -283,13 +285,13 @@ cdef class ParticleRegions:
             self._mask_positions[np.float64_t](pos, file_id)
 
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
-                              int file_id):
+                              np.uint64_t file_id):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
         cdef int ind[3], i
         cdef np.ndarray[np.uint64_t, ndim=3] mask
         mask = self.masks[file_id/64]
-        cdef np.int64_t val = 1 << (file_id - (file_id/64)*64)
+        cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
         for p in range(no):
             # Now we locate the particle
             for i in range(3):
@@ -299,7 +301,7 @@ cdef class ParticleRegions:
     def identify_data_files(self, SelectorObject selector):
         # This is relatively cheap to iterate over.
         cdef int i, j, k, n
-        cdef np.uint64_t fmask, offset
+        cdef np.uint64_t fmask, offset, fcheck
         cdef np.float64_t LE[3], RE[3]
         cdef np.ndarray[np.uint64_t, ndim=3] mask
         files = []
@@ -324,8 +326,8 @@ cdef class ParticleRegions:
                 LE[0] += self.dds[0]
                 RE[0] += self.dds[0]
             # Now we iterate through...
-            for i in range(64):
-                if ((fmask >> i) & 1) == 1:
-                    files.append(i + n * 64)
+            for fcheck in range(64):
+                if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
+                    files.append(fcheck + n * 64)
         return files
 

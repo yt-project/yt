@@ -31,7 +31,7 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
-    OctreeContainer
+    ARTOctreeContainer
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import \
@@ -92,7 +92,7 @@ class ARTIndex(OctreeIndex):
         allocate the requisite memory in the oct tree
         """
         nv = len(self.fluid_field_list)
-        self.oct_handler = OctreeContainer(
+        self.oct_handler = ARTOctreeContainer(
             self.parameter_file.domain_dimensions/2,  # dd is # of root cells
             self.parameter_file.domain_left_edge,
             self.parameter_file.domain_right_edge,

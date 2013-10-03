@@ -416,8 +416,8 @@ class PlotCollection(object):
             coord = center[axis]
         if obj is None:
             if field_parameters is None: field_parameters = {}
-            obj = self.pf.hierarchy.slice(axis, coord, field,
-                            center=center, **field_parameters)
+            obj = self.pf.hierarchy.slice(axis, coord, center=center,
+                            field_parameters = field_parameters)
         p = self._add_plot(PCSlicePlot(
                          obj, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
@@ -577,8 +577,8 @@ class PlotCollection(object):
             center = self.c
         if not obj:
             if field_parameters is None: field_parameters = {}
-            cp = self.pf.hierarchy.cutting(normal, center, field,
-                    **field_parameters)
+            cp = self.pf.hierarchy.cutting(normal, center, 
+                    field_parameters = field_parameters)
         else:
             cp = obj
         p = self._add_plot(CuttingPlanePlot(cp, field,
@@ -676,8 +676,8 @@ class PlotCollection(object):
             center = self.c
         if obj is None:
             obj = self.pf.hierarchy.proj(field, axis, weight_field,
-                                         source = data_source, center=center,
-                                         **field_parameters)
+                                         data_source = data_source, center=center,
+                                         field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -770,8 +770,8 @@ class PlotCollection(object):
         RE[axis] += thickness/2.0
         region = self.pf.h.region(center, LE, RE)
         obj = self.pf.hierarchy.proj(field, axis, weight_field,
-                                     source = region, center=center,
-                                     **field_parameters)
+                                     data_source = region, center=center,
+                                     field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -1326,8 +1326,8 @@ class PlotCollection(object):
         axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
-        data_source = self.pf.h.ortho_ray(axis, coords, field,
-                        **field_parameters)
+        data_source = self.pf.h.ortho_ray(axis, coords, 
+                        field_parameters = field_parameters)
         p = self._add_plot(LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
                 figure=figure, axes=axes, plot_options=plot_options))
@@ -1386,8 +1386,8 @@ class PlotCollection(object):
         """
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
-        data_source = self.pf.h.ray(start_point, end_point, field,
-                                    **field_parameters)
+        data_source = self.pf.h.ray(start_point, end_point, 
+                                    field_parameters = field_parameters)
         p = self._add_plot(LineQueryPlot(data_source,
                 ['t', field], self._get_new_id(),
                 figure=figure, axes=axes, plot_options=plot_options))
@@ -1605,90 +1605,6 @@ class PlotCollectionIPython(PlotCollection):
         for plot in self.plots:
             canvas = FigureCanvasAgg(plot._figure)
             send_figure(plot._figure)
-
-def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
-                   cbar_padding = 0.4):
-    r"""Construct a multiple axes plot object, with or without a colorbar, into
-    which multiple plots may be inserted.
-
-    This will create a set of :class:`matplotlib.axes.Axes`, all lined up into
-    a grid, which are then returned to the user and which can be used to plot
-    multiple plots on a single figure.
-
-    Parameters
-    ----------
-    nx : int
-        Number of axes to create along the x-direction
-    ny : int
-        Number of axes to create along the y-direction
-    colorbar : {'vertical', 'horizontal', None}, optional
-        Should Axes objects for colorbars be allocated, and if so, should they
-        correspond to the horizontal or vertical set of axes?
-    bw : number
-        The base height/width of an axes object inside the figure, in inches
-    dpi : number
-        The dots per inch fed into the Figure instantiation
-
-    Returns
-    -------
-    fig : :class:`matplotlib.figure.Figure`
-        The figure created inside which the axes reside
-    tr : list of list of :class:`matplotlib.axes.Axes` objects
-        This is a list, where the inner list is along the x-axis and the outer
-        is along the y-axis
-    cbars : list of :class:`matplotlib.axes.Axes` objects
-        Each of these is an axes onto which a colorbar can be placed.
-
-    Notes
-    -----
-    This is a simple implementation for a common use case.  Viewing the source
-    can be instructure, and is encouraged to see how to generate more
-    complicated or more specific sets of multiplots for your own purposes.
-    """
-    hf, wf = 1.0/ny, 1.0/nx
-    fudge_x = fudge_y = 1.0
-    if colorbar is None:
-        fudge_x = fudge_y = 1.0
-    elif colorbar.lower() == 'vertical':
-        fudge_x = nx/(cbar_padding+nx)
-        fudge_y = 1.0
-    elif colorbar.lower() == 'horizontal':
-        fudge_x = 1.0
-        fudge_y = ny/(cbar_padding+ny)
-    fig = figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
-    from _mpl_imports import FigureCanvasAgg
-    fig.set_canvas(FigureCanvasAgg(fig))
-    fig.subplots_adjust(wspace=0.0, hspace=0.0,
-                        top=1.0, bottom=0.0,
-                        left=0.0, right=1.0)
-    tr = []
-    print fudge_x, fudge_y
-    for j in range(ny):
-        tr.append([])
-        for i in range(nx):
-            left = i*wf*fudge_x
-            bottom = fudge_y*(1.0-(j+1)*hf) + (1.0-fudge_y)
-            ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
-            tr[-1].append(ax)
-    cbars = []
-    if colorbar is None:
-        pass
-    elif colorbar.lower() == 'horizontal':
-        for i in range(nx):
-            # left, bottom, width, height
-            # Here we want 0.10 on each side of the colorbar
-            # We want it to be 0.05 tall
-            # And we want a buffer of 0.15
-            ax = fig.add_axes([wf*(i+0.10)*fudge_x, hf*fudge_y*0.20,
-                               wf*(1-0.20)*fudge_x, hf*fudge_y*0.05])
-            cbars.append(ax)
-    elif colorbar.lower() == 'vertical':
-        for j in range(ny):
-            ax = fig.add_axes([wf*(nx+0.05)*fudge_x, hf*fudge_y*(ny-(j+0.95)),
-                               wf*fudge_x*0.05, hf*fudge_y*0.90])
-            ax.clear()
-            cbars.append(ax)
-    return fig, tr, cbars
 
 def _MPLFixImage(data_source, image_obj, field, cbar, cls):
     nx, ny = image_obj.get_size()

@@ -675,6 +675,13 @@ def _ParticleSpecificAngularMomentumX(field, data):
     yv = data["particle_velocity_y"] - bv[1]
     zv = data["particle_velocity_z"] - bv[2]
     return yv*z - zv*y
+add_field("ParticleSpecificAngularMomentumX", 
+          function=_ParticleSpecificAngularMomentumX, particle_type=True,
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumX_KMSMPC", function=_ParticleSpecificAngularMomentumX, particle_type=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 def _ParticleSpecificAngularMomentumY(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
@@ -685,6 +692,13 @@ def _ParticleSpecificAngularMomentumY(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     zv = data["particle_velocity_z"] - bv[2]
     return -(xv*z - zv*x)
+add_field("ParticleSpecificAngularMomentumY", 
+          function=_ParticleSpecificAngularMomentumY, particle_type=True,
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumY_KMSMPC", function=_ParticleSpecificAngularMomentumY, particle_type=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 def _ParticleSpecificAngularMomentumZ(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
@@ -695,14 +709,13 @@ def _ParticleSpecificAngularMomentumZ(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     yv = data["particle_velocity_y"] - bv[1]
     return xv*y - yv*x
-for ax in 'XYZ':
-    n = "ParticleSpecificAngularMomentum%s" % ax
-    add_field(n, function=eval("_%s" % n), particle_type=True,
-              convert_function=_convertSpecificAngularMomentum,
-              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
-    add_field(n + "KMSMPC", function=eval("_%s" % n), particle_type=True,
-              convert_function=_convertSpecificAngularMomentumKMSMPC,
-              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumZ", 
+          function=_ParticleSpecificAngularMomentumZ, particle_type=True,
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+add_field("ParticleSpecificAngularMomentumZ_KMSMPC", function=_ParticleSpecificAngularMomentumZ, particle_type=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
 
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
@@ -717,17 +730,17 @@ def _ParticleAngularMomentumMSUNKMSMPC(field, data):
 #          particle_type=True, validators=[ValidateParameter('center')])
 
 def _ParticleAngularMomentumX(field, data):
-    return data["CellMass"] * data["ParticleSpecificAngularMomentumX"]
+    return data["particle_mass"] * data["ParticleSpecificAngularMomentumX"]
 add_field("ParticleAngularMomentumX", function=_ParticleAngularMomentumX,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 def _ParticleAngularMomentumY(field, data):
-    return data["CellMass"] * data["ParticleSpecificAngularMomentumY"]
+    return data["particle_mass"] * data["ParticleSpecificAngularMomentumY"]
 add_field("ParticleAngularMomentumY", function=_ParticleAngularMomentumY,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 def _ParticleAngularMomentumZ(field, data):
-    return data["CellMass"] * data["ParticleSpecificAngularMomentumZ"]
+    return data["particle_mass"] * data["ParticleSpecificAngularMomentumZ"]
 add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
@@ -858,6 +871,58 @@ add_field("RadialVelocityKMS", function=_RadialVelocity,
 add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}")
 
+def _ParticleRadiusSpherical(field, data):
+    normal = data.get_field_parameter('normal')
+    center = data.get_field_parameter('center')
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = "particle_position_%s"
+    pos = np.array([data[pos % ax] for ax in "xyz"])
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
+    pos = pos - np.reshape(center, (3, 1))
+    sphr = get_sph_r_component(pos, theta, phi, normal)
+    return sphr
+
+add_field("ParticleRadiusSpherical", function=_ParticleRadiusSpherical,
+          particle_type=True, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal"), 
+                      ValidateParameter("center")])
+
+def _ParticleThetaSpherical(field, data):
+    normal = data.get_field_parameter('normal')
+    center = data.get_field_parameter('center')
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = "particle_position_%s"
+    pos = np.array([data[pos % ax] for ax in "xyz"])
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
+    pos = pos - np.reshape(center, (3, 1))
+    spht = get_sph_theta_component(pos, theta, phi, normal)
+    return spht
+
+add_field("ParticleThetaSpherical", function=_ParticleThetaSpherical,
+          particle_type=True, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal"), 
+                      ValidateParameter("center")])
+
+def _ParticlePhiSpherical(field, data):
+    normal = data.get_field_parameter('normal')
+    center = data.get_field_parameter('center')
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = "particle_position_%s"
+    pos = np.array([data[pos % ax] for ax in "xyz"])
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
+    pos = pos - np.reshape(center, (3, 1))
+    vel = vel - np.reshape(bv, (3, 1))
+    sphp = get_sph_phi_component(pos, theta, phi, normal)
+    return sphp
+
+add_field("ParticlePhiSpherical", function=_ParticleThetaSpherical,
+          particle_type=True, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("normal"), 
+                      ValidateParameter("center")])
+
 def _ParticleRadialVelocity(field, data):
     normal = data.get_field_parameter('normal')
     center = data.get_field_parameter('center')
@@ -866,8 +931,8 @@ def _ParticleRadialVelocity(field, data):
     pos = np.array([data[pos % ax] for ax in "xyz"])
     vel = "particle_velocity_%s"
     vel = np.array([data[vel % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     sphr = get_sph_r_component(vel, theta, phi, normal)
@@ -886,8 +951,8 @@ def _ParticleThetaVelocity(field, data):
     pos = np.array([data[pos % ax] for ax in "xyz"])
     vel = "particle_velocity_%s"
     vel = np.array([data[vel % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     spht = get_sph_theta_component(vel, theta, phi, normal)
@@ -906,8 +971,8 @@ def _ParticlePhiVelocity(field, data):
     pos = np.array([data[pos % ax] for ax in "xyz"])
     vel = "particle_velocity_%s"
     vel = np.array([data[vel % ax] for ax in "xyz"])
-    theta = get_sph_theta(pos.copy(), center)
-    phi = get_sph_phi(pos.copy(), center)
+    theta = get_sph_theta(pos, center)
+    phi = get_sph_phi(pos, center)
     pos = pos - np.reshape(center, (3, 1))
     vel = vel - np.reshape(bv, (3, 1))
     sphp = get_sph_phi_component(vel, phi, normal)
