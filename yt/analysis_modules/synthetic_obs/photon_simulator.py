@@ -37,14 +37,11 @@ import os
 import h5py
 
 try:
-    import pyfits
+    import astropy.io.fits as pyfits
+    import astropy.wcs as pywcs
 except ImportError:
-    try:
-        import astropy.io.fits as pyfits
-    except ImportError:
-        mylog.warning("You don't have pyFITS installed. " + 
-                      "Writing to and reading from FITS files won't be available.")
-    
+    mylog.error("You don't have AstroPy installed.")
+                   
 N_TBIN = 10000
 TMIN = 8.08e-2
 TMAX = 50.
@@ -101,7 +98,8 @@ class PhotonList(object):
         photons["FiducialArea"] = f["/fid_area"].value
         photons["FiducialRedshift"] = f["/fid_redshift"].value
         photons["FiducialAngularDiameterDistance"] = f["/fid_d_a"].value
-
+        photons["DomainDimension"] = f["/domain_dimension"].value
+        
         num_cells = f["/x"][:].shape[0]
         start_c = comm.rank*num_cells/comm.size
         end_c = (comm.rank+1)*num_cells/comm.size
@@ -289,7 +287,8 @@ class PhotonList(object):
         photons["FiducialArea"] = eff_A
         photons["FiducialRedshift"] = redshift
         photons["FiducialAngularDiameterDistance"] = D_A/cm_per_mpc
-
+        photons["DomainDimension"] = np.max((pf.domain_dimensions*(2**pf.h.max_level)))
+        
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
         
@@ -300,6 +299,8 @@ class PhotonList(object):
                         exp_time, user_function, parameters={},
                         dist=None, cosmology=None):
 
+        pf = data_source.pf
+        
         if cosmology is None and dist is None:
             cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
                               OmegaLambdaNow=0.73)
@@ -319,6 +320,7 @@ class PhotonList(object):
         photons["FiducialArea"] = eff_A
         photons["FiducialRedshift"] = redshift
         photons["FiducialAngularDiameterDistance"] = D_A
+        photons["DomainDimension"] = np.max((pf.domain_dimensions*(2**pf.h.max_level)))
 
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
@@ -408,7 +410,8 @@ class PhotonList(object):
             f.create_dataset("fid_exp_time", data=self.photons["FiducialExposureTime"])
             f.create_dataset("fid_redshift", data=self.photons["FiducialRedshift"])
             f.create_dataset("fid_d_a", data=self.photons["FiducialAngularDiameterDistance"])
-        
+            f.create_dataset("domain_dimension", data=self.photons["DomainDimension"])
+
             # Arrays
 
             f.create_dataset("x", data=x)
@@ -427,7 +430,8 @@ class PhotonList(object):
 
     def project_photons(self, L, area_new=None, texp_new=None, 
                         redshift_new=None, dist_new=None,
-                        absorb_model=None, psf_sigma=None):
+                        absorb_model=None, psf_sigma=None,
+                        sky_center=None):
         """
         Projects photons onto an image plane given a line of sight. 
         """
@@ -438,9 +442,15 @@ class PhotonList(object):
 
         if redshift_new is not None and self.cosmo is None:
             mylog.error("Specified a new redshift, but no cosmology!")
-            
+
+        if sky_center is None:
+             sky_center = np.array([30.,45.])
+
         dx = self.photons["dx"]
-        
+        nx = self.photons["DomainDimension"]
+        if psf_sigma is not None:
+             psf_sigma /= 3600.
+             
         L /= np.sqrt(np.dot(L, L))
         vecs = np.identity(3)
         t = np.cross(L, vecs).sum(axis=1)
@@ -542,7 +552,7 @@ class PhotonList(object):
             absorb = np.interp(eobs, emid, aspec, left=0.0, right=0.0)
             randvec = aspec.max()*np.random.random(eobs.shape)
             not_abs = randvec < absorb
-
+        
         if eff_area is None:
             detected = np.ones(eobs.shape, dtype='bool')
         else:
@@ -556,13 +566,22 @@ class PhotonList(object):
                     
         events = {}
 
-        events["xsky"] = np.rad2deg(xsky[detected]/D_A)*3600.
-        events["ysky"] = np.rad2deg(ysky[detected]/D_A)*3600.
-        events["eobs"] = eobs[detected]
-
+        dtheta = dx.min()/D_A
+        
+        events["xpix"] = xsky[detected]/dx.min() + 0.5*(nx+1) 
+        events["ypix"] = ysky[detected]/dx.min() + 0.5*(nx+1)
         if psf_sigma is not None:
-            events["xsky"] += np.random.normal(sigma=psf_sigma)
-            events["ysky"] += np.random.normal(sigma=psf_sigma)
+            events["xpix"] += np.random.normal(sigma=psf_sigma/dtheta)
+            events["ypix"] += np.random.normal(sigma=psf_sigma/dtheta)
+        w = pywcs.WCS(naxis=2)
+        w.wcs.crpix = [0.5*(nx+1)]*2
+        w.wcs.crval = sky_center
+        w.wcs.cdelt = [-dtheta, dtheta]
+        w.wcs.ctype = ["RA---TAN","DEC--TAN"]
+        w.wcs.cunit = ["deg"]*2
+        events["xsky"], events["ysky"] = w.wcs_pix2world(events["xpix"], events["ypix"],
+                                                         1, ra_dec_order=True)
+        events["eobs"] = eobs[detected]
 
         events = comm.par_combine_object(events, datatype="dict", op="cat")
         
@@ -582,7 +601,10 @@ class PhotonList(object):
         events["AngularDiameterDistance"] = D_A/1000.
         if isinstance(area_new, basestring):
             events["ARF"] = area_new
-
+        events["sky_center"] = np.array(sky_center)
+        events["pix_center"] = np.array([0.5*(nx+1)]*2)
+        events["dtheta"] = dtheta
+        
         return EventList(events)
 
 class EventList(object) :
@@ -592,7 +614,7 @@ class EventList(object) :
         if events is None : events = {}
         self.events = events
         self.num_events = events["xsky"].shape[0]
-
+        
     def keys(self):
         return self.events.keys()
 
@@ -631,9 +653,16 @@ class EventList(object) :
                             
         events["xsky"] = f["/xsky"][:]
         events["ysky"] = f["/ysky"][:]
+        events["xpix"] = f["/xpix"][:]
+        events["ypix"] = f["/ypix"][:]
         events["eobs"] = f["/eobs"][:]
-        if "chan" in f:
-            events["chan"] = f["/chan"][:]
+        if "pi" in f:
+            events["PI"] = f["/pi"][:]
+        if "pha" in f:
+            events["PHA"] = f["/pha"][:]
+        events["sky_center"] = f["/sky_center"][:]
+        events["dtheta"] = f["/dtheta"][:]
+        events["pix_center"] = f["/pix_center"][:]
         
         f.close()
         
@@ -646,8 +675,8 @@ class EventList(object) :
         """
         hdulist = pyfits.open(fitsfile)
 
-        tblhdu = hdulist[1]
-
+        tblhdu = hdulist["EVENTS"]
+        
         events = {}
 
         events["ExposureTime"] = tblhdu.header["EXPOSURE"]
@@ -664,13 +693,19 @@ class EventList(object) :
             events["Telescope"] = tblhdu["TELESCOP"]
         if "INSTRUME" in tblhdu.header:
             events["Instrument"] = tblhdu["INSTRUME"]
-                            
-        events["xsky"] = tblhdu.data.field("POS_X")
-        events["ysky"] = tblhdu.data.field("POS_Y")
-        events["eobs"] = tblhdu.data.field("ENERGY")
-        if "CHANNEL" in tblhdu.columns.names:
-            events["chan"] = tblhdu.data.field("CHANNEL")
-                    
+        events["sky_center"] = np.array([tblhdu["TCRVL2"],tblhdu["TCRVL3"]])
+        events["pix_center"] = np.array([tblhdu["TCRVL2"],tblhdu["TCRVL3"]])
+        events["dtheta"] = tblhdu["TCRVL3"]
+        events["xpix"] = tblhdu.data.field("X")
+        events["ypix"] = tblhdu.data.field("Y")
+        events["xsky"] = tblhdu.data.field("XSKY")
+        events["ysky"] = tblhdu.data.field("YSKY")
+        events["eobs"] = tblhdu.data.field("ENERGY")/1000. # Convert to keV
+        if "PI" in tblhdu.columns.names:
+            events["PI"] = tblhdu.data.field("PI")
+        if "PHA" in tblhdu.columns.names:
+            events["PHA"] = tblhdu.data.field("PHA")
+        
         return cls(events)
 
     @classmethod
@@ -724,8 +759,10 @@ class EventList(object) :
         eidxs = np.argsort(self.events["eobs"])
 
         phEE = self.events["eobs"][eidxs]
-        phXX = self.events["xsky"][eidxs]
-        phYY = self.events["ysky"][eidxs]
+        phXS = self.events["xsky"][eidxs]
+        phYS = self.events["ysky"][eidxs]
+        phXP = self.events["xpix"][eidxs]
+        phYP = self.events["ypix"][eidxs]
 
         detectedChannels = []
         pindex = 0
@@ -762,10 +799,12 @@ class EventList(object) :
         
         dchannel = np.array(detectedChannels)
 
-        self.events["xsky"] = phXX
-        self.events["ysky"] = phYY
+        self.events["xsky"] = phXS
+        self.events["ysky"] = phYS
+        self.events["xpix"] = phXP
+        self.events["ypix"] = phYP
         self.events["eobs"] = phEE
-        self.events["chan"] = dchannel.astype(int)
+        self.events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
         self.events["RMF"] = respfile
         self.events["ChannelType"] = tblhdu.header["CHANTYPE"]
         self.events["Telescope"] = tblhdu.header["TELESCOP"]
@@ -776,30 +815,55 @@ class EventList(object) :
         """
         Write events to a FITS binary table file.
         """
-
+        
         cols = []
 
-        col1 = pyfits.Column(name='ENERGY', format='E',
-                             array=self.events["eobs"])
-        col2 = pyfits.Column(name='XSKY', format='D',
+        col1 = pyfits.Column(name='ENERGY', format='E', unit='eV',
+                             array=self.events["eobs"]*1000.)
+        col2 = pyfits.Column(name='X', format='D', unit='pixel',
+                             array=self.events["xpix"])
+        col3 = pyfits.Column(name='Y', format='D', unit='pixel',
+                             array=self.events["ypix"])
+        col4 = pyfits.Column(name='XSKY', format='D', unit='deg',
                              array=self.events["xsky"])
-        col3 = pyfits.Column(name='YSKY', format='D',
+        col5 = pyfits.Column(name='YSKY', format='D', unit='deg',
                              array=self.events["ysky"])
 
-        cols = [col1, col2, col3]
+        cols = [col1, col2, col3, col4, col5]
 
-        if "chan" in self.events:
-            col4 = pyfits.Column(name='CHANNEL', format='1J',
-                                 array=self.events["chan"])
-            cols.append(col4)
+        if self.events.has_key("ChannelType"):
+             chantype = self.events["ChannelType"]
+             if chantype == "PHA":
+                  cunit="adu"
+             elif chantype == "PI":
+                  cunit="Chan"
+             col6 = pyfits.Column(name=chantype.upper(), format='1J',
+                                  unit=cunit, array=self.events[chantype])
+             cols.append(col6)
             
         coldefs = pyfits.ColDefs(cols)
         tbhdu = pyfits.new_table(coldefs)
+        tbhdu.update_ext_name("EVENTS")
 
+        tbhdu.header.update("TCTYP2", "RA---TAN")
+        tbhdu.header.update("TCTYP3", "DEC--TAN")
+        tbhdu.header.update("TCRVL2", self.events["sky_center"][0])
+        tbhdu.header.update("TCRVL3", self.events["sky_center"][1])
+        tbhdu.header.update("TCDLT2", -self.events["dtheta"])
+        tbhdu.header.update("TCDLT3", self.events["dtheta"])
+        tbhdu.header.update("TCRPX2", self.events["pix_center"][0])
+        tbhdu.header.update("TCRPX3", self.events["pix_center"][1])
+        tbhdu.header.update("TLMIN2", 0.5)
+        tbhdu.header.update("TLMIN3", 0.5)
+        tbhdu.header.update("TLMAX2", 2.*self.events["pix_center"][0]-0.5)
+        tbhdu.header.update("TLMAX3", 2.*self.events["pix_center"][1]-0.5)
         tbhdu.header.update("EXPOSURE", self.events["ExposureTime"])
         tbhdu.header.update("AREA", self.events["Area"])
         tbhdu.header.update("D_A", self.events["AngularDiameterDistance"])
         tbhdu.header.update("REDSHIFT", self.events["Redshift"])
+        tbhdu.header.update("HDUVERS", "1.1.0")
+        tbhdu.header.update("RADECSYS", "FK5")
+        tbhdu.header.update("EQUINOX", 2000.0)
         if "RMF" in self.events:
             tbhdu.header.update("RMF", self.events["RMF"])
         if "ARF" in self.events:
@@ -829,9 +893,9 @@ class EventList(object) :
         col1 = pyfits.Column(name='ENERGY', format='E',
                              array=self.events["eobs"])
         col2 = pyfits.Column(name='DEC', format='D',
-                             array=self.events["ysky"]/3600.)
+                             array=self.events["ysky"])
         col3 = pyfits.Column(name='RA', format='D',
-                             array=self.events["xsky"]/3600.)
+                             array=self.events["xsky"])
 
         coldefs = pyfits.ColDefs([col1, col2, col3])
 
@@ -853,8 +917,8 @@ class EventList(object) :
         tbhdu.writeto(phfile, clobber=clobber)
 
         col1 = pyfits.Column(name='SRC_ID', format='J', array=np.array([1]).astype("int32"))
-        col2 = pyfits.Column(name='RA', format='D', array=np.array([0.0]))
-        col3 = pyfits.Column(name='DEC', format='D', array=np.array([0.0]))
+        col2 = pyfits.Column(name='RA', format='D', array=np.array([self.center[0]]))
+        col3 = pyfits.Column(name='DEC', format='D', array=np.array([self.center[1]]))
         col4 = pyfits.Column(name='E_MIN', format='D', array=np.array([e_min]))
         col5 = pyfits.Column(name='E_MAX', format='D', array=np.array([e_max]))
         col6 = pyfits.Column(name='FLUX', format='D', array=np.array([flux]))
@@ -906,15 +970,21 @@ class EventList(object) :
                             
         f.create_dataset("/xsky", data=self.events["xsky"])
         f.create_dataset("/ysky", data=self.events["ysky"])
+        f.create_dataset("/xpix", data=self.events["xpix"])
+        f.create_dataset("/ypix", data=self.events["ypix"])
         f.create_dataset("/eobs", data=self.events["eobs"])
-        if "chan" in self.events:
-            f.create_dataset("/chan", data=self.events["chan"])                  
-        
+        if "PI" in self.events:
+            f.create_dataset("/pi", data=self.events["PI"])                  
+        if "PHA" in self.events:
+            f.create_dataset("/pha", data=self.events["PHA"])                  
+        f.create_dataset("/sky_center", data=self.events["sky_center"])
+        f.create_dataset("/pix_center", data=self.events["pix_center"])
+        f.create_dataset("/dtheta", data=self.events["dtheta"])
+
         f.close()
 
     @parallel_root_only
-    def write_fits_image(self, imagefile, width, nx, center,
-                         clobber=False, gzip_file=False,
+    def write_fits_image(self, imagefile, clobber=False,
                          emin=None, emax=None):
         """
         Generate a image by binning X-ray counts and write it to a FITS file.
@@ -930,14 +1000,15 @@ class EventList(object) :
 
         mask = np.logical_and(mask_emin, mask_emax)
 
-        dx_pixel = width/nx
-        xmin = -0.5*width
-        xmax = -xmin
-        xbins = np.linspace(xmin, xmax, nx+1, endpoint=True)
+        nx = int(2*self.events["pix_center"][0]-1.)
+        ny = int(2*self.events["pix_center"][1]-1.)
         
-        H, xedges, yedges = np.histogram2d(self.events["xsky"][mask],
-                                           self.events["ysky"][mask],
-                                           bins=[xbins,xbins])
+        xbins = np.linspace(0.5, float(nx)+0.5, nx+1, endpoint=True)
+        ybins = np.linspace(0.5, float(ny)+0.5, ny+1, endpoint=True)
+
+        H, xedges, yedges = np.histogram2d(self.events["xpix"][mask],
+                                           self.events["ypix"][mask],
+                                           bins=[xbins,ybins])
         
         hdu = pyfits.PrimaryHDU(H.T)
         
@@ -947,20 +1018,15 @@ class EventList(object) :
         hdu.header.update("CTYPE2", "DEC--TAN")
         hdu.header.update("CRPIX1", 0.5*(nx+1))
         hdu.header.update("CRPIX2", 0.5*(nx+1))                
-        hdu.header.update("CRVAL1", center[0])
-        hdu.header.update("CRVAL2", center[1])
+        hdu.header.update("CRVAL1", self.events["sky_center"][0])
+        hdu.header.update("CRVAL2", self.events["sky_center"][1])
         hdu.header.update("CUNIT1", "deg")
         hdu.header.update("CUNIT2", "deg")
-        hdu.header.update("CDELT1", -dx_pixel/3600.)
-        hdu.header.update("CDELT2", dx_pixel/3600.)
+        hdu.header.update("CDELT1", -self.events["dtheta"])
+        hdu.header.update("CDELT2", self.events["dtheta"])
         hdu.header.update("EXPOSURE", self.events["ExposureTime"])
         
         hdu.writeto(imagefile, clobber=clobber)
-
-        if gzip_file:
-            clob = ""
-            if clobber: clob="-f"
-            os.system("gzip "+clob+" %s.fits" % (prefix))
                                     
     @parallel_root_only
     def write_spectrum(self, specfile, emin=0.1, emax=10.0, nchan=2000, clobber=False):
