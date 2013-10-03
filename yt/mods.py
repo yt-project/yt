@@ -21,6 +21,7 @@ from __future__ import absolute_import
 #
 
 # First module imports
+import os
 import numpy as np # For modern purposes
 
 # This next item will handle most of the actual startup procedures, but it will

@@ -13,7 +13,7 @@ API for yt.frontends
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import sys, types, os, glob, cPickle, time, importlib
+import importlib
 
 _frontends = [
     'enzo',
