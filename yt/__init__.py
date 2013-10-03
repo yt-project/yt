@@ -140,7 +140,4 @@ from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
 
 import yt.utilities.physical_constants as physical_constants
-
-def run_nose():
-    from yt.utilities.answer_testing.api import run_nose
-    return run_nose()
+from yt.testing import run_nose
