@@ -123,16 +123,14 @@ class BaseIOHandler(object):
         fsize = defaultdict(lambda: 0) # COUNT RV
         field_maps = defaultdict(list) # ptypes -> fields
         chunks = list(chunks)
+        unions = self.pf.particle_unions
         # What we need is a mapping from particle types to return types
-        ondisk_ptypes = [pt for pt in self.pf.particle_types
-                         if pt not in self.pf.known_filters
-                         and pt != "all"]
         for field in fields:
             ftype, fname = field
             fsize[field] = 0
             # We should add a check for p.fparticle_unions or something here
-            if ftype == "all":
-                for pt in ondisk_ptypes:
+            if ftype in unions:
+                for pt in unions[ftype]:
                     ptf[pt].append(fname)
                     field_maps[pt, fname].append(field)
             else:
@@ -147,8 +145,8 @@ class BaseIOHandler(object):
         # ptf, remember, is our mapping of what we want to read
         #for ptype in ptf:
         for field in fields:
-            if field[0] == "all":
-                for pt in ondisk_ptypes:
+            if field[0] in unions:
+                for pt in unions[field[0]]:
                     fsize[field] += psize[pt]
             else:
                 fsize[field] += psize[field[0]]

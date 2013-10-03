@@ -118,7 +118,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         if "wspecies" in self.parameter_file.parameters.keys():
             wspecies = self.parameter_file.parameters['wspecies']
             nspecies = len(wspecies)
-            self.parameter_file.particle_types = ["all", "darkmatter", "stars"]
+            self.parameter_file.particle_types = ["darkmatter", "stars"]
             for specie in range(nspecies):
                 self.parameter_file.particle_types.append("specie%i" % specie)
         else:

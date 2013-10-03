@@ -63,7 +63,6 @@ class IOHandlerOWLS(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        rv = {}
         chunks = list(chunks)
         data_files = set([])
         for chunk in chunks:
@@ -226,7 +225,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         ind = {}
         for field in fields:
             mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            if field[1] in _vector_fields:
+            if field[1] in self._vector_fields:
                 shape = (psize[field[0]], 3)
             else:
                 shape = psize[field[0]]
@@ -262,10 +261,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             dt = "uint32"
         else:
             dt = "float32"
-        if name in _vector_fields:
+        if name in self._vector_fields:
             count *= 3
         arr = np.fromfile(f, dtype=dt, count = count)
-        if name in _vector_fields:
+        if name in self._vector_fields:
             arr = arr.reshape((count/3, 3), order="C")
         return arr.astype("float64")
 
@@ -310,7 +309,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 if (ptype, field) not in field_list:
                     continue
                 offsets[(ptype, field)] = pos
-                if field in _vector_fields:
+                if field in self._vector_fields:
                     pos += 3 * pcount[ptype] * fs
                 else:
                     pos += pcount[ptype] * fs
@@ -382,7 +381,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         rv = {}
         for field in fields:
             mylog.debug("Allocating %s values for %s", size, field)
-            if field in _vector_fields:
+            if field in self._vector_fields:
                 rv[field] = np.empty((size, 3), dtype="float64")
                 if size == 0: continue
                 rv[field][:,0] = vals[field]['x'][mask]
@@ -400,16 +399,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                       self.domain_right_edge[i] - eps)
         return rv
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        ptypes = set()
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-            ptypes.add(ftype)
-        ptypes = list(ptypes)
-        ptypes.sort(key = lambda a: self._ptypes.index(a))
+    def _read_particle_coords(self, chunks, ptf):
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
@@ -418,19 +408,36 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype in ptypes:
+            for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
+                if tp[ptype] == 0: continue
+                f.seek(poff[ptype], os.SEEK_SET)
+                p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
+                d = [p['Coordinates'][ax].astype("float64") for ax in 'xyz']
+                del p
+                yield ptype, d
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            poff = data_file.field_offsets
+            tp = data_file.total_particles
+            f = open(data_file.filename, "rb")
+            for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
                 f.seek(poff[ptype], os.SEEK_SET)
                 p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
                 mask = selector.select_points(
                     p['Coordinates']['x'].astype("float64"),
                     p['Coordinates']['y'].astype("float64"),
                     p['Coordinates']['z'].astype("float64"))
-                tf = self._fill_fields(ptf[ptype], p, mask)
-                for field in tf:
-                    rv[ptype, field] = tf[field]
-                del p, tf
+                if mask is None: continue
+                tf = self._fill_fields(field_list, p, mask)
+                for field in field_list:
+                    yield (ptype, field), tf.pop(field)
             f.close()
-        return rv
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf
@@ -499,7 +506,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             if tp[ptype] == 0: continue
             dtbase = data_file.pf._field_dtypes.get(field, 'f')
             ff = "%s%s" % (data_file.pf.endian, dtbase)
-            if field in _vector_fields:
+            if field in self._vector_fields:
                 dt = (field, [('x', ff), ('y', ff), ('z', ff)])
             else:
                 dt = (field, ff)

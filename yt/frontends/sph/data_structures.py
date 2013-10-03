@@ -36,8 +36,6 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    OWLSFieldInfo, \
-    KnownOWLSFields, \
     GadgetFieldInfo, \
     KnownGadgetFields, \
     GadgetHDF5FieldInfo, \
@@ -267,31 +265,53 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # We do not allow load() of these files.
         return False
 
-
-class OWLSStaticOutput(GadgetStaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
+class GadgetHDF5StaticOutput(GadgetStaticOutput):
     _file_class = ParticleFile
-    _fieldinfo_fallback = OWLSFieldInfo  # For now we have separate from Gadget
-    _fieldinfo_known = KnownOWLSFields
-    _particle_mass_name = "Mass"
-    _particle_coordinates_name = "Coordinates"
-    _header_spec = None  # Override so that there's no confusion
+    _fieldinfo_fallback = GadgetHDF5FieldInfo
+    _fieldinfo_known = KnownGadgetHDF5Fields
+    _suffix = ".hdf5"
 
-    def __init__(self, filename, data_style="OWLS", n_ref=64,
-                 over_refine_factor=1):
+    def __init__(self, filename, data_style="gadget_hdf5", 
+                 unit_base = None, n_ref=64,
+                 over_refine_factor=1,
+                 bounding_box = None):
         self.storage_filename = None
         filename = os.path.abspath(filename)
-        super(OWLSStaticOutput, self).__init__(
-            filename, data_style, unit_base=None, n_ref=n_ref,
-            over_refine_factor=over_refine_factor)
+        super(GadgetHDF5StaticOutput, self).__init__(
+            filename, data_style, unit_base=unit_base, n_ref=n_ref,
+            over_refine_factor=over_refine_factor,
+            bounding_box = bounding_box)
 
-    def __repr__(self):
-        return os.path.basename(self.parameter_filename).split(".")[0]
+    def _get_hvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        hvals = {}
+        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        # Compat reasons.
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
+        return hvals
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            if "Constants" not in fileh["/"].keys() and \
+               "Header" in fileh["/"].keys():
+                fileh.close()
+                return True
+            fileh.close()
+        except:
+            pass
+        return False
+
+class OWLSStaticOutput(GadgetHDF5StaticOutput):
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
         hvals = {}
         hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
 
         self.dimensionality = 3
         self.refine_by = 2
@@ -332,45 +352,6 @@ class OWLSStaticOutput(GadgetStaticOutput):
         try:
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
-        except:
-            pass
-        return False
-
-class GadgetHDF5StaticOutput(GadgetStaticOutput):
-    _file_class = ParticleFile
-    _fieldinfo_fallback = GadgetHDF5FieldInfo
-    _fieldinfo_known = KnownGadgetHDF5Fields
-    _suffix = ".hdf5"
-
-    def __init__(self, filename, data_style="gadget_hdf5", 
-                 unit_base = None, n_ref=64,
-                 over_refine_factor=1,
-                 bounding_box = None):
-        self.storage_filename = None
-        filename = os.path.abspath(filename)
-        super(GadgetHDF5StaticOutput, self).__init__(
-            filename, data_style, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor,
-            bounding_box = bounding_box)
-
-    def _get_hvals(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        # Compat reasons.
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
-        return hvals
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        try:
-            fileh = h5py.File(args[0], mode='r')
-            if "Constants" not in fileh["/"].keys() and \
                "Header" in fileh["/"].keys():
                 fileh.close()
                 return True

@@ -132,10 +132,11 @@ class GeometryHandler(ParallelAnalysisInterface):
             self.proj = self.overlap_proj
         self.object_types.sort()
 
-    def _setup_unknown_fields(self):
+    def _setup_unknown_fields(self, list_of_fields = None):
         known_fields = self.parameter_file._fieldinfo_known
-        mylog.debug("Checking %s", self.field_list)
-        for field in self.field_list:
+        field_list = list_of_fields or self.field_list
+        mylog.debug("Checking %s", field_list)
+        for field in field_list:
             # By allowing a backup, we don't mandate that it's found in our
             # current field info.  This means we'll instead simply override
             # it.

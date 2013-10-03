@@ -625,3 +625,11 @@ def ensure_dir_exists(path):
         return
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
+
+def set_intersection(some_list):
+    if len(some_list) == 0: return set([])
+    # This accepts a list of iterables, which we get the intersection of.
+    s = set(some_list[0])
+    for l in some_list[1:]:
+        s.intersection_update(l)
+    return s

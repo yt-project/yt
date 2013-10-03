@@ -88,16 +88,8 @@ particle_deposition_functions("all", "Coordinates", "Mass", TipsyFieldInfo)
 
 for fname in ["Coordinates", "Velocities", "ParticleIDs", "Mass",
               "Epsilon", "Phi"]:
-    func = _field_concat(fname)
-    TipsyFieldInfo.add_field(("all", fname), function=func,
+    TipsyFieldInfo.add_field(("all", fname), function=NullFunc,
             particle_type = True)
-
-for iname, oname in [("Coordinates", "particle_position_"),
-                     ("Velocities", "particle_velocity_")]:
-    for axi, ax in enumerate("xyz"):
-        func = _field_concat_slice(iname, axi)
-        TipsyFieldInfo.add_field(("all", oname + ax), function=func,
-                particle_type = True)
 
 # GADGET
 # ======
@@ -135,13 +127,6 @@ def _setup_gadget_fields(ptypes, field_registry, known_registry):
     # Now we have to manually apply the splits for "all", since we don't want to
     # use the splits defined above.
 
-    for iname, oname in [("Coordinates", "particle_position_"),
-                         ("Velocities", "particle_velocity_")]:
-        for axi, ax in enumerate("xyz"):
-            func = _field_concat_slice(iname, axi)
-            field_registry.add_field(("all", oname + ax), function=func,
-                    particle_type = True)
-
 # Note that we call the same function a few times here.
 _setup_gadget_fields(gadget_ptypes,
     GadgetFieldInfo,
@@ -149,69 +134,6 @@ _setup_gadget_fields(gadget_ptypes,
 _setup_gadget_fields(ghdf5_ptypes,
     GadgetHDF5FieldInfo,
     KnownGadgetHDF5Fields)
-
-
-# OWLS
-# ====
-
-# I am optimistic that some day we will be able to get rid of much of this, and
-# make OWLS a subclass of Gadget fields.
-
-_owls_ptypes = ("PartType0", "PartType1", "PartType2", "PartType3",
-                "PartType4", "PartType5")
-
-for fname in ["Coordinates", "Velocity", "ParticleIDs",
-              # Note: Mass, not Masses
-              "Mass", "particle_index"]:
-    func = _field_concat(fname)
-    OWLSFieldInfo.add_field(("all", fname), function=func,
-            particle_type = True)
-
-def _owls_particle_fields(ptype):
-    def _Mass(field, data):
-        pind = _owls_ptypes.index(ptype)
-        if data.pf["MassTable"][pind] == 0.0:
-            raise RuntimeError
-        mass = np.ones(data[ptype, "ParticleIDs"].shape[0], dtype="float64")
-        # Note that this is an alias, which is why we need to apply conversion
-        # here.  Otherwise we'd have an asymmetry.
-        mass *= data.pf["MassTable"][pind] 
-        return mass
-    OWLSFieldInfo.add_field((ptype, "Mass"), function=_Mass,
-                            convert_function = _get_conv("mass"),
-                            particle_type = True)
-
-for ptype in _owls_ptypes:
-    # Note that this adds a "Known" Mass field and a "Derived" Mass field.
-    # This way the "Known" will get used, and if it's not there, it will use
-    # the derived.
-    KnownOWLSFields.add_field((ptype, "Mass"), function=NullFunc,
-        particle_type = True,
-        convert_function=_get_conv("mass"),
-        units = r"\mathrm{g}")
-    _owls_particle_fields(ptype)
-    KnownOWLSFields.add_field((ptype, "Velocity"), function=NullFunc,
-        particle_type = True,
-        convert_function=_get_conv("velocity"),
-        units = r"\mathrm{cm}/\mathrm{s}")
-    particle_deposition_functions(ptype, "Coordinates", "Mass", OWLSFieldInfo)
-    particle_scalar_functions(ptype, "Coordinates", "Velocity", OWLSFieldInfo)
-    KnownOWLSFields.add_field((ptype, "Coordinates"), function=NullFunc,
-        particle_type = True)
-    OWLSFieldInfo.add_field( (ptype, "particle_index"),
-        function = TranslationFunc((ptype, "ParticleIDs")),
-        particle_type = True)
-particle_deposition_functions("all", "Coordinates", "Mass", OWLSFieldInfo)
-
-# Now we have to manually apply the splits for "all", since we don't want to
-# use the splits defined above.
-
-for iname, oname in [("Coordinates", "particle_position_"),
-                     ("Velocity", "particle_velocity_")]:
-    for axi, ax in enumerate("xyz"):
-        func = _field_concat_slice(iname, axi)
-        OWLSFieldInfo.add_field(("all", oname + ax), function=func,
-                particle_type = True)
 
 def SmoothedGas(field, data):
     pos = data["PartType0", "Coordinates"]

@@ -461,7 +461,7 @@ class ARTIOStaticOutput(StaticOutput):
                             "species_%02d_secondary_variable_labels"
                             % (species, )])
 
-            self.particle_types = ("all",) + tuple(
+            self.particle_types = tuple(
                 set(art_to_yt[s] for s in
                     self.artio_parameters["particle_species_labels"]))
             self.particle_types = tuple(self.particle_types)

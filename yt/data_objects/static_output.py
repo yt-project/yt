@@ -48,7 +48,7 @@ class StaticOutput(object):
 
     default_fluid_type = "gas"
     fluid_types = ("gas","deposit")
-    particle_types = ("all",)
+    particle_types = None
     geometry = "cartesian"
     coordinates = None
     max_level = 99
@@ -92,6 +92,7 @@ class StaticOutput(object):
         self.conversion_factors = {}
         self.parameters = {}
         self.known_filters = {}
+        self.particle_unions = {}
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -313,6 +314,26 @@ class StaticOutput(object):
             self._last_finfo = self.field_info["all", fname]
             return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
+
+    def add_particle_union(self, union):
+        # No string lookups here, we need an actual union.
+        f = self.particle_fields_by_type
+        fields = set_intersection([f[s] for s in union
+                                   if s in self.particle_types_raw])
+        self.particle_types += (union.name,)
+        self.particle_unions[union.name] = union
+        fields = [ (union.name, field) for field in fields]
+        self.h.field_list.extend(fields)
+        self.h._setup_unknown_fields(fields)
+        self.h._setup_particle_fields(union.name)
+
+    @property
+    def particle_fields_by_type(self):
+        fields = defaultdict(list)
+        for field in self.h.field_list:
+            if field[0] in self.particle_types_raw:
+                fields[field[0]].append(field[1])
+        return fields
 
     @property
     def ires_factor(self):
