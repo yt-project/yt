@@ -1035,7 +1035,8 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         header = dict(dims = self.pf.domain_dimensions/2,
                       left_edge = self.pf.domain_left_edge,
                       right_edge = self.pf.domain_right_edge,
-                      octree = self.pf.octree_mask)
+                      octree = self.pf.octree_mask,
+                      over_refine = self.pf.over_refine_factor)
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
@@ -1083,7 +1084,8 @@ class StreamOctreeStaticOutput(StreamStaticOutput):
     _data_style = "stream_octree"
 
 def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
-                bbox=None, sim_time=0.0, periodicity=(True, True, True)):
+                bbox=None, sim_time=0.0, periodicity=(True, True, True),
+                over_refine_factor = 1):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1159,6 +1161,7 @@ def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
     box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    spf.over_refine_factor = over_refine_factor
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
 

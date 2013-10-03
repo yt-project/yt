@@ -119,7 +119,8 @@ cdef class OctreeContainer:
     def load_octree(cls, header):
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = header['octree']
-        cdef OctreeContainer obj = cls(header['dims'], header['left_edge'], header['right_edge'])
+        cdef OctreeContainer obj = cls(header['dims'], header['left_edge'],
+                header['right_edge'], over_refine = header['over_refine'])
         # NOTE: We do not allow domain/file indices to be specified.
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         cdef OctVisitorData data
@@ -166,7 +167,9 @@ cdef class OctreeContainer:
                 pos[1] += dds[1]
             pos[0] += dds[0]
         obj.nocts = cur.n_assigned
-        assert(obj.nocts == ref_mask.size)
+        if obj.nocts != ref_mask.size:
+            print "SOMETHING WRONG", ref_mask.size, obj.nocts, obj.oref
+            raise RuntimeError
         return obj
 
     cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
@@ -491,7 +494,8 @@ cdef class OctreeContainer:
         # Get the header
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
-                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]))
+                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
+                      over_refine = self.oref)
         if self.partial_coverage == 1:
             raise NotImplementedError
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
