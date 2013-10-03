@@ -708,7 +708,7 @@ class EnzoDataset(Dataset):
     """
     Enzo-specific output, set at a fixed time.
     """
-    _hierarchy_class = EnzoHierarchy
+    _index_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
     _particle_mass_name = "ParticleMass"
@@ -740,7 +740,7 @@ class EnzoDataset(Dataset):
             self.current_time = 0.0
 
     def _setup_1d(self):
-        self._hierarchy_class = EnzoHierarchy1D
+        self._index_class = EnzoHierarchy1D
         self._fieldinfo_fallback = Enzo1DFieldInfo
         self.domain_left_edge = \
             np.concatenate([[self.domain_left_edge], [0.0, 0.0]])
@@ -748,7 +748,7 @@ class EnzoDataset(Dataset):
             np.concatenate([[self.domain_right_edge], [1.0, 1.0]])
 
     def _setup_2d(self):
-        self._hierarchy_class = EnzoHierarchy2D
+        self._index_class = EnzoHierarchy2D
         self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
@@ -1004,7 +1004,7 @@ class EnzoDataset(Dataset):
         return os.path.exists("%s.hierarchy" % args[0])
 
 class EnzoDatasetInMemory(EnzoDataset):
-    _hierarchy_class = EnzoHierarchyInMemory
+    _index_class = EnzoHierarchyInMemory
     _dataset_type = 'enzo_inline'
 
     def __new__(cls, *args, **kwargs):

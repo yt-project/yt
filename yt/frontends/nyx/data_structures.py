@@ -471,7 +471,7 @@ class NyxDataset(Dataset):
     without looking at the Nyx hierarchy.
 
     """
-    _hierarchy_class = NyxHierarchy
+    _index_class = NyxHierarchy
     _fieldinfo_fallback = NyxFieldInfo
     _fieldinfo_known = KnownNyxFields
 

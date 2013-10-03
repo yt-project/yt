@@ -253,7 +253,7 @@ class StreamHierarchy(GridIndex):
         self._setup_unknown_fields()
                 
 class StreamDataset(Dataset):
-    _hierarchy_class = StreamHierarchy
+    _index_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields
     _dataset_type = 'stream'
@@ -725,7 +725,7 @@ class StreamParticleFile(ParticleFile):
     pass
 
 class StreamParticlesDataset(StreamDataset):
-    _hierarchy_class = StreamParticleIndex
+    _index_class = StreamParticleIndex
     _file_class = StreamParticleFile
     _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields
@@ -877,7 +877,7 @@ class StreamHexahedralIndex(UnstructuredMeshIndex):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
 class StreamHexahedralDataset(StreamDataset):
-    _hierarchy_class = StreamHexahedralIndex
+    _index_class = StreamHexahedralIndex
     _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields
     _dataset_type = "stream_hexahedral"

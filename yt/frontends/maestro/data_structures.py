@@ -399,7 +399,7 @@ class MaestroDataset(Dataset):
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Maestro hierarchy.
     """
-    _hierarchy_class = MaestroHierarchy
+    _index_class = MaestroHierarchy
     _fieldinfo_fallback = MaestroFieldInfo
     _fieldinfo_known = KnownMaestroFields
 

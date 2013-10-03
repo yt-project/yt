@@ -209,9 +209,9 @@ class Dataset(object):
     @property
     def hierarchy(self):
         if self._instantiated_hierarchy is None:
-            if self._hierarchy_class == None:
+            if self._index_class == None:
                 raise RuntimeError("You should not instantiate Dataset.")
-            self._instantiated_hierarchy = self._hierarchy_class(
+            self._instantiated_hierarchy = self._index_class(
                 self, dataset_type=self.dataset_type)
         return self._instantiated_hierarchy
     h = hierarchy  # alias

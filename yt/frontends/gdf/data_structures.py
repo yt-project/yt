@@ -174,7 +174,7 @@ class GDFHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class GDFDataset(Dataset):
-    _hierarchy_class = GDFHierarchy
+    _index_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
 

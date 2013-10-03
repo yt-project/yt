@@ -392,7 +392,7 @@ class RAMSESIndex(OctreeIndex):
         create_cooling_fields(basename, pf.field_info)
 
 class RAMSESDataset(Dataset):
-    _hierarchy_class = RAMSESIndex
+    _index_class = RAMSESIndex
     _fieldinfo_fallback = RAMSESFieldInfo
     _fieldinfo_known = KnownRAMSESFields
     _particle_mass_name = "ParticleMass"

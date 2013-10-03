@@ -203,7 +203,7 @@ class FLASHHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class FLASHDataset(Dataset):
-    _hierarchy_class = FLASHHierarchy
+    _index_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo
     _fieldinfo_known = KnownFLASHFields
     _handle = None

@@ -72,7 +72,7 @@ class MoabHex8Hierarchy(UnstructuredMeshIndex):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class MoabHex8Dataset(Dataset):
-    _hierarchy_class = MoabHex8Hierarchy
+    _index_class = MoabHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
     _fieldinfo_known = KnownMoabFields
     periodicity = (False, False, False)
@@ -173,7 +173,7 @@ class PyneMeshHex8Hierarchy(UnstructuredMeshIndex):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class PyneMoabHex8Dataset(Dataset):
-    _hierarchy_class = PyneMeshHex8Hierarchy
+    _index_class = PyneMeshHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
     _fieldinfo_known = KnownMoabFields
     periodicity = (False, False, False)

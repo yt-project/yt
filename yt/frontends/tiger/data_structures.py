@@ -122,7 +122,7 @@ class TigerHierarchy(GridIndex):
         self.derived_field_list = []
 
 class TigerDataset(Dataset):
-    _hierarchy_class = TigerHierarchy
+    _index_class = TigerHierarchy
     _fieldinfo_fallback = TigerFieldInfo
     _fieldinfo_known = KnownTigerFields
 

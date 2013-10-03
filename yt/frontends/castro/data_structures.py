@@ -477,7 +477,7 @@ class CastroDataset(Dataset):
     without looking at the Castro hierarchy.
 
     """
-    _hierarchy_class = CastroHierarchy
+    _index_class = CastroHierarchy
     _fieldinfo_fallback = CastroFieldInfo
     _fieldinfo_known = KnownCastroFields
 

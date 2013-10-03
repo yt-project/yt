@@ -172,7 +172,7 @@ class PlutoHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class PlutoDataset(Dataset):
-    _hierarchy_class = PlutoHierarchy
+    _index_class = PlutoHierarchy
     _fieldinfo_fallback = PlutoFieldInfo
     _fieldinfo_known = KnownPlutoFields
 

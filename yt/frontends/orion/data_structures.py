@@ -433,7 +433,7 @@ class OrionDataset(Dataset):
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Orion hierarchy.
     """
-    _hierarchy_class = OrionHierarchy
+    _index_class = OrionHierarchy
     _fieldinfo_fallback = OrionFieldInfo
     _fieldinfo_known = KnownOrionFields
 

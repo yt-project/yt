@@ -202,7 +202,7 @@ class ChomboHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class ChomboDataset(Dataset):
-    _hierarchy_class = ChomboHierarchy
+    _index_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
     _fieldinfo_known = KnownChomboFields
 
