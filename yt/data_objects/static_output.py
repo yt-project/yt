@@ -48,7 +48,8 @@ class StaticOutput(object):
 
     default_fluid_type = "gas"
     fluid_types = ("gas","deposit")
-    particle_types = None
+    particle_types = ()
+    particle_types_raw = ()
     geometry = "cartesian"
     coordinates = None
     max_level = 99
