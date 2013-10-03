@@ -22,7 +22,7 @@ from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
     Dataset
 
 from yt.data_objects.field_info_container import \

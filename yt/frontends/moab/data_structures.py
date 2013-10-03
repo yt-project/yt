@@ -22,7 +22,7 @@ from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
 from yt.geometry.unstructured_mesh_handler import \
            UnstructuredMeshIndex
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
            Dataset
 from yt.utilities.io_handler import \
     io_registry

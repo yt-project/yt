@@ -21,7 +21,7 @@ from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
            GridIndex
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
            Dataset
 from yt.utilities.lib import \
     get_box_grids_level

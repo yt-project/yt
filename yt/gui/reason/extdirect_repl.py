@@ -190,7 +190,7 @@ import pylab
 from yt.mods import *
 from yt.gui.reason.utils import load_script, deliver_image
 from yt.gui.reason.widget_store import WidgetStore
-from yt.data_objects.static_output import _cached_pfs
+from yt.data_objects.dataset import _cached_pfs
 
 pylab.ion()
 data_objects = []

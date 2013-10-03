@@ -26,7 +26,7 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
     Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion

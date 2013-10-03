@@ -26,7 +26,7 @@ from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
     Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion

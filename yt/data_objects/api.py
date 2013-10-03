@@ -19,7 +19,7 @@ from grid_patch import \
 from octree_subset import \
     OctreeSubset
 
-from static_output import \
+from dataset import \
     Dataset
 
 from particle_io import \

@@ -30,7 +30,7 @@ from nose.plugins import Plugin
 from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
-from yt.data_objects.static_output import Dataset
+from yt.data_objects.dataset import Dataset
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 

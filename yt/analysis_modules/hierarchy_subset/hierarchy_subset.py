@@ -20,7 +20,7 @@ from yt.funcs import *
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
     Dataset
 from yt.geometry.grid_geometry_handler import \
     GridIndex

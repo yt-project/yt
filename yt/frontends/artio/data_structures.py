@@ -31,7 +31,7 @@ from yt.funcs import *
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset

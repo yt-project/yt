@@ -50,7 +50,7 @@ def get_list_of_datasets():
     # Note that this instantiates the hierarchy.  This can be a costly
     # event.  However, we're going to assume that it's okay, if you have
     # decided to load up the parameter file.
-    from yt.data_objects.static_output import _cached_pfs
+    from yt.data_objects.dataset import _cached_pfs
     rv = []
     for fn, pf in sorted(_cached_pfs.items()):
         objs = []

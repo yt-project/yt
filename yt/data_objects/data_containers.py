@@ -1049,7 +1049,7 @@ def _check_nested_args(arg, ref_pf):
     return narg
 
 def _get_pf_by_hash(hash):
-    from yt.data_objects.static_output import _cached_pfs
+    from yt.data_objects.dataset import _cached_pfs
     for pf in _cached_pfs.values():
         if pf._hash() == hash: return pf
     return None

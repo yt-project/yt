@@ -29,7 +29,7 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.geometry.unstructured_mesh_handler import \
            UnstructuredMeshIndex
-from yt.data_objects.static_output import \
+from yt.data_objects.dataset import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.field_info_container import \
@@ -266,7 +266,7 @@ class StreamDataset(Dataset):
 
         self.stream_handler = stream_handler
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
-        from yt.data_objects.static_output import _cached_pfs
+        from yt.data_objects.dataset import _cached_pfs
         _cached_pfs[name] = self
         Dataset.__init__(self, name, self._dataset_type)
 
