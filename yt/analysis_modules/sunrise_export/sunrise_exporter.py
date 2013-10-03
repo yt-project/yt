@@ -500,7 +500,7 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     idxst = dd["particle_type"] == star_type
 
     #make sure we select more than a single particle
-    assert na.sum(idxst)>0
+    assert np.sum(idxst)>0
     if pos is None:
         pos = np.array([dd["particle_position_%s" % ax]
                         for ax in 'xyz']).transpose()
@@ -551,7 +551,7 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
     
     #make sure we have nonzero particle number
     assert pd_table.data.shape[0]>0
-    return pd_table,na.sum(idx)
+    return pd_table,np.sum(idx)
 
 
 def add_fields():

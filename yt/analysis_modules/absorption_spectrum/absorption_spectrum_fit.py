@@ -1,5 +1,5 @@
 from scipy import optimize
-import numpy as na
+import numpy as np
 import h5py
 from yt.analysis_modules.absorption_spectrum.absorption_line \
         import voigt
@@ -84,7 +84,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
     x0,xRes=x[0],x[1]-x[0]
 
     #Empty fit without any lines
-    yFit = na.ones(len(fluxData))
+    yFit = np.ones(len(fluxData))
 
     #Find all regions where lines/groups of lines are present
     cBounds = _find_complexes(x, fluxData, fitLim=fitLim,
@@ -94,10 +94,10 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
     #Fit all species one at a time in given order from low to high wavelength
     for species in orderFits:
         speciesDict = speciesDicts[species]
-        speciesLines = {'N':na.array([]),
-                        'b':na.array([]),
-                        'z':na.array([]),
-                        'group#':na.array([])}
+        speciesLines = {'N':np.array([]),
+                        'b':np.array([]),
+                        'z':np.array([]),
+                        'group#':np.array([])}
 
         #Set up wavelengths for species
         initWl = speciesDict['wavelength'][0]
@@ -135,12 +135,12 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
             yFit=yFit*_gen_flux_lines(x,newLinesP,speciesDict)
 
             #Add new group to all fitted lines
-            if na.size(newLinesP)>0:
-                speciesLines['N']=na.append(speciesLines['N'],newLinesP[:,0])
-                speciesLines['b']=na.append(speciesLines['b'],newLinesP[:,1])
-                speciesLines['z']=na.append(speciesLines['z'],newLinesP[:,2])
-                groupNums = b_i*na.ones(na.size(newLinesP[:,0]))
-                speciesLines['group#']=na.append(speciesLines['group#'],groupNums)
+            if np.size(newLinesP)>0:
+                speciesLines['N']=np.append(speciesLines['N'],newLinesP[:,0])
+                speciesLines['b']=np.append(speciesLines['b'],newLinesP[:,1])
+                speciesLines['z']=np.append(speciesLines['z'],newLinesP[:,2])
+                groupNums = b_i*np.ones(np.size(newLinesP[:,0]))
+                speciesLines['group#']=np.append(speciesLines['group#'],groupNums)
 
         allSpeciesLines[species]=speciesLines
 
@@ -208,7 +208,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
             initP[0] = speciesDict['init_N']
         initP[1] = speciesDict['init_b']
         initP[2]=initz
-        initP=na.array([initP])
+        initP=np.array([initP])
 
     linesP = initP
 
@@ -233,7 +233,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
                 epsfcn=1E-10,maxfev=1000)
 
         #Set results of optimization
-        linesP = na.reshape(fitP,(-1,3))
+        linesP = np.reshape(fitP,(-1,3))
 
         #Generate difference between current best fit and data
         yNewFit=_gen_flux_lines(x,linesP,speciesDict)
@@ -256,7 +256,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
                 break
 
         #If too many lines 
-        if na.shape(linesP)[0]>8 or na.size(linesP)+3>=len(x):
+        if np.shape(linesP)[0]>8 or np.size(linesP)+3>=len(x):
             #If its fitable by flag tools and still bad, use flag tools
             if errSq >1E2*errBound and speciesDict['name']=='HI lya':
                 return [],True
@@ -278,17 +278,17 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
             newP[0]=10**14
         newP[1] = speciesDict['init_b']
         newP[2]=(x[dif.argmax()]-wl0)/wl0
-        linesP=na.append(linesP,[newP],axis=0)
+        linesP=np.append(linesP,[newP],axis=0)
 
 
     #Check the parameters of all lines to see if they fall in an
     #   acceptable range, as given in dict ref
     remove=[]
     for i,p in enumerate(linesP):
-        check=_check_params(na.array([p]),speciesDict)
+        check=_check_params(np.array([p]),speciesDict)
         if check: 
             remove.append(i)
-    linesP = na.delete(linesP,remove,axis=0)
+    linesP = np.delete(linesP,remove,axis=0)
 
     return linesP,False
 
@@ -340,7 +340,7 @@ def _large_flag_fit(x, yDat, yFit, initz, speciesDict, minSize, errBound):
     #Iterate through test line guesses
     for initLines in lineTests:
         if initLines[1,0]==0:
-            initLines = na.delete(initLines,1,axis=0)
+            initLines = np.delete(initLines,1,axis=0)
 
         #Do fitting with initLines as first guess
         linesP,flag=_complex_fit(x,yDat,yFit,initz,
@@ -384,7 +384,7 @@ def _get_test_lines(initz):
     """
 
     #Set up a bunch of empty lines
-    testP = na.zeros((10,2,3))
+    testP = np.zeros((10,2,3))
 
     testP[0,0,:]=[1E18,20,initz]
     testP[1,0,:]=[1E18,40,initz]
@@ -497,7 +497,7 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
             xb,yb=x[lb[0]:lb[1]],y[lb[0]:lb[1]]
 
             #Generate a fit and find the difference to data
-            yFitb=_gen_flux_lines(xb,na.array([p]),speciesDict)
+            yFitb=_gen_flux_lines(xb,np.array([p]),speciesDict)
             dif =yb-yFitb
 
             #Only counts as an error if line is too big ---------------<
@@ -510,7 +510,7 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
                 break
 
     #Remove all bad line fits
-    linesP = na.delete(linesP,removeLines,axis=0)
+    linesP = np.delete(linesP,removeLines,axis=0)
 
     return linesP 
 
@@ -683,7 +683,7 @@ def _gen_flux_lines(x, linesP, speciesDict):
             g=speciesDict['Gamma'][i]
             wl=speciesDict['wavelength'][i]
             y = y+ _gen_tau(x,p,f,g,wl)
-    flux = na.exp(-y)
+    flux = np.exp(-y)
     return flux
 
 def _gen_tau(t, p, f, Gamma, lambda_unshifted):
@@ -696,7 +696,7 @@ def _gen_tau(t, p, f, Gamma, lambda_unshifted):
     a=7.95774715459E-15*Gamma*lambda_unshifted/b
     x=299792.458/b*(lambda_unshifted*(1+z)/t-1)
     
-    H = na.zeros(len(x))
+    H = np.zeros(len(x))
     H = voigt(a,x)
     
     tau = tau_o*H
