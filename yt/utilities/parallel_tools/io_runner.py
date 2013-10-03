@@ -60,7 +60,7 @@ class IOCommunicator(BaseIOHandler):
         pfields = [f for f in pf.h.field_list
                    if pf.field_info[f].particle_type]
         # Preload is only defined for Enzo ...
-        if pf.h.io._data_style == "enzo_packed_3d":
+        if pf.h.io._dataset_type == "enzo_packed_3d":
             self.queue = pf.h.io.queue
             pf.h.io.preload(self.grids, fields)
             for g in self.grids:
@@ -114,7 +114,7 @@ class IOCommunicator(BaseIOHandler):
         self.hooks.append(self.comm.comm.Isend([ts, MPI.DOUBLE], dest = dest))
 
 class IOHandlerRemote(BaseIOHandler):
-    _data_style = "remote"
+    _dataset_type = "remote"
 
     def __init__(self, pf, wg, pool):
         self.pf = pf

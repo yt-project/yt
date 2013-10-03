@@ -20,7 +20,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 class IOHandlerGadget(BaseIOHandler):
-    _data_style = 'gadget_infrastructure'
+    _dataset_type = 'gadget_infrastructure'
     def _read_data(self, grid, field):
         data = []
         fh = h5py.File(grid.filename,mode='r')

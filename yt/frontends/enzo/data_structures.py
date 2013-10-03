@@ -200,9 +200,9 @@ class EnzoHierarchy(GridIndex):
     grid = EnzoGrid
     _preload_implemented = True
 
-    def __init__(self, pf, data_style):
+    def __init__(self, pf, dataset_type):
         
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         if pf.file_style != None:
             self._bn = pf.file_style
         else:
@@ -220,9 +220,9 @@ class EnzoHierarchy(GridIndex):
         else:
             self.float_type = 'float64'
 
-        GridIndex.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
         # sync it back
-        self.parameter_file.data_style = self.data_style
+        self.parameter_file.dataset_type = self.dataset_type
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -242,9 +242,9 @@ class EnzoHierarchy(GridIndex):
             if line.startswith("Grid "):
                 self.num_grids = test_grid_id = int(line.split("=")[-1])
                 break
-        self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
+        self._guess_dataset_type(self.pf.dimensionality, test_grid, test_grid_id)
 
-    def _guess_data_style(self, rank, test_grid, test_grid_id):
+    def _guess_dataset_type(self, rank, test_grid, test_grid_id):
         if test_grid[0] != os.path.sep:
             test_grid = os.path.join(self.directory, test_grid)
         if not os.path.exists(test_grid):
@@ -252,10 +252,10 @@ class EnzoHierarchy(GridIndex):
                                     os.path.basename(test_grid))
             mylog.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
-        if self.data_style is not None: return
+        if self.dataset_type is not None: return
         try:
             a = SD.SD(test_grid)
-            self.data_style = 'enzo_hdf4'
+            self.dataset_type = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
             try:
@@ -266,19 +266,19 @@ class EnzoHierarchy(GridIndex):
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 if self.parameters.get("WriteGhostZones", 0) == 1:
-                    self.data_style= "enzo_packed_3d_gz"
+                    self.dataset_type= "enzo_packed_3d_gz"
                     self.grid = EnzoGridGZ
                 else:
-                    self.data_style = 'enzo_packed_3d'
+                    self.dataset_type = 'enzo_packed_3d'
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
-                self.data_style = 'enzo_hdf5'
+                self.dataset_type = 'enzo_hdf5'
             elif len(list_of_sets) == 0 and rank == 2:
                 mylog.debug("Detect packed 2D")
-                self.data_style = 'enzo_packed_2d'
+                self.dataset_type = 'enzo_packed_2d'
             elif len(list_of_sets) == 0 and rank == 1:
                 mylog.debug("Detect packed 1D")
-                self.data_style = 'enzo_packed_1d'
+                self.dataset_type = 'enzo_packed_1d'
             else:
                 raise TypeError
 
@@ -573,7 +573,7 @@ class EnzoHierarchy(GridIndex):
         return result
 
     def _setup_data_io(self):
-            self.io = io_registry[self.data_style](self.parameter_file)
+            self.io = io_registry[self.dataset_type](self.parameter_file)
 
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
@@ -588,13 +588,13 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self._enzo = enzo
         return self._enzo
 
-    def __init__(self, pf, data_style = None):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type = None):
+        self.dataset_type = dataset_type
         self.float_type = 'float64'
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
         self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
-        GridIndex.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -714,14 +714,14 @@ class EnzoDataset(Dataset):
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"
 
-    def __init__(self, filename, data_style=None,
+    def __init__(self, filename, dataset_type=None,
                  file_style = None,
                  parameter_override = None,
                  conversion_override = None,
                  storage_filename = None):
         """
         This class is a stripped down class that simply reads and parses
-        *filename* without looking at the hierarchy.  *data_style* gets passed
+        *filename* without looking at the hierarchy.  *dataset_type* gets passed
         to the hierarchy to pre-determine the style of data-output.  However,
         it is not strictly necessary.  Optionally you may specify a
         *parameter_override* dictionary that will override anything in the
@@ -735,7 +735,7 @@ class EnzoDataset(Dataset):
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
 
-        Dataset.__init__(self, filename, data_style, file_style=file_style)
+        Dataset.__init__(self, filename, dataset_type, file_style=file_style)
         if "InitialTime" not in self.parameters:
             self.current_time = 0.0
 
@@ -1005,7 +1005,7 @@ class EnzoDataset(Dataset):
 
 class EnzoDatasetInMemory(EnzoDataset):
     _hierarchy_class = EnzoHierarchyInMemory
-    _data_style = 'enzo_inline'
+    _dataset_type = 'enzo_inline'
 
     def __new__(cls, *args, **kwargs):
         obj = object.__new__(cls)
@@ -1018,7 +1018,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
 
-        Dataset.__init__(self, "InMemoryParameterFile", self._data_style)
+        Dataset.__init__(self, "InMemoryParameterFile", self._dataset_type)
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()

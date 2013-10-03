@@ -42,15 +42,15 @@ class MoabHex8Mesh(SemiStructuredMesh):
 
 class MoabHex8Hierarchy(UnstructuredMeshIndex):
 
-    def __init__(self, pf, data_style='h5m'):
+    def __init__(self, pf, dataset_type='h5m'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = h5py.File(self.hierarchy_filename,'r')
 
-        UnstructuredMeshIndex.__init__(self, pf, data_style)
+        UnstructuredMeshIndex.__init__(self, pf, dataset_type)
 
         self._fhandle.close()
 
@@ -69,7 +69,7 @@ class MoabHex8Hierarchy(UnstructuredMeshIndex):
         self.num_grids = 1 #self._fhandle['/grid_parent_id'].shape[0]
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class MoabHex8Dataset(Dataset):
     _hierarchy_class = MoabHex8Hierarchy
@@ -77,9 +77,9 @@ class MoabHex8Dataset(Dataset):
     _fieldinfo_known = KnownMoabFields
     periodicity = (False, False, False)
 
-    def __init__(self, filename, data_style='moab_hex8',
+    def __init__(self, filename, dataset_type='moab_hex8',
                  storage_filename = None):
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
         self._handle = h5py.File(self.parameter_filename, "r")
@@ -132,15 +132,15 @@ class PyneHex8Mesh(SemiStructuredMesh):
 
 class PyneMeshHex8Hierarchy(UnstructuredMeshIndex):
 
-    def __init__(self, pf, data_style='moab_hex8_pyne'):
+    def __init__(self, pf, dataset_type='moab_hex8_pyne'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.getcwd()
         self.pyne_mesh = pf.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(pf, data_style)
+        super(PyneMeshHex8Hierarchy, self).__init__(pf, dataset_type)
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
@@ -170,7 +170,7 @@ class PyneMeshHex8Hierarchy(UnstructuredMeshIndex):
         self.num_grids = 1
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class PyneMoabHex8Dataset(Dataset):
     _hierarchy_class = PyneMeshHex8Hierarchy
@@ -178,11 +178,11 @@ class PyneMoabHex8Dataset(Dataset):
     _fieldinfo_known = KnownMoabFields
     periodicity = (False, False, False)
 
-    def __init__(self, pyne_mesh, data_style='moab_hex8_pyne',
+    def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
                  storage_filename = None):
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
-        Dataset.__init__(self, str(filename), data_style)
+        Dataset.__init__(self, str(filename), dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 

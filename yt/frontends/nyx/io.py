@@ -24,7 +24,7 @@ from definitions import fab_header_pattern, nyx_particle_field_names, \
 class IOHandlerNative(BaseIOHandler):
     """ File handler that can somehow read the native boxlib format. """
 
-    _data_style = "nyx_native"
+    _dataset_type = "nyx_native"
 
     def modify(self, field):
         return field.swapaxes(0, 2)

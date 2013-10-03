@@ -104,12 +104,12 @@ class CastroGrid(AMRGridPatch):
 class CastroHierarchy(GridIndex):
     grid = CastroGrid
 
-    def __init__(self, pf, data_style='castro_native'):
+    def __init__(self, pf, dataset_type='castro_native'):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir, 'Header')
         self.directory = pf.fullpath
-        self.data_style = data_style
+        self.dataset_type = dataset_type
 
         # This also sets up the grid objects
         self.read_global_header(header_filename,
@@ -117,7 +117,7 @@ class CastroHierarchy(GridIndex):
         self.read_particle_header()
         self._cache_endianness(self.levels[-1].grids[-1])
 
-        super(CastroHierarchy, self).__init__(pf, data_style)
+        super(CastroHierarchy, self).__init__(pf, dataset_type)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
@@ -482,7 +482,7 @@ class CastroDataset(Dataset):
     _fieldinfo_known = KnownCastroFields
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
-                 data_style='castro_native', paranoia=False,
+                 dataset_type='castro_native', paranoia=False,
                  storage_filename = None):
         """
         Need to override for Castro file structure.
@@ -490,7 +490,7 @@ class CastroDataset(Dataset):
         the paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
-        as per BoxLib, data_style will be one of
+        as per BoxLib, dataset_type will be one of
          * Native
          * IEEE (not implemented in yt)
          * ASCII (not implemented in yt)
@@ -503,7 +503,7 @@ class CastroDataset(Dataset):
         self.__ipfn = paramFilename
         self.fparameters = {}
         super(CastroDataset, self).__init__(plotname.rstrip("/"),
-                                                 data_style='castro_native')
+                                                 dataset_type='castro_native')
 
 
         # These should maybe not be hardcoded?

@@ -22,7 +22,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
-    _data_style = "flash_hdf5"
+    _dataset_type = "flash_hdf5"
 
     def __init__(self, pf, *args, **kwargs):
         self._num_per_stride = kwargs.pop("num_per_stride", 1000000)

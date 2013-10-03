@@ -67,15 +67,15 @@ from yt.utilities.physical_constants import \
 
 
 class ARTIndex(OctreeIndex):
-    def __init__(self, pf, data_style="art"):
+    def __init__(self, pf, dataset_type="art"):
         self.fluid_field_list = fluid_fields
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self.max_level = pf.max_level
         self.float_type = np.float64
-        super(ARTIndex, self).__init__(pf, data_style)
+        super(ARTIndex, self).__init__(pf, dataset_type)
 
     def get_smallest_dx(self):
         """
@@ -184,7 +184,7 @@ class ARTDataset(Dataset):
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
 
-    def __init__(self, filename, data_style='art',
+    def __init__(self, filename, dataset_type='art',
                  fields=None, storage_filename=None,
                  skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
@@ -208,7 +208,7 @@ class ARTDataset(Dataset):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):

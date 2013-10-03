@@ -88,10 +88,10 @@ class PlutoHierarchy(GridIndex):
 
     grid = PlutoGrid
 
-    def __init__(self,pf,data_style='pluto_hdf5'):
+    def __init__(self,pf,dataset_type='pluto_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -102,7 +102,7 @@ class PlutoHierarchy(GridIndex):
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._handle.keys()[2:]
-        GridIndex.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _detect_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
@@ -169,20 +169,20 @@ class PlutoHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class PlutoDataset(Dataset):
     _hierarchy_class = PlutoHierarchy
     _fieldinfo_fallback = PlutoFieldInfo
     _fieldinfo_known = KnownPlutoFields
 
-    def __init__(self, filename, data_style='pluto_hdf5',
+    def __init__(self, filename, dataset_type='pluto_hdf5',
                  storage_filename = None, ini_filename = None):
         self._handle = h5py.File(filename,'r')
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        Dataset.__init__(self,filename,data_style)
+        Dataset.__init__(self,filename,dataset_type)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 

@@ -23,7 +23,7 @@ from definitions import \
 
 class IOHandlerNative(BaseIOHandler):
 
-    _data_style = "orion_native"
+    _dataset_type = "orion_native"
 
     def modify(self, field):
         return field.swapaxes(0,2)

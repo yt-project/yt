@@ -21,7 +21,7 @@ from yt.utilities.io_handler import \
 
 class IOHandlerSkeleton(BaseIOHandler):
     _particle_reader = False
-    _data_style = "skeleton"
+    _dataset_type = "skeleton"
 
     def _read_data(self, grid, field):
         # This must return the array, of size/shape grid.ActiveDimensions, that

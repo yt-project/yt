@@ -17,7 +17,7 @@ from yt.utilities.io_handler import \
            BaseIOHandler
 
 class IOHandlerTiger(BaseIOHandler):
-    _data_style = "tiger"
+    _dataset_type = "tiger"
     _offset = 36
 
     def __init__(self, *args, **kwargs):

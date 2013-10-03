@@ -101,16 +101,16 @@ class OrionGrid(AMRGridPatch):
 
 class OrionHierarchy(GridIndex):
     grid = OrionGrid
-    def __init__(self, pf, data_style='orion_native'):
+    def __init__(self, pf, dataset_type='orion_native'):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.directory = pf.fullpath
-        self.data_style = data_style
+        self.dataset_type = dataset_type
 
         self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
         self.__cache_endianness(self.levels[-1].grids[-1])
-        GridIndex.__init__(self,pf, self.data_style)
+        GridIndex.__init__(self,pf, self.dataset_type)
         self._populate_hierarchy()
         self._read_particles()
 
@@ -438,13 +438,13 @@ class OrionDataset(Dataset):
     _fieldinfo_known = KnownOrionFields
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
-                 data_style='orion_native', paranoia=False,
+                 dataset_type='orion_native', paranoia=False,
                  storage_filename = None):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
-        as per BoxLib, data_style will be Native (implemented here), IEEE (not
+        as per BoxLib, dataset_type will be Native (implemented here), IEEE (not
         yet implemented) or ASCII (not yet implemented.)
         """
         self.storage_filename = storage_filename
@@ -456,7 +456,7 @@ class OrionDataset(Dataset):
         self.fparameters = {}
 
         Dataset.__init__(self, plotname.rstrip("/"),
-                              data_style='orion_native')
+                              dataset_type='orion_native')
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE

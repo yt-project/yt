@@ -102,12 +102,12 @@ class MaestroGrid(AMRGridPatch):
 
 class MaestroHierarchy(GridIndex):
     grid = MaestroGrid
-    def __init__(self, pf, data_style='maestro'):
+    def __init__(self, pf, dataset_type='maestro'):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.directory = pf.fullpath
-        self.data_style = data_style
+        self.dataset_type = dataset_type
 
         # this also sets up the grid objects
         self.readGlobalHeader(header_filename, 
@@ -116,7 +116,7 @@ class MaestroHierarchy(GridIndex):
         pf.current_time = self.Time
         
         self.__cache_endianness(self.levels[-1].grids[-1])
-        GridIndex.__init__(self,pf, self.data_style)
+        GridIndex.__init__(self,pf, self.dataset_type)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
@@ -404,7 +404,7 @@ class MaestroDataset(Dataset):
     _fieldinfo_known = KnownMaestroFields
 
     def __init__(self, plotname, paramFilename=None, 
-                 data_style='maestro', paranoia=False,
+                 dataset_type='maestro', paranoia=False,
                  storage_filename = None):
         """need to override for Maestro file structure.
 
@@ -420,7 +420,7 @@ class MaestroDataset(Dataset):
         self.__ipfn = paramFilename
 
         Dataset.__init__(self, plotname.rstrip("/"),
-                              data_style='maestro')
+                              dataset_type='maestro')
 
         # this is the unit of time; NOT the current time
         self.parameters["Time"] = 1 # second

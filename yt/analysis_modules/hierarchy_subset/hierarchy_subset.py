@@ -162,9 +162,9 @@ class OldExtractedHierarchy(object):
         grid_node.attrs['ghostzoneFlags'] = np.zeros(6, dtype='int32')
         grid_node.attrs['numGhostzones'] = np.zeros(3, dtype='int32')
         grid_node.attrs['dims'] = grid.ActiveDimensions[::-1].astype('int32')
-        if not self.always_copy and self.pf.h.data_style == 6 \
+        if not self.always_copy and self.pf.h.dataset_type == 6 \
            and field in self.pf.h.field_list:
-            if grid.hierarchy.data_style == -1: # constructed grid
+            if grid.hierarchy.dataset_type == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
                 ff = grid[field].astype('float32')
                 ff /= self.pf.conversion_factors.get(field, 1.0)
@@ -189,9 +189,9 @@ class ExtractedHierarchy(GridIndex):
 
     grid = AMRExtractedGridProxy
 
-    def __init__(self, pf, data_style):
+    def __init__(self, pf, dataset_type):
         # First we set up our translation between original and extracted
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.min_level = pf.min_level
         self.int_offset = np.min([grid.get_global_startindex() for grid in
                            pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
@@ -218,7 +218,7 @@ class ExtractedHierarchy(GridIndex):
         # Now we utilize the existing machinery for generating the appropriate
         # arrays of grids, etc etc.
         self.base_pf = pf.base_pf
-        GridIndex.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
 
         # Now a few cleanups
         self.pf.override["DomainRightEdge"] = self.max_right_edge
@@ -318,7 +318,7 @@ class ExtractedHierarchy(GridIndex):
 
 class ExtractedParameterFile(Dataset):
     _hierarchy_class = ExtractedHierarchy
-    data_style = "extracted"
+    dataset_type = "extracted"
     
     def __init__(self, base_pf, min_level, max_level = -1, offset = None):
         self.base_pf = base_pf

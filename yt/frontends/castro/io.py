@@ -26,7 +26,7 @@ from definitions import \
 
 class IOHandlerNative(BaseIOHandler):
 
-    _data_style = "castro_native"
+    _dataset_type = "castro_native"
 
     def modify(self, field):
         return field.swapaxes(0,2)

@@ -58,8 +58,8 @@ class FLASHHierarchy(GridIndex):
 
     grid = FLASHGrid
     
-    def __init__(self,pf,data_style='flash_hdf5'):
-        self.data_style = data_style
+    def __init__(self,pf,dataset_type='flash_hdf5'):
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -68,7 +68,7 @@ class FLASHHierarchy(GridIndex):
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -200,7 +200,7 @@ class FLASHHierarchy(GridIndex):
                 self.parameter_file.conversion_factors[field] = 1.0 
                 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class FLASHDataset(Dataset):
     _hierarchy_class = FLASHHierarchy
@@ -208,7 +208,7 @@ class FLASHDataset(Dataset):
     _fieldinfo_known = KnownFLASHFields
     _handle = None
     
-    def __init__(self, filename, data_style='flash_hdf5',
+    def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
                  conversion_override = None):
@@ -228,7 +228,7 @@ class FLASHDataset(Dataset):
             except :
                 raise IOError(self.particle_filename)
                                                                 
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
         # These should be explicitly obtained from the file, but for now that

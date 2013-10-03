@@ -51,10 +51,10 @@ class TigerHierarchy(GridIndex):
 
     grid = TigerGrid
 
-    def __init__(self, pf, data_style):
+    def __init__(self, pf, dataset_type):
         self.directory = pf.fullpath
-        self.data_style = data_style
-        GridIndex.__init__(self, pf, data_style)
+        self.dataset_type = dataset_type
+        GridIndex.__init__(self, pf, dataset_type)
 
     def _count_grids(self):
         # Tiger is unigrid
@@ -127,8 +127,8 @@ class TigerDataset(Dataset):
     _fieldinfo_known = KnownTigerFields
 
     def __init__(self, rhobname, root_size, max_grid_size=128,
-                 data_style='tiger', storage_filename = None):
-        Dataset.__init__(self, rhobname, data_style)
+                 dataset_type='tiger', storage_filename = None):
+        Dataset.__init__(self, rhobname, dataset_type)
         self.storage_filename = storage_filename
         self.basename = rhobname[:-4]
         if not os.path.exists(self.basename + "rhob"):

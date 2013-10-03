@@ -75,15 +75,15 @@ class GDFHierarchy(GridIndex):
 
     grid = GDFGrid
 
-    def __init__(self, pf, data_style='grid_data_format'):
+    def __init__(self, pf, dataset_type='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.max_level = 10  # FIXME
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = h5py.File(self.hierarchy_filename,'r')
-        GridIndex.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
         self._fhandle.close()
 
@@ -171,16 +171,16 @@ class GDFHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class GDFDataset(Dataset):
     _hierarchy_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
 
-    def __init__(self, filename, data_style='grid_data_format',
+    def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename = None):
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 

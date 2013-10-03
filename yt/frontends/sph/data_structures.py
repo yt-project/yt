@@ -144,7 +144,7 @@ class GadgetDataset(ParticleDataset):
                     ('NallHW', 6, 'i'),
                     ('unused', 16, 'i'))
 
-    def __init__(self, filename, data_style="gadget_binary",
+    def __init__(self, filename, dataset_type="gadget_binary",
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
@@ -163,7 +163,7 @@ class GadgetDataset(ParticleDataset):
             self.domain_right_edge = bbox[:,1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
-        super(GadgetDataset, self).__init__(filename, data_style)
+        super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
@@ -277,12 +277,12 @@ class OWLSDataset(GadgetDataset):
     _particle_coordinates_name = "Coordinates"
     _header_spec = None  # Override so that there's no confusion
 
-    def __init__(self, filename, data_style="OWLS", n_ref=64,
+    def __init__(self, filename, dataset_type="OWLS", n_ref=64,
                  over_refine_factor=1):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         super(OWLSDataset, self).__init__(
-            filename, data_style, unit_base=None, n_ref=n_ref,
+            filename, dataset_type, unit_base=None, n_ref=n_ref,
             over_refine_factor=over_refine_factor)
 
     def __repr__(self):
@@ -346,14 +346,14 @@ class GadgetHDF5Dataset(GadgetDataset):
     _fieldinfo_known = KnownGadgetHDF5Fields
     _suffix = ".hdf5"
 
-    def __init__(self, filename, data_style="gadget_hdf5", 
+    def __init__(self, filename, dataset_type="gadget_hdf5", 
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         super(GadgetHDF5Dataset, self).__init__(
-            filename, data_style, unit_base=unit_base, n_ref=n_ref,
+            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
             over_refine_factor=over_refine_factor,
             bounding_box = bounding_box)
 
@@ -407,7 +407,7 @@ class TipsyDataset(ParticleDataset):
                     ('nstar',   'i'),
                     ('dummy',   'i'))
 
-    def __init__(self, filename, data_style="tipsy",
+    def __init__(self, filename, dataset_type="tipsy",
                  endian=">",
                  field_dtypes=None,
                  domain_left_edge=None,
@@ -437,7 +437,7 @@ class TipsyDataset(ParticleDataset):
         self._unit_base = unit_base or {}
         self._cosmology_parameters = cosmology_parameters
         self._param_file = parameter_file
-        super(TipsyDataset, self).__init__(filename, data_style)
+        super(TipsyDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)

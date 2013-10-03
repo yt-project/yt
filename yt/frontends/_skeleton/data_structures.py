@@ -52,13 +52,13 @@ class SkeletonHierarchy(AMRHierarchy):
     grid = SkeletonGrid
     float_type = np.float64
     
-    def __init__(self, pf, data_style='skeleton'):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type='skeleton'):
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        AMRHierarchy.__init__(self, pf, data_style)
+        AMRHierarchy.__init__(self, pf, dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -100,14 +100,14 @@ class SkeletonDataset(Dataset):
     _fieldinfo_known = KnownSkeletonFields
     _handle = None
     
-    def __init__(self, filename, data_style='skeleton',
+    def __init__(self, filename, dataset_type='skeleton',
                  storage_filename = None,
                  conversion_override = None):
 
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
 
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def _set_units(self):

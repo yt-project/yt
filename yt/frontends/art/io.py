@@ -30,7 +30,7 @@ from yt.utilities.physical_constants import sec_per_year
 
 
 class IOHandlerART(BaseIOHandler):
-    _data_style = "art"
+    _dataset_type = "art"
     tb, ages = None, None
     cache = None
     masks = None

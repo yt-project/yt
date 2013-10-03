@@ -156,8 +156,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
 class ARTIOIndex(Index):
 
-    def __init__(self, pf, data_style='artio'):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type='artio'):
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -165,7 +165,7 @@ class ARTIOIndex(Index):
 
         self.max_level = pf.max_level
         self.float_type = np.float64
-        super(ARTIOIndex, self).__init__(pf, data_style)
+        super(ARTIOIndex, self).__init__(pf, dataset_type)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Geometry Handler empty for now.")
@@ -323,7 +323,7 @@ class ARTIODataset(Dataset):
     _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"
 
-    def __init__(self, filename, data_style='artio',
+    def __init__(self, filename, dataset_type='artio',
                  storage_filename=None):
         if self._handle is not None:
             return
@@ -332,7 +332,7 @@ class ARTIODataset(Dataset):
         self._handle = artio_fileset(self._fileset_prefix)
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def _set_units(self):

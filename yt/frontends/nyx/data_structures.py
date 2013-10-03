@@ -99,13 +99,13 @@ class NyxGrid(AMRGridPatch):
 class NyxHierarchy(GridIndex):
     grid = NyxGrid
 
-    def __init__(self, pf, data_style="nyx_native"):
+    def __init__(self, pf, dataset_type="nyx_native"):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         self.directory = pf.path
         header_path = os.path.join(self.directory, "Header")  # make a kwarg?
 
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         #self._setup_classes()
 
         # This also sets up the grid objects
@@ -113,7 +113,7 @@ class NyxHierarchy(GridIndex):
         self.read_particle_header()
         self.__cache_endianness(self.levels[-1].grids[-1])
 
-        GridIndex.__init__(self, pf, self.data_style)
+        GridIndex.__init__(self, pf, self.dataset_type)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
@@ -496,14 +496,14 @@ class NyxDataset(Dataset):
         return nyx
 
     def __init__(self, plotname, param_filename="inputs",
-                 fparam_filename="probin", data_style="nyx_native",
+                 fparam_filename="probin", dataset_type="nyx_native",
                  storage_filename=None):
         """
         Need to override for Nyx file structure, for now.
 
         The paramfile is usually called "inputs" and there may be a fortran
         inputs file usually called "probin". `plotname` here will be a directory
-        name as per BoxLib, data_style will be one of
+        name as per BoxLib, dataset_type will be one of
 
          * Native
          * IEEE (not implemented in yt)
@@ -531,7 +531,7 @@ class NyxDataset(Dataset):
         # @todo: first line
         # runs ``self._parse_parameter_file()``, ``self._set_units()``, and
         # ``self.print_key_parameters()``
-        Dataset.__init__(self, plotname.rstrip("/"), data_style=data_style)
+        Dataset.__init__(self, plotname.rstrip("/"), dataset_type=dataset_type)
 
         # @todo: check all of these and hopefully factor out of the constructor.
         # These should maybe not be hardcoded?

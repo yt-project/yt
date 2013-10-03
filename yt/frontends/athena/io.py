@@ -17,7 +17,7 @@ from yt.utilities.io_handler import \
 import numpy as np
 
 class IOHandlerAthena(BaseIOHandler):
-    _data_style = "athena"
+    _dataset_type = "athena"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
     _read_table_offset = None

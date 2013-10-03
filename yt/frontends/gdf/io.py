@@ -26,7 +26,7 @@ def field_dname(grid_id, field_name):
 
 # TODO all particle bits were removed
 class IOHandlerGDFHDF5(BaseIOHandler):
-    _data_style = "grid_data_format"
+    _dataset_type = "grid_data_format"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
