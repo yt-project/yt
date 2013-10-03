@@ -1,12 +1,14 @@
 from yt.testing import *
 import numpy as np
+from yt.geometry.oct_container import \
+    OctreeContainer
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, \
     ParticleRegions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.utilities.lib.geometry_utils import get_morton_indices
 from yt.frontends.stream.api import load_particles
-from yt.geometry.selection_routines import RegionSelector
+from yt.geometry.selection_routines import RegionSelector, AlwaysSelector
 import yt.data_objects.api
 import time, os
 
@@ -41,6 +43,34 @@ def test_add_particles_random():
         #for dom in range(ndom):
         #    level_count += octree.count_levels(total_count.size-1, dom, mask)
         yield assert_equal, total_count, [1, 8, 64, 64, 256, 536, 1856, 1672]
+
+def test_save_load_octree():
+    np.random.seed(int(0x4d3d3d3))
+    pos = np.random.normal(0.5, scale=0.05, size=(NPART,3)) * (DRE-DLE) + DLE
+    octree = ParticleOctreeContainer((1, 1, 1), DLE, DRE)
+    octree.n_ref = 32
+    for i in range(3):
+        np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
+    # Convert to integers
+    pos = np.floor((pos - DLE)/dx).astype("uint64")
+    morton = get_morton_indices(pos)
+    morton.sort()
+    octree.add(morton)
+    octree.finalize()
+    saved = octree.save_octree()
+    loaded = OctreeContainer.load_octree(saved)
+    always = AlwaysSelector(None)
+    ir1 = octree.ires(always)
+    ir2 = loaded.ires(always)
+    yield assert_equal, ir1, ir2
+
+    fc1 = octree.fcoords(always)
+    fc2 = loaded.fcoords(always)
+    yield assert_equal, fc1, fc2
+
+    fw1 = octree.fwidth(always)
+    fw2 = loaded.fwidth(always)
+    yield assert_equal, fw1, fw2
 
 def test_particle_octree_counts():
     np.random.seed(int(0x4d3d3d3))

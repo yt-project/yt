@@ -115,6 +115,60 @@ cdef class OctreeContainer:
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = NULL
 
+    @classmethod
+    def load_octree(cls, header):
+        cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
+        ref_mask = header['octree']
+        cdef OctreeContainer obj = cls(header['dims'], header['left_edge'], header['right_edge'])
+        # NOTE: We do not allow domain/file indices to be specified.
+        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef OctVisitorData data
+        obj.setup_data(&data, -1)
+        obj.allocate_domains([ref_mask.shape[0]])
+        cdef int i, j, k, n
+        data.global_index = -1
+        data.level = 0
+        cdef np.float64_t pos[3], dds[3]
+        # This dds is the oct-width
+        for i in range(3):
+            dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
+        # Pos is the center of the octs
+        cdef OctAllocationContainer *cur = obj.domains[0]
+        cdef Oct *o
+        cdef void *p[4]
+        cdef np.int64_t nfinest = 0
+        p[0] = ref_mask.data
+        p[1] = <void *> cur.my_octs
+        p[2] = <void *> &cur.n_assigned
+        p[3] = <void *> &nfinest
+        data.array = p
+        pos[0] = obj.DLE[0] + dds[0]/2.0
+        for i in range(obj.nn[0]):
+            pos[1] = obj.DLE[1] + dds[1]/2.0
+            for j in range(obj.nn[1]):
+                pos[2] = obj.DLE[2] + dds[2]/2.0
+                for k in range(obj.nn[2]):
+                    if obj.root_mesh[i][j][k] != NULL:
+                        raise RuntimeError
+                    o = &cur.my_octs[cur.n_assigned]
+                    o.domain_ind = o.file_ind = 0
+                    o.domain = 1
+                    obj.root_mesh[i][j][k] = o
+                    cur.n_assigned += 1
+                    data.pos[0] = i
+                    data.pos[1] = j
+                    data.pos[2] = k
+                    selector.recursively_visit_octs(
+                        obj.root_mesh[i][j][k],
+                        pos, dds, 0, oct_visitors.load_octree,
+                        &data, 1)
+                    pos[2] += dds[2]
+                pos[1] += dds[1]
+            pos[0] += dds[0]
+        obj.nocts = cur.n_assigned
+        assert(obj.nocts == ref_mask.size)
+        return obj
+
     cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
         cdef int i
         data.index = 0
@@ -157,9 +211,11 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
-                        OctVisitorData *data):
-        cdef int i, j, k, n, vc
-        vc = self.partial_coverage
+                        OctVisitorData *data,
+                        int vc = -1):
+        cdef int i, j, k, n
+        if vc == -1:
+            vc = self.partial_coverage
         data.global_index = -1
         data.level = 0
         cdef np.float64_t pos[3], dds[3]
@@ -431,6 +487,24 @@ cdef class OctreeContainer:
             coords[:,i] += self.DLE[i]
         return coords
 
+    def save_octree(self):
+        # Get the header
+        header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
+                      left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
+                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]))
+        if self.partial_coverage == 1:
+            raise NotImplementedError
+        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        # domain_id = -1 here, because we want *every* oct
+        cdef OctVisitorData data
+        self.setup_data(&data, -1)
+        cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
+        ref_mask = np.zeros(self.nocts, dtype="uint8") - 1
+        data.array = <void *> ref_mask.data
+        self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
+        header['octree'] = ref_mask
+        return header
+
     def selector_fill(self, SelectorObject selector,
                       np.ndarray source,
                       np.ndarray dest = None,
@@ -647,19 +721,21 @@ cdef class OctreeContainer:
                    np.ndarray[np.uint8_t, ndim=1] levels,
                    np.ndarray[np.uint8_t, ndim=1] cell_inds,
                    np.ndarray[np.int64_t, ndim=1] file_inds,
-                   dest_fields, source_fields):
+                   dest_fields, source_fields,
+                   np.int64_t offset = 0):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n
         cdef int i, di
-        cdef int local_pos, local_filled
+        cdef np.int64_t local_pos, local_filled = 0
         cdef np.float64_t val
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
             for i in range(levels.shape[0]):
                 if levels[i] != level: continue
-                dest[i] = source[file_inds[i], cell_inds[i]]
+                dest[i + offset] = source[file_inds[i], cell_inds[i]]
+                local_filled += 1
 
     def finalize(self):
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
@@ -702,6 +778,13 @@ cdef class SparseOctreeContainer(OctreeContainer):
             self.DRE[i] = domain_right_edge[i] #num_grid
         self.fill_func = oct_visitors.fill_file_indices_rind
 
+    @classmethod
+    def load_octree(self, header):
+        raise NotImplementedError
+
+    def save_octree(self):
+        raise NotImplementedError
+
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL
         cdef int i
@@ -738,12 +821,14 @@ cdef class SparseOctreeContainer(OctreeContainer):
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
-                        OctVisitorData *data):
-        cdef int i, j, k, n, vc
+                        OctVisitorData *data,
+                        int vc = -1):
+        cdef int i, j, k, n
         cdef np.int64_t key, ukey
         data.global_index = -1
         data.level = 0
-        vc = self.partial_coverage
+        if vc == -1:
+            vc = self.partial_coverage
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
