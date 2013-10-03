@@ -789,26 +789,3 @@ class BinnedProfile3D(BinnedProfile):
         values = np.array(values).transpose()
         self._data_source.hierarchy.save_data(values, "/Profiles", name,
                                               set_attr, force=force)
-
-class StoredBinnedProfile3D(BinnedProfile3D):
-    def __init__(self, pf, name):
-        """
-        Given a *pf* parameterfile and the *name* of a stored profile, retrieve
-        it into a read-only data structure.
-        """
-        self.field_data = YTFieldData()
-        prof_arr = pf.h.get_data("/Profiles", name)
-        if prof_arr is None: raise KeyError("No such array")
-        for ax in 'xyz':
-            for base in ['%s_bin_field', '_%s_log']:
-                setattr(self, base % ax, prof_arr.getAttr(base % ax))
-        for ax in 'xyz':
-            fn = getattr(self, '%s_bin_field' % ax)
-            self.field_data[fn] = prof_arr.getAttr('%s_bin_values' % ax)
-        shape = prof_arr.getAttr('shape')
-        for fn, fd in zip(prof_arr.getAttr('field_order'),
-                          prof_arr.read().transpose()):
-            self.field_data[fn] = fd.reshape(shape)
-
-    def add_fields(self, *args, **kwargs):
-        raise RuntimeError("Sorry, you can't add to a stored profile.")
