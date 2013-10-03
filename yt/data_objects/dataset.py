@@ -314,6 +314,7 @@ class Dataset(object):
     _last_freq = (None, None)
     _last_finfo = None
     def _get_field_info(self, ftype, fname):
+        self.index # This requires an index creation.
         guessing_type = False
         if ftype == "unknown" and self._last_freq[0] != None:
             ftype = self._last_freq[0]
