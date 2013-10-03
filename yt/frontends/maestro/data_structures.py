@@ -329,12 +329,6 @@ class MaestroHierarchy(GridIndex):
                 self.gridReverseTree[child.id].append(i)
                 self.gridTree[i].append(weakref.proxy(child))
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        dd["field_indexes"] = self.field_indexes
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)

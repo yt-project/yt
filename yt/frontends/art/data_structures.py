@@ -128,11 +128,6 @@ class ARTIndex(OctreeIndex):
                 pfn = (ptype, pfield)
                 self.field_list.append(pfn)
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(ARTIndex, self)._setup_classes(dd)
-        self.object_types.sort()
-
     def _identify_base_chunk(self, dobj):
         """
         Take the passed in data source dobj, and use its embedded selector

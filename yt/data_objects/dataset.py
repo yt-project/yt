@@ -14,7 +14,7 @@ Presumably at some point EnzoRun will be absorbed into here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import string, re, gc, time, os, os.path, weakref
+import string, re, gc, time, os, weakref, copy
 
 from yt.funcs import *
 
@@ -25,12 +25,15 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.data_objects.data_containers import \
+    data_object_registry
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.utilities.minimal_representation import \
     MinimalDataset
+from yt.utilities.io_handler import io_registry
 
 from yt.geometry.coordinate_handler import \
     CartesianCoordinateHandler, \
@@ -55,6 +58,7 @@ class Dataset(object):
     storage_filename = None
     _particle_mass_name = None
     _particle_coordinates_name = None
+    _unsupported_objects = ()
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -125,6 +129,10 @@ class Dataset(object):
         self.print_key_parameters()
 
         self.create_field_info()
+
+        # Must be defined in subclass
+        mylog.debug("Setting up classes.")
+        self._setup_classes()
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
@@ -209,17 +217,38 @@ class Dataset(object):
     @property
     def index(self):
         if self._instantiated_index is None:
-            if self._index_class == None:
-                raise RuntimeError("You should not instantiate Dataset.")
-            self._instantiated_index = self._index_class(
-                self, dataset_type=self.dataset_type)
+            self._initialize_index()
         return self._instantiated_index
+
+    def _initialize_index(self):
+        index = self._index_class(
+                self, dataset_type=self.dataset_type)
+        self._instantiated_index = index
+
+        # Here is where we initialize the index.
+        mylog.debug("Initializing data IO")
+        self._setup_data_io()
+
+        mylog.debug("Detecting fields.")
+        self._detect_fields()
+
+        mylog.debug("Detecting fields in backup.")
+        self._detect_fields_backup()
+
+        mylog.debug("Adding unknown detected fields")
+        self._setup_unknown_fields()
+
+        mylog.debug("Setting up derived fields")
+        self._setup_derived_fields()
+
 
     @property
     def hierarchy(self):
         return self.index
 
-    h = hierarchy
+    @property
+    def h(self):
+        return self
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -325,6 +354,269 @@ class Dataset(object):
         if o2 != int(o2):
             raise RuntimeError
         return int(o2)
+
+    def _add_object_class(self, name, class_name, base, dd):
+        self.object_types.append(name)
+        obj = type(class_name, (base,), dd)
+        setattr(self, name, obj)
+
+    def _get_data_reader_dict(self):
+        dd = { 'pf' : self }
+        return dd
+
+    def _setup_classes(self):
+        # Called by subclass
+        dd = self._get_data_reader_dict()
+        self.object_types = []
+        self.objects = []
+        self.plots = []
+        for name, cls in sorted(data_object_registry.items()):
+            if name in self._unsupported_objects:
+                setattr(self, name,
+                    _unsupported_object(self.parameter_file, name))
+                continue
+            cname = cls.__name__
+            if cname.endswith("Base"): cname = cname[:-4]
+            self._add_object_class(name, cname, cls, dd)
+        if self.refine_by != 2 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Refine by something other than two: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
+        if self.dimensionality < 3 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Dimensionality less than 3: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
+        self.object_types.sort()
+
+    def _detect_fields_backup(self):
+        # grab fields from backup file as well, if present
+        return
+        try:
+            backup_filename = self.parameter_file.backup_filename
+            f = h5py.File(backup_filename, 'r')
+            g = f["data"]
+            grid = self.grids[0] # simply check one of the grids
+            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            for field_name in grid_group:
+                if field_name != 'particles':
+                    self.field_list.append(field_name)
+        except KeyError:
+            return
+        except IOError:
+            return
+
+    def _setup_unknown_fields(self):
+        known_fields = self._fieldinfo_known
+        mylog.debug("Checking %s", self.field_list)
+        for field in self.field_list:
+            # By allowing a backup, we don't mandate that it's found in our
+            # current field info.  This means we'll instead simply override
+            # it.
+            ff = self.field_info.pop(field, None)
+            if field not in known_fields:
+                if isinstance(field, types.TupleType) and \
+                   field[0] in self.particle_types:
+                    particle_type = True
+                else:
+                    particle_type = False
+                rootloginfo("Adding unknown field %s to list of fields", field)
+                cf = None
+                if self.has_key(field):
+                    def external_wrapper(f):
+                        def _convert_function(data):
+                            return data.convert(f)
+                        return _convert_function
+                    cf = external_wrapper(field)
+                # Note that we call add_field on the field_info directly.  This
+                # will allow the same field detection mechanism to work for 1D, 2D
+                # and 3D fields.
+                self.field_info.add_field(
+                        field, NullFunc, particle_type = particle_type,
+                        convert_function=cf, take_log=False, units=r"Unknown")
+            else:
+                mylog.debug("Adding known field %s to list of fields", field)
+                self.field_info[field] = known_fields[field]
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+        self.filtered_particle_types = []
+        fc, fac = self._derived_fields_to_check()
+        self._derived_fields_add(fc, fac)
+
+    def _setup_filtered_type(self, filter):
+        if not filter.available(self.derived_field_list):
+            return False
+        fi = self.field_info
+        fd = self.field_dependencies
+        available = False
+        for fn in self.derived_field_list:
+            if fn[0] == filter.filtered_type:
+                # Now we can add this
+                available = True
+                self.derived_field_list.append(
+                    (filter.name, fn[1]))
+                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
+                # Now we append the dependencies
+                fd[filter.name, fn[1]] = fd[fn]
+        if available:
+            self.particle_types += (filter.name,)
+            self.filtered_particle_types.append(filter.name)
+            self._setup_particle_fields(filter.name, True)
+        return available
+
+    def _setup_particle_fields(self, ptype, filtered = False):
+        pf = self
+        pmass = self._particle_mass_name
+        pcoord = self._particle_coordinates_name
+        if pmass is None or pcoord is None: return
+        df = particle_deposition_functions(ptype,
+            pcoord, pmass, self.field_info)
+        self._derived_fields_add(df)
+
+    def _derived_fields_to_check(self):
+        fi = self.field_info
+        # First we construct our list of fields to check
+        fields_to_check = []
+        fields_to_allcheck = []
+        for field in fi.keys():
+            finfo = fi[field]
+            # Explicitly defined
+            if isinstance(field, tuple):
+                fields_to_check.append(field)
+                continue
+            # This one is implicity defined for all particle or fluid types.
+            # So we check each.
+            if not finfo.particle_type:
+                fields_to_check.append(field)
+                continue
+            # We do a special case for 'all' later
+            new_fields = []
+            for pt in self.particle_types:
+                new_fi = copy.copy(finfo)
+                new_fi.name = (pt, new_fi.name)
+                fi[new_fi.name] = new_fi
+                new_fields.append(new_fi.name)
+            fields_to_check += new_fields
+            fields_to_allcheck.append(field)
+        return fields_to_check, fields_to_allcheck
+
+    def _derived_fields_add(self, fields_to_check = None,
+                            fields_to_allcheck = None):
+        if fields_to_check is None:
+            fields_to_check = []
+        if fields_to_allcheck is None:
+            fields_to_allcheck = []
+        fi = self.field_info
+        for field in fields_to_check:
+            try:
+                fd = fi[field].get_dependencies(pf = self)
+            except Exception as e:
+                if type(e) != YTFieldNotFound:
+                    mylog.debug("Raises %s during field %s detection.",
+                                str(type(e)), field)
+                continue
+            missing = False
+            # This next bit checks that we can't somehow generate everything.
+            # We also manually update the 'requested' attribute
+            requested = []
+            for f in fd.requested:
+                if (field[0], f) in self.field_list:
+                    requested.append( (field[0], f) )
+                elif f in self.field_list:
+                    requested.append( f )
+                elif isinstance(f, tuple) and f[1] in self.field_list:
+                    requested.append( f )
+                else:
+                    missing = True
+                    break
+            if not missing: self.derived_field_list.append(field)
+            fd.requested = set(requested)
+            self.field_dependencies[field] = fd
+            if not fi[field].particle_type and not isinstance(field, tuple):
+                # Manually hardcode to 'gas'
+                self.field_dependencies["gas", field] = fd
+        for base_field in fields_to_allcheck:
+            # Now we expand our field_info with the new fields
+            all_available = all(((pt, field) in self.derived_field_list
+                                 for pt in self.particle_types))
+            if all_available:
+                self.derived_field_list.append( ("all", field) )
+                fi["all", base_field] = fi[base_field]
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
+
+    # Now all the object related stuff
+    def all_data(self, find_max=False):
+        if find_max: c = self.find_max("Density")[1]
+        else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
+        return self.region(c,
+            self.domain_left_edge, self.domain_right_edge)
+
+    def _setup_data_io(self):
+        if getattr(self, "io", None) is not None: return
+        self.io = io_registry[self.dataset_type](self)
+
+    def _split_fields(self, fields):
+        # This will split fields into either generated or read fields
+        fields_to_read, fields_to_generate = [], []
+        for ftype, fname in fields:
+            if fname in self.field_list or (ftype, fname) in self.field_list:
+                fields_to_read.append((ftype, fname))
+            else:
+                fields_to_generate.append((ftype, fname))
+        return fields_to_read, fields_to_generate
+
+    def _read_particle_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        selector = dobj.selector
+        if chunk is None:
+            self.index._identify_base_chunk(dobj)
+        fields_to_return = {}
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+        fields_to_return = self.io._read_particle_selection(
+            self.index._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read)
+        for field in fields_to_read:
+            ftype, fname = field
+            finfo = self._get_field_info(*field)
+            conv_factor = finfo._convert_function(self)
+            np.multiply(fields_to_return[field], conv_factor,
+                        fields_to_return[field])
+        return fields_to_return, fields_to_generate
+
+    def _read_fluid_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        selector = dobj.selector
+        if chunk is None:
+            self.index._identify_base_chunk(dobj)
+            chunk_size = dobj.size
+        else:
+            chunk_size = chunk.data_size
+        fields_to_return = {}
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+        fields_to_return = self.io._read_fluid_selection(
+            self.index._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read,
+            chunk_size)
+        for field in fields_to_read:
+            ftype, fname = field
+            conv_factor = self.field_info[fname]._convert_function(self)
+            np.multiply(fields_to_return[field], conv_factor,
+                        fields_to_return[field])
+        #mylog.debug("Don't know how to read %s", fields_to_generate)
+        return fields_to_return, fields_to_generate
+
+    def convert(self, unit):
+        return self.conversion_factors[unit]
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

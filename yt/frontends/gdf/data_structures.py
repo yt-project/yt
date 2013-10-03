@@ -93,11 +93,6 @@ class GDFHierarchy(GridIndex):
     def _detect_fields(self):
         self.field_list = self._fhandle['field_types'].keys()
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = self._fhandle['/grid_parent_id'].shape[0]
 

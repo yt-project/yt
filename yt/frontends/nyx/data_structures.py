@@ -106,7 +106,6 @@ class NyxHierarchy(GridIndex):
         header_path = os.path.join(self.directory, "Header")  # make a kwarg?
 
         self.dataset_type = dataset_type
-        #self._setup_classes()
 
         # This also sets up the grid objects
         self.read_global_header(header_path)
@@ -386,12 +385,6 @@ class NyxHierarchy(GridIndex):
             for child in children:
                 self.gridReverseTree[child.id].append(i)
                 self.gridTree[i].append(weakref.proxy(child))
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        dd["field_indexes"] = self.field_indexes
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')

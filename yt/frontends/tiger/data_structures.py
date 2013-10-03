@@ -63,11 +63,6 @@ class TigerHierarchy(GridIndex):
         self.num_grids = np.prod(self.ngdims)
         self.max_level = 0
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _parse_hierarchy(self):
         grids = []
         # We need to fill in dims, LE, RE, level, count

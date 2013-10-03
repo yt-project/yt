@@ -348,11 +348,6 @@ class RAMSESIndex(OctreeIndex):
         self._parse_cooling()
         super(RAMSESIndex, self)._setup_derived_fields()
     
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(RAMSESIndex, self)._setup_classes(dd)
-        self.object_types.sort()
-
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             domains = [dom for dom in self.domains if

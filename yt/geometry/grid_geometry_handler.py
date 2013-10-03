@@ -56,10 +56,6 @@ class GridIndex(Index):
         mylog.debug("Re-examining hierarchy")
         self._initialize_level_stats()
 
-    @property
-    def parameters(self):
-        return self.parameter_file.parameters
-
     def select_grids(self, level):
         """
         Returns an array of grids at *level*.
@@ -169,9 +165,9 @@ class GridIndex(Index):
     def find_max_cell_location(self, field, finest_levels = 3):
         if finest_levels is not False:
             gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
-            source = self.data_collection([0.0]*3, self.grids[gi])
+            source = self.pf.data_collection([0.0]*3, self.grids[gi])
         else:
-            source = self.all_data()
+            source = self.pf.all_data()
         mylog.debug("Searching for maximum value of %s", field)
         max_val, maxi, mx, my, mz = \
             source.quantities["MaxLocation"](field)
@@ -217,9 +213,6 @@ class GridIndex(Index):
 
         return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
                         level, num_children)
-
-    def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
         if dobj._type_name == "grid":

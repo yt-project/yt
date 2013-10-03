@@ -552,8 +552,8 @@ class YTSphereBase(YTSelectionContainer3D):
         super(YTSphereBase, self).__init__(center, pf, field_parameters)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.pf)
-        if radius < self.hierarchy.get_smallest_dx():
-            raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
+        #if radius < self.hierarchy.get_smallest_dx():
+        #    raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
         self.radius = radius
 
@@ -597,8 +597,8 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         if A<B or B<C:
             raise YTEllipsoidOrdering(pf, A, B, C)
         # make sure the smallest side is not smaller than dx
-        if C < self.hierarchy.get_smallest_dx():
-            raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
+        #if C < self.hierarchy.get_smallest_dx():
+        #    raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
         self._A = A
         self._B = B
         self._C = C

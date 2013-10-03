@@ -159,11 +159,6 @@ class AthenaHierarchy(GridIndex):
         self.field_list = field_map.keys()
         self._field_map = field_map
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = self.parameter_file.nvtk
 

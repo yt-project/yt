@@ -223,11 +223,6 @@ class ARTIOIndex(Index):
                     fields.add((ptype, art_to_yt[f]))
         return list(fields)
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(ARTIOIndex, self)._setup_classes(dd)
-        self.object_types.sort()
-
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             try:

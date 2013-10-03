@@ -550,7 +550,7 @@ class ValidateDataField(FieldValidator):
         doesnt_have = []
         if isinstance(data, FieldDetector): return True
         for f in self.fields:
-            if f not in data.hierarchy.field_list:
+            if f not in data.pf.field_list:
                 doesnt_have.append(f)
         if len(doesnt_have) > 0:
             raise NeedsDataField(doesnt_have)

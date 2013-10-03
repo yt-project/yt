@@ -203,10 +203,6 @@ class StreamHierarchy(GridIndex):
         GridIndex._initialize_grid_arrays(self)
         self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-
     def _detect_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 

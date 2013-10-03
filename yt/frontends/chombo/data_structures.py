@@ -138,11 +138,6 @@ class ChomboHierarchy(GridIndex):
         ncomp = int(self._handle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
           
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
