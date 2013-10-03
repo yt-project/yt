@@ -222,8 +222,8 @@ class TableAbsorbModel(PhotonModel):
             raise IOError("File does not exist: %s." % filename)
         self.filename = filename
         f = h5py.File(self.filename,"r")
-        emin = f["energy"][:].min()
-        emax = f["energy"][:].max()
+        emin = f["energ_lo"][:].min()
+        emax = f["energ_hi"][:].max()
         self.sigma = f["cross_section"][:]
         nchan = self.sigma.shape[0]
         f.close()
