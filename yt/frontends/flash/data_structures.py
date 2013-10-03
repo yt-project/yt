@@ -199,9 +199,6 @@ class FLASHHierarchy(GridGeometryHandler):
                 # Translating an already-converted field
                 self.parameter_file.conversion_factors[field] = 1.0 
                 
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
-
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo

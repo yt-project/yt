@@ -68,9 +68,6 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
     def _count_grids(self):
         self.num_grids = 1 #self._fhandle['/grid_parent_id'].shape[0]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
-
 class MoabHex8StaticOutput(StaticOutput):
     _hierarchy_class = MoabHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo

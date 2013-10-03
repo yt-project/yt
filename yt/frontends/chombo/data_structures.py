@@ -198,9 +198,6 @@ class ChomboHierarchy(GridGeometryHandler):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
-
 class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
