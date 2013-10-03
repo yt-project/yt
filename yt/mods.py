@@ -21,10 +21,8 @@ from __future__ import absolute_import
 #
 
 # First module imports
-import sys, types, os, glob, cPickle, time
-import numpy as na # For historical reasons
+import sys, types, os, glob, cPickle, time, importlib
 import numpy as np # For modern purposes
-import numpy # In case anyone wishes to use it by name
 
 # This next item will handle most of the actual startup procedures, but it will
 # also attempt to parse the command line and set up the global state of various
@@ -35,7 +33,21 @@ import numpy # In case anyone wishes to use it by name
 import yt.startup_tasks as __startup_tasks
 unparsed_args = __startup_tasks.unparsed_args
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog, \
+    iterable, \
+    get_memory_usage, \
+    print_tb, \
+    rootonly, \
+    insert_ipython, \
+    get_pbar, \
+    only_on_root, \
+    is_root, \
+    get_version_stack, \
+    get_yt_supp, \
+    get_yt_version, \
+    parallel_profile
+
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.config import ytcfg, ytcfgDefaults
@@ -48,117 +60,74 @@ if __level >= int(ytcfgDefaults["loglevel"]):
     np.seterr(all = 'ignore')
 
 from yt.data_objects.api import \
-    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    data_object_registry, \
-    derived_field, add_field, add_grad, FieldInfo, \
-    ValidateParameter, ValidateDataField, ValidateProperty, \
-    ValidateSpatial, ValidateGridType, \
-    DatasetSeries, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray, \
+    BinnedProfile1D, \
+    BinnedProfile2D, \
+    BinnedProfile3D, \
+    derived_field, \
+    add_field, \
+    add_grad, \
+    FieldInfo, \
+    ValidateParameter, \
+    ValidateDataField, \
+    ValidateProperty, \
+    ValidateSpatial, \
+    ValidateGridType, \
+    DatasetSeries, \
+    ParticleTrajectoryCollection, \
+    ImageArray, \
     particle_filter
 
-from yt.data_objects.derived_quantities import \
-    add_quantity, quantity_info
+_frontends = [
+    'enzo',
+    'castro',
+    'nyx',
+    'orion',
+    'flash',
+    'tiger',
+    'artio',
+    'ramses',
+    'chombo',
+    'gdf',
+    'moab',
+    'athena',
+    'art',
+    'pluto',
+    'stream',
+    'sph',
+]
 
-from yt.frontends.enzo.api import \
-    EnzoDataset, EnzoDatasetInMemory, \
-    EnzoSimulation, EnzoFieldInfo, \
-    add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
+class _frontend_container:
+    def __init__(self):
+        for frontend in _frontends:
+            _mod = "yt.frontends.%s.api" % frontend
+            setattr(self, frontend, importlib.import_module(_mod))
 
-from yt.frontends.castro.api import \
-    CastroDataset, CastroFieldInfo, add_castro_field
-
-from yt.frontends.nyx.api import \
-    NyxDataset, NyxFieldInfo, add_nyx_field
-
-from yt.frontends.orion.api import \
-    OrionDataset, OrionFieldInfo, add_orion_field
-
-from yt.frontends.flash.api import \
-    FLASHDataset, FLASHFieldInfo, add_flash_field
-
-from yt.frontends.tiger.api import \
-    TigerDataset, TigerFieldInfo, add_tiger_field
-
-from yt.frontends.artio.api import \
-    ARTIODataset, ARTIOFieldInfo, add_artio_field
-
-#from yt.frontends.artio2.api import \
-#    Artio2Dataset
-
-from yt.frontends.ramses.api import \
-    RAMSESDataset, RAMSESFieldInfo, add_ramses_field
-
-from yt.frontends.chombo.api import \
-    ChomboDataset, ChomboFieldInfo, add_chombo_field
-
-from yt.frontends.gdf.api import \
-    GDFDataset, GDFFieldInfo, add_gdf_field
-
-from yt.frontends.moab.api import \
-    MoabHex8Dataset, MoabFieldInfo, add_moab_field, \
-    PyneMoabHex8Dataset
-
-from yt.frontends.athena.api import \
-    AthenaDataset, AthenaFieldInfo, add_athena_field
-
-from yt.frontends.art.api import \
-    ARTDataset, ARTFieldInfo, add_art_field
-
-from yt.frontends.pluto.api import \
-     PlutoDataset, PlutoFieldInfo, add_pluto_field
-
-#from yt.frontends.maestro.api import \
-#    MaestroDataset, MaestroFieldInfo, add_maestro_field
-
-from yt.frontends.stream.api import \
-    StreamDataset, StreamFieldInfo, add_stream_field, \
-    StreamHandler, load_uniform_grid, load_amr_grids, \
-    load_particles, load_hexahedral_mesh
-
-from yt.frontends.sph.api import \
-    OWLSDataset, OWLSFieldInfo, add_owls_field, \
-    GadgetDataset, GadgetHDF5Dataset, \
-    GadgetFieldInfo, add_gadget_field, \
-    TipsyDataset, TipsyFieldInfo, add_tipsy_field
+frontends = _frontend_container()
 
 from yt.analysis_modules.list_modules import \
-    get_available_modules, amods
-available_analysis_modules = get_available_modules()
-
-# Import our analysis modules
-from yt.analysis_modules.halo_finding.api import \
-    HaloFinder
-
-from yt.utilities.definitions import \
-    axis_names, x_dict, y_dict, inv_axis_names
+    amods
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    callback_registry, write_bitmap, write_image, annotate_image, \
+    write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
     SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps
 
 from yt.visualization.volume_rendering.api import \
-    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
+    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
 
-for name, cls in callback_registry.items():
-    exec("%s = cls" % name)
-
 from yt.convenience import \
-    load, projload, simulation
+    load, simulation
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
-
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
