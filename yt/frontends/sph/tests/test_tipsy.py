@@ -49,15 +49,18 @@ def test_pkdgrav():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in pf.particle_types if ptype != "all")
     yield assert_equal, tot, 26847360
-    for field in _fields:
-        for axis in [0, 1, 2]:
-            for ds in dso:
+    for ds in dso:
+        for field in _fields:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield PixelizedProjectionValuesTest(
                         pf, axis, field, weight_field,
                         ds)
-                yield FieldValuesTest(
-                        pf, field, ds)
+            yield FieldValuesTest(pf, field, ds)
+        if ds is None: ds = pf.h.all_data()
+        s1 = ds["Ones"].sum()
+        s2 = sum(mask.sum() for block, mask in ds.blocks)
+        yield assert_equal, s1, s2
 
 gasoline = "agora_1e11.00400/agora_1e11.00400"
 @requires_pf(gasoline, file_check = True)
@@ -77,13 +80,15 @@ def test_gasoline():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in pf.particle_types if ptype != "all")
     yield assert_equal, tot, 26847360
-    for field in _fields:
-        for axis in [0, 1, 2]:
-            for ds in dso:
+    for ds in dso:
+        for field in _fields:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield PixelizedProjectionValuesTest(
                         pf, axis, field, weight_field,
                         ds)
-                yield FieldValuesTest(
-                        pf, field, ds)
-
+            yield FieldValuesTest(pf, field, ds)
+        if ds is None: ds = pf.h.all_data()
+        s1 = ds["Ones"].sum()
+        s2 = sum(mask.sum() for block, mask in ds.blocks)
+        yield assert_equal, s1, s2
