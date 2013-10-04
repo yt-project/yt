@@ -252,26 +252,33 @@ def temp_cwd(cwd):
     yield
     os.chdir(oldcwd)
 
-def can_run_pf(pf_fn):
+def can_run_pf(pf_fn, file_check):
     if isinstance(pf_fn, StaticOutput):
         return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
+        if file_check:
+            return os.path.isfile(pf_fn)
         try:
             load(pf_fn)
         except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
-def data_dir_load(pf_fn):
+def data_dir_load(pf_fn, cls = None, args = None, kwargs = None):
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(pf_fn, StaticOutput): return pf_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
-        pf = load(pf_fn)
+        if cls is None:
+            pf = load(pf_fn)
+        else:
+            args = args or ()
+            kwargs = kwargs or {}
+            pf = cls(pf_fn, *args, **kwargs)
         pf.h
         return pf
 
@@ -610,14 +617,14 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
         for fn in fns: os.remove(fn)
 
-def requires_pf(pf_fn, big_data = False):
+def requires_pf(pf_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
     if run_big_data == False and big_data == True:
         return ffalse
-    elif not can_run_pf(pf_fn):
+    elif not can_run_pf(pf_fn, file_check):
         return ffalse
     else:
         return ftrue
