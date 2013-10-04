@@ -436,7 +436,10 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         self._unit_base = unit_base or {}
         self._cosmology_parameters = cosmology_parameters
+        if parameter_file is not None:
+            parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
+        filename = os.path.abspath(filename)
         super(TipsyStaticOutput, self).__init__(filename, data_style)
 
     def __repr__(self):
