@@ -29,6 +29,8 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
     filter_registry
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
 
@@ -216,6 +218,10 @@ class StaticOutput(object):
                 raise RuntimeError("You should not instantiate StaticOutput.")
             self._instantiated_hierarchy = self._hierarchy_class(
                 self, data_style=self.data_style)
+            # Now we do things that we need an instantiated hierarchy for
+            if "all" not in self.particle_types:
+                pu = ParticleUnion("all", list(self.particle_types_raw))
+                self.add_particle_union(pu)
         return self._instantiated_hierarchy
     h = hierarchy  # alias
 
