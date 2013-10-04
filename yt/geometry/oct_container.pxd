@@ -74,7 +74,8 @@ cdef class OctreeContainer:
     cdef np.int64_t get_domain_offset(self, int domain_id)
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
-                        OctVisitorData *data)
+                        OctVisitorData *data,
+                        int vc = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
     cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
