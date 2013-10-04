@@ -1170,7 +1170,9 @@ cdef class ARTIORootMeshContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask(self, SelectorObject selector, np.int64_t num_cells = -1):
+    def mask(self, SelectorObject selector, np.int64_t num_cells = -1,
+             int domain_id = -1): 
+        # We take a domain_id here to avoid subclassing
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.int64_t sfc
