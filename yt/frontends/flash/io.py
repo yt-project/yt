@@ -24,11 +24,10 @@ class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _data_style = "flash_hdf5"
 
-    def __init__(self, pf, *args, **kwargs):
+    def __init__(self, pf):
         self._num_per_stride = kwargs.pop("num_per_stride", 1000000)
-        BaseIOHandler.__init__(self, *args, **kwargs)
+        super(IOHandlerFLASH, self).__init__(pf)
         # Now we cache the particle fields
-        self.pf = pf
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         
