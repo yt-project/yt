@@ -59,6 +59,8 @@ class StaticOutput(object):
     _particle_mass_name = None
     _particle_coordinates_name = None
     _particle_velocity_name = None
+    particle_unions = None
+    known_filters = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -95,8 +97,8 @@ class StaticOutput(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
-        self.known_filters = {}
-        self.particle_unions = {}
+        self.known_filters = self.known_filters or {}
+        self.particle_unions = self.particle_unions or {}
 
         # path stuff
         self.parameter_filename = str(filename)

@@ -74,11 +74,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         mylog.debug("Detecting fields in backup.")
         self._detect_fields_backup()
 
-        mylog.debug("Setting up particle fields")
-        self._setup_particle_types()
-
         mylog.debug("Adding unknown detected fields")
         self._setup_unknown_fields()
+
+        mylog.debug("Setting up particle fields")
+        self._setup_particle_types()
 
         mylog.debug("Setting up derived fields")
         self._setup_derived_fields()
