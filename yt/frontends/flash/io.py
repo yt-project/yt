@@ -15,6 +15,7 @@ FLASH-specific IO functions
 
 import numpy as np
 import h5py
+from yt.utilities.math_utils import prec_accum
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -73,6 +74,7 @@ class IOHandlerFLASH(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             dt = f["/%s" % fname].dtype
+            dt = prec_accum[dt]
             if dt == "float32": dt = "float64"
             rv[field] = np.empty(size, dtype=dt)
         ng = sum(len(c.objs) for c in chunks)
