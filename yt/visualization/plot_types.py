@@ -488,7 +488,7 @@ class VMPlot(RavenPlot):
         if self.datalabel is None:
             field_name = self.axis_names["Z"]
             proj = "Proj" in self._type_name and \
-                   self.data._weight is None
+                   self.data.weight_field is None
             data_label = self.pf.field_info[field_name].get_label(proj)
         else: data_label = self.datalabel
         if self.colorbar != None:
@@ -576,8 +576,8 @@ class PCProjectionPlot(VMPlot):
 
     def _generate_prefix(self, prefix):
         VMPlot._generate_prefix(self, prefix)
-        if self.data._weight is not None:
-            self.prefix += "_%s" % (self.data._weight)
+        if self.data.weight_field is not None:
+            self.prefix += "_%s" % (self.data.weight_field)
 
 class PCProjectionPlotNaturalNeighbor(NNVMPlot, PCProjectionPlot):
     _type_name = "NNProj"

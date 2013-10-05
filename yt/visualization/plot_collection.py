@@ -416,8 +416,8 @@ class PlotCollection(object):
             coord = center[axis]
         if obj is None:
             if field_parameters is None: field_parameters = {}
-            obj = self.pf.hierarchy.slice(axis, coord, field,
-                            center=center, **field_parameters)
+            obj = self.pf.hierarchy.slice(axis, coord, center=center,
+                            field_parameters = field_parameters)
         p = self._add_plot(PCSlicePlot(
                          obj, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
@@ -577,8 +577,8 @@ class PlotCollection(object):
             center = self.c
         if not obj:
             if field_parameters is None: field_parameters = {}
-            cp = self.pf.hierarchy.cutting(normal, center, field,
-                    **field_parameters)
+            cp = self.pf.hierarchy.cutting(normal, center, 
+                    field_parameters = field_parameters)
         else:
             cp = obj
         p = self._add_plot(CuttingPlanePlot(cp, field,
@@ -676,8 +676,8 @@ class PlotCollection(object):
             center = self.c
         if obj is None:
             obj = self.pf.hierarchy.proj(field, axis, weight_field,
-                                         source = data_source, center=center,
-                                         **field_parameters)
+                                         data_source = data_source, center=center,
+                                         field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -770,8 +770,8 @@ class PlotCollection(object):
         RE[axis] += thickness/2.0
         region = self.pf.h.region(center, LE, RE)
         obj = self.pf.hierarchy.proj(field, axis, weight_field,
-                                     source = region, center=center,
-                                     **field_parameters)
+                                     data_source = region, center=center,
+                                     field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -1326,8 +1326,8 @@ class PlotCollection(object):
         axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
-        data_source = self.pf.h.ortho_ray(axis, coords, field,
-                        **field_parameters)
+        data_source = self.pf.h.ortho_ray(axis, coords, 
+                        field_parameters = field_parameters)
         p = self._add_plot(LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
                 figure=figure, axes=axes, plot_options=plot_options))
@@ -1386,8 +1386,8 @@ class PlotCollection(object):
         """
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
-        data_source = self.pf.h.ray(start_point, end_point, field,
-                                    **field_parameters)
+        data_source = self.pf.h.ray(start_point, end_point, 
+                                    field_parameters = field_parameters)
         p = self._add_plot(LineQueryPlot(data_source,
                 ['t', field], self._get_new_id(),
                 figure=figure, axes=axes, plot_options=plot_options))
