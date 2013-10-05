@@ -637,7 +637,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         """
 
         sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
-        if len(sphere._grids) == 0: return None
+        #if len(sphere._grids) == 0: return None
         new_sphere = False
 
         if self.recenter:
@@ -819,8 +819,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                 for hp in self.projection_fields:
                     projections.append(self.pf.h.proj(hp['field'], w,
                                                       weight_field=hp['weight_field'],
-                                                      source=region, center=halo['center'],
-                                                      serialize=False))
+                                                      data_source=region,
+                                                      center=halo['center']))
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
