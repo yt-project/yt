@@ -176,14 +176,26 @@ class FITSImageBuffer(HDUList):
     def items(self):
         return [(k, self[k]) for k in self.keys()]
 
-    def __getitem__(self, key):
-        if key.lower() == self.axes[0].lower():
-            return self.xworld
-        elif key.lower() == self.axes[1].lower():
-            return self.yworld
-        else:
-            return super(FITSImageBuffer, self).__getitem__(key)
-        
+    def __add__(self, other):
+        if len(set(self.keys()).intersection(set(other.keys()))) > 0:
+            mylog.error("There are duplicate extension names! Don't know which ones you want to keep!")
+            raise KeyError
+        new_buffer = {}
+        for im1 in self:
+            new_buffer[im1.name] = im1.data
+        for im2 in other:
+            new_buffer[im2.name] = im2.data
+        new_wcs = self.wcs
+        return FITSImageBuffer(new_buffer, wcs=new_wcs)
+    
+    @property
+    def xwcs(self):
+        return self.xworld
+
+    @property
+    def ywcs(self):
+        return self.yworld
+            
     @property
     def shape(self):
         return self.nx, self.ny
