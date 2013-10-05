@@ -49,6 +49,8 @@ prec_accum = {
     np.dtype('complex'):    np.complex128,
     np.dtype('complex64'):  np.complex128,
     np.dtype('complex128'): np.complex128,
+    np.dtype('>f4'):        np.float64
+    np.dtype('>f8'):        np.float64
 }
 
 def periodic_position(pos, pf):
