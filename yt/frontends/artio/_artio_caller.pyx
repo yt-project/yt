@@ -3,7 +3,8 @@ import numpy as np
 cimport numpy as np
 import sys 
 
-from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
+from yt.geometry.selection_routines cimport \
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     SparseOctreeContainer
@@ -561,6 +562,7 @@ cdef class ARTIOSFCRangeHandler:
     cdef np.float64_t dds[3]
     cdef np.int64_t dims[3]
     cdef public np.int64_t total_octs
+    cdef np.int64_t *doct_count
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
@@ -619,12 +621,14 @@ cdef class ARTIOSFCRangeHandler:
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status)
         free(num_octs_per_level)
-        self.root_mesh_handler = ARTIORootMeshContainer(self)
         self.oct_count = oct_count
+        self.doct_count = <np.int64_t *> oct_count.data
+        self.root_mesh_handler = ARTIORootMeshContainer(self)
 
     def free_mesh(self):
         self.octree_handler = None
         self.root_mesh_handler = None
+        self.doct_count = NULL
         self.oct_count = None
 
 def get_coords(artio_fileset handle, np.int64_t s):
@@ -1013,9 +1017,12 @@ cdef class ARTIORootMeshContainer:
     cdef public object _last_mask
     cdef public object _last_selector_id
     cdef ARTIOSFCRangeHandler range_handler
+    cdef np.uint8_t *sfc_mask
+    cdef np.int64_t nsfc
 
     def __init__(self, ARTIOSFCRangeHandler range_handler):
         cdef int i
+        cdef np.int64_t sfci
         for i in range(3):
             self.DLE[i] = range_handler.DLE[i]
             self.DRE[i] = range_handler.DRE[i]
@@ -1027,6 +1034,22 @@ cdef class ARTIORootMeshContainer:
         self.sfc_start = range_handler.sfc_start
         self.sfc_end = range_handler.sfc_end
         self.range_handler = range_handler
+        # We assume that the number of octs has been created and filled
+        # already.  We no longer care about ANY of the SFCs that have octs
+        # inside them -- this goes for every operation that this object
+        # performs.
+        self.sfc_mask = <np.uint8_t *>malloc(sizeof(np.uint8_t) *
+          self.sfc_end - self.sfc_start + 1)
+        self.nsfc = 0
+        for sfci in range(self.sfc_end - self.sfc_start + 1):
+            if self.range_handler.oct_count[sfci] > 0:
+                self.sfc_mask[sfci] = 0
+            else:
+                self.sfc_mask[sfci] = 1
+                self.nsfc += 1
+
+    def __dealloc__(self):
+        free(self.sfc_mask)
 
     @cython.cdivision(True)
     cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
@@ -1057,7 +1080,7 @@ cdef class ARTIORootMeshContainer:
     def icoords(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         # Note that num_octs does not have to equal sfc_end - sfc_start + 1.
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, sfci = -1
         cdef int acoords[3], i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
@@ -1066,7 +1089,9 @@ cdef class ARTIORootMeshContainer:
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef int filled = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             # Note that we do *no* checks on refinement here.  In fact, this
             # entire setup should not need to touch the disk except if the
             # artio sfc calculators need to.
@@ -1079,7 +1104,7 @@ cdef class ARTIORootMeshContainer:
     def fcoords(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         # Note that num_cells does not have to equal sfc_end - sfc_start + 1.
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
         cdef int acoords[3], i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
@@ -1089,7 +1114,9 @@ cdef class ARTIORootMeshContainer:
         coords = np.empty((num_cells, 3), dtype="float64")
         cdef int filled = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             # Note that we do *no* checks on refinement here.  In fact, this
             # entire setup should not need to touch the disk except if the
             # artio sfc calculators need to.
@@ -1132,7 +1159,7 @@ cdef class ARTIORootMeshContainer:
         # other.  Note that we *do* apply the selector here.
         cdef np.int64_t num_cells = -1
         cdef np.int64_t ind
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
         cdef np.float64_t dpos[3]
         cdef int dim, status, filled = 0
@@ -1158,7 +1185,9 @@ cdef class ARTIORootMeshContainer:
         ddata = (<char*>dest.data) + offset*ss*dims
         ind = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             memcpy(ddata, sdata + ind, dims * ss)
             ddata += dims * ss
             filled += 1
@@ -1175,21 +1204,16 @@ cdef class ARTIORootMeshContainer:
         # We take a domain_id here to avoid subclassing
         cdef int i
         cdef np.float64_t pos[3]
-        cdef np.int64_t sfc
-        cdef np.ndarray[np.int64_t, ndim=1] oct_count
+        cdef np.int64_t sfc, sfci = -1
         if self._last_selector_id == hash(selector):
             return self._last_mask
-        if num_cells == -1:
-            # We need to count, but this process will only occur one time,
-            # since num_cells will later be cached.
-            num_cells = self.sfc_end - self.sfc_start + 1
-        mask = np.zeros((num_cells), dtype="uint8")
-        oct_count = self.range_handler.oct_count
+        mask = np.zeros((self.nsfc), dtype="uint8")
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if oct_count[sfc - self.sfc_start] > 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
             self.sfc_to_pos(sfc, pos)
             if selector.select_cell(pos, self.dds) == 0: continue
-            mask[sfc - self.sfc_start] = 1
+            mask[sfci] = 1
         self._last_mask = mask.astype("bool")
         self._last_selector_id = hash(selector)
         return self._last_mask
@@ -1203,7 +1227,7 @@ cdef class ARTIORootMeshContainer:
     def fill_sfc(self, SelectorObject selector, field_indices):
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
-        cdef np.int64_t sfc, num_cells
+        cdef np.int64_t sfc, num_cells, sfci = -1
         cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
         cdef double dpos[3]
@@ -1238,7 +1262,9 @@ cdef class ARTIORootMeshContainer:
             self.sfc_start, self.sfc_end )
         check_artio_status(status) 
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             status = artio_grid_read_root_cell_begin( handle, sfc, 
                     dpos, grid_variables, &num_oct_levels,
                     num_octs_per_level)
@@ -1308,5 +1334,72 @@ cdef class ARTIORootMeshContainer:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j] 
 
+cdef class SFCRangeSelector(SelectorObject):
+    
+    cdef SelectorObject base_selector
+    cdef ARTIOSFCRangeHandler range_handler
+    cdef ARTIORootMeshContainer mesh_container
+    cdef np.int64_t sfc_start, sfc_end
+
+    def __init__(self, dobj):
+        self.base_selector = dobj.base_selector
+        self.mesh_container = dobj.oct_handler
+        self.range_handler = self.mesh_container.range_handler
+        self.sfc_start = self.mesh_container.sfc_start
+        self.sfc_end = self.mesh_container.sfc_end
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges,
+                     np.ndarray[np.int32_t, ndim=2] levels):
+        raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        return self.select_point(pos)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef np.int64_t sfc = self.mesh_container.pos_to_sfc(pos)
+        if sfc > self.sfc_end: return 0
+        cdef np.int64_t oc = self.range_handler.doct_count[
+            sfc - self.sfc_start]
+        if oc > 0: return 0
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return self.base_selector.select_bbox(left_edge, right_edge)
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        # Because visitors now use select_grid, we should be explicitly
+        # checking this.
+        return self.base_selector.select_grid(left_edge, right_edge, level, o)
+    
+    def _hash_vals(self):
+        return (hash(self.base_selector), self.sfc_start, self.sfc_end)
+
 sfc_subset_selector = AlwaysSelector
+#sfc_subset_selector = SFCRangeSelector
 
