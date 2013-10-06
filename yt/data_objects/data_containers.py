@@ -746,6 +746,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
         self.quantities = DerivedQuantityCollection(self)
+        for f in self.quantities.keys():
+            self.__dict__[camelcase_to_underscore(f)] = self.quantities[f]
 
     def cut_region(self, field_cuts):
         """
