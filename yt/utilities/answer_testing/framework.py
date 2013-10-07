@@ -261,7 +261,8 @@ def can_run_pf(pf_fn, file_check = False):
         return False
     with temp_cwd(path):
         if file_check:
-            return os.path.isfile(pf_fn)
+            return os.path.isfile(pf_fn) and \
+                AnswerTestingTest.result_storage is not None
         try:
             load(pf_fn)
         except YTOutputNotIdentified:
