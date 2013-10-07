@@ -490,8 +490,7 @@ cdef class artio_fileset :
 
         return (fcoords, ires, data)
 
-    def root_sfc_ranges_all(self) :
-        cdef int max_range_size = 1024
+    def root_sfc_ranges_all(self, int max_range_size = 1024) :
         cdef int64_t sfc_start, sfc_end
         cdef artio_selection *selection
 
@@ -505,8 +504,8 @@ cdef class artio_fileset :
         artio_selection_destroy(selection)
         return sfc_ranges
 
-    def root_sfc_ranges(self, SelectorObject selector) :
-        cdef int max_range_size = 1024
+    def root_sfc_ranges(self, SelectorObject selector,
+                        int max_range_size = 1024):
         cdef int coords[3]
         cdef int64_t sfc_start, sfc_end
         cdef np.float64_t left[3]
@@ -1299,8 +1298,8 @@ cdef class ARTIORootMeshContainer:
             status = artio_grid_read_root_cell_end( handle )
             check_artio_status(status)
         # Now we have all our sources.
-        #status = artio_grid_clear_sfc_cache(handle)
-        #check_artio_status(status)
+        status = artio_grid_clear_sfc_cache(handle)
+        check_artio_status(status)
         free(field_ind)
         free(field_vals)
         free(grid_variables)
