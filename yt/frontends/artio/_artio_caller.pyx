@@ -564,6 +564,7 @@ cdef class ARTIOSFCRangeHandler:
     cdef np.int64_t dims[3]
     cdef public np.int64_t total_octs
     cdef np.int64_t *doct_count
+    cdef np.int64_t **pcount
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
@@ -571,6 +572,7 @@ cdef class ARTIOSFCRangeHandler:
                  artio_fileset artio_handle,
                  sfc_start, sfc_end):
         cdef int i
+        cdef np.int64_t sfc
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
         self.artio_handle = artio_handle
@@ -578,23 +580,39 @@ cdef class ARTIOSFCRangeHandler:
         self.octree_handler = None
         self.handle = artio_handle.handle
         self.oct_count = None
+        self.pcount = <np.int64_t **> malloc(sizeof(np.int64_t*)
+            * artio_handle.num_species)
+        for i in range(artio_handle.num_species):
+            self.pcount[i] = <np.int64_t*> malloc(sizeof(np.int64_t)
+                * (self.sfc_end - self.sfc_start + 1))
+            for sfc in range(self.sfc_end - self.sfc_start + 1):
+                self.pcount[i][sfc] = 0
         for i in range(3):
             self.dims[i] = domain_dimensions[i]
             self.DLE[i] = domain_left_edge[i]
             self.DRE[i] = domain_right_edge[i]
             self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
 
+    def __dealloc__(self):
+        cdef int i
+        for i in range(self.artio_handle.num_species):
+            free(self.pcount[i])
+        free(self.pcount)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def construct_mesh(self):
         cdef int status, level
-        cdef np.int64_t sfc, oc
+        cdef np.int64_t sfc, oc, i
         cdef double dpos[3]
         cdef int num_oct_levels
         cdef int max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
+        cdef int num_species = self.artio_handle.num_species
+        cdef int *num_particles_per_species =  <int *>malloc(
+            sizeof(int)*num_species) 
         cdef ARTIOOctreeContainer octree
         self.octree_handler = octree = ARTIOOctreeContainer(self)
         # We want to pre-allocate an array of root pointers.  In the future,
@@ -621,7 +639,30 @@ cdef class ARTIOSFCRangeHandler:
                     num_octs_per_level, sfc)
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status)
+        status = artio_grid_clear_sfc_cache( self.handle)
+        check_artio_status(status)
+        # Now particles
+        status = artio_particle_cache_sfc_range(self.handle, self.sfc_start,
+                                            self.sfc_end)
+        check_artio_status(status) 
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            # Now particles
+            status = artio_particle_read_root_cell_begin( self.handle,
+                    sfc, num_particles_per_species )
+            check_artio_status(status)
+
+            for i in range(num_species):
+                self.pcount[i][sfc - self.sfc_start] = \
+                    num_particles_per_species[i]
+
+            status = artio_particle_read_root_cell_end( self.handle)
+            check_artio_status(status)
+
+        status = artio_particle_clear_sfc_cache( self.handle)
+        check_artio_status(status)
+
         free(num_octs_per_level)
+        free(num_particles_per_species)
         self.oct_count = oct_count
         self.doct_count = <np.int64_t *> oct_count.data
         self.root_mesh_handler = ARTIORootMeshContainer(self)
@@ -840,7 +881,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         sfc_start = self.domains[0].con_id
         sfc_end = self.domains[self.num_domains - 1].con_id
         rv = read_sfc_particles(self.artio_handle, sfc_start, sfc_end,
-                                0, fields, self.range_handler.doct_count)
+                                0, fields, self.range_handler.doct_count,
+                                self.range_handler.pcount)
         return rv
 
 @cython.boundscheck(False)
@@ -849,7 +891,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 cdef read_sfc_particles(artio_fileset artio_handle,
                         np.int64_t sfc_start, np.int64_t sfc_end,
                         int read_unrefined, fields,
-                        np.int64_t *doct_count):
+                        np.int64_t *doct_count,
+                        np.int64_t **pcount):
     cdef int status, ispec, subspecies
     cdef np.int64_t sfc, particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
@@ -895,25 +938,16 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vpoints[ispec].n_p = 0
         vpoints[ispec].n_s = 0
 
-    status = artio_particle_cache_sfc_range( handle,
-            sfc_start, sfc_end ) 
-    check_artio_status(status)
-
     # Pass through once.  We want every single particle.
-    cdef np.int64_t c 
+    tp = 0
+    cdef np.int64_t c
     for sfc in range(sfc_start, sfc_end + 1):
         c = doct_count[sfc - sfc_start]
         if read_unrefined == 1 and c > 0: continue
         if read_unrefined == 0 and c == 0: continue
-        status = artio_particle_read_root_cell_begin( handle, sfc,
-                num_particles_per_species )
-        check_artio_status(status)
 
         for ispec in range(num_species):
-            total_particles[ispec] += num_particles_per_species[ispec]
-
-        status = artio_particle_read_root_cell_end( handle )
-        check_artio_status(status)
+            total_particles[ispec] += pcount[ispec][sfc - sfc_start]
 
     # Now we allocate our final fields, which will be filled
     #for ispec in range(num_species):
@@ -930,30 +964,40 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vp = &vpoints[species]
         if field == "MASS":
             vp.n_mass = 1
-            npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
             # We fill this *now*
             npf64arr += params["particle_species_mass"][species]
             vp.mass = <np.float64_t*> npf64arr.data
         elif field == "PID":
             vp.n_pid = 1
-            npi64arr = data[(species, field)] = np.zeros(tp, dtype="int64")
+            data[(species, field)] = np.zeros(tp, dtype="int64")
+            npi64arr = data[(species, field)]
             vp.pid = <np.int64_t*> npi64arr.data
         elif field == "SPECIES":
             vp.n_species = 1
-            npi8arr = data[(species, field)] = np.zeros(tp, dtype="int8")
+            data[(species, field)] = np.zeros(tp, dtype="int8")
+            npi8arr = data[(species, field)]
             # We fill this *now*
             npi8arr += species
             vp.species = <np.int8_t*> npi8arr.data
         elif npri_vars[species] > 0 and field in pri_vars :
-            npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
             vp.p_ind[vp.n_p] = pri_vars.index(field)
             vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
             vp.n_p += 1
         elif nsec_vars[species] > 0 and field in sec_vars :
-            npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
+        print "Allocated ", species, field, data[species, field].size
+
+    status = artio_particle_cache_sfc_range( handle,
+            sfc_start, sfc_end ) 
+    check_artio_status(status)
 
     for sfc in range(sfc_start, sfc_end + 1):
         c = doct_count[sfc - sfc_start]
@@ -1241,7 +1285,8 @@ cdef class ARTIORootMeshContainer:
     def fill_sfc_particles(self, fields):
         rv = read_sfc_particles(self.artio_handle,
                                 self.sfc_start, self.sfc_end,
-                                1, fields, self.range_handler.doct_count)
+                                1, fields, self.range_handler.doct_count,
+                                self.range_handler.pcount)
         return rv
 
     @cython.boundscheck(False)
