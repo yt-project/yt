@@ -832,6 +832,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                                 0, fields)
         return rv
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef read_sfc_particles(artio_fileset artio_handle,
                         np.int64_t sfc_start, np.int64_t sfc_end,
                         int read_unrefined, fields):
@@ -1015,7 +1018,8 @@ cdef class ARTIORootMeshContainer:
     cdef np.uint64_t sfc_start
     cdef np.uint64_t sfc_end
     cdef public object _last_mask
-    cdef public object _last_selector_id
+    cdef public np.int64_t _last_selector_id
+    cdef np.int64_t _last_mask_sum
     cdef ARTIOSFCRangeHandler range_handler
     cdef np.uint8_t *sfc_mask
     cdef np.int64_t nsfc
@@ -1030,7 +1034,8 @@ cdef class ARTIORootMeshContainer:
             self.dds[i] = range_handler.dds[i]
         self.handle = range_handler.handle
         self.artio_handle = range_handler.artio_handle
-        self._last_mask = self._last_selector_id = None
+        self._last_mask = None
+        self._last_selector_id = -1
         self.sfc_start = range_handler.sfc_start
         self.sfc_end = range_handler.sfc_end
         self.range_handler = range_handler
@@ -1077,6 +1082,9 @@ cdef class ARTIORootMeshContainer:
         cdef int i
         return self.mask(selector).sum()
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def icoords(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         # Note that num_octs does not have to equal sfc_end - sfc_start + 1.
@@ -1084,7 +1092,7 @@ cdef class ARTIORootMeshContainer:
         cdef int acoords[3], i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef int filled = 0
@@ -1101,6 +1109,9 @@ cdef class ARTIORootMeshContainer:
             filled += 1
         return coords
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fcoords(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         # Note that num_cells does not have to equal sfc_end - sfc_start + 1.
@@ -1109,7 +1120,7 @@ cdef class ARTIORootMeshContainer:
         cdef int acoords[3], i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="float64")
         cdef int filled = 0
@@ -1126,23 +1137,29 @@ cdef class ARTIORootMeshContainer:
             filled += 1
         return coords
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fwidth(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.float64_t, ndim=2] width
         width = np.zeros((num_cells, 3), dtype="float64")
         for i in range(3):
             width[:,i] = self.dds[i]
         return width
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def ires(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_cells, dtype="int64")
         return res
@@ -1176,7 +1193,7 @@ cdef class ARTIORootMeshContainer:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of
             # cells.
-            num_cells = mask.sum()
+            num_cells = self._last_mask_sum
             if dims > 1:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
                     order='C')
@@ -1208,15 +1225,18 @@ cdef class ARTIORootMeshContainer:
         if self._last_selector_id == hash(selector):
             return self._last_mask
         mask = np.zeros((self.nsfc), dtype="uint8")
+        self._last_mask_sum = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             if self.sfc_mask[sfc - self.sfc_start] == 0: continue
             sfci += 1
             self.sfc_to_pos(sfc, pos)
             if selector.select_cell(pos, self.dds) == 0: continue
             mask[sfci] = 1
+            self._last_mask_sum += 1
         self._last_mask = mask.astype("bool")
         self._last_selector_id = hash(selector)
         return self._last_mask
+
 
     def fill_sfc_particles(self, fields):
         rv = read_sfc_particles(self.artio_handle,
@@ -1224,6 +1244,9 @@ cdef class ARTIORootMeshContainer:
                                 1, fields)
         return rv
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fill_sfc(self, SelectorObject selector, field_indices):
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
@@ -1238,7 +1261,7 @@ cdef class ARTIORootMeshContainer:
         max_level = self.artio_handle.max_level
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         tr = []
         for i in range(nf):
             tr.append(np.zeros(num_cells, dtype="float64"))
