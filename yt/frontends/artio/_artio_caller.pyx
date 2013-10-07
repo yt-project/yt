@@ -1290,21 +1290,26 @@ cdef class ARTIORootMeshContainer:
         # This implements the necessary calls to enable particle deposition to
         # occur as needed.
         cdef int nf, i, j
+        cdef np.int64_t sfc, sfci
         if fields is None:
             fields = []
         nf = len(fields)
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
         cdef np.ndarray[np.int64_t, ndim=1] domain_ind
-        domain_ind = np.zeros(mask.shape[0], dtype="int64") - 1
+        domain_ind = np.zeros(self.sfc_end - self.sfc_start + 1,
+                              dtype="int64") - 1
         j = 0
-        for i in range(mask.shape[0]):
-            if mask[i] == 1:
-                domain_ind[i] = j
-                j += 1
+        sfci = -1
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: 
+                continue
+            domain_ind[sfc - self.sfc_start] = j
+            j += 1
         cdef np.float64_t **field_pointers, *field_vals, pos[3], left_edge[3]
         cdef int coords[3]
-        cdef np.int64_t sfc
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
         field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
