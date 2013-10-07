@@ -962,7 +962,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             "species_%02u_secondary_variable_labels" % (species,), [])
         tp = total_particles[species]
         vp = &vpoints[species]
-        if field == "MASS":
+        if field == "MASS" and params["particle_species_mass"][species] != 0.0:
             vp.n_mass = 1
             data[(species, field)] = np.zeros(tp, dtype="float64")
             npf64arr = data[(species, field)]
@@ -993,7 +993,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
-        print "Allocated ", species, field, data[species, field].size
 
     status = artio_particle_cache_sfc_range( handle,
             sfc_start, sfc_end ) 
@@ -1004,6 +1003,11 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         check_artio_status(status)
         if read_unrefined == 1 and c > 0: continue
         if read_unrefined == 0 and c == 0: continue
+        c = 0
+        for ispec in range(num_species) : 
+            if accessed_species[ispec] == 0: continue
+            c += pcount[ispec][sfc - sfc_start]
+        if c == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
