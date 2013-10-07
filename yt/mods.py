@@ -65,14 +65,21 @@ from yt.frontends.enzo.api import \
     EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
-# from yt.frontends.castro.api import \
-#     CastroStaticOutput, CastroFieldInfo, add_castro_field
+# Boxlib stuff
+from yt.frontends.boxlib.api import \
+    BoxlibStaticOutput
 
-# from yt.frontends.nyx.api import \
-#     NyxStaticOutput, NyxFieldInfo, add_nyx_field
+# Orion stuff
+from yt.frontends.boxlib.api import \
+    OrionStaticOutput, OrionFieldInfo, add_orion_field
 
-# from yt.frontends.orion.api import \
-#     OrionStaticOutput, OrionFieldInfo, add_orion_field
+# Maestro stuff
+from yt.frontends.boxlib.api import \
+    MaestroStaticOutput
+
+# Castro stuff
+from yt.frontends.boxlib.api import \
+    CastroStaticOutput
 
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
@@ -107,9 +114,6 @@ from yt.frontends.art.api import \
 
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
-
-#from yt.frontends.maestro.api import \
-#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
 from yt.frontends.stream.api import \
     StreamStaticOutput, StreamFieldInfo, add_stream_field, \
