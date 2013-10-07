@@ -321,15 +321,6 @@ class AnswerTestingTest(object):
     def compare(self, new_result, old_result):
         raise RuntimeError
 
-    def create_obj(self, pf, obj_type):
-        # obj_type should be tuple of
-        #  ( obj_name, ( args ) )
-        if obj_type is None:
-            return pf.h.all_data()
-        cls = getattr(pf.h, obj_type[0])
-        obj = cls(*obj_type[1])
-        return obj
-
     def create_plot(self, pf, plot_type, plot_field, plot_axis, plot_kwargs = None):
         # plot_type should be a string
         # plot_args should be a tuple
@@ -385,7 +376,7 @@ class FieldValuesTest(AnswerTestingTest):
         self.decimals = decimals
 
     def run(self):
-        obj = self.create_obj(self.pf, self.obj_type)
+        obj = create_obj(self.pf, self.obj_type)
         avg = obj.quantities["WeightedAverageQuantity"](self.field,
                              weight="Ones")
         (mi, ma), = obj.quantities["Extrema"](self.field)
@@ -412,7 +403,7 @@ class AllFieldValuesTest(AnswerTestingTest):
         self.decimals = decimals
 
     def run(self):
-        obj = self.create_obj(self.pf, self.obj_type)
+        obj = create_obj(self.pf, self.obj_type)
         return obj[self.field]
 
     def compare(self, new_result, old_result):
@@ -439,7 +430,7 @@ class ProjectionValuesTest(AnswerTestingTest):
 
     def run(self):
         if self.obj_type is not None:
-            obj = self.create_obj(self.pf, self.obj_type)
+            obj = create_obj(self.pf, self.obj_type)
         else:
             obj = None
         if self.pf.domain_dimensions[self.axis] == 1: return None
@@ -480,7 +471,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
 
     def run(self):
         if self.obj_type is not None:
-            obj = self.create_obj(self.pf, self.obj_type)
+            obj = create_obj(self.pf, self.obj_type)
         else:
             obj = None
         proj = self.pf.h.proj(self.field, self.axis, 
@@ -729,6 +720,15 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+def create_obj(pf, obj_type):
+    # obj_type should be tuple of
+    #  ( obj_name, ( args ) )
+    if obj_type is None:
+        return pf.h.all_data()
+    cls = getattr(pf.h, obj_type[0])
+    obj = cls(*obj_type[1])
+    return obj
 
 class AssertWrapper(object):
     """
