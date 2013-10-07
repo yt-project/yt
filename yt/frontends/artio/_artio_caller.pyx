@@ -123,7 +123,9 @@ cdef extern from "artio_internal.h":
     void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
 
 cdef void check_artio_status(int status, char *fname="[unknown]"):
-    if status!=ARTIO_SUCCESS :
+    if status != ARTIO_SUCCESS:
+        import traceback
+        traceback.print_stack()
         callername = sys._getframe().f_code.co_name
         nline = sys._getframe().f_lineno
         raise RuntimeError('failure with status', status, 'in function',fname,'from caller', callername, nline)
@@ -665,9 +667,11 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     # this, we will avoid creating it as long as possible.
 
     cdef public artio_fileset artio_handle
+    cdef ARTIOSFCRangeHandler range_handler
     cdef np.int64_t level_indices[32]
 
     def __init__(self, ARTIOSFCRangeHandler range_handler):
+        self.range_handler = range_handler
         self.artio_handle = range_handler.artio_handle
         # Note the final argument is partial_coverage, which indicates whether
         # or not an Oct can be partially refined.
@@ -785,6 +789,12 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         #   * Enable preloading during mesh initialization
         #   * Calculate domain indices on the fly rather than with a
         #     double-loop to calculate domain_counts
+        # The cons should be in order
+        cdef np.int64_t sfc_start, sfc_end
+        sfc_start = self.domains[0].con_id
+        sfc_end = self.domains[self.num_domains - 1].con_id
+        status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end )
+        check_artio_status(status) 
         cdef np.int64_t offset = 0 
         for si in range(self.num_domains):
             sfc = self.domains[si].con_id
@@ -818,6 +828,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                     dest[i + offset] = source[oct_ind, cell_inds[i + offset]]
             # Now, we offset by the actual number filled here.
             offset += domain_counts[si]
+        status = artio_grid_clear_sfc_cache(handle)
+        check_artio_status(status)
         free(field_ind)
         free(field_vals)
         free(grid_variables)
@@ -829,7 +841,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         sfc_start = self.domains[0].con_id
         sfc_end = self.domains[self.num_domains - 1].con_id
         rv = read_sfc_particles(self.artio_handle, sfc_start, sfc_end,
-                                0, fields)
+                                0, fields, self.range_handler.doct_count)
         return rv
 
 @cython.boundscheck(False)
@@ -837,7 +849,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 @cython.cdivision(True)
 cdef read_sfc_particles(artio_fileset artio_handle,
                         np.int64_t sfc_start, np.int64_t sfc_end,
-                        int read_unrefined, fields):
+                        int read_unrefined, fields,
+                        np.int64_t *doct_count):
     cdef int status, ispec, subspecies
     cdef np.int64_t sfc, particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
@@ -887,19 +900,12 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             sfc_start, sfc_end ) 
     check_artio_status(status)
 
-    # We cache so we can figure out if the cell is refined or not.
-    status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end)
-    check_artio_status(status) 
-
     # Pass through once.  We want every single particle.
+    cdef np.int64_t c 
     for sfc in range(sfc_start, sfc_end + 1):
-        status = artio_grid_read_root_cell_begin( handle,
-            sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
-        check_artio_status(status)
-        status = artio_grid_read_root_cell_end(handle)
-        check_artio_status(status)
-        if read_unrefined == 1 and num_oct_levels > 0: continue
-        if read_unrefined == 0 and num_oct_levels == 0: continue
+        c = doct_count[sfc - sfc_start]
+        if read_unrefined == 1 and c > 0: continue
+        if read_unrefined == 0 and c == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
@@ -951,13 +957,10 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             vp.n_s += 1
 
     for sfc in range(sfc_start, sfc_end + 1):
-        status = artio_grid_read_root_cell_begin( handle,
-            sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+        c = doct_count[sfc - sfc_start]
         check_artio_status(status)
-        status = artio_grid_read_root_cell_end(handle)
-        check_artio_status(status)
-        if read_unrefined == 1 and num_oct_levels > 0: continue
-        if read_unrefined == 0 and num_oct_levels == 0: continue
+        if read_unrefined == 1 and c > 0: continue
+        if read_unrefined == 0 and c == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
@@ -993,11 +996,8 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         status = artio_particle_read_root_cell_end( handle )
         check_artio_status(status)
 
-    #status = artio_particle_clear_sfc_cache(handle)
-    #check_artio_status(status)
-
-    #status = artio_grid_clear_sfc_cache(handle)
-    #check_artio_status(status)
+    status = artio_particle_clear_sfc_cache(handle)
+    check_artio_status(status)
 
     free(num_octs_per_level)
     free(num_particles_per_species)
@@ -1224,6 +1224,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t sfc, sfci = -1
         if self._last_selector_id == hash(selector):
             return self._last_mask
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
         mask = np.zeros((self.nsfc), dtype="uint8")
         self._last_mask_sum = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
@@ -1241,7 +1242,7 @@ cdef class ARTIORootMeshContainer:
     def fill_sfc_particles(self, fields):
         rv = read_sfc_particles(self.artio_handle,
                                 self.sfc_start, self.sfc_end,
-                                1, fields)
+                                1, fields, self.range_handler.doct_count)
         return rv
 
     @cython.boundscheck(False)
@@ -1306,6 +1307,9 @@ cdef class ARTIORootMeshContainer:
         free(num_octs_per_level)
         return tr
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def deposit(self, ParticleDepositOperation pdeposit,
                 SelectorObject selector,
                 np.ndarray[np.float64_t, ndim=2] positions,

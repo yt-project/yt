@@ -72,6 +72,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         return self.sfc_end
 
     def fill(self, fields, selector):
+        if len(fields) == 0: return []
         handle = self.oct_handler.artio_handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
@@ -88,6 +89,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         return tr
 
     def fill_particles(self, fields):
+        if len(fields) == 0: return {}
         art_fields = []
         for s, f in fields:
             fn = yt_to_art[f]
@@ -127,6 +129,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
     def fill(self, fields, selector):
         # We know how big these will be.
+        if len(fields) == 0: return []
         handle = self.pf._handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
@@ -250,6 +253,8 @@ class ARTIOGeometryHandler(GeometryHandler):
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
                     dobj.selector)
             ci = []
+            #v = np.array(list_sfc_ranges)
+            #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
                 range_handler = ARTIOSFCRangeHandler(
                     self.pf.domain_dimensions,
