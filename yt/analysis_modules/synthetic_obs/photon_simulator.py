@@ -845,6 +845,10 @@ class EventList(object) :
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("EVENTS")
 
+        tbhdu.header.update("MTYPE1", "sky")
+        tbhdu.header.update("MFORM1", "x,y")        
+        tbhdu.header.update("MTYPE2", "EQPOS")
+        tbhdu.header.update("MFORM2", "RA,DEC")
         tbhdu.header.update("TCTYP2", "RA---TAN")
         tbhdu.header.update("TCTYP3", "DEC--TAN")
         tbhdu.header.update("TCRVL2", self.events["sky_center"][0])
