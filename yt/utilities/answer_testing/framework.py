@@ -24,6 +24,7 @@ import cPickle
 import shelve
 import zlib
 import tempfile
+import glob
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -584,6 +585,16 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+def compare_image_lists(new_result, old_result, decimals):
+    fns = ['old.png', 'new.png']
+    num_images = len(old_result)
+    assert(num_images > 0)
+    for i in xrange(num_images):
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        for fn in fns: os.remove(fn)
+            
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
@@ -611,11 +622,71 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):
-        fns = ['old.png', 'new.png']
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
-        assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
-        for fn in fns: os.remove(fn)
+        compare_image_lists(new_result, old_result, self.decimals)
+
+class GenericArrayTest(AnswerTestingTest):
+    _type_name = "GenericArray"
+    _attrs = ('array_func_name','args','kwargs')
+    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
+        super(GenericArrayTest, self).__init__(pf_fn)
+        self.array_func = array_func
+        self.array_func_name = array_func.func_name
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        return self.array_func(*args, **kwargs)
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result),
+                                          err_msg="Number of outputs not equal.",
+                                          verbose=True)
+        for k in new_result:
+            if self.decimals is None:
+                assert_equal(new_result[k], old_result[k])
+            else:
+                assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
+
+class GenericImageTest(AnswerTestingTest):
+    _type_name = "GenericImage"
+    _attrs = ('image_func_name','args','kwargs')
+    def __init__(self, pf_fn, image_func, decimals, args=None, kwargs=None):
+        super(GenericImageTest, self).__init__(pf_fn)
+        self.image_func = image_func
+        self.image_func_name = image_func.func_name
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        comp_imgs = []
+        tmpdir = tempfile.mkdtemp()
+        image_prefix = os.path.join(tmpdir,"test_img")
+        self.image_func(image_prefix, *args, **kwargs)
+        imgs = glob.glob(image_prefix+"*")
+        assert(len(imgs) > 0)
+        for img in imgs:
+            img_data = mpimg.imread(img)
+            os.remove(img)
+            comp_imgs.append(zlib.compress(img_data.dumps()))
+        return comp_imgs
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 
 def requires_pf(pf_fn, big_data = False, file_check = False):
     def ffalse(func):

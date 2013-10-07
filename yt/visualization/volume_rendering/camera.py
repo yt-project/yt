@@ -72,6 +72,9 @@ class Camera(ParallelAnalysisInterface):
         cubical, but if not, it is left/right, top/bottom, front/back.
     resolution : int or list of ints
         The number of pixels in each direction.
+    transfer_function : `yt.visualization.volume_rendering.TransferFunction`
+        The transfer function used to map values to colors in an image.  If
+        not specified, defaults to a ProjectionTransferFunction.
     north_vector : array_like, optional
         The 'up' direction for the plane of rays.  If not specific, calculated
         automatically.
@@ -152,7 +155,7 @@ class Camera(ParallelAnalysisInterface):
     _tf_figure = None
     _render_figure = None
     def __init__(self, center, normal_vector, width,
-                 resolution, transfer_function,
+                 resolution, transfer_function = None,
                  north_vector = None, steady_north=False,
                  volume = None, fields = None,
                  log_fields = None,
@@ -1425,7 +1428,7 @@ class FisheyeCamera(Camera):
 
 class MosaicCamera(Camera):
     def __init__(self, center, normal_vector, width,
-                 resolution, transfer_function,
+                 resolution, transfer_function = None,
                  north_vector = None, steady_north=False,
                  volume = None, fields = None,
                  log_fields = None,

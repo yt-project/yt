@@ -84,6 +84,7 @@ erg_per_eV = 1.602176562e-12
 erg_per_keV = erg_per_eV * 1.0e3
 K_per_keV = erg_per_keV / boltzmann_constant_cgs
 keV_per_K = 1.0 / K_per_keV
+Tcmb = 2.726 # Current CMB temperature
 
 #Short cuts
 G = gravitational_constant_cgs
