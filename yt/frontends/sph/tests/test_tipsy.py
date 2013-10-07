@@ -77,10 +77,10 @@ def test_gasoline():
     yield assert_equal, str(pf), "agora_1e11.00400"
     dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
     dd = pf.h.all_data()
-    yield assert_equal, dd["Coordinates"].shape, (26847360, 3)
+    yield assert_equal, dd["Coordinates"].shape, (10550576, 3)
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in pf.particle_types if ptype != "all")
-    yield assert_equal, tot, 26847360
+    yield assert_equal, tot, 10550576
     for ds in dso:
         for field in _fields:
             for axis in [0, 1, 2]:

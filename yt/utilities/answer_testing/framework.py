@@ -253,7 +253,7 @@ def temp_cwd(cwd):
     yield
     os.chdir(oldcwd)
 
-def can_run_pf(pf_fn, file_check):
+def can_run_pf(pf_fn, file_check = False):
     if isinstance(pf_fn, StaticOutput):
         return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
