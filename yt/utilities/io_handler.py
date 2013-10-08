@@ -138,7 +138,8 @@ class BaseIOHandler(object):
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-        if hash(selector) == self._last_selector_id and \
+        # We can't hash chunks, but otherwise this is a neat idea.
+        if 0 and hash(selector) == self._last_selector_id and \
            all(ptype in self._last_selector_counts for ptype in ptf):
             psize.update(self._last_selector_counts)
         else:
