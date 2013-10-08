@@ -566,6 +566,7 @@ cdef class ARTIOSFCRangeHandler:
     cdef np.int64_t *doct_count
     cdef np.int64_t **pcount
     cdef float **root_mesh_data
+    cdef np.int64_t nvars[2]
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
@@ -584,6 +585,8 @@ cdef class ARTIOSFCRangeHandler:
         self.root_mesh_data = NULL
         self.pcount = <np.int64_t **> malloc(sizeof(np.int64_t*)
             * artio_handle.num_species)
+        self.nvars[0] = artio_handle.num_species
+        self.nvars[1] = artio_handle.num_grid_variables
         for i in range(artio_handle.num_species):
             self.pcount[i] = <np.int64_t*> malloc(sizeof(np.int64_t)
                 * (self.sfc_end - self.sfc_start + 1))
@@ -597,9 +600,9 @@ cdef class ARTIOSFCRangeHandler:
 
     def __dealloc__(self):
         cdef int i
-        for i in range(self.artio_handle.num_species):
+        for i in range(self.nvars[0]):
             free(self.pcount[i])
-        for i in range(self.artio_handle.num_grid_variables):
+        for i in range(self.nvars[1]):
             free(self.root_mesh_data[i])
         free(self.pcount)
         free(self.root_mesh_data)
@@ -619,7 +622,7 @@ cdef class ARTIOSFCRangeHandler:
         cdef int *num_particles_per_species =  <int *>malloc(
             sizeof(int)*num_species) 
         cdef ARTIOOctreeContainer octree
-        ngv = self.artio_handle.num_grid_variables
+        ngv = self.nvars[1]
         cdef float *grid_variables = <float *>malloc(
             ngv * sizeof(float))
         self.octree_handler = octree = ARTIOOctreeContainer(self)
