@@ -16,7 +16,6 @@ Enzo-specific IO functions
 import exceptions
 import os
 
-from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
@@ -47,11 +46,12 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 fields.append( ("io", str(name)) )
             else:
                 fields.append( ("gas", str(name)) )
+        f.close()
         return fields
 
     @property
     def _read_exception(self):
-        return (exceptions.KeyError, hdf5_light_reader.ReadingError)
+        return (exceptions.KeyError,)
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
@@ -159,17 +159,18 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
-            f = None
+            fid = None
             for g in chunk.objs:
-                if f is None:
-                    #print "Opening (count) %s" % g.filename
-                    f = h5py.File(g.filename, "r")
+                if fid is None:
+                    fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
+                data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+                data_view = data.swapaxes(0,2)
                 for field in fields:
                     ftype, fname = field
-                    ds = f.get("/Grid%08i/%s" % (g.id, fname)).value.swapaxes(0,2)
-                    nd = g.select(selector, ds, rv[field], ind) # caches
+                    dg = h5py.h5d.open(fid, "/Grid%08i/Density" % g.id)
+                    dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+                    nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
-            f.close()
         return rv
 
 
@@ -184,6 +185,7 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
                       slice(NGZ, -NGZ))
 
     def _read_raw_data_set(self, grid, field):
+        raise NotImplementedError
         return hdf5_light_reader.ReadData(grid.filename,
                 "/Grid%08i/%s" % (grid.id, field))
 
@@ -244,6 +246,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
+        raise NotImplementedError
         return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
 
@@ -251,6 +254,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):
+        raise NotImplementedError
         t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
                         (grid.id, field)).transpose()
         return t
@@ -303,6 +307,7 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
+        raise NotImplementedError
         return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
 
@@ -310,6 +315,7 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):
+        raise NotImplementedError
         t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
                         (grid.id, field))
         return t

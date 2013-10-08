@@ -38,7 +38,6 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
@@ -259,6 +258,7 @@ class EnzoHierarchy(GridGeometryHandler):
             mylog.debug("Detected HDF4")
         except:
             try:
+                # This will always fail
                 list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
             except:
                 print "Could not find dataset.  Defaulting to packed HDF5"
