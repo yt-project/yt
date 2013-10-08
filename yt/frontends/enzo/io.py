@@ -43,7 +43,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             # NOTE: This won't work with 1D datasets.
             if not hasattr(v, "shape"):
                 continue
-            elif len(v.shape) == 1:
+            elif len(v.dims) == 1:
                 fields.append( ("io", str(name)) )
             else:
                 fields.append( ("gas", str(name)) )
@@ -59,18 +59,19 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             f = None
             for g in chunk.objs:
                 if f is None:
+                    #print "Opening (count) %s" % g.filename
                     f = h5py.File(g.filename, "r")
                 if g.NumberOfParticles == 0: continue
-                ds = f["/Grid%08i" % g.id]
+                ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype != "io":
                         if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = ds["Particles/%s" % ptype]
+                        pds = ds.get("Particles/%s" % ptype)
                     else:
                         pds = ds
                     pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
-                    x, y, z = (np.asarray(pds[pn % ax][:], dtype="=f8")
+                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
                     yield ptype, (x, y, z)
             f.close()
@@ -81,23 +82,24 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             f = None
             for g in chunk.objs:
                 if f is None:
+                    #print "Opening (read) %s" % g.filename
                     f = h5py.File(g.filename, "r")
                 if g.NumberOfParticles == 0: continue
-                ds = f["/Grid%08i" % g.id]
+                ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype != "io":
                         if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = ds["Particles/%s" % ptype]
+                        pds = ds.get("Particles/%s" % ptype)
                     else:
                         pds = ds
                     pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
-                    x, y, z = (np.asarray(pds[pn % ax][:], dtype="=f8")
+                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
                     mask = selector.select_points(x, y, z)
                     if mask is None: continue
                     for field in field_list:
-                        data = np.asarray(pds[field], "=f8")
+                        data = np.asarray(pds.get(field).value, "=f8")
                         if field in _convert_mass:
                             data *= g.dds.prod(dtype="f8")
                         yield (ptype, field), data

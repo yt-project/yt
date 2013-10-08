@@ -41,6 +41,8 @@ class BaseIOHandler(object):
     def __init__(self, pf):
         self.queue = defaultdict(dict)
         self.pf = pf
+        self._last_selector_id = None
+        self._last_selector_counts = None
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
@@ -136,11 +138,17 @@ class BaseIOHandler(object):
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-        # Now we have our full listing.
-        # Here, ptype_map means which particles contribute to a given type.
-        # And ptf is the actual fields from disk to read.
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-            psize[ptype] += selector.count_points(x, y, z)
+        if hash(selector) == self._last_selector_id and \
+           all(ptype in self._last_selector_counts for ptype in ptf):
+            psize.update(self._last_selector_counts)
+        else:
+            # Now we have our full listing.
+            # Here, ptype_map means which particles contribute to a given type.
+            # And ptf is the actual fields from disk to read.
+            for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+                psize[ptype] += selector.count_points(x, y, z)
+            self._last_selector_counts = dict(**psize)
+            self._last_selector_id = hash(selector)
         # Now we allocate
         # ptf, remember, is our mapping of what we want to read
         #for ptype in ptf:
@@ -162,8 +170,8 @@ class BaseIOHandler(object):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
-                mylog.debug("Filling %s from %s to %s with %s",
-                    field_f, my_ind, my_ind+vals.shape[0], field_r)
+                #mylog.debug("Filling %s from %s to %s with %s",
+                #    field_f, my_ind, my_ind+vals.shape[0], field_r)
                 rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
                 ind[field_f] += vals.shape[0]
         return rv
