@@ -133,6 +133,49 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 filename, nodes, sets, suffix))
         return data
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        rv = {}
+        # Now we have to do something unpleasant
+        chunks = list(chunks)
+        if selector.__class__.__name__ == "GridSelector":
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            f = h5py.File(g.filename)
+            gds = f.get("/Grid%08i" % g.id)
+            for ftype, fname in fields:
+                rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
+            f.close()
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
+        if any((ftype != "gas" for ftype, fname in fields)):
+            raise NotImplementedError
+        for field in fields:
+            ftype, fname = field
+            fsize = size
+            rv[field] = np.empty(fsize, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+        ind = 0
+        for chunk in chunks:
+            f = None
+            for g in chunk.objs:
+                if f is None:
+                    #print "Opening (count) %s" % g.filename
+                    f = h5py.File(g.filename, "r")
+                gds = f.get("/Grid%08i" % g.id)
+                for field in fields:
+                    ftype, fname = field
+                    ds = gds.get(fname).value.swapaxes(0,2)
+                    nd = g.select(selector, ds, rv[field], ind) # caches
+                ind += nd
+            f.close()
+        return rv
+
+
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
 
@@ -220,7 +263,18 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         # Now we have to do something unpleasant
         chunks = list(chunks)
         if selector.__class__.__name__ == "GridSelector":
-            return self._read_grid_chunk(chunks, fields)
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            f = h5py.File(g.filename)
+            gds = f.get("/Grid%08i" % g.id)
+            for ftype, fname in fields:
+                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname).value)
+            f.close()
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
         if any((ftype != "gas" for ftype, fname in fields)):
             raise NotImplementedError
         for field in fields:
@@ -232,16 +286,19 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
-            data = self._read_chunk_data(chunk, fields)
+            f = None
             for g in chunk.objs:
+                if f is None:
+                    #print "Opening (count) %s" % g.filename
+                    f = h5py.File(g.filename, "r")
+                gds = f.get("/Grid%08i" % g.id)
                 for field in fields:
                     ftype, fname = field
-                    ds = np.atleast_3d(data[g.id].pop(fname))
-                    nd = g.select(selector, ds, rv[field], ind)  # caches
+                    ds = np.atleast_3d(gds.get(fname).value)
+                    nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
-                data.pop(g.id)
+            f.close()
         return rv
-
 
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 

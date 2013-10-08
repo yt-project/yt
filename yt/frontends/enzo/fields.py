@@ -82,26 +82,21 @@ def _ConvertNumberDensity(data):
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
-             validators=ValidateDataField("%s_Density" % species),
              display_name="%s\/Fraction" % species)
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
-             validators=ValidateDataField("%s_Density" % species),
              display_name="Comoving\/%s\/Density" % species)
     add_field("%s_Mass" % species, units=r"\rm{g}", 
               function=_SpeciesMass, 
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
     add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
     if _speciesMass.has_key(species):
         add_field("%s_NumberDensity" % species,
                   function=_SpeciesNumberDensity,
-                  convert_function=_ConvertNumberDensity,
-                  validators=ValidateDataField("%s_Density" % species))
+                  convert_function=_ConvertNumberDensity)
 
 def _Metallicity(field, data):
     return data["Metal_Fraction"]
@@ -110,7 +105,6 @@ def _ConvertMetallicity(data):
 add_field("Metallicity", units=r"Z_{\rm{\odot}}",
           function=_Metallicity,
           convert_function=_ConvertMetallicity,
-          validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
 
 def _Metallicity3(field, data):
@@ -118,12 +112,10 @@ def _Metallicity3(field, data):
 add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           function=_Metallicity3,
           convert_function=_ConvertMetallicity,
-          validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
 
 add_enzo_field("Cooling_Time", units=r"\rm{s}",
                function=NullFunc,
-               validators=ValidateDataField("Cooling_Time"),
                projection_conversion="1")
 
 def _ThermalEnergy(field, data):
@@ -269,8 +261,7 @@ _default_fields += [ "%s_Density" % sp for sp in _speciesList ]
 for field in _default_fields:
     dn = field.replace("_","\/")
     add_enzo_field(field, function=NullFunc, take_log=True,
-              display_name = dn,
-              validators=[ValidateDataField(field)], units=r"Unknown")
+              display_name = dn, units=r"Unknown")
 KnownEnzoFields["x-velocity"].projection_conversion='1'
 KnownEnzoFields["y-velocity"].projection_conversion='1'
 KnownEnzoFields["z-velocity"].projection_conversion='1'
@@ -307,7 +298,6 @@ def _RadiationAccelerationMagnitude(field, data):
              data["RadAccel3"]**2 )**(1.0/2.0)
 add_field("RadiationAcceleration", 
           function=_RadiationAccelerationMagnitude,
-          validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
           display_name="Radiation\/Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
 
 # Now we override
@@ -322,19 +312,16 @@ for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
 
 add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
-          validators=[ValidateDataField("Dark_Matter_Density"),
-                      ValidateSpatial(0)],
+          validators=[ValidateSpatial(0)],
           display_name = "Dark\/Matter\/Density",
           not_in_all = True)
 
 def _Dark_Matter_Mass(field, data):
     return data['Dark_Matter_Density'] * data["CellVolume"]
 add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
-          validators=ValidateDataField("Dark_Matter_Density"),
           display_name="Dark\/Matter\/Mass", units=r"\rm{g}")
 add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           convert_function=_convertCellMassMsun,
-          validators=ValidateDataField("Dark_Matter_Density"),
           display_name="Dark\/Matter\/Mass", units=r"M_{\odot}")
 
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
@@ -489,7 +476,6 @@ def _ParticleAge(field, data):
 def _convertParticleAge(data):
     return data.convert("years")
 add_field("ParticleAge", function=_ParticleAge,
-          validators=[ValidateDataField("creation_time")],
           particle_type=True, convert_function=_convertParticleAge)
 
 

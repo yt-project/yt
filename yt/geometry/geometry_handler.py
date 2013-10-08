@@ -171,6 +171,7 @@ class GeometryHandler(ParallelAnalysisInterface):
     def _setup_unknown_fields(self, list_of_fields = None):
         known_fields = self.parameter_file._fieldinfo_known
         field_list = list_of_fields or self.field_list
+        dftype = self.parameter_file.default_fluid_type
         mylog.debug("Checking %s", field_list)
         for field in field_list:
             # By allowing a backup, we don't mandate that it's found in our
@@ -178,11 +179,17 @@ class GeometryHandler(ParallelAnalysisInterface):
             # it.
             ff = self.parameter_file.field_info.pop(field, None)
             if field not in known_fields:
+                # Now we check if it's a gas field or what ...
                 if isinstance(field, types.TupleType) and \
                    field[0] in self.parameter_file.particle_types:
                     particle_type = True
                 else:
                     particle_type = False
+                if not particle_type and field[1] in known_fields:
+                    print "Adding known field %s to list of fields", field
+                    mylog.debug("Adding known field %s to list of fields", field)
+                    self.pf.field_info[field] = known_fields[field[1]]
+                    continue
                 rootloginfo("Adding unknown field %s to list of fields", field)
                 cf = None
                 if self.parameter_file.has_key(field):
