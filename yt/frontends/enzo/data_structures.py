@@ -46,7 +46,7 @@ from .definitions import parameterDict
 from .fields import \
     EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
     add_enzo_field, add_enzo_2d_field, add_enzo_1d_field, \
-    KnownEnzoFields
+    KnownEnzoFields, _setup_particle_fields
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -990,6 +990,9 @@ class EnzoStaticOutput(StaticOutput):
         if ("%s" % (args[0])).endswith(".hierarchy"):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
+
+    def _setup_particle_type(self, ptype):
+        _setup_particle_fields(self.field_info, ptype)
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory

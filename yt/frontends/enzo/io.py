@@ -59,7 +59,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             f = None
             for g in chunk.objs:
                 if f is None:
-                    mylog.debug("Opening (count) %s", g.filename)
                     f = h5py.File(g.filename, "r")
                 if g.NumberOfParticles == 0: continue
                 ds = f["/Grid%08i" % g.id]
@@ -82,7 +81,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             f = None
             for g in chunk.objs:
                 if f is None:
-                    mylog.debug("Opening (read) %s", g.filename)
                     f = h5py.File(g.filename, "r")
                 if g.NumberOfParticles == 0: continue
                 ds = f["/Grid%08i" % g.id]
@@ -101,7 +99,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     for field in field_list:
                         data = np.asarray(pds[field], "=f8")
                         if field in _convert_mass:
-                            data *= g.dds.prod()
+                            data *= g.dds.prod(dtype="f8")
                         yield (ptype, field), data
             f.close()
 

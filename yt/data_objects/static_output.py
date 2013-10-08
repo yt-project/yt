@@ -337,6 +337,9 @@ class StaticOutput(object):
         self.h._setup_unknown_fields(fields)
         self.h._setup_particle_types([union.name])
 
+    def _setup_particle_type(self, ptype):
+        mylog.debug("Don't know what to do with %s", ptype)
+
     @property
     def particle_fields_by_type(self):
         fields = defaultdict(list)

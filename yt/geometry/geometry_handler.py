@@ -141,8 +141,12 @@ class GeometryHandler(ParallelAnalysisInterface):
         cname = self.pf._particle_coordinates_name
         vname = self.pf._particle_velocity_name
         # We require overriding if any of this is true
-        if None in (mname, cname, vname): return
         if ptypes is None: ptypes = self.pf.particle_types_raw
+        if None in (mname, cname, vname): 
+            # If we don't know what to do, then let's not.
+            for ptype in ptypes:
+                self.pf._setup_particle_type(ptype)
+            return
         fi = self.pf.field_info
         def _get_conv(cf):
             def _convert(data):
