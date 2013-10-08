@@ -77,11 +77,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         mylog.debug("Adding unknown detected fields")
         self._setup_unknown_fields()
 
-        mylog.debug("Setting up particle fields")
-        self._setup_particle_types()
-
         mylog.debug("Setting up derived fields")
         self._setup_derived_fields()
+
+        mylog.debug("Setting up particle fields")
+        self._setup_particle_types()
 
     def __del__(self):
         if self._data_file is not None:
@@ -141,12 +141,15 @@ class GeometryHandler(ParallelAnalysisInterface):
         cname = self.pf._particle_coordinates_name
         vname = self.pf._particle_velocity_name
         # We require overriding if any of this is true
+        df = []
         if ptypes is None: ptypes = self.pf.particle_types_raw
         if None in (mname, cname, vname): 
             # If we don't know what to do, then let's not.
             for ptype in ptypes:
-                self.pf._setup_particle_type(ptype)
-            return
+                df += self.pf._setup_particle_type(ptype)
+            # Now we have a bunch of new fields to add!
+            # This is where the dependencies get calculated.
+            self._derived_fields_add(df)
         fi = self.pf.field_info
         def _get_conv(cf):
             def _convert(data):
@@ -157,16 +160,20 @@ class GeometryHandler(ParallelAnalysisInterface):
                 particle_type = True,
                 convert_function=_get_conv("velocity"),
                 units = r"\mathrm{cm}/\mathrm{s}")
+            df.append((ptype, vname))
             fi.add_field((ptype, mname), function=NullFunc,
                 particle_type = True,
                 convert_function=_get_conv("mass"),
                 units = r"\mathrm{g}")
-            particle_deposition_functions(ptype, cname, mname, fi)
-            particle_scalar_functions(ptype, cname, vname, fi)
+            df.append((ptype, mname))
+            df += particle_deposition_functions(ptype, cname, mname, fi)
+            df += particle_scalar_functions(ptype, cname, vname, fi)
             fi.add_field((ptype, cname), function=NullFunc,
                          particle_type = True)
+            df.append((ptype, cname))
             # Now we add some translations.
-            self.pf._setup_particle_type(ptype)
+            df += self.pf._setup_particle_type(ptype)
+        self._derived_fields_add(df)
 
     def _setup_unknown_fields(self, list_of_fields = None):
         known_fields = self.parameter_file._fieldinfo_known
@@ -186,7 +193,6 @@ class GeometryHandler(ParallelAnalysisInterface):
                 else:
                     particle_type = False
                 if not particle_type and field[1] in known_fields:
-                    print "Adding known field %s to list of fields", field
                     mylog.debug("Adding known field %s to list of fields", field)
                     self.pf.field_info[field] = known_fields[field[1]]
                     continue

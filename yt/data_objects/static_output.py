@@ -339,6 +339,7 @@ class StaticOutput(object):
 
     def _setup_particle_type(self, ptype):
         mylog.debug("Don't know what to do with %s", ptype)
+        return []
 
     @property
     def particle_fields_by_type(self):

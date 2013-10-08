@@ -992,7 +992,8 @@ class EnzoStaticOutput(StaticOutput):
         return os.path.exists("%s.hierarchy" % args[0])
 
     def _setup_particle_type(self, ptype):
-        _setup_particle_fields(self.field_info, ptype)
+        df = _setup_particle_fields(self.field_info, ptype)
+        return df
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory

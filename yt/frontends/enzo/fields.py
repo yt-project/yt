@@ -558,22 +558,28 @@ def _convertParticleMass(data):
            data.pf.units["cm"]**3.0
 
 def _setup_particle_fields(registry, ptype):
-    particle_vector_functions(ptype, ["particle_position_%s" % ax for ax in 'xyz'],
-                                     ["particle_velocity_%s" % ax for ax in 'xyz'],
-                              registry)
-    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
-                                   registry)
+    df = []
+    df += particle_vector_functions(ptype,
+            ["particle_position_%s" % ax for ax in 'xyz'],
+            ["particle_velocity_%s" % ax for ax in 'xyz'],
+            registry)
+    df += particle_deposition_functions(ptype,
+            "Coordinates", "particle_mass",
+            registry)
 
     for ax in 'xyz':
         fn = "particle_velocity_%s" % ax
         cfunc = _get_vel_convert(ax)
+        df.append((ptype, fn))
         registry.add_field((ptype, fn), function=NullFunc,
                   convert_function=_get_vel_convert(ax),
                   particle_type=True)
     for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
               ["particle_position_%s" % ax for ax in 'xyz']:
+        df.append((ptype, fn))
         registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
 
     registry.add_field((ptype, "particle_mass"), function=NullFunc, 
               particle_type=True, convert_function = _convertParticleMass)
-
+    df.append((ptype, "particle_mass"))
+    return df
