@@ -187,12 +187,12 @@ class GeometryHandler(ParallelAnalysisInterface):
             ff = self.parameter_file.field_info.pop(field, None)
             if field not in known_fields:
                 # Now we check if it's a gas field or what ...
-                if isinstance(field, types.TupleType) and \
-                   field[0] in self.parameter_file.particle_types:
+                if isinstance(field, tuple) and field[0] in self.pf.particle_types:
                     particle_type = True
                 else:
                     particle_type = False
-                if not particle_type and field[1] in known_fields:
+                if isinstance(field, tuple) and not particle_type and \
+                   field[1] in known_fields:
                     mylog.debug("Adding known field %s to list of fields", field)
                     self.pf.field_info[field] = known_fields[field[1]]
                     continue
