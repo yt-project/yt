@@ -633,3 +633,22 @@ def set_intersection(some_list):
     for l in some_list[1:]:
         s.intersection_update(l)
     return s
+
+@contextlib.contextmanager
+def memory_checker(interval = 15):
+    import threading
+    class MemoryChecker(threading.Thread):
+        def __init__(self, event, interval):
+            self.event = event
+            self.interval = interval
+            threading.Thread.__init__(self)
+
+        def run(self):
+            while not self.event.wait(self.interval):
+                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+
+    e = threading.Event()
+    mem_check = MemoryChecker(e, interval)
+    mem_check.start()
+    yield
+    e.set()
