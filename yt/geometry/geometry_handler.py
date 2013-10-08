@@ -519,7 +519,8 @@ class GeometryHandler(ParallelAnalysisInterface):
             chunk_size)
         for field in fields_to_read:
             ftype, fname = field
-            conv_factor = self.pf.field_info[fname]._convert_function(self)
+            finfo = self.pf._get_field_info(*field)
+            conv_factor = finfo._convert_function(self)
             np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         #mylog.debug("Don't know how to read %s", fields_to_generate)
