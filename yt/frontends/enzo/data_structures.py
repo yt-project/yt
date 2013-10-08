@@ -422,7 +422,7 @@ class EnzoHierarchy(GridGeometryHandler):
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
-            handle = h5py.File(g.filename)
+            handle = h5py.File(g.filename, "r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue
@@ -488,18 +488,7 @@ class EnzoHierarchy(GridGeometryHandler):
                 field_list = list(set(field_list).union(ap_fields))
         else:
             field_list = None
-        field_list = self.comm.mpi_bcast(field_list)
-        self.field_list = []
-        # Now we will iterate over all fields, trying to avoid the problem of
-        # particle types not having names.  This should convert all known
-        # particle fields that exist in Enzo outputs into the construction
-        # ("all", field) and should not otherwise affect ActiveParticle
-        # simulations.
-        for field in field_list:
-            if ("all", field) in KnownEnzoFields:
-                self.field_list.append(("all", field))
-            else:
-                self.field_list.append(field)
+        self.field_list = list(self.comm.mpi_bcast(field_list))
 
     def _generate_random_grids(self):
         if self.num_grids > 40:

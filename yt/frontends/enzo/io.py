@@ -36,8 +36,18 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     _base = slice(None)
 
     def _read_field_names(self, grid):
-        return hdf5_light_reader.ReadListOfDatasets(
-                    grid.filename, "/Grid%08i" % grid.id)
+        f = h5py.File(grid.filename, "r")
+        group = f["/Grid%08i" % grid.id]
+        fields = []
+        for name, v in group.iteritems():
+            # NOTE: This won't work with 1D datasets.
+            if not hasattr(v, "shape"):
+                continue
+            elif len(v.shape) == 1:
+                fields.append( ("io", str(name)) )
+            else:
+                fields.append( ("gas", str(name)) )
+        return fields
 
     @property
     def _read_exception(self):
@@ -59,9 +69,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         pds = ds["Particles/%s" % ptype]
                     else:
                         pds = ds
-                    pn = _particle_position_names.get(ptypes[0],
+                    pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
-                    x, y, z = (pds[pn % ax][:] for ax in 'xyz')
+                    x, y, z = (np.asarray(pds[pn % ax][:], dtype="=f8")
+                               for ax in 'xyz')
                     yield ptype, (x, y, z)
             f.close()
 
@@ -81,137 +92,18 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         pds = ds["Particles/%s" % ptype]
                     else:
                         pds = ds
-                    pn = _particle_position_names.get(ptypes[0],
+                    pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
-                    x, y, z = (pds[pn % ax][:] for ax in 'xyz')
+                    x, y, z = (np.asarray(pds[pn % ax][:], dtype="=f8")
+                               for ax in 'xyz')
                     mask = selector.select_points(x, y, z)
                     if mask is None: continue
                     for field in field_list:
-                        data = pds[field]
+                        data = np.asarray(pds[field], "=f8")
                         if field in _convert_mass:
                             data *= g.dds.prod()
                         yield (ptype, field), data
             f.close()
-
-    def __read_particle_selection_by_type(self, chunks, selector, fields):
-        rv = {}
-        ptypes = list(set([ftype for ftype, fname in fields]))
-        fields = list(set(fields))
-        if len(ptypes) > 1: raise NotImplementedError
-        pn = _particle_position_names.get(ptypes[0], r"particle_position_%s")
-        pfields = [(ptypes[0], pn % ax) for ax in 'xyz']
-        size = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, pfields, 'active', 
-                        "/Particles/%s" % ptypes[0])
-            for g in chunk.objs:
-                if g.NumberOfActiveParticles[ptypes[0]] == 0: continue
-                x, y, z = (data[g.id].pop(fn) for ft, fn in pfields)
-                size += g.count_particles(selector, x, y, z)
-        read_fields = fields[:]
-        for field in fields:
-            # TODO: figure out dataset types
-            rv[field] = np.empty(size, dtype='float64')
-        for pfield in pfields:
-            if pfield not in fields: read_fields.append(pfield)
-        ind = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, read_fields, 'active',
-                        "/Particles/%s" % ptypes[0])
-            for g in chunk.objs:
-                if g.NumberOfActiveParticles[ptypes[0]] == 0: continue
-                x, y, z = (data[g.id][fn] for ft, fn in pfields)
-                mask = g.select_particles(selector, x, y, z)
-                if mask is None: continue
-                for field in set(fields):
-                    ftype, fname = field
-                    gdata = data[g.id].pop(fname)[mask]
-                    if fname in _convert_mass:
-                        gdata *= g.dds.prod()
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
-                data.pop(g.id)
-        return rv
-
-    def __read_particle_selection(self, chunks, selector, fields):
-        last = None
-        rv = {}
-        chunks = list(chunks)
-        # Now we have to do something unpleasant
-        if any((ftype != "all" for ftype, fname in fields)):
-            type_fields = [(ftype, fname) for ftype, fname in fields
-                           if ftype != "all"]
-            rv.update(self._read_particle_selection_by_type(
-                      chunks, selector, type_fields))
-            if len(rv) == len(fields): return rv
-            fields = [f for f in fields if f not in rv]
-        mylog.debug("First pass: counting particles.")
-        xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
-        size = 0
-        pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, pfields, 'any')
-            for g in chunk.objs:
-                if g.NumberOfParticles == 0: continue
-                x, y, z = (
-                    np.asarray(data[g.id].pop("particle_position_%s" % ax),
-                               dtype="float64")
-                    for ax in 'xyz')
-                size += g.count_particles(selector, x, y, z)
-        read_fields = fields[:]
-        for field in fields:
-            # TODO: figure out dataset types
-            rv[field] = np.empty(size, dtype='float64')
-        for pfield in pfields:
-            if pfield not in fields: read_fields.append(pfield)
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s grids",
-                   size, [f2 for f1, f2 in fields], ng)
-        ind = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, read_fields, 'any')
-            for g in chunk.objs:
-                if g.NumberOfParticles == 0: continue
-                x, y, z = (data[g.id]["particle_position_%s" % ax]
-                           for ax in 'xyz')
-                x, y, z = (np.array(arr, dtype='float64') for arr in (x, y, z))
-                mask = g.select_particles(selector, x, y, z)
-                if mask is None: continue
-                for field in set(fields):
-                    ftype, fname = field
-                    gdata = data[g.id].pop(fname)[mask]
-                    if fname in _convert_mass:
-                        gdata *= g.dds.prod()
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
-        return rv
-        
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        rv = {}
-        # Now we have to do something unpleasant
-        chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
-            return self._read_grid_chunk(chunks, fields)
-        if any((ftype != "gas" for ftype, fname in fields)):
-            raise NotImplementedError
-        for field in fields:
-            ftype, fname = field
-            fsize = size
-            rv[field] = np.empty(fsize, dtype="float64")
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s grids",
-                   size, [f2 for f1, f2 in fields], ng)
-        ind = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, fields)
-            for g in chunk.objs:
-                for field in fields:
-                    ftype, fname = field
-                    ds = data[g.id].pop(fname).swapaxes(0,2)
-                    nd = g.select(selector, ds, rv[field], ind) # caches
-                ind += nd
-                data.pop(g.id)
-        return rv
 
     def _read_grid_chunk(self, chunks, fields):
         sets = [fname for ftype, fname in fields]
@@ -224,17 +116,11 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             rv[(ftype, fname)] = rv.pop(fname).swapaxes(0,2)
         return rv
 
-    def _read_chunk_data(self, chunk, fields, filter_particles = False,
-                         suffix = ""):
+    def _read_chunk_data(self, chunk, fields, suffix = ""):
         data = {}
         grids_by_file = defaultdict(list)
         for g in chunk.objs:
-            if filter_particles == 'any' and g.NumberOfParticles == 0:
-                continue
-            elif filter_particles == 'active' and \
-                 g.NumberOfActiveParticles[fields[0][0]] == 0:
-                continue
-            elif g.filename is None:
+            if g.filename is None:
                 continue
             grids_by_file[g.filename].append(g.id)
         #if len(chunk.objs) == 1 and len(grids_by_file) > 0:
