@@ -626,7 +626,7 @@ cdef class ARTIOSFCRangeHandler:
         self.root_mesh_data = <float **>malloc(sizeof(float *) * ngv)
         for i in range(ngv):
             self.root_mesh_data[i] = <float *>malloc(sizeof(float) * \
-                self.sfc_end - self.sfc_start + 1)
+                (self.sfc_end - self.sfc_start + 1))
         # We want to pre-allocate an array of root pointers.  In the future,
         # this will be pre-determined by the ARTIO library.  However, because
         # realloc plays havoc with our tree searching, we can't utilize an
