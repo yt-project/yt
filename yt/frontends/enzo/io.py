@@ -43,7 +43,57 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
-    def _read_particle_selection_by_type(self, chunks, selector, fields):
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            f = None
+            for g in chunk.objs:
+                if f is None:
+                    mylog.debug("Opening (count) %s", g.filename)
+                    f = h5py.File(g.filename, "r")
+                if g.NumberOfParticles == 0: continue
+                ds = f["/Grid%08i" % g.id]
+                for ptype, field_list in sorted(ptf.items()):
+                    if ptype != "io":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = ds["Particles/%s" % ptype]
+                    else:
+                        pds = ds
+                    pn = _particle_position_names.get(ptypes[0],
+                            r"particle_position_%s")
+                    x, y, z = (pds[pn % ax][:] for ax in 'xyz')
+                    yield ptype, (x, y, z)
+            f.close()
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            f = None
+            for g in chunk.objs:
+                if f is None:
+                    mylog.debug("Opening (read) %s", g.filename)
+                    f = h5py.File(g.filename, "r")
+                if g.NumberOfParticles == 0: continue
+                ds = f["/Grid%08i" % g.id]
+                for ptype, field_list in sorted(ptf.items()):
+                    if ptype != "io":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = ds["Particles/%s" % ptype]
+                    else:
+                        pds = ds
+                    pn = _particle_position_names.get(ptypes[0],
+                            r"particle_position_%s")
+                    x, y, z = (pds[pn % ax][:] for ax in 'xyz')
+                    mask = selector.select_points(x, y, z)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = pds[field]
+                        if field in _convert_mass:
+                            data *= g.dds.prod()
+                        yield (ptype, field), data
+            f.close()
+
+    def __read_particle_selection_by_type(self, chunks, selector, fields):
         rv = {}
         ptypes = list(set([ftype for ftype, fname in fields]))
         fields = list(set(fields))
@@ -83,7 +133,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 data.pop(g.id)
         return rv
 
-    def _read_particle_selection(self, chunks, selector, fields):
+    def __read_particle_selection(self, chunks, selector, fields):
         last = None
         rv = {}
         chunks = list(chunks)
