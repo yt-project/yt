@@ -150,8 +150,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
-        if any((ftype != "gas" for ftype, fname in fields)):
-            raise NotImplementedError
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -166,10 +164,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if f is None:
                     #print "Opening (count) %s" % g.filename
                     f = h5py.File(g.filename, "r")
-                gds = f.get("/Grid%08i" % g.id)
                 for field in fields:
                     ftype, fname = field
-                    ds = gds.get(fname).value.swapaxes(0,2)
+                    ds = f.get("/Grid%08i/%s" % (g.id, fname)).value.swapaxes(0,2)
                     nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
             f.close()
