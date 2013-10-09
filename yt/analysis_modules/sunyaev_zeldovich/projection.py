@@ -128,7 +128,7 @@ class SZProjection(object):
             return vpar/clight
         add_field("BetaPar", function=_beta_par)    
 
-        proj = self.pf.h.proj(axis, "Density", source=source)
+        proj = self.pf.h.proj(axis, "Density", data_source=source)
         proj.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
         dens = frb["Density"]
