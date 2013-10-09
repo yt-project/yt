@@ -124,6 +124,7 @@ class ParticleStaticOutput(StaticOutput):
         self.field_info.add_field((ptype, "particle_index"),
             function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
+        return [ (ptype, "particle_index") ]
 
 class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
