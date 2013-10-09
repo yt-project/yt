@@ -16,6 +16,7 @@ Data structures for Boxlib Codes
 import os
 import re
 import weakref
+import itertools
 
 from collections import defaultdict
 from string import strip, rstrip
@@ -724,7 +725,50 @@ class MaestroStaticOutput(BoxlibStaticOutput):
         if any(line.startswith("Castro   ") for line in lines): return True
         return False
 
+
+class NyxHierarchy(BoxlibHierarchy):
+
+    def __init__(self, pf, data_style='nyx_native'):
+        super(NyxHierarchy, self).__init__(pf, data_style)
+        self._read_particle_header()
+
+    def _read_particle_header(self):
+        if not self.pf.parameters["particles.write_in_plotfile"]:
+            self.pgrid_info = np.zeros((self.num_grids, 3), dtype='int64')
+            return
+        for fn in ['particle_position_%s' % ax for ax in 'xyz'] + \
+                  ['particle_mass'] +  \
+                  ['particle_velocity_%s' % ax for ax in 'xyz']:
+            self.field_list.append(("io", fn))
+        header = open(os.path.join(self.pf.output_dir, "DM", "Header"))
+        version = header.readline()
+        ndim = header.readline()
+        nfields = header.readline()
+        ntotalpart = int(header.readline())
+        dummy = header.readline() # nextid
+        maxlevel = int(header.readline()) # max level
+
+        # Skip over how many grids on each level; this is degenerate
+        for i in range(maxlevel + 1):dummy = header.readline()
+
+        grid_info = np.fromiter((int(i) for line in header.readlines()
+                                 for i in line.split()),
+                                dtype='int64',
+                                count=3*self.num_grids).reshape((self.num_grids, 3))
+        # we need grid_info in `populate_grid_objects`, so save it to self
+
+        for g, pg in itertools.izip(self.grids, grid_info):
+            g.particle_filename = os.path.join(self.pf.output_dir, "DM",
+                                               "Level_%s" % (g.Level),
+                                               "DATA_%04i" % pg[0])
+            g.NumberOfParticles = pg[1]
+            g._particle_offset = pg[2]
+
+        self.grid_particle_count[:, 0] = grid_info[:, 1]
+
 class NyxStaticOutput(BoxlibStaticOutput):
+
+    _hierarchy_class = NyxHierarchy
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -745,4 +789,50 @@ class NyxStaticOutput(BoxlibStaticOutput):
         maestro = os.path.exists(os.path.join(pname, "job_info"))
         orion = (not nyx) and (not maestro)
         return nyx
+
+    def _parse_parameter_file(self):
+        super(NyxStaticOutput, self)._parse_parameter_file()
+        #return
+        # Nyx is always cosmological.
+        self.cosmological_simulation = 1
+        self.omega_lambda = self.parameters["comoving_OmL"]
+        self.omega_matter = self.parameters["comoving_OmM"]
+        self.hubble_constant = self.parameters["comoving_h"]
+
+        # Read in the `comoving_a` file and parse the value. We should fix this
+        # in the new Nyx output format...
+        a_file = open(os.path.join(self.output_dir, "comoving_a"))
+        a_string = a_file.readline().strip()
+        a_file.close()
+
+        # Set the scale factor and redshift
+        self.cosmological_scale_factor = float(a_string)
+        self.parameters["CosmologyCurrentRedshift"] = 1 / float(a_string) - 1
+
+        # alias
+        self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
+        if self.parameters["particles.write_in_plotfile"]:
+            self.particle_types = ("io",)
+            self.particle_types_raw = self.particle_types
+
+    def _set_units(self):
+        super(NyxStaticOutput, self)._set_units()
+        # Masses are always in $ M_{\odot} $
+        self.units["particle_mass"] = 1.989e33
+
+        mylog.warning("Length units: setting 1.0 = 1.0 Mpc.")
+        self.units.update(mpc_conversion)
+        self.units["density"] = self.units["particle_mass"]/(self.units["cm"])**3
+        self.units["particle_mass_density"] = self.units["density"]
+
+        mylog.warning("Time units: setting 1.0 = Mpc/km s ~ 10^12 yr .")
+        self.time_units["s"] = 1.0 / 3.08568025e19
+        self.conversion_factors["Time"] = 1.0 / 3.08568025e19
+
+        cf = 1e5 * (self.cosmological_scale_factor)
+        for ax in "xyz":
+            self.units["particle_velocity_%s" % ax] = cf
+
+        for unit in sec_conversion.keys():
+            self.time_units[unit] = self.time_units["s"] / sec_conversion[unit]
 

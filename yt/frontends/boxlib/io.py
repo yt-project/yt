@@ -175,3 +175,21 @@ class IOHandlerCastro(IOHandlerBoxlib):
             tr)
         return tr
 
+nyx_particle_field_names = ['particle_position_%s' % ax for ax in 'xyz'] + \
+                           ['particle_mass'] +  \
+                           ['particle_velocity_%s' % ax for ax in 'xyz']
+
+class IOHandlerNyx(IOHandlerBoxlib):
+    _data_style = "nyx_native"
+
+    def _read_particle_coords(self, chunks, ptf):
+        offset = grid._particle_offset
+        filen = os.path.expanduser(grid.particle_filename)
+        off = grid._particle_offset
+        tr = np.zeros(grid.NumberOfParticles, dtype='float64')
+        read_castro_particles(filen, off,
+                            nyx_particle_field_names.index(field),
+                            len(nyx_particle_field_names), tr)
+
+    def _read_particle_fields(self, chunks, ptf, fields):
+        pass
