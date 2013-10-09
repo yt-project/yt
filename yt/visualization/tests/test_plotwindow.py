@@ -94,8 +94,10 @@ def test_attributes():
     for ax in 'xyz':
         for attr_name in ATTR_ARGS.keys():
             for args in ATTR_ARGS[attr_name]:
-                yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
-                                              args, decimals)
+                test = PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
+                                               args, decimals)
+                test_attributes.__name__ = test.description
+                yield test
 
 
 @requires_pf(WT)
