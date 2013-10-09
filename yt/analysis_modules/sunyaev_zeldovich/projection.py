@@ -33,8 +33,8 @@ I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
         
 try:
     import SZpack
-except:
-    raise ImportError("SZpack not installed. It can be obtained from from http://www.chluba.de/SZpack/.")
+except ImportError:
+    pass
 
 vlist = "xyz"
 
