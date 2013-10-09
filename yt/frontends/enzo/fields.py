@@ -567,6 +567,7 @@ def _setup_particle_fields(registry, ptype):
                   convert_function=_get_vel_convert(ax),
                   particle_type=True)
     for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
+              ["particle_type"] + \
               ["particle_position_%s" % ax for ax in 'xyz']:
         registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
 

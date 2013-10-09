@@ -35,6 +35,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     _base = slice(None)
 
     def _read_field_names(self, grid):
+        if grid.filename is None: return []
         f = h5py.File(grid.filename, "r")
         group = f["/Grid%08i" % grid.id]
         fields = []
@@ -58,6 +59,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         for chunk in chunks: # These should be organized by grid filename
             f = None
             for g in chunk.objs:
+                if g.filename is None: continue
                 if f is None:
                     #print "Opening (count) %s" % g.filename
                     f = h5py.File(g.filename, "r")
@@ -81,6 +83,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         for chunk in chunks: # These should be organized by grid filename
             f = None
             for g in chunk.objs:
+                if g.filename is None: continue
                 if f is None:
                     #print "Opening (read) %s" % g.filename
                     f = h5py.File(g.filename, "r")
@@ -133,6 +136,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         for chunk in chunks:
             fid = None
             for g in chunk.objs:
+                if g.filename is None: continue
                 if fid is None:
                     fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
                 data = np.empty(g.ActiveDimensions[::-1], dtype="float64")

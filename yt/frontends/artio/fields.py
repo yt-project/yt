@@ -257,6 +257,20 @@ def _setup_particle_fields(registry, ptype):
               units=r"\rm{g}",
               particle_type=True)
 
+    registry.add_field((ptype, "particle_mass_initial"),
+              function=NullFunc,
+              convert_function=_convertParticleMass,
+              units=r"\rm{g}",
+              particle_type=True)
+
+    for field in ["particle_index",
+                  "creation_time",
+                  "particle_species",
+                  "particle_metallicity1",
+                  "particle_metallicity2"]:
+        registry.add_field((ptype, field),
+            function=NullFunc, particle_type=True)
+
     particle_vector_functions(ptype,
         ["particle_position_%s" % ax for ax in 'xyz'],
         ["particle_velocity_%s" % ax for ax in 'xyz'],
