@@ -187,28 +187,28 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     _fields = ( "Coordinates",
                 "Velocities",
                 "ParticleIDs",
-                ("Masses", ZeroMass),
+                "Masses",
                 ("InternalEnergy", "Gas"),
                 ("Density", "Gas"),
                 ("SmoothingLength", "Gas"),
     )
 
+    _var_mass = None
+
+    @property
+    def var_mass(self):
+        if self._var_mass is None:
+            vm = []
+            for i, v in enumerate(self.pf["Massarr"]):
+                if v == 0:
+                    vm.append(self._ptypes[i])
+            self._var_mass = tuple(vm)
+        return self._var_mass
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        ptall = []
-        psize = defaultdict(lambda: 0)
-        chunks = list(chunks)
-        ptypes = set()
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-            ptypes.add(ftype)
-        ptypes = list(ptypes)
-        ptypes.sort(key = lambda a: self._ptypes.index(a))
+    def _read_particle_coords(self, chunks, ptf):
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
@@ -217,23 +217,19 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype in ptypes:
+            for ptype in ptf:
+                # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(f,
                             tp[ptype], "Coordinates")
-                psize[ptype] += selector.count_points(
-                    pos[:,0], pos[:,1], pos[:,2])
-                del pos
+                yield ptype, (pos[:,0], pos[:,1], pos[:,2])
             f.close()
-        ind = {}
-        for field in fields:
-            mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            if field[1] in self._vector_fields:
-                shape = (psize[field[0]], 3)
-            else:
-                shape = psize[field[0]]
-            rv[field] = np.empty(shape, dtype="float64")
-            ind[field] = 0
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
         for data_file in data_files:
             poff = data_file.field_offsets
             tp = data_file.total_particles
@@ -247,16 +243,18 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 del pos
                 if mask is None: continue
                 for field in field_list:
+                    if field == "Masses" and ptype not in self.var_mass:
+                        data = np.empty(mask.sum(), dtype="float64")
+                        m = self.pf.parameters["Massarr"][
+                            self._ptypes.index(ptype)]
+                        data[:] = m
+                        yield (ptype, field), data
+                        continue
                     f.seek(poff[ptype, field], os.SEEK_SET)
                     data = self._read_field_from_file(f, tp[ptype], field)
-                    data = data[mask]
-                    my_ind = ind[ptype, field]
-                    mylog.debug("Filling (%s, %s) from %s to %s",
-                        ptype, field, my_ind, my_ind+data.shape[0])
-                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                    ind[ptype, field] += data.shape[0]
+                    data = data[mask,...]
+                    yield (ptype, field), data
             f.close()
-        return rv
 
     def _read_field_from_file(self, f, count, name):
         if count == 0: return
@@ -309,6 +307,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 continue
             pos += 4
             for ptype in self._ptypes:
+                if field == "Masses" and ptype not in self.var_mass:
+                    continue
                 if (ptype, field) not in field_list:
                     continue
                 offsets[(ptype, field)] = pos
