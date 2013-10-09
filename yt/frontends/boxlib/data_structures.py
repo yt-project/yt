@@ -724,4 +724,25 @@ class MaestroStaticOutput(BoxlibStaticOutput):
         if any(line.startswith("Castro   ") for line in lines): return True
         return False
 
+class NyxStaticOutput(BoxlibStaticOutput):
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args
+        pname = args[0].rstrip("/")
+        dn = os.path.dirname(pname)
+        if len(args) > 1:
+            kwargs['paramFilename'] = args[1]
+
+        pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
+
+        # @todo: new Nyx output.
+        # We check for the job_info file's existence because this is currently
+        # what distinguishes Nyx data from MAESTRO data.
+        pfn = os.path.join(pfname)
+        if not os.path.exists(pfn): return False
+        nyx = any(("nyx." in line for line in open(pfn)))
+        maestro = os.path.exists(os.path.join(pname, "job_info"))
+        orion = (not nyx) and (not maestro)
+        return nyx
 
