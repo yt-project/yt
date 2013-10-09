@@ -328,7 +328,7 @@ class StreamStaticOutput(StaticOutput):
         self.unit_registry.modify("code_length", self.length_unit.value)
         self.unit_registry.modify("code_mass", self.mass_unit.value)
         self.unit_registry.modify("code_time", self.time_unit.value)
-        self.unit_registry.modify("unitary", self.domain_width.min())
+        self.unit_registry.modify("unitary", self.domain_width.max())
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False
