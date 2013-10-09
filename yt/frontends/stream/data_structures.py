@@ -37,6 +37,9 @@ from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
+from yt.data_objects.particle_fields import \
+    particle_vector_functions, \
+    particle_deposition_functions
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
@@ -746,6 +749,15 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
+
+    def _setup_particle_type(self, ptype):
+        df = particle_vector_functions(ptype,
+            ["particle_position_%s" % ax for ax in 'xyz'],
+            ["particle_velocity_%s" % ax for ax in 'xyz'],
+            self.field_info)
+        df += particle_deposition_functions(ptype,
+            "Coordinates", "particle_mass", self.field_info)
+        return df
 
 def load_particles(data, sim_unit_to_cm, bbox=None,
                       sim_time=0.0, periodicity=(True, True, True),
