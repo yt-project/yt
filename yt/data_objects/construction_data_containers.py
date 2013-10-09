@@ -398,7 +398,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center, pf, field_parameters)
         self.left_edge = np.array(left_edge)
         self.level = level
-        rdx = self.pf.domain_dimensions*self.pf.refine_by**level
+
+        rdx = self.pf.domain_dimensions*self.pf.relative_refinement(0, level)
         rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
@@ -488,9 +489,11 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
                          for field in fields]
         domain_dims = self.pf.domain_dimensions.astype("int64") \
-                    * self.pf.refine_by**self.level
+                    * self.pf.relative_refinement(0, self.level)
         for chunk in self._data_source.chunks(fields, "io"):
             input_fields = [chunk[field] for field in fields]
+            # NOTE: This usage of "refine_by" is actually *okay*, because it's
+            # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
                         domain_dims, self.pf.refine_by)
@@ -647,10 +650,12 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
             domain_dims = self.pf.domain_dimensions.astype("int64") \
-                        * self.pf.refine_by**level
+                        * self.pf.relative_refinement(0, self.level)
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
+                # NOTE: This usage of "refine_by" is actually *okay*, because it's
+                # being used with respect to iref, which is *already* scaled!
                 fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
                             chunk.ires, domain_dims, self.pf.refine_by)
@@ -682,14 +687,16 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def _update_level_state(self, level_state):
         ls = level_state
         if ls.current_level >= self.level: return
+        rf = float(self.pf.relative_refinement(
+                    ls.current_level, ls.current_level + 1))
         ls.current_level += 1
-        ls.current_dx = self._base_dx / self.pf.refine_by**ls.current_level
+        ls.current_dx = self._base_dx / \
+            self.pf.relative_refinement(0, ls.current_level)
         self._setup_data_source(ls)
         LL = self.left_edge - self.pf.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
         ls.domain_iwidth = np.rint(self.pf.domain_width/ls.current_dx).astype('int64') 
-        rf = float(self.pf.refine_by)
         input_left = (level_state.old_global_startindex + 0.5) * rf 
         width = (self.ActiveDimensions*self.dds)
         output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2

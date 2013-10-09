@@ -321,6 +321,9 @@ class StaticOutput(object):
             raise RuntimeError
         return int(o2)
 
+    def relative_refinement(self, l0, l1):
+        return self.refine_by**(l1-l0)
+
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
