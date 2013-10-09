@@ -15,7 +15,6 @@ another, where the other can be one or several particle types.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from yt.funcs import ensure_list
 
 class ParticleUnion(object):

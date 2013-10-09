@@ -143,6 +143,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
+            fid.close()
         return rv
 
 
