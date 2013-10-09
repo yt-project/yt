@@ -50,14 +50,6 @@ from .fields import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
 
-def get_field_names_helper(filename, id, results):
-    try:
-        names = hdf5_light_reader.ReadListOfDatasets(
-                    filename, "/Grid%08i" % id)
-        results.put((names, "Grid %s has: %s" % (id, names)))
-    except (exceptions.KeyError, hdf5_light_reader.ReadingError):
-        results.put((None, "Grid %s is a bit funky?" % id))
-
 class EnzoGrid(AMRGridPatch):
     """
     Class representing a single Enzo Grid instance.
@@ -449,40 +441,18 @@ class EnzoHierarchy(GridGeometryHandler):
         self.field_list = []
         # Do this only on the root processor to save disk work.
         if self.comm.rank in (0, None):
-            field_list = self.get_data("/", "DataFields")
-            if field_list is None:
-                mylog.info("Gathering a field list (this may take a moment.)")
-                field_list = set()
-                random_sample = self._generate_random_grids()
-                tothread = ytcfg.getboolean("yt","thread_field_detection")
-                if tothread:
-                    jobs = []
-                    result_queue = Queue.Queue()
-                    # Start threads
-                    for grid in random_sample:
-                        if not hasattr(grid, 'filename'): continue
-                        helper = Thread(target = get_field_names_helper, 
-                            args = (grid.filename, grid.id, result_queue))
-                        jobs.append(helper)
-                        helper.start()
-                    # Here we make sure they're finished.
-                    for helper in jobs:
-                        helper.join()
-                    for grid in random_sample:
-                        res = result_queue.get()
-                        mylog.debug(res[1])
-                        if res[0] is not None:
-                            field_list = field_list.union(res[0])
-                else:
-                    for grid in random_sample:
-                        if not hasattr(grid, 'filename'): continue
-                        try:
-                            gf = self.io._read_field_names(grid)
-                        except self.io._read_exception:
-                            mylog.debug("Grid %s is a bit funky?", grid.id)
-                            continue
-                        mylog.debug("Grid %s has: %s", grid.id, gf)
-                        field_list = field_list.union(gf)
+            mylog.info("Gathering a field list (this may take a moment.)")
+            field_list = set()
+            random_sample = self._generate_random_grids()
+            for grid in random_sample:
+                if not hasattr(grid, 'filename'): continue
+                try:
+                    gf = self.io._read_field_names(grid)
+                except self.io._read_exception:
+                    mylog.debug("Grid %s is a bit funky?", grid.id)
+                    continue
+                mylog.debug("Grid %s has: %s", grid.id, gf)
+                field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.parameter_file.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))

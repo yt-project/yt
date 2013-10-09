@@ -105,34 +105,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         yield (ptype, field), data
             f.close()
 
-    def _read_grid_chunk(self, chunks, fields):
-        sets = [fname for ftype, fname in fields]
-        g = chunks[0].objs[0]
-        if g.filename is None:
-            return {}
-        rv = hdf5_light_reader.ReadMultipleGrids(
-            g.filename, [g.id], sets, "")[g.id]
-        for ftype, fname in fields:
-            rv[(ftype, fname)] = rv.pop(fname).swapaxes(0,2)
-        return rv
-
-    def _read_chunk_data(self, chunk, fields, suffix = ""):
-        data = {}
-        grids_by_file = defaultdict(list)
-        for g in chunk.objs:
-            if g.filename is None:
-                continue
-            grids_by_file[g.filename].append(g.id)
-        #if len(chunk.objs) == 1 and len(grids_by_file) > 0:
-        #    raise RuntimeError
-        sets = [fname for ftype, fname in fields]
-        for filename in grids_by_file:
-            nodes = grids_by_file[filename]
-            nodes.sort()
-            data.update(hdf5_light_reader.ReadMultipleGrids(
-                filename, nodes, sets, suffix))
-        return data
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
         # Now we have to do something unpleasant
@@ -185,9 +157,10 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
                       slice(NGZ, -NGZ))
 
     def _read_raw_data_set(self, grid, field):
-        raise NotImplementedError
-        return hdf5_light_reader.ReadData(grid.filename,
-                "/Grid%08i/%s" % (grid.id, field))
+        f = h5py.File(grid.filename, "r")
+        ds = f["/Grid%08i/%s" % (grid.id, field)][:].swapaxes(0,2)
+        f.close()
+        return ds
 
 class IOHandlerInMemory(BaseIOHandler):
 
@@ -246,18 +219,13 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        raise NotImplementedError
-        return hdf5_light_reader.ReadData(grid.filename,
-            "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
+        f = h5py.File(grid.filename, "r")
+        ds = f["/Grid%08i/%s" % (grid.id, field)][:]
+        f.close()
+        return ds.transpose()[:,:,None]
 
     def modify(self, field):
         pass
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        raise NotImplementedError
-        t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
-                        (grid.id, field)).transpose()
-        return t
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -307,16 +275,10 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        raise NotImplementedError
-        return hdf5_light_reader.ReadData(grid.filename,
-            "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
+        f = h5py.File(grid.filename, "r")
+        ds = f["/Grid%08i/%s" % (grid.id, field)][:]
+        f.close()
+        return ds.transpose()[:,None,None]
 
     def modify(self, field):
         pass
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        raise NotImplementedError
-        t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
-                        (grid.id, field))
-        return t
-
