@@ -139,7 +139,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 data_view = data.swapaxes(0,2)
                 for field in fields:
                     ftype, fname = field
-                    dg = h5py.h5d.open(fid, "/Grid%08i/Density" % g.id)
+                    dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
