@@ -55,7 +55,7 @@ from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.config import ytcfg
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
-    fix_axis, get_image_suffix
+    fix_axis, get_image_suffix, assert_valid_width_tuple
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, x_names, \
@@ -155,45 +155,39 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
-def assert_valid_width_tuple(width):
-    try:
-        assert iterable(width) and len(width) == 2, \
-            "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], Number) and isinstance(width[1], str)
-        msg = "width (%s) is invalid. " % str(width)
-        msg += "Valid widths look like this: (12, 'au')"
-        assert valid, msg
-    except AssertionError, e:
-        raise YTInvalidWidthError(e)
-
 def validate_iterable_width(width, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
         assert_valid_width_tuple(width[0])
         assert_valid_width_tuple(width[1])
-        return width
+        raise RuntimeError
+        return (YTQuantity(width[0][0], width[0][1]),
+                YTQUantity(width[1][0], width[1][1]))
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return ((width[0], 'code_length'), (width[1], 'code_length'))
+        raise RuntimeError
+        return (YTQuantity(width[0][0], 'code_length'),
+                YTQUantity(width[1][0], 'code_length'))
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
         # assume width controls x and unit controls y
         try:
             assert_valid_width_tuple(unit)
-            return (width, unit)
+            return (YTQuantity(width[0], width[1]),
+                    YTQuantity(unit[0], unit[1]))
         except YTInvalidWidthError:
-            return (width, width)
+            return (YTQuantity(width[0], width[1]),
+                    YTQuantity(width[0], width[1]))
 
 def StandardWidth(axis, width, depth, pf):
     if width is None:
         # Default to code units
         if not iterable(axis):
-            width = ((pf.domain_width[x_dict[axis]], 'code_length'),
-                     (pf.domain_width[y_dict[axis]], 'code_length'))
+            width = pf.domain_width[[x_dict[axis], y_dict[axis]]]
         else:
             # axis is actually the normal vector
             # for an off-axis data object.
-            width = ((pf.domain_width.min(), 'code_length'),
-                     (pf.domain_width.min(), 'code_length'))
+            mi = np.argmin(pf.domain_width)
+            width = pf.domain_width[[mi,mi]]
     elif iterable(width):
         width = validate_iterable_width(width)
     else:
@@ -201,24 +195,24 @@ def StandardWidth(axis, width, depth, pf):
             assert isinstance(width, Number), "width (%s) is invalid" % str(width)
         except AssertionError, e:
             raise YTInvalidWidthError(e)
-        width = ((width, 'code_length'), (width, 'code_length'))
+        width = (YTQuantity(width, 'code_length'), 
+                 YTQuantity(width, 'code_length'))
     if depth is not None:
-        if iterable(depth) and isinstance(depth[1], str):
-            depth = (depth,)
-        elif iterable(depth):
+        if iterable(depth):
             assert_valid_width_tuple(depth)
+            depth = (YTQuantity(depth[0], depth[1]),)
         else:
             try:
                 assert isinstance(depth, Number), "width (%s) is invalid" % str(depth)
             except AssertionError, e:
                 raise YTInvalidWidthError(e)
-            depth = ((depth, 'code_length'),)
-        width += depth
+            depth = (YTQuantity(depth, 'code_length'),)
+        return width + depth
     return width
 
 def StandardCenter(center, pf):
     if isinstance(center,str):
-        if center.lower() == 'm' or center.lower() == 'max':
+        if center.lower() == "m" or center.lower() == "max":
             v, center = pf.h.find_max("Density")
         elif center.lower() == "c" or center.lower() == "center":
             center = (pf.domain_left_edge + pf.domain_right_edge) / 2
@@ -248,9 +242,7 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
 
-    bounds = tuple( 
-        YTQuantity(((2*(i%2))-1)*width[i//2][0]/2 , width[i//2][1]) \
-        for i in range(len(width)*2) )
+    bounds = tuple( ( (2*(i%2))-1)*width[i//2]/2 for i in range(len(width)*2))
 
     return (bounds, center)
 
@@ -488,8 +480,9 @@ class PlotWindow(object):
             set_axes_unit = False
 
         if isinstance(width, Number):
-            width = (width, unit)
+            width = YTQuantity(width, unit)
         elif iterable(width):
+            raise RuntimeError
             width = validate_iterable_width(width, unit)
 
         width = StandardWidth(self._frb.axis, width, None, self.pf)
@@ -504,14 +497,12 @@ class PlotWindow(object):
         else:
             self._axes_unit_names = None
 
-        self.xlim = (centerx - width[0][0]/self.pf[units[0]]/2.,
-                     centerx + width[0][0]/self.pf[units[0]]/2.)
-        self.ylim = (centery - width[1][0]/self.pf[units[1]]/2.,
-                     centery + width[1][0]/self.pf[units[1]]/2.)
+        self.xlim = (centerx - width[0], centerx + width[0])
+        self.ylim = (centery - width[1], centery + width[1])
 
         if hasattr(self,'zlim'):
             centerz = (self.zlim[1] + self.zlim[0])/2.
-            mw = max([width[0][0], width[1][0]])
+            mw = np.max([width[0], width[1]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
 

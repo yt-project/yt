@@ -276,9 +276,6 @@ class StreamStaticOutput(StaticOutput):
         _cached_pfs[name] = self
         StaticOutput.__init__(self, name, self._data_style)
 
-        self.units = {}
-        self.time_units = {}
-
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
         self.parameters['CurrentTimeIdentifier'] = time.time()
@@ -328,10 +325,10 @@ class StreamStaticOutput(StaticOutput):
     def set_code_units(self):
         from yt.utilities.units import length, mass, time
         self._set_code_unit_attributes()
-        self.unit_registry.modify("code_length", np.float(self.length_unit))
-        self.unit_registry.modify("code_mass", np.float(self.mass_unit))
-        self.unit_registry.modify("code_time", np.float(self.time_unit))
-
+        self.unit_registry.modify("code_length", self.length_unit.value)
+        self.unit_registry.modify("code_mass", self.mass_unit.value)
+        self.unit_registry.modify("code_time", self.time_unit.value)
+        self.unit_registry.modify("unitary", self.domain_width.min())
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False

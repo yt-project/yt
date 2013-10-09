@@ -96,8 +96,9 @@ default_unit_symbol_lut = {
     "K":  (1.0, temperature),
 
     # "code" units, default to CGS conversion.
-    # This can be overriden by modifying the lut
+    # These default values are  overriden in the code frontends
     "code_length" : (1.0, length),
+    "unitary"   : (1.0, length),
     "code_mass" : (1.0, mass),
     "code_time" : (1.0, time),
 

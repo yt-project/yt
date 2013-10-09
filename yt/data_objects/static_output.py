@@ -160,10 +160,7 @@ class StaticOutput(object):
 
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
-        for d in [self.units, self.time_units, self.parameters, \
-                  self.conversion_factors]:
-            if key in d: return d[key]
-        raise KeyError(key)
+        return self.parameters[key]
 
     def keys(self):
         """
@@ -197,10 +194,7 @@ class StaticOutput(object):
         Checks units, parameters, and conversion factors. Returns a boolean.
 
         """
-        return key in self.units or \
-               key in self.time_units or \
-               key in self.parameters or \
-               key in self.conversion_factors
+        return key in self.parameters
 
     _instantiated_hierarchy = None
     @property

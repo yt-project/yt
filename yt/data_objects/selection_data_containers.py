@@ -48,6 +48,7 @@ from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
+from yt.data_objects.yt_array import YTQuantity
 
 class YTOrthoRayBase(YTSelectionContainer1D):
     """
@@ -541,13 +542,13 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
         """
         if iterable(width):
-            w, u = width
-            width = w/self.pf[u]
+            assert_valid_width_tuple(width)
+            width = YTQuantity(width[0], width[1])
         if height is None:
             height = width
         elif iterable(height):
-            h, u = height
-            height = h/self.pf[u]
+            assert_valid_width_tuple(height)
+            height = YTQuantity(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer

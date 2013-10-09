@@ -39,7 +39,7 @@ def test_cutting_plane():
             yield assert_equal, frb[cut_field].info['ylim'], \
                 frb.bounds[2:]
             yield assert_equal, frb[cut_field].info['length_to_cm'], \
-                pf['cm']
+                pf.length_unit.in_cgs()
             yield assert_equal, frb[cut_field].info['center'], \
                 cut.center
         teardown_func(fns)

@@ -648,3 +648,7 @@ class YTQuantity(YTArray):
         if not isinstance(input, numeric_type):
             raise RuntimeError('Quantity values must be numeric')
         return YTArray.__new__(cls, input, input_units, registry)
+
+    @property
+    def value(self):
+        return np.array(self)
