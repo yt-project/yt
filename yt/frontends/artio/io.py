@@ -56,9 +56,8 @@ class IOHandlerARTIO(BaseIOHandler):
                                  for fname in field_list]
         for ptype, field_list in sorted(ptf.items()):
             for ax in 'xyz':
-                pp = "particle_position_%s" % ax
                 if pp not in field_list:
-                    fields.append((ptype, pp))
+                    fields.append((ptype, pn % ax))
         for chunk in chunks: # These should be organized by grid filename
             for subset in chunk.objs:
                 rv = dict(**subset.fill_particles(fields))
