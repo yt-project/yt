@@ -319,10 +319,12 @@ class StaticOutput(object):
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
-        if guessing_type and ("all", fname) in self.field_info:
-            self._last_freq = ("all", fname)
-            self._last_finfo = self.field_info["all", fname]
-            return self._last_finfo
+        if guessing_type:
+            for ftype in ("all", self.default_fluid_type):
+                if (ftype, fname) in self.field_info:
+                    self._last_freq = (ftype, fname)
+                    self._last_finfo = self.field_info[(ftype, fname)]
+                    return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
     def add_particle_union(self, union):
