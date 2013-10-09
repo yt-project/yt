@@ -474,6 +474,7 @@ class ARTIOStaticOutput(StaticOutput):
             self.num_species = 0
             self.particle_variables = []
             self.particle_types = ()
+        self.particle_types_raw = self.particle_types
 
         self.current_time = b2t(self.artio_parameters["tl"][0])
 

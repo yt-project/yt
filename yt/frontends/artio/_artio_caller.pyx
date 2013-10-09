@@ -916,7 +916,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             "species_%02u_secondary_variable_labels" % (species,), [])
         tp = total_particles[species]
         vp = &vpoints[species]
-        if field == "MASS":
+        if field == "MASS" and params["particle_species_mass"][species] != 0.0:
             vp.n_mass = 1
             npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
             # We fill this *now*

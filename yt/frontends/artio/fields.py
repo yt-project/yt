@@ -28,8 +28,7 @@ import yt.data_objects.universal_fields
 from yt.data_objects.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
-    particle_scalar_functions, \
-    _field_concat, _field_concat_slice
+    particle_scalar_functions
 import numpy as np
 
 KnownARTIOFields = FieldInfoContainer()
