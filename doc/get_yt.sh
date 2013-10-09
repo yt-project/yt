@@ -301,7 +301,6 @@ else
   export HDF5_DIR=${DEST_DIR}
   log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
   pushd ${YT_DIR}
-  echo $DEST_DIR > hdf5.cfg
   log_cmd python setup.py develop
   popd
   log_cmd cp ${YT_DIR}/doc/activate ${DEST_DIR}/bin/activate 
