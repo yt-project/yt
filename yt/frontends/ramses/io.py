@@ -79,8 +79,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                                for ax in 'xyz')
                     mask = selector.select_points(x, y, z)
                     for field in field_list:
-                        yield ptype, rv[ptype, field]
-                    rv.pop(ptype)
+                        data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
+                        yield (ptype, field), data
 
     def _read_particle_subset(self, subset, fields):
         f = open(subset.domain.part_fn, "rb")

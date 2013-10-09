@@ -56,7 +56,7 @@ class IOHandlerARTIO(BaseIOHandler):
                                  for fname in field_list]
         for ptype, field_list in sorted(ptf.items()):
             for ax in 'xyz':
-                if pp not in field_list:
+                if pn % ax not in field_list:
                     fields.append((ptype, pn % ax))
         for chunk in chunks: # These should be organized by grid filename
             for subset in chunk.objs:
@@ -65,7 +65,8 @@ class IOHandlerARTIO(BaseIOHandler):
                     x, y, z = (np.asarray(rv[ptype][pn % ax], dtype="=f8")
                                for ax in 'xyz')
                     mask = selector.select_points(x, y, z)
+                    if mask is None: continue
                     for field in field_list:
                         data = np.asarray(rv[ptype][field], "=f8")
-                        yield (ptype, field), data
+                        yield (ptype, field), data[mask]
                     rv.pop(ptype)

@@ -102,7 +102,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         data = np.asarray(pds.get(field).value, "=f8")
                         if field in _convert_mass:
                             data *= g.dds.prod(dtype="f8")
-                        yield (ptype, field), data
+                        yield (ptype, field), data[mask]
             f.close()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
