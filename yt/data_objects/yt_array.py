@@ -312,6 +312,12 @@ class YTArray(np.ndarray):
         """
         return self.in_units(self.units.get_cgs_equivalent())
 
+    def to_ndarray(self):
+        """
+        Creates a copy of this array with the unit information stripped
+
+        """
+        return np.array(self)
     #
     # End unit conversion methods
     #

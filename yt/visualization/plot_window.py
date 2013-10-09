@@ -70,7 +70,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.exceptions import YTUnitNotRecognized, YTInvalidWidthError
 from yt.data_objects.time_series import \
     TimeSeriesData
-from yt.data_objects.yt_array import YTArray
+from yt.data_objects.yt_array import YTArray, YTQuantity
     
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -172,7 +172,7 @@ def validate_iterable_width(width, unit=None):
         assert_valid_width_tuple(width[1])
         return width
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return ((width[0], '1'), (width[1], '1'))
+        return ((width[0], 'code_length'), (width[1], 'code_length'))
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
@@ -187,13 +187,13 @@ def StandardWidth(axis, width, depth, pf):
     if width is None:
         # Default to code units
         if not iterable(axis):
-            width = ((pf.domain_width[x_dict[axis]], '1'),
-                     (pf.domain_width[y_dict[axis]], '1'))
+            width = ((pf.domain_width[x_dict[axis]], 'code_length'),
+                     (pf.domain_width[y_dict[axis]], 'code_length'))
         else:
             # axis is actually the normal vector
             # for an off-axis data object.
-            width = ((pf.domain_width.min(), '1'),
-                     (pf.domain_width.min(), '1'))
+            width = ((pf.domain_width.min(), 'code_length'),
+                     (pf.domain_width.min(), 'code_length'))
     elif iterable(width):
         width = validate_iterable_width(width)
     else:
@@ -214,7 +214,7 @@ def StandardWidth(axis, width, depth, pf):
                 raise YTInvalidWidthError(e)
             depth = ((depth, 'code_length'),)
         width += depth
-    return ()
+    return width
 
 def StandardCenter(center, pf):
     if isinstance(center,str):
@@ -234,6 +234,7 @@ def GetWindowParameters(axis, center, width, pf):
               center[x_dict[axis]]+width[0][0] / 2,
               center[y_dict[axis]]-width[1][0] / 2,
               center[y_dict[axis]]+width[1][0] / 2)
+    raise RuntimeError
     return (bounds, center, units)
 
 def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
@@ -247,16 +248,11 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
 
-        units = (width[0][1], width[1][1])
-        raise RuntimeError
-        bounds = (-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2,
-                  -width[1][0]/pf[units[1]]/2, width[1][0]/pf[units[1]]/2)
-    else:
-        units = (width[0][1], width[1][1], width[2][1])
-        bounds = (-width[0][0]/pf[units[0]]/2, width[0][0]/pf[units[0]]/2,
-                  -width[1][0]/pf[units[1]]/2, width[1][0]/pf[units[1]]/2,
-                  -width[2][0]/pf[units[2]]/2, width[2][0]/pf[units[2]]/2)
-    return (bounds, center, units)
+    bounds = tuple( 
+        YTQuantity(((2*(i%2))-1)*width[i//2][0]/2 , width[i//2][1]) \
+        for i in range(len(width)*2) )
+
+    return (bounds, center)
 
 class PlotWindow(object):
     r"""
@@ -457,7 +453,7 @@ class PlotWindow(object):
             mylog.info("zlim = %f %f" %self.zlim)
 
     @invalidate_data
-    def set_width(self, width, unit = '1'):
+    def set_width(self, width, unit = 'code_length'):
         """set the width of the plot window
 
         parameters
@@ -520,7 +516,7 @@ class PlotWindow(object):
                          centerz + mw/2.)
 
     @invalidate_data
-    def set_center(self, new_center, unit = '1'):
+    def set_center(self, new_center, unit = 'code_length'):
         """Sets a new center for the plot window
 
         parameters
@@ -866,8 +862,8 @@ class PWViewerMPL(PWViewer):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            extentx = [(self.xlim[i] - xc) * self.pf[unit_x] for i in (0,1)]
-            extenty = [(self.ylim[i] - yc) * self.pf[unit_y] for i in (0,1)]
+            extentx = [(self.xlim[i] - xc) for i in (0,1)]
+            extenty = [(self.ylim[i] - yc) for i in (0,1)]
 
             extent = extentx + extenty
 
@@ -886,9 +882,6 @@ class PWViewerMPL(PWViewer):
             else:
                 size = (plot_aspect*self.window_size*(1.+cbar_frac), self.window_size)
 
-            # Correct the aspect ratio in case unit_x and unit_y are different
-            aspect = self.pf[unit_x]/self.pf[unit_y]
-
             image = self._frb[f]
 
             if image.max() == image.min() and self._field_transform[f] == log_transform:
@@ -901,7 +894,7 @@ class PWViewerMPL(PWViewer):
             fp = self._font_properties
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
-                                          self._colormaps[f], extent, aspect,
+                                          self._colormaps[f], extent, 1.0,
                                           zlim, size, fp.get_size())
 
             axes_unit_labels = ['', '']
@@ -1239,7 +1232,7 @@ class SlicePlot(PWViewerMPL):
         pf = self.pf = ts[0]
         axis = fix_axis(axis)
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
-        if axes_unit is None and units != ('1', '1'):
+        if axes_unit is None and units != ('code_length', 'code_length'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis],
@@ -1360,7 +1353,7 @@ class ProjectionPlot(PWViewerMPL):
         pf = self.pf = ts[0]
         axis = fix_axis(axis)
         (bounds, center, units) = GetWindowParameters(axis, center, width, pf)
-        if axes_unit is None  and units != ('1', '1'):
+        if axes_unit is None  and units != ('code_length', 'code_length'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
@@ -1419,7 +1412,7 @@ class OffAxisSlicePlot(PWViewerMPL):
                  axes_unit=None, north_vector=None, fontsize=18,
                  field_parameters=None):
         (bounds, center_rot, units) = GetObliqueWindowParameters(normal,center,width,pf)
-        if axes_unit is None and units != ('1', '1'):
+        if axes_unit is None and units != ('code_length', 'code_length'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         cutting = pf.h.cutting(normal, center,

@@ -161,7 +161,8 @@ class FixedResolutionBuffer(object):
         info['units'] = finfo.get_units()
         info['xlim'] = self.bounds[:2]
         info['ylim'] = self.bounds[2:]
-        info['length_to_cm'] = self.data_source.pf['cm']
+        info['length_unit'] = self.data_source.pf.length_unit
+        info['length_to_cm'] = info['length_unit'].in_cgs().to_ndarray()
         info['projected_units'] = finfo.get_projected_units()
         info['center'] = self.data_source.center
         

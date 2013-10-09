@@ -447,27 +447,27 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
         if field == "px":
-            x = self._current_chunk.fcoords[:,0] - self.center[0]
-            y = self._current_chunk.fcoords[:,1] - self.center[1]
-            z = self._current_chunk.fcoords[:,2] - self.center[2]
+            x = self._current_chunk.fcoords[:,0] - self.center[0].to_ndarray()
+            y = self._current_chunk.fcoords[:,1] - self.center[1].to_ndarray()
+            z = self._current_chunk.fcoords[:,2] - self.center[2].to_ndarray()
             tr = np.zeros(self.size, dtype='float64')
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
             return tr
         elif field == "py":
-            x = self._current_chunk.fcoords[:,0] - self.center[0]
-            y = self._current_chunk.fcoords[:,1] - self.center[1]
-            z = self._current_chunk.fcoords[:,2] - self.center[2]
+            x = self._current_chunk.fcoords[:,0] - self.center[0].to_ndarray()
+            y = self._current_chunk.fcoords[:,1] - self.center[1].to_ndarray()
+            z = self._current_chunk.fcoords[:,2] - self.center[2].to_ndarray()
             tr = np.zeros(self.size, dtype='float64')
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
             return tr
         elif field == "pz":
-            x = self._current_chunk.fcoords[:,0] - self.center[0]
-            y = self._current_chunk.fcoords[:,1] - self.center[1]
-            z = self._current_chunk.fcoords[:,2] - self.center[2]
+            x = self._current_chunk.fcoords[:,0] - self.center[0].to_ndarray()
+            y = self._current_chunk.fcoords[:,1] - self.center[1].to_ndarray()
+            z = self._current_chunk.fcoords[:,2] - self.center[2].to_ndarray()
             tr = np.zeros(self.size, dtype='float64')
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
@@ -495,12 +495,11 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         from yt.visualization.plot_window import \
             GetObliqueWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        (bounds, center_rot, units) = GetObliqueWindowParameters(normal, center, width, self.pf)
-        if axes_unit is None and units != ('1', '1'):
-            axes_units = units
+        (bounds, center_rot) = GetObliqueWindowParameters(normal, center, width, self.pf)
         pw = PWViewerMPL(self, bounds, origin='center-window', periodic=False, oblique=True,
                          frb_generator=ObliqueFixedResolutionBuffer, plot_type='OffAxisSlice')
-        pw.set_axes_unit(axes_unit)
+        if axes_unit is not None:
+            pw.set_axes_unit(axes_unit)
         return pw
 
     def to_frb(self, width, resolution, height=None):

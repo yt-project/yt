@@ -124,12 +124,14 @@ default_unit_symbol_lut = {
     "Msun": (1.98892e33, mass),
     "msun": (1.98892e33, mass),
     "Rsun": (6.96e10, length),
+    "rsun": (6.96e10, length),
     "Lsun": (3.9e33, power),
     "Tsun": (5870.0, temperature),
     "Zsun": (1.0, dimensionless),
 
     # astro distances
     "AU": (1.49598e13, length),
+    "au": (1.49598e13, length),
     "ly": (9.46053e17, length),
     "pc": (3.08568e18, length),
 
