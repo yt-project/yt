@@ -25,7 +25,12 @@ from _artio_caller import \
 import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
+from .fields import \
+    ARTIOFieldInfo, \
+    KnownARTIOFields, \
+    b2t, \
+    _setup_particle_fields
+
 
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
@@ -502,6 +507,11 @@ class ARTIOStaticOutput(StaticOutput):
 
         # hard coded assumption of 3D periodicity (add to parameter file)
         self.periodicity = (True, True, True)
+
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.keys())
+        _setup_particle_fields(self.field_info, ptype)
+        return list(set(self.field_info.keys()).difference(orig))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

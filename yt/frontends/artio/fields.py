@@ -239,23 +239,31 @@ ARTIOFieldInfo["Metal_Density"]._projected_units = r""
 ##################################################
 #Particle fields
 
-for ptype in ("nbody", "stars"):
+def _setup_particle_fields(registry, ptype):
     for ax in 'xyz':
-        add_artio_field((ptype, "particle_velocity_%s" % ax),
+        registry.add_field(
+                        (ptype, "particle_velocity_%s" % ax),
                         function=NullFunc,
                         particle_type=True)
-        add_artio_field((ptype, "particle_position_%s" % ax),
+        registry.add_field(
+                        (ptype, "particle_position_%s" % ax),
                         function=NullFunc,
                         particle_type=True)
 
     def _convertParticleMass(data):
         return np.float64(data.convert('particle_mass'))
-    add_artio_field((ptype, "particle_mass"),
+    registry.add_field((ptype, "particle_mass"),
               function=NullFunc,
               convert_function=_convertParticleMass,
               units=r"\rm{g}",
               particle_type=True)
-    add_artio_field((ptype, "particle_index"), function=NullFunc, particle_type=True)
+
+    particle_vector_functions(ptype,
+        ["particle_position_%s" % ax for ax in 'xyz'],
+        ["particle_velocity_%s" % ax for ax in 'xyz'],
+        registry)
+    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
+        registry)
 
 #add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field, data):
@@ -266,24 +274,6 @@ def _particle_age(field, data):
     return tr
 add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
           particle_type=True)
-
-# We can now set up particle vector and particle deposition fields.
-
-for fname in ["particle_position_%s" % ax for ax in 'xyz'] + \
-             ["particle_velocity_%s" % ax for ax in 'xyz'] + \
-             ["particle_index", "particle_species",
-              "particle_mass"]:
-    func = _field_concat(fname)
-    ARTIOFieldInfo.add_field(("all", fname), function=func,
-            particle_type = True)
-
-for ptype in ("nbody", "stars", "all"):
-    particle_vector_functions(ptype,
-        ["particle_position_%s" % ax for ax in 'xyz'],
-        ["particle_velocity_%s" % ax for ax in 'xyz'],
-        ARTIOFieldInfo)
-    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
-        ARTIOFieldInfo)
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')
