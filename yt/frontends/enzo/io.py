@@ -113,7 +113,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
-            f = h5py.File(g.filename)
+            f = h5py.File(g.filename, 'r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
                 rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
@@ -235,7 +235,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
-            f = h5py.File(g.filename)
+            f = h5py.File(g.filename, 'r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
                 rv[(ftype, fname)] = np.atleast_3d(gds.get(fname).value)
