@@ -3,7 +3,8 @@ import numpy as np
 cimport numpy as np
 import sys 
 
-from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
+from yt.geometry.selection_routines cimport \
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     SparseOctreeContainer
@@ -122,7 +123,9 @@ cdef extern from "artio_internal.h":
     void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
 
 cdef void check_artio_status(int status, char *fname="[unknown]"):
-    if status!=ARTIO_SUCCESS :
+    if status != ARTIO_SUCCESS:
+        import traceback
+        traceback.print_stack()
         callername = sys._getframe().f_code.co_name
         nline = sys._getframe().f_lineno
         raise RuntimeError('failure with status', status, 'in function',fname,'from caller', callername, nline)
@@ -487,8 +490,7 @@ cdef class artio_fileset :
 
         return (fcoords, ires, data)
 
-    def root_sfc_ranges_all(self) :
-        cdef int max_range_size = 1024
+    def root_sfc_ranges_all(self, int max_range_size = 1024) :
         cdef int64_t sfc_start, sfc_end
         cdef artio_selection *selection
 
@@ -502,8 +504,8 @@ cdef class artio_fileset :
         artio_selection_destroy(selection)
         return sfc_ranges
 
-    def root_sfc_ranges(self, SelectorObject selector) :
-        cdef int max_range_size = 1024
+    def root_sfc_ranges(self, SelectorObject selector,
+                        int max_range_size = 1024):
         cdef int coords[3]
         cdef int64_t sfc_start, sfc_end
         cdef np.float64_t left[3]
@@ -561,6 +563,10 @@ cdef class ARTIOSFCRangeHandler:
     cdef np.float64_t dds[3]
     cdef np.int64_t dims[3]
     cdef public np.int64_t total_octs
+    cdef np.int64_t *doct_count
+    cdef np.int64_t **pcount
+    cdef float **root_mesh_data
+    cdef np.int64_t nvars[2]
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
@@ -568,6 +574,7 @@ cdef class ARTIOSFCRangeHandler:
                  artio_fileset artio_handle,
                  sfc_start, sfc_end):
         cdef int i
+        cdef np.int64_t sfc
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
         self.artio_handle = artio_handle
@@ -575,25 +582,54 @@ cdef class ARTIOSFCRangeHandler:
         self.octree_handler = None
         self.handle = artio_handle.handle
         self.oct_count = None
+        self.root_mesh_data = NULL
+        self.pcount = <np.int64_t **> malloc(sizeof(np.int64_t*)
+            * artio_handle.num_species)
+        self.nvars[0] = artio_handle.num_species
+        self.nvars[1] = artio_handle.num_grid_variables
+        for i in range(artio_handle.num_species):
+            self.pcount[i] = <np.int64_t*> malloc(sizeof(np.int64_t)
+                * (self.sfc_end - self.sfc_start + 1))
+            for sfc in range(self.sfc_end - self.sfc_start + 1):
+                self.pcount[i][sfc] = 0
         for i in range(3):
             self.dims[i] = domain_dimensions[i]
             self.DLE[i] = domain_left_edge[i]
             self.DRE[i] = domain_right_edge[i]
             self.dds[i] = (self.DRE[i] - self.DLE[i])/self.dims[i]
 
+    def __dealloc__(self):
+        cdef int i
+        for i in range(self.nvars[0]):
+            free(self.pcount[i])
+        for i in range(self.nvars[1]):
+            free(self.root_mesh_data[i])
+        free(self.pcount)
+        free(self.root_mesh_data)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def construct_mesh(self):
-        cdef int status, level
-        cdef np.int64_t sfc, oc
+        cdef int status, level, ngv
+        cdef np.int64_t sfc, oc, i
         cdef double dpos[3]
         cdef int num_oct_levels
         cdef int max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
+        cdef int num_species = self.artio_handle.num_species
+        cdef int *num_particles_per_species =  <int *>malloc(
+            sizeof(int)*num_species) 
         cdef ARTIOOctreeContainer octree
+        ngv = self.nvars[1]
+        cdef float *grid_variables = <float *>malloc(
+            ngv * sizeof(float))
         self.octree_handler = octree = ARTIOOctreeContainer(self)
+        self.root_mesh_data = <float **>malloc(sizeof(float *) * ngv)
+        for i in range(ngv):
+            self.root_mesh_data[i] = <float *>malloc(sizeof(float) * \
+                (self.sfc_end - self.sfc_start + 1))
         # We want to pre-allocate an array of root pointers.  In the future,
         # this will be pre-determined by the ARTIO library.  However, because
         # realloc plays havoc with our tree searching, we can't utilize an
@@ -606,7 +642,11 @@ cdef class ARTIOSFCRangeHandler:
         check_artio_status(status) 
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             status = artio_grid_read_root_cell_begin( self.handle,
-                sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+                sfc, dpos, grid_variables, &num_oct_levels,
+                num_octs_per_level)
+            for i in range(ngv):
+                self.root_mesh_data[i][sfc - self.sfc_start] = \
+                    grid_variables[i]
             check_artio_status(status)
             if num_oct_levels > 0:
                 oc = 0
@@ -618,13 +658,39 @@ cdef class ARTIOSFCRangeHandler:
                     num_octs_per_level, sfc)
             status = artio_grid_read_root_cell_end( self.handle )
             check_artio_status(status)
+        status = artio_grid_clear_sfc_cache( self.handle)
+        check_artio_status(status)
+        # Now particles
+        status = artio_particle_cache_sfc_range(self.handle, self.sfc_start,
+                                            self.sfc_end)
+        check_artio_status(status) 
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            # Now particles
+            status = artio_particle_read_root_cell_begin( self.handle,
+                    sfc, num_particles_per_species )
+            check_artio_status(status)
+
+            for i in range(num_species):
+                self.pcount[i][sfc - self.sfc_start] = \
+                    num_particles_per_species[i]
+
+            status = artio_particle_read_root_cell_end( self.handle)
+            check_artio_status(status)
+
+        status = artio_particle_clear_sfc_cache( self.handle)
+        check_artio_status(status)
+
+        free(grid_variables)
         free(num_octs_per_level)
-        self.root_mesh_handler = ARTIORootMeshContainer(self)
+        free(num_particles_per_species)
         self.oct_count = oct_count
+        self.doct_count = <np.int64_t *> oct_count.data
+        self.root_mesh_handler = ARTIORootMeshContainer(self)
 
     def free_mesh(self):
         self.octree_handler = None
         self.root_mesh_handler = None
+        self.doct_count = NULL
         self.oct_count = None
 
 def get_coords(artio_fileset handle, np.int64_t s):
@@ -661,9 +727,11 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     # this, we will avoid creating it as long as possible.
 
     cdef public artio_fileset artio_handle
+    cdef ARTIOSFCRangeHandler range_handler
     cdef np.int64_t level_indices[32]
 
     def __init__(self, ARTIOSFCRangeHandler range_handler):
+        self.range_handler = range_handler
         self.artio_handle = range_handler.artio_handle
         # Note the final argument is partial_coverage, which indicates whether
         # or not an Oct can be partially refined.
@@ -781,6 +849,12 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         #   * Enable preloading during mesh initialization
         #   * Calculate domain indices on the fly rather than with a
         #     double-loop to calculate domain_counts
+        # The cons should be in order
+        cdef np.int64_t sfc_start, sfc_end
+        sfc_start = self.domains[0].con_id
+        sfc_end = self.domains[self.num_domains - 1].con_id
+        status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end )
+        check_artio_status(status) 
         cdef np.int64_t offset = 0 
         for si in range(self.num_domains):
             sfc = self.domains[si].con_id
@@ -814,6 +888,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                     dest[i + offset] = source[oct_ind, cell_inds[i + offset]]
             # Now, we offset by the actual number filled here.
             offset += domain_counts[si]
+        status = artio_grid_clear_sfc_cache(handle)
+        check_artio_status(status)
         free(field_ind)
         free(field_vals)
         free(grid_variables)
@@ -825,12 +901,18 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         sfc_start = self.domains[0].con_id
         sfc_end = self.domains[self.num_domains - 1].con_id
         rv = read_sfc_particles(self.artio_handle, sfc_start, sfc_end,
-                                0, fields)
+                                0, fields, self.range_handler.doct_count,
+                                self.range_handler.pcount)
         return rv
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef read_sfc_particles(artio_fileset artio_handle,
                         np.int64_t sfc_start, np.int64_t sfc_end,
-                        int read_unrefined, fields):
+                        int read_unrefined, fields,
+                        np.int64_t *doct_count,
+                        np.int64_t **pcount):
     cdef int status, ispec, subspecies
     cdef np.int64_t sfc, particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
@@ -876,32 +958,16 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vpoints[ispec].n_p = 0
         vpoints[ispec].n_s = 0
 
-    status = artio_particle_cache_sfc_range( handle,
-            sfc_start, sfc_end ) 
-    check_artio_status(status)
-
-    # We cache so we can figure out if the cell is refined or not.
-    status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end)
-    check_artio_status(status) 
-
     # Pass through once.  We want every single particle.
+    tp = 0
+    cdef np.int64_t c
     for sfc in range(sfc_start, sfc_end + 1):
-        status = artio_grid_read_root_cell_begin( handle,
-            sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
-        check_artio_status(status)
-        status = artio_grid_read_root_cell_end(handle)
-        check_artio_status(status)
-        if read_unrefined == 1 and num_oct_levels > 0: continue
-        if read_unrefined == 0 and num_oct_levels == 0: continue
-        status = artio_particle_read_root_cell_begin( handle, sfc,
-                num_particles_per_species )
-        check_artio_status(status)
+        c = doct_count[sfc - sfc_start]
+        if read_unrefined == 1 and c > 0: continue
+        if read_unrefined == 0 and c == 0: continue
 
         for ispec in range(num_species):
-            total_particles[ispec] += num_particles_per_species[ispec]
-
-        status = artio_particle_read_root_cell_end( handle )
-        check_artio_status(status)
+            total_particles[ispec] += pcount[ispec][sfc - sfc_start]
 
     # Now we allocate our final fields, which will be filled
     #for ispec in range(num_species):
@@ -918,39 +984,50 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         vp = &vpoints[species]
         if field == "MASS" and params["particle_species_mass"][species] != 0.0:
             vp.n_mass = 1
-            npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
             # We fill this *now*
             npf64arr += params["particle_species_mass"][species]
             vp.mass = <np.float64_t*> npf64arr.data
         elif field == "PID":
             vp.n_pid = 1
-            npi64arr = data[(species, field)] = np.zeros(tp, dtype="int64")
+            data[(species, field)] = np.zeros(tp, dtype="int64")
+            npi64arr = data[(species, field)]
             vp.pid = <np.int64_t*> npi64arr.data
         elif field == "SPECIES":
             vp.n_species = 1
-            npi8arr = data[(species, field)] = np.zeros(tp, dtype="int8")
+            data[(species, field)] = np.zeros(tp, dtype="int8")
+            npi8arr = data[(species, field)]
             # We fill this *now*
             npi8arr += species
             vp.species = <np.int8_t*> npi8arr.data
         elif npri_vars[species] > 0 and field in pri_vars :
-            npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
             vp.p_ind[vp.n_p] = pri_vars.index(field)
             vp.pvars[vp.n_p] = <np.float64_t *> npf64arr.data
             vp.n_p += 1
         elif nsec_vars[species] > 0 and field in sec_vars :
-            npf64arr = data[(species, field)] = np.zeros(tp, dtype="float64")
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
 
+    status = artio_particle_cache_sfc_range( handle,
+            sfc_start, sfc_end ) 
+    check_artio_status(status)
+
     for sfc in range(sfc_start, sfc_end + 1):
-        status = artio_grid_read_root_cell_begin( handle,
-            sfc, dpos, NULL, &num_oct_levels, num_octs_per_level)
+        c = doct_count[sfc - sfc_start]
         check_artio_status(status)
-        status = artio_grid_read_root_cell_end(handle)
-        check_artio_status(status)
-        if read_unrefined == 1 and num_oct_levels > 0: continue
-        if read_unrefined == 0 and num_oct_levels == 0: continue
+        if read_unrefined == 1 and c > 0: continue
+        if read_unrefined == 0 and c == 0: continue
+        c = 0
+        for ispec in range(num_species) : 
+            if accessed_species[ispec] == 0: continue
+            c += pcount[ispec][sfc - sfc_start]
+        if c == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
@@ -986,11 +1063,8 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         status = artio_particle_read_root_cell_end( handle )
         check_artio_status(status)
 
-    #status = artio_particle_clear_sfc_cache(handle)
-    #check_artio_status(status)
-
-    #status = artio_grid_clear_sfc_cache(handle)
-    #check_artio_status(status)
+    status = artio_particle_clear_sfc_cache(handle)
+    check_artio_status(status)
 
     free(num_octs_per_level)
     free(num_particles_per_species)
@@ -1011,11 +1085,15 @@ cdef class ARTIORootMeshContainer:
     cdef np.uint64_t sfc_start
     cdef np.uint64_t sfc_end
     cdef public object _last_mask
-    cdef public object _last_selector_id
+    cdef public np.int64_t _last_selector_id
+    cdef np.int64_t _last_mask_sum
     cdef ARTIOSFCRangeHandler range_handler
+    cdef np.uint8_t *sfc_mask
+    cdef np.int64_t nsfc
 
     def __init__(self, ARTIOSFCRangeHandler range_handler):
         cdef int i
+        cdef np.int64_t sfci
         for i in range(3):
             self.DLE[i] = range_handler.DLE[i]
             self.DRE[i] = range_handler.DRE[i]
@@ -1023,10 +1101,27 @@ cdef class ARTIORootMeshContainer:
             self.dds[i] = range_handler.dds[i]
         self.handle = range_handler.handle
         self.artio_handle = range_handler.artio_handle
-        self._last_mask = self._last_selector_id = None
+        self._last_mask = None
+        self._last_selector_id = -1
         self.sfc_start = range_handler.sfc_start
         self.sfc_end = range_handler.sfc_end
         self.range_handler = range_handler
+        # We assume that the number of octs has been created and filled
+        # already.  We no longer care about ANY of the SFCs that have octs
+        # inside them -- this goes for every operation that this object
+        # performs.
+        self.sfc_mask = <np.uint8_t *>malloc(sizeof(np.uint8_t) *
+          self.sfc_end - self.sfc_start + 1)
+        self.nsfc = 0
+        for sfci in range(self.sfc_end - self.sfc_start + 1):
+            if self.range_handler.oct_count[sfci] > 0:
+                self.sfc_mask[sfci] = 0
+            else:
+                self.sfc_mask[sfci] = 1
+                self.nsfc += 1
+
+    def __dealloc__(self):
+        free(self.sfc_mask)
 
     @cython.cdivision(True)
     cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
@@ -1054,19 +1149,24 @@ cdef class ARTIORootMeshContainer:
         cdef int i
         return self.mask(selector).sum()
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def icoords(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         # Note that num_octs does not have to equal sfc_end - sfc_start + 1.
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, sfci = -1
         cdef int acoords[3], i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="int64")
         cdef int filled = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             # Note that we do *no* checks on refinement here.  In fact, this
             # entire setup should not need to touch the disk except if the
             # artio sfc calculators need to.
@@ -1076,20 +1176,25 @@ cdef class ARTIORootMeshContainer:
             filled += 1
         return coords
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fcoords(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         # Note that num_cells does not have to equal sfc_end - sfc_start + 1.
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
         cdef int acoords[3], i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.float64_t, ndim=2] coords
         coords = np.empty((num_cells, 3), dtype="float64")
         cdef int filled = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             # Note that we do *no* checks on refinement here.  In fact, this
             # entire setup should not need to touch the disk except if the
             # artio sfc calculators need to.
@@ -1099,23 +1204,29 @@ cdef class ARTIORootMeshContainer:
             filled += 1
         return coords
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fwidth(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.float64_t, ndim=2] width
         width = np.zeros((num_cells, 3), dtype="float64")
         for i in range(3):
             width[:,i] = self.dds[i]
         return width
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def ires(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_cells, dtype="int64")
         return res
@@ -1132,7 +1243,7 @@ cdef class ARTIORootMeshContainer:
         # other.  Note that we *do* apply the selector here.
         cdef np.int64_t num_cells = -1
         cdef np.int64_t ind
-        cdef np.int64_t sfc
+        cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
         cdef np.float64_t dpos[3]
         cdef int dim, status, filled = 0
@@ -1149,7 +1260,7 @@ cdef class ARTIORootMeshContainer:
             # Note that RAMSES can have partial refinement inside an Oct.  This
             # means we actually do want the number of Octs, not the number of
             # cells.
-            num_cells = mask.sum()
+            num_cells = self._last_mask_sum
             if dims > 1:
                 dest = np.zeros((num_cells, dims), dtype=source.dtype,
                     order='C')
@@ -1158,7 +1269,9 @@ cdef class ARTIORootMeshContainer:
         ddata = (<char*>dest.data) + offset*ss*dims
         ind = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             memcpy(ddata, sdata + ind, dims * ss)
             ddata += dims * ss
             filled += 1
@@ -1170,56 +1283,55 @@ cdef class ARTIORootMeshContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask(self, SelectorObject selector, np.int64_t num_cells = -1):
+    def mask(self, SelectorObject selector, np.int64_t num_cells = -1,
+             int domain_id = -1): 
+        # We take a domain_id here to avoid subclassing
         cdef int i
         cdef np.float64_t pos[3]
-        cdef np.int64_t sfc
-        cdef np.ndarray[np.int64_t, ndim=1] oct_count
+        cdef np.int64_t sfc, sfci = -1
         if self._last_selector_id == hash(selector):
             return self._last_mask
-        if num_cells == -1:
-            # We need to count, but this process will only occur one time,
-            # since num_cells will later be cached.
-            num_cells = self.sfc_end - self.sfc_start + 1
-        mask = np.zeros((num_cells), dtype="uint8")
-        oct_count = self.range_handler.oct_count
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        mask = np.zeros((self.nsfc), dtype="uint8")
+        self._last_mask_sum = 0
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if oct_count[sfc - self.sfc_start] > 0: continue
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
             self.sfc_to_pos(sfc, pos)
             if selector.select_cell(pos, self.dds) == 0: continue
-            mask[sfc - self.sfc_start] = 1
+            mask[sfci] = 1
+            self._last_mask_sum += 1
         self._last_mask = mask.astype("bool")
         self._last_selector_id = hash(selector)
         return self._last_mask
 
+
     def fill_sfc_particles(self, fields):
         rv = read_sfc_particles(self.artio_handle,
                                 self.sfc_start, self.sfc_end,
-                                1, fields)
+                                1, fields, self.range_handler.doct_count,
+                                self.range_handler.pcount)
         return rv
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fill_sfc(self, SelectorObject selector, field_indices):
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
-        cdef np.int64_t sfc, num_cells
+        cdef np.int64_t sfc, num_cells, sfci = -1
         cdef np.float64_t val
-        cdef artio_fileset_handle *handle = self.artio_handle.handle
         cdef double dpos[3]
         # We duplicate some of the grid_variables stuff here so that we can
         # potentially release the GIL
         nf = len(field_indices)
         ngv = self.artio_handle.num_grid_variables
-        max_level = self.artio_handle.max_level
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
-        num_cells = mask.sum()
+        num_cells = self._last_mask_sum
         tr = []
         for i in range(nf):
             tr.append(np.zeros(num_cells, dtype="float64"))
-        cdef int *num_octs_per_level = <int *>malloc(
-            (max_level + 1)*sizeof(int))
-        cdef float *grid_variables = <float *>malloc(
-            ngv * sizeof(float))
         cdef int* field_ind = <int*> malloc(
             nf * sizeof(int))
         cdef np.float64_t **field_vals = <np.float64_t**> malloc(
@@ -1232,29 +1344,23 @@ cdef class ARTIORootMeshContainer:
         # First we need to walk the mesh in the file.  Then we fill in the dest
         # location based on the file index.
         cdef int filled = 0
-        status = artio_grid_cache_sfc_range(handle,
-            self.sfc_start, self.sfc_end )
-        check_artio_status(status) 
+        cdef float **mesh_data = self.range_handler.root_mesh_data
         for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if mask[sfc - self.sfc_start] == 0: continue
-            status = artio_grid_read_root_cell_begin( handle, sfc, 
-                    dpos, grid_variables, &num_oct_levels,
-                    num_octs_per_level)
-            check_artio_status(status) 
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: continue
             for i in range(nf):
-                field_vals[i][filled] = grid_variables[field_ind[i]]
+                field_vals[i][filled] = mesh_data[field_ind[i]][
+                    sfc - self.sfc_start]
             filled += 1
-            status = artio_grid_read_root_cell_end( handle )
-            check_artio_status(status)
         # Now we have all our sources.
-        #status = artio_grid_clear_sfc_cache(handle)
-        #check_artio_status(status)
         free(field_ind)
         free(field_vals)
-        free(grid_variables)
-        free(num_octs_per_level)
         return tr
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def deposit(self, ParticleDepositOperation pdeposit,
                 SelectorObject selector,
                 np.ndarray[np.float64_t, ndim=2] positions,
@@ -1262,21 +1368,26 @@ cdef class ARTIORootMeshContainer:
         # This implements the necessary calls to enable particle deposition to
         # occur as needed.
         cdef int nf, i, j
+        cdef np.int64_t sfc, sfci
         if fields is None:
             fields = []
         nf = len(fields)
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
         cdef np.ndarray[np.int64_t, ndim=1] domain_ind
-        domain_ind = np.zeros(mask.shape[0], dtype="int64") - 1
+        domain_ind = np.zeros(self.sfc_end - self.sfc_start + 1,
+                              dtype="int64") - 1
         j = 0
-        for i in range(mask.shape[0]):
-            if mask[i] == 1:
-                domain_ind[i] = j
-                j += 1
+        sfci = -1
+        for sfc in range(self.sfc_start, self.sfc_end + 1):
+            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+            sfci += 1
+            if mask[sfci] == 0: 
+                continue
+            domain_ind[sfc - self.sfc_start] = j
+            j += 1
         cdef np.float64_t **field_pointers, *field_vals, pos[3], left_edge[3]
         cdef int coords[3]
-        cdef np.int64_t sfc
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
         field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
@@ -1306,5 +1417,72 @@ cdef class ARTIORootMeshContainer:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j] 
 
+cdef class SFCRangeSelector(SelectorObject):
+    
+    cdef SelectorObject base_selector
+    cdef ARTIOSFCRangeHandler range_handler
+    cdef ARTIORootMeshContainer mesh_container
+    cdef np.int64_t sfc_start, sfc_end
+
+    def __init__(self, dobj):
+        self.base_selector = dobj.base_selector
+        self.mesh_container = dobj.oct_handler
+        self.range_handler = self.mesh_container.range_handler
+        self.sfc_start = self.mesh_container.sfc_start
+        self.sfc_end = self.mesh_container.sfc_end
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges,
+                     np.ndarray[np.int32_t, ndim=2] levels):
+        raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        return self.select_point(pos)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef np.int64_t sfc = self.mesh_container.pos_to_sfc(pos)
+        if sfc > self.sfc_end: return 0
+        cdef np.int64_t oc = self.range_handler.doct_count[
+            sfc - self.sfc_start]
+        if oc > 0: return 0
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return self.base_selector.select_bbox(left_edge, right_edge)
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        # Because visitors now use select_grid, we should be explicitly
+        # checking this.
+        return self.base_selector.select_grid(left_edge, right_edge, level, o)
+    
+    def _hash_vals(self):
+        return (hash(self.base_selector), self.sfc_start, self.sfc_end)
+
 sfc_subset_selector = AlwaysSelector
+#sfc_subset_selector = SFCRangeSelector
 

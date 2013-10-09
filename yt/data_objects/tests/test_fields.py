@@ -93,6 +93,9 @@ def test_all_fields():
         if fname.startswith("CuttingPlane"): continue
         if fname.startswith("particle"): continue
         if fname.startswith("CIC"): continue
+        if field.startswith("BetaPar"): continue
+        if field.startswith("TBetaPar"): continue
+        if field.startswith("BetaPerp"): continue
         if fname.startswith("WeakLensingConvergence"): continue
         if fname.startswith("DensityPerturbation"): continue
         if fname.startswith("Matter_Density"): continue

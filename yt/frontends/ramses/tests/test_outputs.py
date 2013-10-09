@@ -19,7 +19,8 @@ from yt.utilities.answer_testing.framework import \
     requires_pf, \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
-    FieldValuesTest
+    FieldValuesTest, \
+    create_obj
 from yt.frontends.artio.api import ARTIOStaticOutput
 
 _fields = ("Temperature", "Density", "VelocityMagnitude",
@@ -31,13 +32,15 @@ def test_output_00080():
     pf = data_dir_load(output_00080)
     yield assert_equal, str(pf), "info_00080"
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    for field in _fields:
-        for axis in [0, 1, 2]:
-            for ds in dso:
+    for ds in dso:
+        for field in _fields:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield PixelizedProjectionValuesTest(
                         output_00080, axis, field, weight_field,
                         ds)
-                yield FieldValuesTest(
-                        output_00080, field, ds)
-
+            yield FieldValuesTest(output_00080, field, ds)
+        dobj = create_obj(pf, ds)
+        s1 = dobj["Ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        yield assert_equal, s1, s2

@@ -77,6 +77,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         return self.sfc_end
 
     def fill(self, fields, selector):
+        if len(fields) == 0: return []
         handle = self.oct_handler.artio_handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
@@ -93,6 +94,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         return tr
 
     def fill_particles(self, fields):
+        if len(fields) == 0: return {}
         art_fields = []
         for s, f in fields:
             fn = yt_to_art[f]
@@ -132,6 +134,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
     def fill(self, fields, selector):
         # We know how big these will be.
+        if len(fields) == 0: return []
         handle = self.pf._handle
         field_indices = [handle.parameters["grid_variable_labels"].index(
                         yt_to_art[f]) for (ft, f) in fields]
@@ -171,6 +174,10 @@ class ARTIOGeometryHandler(GeometryHandler):
         self.max_level = pf.max_level
         self.float_type = np.float64
         super(ARTIOGeometryHandler, self).__init__(pf, data_style)
+
+    @property
+    def max_range(self):
+        return self.parameter_file.max_range
 
     def _setup_geometry(self):
         mylog.debug("Initializing Geometry Handler empty for now.")
@@ -246,15 +253,18 @@ class ARTIOGeometryHandler(GeometryHandler):
             nz = getattr(dobj, "_num_zones", 0)
             if all_data:
                 mylog.debug("Selecting entire artio domain")
-                list_sfc_ranges = self.pf._handle.root_sfc_ranges_all()
+                list_sfc_ranges = self.pf._handle.root_sfc_ranges_all(
+                    max_range_size = self.max_range)
             elif sfc_start is not None and sfc_end is not None:
                 mylog.debug("Restricting to %s .. %s", sfc_start, sfc_end)
                 list_sfc_ranges = [(sfc_start, sfc_end)]
             else:
                 mylog.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.pf._handle.root_sfc_ranges(
-                    dobj.selector)
+                    dobj.selector, max_range_size = self.max_range)
             ci = []
+            #v = np.array(list_sfc_ranges)
+            #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
                 range_handler = ARTIOSFCRangeHandler(
                     self.pf.domain_dimensions,
@@ -327,6 +337,7 @@ class ARTIOStaticOutput(StaticOutput):
     _fieldinfo_known = KnownARTIOFields
     _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"
+    max_range = 1024
 
     def __init__(self, filename, data_style='artio',
                  storage_filename=None):
