@@ -244,35 +244,21 @@ class EnzoHierarchy(GridGeometryHandler):
             mylog.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
         if self.data_style is not None: return
-        try:
-            a = SD.SD(test_grid)
-            self.data_style = 'enzo_hdf4'
-            mylog.debug("Detected HDF4")
-        except:
-            try:
-                # This will always fail
-                list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
-            except:
-                print "Could not find dataset.  Defaulting to packed HDF5"
-                list_of_sets = []
-            if len(list_of_sets) == 0 and rank == 3:
-                mylog.debug("Detected packed HDF5")
-                if self.parameters.get("WriteGhostZones", 0) == 1:
-                    self.data_style= "enzo_packed_3d_gz"
-                    self.grid = EnzoGridGZ
-                else:
-                    self.data_style = 'enzo_packed_3d'
-            elif len(list_of_sets) > 0 and rank == 3:
-                mylog.debug("Detected unpacked HDF5")
-                self.data_style = 'enzo_hdf5'
-            elif len(list_of_sets) == 0 and rank == 2:
-                mylog.debug("Detect packed 2D")
-                self.data_style = 'enzo_packed_2d'
-            elif len(list_of_sets) == 0 and rank == 1:
-                mylog.debug("Detect packed 1D")
-                self.data_style = 'enzo_packed_1d'
+        if rank == 3:
+            mylog.debug("Detected packed HDF5")
+            if self.parameters.get("WriteGhostZones", 0) == 1:
+                self.data_style= "enzo_packed_3d_gz"
+                self.grid = EnzoGridGZ
             else:
-                raise TypeError
+                self.data_style = 'enzo_packed_3d'
+        elif rank == 2:
+            mylog.debug("Detect packed 2D")
+            self.data_style = 'enzo_packed_2d'
+        elif rank == 1:
+            mylog.debug("Detect packed 1D")
+            self.data_style = 'enzo_packed_1d'
+        else:
+            raise NotImplementedError
 
     # Sets are sorted, so that won't work!
     def _parse_hierarchy(self):
