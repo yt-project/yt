@@ -43,7 +43,8 @@ from yt.geometry.oct_container import \
 from .fields import \
     RAMSESFieldInfo, \
     KnownRAMSESFields, \
-    create_cooling_fields
+    create_cooling_fields, \
+    _setup_particle_fields
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -158,6 +159,7 @@ class RAMSESDomainFile(object):
             fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
+        self.particle_types = self.particle_types_raw = ("io",)
 
     def _read_amr_header(self):
         hvals = {}
@@ -505,6 +507,11 @@ class RAMSESStaticOutput(StaticOutput):
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level
+
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.keys())
+        _setup_particle_fields(self.field_info, ptype)
+        return list(set(self.field_info.keys()).difference(orig))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

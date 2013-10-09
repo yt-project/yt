@@ -50,6 +50,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         return d
 
     def _read_particle_coords(self, chunks, ptf):
+        pn = "particle_position_%s"
         fields = [(ptype, "particle_position_%s" % ax)
                   for ptype, field_list in ptf.items()
                   for ax in 'xyz']
@@ -68,7 +69,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                                  for fname in field_list]
         for ptype, field_list in sorted(ptf.items()):
             for ax in 'xyz':
-                if pp not in field_list:
+                if pn % ax not in field_list:
                     fields.append((ptype, pn % ax))
         for chunk in chunks:
             for subset in chunk.objs:

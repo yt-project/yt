@@ -87,38 +87,38 @@ def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = KnownRAMSESFields["%s-velocity" % ax]
-    f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
-
-known_ramses_particle_fields = [
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_velocity_x",
-    "particle_velocity_y",
-    "particle_velocity_z",
-    "particle_mass",
-    "particle_identifier",
-    "particle_refinement_level",
-    "particle_age",
-    "particle_metallicity",
-]
-
-for f in known_ramses_particle_fields:
-    add_ramses_field(("all", f), function=NullFunc, take_log=True,
-              particle_type = True)
-
-for ax in 'xyz':
-    KnownRAMSESFields["all", "particle_velocity_%s" % ax]._convert_function = \
-        _convertVelocity
 
 def _convertParticleMass(data):
     return data.convert("mass")
 
-KnownRAMSESFields["all", "particle_mass"]._convert_function = \
-        _convertParticleMass
-KnownRAMSESFields["all", "particle_mass"]._units = r"\mathrm{g}"
+def _setup_particle_fields(registry, ptype):
+    particle_vector_functions(ptype,
+            ["particle_position_%s" % ax for ax in 'xyz'],
+            ["particle_velocity_%s" % ax for ax in 'xyz'],
+            registry)
+    particle_deposition_functions(ptype, "Coordinates",
+        "particle_mass", registry)
+
+    for ax in 'xyz':
+        fn = "particle_velocity_%s" % ax
+        registry.add_field((ptype, fn), function=NullFunc,
+                  convert_function=_convertVelocity,
+                  units = r"\rm{cm}/\rm{s}",
+                  take_log = False,
+                  particle_type=True)
+    for fn in ["particle_position_%s" % ax for ax in 'xyz'] + \
+              ["particle_identifier", "particle_refinement_level",
+               "particle_age", "particle_metallicity"]:
+        registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
+
+    registry.add_field((ptype, "particle_index"),
+      function=TranslationFunc((ptype, "particle_identifier")),
+      particle_type = True)
+    registry.add_field((ptype, "particle_mass"), function=NullFunc, 
+              particle_type=True, convert_function = _convertParticleMass)
+    return
 
 def _Temperature(field, data):
     rv = data["Pressure"]/data["Density"]
@@ -188,12 +188,6 @@ for species in _speciesList:
               validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
 
-# PARTICLE FIELDS
-particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
-                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
-                          RAMSESFieldInfo)
-particle_deposition_functions("all", "Coordinates", "particle_mass",
-                               RAMSESFieldInfo)
 _cool_axes = ("lognH", "logT", "logTeq")
 _cool_arrs = ("metal", "cool", "heat", "metal_prime", "cool_prime",
               "heat_prime", "mu", "abundances")
