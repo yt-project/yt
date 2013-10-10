@@ -197,12 +197,13 @@ class YTDataContainer(object):
         # Note that this is less succinct so that we can account for the case
         # when there are, for example, no elements in the object.
         rv = self.field_data.get(f, None)
-        if isinstance(f, types.TupleType):
-            fi = self.pf._get_field_info(*f)
-        else:
-            fi = self.pf._get_field_info("unknown", f)
-        if rv is None: rv = YTArray(self.field_data[key], fi.units,
-                                    self.pf.unit_registry)
+        if (rv is None) and (f not in self._key_fields):
+            if isinstance(f, types.TupleType):
+                fi = self.pf._get_field_info(*f)
+            elif isinstance(f, types.StringType):
+                fi = self.pf._get_field_info("unknown", f)
+            rv = YTArray(self.field_data[key], fi.units,
+                         self.pf.unit_registry)
         return rv
 
     def __setitem__(self, key, val):
