@@ -216,7 +216,7 @@ class GeometryHandler(ParallelAnalysisInterface):
                         convert_function=cf, take_log=False, units=r"Unknown")
             else:
                 mylog.debug("Adding known field %s to list of fields", field)
-                self.parameter_file.field_info[field] = known_fields[field]
+                self.parameter_file.field_info[field] = field_info[field]
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
