@@ -22,7 +22,7 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 
 KnownMaestroFields = FieldInfoContainer()
 add_maestro_field = KnownMaestroFields.add_field

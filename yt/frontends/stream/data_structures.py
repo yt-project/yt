@@ -37,7 +37,7 @@ from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
-from yt.data_objects.particle_fields import \
+from yt.fields.particle_fields import \
     particle_vector_functions, \
     particle_deposition_functions
 from yt.geometry.oct_container import \

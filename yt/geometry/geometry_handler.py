@@ -30,7 +30,7 @@ from yt.data_objects.data_containers import \
     data_object_registry
 from yt.data_objects.field_info_container import \
     NullFunc
-from yt.data_objects.particle_fields import \
+from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_scalar_functions
 from yt.utilities.io_handler import io_registry

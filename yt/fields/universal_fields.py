@@ -24,7 +24,7 @@ from yt.funcs import *
 
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 from yt.utilities.cosmology import Cosmology
-from field_info_container import \
+from yt.data_objects.field_info_container import \
     add_field, \
     ValidateDataField, \
     ValidateGridType, \

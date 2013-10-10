@@ -13,7 +13,7 @@ Field specifications for Nyx
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 
 from yt.data_objects.field_info_container import FieldInfoContainer, \
     NullFunc, TranslationFunc, FieldInfo, \

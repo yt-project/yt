@@ -27,11 +27,11 @@ from yt.data_objects.field_info_container import \
     ValidateGridType, \
     NullFunc, \
     TranslationFunc
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 from .definitions import \
     gadget_ptypes, \
     ghdf5_ptypes
-from yt.data_objects.particle_fields import \
+from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_scalar_functions, \
     _field_concat, _field_concat_slice

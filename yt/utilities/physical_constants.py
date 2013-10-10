@@ -31,7 +31,7 @@ stefan_boltzmann_constant_cgs = 5.670373e-5 # erg cm^-2 s^-1 K^-4
 # To get the correct value for your cosmological parameters, 
 # you'll need to multiply through by h^2
 # [where h = H / (100 km/s/Mpc)].  See the Overdensity field in
-# yt.data_objects.universal_fields.
+# yt.fields.universal_fields.
 rho_crit_now = 1.8788e-29  # g/cm^3 (cosmological critical density)
 
 

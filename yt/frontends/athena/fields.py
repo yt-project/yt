@@ -26,7 +26,7 @@ from yt.data_objects.field_info_container import \
     TranslationFunc
 from yt.utilities.physical_constants import \
     kboltz,mh
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 
 AthenaFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = AthenaFieldInfo.add_field

@@ -46,7 +46,7 @@ from .fields import \
 from yt.data_objects.field_info_container import \
     NullFunc, \
     TranslationFunc
-from yt.data_objects.particle_fields import \
+from yt.fields.particle_fields import \
     particle_deposition_functions
 
 
