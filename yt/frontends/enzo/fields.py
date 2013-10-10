@@ -28,7 +28,8 @@ from yt.data_objects.field_info_container import \
 import yt.fields.universal_fields
 from yt.fields.particle_fields import \
     particle_deposition_functions, \
-    particle_vector_functions
+    particle_vector_functions, \
+    standard_particle_fields
 from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs
@@ -573,3 +574,5 @@ def _setup_particle_fields(registry, ptype):
 
     registry.add_field((ptype, "particle_mass"), function=NullFunc, 
               particle_type=True, convert_function = _convertParticleMass)
+
+    standard_particle_fields(registry, ptype)
