@@ -69,27 +69,26 @@ def _get_conv(cf):
 # TIPSY
 # =====
 
-for ptype in ["Gas", "DarkMatter", "Stars"]:
-    KnownTipsyFields.add_field((ptype, "Mass"), function=NullFunc,
+def _setup_particle_fields(registry, ptype):
+    registry.add_field((ptype, "Mass"), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("mass"),
         units = r"\mathrm{g}")
-    KnownTipsyFields.add_field((ptype, "Velocities"), function=NullFunc,
+    registry.add_field((ptype, "Velocities"), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("velocity"),
         units = r"\mathrm{cm}/\mathrm{s}")
     # Note that we have to do this last so that TranslationFunc operates
     # correctly.
     particle_deposition_functions(ptype, "Coordinates", "Mass",
-                                  TipsyFieldInfo)
+                                  registry)
     particle_scalar_functions(ptype, "Coordinates", "Velocities",
-                              TipsyFieldInfo)
-particle_deposition_functions("all", "Coordinates", "Mass", TipsyFieldInfo)
+                              registry)
 
-for fname in ["Coordinates", "Velocities", "ParticleIDs", "Mass",
-              "Epsilon", "Phi"]:
-    TipsyFieldInfo.add_field(("all", fname), function=NullFunc,
-            particle_type = True)
+    for fname in ["Coordinates", "Velocities", "ParticleIDs", "Mass",
+                  "Epsilon", "Phi"]:
+        registry.add_field((ptype, fname), function=NullFunc,
+                particle_type = True)
 
 def SmoothedGas(field, data):
     pos = data["PartType0", "Coordinates"]

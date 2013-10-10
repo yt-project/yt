@@ -41,7 +41,8 @@ from .fields import \
     GadgetHDF5FieldInfo, \
     KnownGadgetHDF5Fields, \
     TipsyFieldInfo, \
-    KnownTipsyFields
+    KnownTipsyFields, \
+    _setup_particle_fields
 from yt.data_objects.field_info_container import \
     NullFunc, \
     TranslationFunc
@@ -121,17 +122,19 @@ class ParticleStaticOutput(StaticOutput):
                 ud[unit] = ur[unit] / base
 
     def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
         self.field_info.add_field((ptype, "particle_index"),
             function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
-        return [ (ptype, "particle_index") ]
+        _setup_particle_fields(self.field_info, ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = GadgetBinaryFile
     _fieldinfo_fallback = GadgetFieldInfo
     _fieldinfo_known = KnownGadgetFields
-    _particle_mass_name = "Masses"
+    _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
     _suffix = ""

@@ -94,7 +94,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 del coords
                 if mask is None: continue
                 for field in field_list:
-                    if field in ("Masses", "Mass") and \
+                    if field in ("Mass", "Mass") and \
                         ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype) 
@@ -187,7 +187,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     _fields = ( "Coordinates",
                 "Velocities",
                 "ParticleIDs",
-                "Masses",
+                "Mass",
                 ("InternalEnergy", "Gas"),
                 ("Density", "Gas"),
                 ("SmoothingLength", "Gas"),
@@ -243,7 +243,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 del pos
                 if mask is None: continue
                 for field in field_list:
-                    if field == "Masses" and ptype not in self.var_mass:
+                    if field == "Mass" and ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         m = self.pf.parameters["Massarr"][
                             self._ptypes.index(ptype)]
@@ -307,7 +307,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 continue
             pos += 4
             for ptype in self._ptypes:
-                if field == "Masses" and ptype not in self.var_mass:
+                if field == "Mass" and ptype not in self.var_mass:
                     continue
                 if (ptype, field) not in field_list:
                     continue
