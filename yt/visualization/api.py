@@ -32,7 +32,6 @@ from image_writer import \
     write_image, \
     map_to_colors, \
     splat_points, \
-    annotate_image, \
     apply_colormap, \
     scale_image, \
     write_projection, \
