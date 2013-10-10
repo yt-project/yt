@@ -18,10 +18,10 @@ def test_extrema():
         yield assert_equal, mi, np.nanmin(dd["density"])
         yield assert_equal, ma, np.nanmax(dd["density"])
         sp = pf.h.sphere("max", (0.25, '1'))
-        yield assert_equal, np.any(np.isnan(sp["RadialVelocity"])), True
-        (mi, ma), = dd.quantities["Extrema"]("RadialVelocity")
-        yield assert_equal, mi, np.nanmin(dd["RadialVelocity"])
-        yield assert_equal, ma, np.nanmax(dd["RadialVelocity"])
+        yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), True
+        (mi, ma), = dd.quantities["Extrema"]("radial_velocity")
+        yield assert_equal, mi, np.nanmin(dd["radial_velocity"])
+        yield assert_equal, ma, np.nanmax(dd["radial_velocity"])
 
 def test_average():
     for nprocs in [1, 2, 4, 8]:

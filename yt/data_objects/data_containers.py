@@ -138,7 +138,7 @@ class YTDataContainer(object):
         elif center in ("c", "center"):
             center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
-            center = self.pf.h.find_max("Density")[1]
+            center = self.pf.h.find_max("density")[1]
         elif center.startswith("max_"):
             center = self.pf.h.find_max(center[4:])[1]
         else:
