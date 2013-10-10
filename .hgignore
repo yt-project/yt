@@ -15,6 +15,7 @@ yt/geometry/oct_container.c
 yt/geometry/oct_visitors.c
 yt/geometry/particle_deposit.c
 yt/geometry/particle_oct_container.c
+yt/geometry/particle_smooth.c
 yt/geometry/selection_routines.c
 yt/utilities/amr_utils.c
 yt/utilities/kdtree/forthonf2c.h
@@ -31,6 +32,7 @@ yt/utilities/lib/freetype_writer.c
 yt/utilities/lib/geometry_utils.c
 yt/utilities/lib/Interpolators.c
 yt/utilities/lib/kdtree.c
+yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/Octree.c
 yt/utilities/lib/png_writer.c
