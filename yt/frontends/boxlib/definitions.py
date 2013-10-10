@@ -14,17 +14,6 @@ Various definitions for various other modules and routines
 #-----------------------------------------------------------------------------
 from yt.funcs import *
 
-def boxlib_bool_to_int(v):
-    try:
-        return int(v)
-    except ValueError:
-        pass
-    v = v.upper().strip()
-    if v[0] == 'T':
-        return 1
-    elif v[0] == 'F':
-        return 0
-
 # TODO: get rid of enzo parameters we do not need
 parameterDict = {"CosmologyCurrentRedshift": float,
                  "CosmologyComovingBoxSize": float,
@@ -38,7 +27,7 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "HydroMethod": int,
                  "DualEnergyFormalism": int,
                  "InitialTime": float,
-                 "ComovingCoordinates": boxlib_bool_to_int,
+                 "ComovingCoordinates": int,
                  "DensityUnits": float,
                  "LengthUnits": float,
                  "LengthUnit": float,
@@ -58,9 +47,10 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "NumberOfParticleAttributes": int,
                 }
 
-# converts the Castro inputs file name to the Enzo/yt name expected
-# throughout the code. key is Castro name, value is Enzo/yt equivalent
-castro2enzoDict = {"amr.n_cell": "TopGridDimensions",
+
+# converts the Orion inputs file name to the Enzo/yt name expected
+# throughout the code. key is Orion name, value is Enzo/yt equivalent
+orion2enzoDict = {"amr.n_cell": "TopGridDimensions",
                   "materials.gamma": "Gamma",
                   "amr.ref_ratio": "RefineBy",
                   "castro.use_comoving": "ComovingCoordinates",
@@ -70,12 +60,3 @@ castro2enzoDict = {"amr.n_cell": "TopGridDimensions",
                   "comoving_h": "CosmologyHubbleConstantNow"
                   }
 
-yt2castroFieldsDict = {}
-castro2ytFieldsDict = {}
-
-castro_FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
-
-castro_particle_field_names = \
-    ['particle_position_%s' % ax for ax in 'xyz'] + \
-    ['particle_mass'] +  \
-    ['particle_velocity_%s' % ax for ax in 'xyz']
