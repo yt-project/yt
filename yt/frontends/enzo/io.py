@@ -76,7 +76,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
                     yield ptype, (x, y, z)
-            f.close()
+            if f: f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -106,7 +106,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         if field in _convert_mass:
                             data *= g.dds.prod(dtype="f8")
                         yield (ptype, field), data[mask]
-            f.close()
+            if f: f.close()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -147,7 +147,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
-            fid.close()
+            if fid: fid.close()
         return rv
 
 
