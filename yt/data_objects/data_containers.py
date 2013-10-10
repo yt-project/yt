@@ -197,7 +197,7 @@ class YTDataContainer(object):
         # Note that this is less succinct so that we can account for the case
         # when there are, for example, no elements in the object.
         rv = self.field_data.get(f, None)
-        if (rv is None) and (f not in self._key_fields):
+        if rv is None:
             if isinstance(f, types.TupleType):
                 fi = self.pf._get_field_info(*f)
             elif isinstance(f, types.StringType):
