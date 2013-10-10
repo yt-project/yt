@@ -521,9 +521,9 @@ class ARTIOStaticOutput(StaticOutput):
         self.periodicity = (True, True, True)
 
     def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.keys())
+        orig = set(self.field_info.items())
         _setup_particle_fields(self.field_info, ptype)
-        return list(set(self.field_info.keys()).difference(orig))
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

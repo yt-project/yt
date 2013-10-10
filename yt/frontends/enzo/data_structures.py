@@ -950,8 +950,7 @@ class EnzoStaticOutput(StaticOutput):
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
         _setup_particle_fields(self.field_info, ptype)
-        tr = [n for n, v in set(self.field_info.items()).difference(orig)]
-        return tr
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
