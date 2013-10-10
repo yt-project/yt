@@ -30,6 +30,7 @@ sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011
 @requires_pf(sizmbhloz)
 def test_sizmbhloz():
     pf = data_dir_load(sizmbhloz)
+    pf.max_range = 1024*1024
     yield assert_equal, str(pf), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     for ds in dso:
