@@ -195,6 +195,7 @@ class YTArray(np.ndarray):
 
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
+
         obj = np.asarray(input_array).view(cls)
 
         # Check units type
@@ -597,6 +598,26 @@ class YTArray(np.ndarray):
     # End comparison operators
     #
 
+    #
+    # Begin reduction operators
+    #
+
+    def prod(self, axis=None, dtype=None, out=None):
+        ret = super(YTArray, self).prod(axis, dtype, out)
+        if axis:
+            ret.units = self.units**(self.shape[axis])
+        else:
+            ret.units = self.units**(self.size)
+        return ret
+
+    def mean(self, axis=None, dtype=None, out=None):
+        ret = super(YTArray, self).mean(axis, dtype, out)
+        return YTArray(ret, self.units)
+
+    def std(self, axis=None, dtype=None, out=None, ddof=0):
+        ret = super(YTArray, self).std(axis, dtype, out, ddof)
+        return YTArray(ret, self.units)
+
     def __getitem__(self, item):
         ret = super(YTArray, self).__getitem__(item)
         if ret.shape == ():
@@ -606,7 +627,9 @@ class YTArray(np.ndarray):
 
     def __array_wrap__(self, out_arr, context=None):
         if context is None:
-            pass
+            if type(out_arr) is np.ndarray:
+                if out_arr.shape == ():
+                    out_arr = YTArray(out_arr, self.units)
         elif len(context[1]) == 1:
             # unary operators
             unit = self._ufunc_registry[context[0]](context[1][0].units)
@@ -639,8 +662,6 @@ class YTArray(np.ndarray):
                 out_arr.units = unit
         else:
             raise RuntimeError("Operation is not defined.")
-        if out_arr.size == 1 and out_arr.size != self.size:
-            return out_arr[0]
         return super(YTArray, self).__array_wrap__(out_arr, context)
 
 class YTQuantity(YTArray):
