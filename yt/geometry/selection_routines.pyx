@@ -614,7 +614,8 @@ cdef class RegionSelector(SelectorObject):
                 
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
-            self.right_edge_shift[i] = dobj.right_edge[i] - domain_width
+            self.right_edge_shift[i] = \
+                (dobj.right_edge).to_ndarray()[i] - domain_width
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -870,7 +871,9 @@ cdef class SliceSelector(SelectorObject):
                 this_level = 1
             for i in range(3):
                 if i == self.axis:
-                    ind[i][0] = <int> ((self.coord - gobj.LeftEdge[i])/gobj.dds[i])
+                    ind[i][0] = \
+                        <int> ((self.coord - (gobj.LeftEdge[i]).to_ndarray()) / 
+                               gobj.dds[i])
                     ind[i][1] = ind[i][0] + 1
                 else:
                     ind[i][0] = 0
@@ -957,11 +960,13 @@ cdef class OrthoRaySelector(SelectorObject):
                 this_level = 1
             ind[self.axis][0] = 0
             ind[self.axis][1] = gobj.ActiveDimensions[self.axis]
-            ind[self.px_ax][0] = <int> ((self.px - gobj.LeftEdge[self.px_ax]) /
-                                        gobj.dds[self.px_ax])
+            ind[self.px_ax][0] = \
+                <int> ((self.px - (gobj.LeftEdge).to_ndarray()[self.px_ax]) /
+                       gobj.dds[self.px_ax])
             ind[self.px_ax][1] = ind[self.px_ax][0] + 1
-            ind[self.py_ax][0] = <int> ((self.py - gobj.LeftEdge[self.py_ax]) /
-                                        gobj.dds[self.py_ax])
+            ind[self.py_ax][0] = \
+                <int> ((self.py - (gobj.LeftEdge).to_ndarray()[self.py_ax]) /
+                       gobj.dds[self.py_ax])
             ind[self.py_ax][1] = ind[self.py_ax][0] + 1
 
             with nogil:

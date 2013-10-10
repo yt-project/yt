@@ -17,7 +17,7 @@ Everything will be returned in a global config dictionary: ytcfg
 
 import ConfigParser, os, os.path, types
 
-ytcfgDefaults = dict(
+ytcfg_defaults = dict(
     serialize = 'False',
     onlydeserialize = 'False',
     timefunctions = 'False',

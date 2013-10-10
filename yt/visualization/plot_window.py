@@ -920,7 +920,7 @@ class PWViewerMPL(PWViewer):
                     cax = self.plots[f].cax
 
             self.plots[f] = WindowPlotMPL(image, self._field_transform[f].name,
-                                          self._colormaps[f], extent, aspect,
+                                          self._colormaps[f], extent, 1.0,
                                           zlim, size, fp.get_size(), fig, axes,
                                           cax)
 

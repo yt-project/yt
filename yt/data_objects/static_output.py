@@ -361,3 +361,20 @@ def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
     return pf
+
+class ParticleFile(object):
+    def __init__(self, pf, io, filename, file_id):
+        self.pf = pf
+        self.io = weakref.proxy(io)
+        self.filename = filename
+        self.file_id = file_id
+        self.total_particles = self.io._count_particles(self)
+
+    def select(self, selector):
+        pass
+
+    def count(self, selector):
+        pass
+
+    def _calculate_offsets(self, fields):
+        pass

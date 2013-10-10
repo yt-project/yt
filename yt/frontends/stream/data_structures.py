@@ -29,6 +29,8 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.data_objects.static_output import \
+    ParticleFile
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.grid_geometry_handler import \
@@ -57,15 +59,14 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.flagging_methods import \
     FlaggingGrid
-from yt.frontends.sph.data_structures import \
-    ParticleFile
 from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
 
 from .fields import \
     StreamFieldInfo, \
     add_stream_field, \
-    StreamFieldInfo
+    StreamFieldInfo, \
+    KnownStreamFields
 
 class StreamGrid(AMRGridPatch):
     """
