@@ -25,6 +25,8 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.fields.universal_fields
+from yt.fields.universal_fields import \
+    _get_conv
 from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
@@ -243,6 +245,7 @@ def _setup_particle_fields(registry, ptype):
         registry.add_field(
                         (ptype, "particle_velocity_%s" % ax),
                         function=NullFunc,
+                        convert_function=_get_conv("particle_velocity_%s" % ax),
                         particle_type=True)
         registry.add_field(
                         (ptype, "particle_position_%s" % ax),
@@ -259,12 +262,17 @@ def _setup_particle_fields(registry, ptype):
 
     registry.add_field((ptype, "particle_mass_initial"),
               function=NullFunc,
-              convert_function=_convertParticleMass,
+              convert_function=_get_conv("particle_mass"),
               units=r"\rm{g}",
               particle_type=True)
 
+    registry.add_field((ptype, "creation_time"),
+            function=NullFunc,
+            convert_function=_get_conv("particle_creation_time"),
+            units=r"\rm{s}",
+            particle_type=True)
+
     for field in ["particle_index",
-                  "creation_time",
                   "particle_species",
                   "particle_metallicity1",
                   "particle_metallicity2"]:
