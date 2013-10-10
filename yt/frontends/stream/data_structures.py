@@ -39,7 +39,8 @@ from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
 from yt.fields.particle_fields import \
     particle_vector_functions, \
-    particle_deposition_functions
+    particle_deposition_functions, \
+    standard_particle_fields
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
