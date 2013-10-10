@@ -50,10 +50,6 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-    @property
-    def filename(self):
-        return None
-
 class FLASHHierarchy(GridGeometryHandler):
 
     grid = FLASHGrid
