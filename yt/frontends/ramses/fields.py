@@ -57,8 +57,7 @@ known_ramses_fields = [
 
 for f in known_ramses_fields:
     if f not in KnownRAMSESFields:
-        add_ramses_field(f, function=NullFunc, take_log=True,
-                  validators = [ValidateDataField(f)])
+        add_ramses_field(f, function=NullFunc, take_log=True)
 
 def dx(field, data):
     return data.fwidth[:,0]
@@ -176,16 +175,13 @@ for species in _speciesList:
              projected_units = r"\rm{g}/\rm{cm}^2")
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
-             validators=ValidateDataField("%s_Density" % species),
              display_name="Comoving\/%s\/Density" % species)
     add_field("%s_Mass" % species, units=r"\rm{g}", 
               function=_SpeciesMass, 
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
     add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
 
 _cool_axes = ("lognH", "logT", "logTeq")

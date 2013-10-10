@@ -346,7 +346,8 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
-        self.field_list = self.fluid_field_list + self.particle_field_list
+        self.field_list = [("gas", f) for f in self.fluid_field_list] \
+                        + self.particle_field_list
 
     def _setup_derived_fields(self):
         self._parse_cooling()
