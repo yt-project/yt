@@ -33,7 +33,6 @@ from .fields import \
 from yt.fields.particle_fields import \
     standard_particle_fields
 
-
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
     GeometryHandler, YTDataChunk

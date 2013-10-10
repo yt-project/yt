@@ -35,6 +35,18 @@ from .universal_fields import \
     get_radius, \
     _get_conv
 
+from yt.utilities.math_utils import \
+    get_sph_r_component, \
+    get_sph_theta_component, \
+    get_sph_phi_component, \
+    get_cyl_r_component, \
+    get_cyl_z_component, \
+    get_cyl_theta_component, \
+    get_cyl_r, get_cyl_theta, \
+    get_cyl_z, get_sph_r, \
+    get_sph_theta, get_sph_phi, \
+    periodic_dist, euclidean_dist
+     
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
