@@ -47,7 +47,8 @@ from yt.data_objects.field_info_container import \
     NullFunc, \
     TranslationFunc
 from yt.fields.particle_fields import \
-    particle_deposition_functions
+    particle_deposition_functions, \
+    standard_particle_fields
 
 
 class ParticleFile(object):
@@ -126,6 +127,7 @@ class ParticleStaticOutput(StaticOutput):
         self.field_info.add_field((ptype, "particle_index"),
             function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
+        standard_particle_fields(self.field_info, ptype)
         _setup_particle_fields(self.field_info, ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 

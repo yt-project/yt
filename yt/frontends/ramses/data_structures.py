@@ -45,6 +45,8 @@ from .fields import \
     KnownRAMSESFields, \
     create_cooling_fields, \
     _setup_particle_fields
+from yt.fields.particle_fields import \
+    standard_particle_fields
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -511,6 +513,7 @@ class RAMSESStaticOutput(StaticOutput):
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
         _setup_particle_fields(self.field_info, ptype)
+        standard_particle_fields(self.field_info, ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @classmethod
