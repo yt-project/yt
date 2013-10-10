@@ -9,6 +9,7 @@ def configuration(parent_package='', top_path=None):
     #config.make_svn_version_py()
     config.add_subpackage("art")
     config.add_subpackage("athena")
+    config.add_subpackage("boxlib")
     config.add_subpackage("chombo")
     config.add_subpackage("enzo")
     config.add_subpackage("flash")
