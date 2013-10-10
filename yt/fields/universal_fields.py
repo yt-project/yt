@@ -649,6 +649,10 @@ def get_radius(data, field_prefix):
 def _Radius(field, data):
     return get_radius(data, "")
 
+add_field("Radius", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _get_conv("cm"), units=r"\rm{cm}")
+
 add_field("RadiusMpc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _get_conv("mpc"), units=r"\rm{Mpc}",
