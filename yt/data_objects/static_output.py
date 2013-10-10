@@ -340,7 +340,8 @@ class StaticOutput(object):
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         self.h._setup_particle_types([union.name])
-        self.h._setup_unknown_fields(fields, self.field_info)
+        self.h._setup_unknown_fields(fields, self.field_info,
+                                     skip_removal = True)
 
     def _setup_particle_type(self, ptype):
         mylog.debug("Don't know what to do with %s", ptype)

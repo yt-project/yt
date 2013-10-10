@@ -176,9 +176,8 @@ class GeometryHandler(ParallelAnalysisInterface):
             df += self.pf._setup_particle_type(ptype)
         self._derived_fields_add(df)
 
-    def _setup_unknown_fields(self, list_of_fields = None,
-                              field_info = None,
-                              skip_particles = False):
+    def _setup_unknown_fields(self, list_of_fields = None, field_info = None,
+                              skip_removal = False):
         field_info = field_info or self.pf._fieldinfo_known
         field_list = list_of_fields or self.field_list
         dftype = self.parameter_file.default_fluid_type
@@ -187,14 +186,14 @@ class GeometryHandler(ParallelAnalysisInterface):
             # By allowing a backup, we don't mandate that it's found in our
             # current field info.  This means we'll instead simply override
             # it.
-            ff = self.parameter_file.field_info.pop(field, None)
+            if not skip_removal:
+                ff = self.parameter_file.field_info.pop(field, None)
             if field not in field_info:
                 # Now we check if it's a gas field or what ...
                 if isinstance(field, tuple) and field[0] in self.pf.particle_types:
                     particle_type = True
                 else:
                     particle_type = False
-                if particle_type and skip_particles: continue
                 if isinstance(field, tuple) and not particle_type and \
                    field[1] in field_info:
                     mylog.debug("Adding known field %s to list of fields", field)
