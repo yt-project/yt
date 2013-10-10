@@ -84,9 +84,7 @@ def _setup_particle_fields(registry, ptype):
                                   registry)
     particle_scalar_functions(ptype, "Coordinates", "Velocities",
                               registry)
-
-    for fname in ["Coordinates", "Velocities", "ParticleIDs", "Mass",
-                  "Epsilon", "Phi"]:
+    for fname in ["Coordinates", "ParticleIDs", "Epsilon", "Phi"]:
         registry.add_field((ptype, fname), function=NullFunc,
                 particle_type = True)
 
