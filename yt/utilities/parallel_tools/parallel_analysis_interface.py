@@ -1,27 +1,17 @@
 """
 Parallel data mapping techniques for yt
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import cPickle
 import cStringIO
@@ -60,7 +50,8 @@ if parallel_capable:
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
             int32   = MPI.INT,
-            int64   = MPI.LONG
+            int64   = MPI.LONG,
+            c       = MPI.CHAR,
     )
     op_names = dict(
         sum = MPI.SUM,
@@ -73,7 +64,8 @@ else:
             float32 = "MPI.FLOAT",
             float64 = "MPI.DOUBLE",
             int32   = "MPI.INT",
-            int64   = "MPI.LONG"
+            int64   = "MPI.LONG",
+            c       = "MPI.CHAR",
     )
     op_names = dict(
             sum = "MPI.SUM",
@@ -457,6 +449,116 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
         storage.update(new_storage)
     if barrier:
         my_communicator.barrier()
+
+def parallel_ring(objects, generator_func, mutable = False):
+    r"""This function loops in a ring around a set of objects, yielding the
+    results of generator_func and passing from one processor to another to
+    avoid IO or expensive computation.
+
+    This function is designed to operate in sequence on a set of objects, where
+    the creation of those objects might be expensive.  For instance, this could
+    be a set of particles that are costly to read from disk.  Processor N will
+    run generator_func on an object, and the results of that will both be
+    yielded and passed to processor N-1.  If the length of the objects is not
+    equal to the number of processors, then the final processor in the top
+    communicator will re-generate the data as needed.
+
+    In all likelihood, this function will only be useful internally to yt.
+
+    Parameters
+    ----------
+    objects : iterable
+        The list of objects to operate on.
+    generator_func : callable
+        This function will be called on each object, and the results yielded.
+        It must return a single NumPy array; for multiple values, it needs to
+        have a custom dtype.
+    mutable : bool
+        Should the arrays be considered mutable?  Currently, this will only
+        work if the number of processors equals the number of objects.
+    dynamic : bool
+        This governs whether or not dynamic load balancing will be enabled.
+        This requires one dedicated processor; if this is enabled with a set of
+        128 processors available, only 127 will be available to iterate over
+        objects as one will be load balancing the rest.
+
+
+    Examples
+    --------
+    Here is a simple example of a ring loop around a set of integers, with a
+    custom dtype.
+
+    >>> dt = numpy.dtype([('x', 'float64'), ('y', 'float64'), ('z', 'float64')])
+    >>> def gfunc(o):
+    ...     numpy.random.seed(o)
+    ...     rv = np.empty(1000, dtype=dt)
+    ...     rv['x'] = numpy.random.random(1000)
+    ...     rv['y'] = numpy.random.random(1000)
+    ...     rv['z'] = numpy.random.random(1000)
+    ...     return rv
+    ...
+    >>> obj = range(8)
+    >>> for obj, arr in parallel_ring(obj, gfunc):
+    ...     print arr['x'].sum(), arr['y'].sum(), arr['z'].sum()
+    ...
+
+    """
+    if mutable: raise NotImplementedError
+    my_comm = communication_system.communicators[-1]
+    my_size = my_comm.size
+    my_rank = my_comm.rank # This will also be the first object we access
+    if not parallel_capable and not mutable:
+        for obj in objects:
+            yield obj, generator_func(obj)
+        return
+    generate_endpoints = len(objects) != my_size
+    # gback False: send the object backwards
+    # gforw False: receive an object from forwards
+    if len(objects) == my_size:
+        generate_endpoints = False
+        gback = False
+        gforw = False
+    else:
+        # In this case, the first processor (my_rank == 0) will generate.
+        generate_endpoints = True
+        gback = (my_rank == 0)
+        gforw = (my_rank == my_size - 1)
+    if generate_endpoints and mutable:
+        raise NotImplementedError
+    # Now we need to do pairwise sends
+    source = (my_rank + 1) % my_size
+    dest = (my_rank - 1) % my_size
+    oiter = itertools.islice(itertools.cycle(objects),
+                             my_rank, my_rank+len(objects))
+    idata = None
+    isize = np.zeros((1,), dtype="int64")
+    osize = np.zeros((1,), dtype="int64")
+    for obj in oiter:
+        if idata is None or gforw:
+            idata = generator_func(obj)
+            idtype = odtype = idata.dtype
+            if get_mpi_type(idtype) is None:
+                idtype = 'c'
+        yield obj, idata
+        # We first send to the previous processor
+        tags = []
+        if not gforw:
+            tags.append(my_comm.mpi_nonblocking_recv(isize, source))
+        if not gback:
+            osize[0] = idata.size
+            tags.append(my_comm.mpi_nonblocking_send(osize, dest))
+        my_comm.mpi_Request_Waitall(tags)
+        odata = idata
+        tags = []
+        if not gforw:
+            idata = np.empty(isize[0], dtype=odtype)
+            tags.append(my_comm.mpi_nonblocking_recv(
+                          idata.view(idtype), source, dtype=idtype))
+        if not gback:
+            tags.append(my_comm.mpi_nonblocking_send(
+                          odata.view(idtype), dest, dtype=idtype))
+        my_comm.mpi_Request_Waitall(tags)
+        del odata
 
 class CommunicationSystem(object):
     communicators = []
@@ -946,7 +1048,7 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.hierarchy.region_strict(self.center, LE, RE)
+        reg = self.hierarchy.region(self.center, LE, RE)
         return True, reg
 
     def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
@@ -962,8 +1064,7 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.hierarchy.periodic_region_strict(self.center,
-                LE-padding, RE+padding)
+            self.hierarchy.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -990,10 +1091,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center,
+                LE, RE, self.hierarchy.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1003,8 +1104,9 @@ class ParallelAnalysisInterface(object):
         """
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
+            raise NotImplemented
             return LE, RE, re
-        
+
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
         cx, cy, cz = np.unravel_index(mi, cc)
@@ -1017,7 +1119,7 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
+                LE, RE, self.hierarchy.region(self.center, LE-padding,
                     RE+padding)
 
         return False, LE, RE, self.hierarchy.region(self.center, LE, RE)

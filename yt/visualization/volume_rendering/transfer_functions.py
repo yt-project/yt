@@ -1,27 +1,17 @@
 """
 Simple transfer function editor
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -236,8 +226,15 @@ class MultiVariateTransferFunction(object):
     this is fine.  However, more complicated schema are possible by using
     this object.  For instance, density-weighted emission that produces
     colors based on the temperature of the fluid.
+
+    Parameters
+    ----------
+    grey_opacity : bool
+        Should opacity be calculated on a channel-by-channel basis, or
+        overall?  Useful for opaque renderings. Default: False
+ 
     """
-    def __init__(self):
+    def __init__(self, grey_opacity=False):
         self.n_field_tables = 0
         self.tables = [] # Tables are interpolation tables
         self.field_ids = [0] * 6 # This correlates fields with tables
@@ -246,6 +243,7 @@ class MultiVariateTransferFunction(object):
         self.weight_table_ids = [-1] * 6
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, 'float64')
+        self.grey_opacity = grey_opacity
 
     def add_field_table(self, table, field_id, weight_field_id = -1,
                         weight_table_id = -1):
@@ -636,22 +634,59 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 v, w, (r,g,b,alpha)))
 
     def map_to_colormap(self, mi, ma, scale=1.0, colormap="gist_stern",
-            scale_func=None):
+                        scale_func=None):
+        r"""Map a range of values to a full colormap.
+
+        Given a minimum and maximum value in the TransferFunction, map a full
+        colormap over that range at an alpha level of `scale`.
+        Optionally specify a scale_func function that modifies the alpha as
+        a function of the transfer function value.
+
+        Parameters
+        ----------
+        mi : float
+            The start of the TransferFunction to map the colormap
+        ma : float
+            The end of the TransferFunction to map the colormap
+        scale: float, optional
+            The alpha value to be used for the height of the transfer function.
+            Larger values will be more opaque.
+        colormap : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        scale_func: function(value, minval, maxval), optional
+            A user-defined function that can be used to scale the alpha channel
+            as a function of the TransferFunction field values. Function maps
+            value to somewhere between minval and maxval.
+
+        Examples
+        --------
+
+        >>> def linramp(vals, minval, maxval):
+        ...     return (vals - vals.min())/(vals.(max) - vals.min())
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='algae')
+        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
+        ...                    scale_func = linramp)
+        """
+
         rel0 = int(self.nbins*(mi - self.x_bounds[0])/(self.x_bounds[1] -
-            self.x_bounds[0]))
+                                                       self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
-            self.x_bounds[0]))
-        tomap = np.linspace(0.,1.,num=rel1-rel0)
+                                                       self.x_bounds[0]))
+        rel0 = max(rel0, 0)
+        rel1 = min(rel1, self.nbins-1)
+        tomap = np.linspace(0., 1., num=rel1-rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)
         if scale_func is None:
             scale_mult = 1.0
         else:
-            scale_mult = scale_func(tomap,0.0,1.0)
-        self.red.y[rel0:rel1]  = cc[:,0]*scale_mult
-        self.green.y[rel0:rel1]= cc[:,1]*scale_mult
-        self.blue.y[rel0:rel1] = cc[:,2]*scale_mult
-        self.alpha.y[rel0:rel1]= scale*cc[:,3]*scale_mult
+            scale_mult = scale_func(tomap, 0.0, 1.0)
+        self.red.y[rel0:rel1] = cc[:, 0]*scale_mult
+        self.green.y[rel0:rel1] = cc[:, 1]*scale_mult
+        self.blue.y[rel0:rel1] = cc[:, 2]*scale_mult
+        self.alpha.y[rel0:rel1] = scale*cc[:, 3]*scale_mult
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
@@ -801,6 +836,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             self.link_channels(i+3, i+3)
 
         self._normalize()
+        self.grey_opacity = False
 
     def _normalize(self):
         fmax  = np.array([f.y for f in self.tables[:3]])

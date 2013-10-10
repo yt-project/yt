@@ -1,29 +1,17 @@
 """
 Profile classes, to deal with generating and obtaining profiles
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Samuel Skillman <samskillman@gmail.com>
-Affiliation: CASA, University of Colorado at Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -183,6 +171,8 @@ class BinnedProfile1D(BinnedProfile):
 
         # Get our bins
         if log_space:
+            if lower_bound <= 0.0 or upper_bound <= 0.0:
+                raise YTIllDefinedBounds(lower_bound, upper_bound)
             func = np.logspace
             lower_bound, upper_bound = np.log10(lower_bound), np.log10(upper_bound)
         else:
@@ -522,7 +512,10 @@ class BinnedProfile2D(BinnedProfile):
         return [self.x_bin_field, self.y_bin_field]
 
 def fix_bounds(upper, lower, logit):
-    if logit: return np.log10(upper), np.log10(lower)
+    if logit:
+        if lower <= 0.0 or upper <= 0.0:
+            raise YTIllDefinedBounds(lower, upper)
+        return np.log10(upper), np.log10(lower)
     return upper, lower
 
 class BinnedProfile2DInlineCut(BinnedProfile2D):
@@ -545,6 +538,8 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
+        m_field = self._get_empty_field()
+        q_field = self._get_empty_field()
         used_field = self._get_empty_field()
         mi = args[0]
         bin_indices_x = args[1][self.indices].ravel().astype('int64')
@@ -553,8 +548,8 @@ class BinnedProfile2DInlineCut(BinnedProfile2D):
         weight_data = weight_data[mi][self.indices]
         nx = bin_indices_x.size
         #mylog.debug("Binning %s / %s times", source_data.size, nx)
-        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        bin_profile2d(bin_indices_x, bin_indices_y, weight_data, source_data,
+                      weight_field, binned_field, m_field, q_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")

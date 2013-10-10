@@ -1,27 +1,17 @@
 """
 Utilities for flagging zones for refinement in a dataset
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np # For modern purposes
 from yt.utilities.lib import grow_flagging_field
@@ -162,6 +152,9 @@ class ProtoSubgrid(object):
                 # Note that sd is offset by one
                 if sd[i-1] * sd[i] < 0:
                     strength = np.abs(sd[i-1] - sd[i])
+                    # TODO this differs from what I could find in ENZO
+                    # there's |center - i| < |center - zero_cross| instead
+                    # additionally zero_cross is undefined in first pass  
                     if strength > zero_strength or \
                        (strength == zero_strength and np.abs(center - i) < np.abs(zero_cross -i )):
                         zero_strength = strength

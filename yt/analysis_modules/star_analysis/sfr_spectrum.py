@@ -1,27 +1,17 @@
 """
 StarAnalysis - Functions to analyze stars.
 
-Author: Stephen Skory <s@skory.us>
-Affiliation: UC San Diego / CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Stephen Skory (and others).  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import h5py
@@ -109,16 +99,19 @@ class StarFormationRate(object):
         """
         # Pick out the stars.
         if self.mode == 'data_source':
-            ct = self._data_source["creation_time"]
+            ct = self._data_source["stars","particle_age"]
+            if ct == None :
+                print 'data source must have particle_age!'
+                sys.exit(1)
             ct_stars = ct[ct > 0]
-            mass_stars = self._data_source["ParticleMassMsun"][ct > 0]
+            mass_stars = self._data_source["stars", "ParticleMassMsun"][ct > 0]
         elif self.mode == 'provided':
             ct_stars = self.star_creation_time
             mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
-        self.time_bins = np.linspace(tmin*0.99, self._pf.current_time,
+        self.time_bins = np.linspace(tmin*1.01, self._pf.current_time,
             num = self.bin_count + 1)
         # Figure out which bins the stars go into.
         inds = np.digitize(ct_stars, self.time_bins) - 1
@@ -131,7 +124,7 @@ class StarFormationRate(object):
         for index in xrange(self.bin_count):
             self.cum_mass_bins[index+1] += self.cum_mass_bins[index]
         # We will want the time taken between bins.
-        self.time_bins_dt = self.time_bins[1:] - self.time_bins[:-1]
+        self.time_bins_dt = self.time_bins[:-1] - self.time_bins[1:]
     
     def attach_arrays(self):
         """
@@ -147,7 +140,7 @@ class StarFormationRate(object):
                 vol = ds.volume('mpc')
         elif self.mode == 'provided':
             vol = self.volume
-        tc = self._pf["Time"]
+        tc = self._pf["Time"] #time to seconds?
         self.time = []
         self.lookback_time = []
         self.redshift = []

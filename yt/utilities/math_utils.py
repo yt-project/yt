@@ -1,34 +1,55 @@
 """
 Commonly used mathematical functions.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD Physics/CASS
-Author: Stephen Skory <s@skory.us>
-Affiliation: UCSD Physics/CASS
-Author: Geoffrey So <gsiisg@gmail.com>
-Affiliation: UCSD Physics/CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import math
+
+prec_accum = {
+    np.int:                 np.int64,
+    np.int8:                np.int64,
+    np.int16:               np.int64,
+    np.int32:               np.int64,
+    np.int64:               np.int64,
+    np.uint8:               np.uint64,
+    np.uint16:              np.uint64,
+    np.uint32:              np.uint64,
+    np.uint64:              np.uint64,
+    np.float:               np.float64,
+    np.float16:             np.float64,
+    np.float32:             np.float64,
+    np.float64:             np.float64,
+    np.complex:             np.complex128,
+    np.complex64:           np.complex128,
+    np.complex128:          np.complex128,
+    np.dtype('int'):        np.int64,
+    np.dtype('int8'):       np.int64,
+    np.dtype('int16'):      np.int64,
+    np.dtype('int32'):      np.int64,
+    np.dtype('int64'):      np.int64,
+    np.dtype('uint8'):      np.uint64,
+    np.dtype('uint16'):     np.uint64,
+    np.dtype('uint32'):     np.uint64,
+    np.dtype('uint64'):     np.uint64,
+    np.dtype('float'):      np.float64,
+    np.dtype('float16'):    np.float64,
+    np.dtype('float32'):    np.float64,
+    np.dtype('float64'):    np.float64,
+    np.dtype('complex'):    np.complex128,
+    np.dtype('complex64'):  np.complex128,
+    np.dtype('complex128'): np.complex128,
+}
 
 def periodic_position(pos, pf):
     r"""Assuming periodicity, find the periodic position within the domain.

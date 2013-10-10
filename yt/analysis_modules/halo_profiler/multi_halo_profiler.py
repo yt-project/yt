@@ -1,27 +1,17 @@
 """
 HaloProfiler class and member functions.
 
-Author: Britton Smith <brittons@origins.colorado.edu>
-Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import gc
 import numpy as np
@@ -647,7 +637,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         """
 
         sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
-        if len(sphere._grids) == 0: return None
+        #if len(sphere._grids) == 0: return None
         new_sphere = False
 
         if self.recenter:
@@ -811,10 +801,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                     need_per = True
                     break
 
-            if need_per:
-                region = self.pf.h.periodic_region(halo['center'], leftEdge, rightEdge)
-            else:
-                region = self.pf.h.region(halo['center'], leftEdge, rightEdge)
+            # We use the same type of region regardless.  The selection will be
+            # correct, but we need the need_per variable for projection
+            # shifting.
+            region = self.pf.h.region(halo['center'], leftEdge, rightEdge)
 
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
@@ -829,8 +819,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                 for hp in self.projection_fields:
                     projections.append(self.pf.h.proj(hp['field'], w,
                                                       weight_field=hp['weight_field'],
-                                                      source=region, center=halo['center'],
-                                                      serialize=False))
+                                                      data_source=region,
+                                                      center=halo['center']))
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
@@ -1254,7 +1244,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("Output directory exists, but is not a directory: %s." % my_output_dir)
                 raise IOError(my_output_dir)
         else:
-            os.mkdir(my_output_dir)
+            os.makedirs(my_output_dir)
 
 def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """

@@ -1,33 +1,23 @@
 """
 Simple integrators for the radiative transfer equation
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
 cimport cython
 cimport kdtree_utils
-cimport healpix_interface
+#cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
@@ -58,8 +48,18 @@ cdef extern from "math.h":
     double sin(double x) nogil
     double sqrt(double x) nogil
 
+ctypedef void sampler_function(
+                VolumeContainer *vc,
+                np.float64_t v_pos[3],
+                np.float64_t v_dir[3],
+                np.float64_t enter_t,
+                np.float64_t exit_t,
+                int index[3],
+                void *data) nogil
+
 cdef class PartitionedGrid:
     cdef public object my_data
+    cdef public object source_mask 
     cdef public object LeftEdge
     cdef public object RightEdge
     cdef public int parent_grid_id
@@ -74,12 +74,14 @@ cdef class PartitionedGrid:
     @cython.cdivision(True)
     def __cinit__(self,
                   int parent_grid_id, data,
+                  mask,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims,
 		  star_kdtree_container star_tree = None):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
+        cdef np.ndarray[np.uint8_t, ndim=3] mask_data
         self.container = NULL
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
@@ -96,10 +98,13 @@ cdef class PartitionedGrid:
             c.dds[i] = (c.right_edge[i] - c.left_edge[i])/dims[i]
             c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
+        self.source_mask = mask
+        mask_data = mask
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
         for i in range(n_fields):
             tdata = data[i]
             c.data[i] = <np.float64_t *> tdata.data
+        c.mask = <np.uint8_t *> mask_data.data
         if star_tree is None:
             self.star_list = NULL
         else:
@@ -217,7 +222,7 @@ cdef struct ImageAccumulator:
 
 cdef class ImageSampler:
     cdef ImageContainer *image
-    cdef sample_function *sampler
+    cdef sampler_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
     cdef void *supp_data
     cdef np.float64_t width[3]
@@ -503,6 +508,10 @@ cdef void volume_render_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef int cell_offset = index[0] * (vc.dims[1]) * (vc.dims[2]) \
+                    + index[1] * (vc.dims[2]) + index[2]
+    if vc.mask[cell_offset] != 1:
+        return
     cdef np.float64_t slopes[6], dp[3], ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
     cdef np.float64_t dvs[6]
@@ -911,7 +920,7 @@ cdef class ProtoPrism:
 cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
-                     sample_function *sampler,
+                     sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
                      np.float64_t enter_t = -1.0) nogil:
@@ -945,6 +954,14 @@ cdef int walk_volume(VolumeContainer *vc,
             tl = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
         temp_x = (v_pos[x] + tl*v_dir[x])
         temp_y = (v_pos[y] + tl*v_dir[y])
+        if fabs(temp_x - vc.left_edge[x]) < 1e-10*vc.dds[x]:
+            temp_x = vc.left_edge[x]
+        elif fabs(temp_x - vc.right_edge[x]) < 1e-10*vc.dds[x]:
+            temp_x = vc.right_edge[x]
+        if fabs(temp_y - vc.left_edge[y]) < 1e-10*vc.dds[y]:
+            temp_y = vc.left_edge[y]
+        elif fabs(temp_y - vc.right_edge[y]) < 1e-10*vc.dds[y]:
+            temp_y = vc.right_edge[y]
         if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
            vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
            0.0 <= tl and tl < intersect_t:
@@ -1006,6 +1023,7 @@ cdef int walk_volume(VolumeContainer *vc,
     return hit
 
 def hp_pix2vec_nest(long nside, long ipix):
+    raise NotImplementedError
     cdef double v[3]
     healpix_interface.pix2vec_nest(nside, ipix, v)
     cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
@@ -1016,6 +1034,7 @@ def hp_pix2vec_nest(long nside, long ipix):
 
 def arr_pix2vec_nest(long nside,
                      np.ndarray[np.int64_t, ndim=1] aipix):
+    raise NotImplementedError
     cdef int n = aipix.shape[0]
     cdef int i
     cdef double v[3]
@@ -1030,6 +1049,7 @@ def arr_pix2vec_nest(long nside,
     return tr
 
 def hp_vec2pix_nest(long nside, double x, double y, double z):
+    raise NotImplementedError
     cdef double v[3]
     v[0] = x
     v[1] = y
@@ -1042,6 +1062,7 @@ def arr_vec2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] x,
                      np.ndarray[np.float64_t, ndim=1] y,
                      np.ndarray[np.float64_t, ndim=1] z):
+    raise NotImplementedError
     cdef int n = x.shape[0]
     cdef int i
     cdef double v[3]
@@ -1056,11 +1077,13 @@ def arr_vec2pix_nest(long nside,
     return tr
 
 def hp_pix2ang_nest(long nside, long ipnest):
+    raise NotImplementedError
     cdef double theta, phi
     healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
     return (theta, phi)
 
 def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
+    raise NotImplementedError
     cdef int n = aipnest.shape[0]
     cdef int i
     cdef long ipnest
@@ -1074,6 +1097,7 @@ def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
     return tr
 
 def hp_ang2pix_nest(long nside, double theta, double phi):
+    raise NotImplementedError
     cdef long ipix
     healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
     return ipix
@@ -1081,6 +1105,7 @@ def hp_ang2pix_nest(long nside, double theta, double phi):
 def arr_ang2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] atheta,
                      np.ndarray[np.float64_t, ndim=1] aphi):
+    raise NotImplementedError
     cdef int n = atheta.shape[0]
     cdef int i
     cdef long ipnest
@@ -1100,6 +1125,7 @@ def pixelize_healpix(long nside,
                      np.ndarray[np.float64_t, ndim=1] values,
                      long ntheta, long nphi,
                      np.ndarray[np.float64_t, ndim=2] irotation):
+    raise NotImplementedError
     # We will first to pix2vec, rotate, then calculate the angle
     cdef int i, j, thetai, phii
     cdef long ipix
@@ -1146,6 +1172,7 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
                         long nside,
                         np.ndarray[np.float64_t, ndim=2] image,
                         np.ndarray[np.float64_t, ndim=2] irotation):
+    raise NotImplementedError
     cdef double pi = np.pi
     cdef int i, j, k, l
     cdef np.float64_t x, y, z, zb

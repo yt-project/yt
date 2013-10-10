@@ -1,27 +1,17 @@
 """
 A means of running standalone commands with a shared set of options.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.config import ytcfg
 ytcfg["yt","__command_line"] = "True"
@@ -1173,7 +1163,7 @@ class YTMapserverCmd(YTCommand):
             p = pc.add_slice(args.field, args.axis)
         from yt.gui.reason.pannable_map import PannableMapServer
         mapper = PannableMapServer(p.data, args.field)
-        import yt.utilities.bottle as bottle
+        import yt.extern.bottle as bottle
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1254,6 +1244,8 @@ class YTNotebookUploadCmd(YTCommand):
             t = json.loads(open(filename).read())['metadata']['name']
         except (ValueError, KeyError):
             print "File does not appear to be an IPython notebook."
+        if len(t) == 0:
+            t = filename.strip(".ipynb")
         from yt.utilities.minimal_representation import MinimalNotebook
         mn = MinimalNotebook(filename, t)
         rv = mn.upload()
@@ -1320,7 +1312,7 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = pf.current_time*pf['Time']*pf['years']
+                time = pf.current_time*pf['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
@@ -1401,7 +1393,7 @@ class YTRenderCmd(YTCommand):
         tf = ColorTransferFunction((mi-2, ma+2))
         tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
 
-        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf)
+        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf, fields=[field])
         image = cam.snapshot()
 
         if args.enhance:
@@ -1456,7 +1448,12 @@ class YTNotebookCmd(YTCommand):
         """
     def __call__(self, args):
         kwargs = {}
-        from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        try:
+            # IPython 1.0+
+            from IPython.html.notebookapp import NotebookApp
+        except ImportError:
+            # pre-IPython v1.0
+            from IPython.frontend.html.notebook.notebookapp import NotebookApp
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib
@@ -1550,7 +1547,7 @@ class YTGUICmd(YTCommand):
         except IOError:
             sys.exit(1)
         from yt.config import ytcfg;ytcfg["yt","__withinreason"]="True"
-        import yt.utilities.bottle as bottle
+        import yt.extern.bottle as bottle
         from yt.gui.reason.extdirect_repl import ExtDirectREPL
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(reasonjs_path, use_pyro=args.use_pyro)
@@ -1584,17 +1581,26 @@ class YTStatsCmd(YTCommand):
     def __call__(self, args):
         pf = args.pf
         pf.h.print_stats()
+        vals = {}
         if args.field in pf.h.derived_field_list:
             if args.max == True:
-                v, c = pf.h.find_max(args.field)
-                print "Maximum %s: %0.5e at %s" % (args.field, v, c)
+                vals['min'] = pf.h.find_max(args.field)
+                print "Maximum %s: %0.5e at %s" % (args.field,
+                    vals['min'][0], vals['min'][1])
             if args.min == True:
-                v, c = pf.h.find_min(args.field)
-                print "Minimum %s: %0.5e at %s" % (args.field, v, c)
+                vals['max'] = pf.h.find_min(args.field)
+                print "Minimum %s: %0.5e at %s" % (args.field,
+                    vals['max'][0], vals['max'][1])
         if args.output is not None:
             t = pf.current_time * pf['years']
-            open(args.output, "a").write(
-                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
+            with open(args.output, "a") as f:
+                f.write("%s (%0.5e years)\n" % (pf, t))
+                if 'min' in vals:
+                    f.write('Minimum %s is %0.5e at %s\n' % (
+                        args.field, vals['min'][0], vals['min'][1]))
+                if 'max' in vals:
+                    f.write('Maximum %s is %0.5e at %s\n' % (
+                        args.field, vals['max'][0], vals['max'][1]))
 
 class YTUpdateCmd(YTCommand):
     args = ("all", )

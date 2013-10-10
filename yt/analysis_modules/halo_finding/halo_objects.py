@@ -1,31 +1,17 @@
 """
 HOP-output data handling
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Stephen Skory <s@skory.us>
-Affiliation: UCSD Physics/CASS
-Author: Geoffrey So <gsiisg@gmail.com> (Ellipsoidal functions)
-Affiliation: UCSD Physics/CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import gc
 import h5py
@@ -1062,8 +1048,9 @@ class HaloList(object):
     def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is True (default), only run it on the dark matter particles, otherwise
-        on all particles.  Returns an iterable collection of *HopGroup* items.
+        *dm_only* is True (default), only run it on the dark matter particles, 
+        otherwise on all particles.  Returns an iterable collection of 
+        *HopGroup* items.
         """
         self._data_source = data_source
         self.dm_only = dm_only
@@ -2215,11 +2202,11 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 self.comm.mpi_bcast(self.bucket_bounds)
             my_bounds = self.bucket_bounds[self.comm.rank]
             LE, RE = my_bounds[0], my_bounds[1]
-            self._data_source = self.hierarchy.region_strict([0.] * 3, LE, RE)
+            self._data_source = self.hierarchy.region([0.] * 3, LE, RE)
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self.comm.size == 1:
-            self._data_source = self.hierarchy.periodic_region_strict([0.5] * 3,
+            self._data_source = self.hierarchy.region([0.5] * 3,
                 LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case where the full box is what we want.
@@ -2305,8 +2292,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 np.zeros(3, dtype='float64'))
         # If we're using a subvolume, we now re-divide.
         if subvolume is not None:
-            self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE,
-                ds_RE)
+            self._data_source = pf.h.region([0.] * 3, ds_LE, ds_RE)
             # Cut up the volume.
             padded, LE, RE, self._data_source = \
                 self.partition_hierarchy_3d(ds=self._data_source,
@@ -2495,7 +2481,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             if dm_only:
                 select = self._get_dm_indices()
                 total_mass = \
-                    self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
+                    self.comm.mpi_allreduce((self._data_source['all', "ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
             else:
                 total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0], op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
@@ -2503,7 +2489,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
         if subvolume is not None:
-            self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE, ds_RE)
+            self._data_source = pf.h.region([0.] * 3, ds_LE, ds_RE)
         else:
             self._data_source = pf.h.all_data()
         self.padding = padding  # * pf["unitary"] # This should be clevererer
@@ -2599,7 +2585,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             linking_length = np.abs(link)
         self.padding = padding
         if subvolume is not None:
-            self._data_source = pf.h.periodic_region_strict([0.] * 3, ds_LE,
+            self._data_source = pf.h.region([0.] * 3, ds_LE,
                 ds_RE)
         else:
             self._data_source = pf.h.all_data()

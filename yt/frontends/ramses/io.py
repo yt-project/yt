@@ -1,27 +1,17 @@
 """
 RAMSES-specific IO
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from collections import defaultdict
 import numpy as np
@@ -39,7 +29,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Chunks in this case will have affiliated domain subset objects
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
-        tr = dict((f, np.empty(size, dtype='float64')) for f in fields)
+        tr = defaultdict(list)
         cp = 0
         for chunk in chunks:
             for subset in chunk.objs:
@@ -48,14 +38,16 @@ class IOHandlerRAMSES(BaseIOHandler):
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 content = cStringIO.StringIO(f.read())
-                rv = subset.fill(content, fields)
+                rv = subset.fill(content, fields, selector)
                 for ft, f in fields:
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
-                        f, subset.cell_count, rv[f].min(), rv[f].max(),
-                        cp, cp+subset.cell_count)
-                    tr[(ft, f)][cp:cp+subset.cell_count] = rv.pop(f)
-                cp += subset.cell_count
-        return tr
+                    d = rv.pop(f)
+                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                        f, d.size, d.min(), d.max(), d.size)
+                    tr[(ft, f)].append(d)
+        d = {}
+        for field in fields:
+            d[field] = np.concatenate(tr.pop(field))
+        return d
 
     def _read_particle_selection(self, chunks, selector, fields):
         size = 0
@@ -96,9 +88,13 @@ class IOHandlerRAMSES(BaseIOHandler):
         f = open(subset.domain.part_fn, "rb")
         foffsets = subset.domain.particle_field_offsets
         tr = {}
-        #for field in sorted(fields, key=lambda a:foffsets[a]):
+        # We do *all* conversion into boxlen here.
+        # This means that no other conversions need to be applied to convert
+        # positions into the same domain as the octs themselves.
         for field in fields:
             f.seek(foffsets[field])
             dt = subset.domain.particle_field_types[field]
             tr[field] = fpu.read_vector(f, dt)
+            if field[1].startswith("particle_position"):
+                np.divide(tr[field], subset.domain.pf["boxlen"], tr[field])
         return tr

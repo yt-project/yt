@@ -1,27 +1,18 @@
 """
 Geometry container base class.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import os
 import cPickle
@@ -31,6 +22,7 @@ from exceptions import IOError, TypeError
 from types import ClassType
 import numpy as np
 import abc
+import copy
 
 from yt.funcs import *
 from yt.config import ytcfg
@@ -38,13 +30,22 @@ from yt.data_objects.data_containers import \
     data_object_registry
 from yt.data_objects.field_info_container import \
     NullFunc
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.exceptions import YTFieldNotFound
 
+def _unsupported_object(pf, obj_name):
+    def _raise_unsupp(*args, **kwargs):
+        raise YTObjectNotImplemented(pf, obj_name)
+    return _raise_unsupp
+
 class GeometryHandler(ParallelAnalysisInterface):
+    _global_mesh = True
+    _unsupported_objects = ()
 
     def __init__(self, pf, data_style):
         ParallelAnalysisInterface.__init__(self)
@@ -112,6 +113,10 @@ class GeometryHandler(ParallelAnalysisInterface):
         self.objects = []
         self.plots = []
         for name, cls in sorted(data_object_registry.items()):
+            if name in self._unsupported_objects:
+                setattr(self, name,
+                    _unsupported_object(self.parameter_file, name))
+                continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cname, cls, dd)
@@ -165,13 +170,47 @@ class GeometryHandler(ParallelAnalysisInterface):
                         self.parameter_file.field_info[field].units = unit
 
     def _setup_derived_fields(self):
-        fi = self.parameter_file.field_info
         self.derived_field_list = []
+        self.filtered_particle_types = []
+        fc, fac = self._derived_fields_to_check()
+        self._derived_fields_add(fc, fac)
+
+    def _setup_filtered_type(self, filter):
+        if not filter.available(self.derived_field_list):
+            return False
+        fi = self.parameter_file.field_info
+        fd = self.parameter_file.field_dependencies
+        available = False
+        for fn in self.derived_field_list:
+            if fn[0] == filter.filtered_type:
+                # Now we can add this
+                available = True
+                self.derived_field_list.append(
+                    (filter.name, fn[1]))
+                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
+                # Now we append the dependencies
+                fd[filter.name, fn[1]] = fd[fn]
+        if available:
+            self.parameter_file.particle_types += (filter.name,)
+            self.filtered_particle_types.append(filter.name)
+            self._setup_particle_fields(filter.name, True)
+        return available
+
+    def _setup_particle_fields(self, ptype, filtered = False):
+        pf = self.parameter_file
+        pmass = self.parameter_file._particle_mass_name
+        pcoord = self.parameter_file._particle_coordinates_name
+        if pmass is None or pcoord is None: return
+        df = particle_deposition_functions(ptype,
+            pcoord, pmass, self.parameter_file.field_info)
+        self._derived_fields_add(df)
+
+    def _derived_fields_to_check(self):
+        fi = self.parameter_file.field_info
         # First we construct our list of fields to check
         fields_to_check = []
         fields_to_allcheck = []
-        fields_to_add = []
-        for field in fi:
+        for field in fi.keys():
             finfo = fi[field]
             # Explicitly defined
             if isinstance(field, tuple):
@@ -183,22 +222,30 @@ class GeometryHandler(ParallelAnalysisInterface):
                 fields_to_check.append(field)
                 continue
             # We do a special case for 'all' later
-            new_fields = [(pt, field) for pt in
-                          self.parameter_file.particle_types]
+            new_fields = []
+            for pt in self.parameter_file.particle_types:
+                new_fi = copy.copy(finfo)
+                new_fi.name = (pt, new_fi.name)
+                fi[new_fi.name] = new_fi
+                new_fields.append(new_fi.name)
             fields_to_check += new_fields
-            fields_to_add.extend( (new_field, fi[field]) for
-                                   new_field in new_fields )
             fields_to_allcheck.append(field)
-        fi.update(fields_to_add)
+        return fields_to_check, fields_to_allcheck
+
+    def _derived_fields_add(self, fields_to_check = None,
+                            fields_to_allcheck = None):
+        if fields_to_check is None:
+            fields_to_check = []
+        if fields_to_allcheck is None:
+            fields_to_allcheck = []
+        fi = self.parameter_file.field_info
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
             except Exception as e:
                 if type(e) != YTFieldNotFound:
-                    if field not in ('WeakLensingConvergence', 'Overdensity'):
-                        raise
-                    mylog.debug("Exception %s raised during field detection for field %s" %
-                                (str(type(e)), field))
+                    mylog.debug("Raises %s during field %s detection.",
+                                str(type(e)), field)
                 continue
             missing = False
             # This next bit checks that we can't somehow generate everything.
@@ -208,6 +255,8 @@ class GeometryHandler(ParallelAnalysisInterface):
                 if (field[0], f) in self.field_list:
                     requested.append( (field[0], f) )
                 elif f in self.field_list:
+                    requested.append( f )
+                elif isinstance(f, tuple) and f[1] in self.field_list:
                     requested.append( f )
                 else:
                     missing = True
@@ -408,8 +457,9 @@ class GeometryHandler(ParallelAnalysisInterface):
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(
-                    self._chunk_io(dobj), selector,
-                    fields_to_read)
+            self._chunk_io(dobj, cache = False),
+            selector,
+            fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
             finfo = self.pf._get_field_info(*field)
@@ -427,10 +477,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
-                                                   selector,
-                                                   fields_to_read,
-                                                   chunk_size)
+        fields_to_return = self.io._read_fluid_selection(
+            self._chunk_io(dobj),
+            selector,
+            fields_to_read,
+            chunk_size)
         #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
@@ -450,43 +501,59 @@ class GeometryHandler(ParallelAnalysisInterface):
         else:
             raise NotImplementedError
 
+def cached_property(func):
+    n = '_%s' % func.func_name
+    def cached_func(self):
+        if self._cache and getattr(self, n, None) is not None:
+            return getattr(self, n)
+        if self.data_size is None:
+            tr = self._accumulate_values(n[1:])
+        else:
+            tr = func(self)
+        if self._cache:
+            setattr(self, n, tr)
+        return tr
+    return property(cached_func)
+
 class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size, field_type = None):
+    def __init__(self, dobj, chunk_type, objs, data_size = None,
+                 field_type = None, cache = False):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
-        self._data_size = data_size
+        self.data_size = data_size
         self._field_type = field_type
+        self._cache = cache
 
-    @property
-    def data_size(self):
-        if callable(self._data_size):
-            self._data_size = self._data_size(self.dobj, self.objs)
-        return self._data_size
+    def _accumulate_values(self, method):
+        # We call this generically.  It's somewhat slower, since we're doing
+        # costly getattr functions, but this allows us to generalize.
+        mname = "select_%s" % method
+        arrs = []
+        for obj in self.objs:
+            f = getattr(obj, mname)
+            arrs.append(f(self.dobj))
+        arrs = np.concatenate(arrs)
+        self.data_size = arrs.shape[0]
+        return arrs
 
-    _fcoords = None
-    @property
+    @cached_property
     def fcoords(self):
-        if self._fcoords is not None: return self._fcoords
         ci = np.empty((self.data_size, 3), dtype='float64')
-        self._fcoords = ci
-        if self.data_size == 0: return self._fcoords
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_fcoords(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
             ind += c.shape[0]
-        return self._fcoords
+        return ci
 
-    _icoords = None
-    @property
+    @cached_property
     def icoords(self):
-        if self._icoords is not None: return self._icoords
         ci = np.empty((self.data_size, 3), dtype='int64')
-        self._icoords = ci
-        if self.data_size == 0: return self._icoords
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_icoords(self.dobj)
@@ -495,13 +562,10 @@ class YTDataChunk(object):
             ind += c.shape[0]
         return ci
 
-    _fwidth = None
-    @property
+    @cached_property
     def fwidth(self):
-        if self._fwidth is not None: return self._fwidth
         ci = np.empty((self.data_size, 3), dtype='float64')
-        self._fwidth = ci
-        if self.data_size == 0: return self._fwidth
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_fwidth(self.dobj)
@@ -510,13 +574,10 @@ class YTDataChunk(object):
             ind += c.shape[0]
         return ci
 
-    _ires = None
-    @property
+    @cached_property
     def ires(self):
-        if self._ires is not None: return self._ires
         ci = np.empty(self.data_size, dtype='int64')
-        self._ires = ci
-        if self.data_size == 0: return self._ires
+        if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_ires(self.dobj)
@@ -525,22 +586,17 @@ class YTDataChunk(object):
             ind += c.size
         return ci
 
-    _tcoords = None
-    @property
+    @cached_property
     def tcoords(self):
-        if self._tcoords is None:
-            self.dtcoords
+        self.dtcoords
         return self._tcoords
 
-    _dtcoords = None
-    @property
+    @cached_property
     def dtcoords(self):
-        if self._dtcoords is not None: return self._dtcoords
         ct = np.empty(self.data_size, dtype='float64')
         cdt = np.empty(self.data_size, dtype='float64')
-        self._tcoords = ct
-        self._dtcoords = cdt
-        if self.data_size == 0: return self._dtcoords
+        self._tcoords = ct # Se this for tcoords
+        if self.data_size == 0: return cdt
         ind = 0
         for obj in self.objs:
             gdt, gt = obj.tcoords(self.dobj)
@@ -549,3 +605,36 @@ class YTDataChunk(object):
             cdt[ind:ind+gdt.size] = gdt
             ind += gt.size
         return cdt
+
+class ChunkDataCache(object):
+    def __init__(self, base_iter, preload_fields, geometry_handler,
+                 max_length = 256):
+        # At some point, max_length should instead become a heuristic function,
+        # potentially looking at estimated memory usage.  Note that this never
+        # initializes the iterator; it assumes the iterator is already created,
+        # and it calls next() on it.
+        self.base_iter = base_iter.__iter__()
+        self.queue = []
+        self.max_length = max_length
+        self.preload_fields = preload_fields
+        self.geometry_handler = geometry_handler
+        self.cache = {}
+
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        if len(self.queue) == 0:
+            for i in range(self.max_length):
+                try:
+                    self.queue.append(self.base_iter.next())
+                except StopIteration:
+                    break
+            # If it's still zero ...
+            if len(self.queue) == 0: raise StopIteration
+            chunk = YTDataChunk(None, "cache", self.queue, cache=False)
+            self.cache = self.geometry_handler.io._read_chunk_data(
+                chunk, self.preload_fields)
+        g = self.queue.pop(0)
+        g._initialize_cache(self.cache.pop(g.id, {}))
+        return g

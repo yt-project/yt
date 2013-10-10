@@ -1,35 +1,17 @@
 """
 Data structures for Athena.
 
-Author: Samuel W. Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: John ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/Goddard Space Flight Center
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2013 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
-  John ZuHone.
-  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -91,12 +73,11 @@ def parse_line(line, grid):
     splitup = line.strip().split()
     if "vtk" in splitup:
         grid['vtk_version'] = splitup[-1]
-    elif "Really" in splitup:
-        grid['time'] = splitup[-1]
-    elif any(x in ['PRIMITIVE','CONSERVED'] for x in splitup):
-        grid['time'] = float(splitup[4].rstrip(','))
-        grid['level'] = int(splitup[6].rstrip(','))
-        grid['domain'] = int(splitup[8].rstrip(','))
+    elif "time=" in splitup:
+        time_index = splitup.index("time=")
+        grid['time'] = float(splitup[time_index+1].rstrip(','))
+        grid['level'] = int(splitup[time_index+3].rstrip(','))
+        grid['domain'] = int(splitup[time_index+5].rstrip(','))                        
     elif "DIMENSIONS" in splitup:
         grid['dimensions'] = np.array(splitup[-3:]).astype('int')
     elif "ORIGIN" in splitup:
@@ -309,6 +290,10 @@ class AthenaHierarchy(GridGeometryHandler):
         self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
+        if self.parameter_file.dimensionality <= 2:
+            self.grid_right_edge[:,2] = self.parameter_file.domain_right_edge[2]
+        if self.parameter_file.dimensionality == 1:
+            self.grid_right_edge[:,1:] = self.parameter_file.domain_right_edge[1:]
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
     def _populate_grid_objects(self):
@@ -335,7 +320,9 @@ class AthenaStaticOutput(StaticOutput):
     _data_style = "athena"
 
     def __init__(self, filename, data_style='athena',
-                 storage_filename=None, parameters={}):
+                 storage_filename=None, parameters=None):
+        if parameters is None:
+            parameters = {}
         self.specified_parameters = parameters
         StaticOutput.__init__(self, filename, data_style)
         self.filename = filename
@@ -469,6 +456,10 @@ class AthenaStaticOutput(StaticOutput):
         except:
             pass
         return False
+
+    @property
+    def _skip_cache(self):
+        return True
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

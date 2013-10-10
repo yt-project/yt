@@ -24,6 +24,7 @@ _sample_parameters = dict(
 _base_fields = ["density", "x-velocity", "y-velocity", "z-velocity"]
 
 def realistic_pf(fields, nprocs):
+    np.random.seed(int(0x4d3d3d3))
     pf = fake_random_pf(16, fields = fields, nprocs = nprocs)
     pf.parameters["HydroMethod"] = "streaming"
     pf.parameters["EOSType"] = 1.0
@@ -52,7 +53,7 @@ class TestFieldAccess(object):
     def __call__(self):
         field = FieldInfo[self.field_name]
         deps = field.get_dependencies()
-        fields = deps.requested + _base_fields
+        fields = list(set(deps.requested + _base_fields))
         skip_grids = False
         needs_spatial = False
         for v in field.validators:
@@ -85,13 +86,26 @@ class TestFieldAccess(object):
 
 def test_all_fields():
     for field in FieldInfo:
-        if field.startswith("CuttingPlane"): continue
-        if field.startswith("particle"): continue
-        if field.startswith("CIC"): continue
-        if field.startswith("WeakLensingConvergence"): continue
-        if field.startswith("DensityPerturbation"): continue
-        if field.startswith("Matter_Density"): continue
-        if field.startswith("Overdensity"): continue
+        if isinstance(field, types.TupleType):
+            fname = field[0]
+        else:
+            fname = field
+        if fname.startswith("CuttingPlane"): continue
+        if fname.startswith("particle"): continue
+        if fname.startswith("CIC"): continue
+        if field.startswith("BetaPar"): continue
+        if field.startswith("TBetaPar"): continue
+        if field.startswith("BetaPerp"): continue
+        if fname.startswith("WeakLensingConvergence"): continue
+        if fname.startswith("DensityPerturbation"): continue
+        if fname.startswith("Matter_Density"): continue
+        if fname.startswith("Overdensity"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
+            test_all_fields.__name__ = "%s_%s" % (field, nproc)
             yield TestFieldAccess(field, nproc)
+
+if __name__ == "__main__":
+    setup()
+    for t in test_all_fields():
+        t()

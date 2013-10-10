@@ -1,32 +1,19 @@
 """
 Tests for AMRSlice
 
-Authors: Samuel Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: Kacper Kowalik <xarthisius.kk@gmail.com>
-Affiliation: CA UMK
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Samuel Skillman.  All Rights Reserved.
-  Copyright (C) 2013 Kacper Kowalik.  All Rights Reserved.
 
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import os
 import numpy as np
+import tempfile
 from nose.tools import raises
 from yt.testing import \
     fake_random_pf, assert_equal, assert_array_equal
@@ -42,7 +29,10 @@ def setup():
 
 def teardown_func(fns):
     for fn in fns:
-        os.remove(fn)
+        try:
+            os.remove(fn)
+        except OSError:
+            pass
 
 
 def test_slice():
@@ -72,7 +62,9 @@ def test_slice():
                 yield assert_equal, np.unique(slc["pdx"]), 0.5 / dims[xax]
                 yield assert_equal, np.unique(slc["pdy"]), 0.5 / dims[yax]
                 pw = slc.to_pw()
-                fns += pw.save()
+                tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                os.close(tmpfd)
+                fns += pw.save(name=tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['ones', 'density']:
                     yield assert_equal, frb[slc_field].info['data_source'], \

@@ -1,27 +1,17 @@
 """
 Fields specific to Enzo
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -392,14 +382,16 @@ def _cic_particle_field(field, data):
     """
     particle_field = field.name[4:]
     pos = data[('all', 'Coordinates')]
+    # Get back into density
+    pden = data['all', 'particle_mass'] / data["CellVolume"] 
     top = data.deposit(
         pos,
-        [data[('all', particle_field)]*data[('all', 'particle_mass')]],
+        [data[('all', particle_field)]*pden],
         method = 'cic'
         )
     bottom = data.deposit(
         pos,
-        [data[('all', 'particle_mass')]],
+        [pden],
         method = 'cic'
         )
     top[bottom == 0] = 0.0
@@ -511,11 +503,28 @@ for ax in 'xyz':
     add_enzo_field(("all", pf), function=NullFunc, convert_function=cfunc,
               particle_type=True)
 
-for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
+for pf in ["creation_time", "dynamical_time", "metallicity_fraction"] \
+        + ["particle_position_%s" % ax for ax in 'xyz'] \
+        + ["particle_velocity_%s" % ax for ax in 'xyz']:
     add_enzo_field(pf, function=NullFunc,
               validators = [ValidateDataField(pf)],
               particle_type=True)
-add_field(('all', "particle_mass"), function=NullFunc, particle_type=True)
+
+def _convertParticleMass(data):
+    return data.convert("Density")*(data.convert("cm")**3.0)
+def _convertParticleMassMsun(data):
+    return data.convert("Density")*((data.convert("cm")**3.0)/mass_sun_cgs)
+# We have now multiplied by grid.dds.prod() inside the IO function.
+# So here we multiply just by the conversion to density.
+add_field(('all', "particle_mass"), function=NullFunc, 
+          particle_type=True, convert_function = _convertParticleMass)
+
+add_field("ParticleMass",
+          function=TranslationFunc("particle_mass"),
+          particle_type=True, convert_function=_convertParticleMass)
+add_field("ParticleMassMsun",
+          function=TranslationFunc("particle_mass"),
+          particle_type=True, convert_function=_convertParticleMassMsun)
 
 def _ParticleAge(field, data):
     current_time = data.pf.current_time
@@ -526,32 +535,6 @@ add_field("ParticleAge", function=_ParticleAge,
           validators=[ValidateDataField("creation_time")],
           particle_type=True, convert_function=_convertParticleAge)
 
-def _ParticleMass(field, data):
-    particles = data['all', "particle_mass"].astype('float64') * \
-                just_one(data["CellVolumeCode"].ravel())
-    # Note that we mandate grid-type here, so this is okay
-    return particles
-
-def _convertParticleMass(data):
-    return data.convert("Density")*(data.convert("cm")**3.0)
-def _IOLevelParticleMass(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
-    return cf
-def _convertParticleMassMsun(data):
-    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
-def _IOLevelParticleMassMsun(grid):
-    dd = dict(particle_mass = np.ones(1), CellVolumeCode=grid["CellVolumeCode"])
-    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
-    return cf
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass,
-          particle_convert_function=_IOLevelParticleMass)
-add_field("ParticleMassMsun",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          particle_convert_function=_IOLevelParticleMassMsun)
 
 #
 # Now we do overrides for 2D fields

@@ -50,3 +50,7 @@ def test_variance():
         a_std = np.sqrt((ad["cell_mass"] * (ad["density"] - a_mean)**2).sum() / 
                         ad["cell_mass"].sum())
         yield assert_rel_equal, my_std, a_std, 12
+
+if __name__ == "__main__":
+    for i in test_extrema():
+        i[0](*i[1:])

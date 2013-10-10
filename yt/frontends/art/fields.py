@@ -1,29 +1,18 @@
 """
 ART-specific fields
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: Chris Moody <matthewturk@gmail.com>
-Affiliation: UCSC
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 import numpy as np
 
 from yt.funcs import *
@@ -57,6 +46,7 @@ for f in fluid_fields:
 
 def _convertDensity(data):
     return data.convert("Density")
+KnownARTFields["Density"].take_log = True
 KnownARTFields["Density"].units = "g/cm**3"
 KnownARTFields["Density"]._convert_function = _convertDensity
 
@@ -252,6 +242,18 @@ ARTFieldInfo.add_field(("deposit", "baryon_density"),
          display_name = "\\mathrm{Baryon Density}",
          units = "g/cm**3")
 
+def baryon_mass(field, data):
+    rho = data["deposit", "baryon_density"]
+    return rho * data['CellVolume']
+
+ARTFieldInfo.add_field(("deposit", "baryon_mass"),
+         function = baryon_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Baryon Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
 def total_density(field, data):
     rho = data["deposit", "baryon_density"]
     rho += data["deposit", "specie0_density"]
@@ -263,6 +265,18 @@ ARTFieldInfo.add_field(("deposit", "total_density"),
          display_name = "\\mathrm{Total Density}",
          units = "g/cm**3")
 
+def total_mass(field, data):
+    rho = data["deposit", "total_density"]
+    return rho * data['CellVolume']
+
+ARTFieldInfo.add_field(("deposit", "total_mass"),
+         function = total_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Total Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
+
 def multimass_density(field, data):
     rho = data["deposit", "baryon_density"]
     rho += data["deposit", "darkmatter_density"]
@@ -273,4 +287,16 @@ ARTFieldInfo.add_field(("deposit", "multimass_density"),
          validators = [ValidateSpatial()],
          display_name = "\\mathrm{Multimass Density}",
          units = "g/cm**3")
+
+def multimass_mass(field, data):
+    rho = data["deposit", "multimass_density"]
+    return rho * data['CellVolume']
+
+ARTFieldInfo.add_field(("deposit", "multimass_mass"),
+         function = multimass_mass,
+         validators = [ValidateSpatial()],
+         display_name = "\\mathrm{Multimass Mass}",
+         units = r"\mathrm{g}/\mathrm{cm}^{3}",
+         projected_units = r"\mathrm{g}/\mathrm{cm}^{2}",
+         projection_conversion = 'cm')
 

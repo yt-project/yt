@@ -1,27 +1,17 @@
 """
 Data structures for Enzo
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import weakref
@@ -49,6 +39,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities import hdf5_light_reader
+from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
@@ -153,10 +144,11 @@ class EnzoGridGZ(EnzoGrid):
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
                              smoothed=False):
-        # We ignore smoothed in this case.
-        if n_zones > 3:
+        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        if n_zones > NGZ:
             return EnzoGrid.retrieve_ghost_zones(
                 self, n_zones, fields, all_levels, smoothed)
+
         # ----- Below is mostly the original code, except we remove the field
         # ----- access section
         # We will attempt this by creating a datacube that is exactly bigger
@@ -184,7 +176,12 @@ class EnzoGridGZ(EnzoGrid):
                 level, new_left_edge, **kwargs)
         # ----- This is EnzoGrid.get_data, duplicated here mostly for
         # ----  efficiency's sake.
-        sl = [slice(3 - n_zones, -(3 - n_zones)) for i in range(3)]
+        start_zone = NGZ - n_zones
+        if start_zone == 0:
+            end_zone = None
+        else:
+            end_zone = -(NGZ - n_zones)
+        sl = [slice(start_zone, end_zone) for i in range(3)]
         if fields is None: return cube
         for field in ensure_list(fields):
             if field in self.hierarchy.field_list:
@@ -201,6 +198,7 @@ class EnzoHierarchy(GridGeometryHandler):
 
     _strip_path = False
     grid = EnzoGrid
+    _preload_implemented = True
 
     def __init__(self, pf, data_style):
         
@@ -574,6 +572,9 @@ class EnzoHierarchy(GridGeometryHandler):
                     result[p] = result[p][0:max_num]
         return result
 
+    def _setup_data_io(self):
+            self.io = io_registry[self.data_style](self.parameter_file)
+
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
 
@@ -675,7 +676,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, npart):
+    def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions[:,:1] = ei
         self.grid_dimensions[:,:1] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
@@ -685,10 +686,12 @@ class EnzoHierarchy1D(EnzoHierarchy):
         self.grid_left_edge[:,1:] = 0.0
         self.grid_right_edge[:,1:] = 1.0
         self.grid_dimensions[:,1:] = 1
+        if nap is not None:
+            raise NotImplementedError
 
 class EnzoHierarchy2D(EnzoHierarchy):
 
-    def _fill_arrays(self, ei, si, LE, RE, npart):
+    def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions[:,:2] = ei
         self.grid_dimensions[:,:2] -= np.array(si, self.float_type)
         self.grid_dimensions += 1
@@ -698,6 +701,8 @@ class EnzoHierarchy2D(EnzoHierarchy):
         self.grid_left_edge[:,2] = 0.0
         self.grid_right_edge[:,2] = 1.0
         self.grid_dimensions[:,2] = 1
+        if nap is not None:
+            raise NotImplementedError
 
 class EnzoStaticOutput(StaticOutput):
     """
@@ -706,6 +711,9 @@ class EnzoStaticOutput(StaticOutput):
     _hierarchy_class = EnzoHierarchy
     _fieldinfo_fallback = EnzoFieldInfo
     _fieldinfo_known = KnownEnzoFields
+    _particle_mass_name = "ParticleMass"
+    _particle_coordinates_name = "Coordinates"
+
     def __init__(self, filename, data_style=None,
                  file_style = None,
                  parameter_override = None,

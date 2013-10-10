@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import numpy as np
@@ -96,18 +86,15 @@ add_field("ones_over_dx", function=_ones_over_dx,
 
 def _zeros(field, data):
     return np.zeros(data.shape, dtype='float64')
-add_field("zeros", function=_zeros,
-          projection_conversion="unitary",
-          display_field = False)
-
-def _zeros(field, data):
-    return np.zeros(data.shape, dtype=np.float64)
-
-def _ones(field, data):
-    return np.ones(data.shape, dtype=np.float64)
 
 add_field("zeros", function=_zeros, projection_conversion="unitary",
           display_field=False)
+
+def _ones(field, data):
+    tr = np.ones(data.ires.shape, dtype="float64")
+    if data._spatial:
+        return data._reshape_vals(tr)
+    return tr
 
 add_field("ones", function=_ones, projection_conversion="unitary",
           display_field=False)
@@ -622,11 +609,6 @@ def _particle_specific_angular_momentum(field, data):
     r_vec = coords - np.reshape(center,new_shape)
     v_vec = np.array([xv,yv,zv], dtype=np.float64)
     return np.cross(r_vec, v_vec, axis=0)
-#add_field("ParticleSpecificAngularMomentum",
-#          function=_ParticleSpecificAngularMomentum, particle_type=True,
-#          convert_function=_convertSpecificAngularMomentum, vector_field=True,
-#          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
-
 
 
 def _particle_specific_angular_momentum_x(field, data):
@@ -639,6 +621,7 @@ def _particle_specific_angular_momentum_x(field, data):
     yv = data["particle_velocity_y"] - bv[1]
     zv = data["particle_velocity_z"] - bv[2]
     return yv*z - zv*y
+
 def _particle_specific_angular_momentum_y(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
@@ -649,6 +632,7 @@ def _particle_specific_angular_momentum_y(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     zv = data["particle_velocity_z"] - bv[2]
     return -(xv*z - zv*x)
+
 def _particle_specific_angular_momentum_z(field, data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
@@ -659,6 +643,7 @@ def _particle_specific_angular_momentum_z(field, data):
     xv = data["particle_velocity_x"] - bv[0]
     yv = data["particle_velocity_y"] - bv[1]
     return xv*y - yv*x
+
 for ax in 'xyz':
     n = "particle_specific_angular_momentum_%s" % ax
     add_field(n, function=eval("_%s" % n), particle_type=True,
@@ -666,6 +651,7 @@ for ax in 'xyz':
     
 def _particle_angular_momentum(field, data):
     return data["particle_mass"] * data["particle_specific_angular_momentum"]
+
 #add_field("ParticleAngularMomentum",
 #          function=_ParticleAngularMomentum, units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
 #          particle_type=True, validators=[ValidateParameter('center')])
@@ -704,6 +690,8 @@ def get_radius(data, field_prefix):
             np.minimum(r, rdw, r)
         np.power(r, 2.0, r)
         np.add(radius, r, radius)
+        if data.pf.dimensionality < i+1:
+            break
     np.sqrt(radius, radius)
     return radius
 
@@ -794,13 +782,6 @@ add_field("cutting_plane_magnetic_field_y",
 def _mean_molecular_weight(field,data):
     return (data["density"] / (mh *data["number_density"]))
 add_field("mean_molecular_weight", function=_mean_molecular_weight, units=r"")
-
-# We add these fields so that the field detector can use them
-for field in ["particle_position_%s" % ax for ax in "xyz"]:
-    # This marker should let everyone know not to use the fields, but NullFunc
-    # should do that, too.
-    add_field(field, function=NullFunc, particle_type = True,
-        units=r"UNDEFINED")
 
 def _pdensity(field, data):
     pmass = data[('deposit','all_mass')]
@@ -899,8 +880,7 @@ def _magnetic_field_radial(field,data):
     return get_sph_r_component(Bfields, theta, phi, normal)
 
 add_field("magnetic_field_radial", function=_magnetic_field_toroidal,
-          units="gauss",
-          validators=[ValidateParameter("normal")])
+          units="gauss", validators=[ValidateParameter("normal")])
 
 def _vorticity_squared(field, data):
     mylog.debug("Generating vorticity on %s", data)

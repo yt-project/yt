@@ -6,8 +6,11 @@ import time
 import subprocess
 import shutil
 import glob
-import distribute_setup
-distribute_setup.use_setuptools()
+import setuptools
+from distutils.version import StrictVersion
+if StrictVersion(setuptools.__version__) < StrictVersion('0.7.0'):
+    import distribute_setup
+    distribute_setup.use_setuptools()
 
 from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
@@ -153,8 +156,6 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 # End snippet
 ######
 
-import setuptools
-
 VERSION = "3.0dev"
 
 if os.path.exists('MANIFEST'):
@@ -247,7 +248,7 @@ def setup_package():
         classifiers=["Development Status :: 5 - Production/Stable",
                      "Environment :: Console",
                      "Intended Audience :: Science/Research",
-                     "License :: OSI Approved :: GNU General Public License (GPL)",
+                     "License :: OSI Approved :: BSD License",
                      "Operating System :: MacOS :: MacOS X",
                      "Operating System :: POSIX :: AIX",
                      "Operating System :: POSIX :: Linux",
@@ -268,7 +269,7 @@ def setup_package():
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url="http://yt-project.org/",
-        license="GPL-3",
+        license="BSD",
         configuration=configuration,
         zip_safe=False,
         data_files=REASON_FILES,

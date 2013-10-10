@@ -1,27 +1,17 @@
 """
 Python-based grid handler, not to be confused with the SWIG-handler
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import exceptions
 import pdb
@@ -66,7 +56,9 @@ class AMRGridPatch(YTSelectionContainer):
         self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
+        self.filename = filename
         self._last_mask = None
+        self._last_count = -1
         self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.pf.default_fluid_type
@@ -79,7 +71,7 @@ class AMRGridPatch(YTSelectionContainer):
         """
         if self.start_index is not None:
             return self.start_index
-        if self.Parent == None:
+        if self.Parent is None:
             left = self.LeftEdge - self.pf.domain_left_edge
             start_index = left / self.dds
             return np.rint(start_index).astype('int64').ravel().view(np.ndarray)
@@ -113,6 +105,10 @@ class AMRGridPatch(YTSelectionContainer):
     def shape(self):
         return self.ActiveDimensions
 
+    def _reshape_vals(self, arr):
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -136,51 +132,6 @@ class AMRGridPatch(YTSelectionContainer):
         if self.pf.dimensionality < 2: self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
         if self.pf.dimensionality < 3: self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
 
-    @property
-    def _corners(self):
-        return np.array([ # Unroll!
-            [self.LeftEdge[0],  self.LeftEdge[1],  self.LeftEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1],  self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0],  self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0],  self.LeftEdge[1],  self.RightEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1],  self.RightEdge[2]],
-            [self.LeftEdge[0],  self.RightEdge[1], self.LeftEdge[2]],
-            ], dtype='float64')
-
-    def _generate_overlap_masks(self, axis, LE, RE):
-        """
-        Generate a mask that shows which cells overlap with arbitrary arrays
-        *LE* and *RE*) of edges, typically grids, along *axis*.
-        Use algorithm described at http://www.gamedev.net/reference/articles/article735.asp
-
-        """
-        x = x_dict[axis]
-        y = y_dict[axis]
-        cond = self.RightEdge[x] >= LE[:,x]
-        cond = np.logical_and(cond, self.LeftEdge[x] <= RE[:,x])
-        cond = np.logical_and(cond, self.RightEdge[y] >= LE[:,y])
-        cond = np.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
-        return cond
-
-    def is_in_grid(self, x, y, z) :
-        """
-        Generate a mask that shows which points in *x*, *y*, and *z*
-        fall within this grid's boundaries.
-        """
-        xcond = np.logical_and(x >= self.LeftEdge[0],
-                               x < self.RightEdge[0])
-        ycond = np.logical_and(y >= self.LeftEdge[1],
-                               y < self.RightEdge[1])
-        zcond = np.logical_and(z >= self.LeftEdge[2],
-                               z < self.RightEdge[2])
-
-        cond = np.logical_and(xcond, ycond)
-        cond = np.logical_and(zcond, cond)
-
-        return cond
-        
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
 
@@ -194,12 +145,7 @@ class AMRGridPatch(YTSelectionContainer):
 
         """
         super(AMRGridPatch, self).clear_data()
-        self._del_child_mask()
-        self._del_child_indices()
         self._setup_dx()
-
-    def check_child_masks(self):
-        return self._child_mask, self._child_indices
 
     def _prepare_grid(self):
         """ Copies all the appropriate attributes from the hierarchy. """
@@ -216,89 +162,12 @@ class AMRGridPatch(YTSelectionContainer):
         #self.Time = h.gridTimes[my_ind,0]
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
 
-    def find_max(self, field):
-        """ Returns value, index of maximum value of *field* in this grid. """
-        coord1d = (self[field] * self.child_mask).argmax()
-        coord = np.unravel_index(coord1d, self[field].shape)
-        val = self[field][coord]
-        return val, coord
-
-    def find_min(self, field):
-        """ Returns value, index of minimum value of *field* in this grid. """
-        coord1d = (self[field] * self.child_mask).argmin()
-        coord = np.unravel_index(coord1d, self[field].shape)
-        val = self[field][coord]
-        return val, coord
-
     def get_position(self, index):
         """ Returns center position of an *index*. """
         pos = (index + 0.5) * self.dds + self.LeftEdge
         return pos
 
-    def clear_all(self):
-        """
-        Clears all datafields from memory and calls
-        :meth:`clear_derived_quantities`.
-
-        """
-        for key in self.keys():
-            del self.field_data[key]
-        del self.field_data
-        if hasattr(self,"retVal"):
-            del self.retVal
-        self.field_data = YTFieldData()
-        self.clear_derived_quantities()
-        del self.child_mask
-        del self.child_ind
-
-    def _set_child_mask(self, newCM):
-        if self._child_mask != None:
-            mylog.warning("Overriding child_mask attribute!  This is probably unwise!")
-        self._child_mask = newCM
-
-    def _set_child_indices(self, newCI):
-        if self._child_indices != None:
-            mylog.warning("Overriding child_indices attribute!  This is probably unwise!")
-        self._child_indices = newCI
-
-    def _get_child_mask(self):
-        if self._child_mask == None:
-            self.__generate_child_mask()
-        return self._child_mask
-
-    def _get_child_indices(self):
-        if self._child_indices == None:
-            self.__generate_child_mask()
-        return self._child_indices
-
-    def _del_child_indices(self):
-        try:
-            del self._child_indices
-        except AttributeError:
-            pass
-        self._child_indices = None
-
-    def _del_child_mask(self):
-        try:
-            del self._child_mask
-        except AttributeError:
-            pass
-        self._child_mask = None
-
-    def _get_child_index_mask(self):
-        if self._child_index_mask is None:
-            self.__generate_child_index_mask()
-        return self._child_index_mask
-
-    def _del_child_index_mask(self):
-        try:
-            del self._child_index_mask
-        except AttributeError:
-            pass
-        self._child_index_mask = None
-
-    #@time_execution
-    def __fill_child_mask(self, child, mask, tofill, dlevel = 1):
+    def _fill_child_mask(self, child, mask, tofill, dlevel = 1):
         rf = self.pf.refine_by
         if dlevel != 1:
             rf = rf**dlevel
@@ -311,61 +180,37 @@ class AMRGridPatch(YTSelectionContainer):
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
 
-    def __generate_child_mask(self):
+    @property
+    def child_mask(self):
         """
         Generates self.child_mask, which is zero where child grids exist (and
         thus, where higher resolution data is available).
 
         """
-        self._child_mask = np.ones(self.ActiveDimensions, 'bool')
+        child_mask = np.ones(self.ActiveDimensions, 'bool')
         for child in self.Children:
-            self.__fill_child_mask(child, self._child_mask, 0)
-        if self.OverlappingSiblings is not None:
-            for sibling in self.OverlappingSiblings:
-                self.__fill_child_mask(sibling, self._child_mask, 0)
-        
-        self._child_indices = (self._child_mask==0) # bool, possibly redundant
+            self._fill_child_mask(child, child_mask, 0)
+        for sibling in self.OverlappingSiblings or []:
+            self._fill_child_mask(sibling, child_mask, 0)
+        return child_mask
 
-    def __generate_child_index_mask(self):
+    @property
+    def child_indices(self):
+        return (self.child_mask == 0)
+
+    @property
+    def child_index_mask(self):
         """
         Generates self.child_index_mask, which is -1 where there is no child,
         and otherwise has the ID of the grid that resides there.
 
         """
-        self._child_index_mask = np.zeros(self.ActiveDimensions, 'int32') - 1
+        child_index_mask = np.zeros(self.ActiveDimensions, 'int32') - 1
         for child in self.Children:
-            self.__fill_child_mask(child, self._child_index_mask,
-                                   child.id)
-        if self.OverlappingSiblings is not None:
-            for sibling in self.OverlappingSiblings:
-                self.__fill_child_mask(sibling, self._child_index_mask,
-                                       sibling.id)
-
-    def _get_coords(self):
-        if self.__coords == None: self._generate_coords()
-        return self.__coords
-
-    def _set_coords(self, new_c):
-        if self.__coords != None:
-            mylog.warning("Overriding coords attribute!  This is probably unwise!")
-        self.__coords = new_c
-
-    def _del_coords(self):
-        del self.__coords
-        self.__coords = None
-
-    def _generate_coords(self):
-        """
-        Creates self.coords, which is of dimensions (3, ActiveDimensions)
-
-        """
-        ind = np.indices(self.ActiveDimensions)
-        left_shaped = np.reshape(self.LeftEdge, (3, 1, 1, 1))
-        self['x'], self['y'], self['z'] = (ind + 0.5) * self.dds + left_shaped
-
-    child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
-    child_index_mask = property(fget=_get_child_index_mask, fdel=_del_child_index_mask)
-    child_indices = property(fget=_get_child_indices, fdel = _del_child_indices)
+            self._fill_child_mask(child, child_index_mask, child.id)
+        for sibling in self.OverlappingSiblings or []:
+            self._fill_child_mask(sibling, child_index_mask, sibling.id)
+        return child_index_mask
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
                              smoothed=False):
@@ -441,33 +286,33 @@ class AMRGridPatch(YTSelectionContainer):
         return new_field
 
     def select_icoords(self, dobj):
-        mask = self.select(dobj.selector)
+        mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='int64')
-        coords = convert_mask_to_indices(mask, mask.sum())
+        coords = convert_mask_to_indices(mask, self._last_count)
         coords += self.get_global_startindex()[None, :]
         return coords
 
     def select_fcoords(self, dobj):
-        mask = self.select(dobj.selector)
+        mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
-        coords = convert_mask_to_indices(mask, mask.sum()).astype("float64")
+        coords = convert_mask_to_indices(mask, self._last_count).astype("float64")
         coords += 0.5
         coords *= self.dds[None, :]
         coords += self.LeftEdge[None, :]
         return coords
 
     def select_fwidth(self, dobj):
-        mask = self.select(dobj.selector)
-        if mask is None: return np.empty((0,3), dtype='float64')
-        coords = np.empty((mask.sum(), 3), dtype='float64')
+        count = self.count(dobj.selector)
+        if count == 0: return np.empty((0,3), dtype='float64')
+        coords = np.empty((count, 3), dtype='float64')
         for axis in range(3):
             coords[:,axis] = self.dds[axis]
         return coords
 
     def select_ires(self, dobj):
-        mask = self.select(dobj.selector)
+        mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty(0, dtype='int64')
-        coords = np.empty(mask.sum(), dtype='int64')
+        coords = np.empty(self._last_count, dtype='int64')
         coords[:] = self.Level
         return coords
 
@@ -484,21 +329,36 @@ class AMRGridPatch(YTSelectionContainer):
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="F")
+        if vals is None: return
+        return vals.reshape(self.ActiveDimensions, order="C")
 
-    def select(self, selector):
-        if id(selector) == self._last_selector_id:
-            return self._last_mask
-        self._last_mask = selector.fill_mask(self)
-        self._last_selector_id = id(selector)
-        return self._last_mask
+    def select_blocks(self, selector):
+        mask = self._get_selector_mask(selector)
+        yield self, mask
+
+    def _get_selector_mask(self, selector):
+        if hash(selector) == self._last_selector_id:
+            mask = self._last_mask
+        else:
+            self._last_mask = mask = selector.fill_mask(self)
+            self._last_selector_id = hash(selector)
+            if mask is None:
+                self._last_count = 0
+            else:
+                self._last_count = mask.sum()
+        return mask
+
+    def select(self, selector, source, dest, offset):
+        mask = self._get_selector_mask(selector)
+        count = self.count(selector)
+        if count == 0: return 0
+        dest[offset:offset+count] = source[mask]
+        return count
 
     def count(self, selector):
-        if id(selector) == self._last_selector_id:
-            if self._last_mask is None: return 0
-            return self._last_mask.sum()
-        self.select(selector)
-        return self.count(selector)
+        mask = self._get_selector_mask(selector)
+        if mask is None: return 0
+        return self._last_count
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results

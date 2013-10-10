@@ -1,28 +1,17 @@
 """
 Code to export from yt to RadMC3D
 
-Author: Andrew Myers <atmyers2@gmail.com>
-Affiliation: UCB
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2013 Andrew Myers.  All Rights Reserved.
 
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.mods import *
 from yt.utilities.lib.write_array import \
@@ -158,7 +147,8 @@ class RadMC3DWriter:
         self.layers.append(base_layer)
         self.cell_count += np.product(pf.domain_dimensions)
 
-        for grid in pf.h.grids:
+        sorted_grids = sorted(pf.h.grids, key=lambda x: x.Level)
+        for grid in sorted_grids:
             if grid.Level <= self.max_level:
                 self._add_grid_to_layers(grid)
 
@@ -232,11 +222,11 @@ class RadMC3DWriter:
             if p == 0:
                 ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
             else:
-                LE = np.zeros(3)
+                parent_LE = np.zeros(3)
                 for potential_parent in self.layers:
                     if potential_parent.id == p:
-                        LE = potential_parent.LeftEdge
-                ind = (layer.LeftEdge - LE) / (2.0*dds) + 1
+                        parent_LE = potential_parent.LeftEdge
+                ind = (layer.LeftEdge - parent_LE) / (2.0*dds) + 1
             ix  = int(ind[0]+0.5)
             iy  = int(ind[1]+0.5)
             iz  = int(ind[2]+0.5)

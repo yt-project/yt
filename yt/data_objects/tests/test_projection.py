@@ -1,5 +1,6 @@
 from yt.testing import *
 import os
+import tempfile
 
 def setup():
     from yt.config import ytcfg
@@ -7,7 +8,10 @@ def setup():
 
 def teardown_func(fns):
     for fn in fns:
-        os.remove(fn)
+        try:
+            os.remove(fn)
+        except OSError:
+            pass
 
 def test_projection():
     for nprocs in [8, 1]:
@@ -37,7 +41,9 @@ def test_projection():
                 yield assert_equal, np.unique(proj["pdx"]), 1.0/(dims[xax]*2.0)
                 yield assert_equal, np.unique(proj["pdy"]), 1.0/(dims[yax]*2.0)
                 pw = proj.to_pw()
-                fns += pw.save()
+                tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                os.close(tmpfd)
+                fns += pw.save(name=tmpname)
                 frb = proj.to_frb((1.0,'unitary'), 64)
                 for proj_field in ['ones', 'density']:
                     yield assert_equal, frb[proj_field].info['data_source'], \

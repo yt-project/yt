@@ -1,5 +1,6 @@
 from yt.testing import *
 import os
+import tempfile
 
 def setup():
     from yt.config import ytcfg
@@ -7,7 +8,10 @@ def setup():
 
 def teardown_func(fns):
     for fn in fns:
-        os.remove(fn)
+        try:
+            os.remove(fn)
+        except OSError:
+            pass
 
 def test_cutting_plane():
     for nprocs in [8, 1]:
@@ -23,7 +27,9 @@ def test_cutting_plane():
         yield assert_equal, cut["ones"].min(), 1.0
         yield assert_equal, cut["ones"].max(), 1.0
         pw = cut.to_pw()
-        fns += pw.save()
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns += pw.save(name=tmpname)
         frb = cut.to_frb((1.0,'unitary'), 64)
         for cut_field in ['ones', 'density']:
             yield assert_equal, frb[cut_field].info['data_source'], \

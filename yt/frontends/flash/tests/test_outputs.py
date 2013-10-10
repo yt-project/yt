@@ -1,27 +1,17 @@
 """
 FLASH frontend tests
 
-Author: John ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/Goddard Space Flight Center
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 John ZuHone.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
@@ -39,6 +29,7 @@ def test_sloshing():
     pf = data_dir_load(sloshing)
     yield assert_equal, str(pf), "sloshing_low_res_hdf5_plt_cnt_0300"
     for test in small_patch_amr(sloshing, _fields):
+        test_sloshing.__name__ = test.description
         yield test
 
 _fields_2d = ("Temperature", "Density")
@@ -49,4 +40,5 @@ def test_wind_tunnel():
     pf = data_dir_load(wt)
     yield assert_equal, str(pf), "windtunnel_4lev_hdf5_plt_cnt_0030"
     for test in small_patch_amr(wt, _fields_2d):
+        test_wind_tunnel.__name__ = test.description
         yield test

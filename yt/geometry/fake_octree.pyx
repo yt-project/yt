@@ -1,32 +1,22 @@
 """
 Make a fake octree, deposit particle at every leaf
 
-Author: Christopher Moody <chris.e.moody@gmail.com>
-Affiliation: UC Santa Cruz
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2013 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from libc.stdlib cimport malloc, free, rand, RAND_MAX
 cimport numpy as np
+from oct_visitors cimport cind
 import numpy as np
 cimport cython
 
@@ -68,7 +58,7 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
                     long max_noct, long max_level, float fsubdivide,
                     np.ndarray[np.uint8_t, ndim=2] mask):
     print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
-    cdef int ddr[3]
+    cdef int ddr[3], ii
     cdef long i,j,k
     cdef float rf #random float from 0-1
     if cur_level >= max_level: 
@@ -80,7 +70,8 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
         ddr[i] = 2
     rf = rand() * 1.0 / RAND_MAX
     if rf > fsubdivide:
-        if parent.children[ind[0]][ind[1]][ind[2]] == NULL:
+        ii = cind(ind[0], ind[1], ind[2])
+        if parent.children[ii] == NULL:
             cur_leaf += 7 
         oct = oct_handler.next_child(1, ind, parent)
         oct.domain = 1

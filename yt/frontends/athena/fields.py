@@ -1,32 +1,17 @@
 """
 Athena-specific fields
 
-Author: Samuel W. Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: John A. ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/Goddard Space Flight Center
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.  
-  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from yt.data_objects.field_info_container import \
@@ -119,13 +104,14 @@ def _gasenergy(field, data) :
     if "pressure" in data.pf.field_info:
         return data["pressure"]/(data.pf["Gamma"]-1.0)/data["density"]
     else:
-        return (data["total_energy"] - 
-                0.5*(data["cell_centered_B_x"]**2 +
-                     data["cell_centered_B_y"]**2 +
-                     data["cell_centered_B_z"]**2) - 
-                0.5*(data["momentum_x"]**2 +
-                     data["momentum_y"]**2 +
-                     data["momentum_z"]**2)/data["density"])/data["density"]
+        eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
+                                           data["momentum_y"]**2 +
+                                           data["momentum_z"]**2)/data["density"]
+        if "cell_centered_B_x" in data.pf.field_info:
+            eint -= 0.5*(data["cell_centered_B_x"]**2 +
+                         data["cell_centered_B_y"]**2 +
+                         data["cell_centered_B_z"]**2)
+        return eint/data["density"]
 add_field("Gas_Energy", function=_gasenergy, take_log=False,
           units=r"erg/g")
 
@@ -135,14 +121,16 @@ def _pressure(field, data) :
     if "pressure" in data.pf.field_info:
         return data["pressure"]
     else:
-        return (data["total_energy"] -
-                0.5*(data["cell_centered_B_x"]**2 +
-                     data["cell_centered_B_y"]**2 +
-                     data["cell_centered_B_z"]**2) -
-                0.5*(data["momentum_x"]**2 +
-                     data["momentum_y"]**2 +
-                     data["momentum_z"]**2)/data["density"])*(data.pf["Gamma"]-1.0)
-add_field("Pressure", function=_pressure, take_log=False, convert_function=_convertPressure, units=r"erg/cm**3")
+        eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
+                                           data["momentum_y"]**2 +
+                                           data["momentum_z"]**2)/data["density"]
+        if "cell_centered_B_x" in data.pf.field_info:
+            eint -= 0.5*(data["cell_centered_B_x"]**2 +
+                         data["cell_centered_B_y"]**2 +
+                         data["cell_centered_B_z"]**2)
+        return eint*(data.pf["Gamma"]-1.0)
+add_field("Pressure", function=_pressure, take_log=False, 
+          convert_function=_convertPressure, units=r"erg/cm**3")
 
 def _temperature(field, data):
     if data.has_field_parameter("mu"):

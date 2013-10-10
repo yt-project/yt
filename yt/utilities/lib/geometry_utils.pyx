@@ -1,27 +1,17 @@
 """
 Simple integrators for the radiative transfer equation
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -300,6 +290,103 @@ def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
             positions[i, j] = p[j]
     return positions
 
+# yt did not invent these! :)
+cdef np.uint64_t _const20 = 0x000001FFC00003FF
+cdef np.uint64_t _const10 = 0x0007E007C00F801F
+cdef np.uint64_t _const04 = 0x00786070C0E181C3
+cdef np.uint64_t _const2a = 0x0199219243248649
+cdef np.uint64_t _const2b = 0x0649249249249249
+cdef np.uint64_t _const2c = 0x1249249249249249
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.uint64_t spread_bits(np.uint64_t x):
+    # This magic comes from http://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
+    x=(x|(x<<20))&_const20
+    x=(x|(x<<10))&_const10
+    x=(x|(x<<4))&_const04
+    x=(x|(x<<2))&_const2a
+    x=(x|(x<<2))&_const2b
+    x=(x|(x<<2))&_const2c
+    return x
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
+    cdef np.int64_t i, mi
+    cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    morton_indices = np.zeros(left_index.shape[0], 'uint64')
+    for i in range(left_index.shape[0]):
+        mi = 0
+        mi |= spread_bits(left_index[i,2])<<0
+        mi |= spread_bits(left_index[i,1])<<1
+        mi |= spread_bits(left_index[i,0])<<2
+        morton_indices[i] = mi
+    return morton_indices
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
+                               np.ndarray[np.uint64_t, ndim=1] left_y,
+                               np.ndarray[np.uint64_t, ndim=1] left_z,):
+    cdef np.int64_t i, mi
+    cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    morton_indices = np.zeros(left_x.shape[0], 'uint64')
+    for i in range(left_x.shape[0]):
+        mi = 0
+        mi |= spread_bits(left_z[i])<<0
+        mi |= spread_bits(left_y[i])<<1
+        mi |= spread_bits(left_x[i])<<2
+        morton_indices[i] = mi
+    return morton_indices
+
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
+cdef position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
+                        np.ndarray[anyfloat, ndim=1] pos_y,
+                        np.ndarray[anyfloat, ndim=1] pos_z,
+                        np.float64_t dds[3], np.float64_t DLE[3],
+                        np.ndarray[np.uint64_t, ndim=1] ind):
+    cdef np.uint64_t mi, ii[3]
+    cdef np.float64_t p[3]
+    cdef np.int64_t i, j
+    for i in range(pos_x.shape[0]):
+        p[0] = <np.float64_t> pos_x[i]
+        p[1] = <np.float64_t> pos_y[i]
+        p[2] = <np.float64_t> pos_z[i]
+        for j in range(3):
+            ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
+        mi = 0
+        mi |= spread_bits(ii[2])<<0
+        mi |= spread_bits(ii[1])<<1
+        mi |= spread_bits(ii[0])<<2
+        ind[i] = mi
+
+DEF ORDER_MAX=20
+        
+def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
+                   domain_left_edge, domain_right_edge):
+    cdef int i
+    cdef np.float64_t dds[3], DLE[3], DRE[3]
+    for i in range(3):
+        DLE[i] = domain_left_edge[i]
+        DRE[i] = domain_right_edge[i]
+        dds[i] = (DRE[i] - DLE[i]) / (1 << ORDER_MAX)
+    cdef np.ndarray[np.uint64_t, ndim=1] ind
+    ind = np.zeros(pos_x.shape[0], dtype="uint64")
+    if pos_x.dtype == np.float32:
+        position_to_morton[np.float32_t](pos_x, pos_y, pos_z, dds, DLE, ind)
+    elif pos_x.dtype == np.float64:
+        position_to_morton[np.float64_t](pos_x, pos_y, pos_z, dds, DLE, ind)
+    else:
+        print "Could not identify dtype.", pos_x.dtype
+        raise NotImplementedError
+    return ind
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

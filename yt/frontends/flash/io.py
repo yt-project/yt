@@ -1,27 +1,17 @@
 """
 FLASH-specific IO functions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import h5py
@@ -82,7 +72,9 @@ class IOHandlerFLASH(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            rv[field] = np.empty(size, dtype=f["/%s" % fname].dtype)
+            dt = f["/%s" % fname].dtype
+            if dt == "float32": dt = "float64"
+            rv[field] = np.empty(size, dtype=dt)
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)
@@ -92,9 +84,6 @@ class IOHandlerFLASH(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    mask = g.select(selector) # caches
-                    if mask is None: continue
-                    data = ds[g.id - g._id_offset,:,:,:].transpose()[mask]
-                    rv[field][ind:ind+data.size] = data
-                    ind += data.size
+                    data = ds[g.id - g._id_offset,:,:,:].transpose()
+                    ind += g.select(selector, data, rv[field], ind) # caches
         return rv

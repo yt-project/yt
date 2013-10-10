@@ -1,27 +1,18 @@
 """
 ARTIO-specific fields
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
@@ -34,6 +25,11 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.data_objects.particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions, \
+    particle_scalar_functions, \
+    _field_concat, _field_concat_slice
 import numpy as np
 
 KnownARTIOFields = FieldInfoContainer()
@@ -213,66 +209,51 @@ add_field("Metal_Density", function=_metal_density,
 ##################################################
 #Particle fields
 
-for ax in 'xyz':
-    pf = "particle_velocity_%s" % ax
-    add_artio_field(pf, function=NullFunc,
-                    particle_type=True)
-add_artio_field("particle_mass", function=NullFunc, particle_type=True)
-add_artio_field("particle_index", function=NullFunc, particle_type=True)
+for ptype in ("nbody", "stars"):
+    for ax in 'xyz':
+        add_artio_field((ptype, "particle_velocity_%s" % ax),
+                        function=NullFunc,
+                        particle_type=True)
+        add_artio_field((ptype, "particle_position_%s" % ax),
+                        function=NullFunc,
+                        particle_type=True)
 
-for ax in 'xyz':
-    pf = "particle_position_%s" % ax
-    add_artio_field(pf, function=NullFunc,
-                    particle_type=True)
-
-
-def ParticleMass(field, data):
-    return data['particle_mass']
-
-
-def _convertParticleMass(field, data):
-    return data.convert('particle_mass')
-add_field("ParticleMass",
-          function=ParticleMass,
-          convert_function=_convertParticleMass,
-          units=r"\rm{g}",
-          particle_type=True)
-
-
-def ParticleMassMsunAll(field, data):
-    return data['all', 'particle_mass'] * \
-        data.pf.conversion_factors['particle_mass_msun']
-add_field(('all', "ParticleMassMsun"),
-          function=ParticleMassMsunAll,
-          units=r"\rm{M\odot}", particle_type=True)
-
-
-def ParticleMassMsunStars(field, data):
-    return data['stars', 'particle_mass'] * \
-        data.pf.conversion_factors['particle_mass_msun']
-add_field(('stars', "ParticleMassMsun"),
-          function=ParticleMassMsunStars,
-          units=r"\rm{M\odot}", particle_type=True)
-
-
-def ParticleMassMsunNbody(field, data):
-    return data['nbody', 'particle_mass'] * \
-        data.pf.conversion_factors['particle_mass_msun']
-add_field(('nbody', "ParticleMassMsun"),
-          function=ParticleMassMsunNbody,
-          units=r"\rm{M\odot}", particle_type=True)
-
+    def _convertParticleMass(data):
+        return np.float64(data.convert('particle_mass'))
+    add_artio_field((ptype, "particle_mass"),
+              function=NullFunc,
+              convert_function=_convertParticleMass,
+              units=r"\rm{g}",
+              particle_type=True)
+    add_artio_field((ptype, "particle_index"), function=NullFunc, particle_type=True)
 
 #add_artio_field("creation_time", function=NullFunc, particle_type=True)
 def _particle_age(field, data):
-    pa = b2t(data['creation_time'])
+    pa = b2t(data['stars','creation_time'])
 #    tr = np.zeros(pa.shape,dtype='float')-1.0
 #    tr[pa>0] = pa[pa>0]
     tr = pa
     return tr
-add_field("particle_age", function=_particle_age, units=r"\rm{s}",
+add_field(("stars","particle_age"), function=_particle_age, units=r"\rm{s}",
           particle_type=True)
 
+# We can now set up particle vector and particle deposition fields.
+
+for fname in ["particle_position_%s" % ax for ax in 'xyz'] + \
+             ["particle_velocity_%s" % ax for ax in 'xyz'] + \
+             ["particle_index", "particle_species",
+              "particle_mass"]:
+    func = _field_concat(fname)
+    ARTIOFieldInfo.add_field(("all", fname), function=func,
+            particle_type = True)
+
+for ptype in ("nbody", "stars", "all"):
+    particle_vector_functions(ptype,
+        ["particle_position_%s" % ax for ax in 'xyz'],
+        ["particle_velocity_%s" % ax for ax in 'xyz'],
+        ARTIOFieldInfo)
+    particle_deposition_functions(ptype, "Coordinates", "particle_mass",
+        ARTIOFieldInfo)
 
 def mass_dm(field, data):
     tr = np.ones(data.ActiveDimensions, dtype='float32')
@@ -386,10 +367,10 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
 
 def b2t(tb, n=1e2, logger=None, **kwargs):
     tb = np.array(tb)
-    if isinstance(tb, 1.1):
+    if len(np.atleast_1d(tb)) == 1: 
         return a2t(b2a(tb))
     if tb.shape == ():
-        return a2t(b2a(tb))
+        return None 
     if len(tb) < n:
         n = len(tb)
     age_min = a2t(b2a(tb.max(), **kwargs), **kwargs)
@@ -404,7 +385,7 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
     ages = np.array(ages)
     fb2t = np.interp(tb, tbs, ages)
     #fb2t = interp1d(tbs,ages)
-    return fb2t
+    return fb2t*1e9*31556926
 
 
 def spread_ages(ages, logger=None, spread=.0e7*365*24*3600):

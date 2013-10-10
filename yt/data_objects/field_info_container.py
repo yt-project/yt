@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import inspect
@@ -265,9 +255,27 @@ class FieldDetector(defaultdict):
                 lambda: np.ones((nd * nd * nd), dtype='float64')
                 + 1e-4*np.random.random((nd * nd * nd)))
 
+    def _reshape_vals(self, arr):
+        if not self._spatial: return arr
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     def __missing__(self, item):
-        if hasattr(self.pf, "field_info") and isinstance(item, tuple):
-            finfo = self.pf._get_field_info(*item)
+        if hasattr(self.pf, "field_info"):
+            if not isinstance(item, tuple):
+                field = ("unknown", item)
+                finfo = self.pf._get_field_info(*field)
+                mylog.debug("Guessing field %s is %s", item, finfo.name)
+            else:
+                field = item
+            finfo = self.pf._get_field_info(*field)
+            # For those cases where we are guessing the field type, we will
+            # need to re-update -- otherwise, our item will always not have the
+            # field type.  This can lead to, for instance, "unknown" particle
+            # types not getting correctly identified.
+            # Note that the *only* way this works is if we also fix our field
+            # dependencies during checking.  Bug #627 talks about this.
+            item = self.pf._last_freq
         else:
             FI = getattr(self.pf, "field_info", FieldInfo)
             if item in FI:
@@ -451,7 +459,7 @@ class DerivedField(object):
         dd['name'] = self.name
         dd['units'] = self.units
         dd['take_log'] = self.take_log
-        dd['validators'] = self.validators.copy()
+        dd['validators'] = list(self.validators)
         dd['particle_type'] = self.particle_type
         dd['vector_field'] = self.vector_field
         dd['display_field'] = True

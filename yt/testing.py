@@ -1,29 +1,20 @@
-"""Provides utility and helper functions for testing in yt.
-
-Author: Anthony Scpatz <scopatz@gmail.com>
-Affiliation: The University of Chicago
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Anthony Scopatz.  All Rights Reserved.
-
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import itertools as it
 import numpy as np
+import importlib
 from yt.funcs import *
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
@@ -266,3 +257,23 @@ def expand_keywords(keywords, full=False):
                     list_of_kwarg_dicts[i][key] = keywords[key][0]
 
     return list_of_kwarg_dicts
+
+def requires_module(module):
+    """
+    Decorator that takes a module name as an argument and tries to import it.
+    If the module imports without issue, the function is returned, but if not, 
+    a null function is returned. This is so tests that depend on certain modules
+    being imported will not fail if the module is not installed on the testing
+    platform.
+    """
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    try:
+        importlib.import_module(module)
+    except ImportError:
+        return ffalse
+    else:
+        return ftrue
+    

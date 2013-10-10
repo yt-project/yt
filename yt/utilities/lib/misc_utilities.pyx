@@ -1,27 +1,17 @@
 """
 Simple utilities that don't fit anywhere else
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from yt.data_objects.yt_array import YTArray
@@ -123,16 +113,17 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.int64_t, ndim=1] xs,
           np.ndarray[np.int64_t, ndim=1] ys,
           np.ndarray[np.float64_t, ndim=2] colors,
-          int points_per_color=1):
+          int points_per_color=1,
+          int thick=1):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4]
+    cdef np.float64_t alpha[4], outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
-    cdef int has_alpha = (image.shape[-1] == 4)
+    cdef int has_alpha = (image.shape[2] == 4)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
@@ -155,17 +146,25 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
         else:
             sy = -1
         while(1):
-            if (x0 < 0 and sx == -1): break
-            elif (x0 >= nx and sx == 1): break
-            elif (y0 < 0 and sy == -1): break
-            elif (y0 >= nx and sy == 1): break
-            if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
-                if has_alpha:
-                    for i in range(4):
-                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
-                else:
-                    for i in range(3):
-                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+            if (x0 < thick and sx == -1): break
+            elif (x0 >= nx-thick+1 and sx == 1): break
+            elif (y0 < thick and sy == -1): break
+            elif (y0 >= ny-thick+1 and sy == 1): break
+            if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
+                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                    for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if has_alpha:
+                            image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3])
+                            if outa != 0.0:
+                                outa = 1.0/outa
+                            for i in range(3):
+                                image[xi, yi, i] = \
+                                        ((1.-alpha[3])*image[xi, yi, i]*image[xi, yi, 3]
+                                         + alpha[3]*alpha[i])*outa
+                        else:
+                            for i in range(3):
+                                image[xi, yi, i] = \
+                                        (1.-alpha[i])*image[xi,yi,i] + alpha[i]
 
             if (x0 == x1 and y0 == y1):
                 break
@@ -370,6 +369,8 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
     raise KeyError
 
 @cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                       np.ndarray[np.float64_t, ndim=1] dradius,
                       np.ndarray[np.float64_t, ndim=1] theta,
@@ -539,6 +540,7 @@ def fill_region(input_fields, output_fields,
                 np.ndarray[np.int64_t, ndim=1] left_index,
                 np.ndarray[np.int64_t, ndim=2] ipos,
                 np.ndarray[np.int64_t, ndim=1] ires,
+                np.ndarray[np.int64_t, ndim=1] level_dims,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
@@ -547,29 +549,51 @@ def fill_region(input_fields, output_fields,
     cdef np.ndarray[np.float64_t, ndim=3] ofield
     cdef np.ndarray[np.float64_t, ndim=1] ifield
     nf = len(input_fields)
+    # The variable offsets governs for each dimension and each possible
+    # wrapping if we do it.  Then the wi, wj, wk indices check into each
+    # [dim][wrap] inside the loops.
+    cdef int offsets[3][3], wi, wj, wk
+    cdef np.int64_t off
     for i in range(3):
         dim[i] = output_fields[0].shape[i]
+        offsets[i][0] = offsets[i][2] = 0
+        offsets[i][1] = 1
+        if left_index[i] < 0:
+            offsets[i][2] = 1
+        if left_index[i] + dim[i] >= level_dims[i]:
+            offsets[i][0] = 1
     for n in range(nf):
         tot = 0
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
             rf = refine_by**(output_level - ires[i]) 
-            for n in range(3):
-                iind[n] = ipos[i, n] * rf - left_index[n]
-            for oi in range(rf):
-                oind[0] = oi + iind[0]
-                if oind[0] < 0 or oind[0] >= dim[0]:
-                    continue
-                for oj in range(rf):
-                    oind[1] = oj + iind[1]
-                    if oind[1] < 0 or oind[1] >= dim[1]:
+            for wi in range(3):
+                if offsets[0][wi] == 0: continue
+                off = (left_index[0] + level_dims[0]*(wi-1))
+                iind[0] = ipos[i, 0] * rf - off
+                for oi in range(rf):
+                    # Now we need to apply our offset
+                    oind[0] = oi + iind[0]
+                    if oind[0] < 0 or oind[0] >= dim[0]:
                         continue
-                    for ok in range(rf):
-                        oind[2] = ok + iind[2]
-                        if oind[2] < 0 or oind[2] >= dim[2]:
-                            continue
-                        ofield[oind[0], oind[1], oind[2]] = \
-                            ifield[i]
-                        tot += 1
+                    for wj in range(3):
+                        if offsets[1][wj] == 0: continue
+                        off = (left_index[1] + level_dims[1]*(wj-1))
+                        iind[1] = ipos[i, 1] * rf - off
+                        for oj in range(rf):
+                            oind[1] = oj + iind[1]
+                            if oind[1] < 0 or oind[1] >= dim[1]:
+                                continue
+                            for wk in range(3):
+                                if offsets[2][wk] == 0: continue
+                                off = (left_index[2] + level_dims[2]*(wk-1))
+                                iind[2] = ipos[i, 2] * rf - off
+                                for ok in range(rf):
+                                    oind[2] = ok + iind[2]
+                                    if oind[2] < 0 or oind[2] >= dim[2]:
+                                        continue
+                                    ofield[oind[0], oind[1], oind[2]] = \
+                                        ifield[i]
+                                    tot += 1
     return tot

@@ -1,29 +1,18 @@
 """
 Data containers that require processing before they can be utilized.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <Britton.Smith@colorado.edu>
-Affiliation: University of Colorado at Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import math
@@ -36,6 +25,7 @@ from functools import wraps
 import fileinput
 from re import finditer
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.utilities.logger import ytLogger
 from .data_containers import \
@@ -223,7 +213,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
     _con_args = ('axis', 'weight_field')
-    _container_fields = ('px', 'py', 'pdx', 'pdy')
+    _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, pf = None, data_source=None, 
                  style = "integrate", field_parameters = None):
@@ -286,7 +276,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         # This needs to be parallel_objects-ified
         for chunk in parallel_objects(self.data_source.chunks(
                 chunk_fields, "io")): 
-            mylog.debug("Adding chunk (%s) to tree", chunk.size)
+            mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
+                get_memory_usage()/1024.)
             self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
@@ -310,7 +301,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.multiply(py, self.pf.domain_width[y_dict[self.axis]], py)
         np.add(py, oy, py)
         np.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
-
         if self.weight_field is not None:
             np.divide(nvals, nwvals[:,None], nvals)
         if self.weight_field is None:
@@ -337,7 +327,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         icoords = chunk.icoords
         i1 = icoords[:,x_dict[self.axis]]
         i2 = icoords[:,y_dict[self.axis]]
-        ilevel = chunk.ires
+        ilevel = chunk.ires * self.pf.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
@@ -345,7 +335,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             dl = 1.0
         else:
             dl = chunk.fwidth[:, self.axis]
-        v = np.empty((chunk.size, len(fields)), dtype="float64")
+        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i in range(len(fields)):
             v[:,i] = chunk[fields[i]] * dl
         if self.weight_field is not None:
@@ -353,11 +343,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
         else:
-            w = np.ones(chunk.size, dtype="float64")
+            w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
         i1 = icoords[:,x_dict[self.axis]]
         i2 = icoords[:,y_dict[self.axis]]
-        ilevel = chunk.ires
+        ilevel = chunk.ires * self.pf.ires_factor
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
     def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
@@ -408,8 +398,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center, pf, field_parameters)
         self.left_edge = YTArray(left_edge, 'code_length')
         self.level = level
-        rdx = self.pf.domain_dimensions*self.pf.refine_by**level
-        self.dds = self.pf.domain_width/rdx.astype("float64")
+
+        rdx = self.pf.domain_dimensions*self.pf.relative_refinement(0, level)
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
+        self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
@@ -419,6 +411,38 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                     self.pf.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
                 
+    @property
+    def icoords(self):
+        ic = np.indices(self.ActiveDimensions).astype("int64")
+        return np.column_stack([i.ravel() + gi for i, gi in
+            zip(ic, self.get_global_startindex())])
+
+    @property
+    def fwidth(self):
+        fw = np.ones((self.ActiveDimensions.prod(), 3), dtype="float64")
+        fw *= self.dds
+        return fw
+
+    @property
+    def fcoords(self):
+        LE = self.LeftEdge + self.dds/2.0
+        RE = self.RightEdge - self.dds/2.0
+        N = self.ActiveDimensions
+        fc = np.mgrid[LE[0]:RE[0]:N[0]*1j,
+                      LE[1]:RE[1]:N[1]*1j,
+                      LE[2]:RE[2]:N[2]*1j]
+        return np.column_stack([f.ravel() for f in fc])
+
+    @property
+    def ires(self):
+        tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
+        tr *= self.level
+        return tr
+
+    def _reshape_vals(self, arr):
+        if len(arr.shape) == 3: return arr
+        return arr.reshape(self.ActiveDimensions, order="C")
+
     @property
     def shape(self):
         return tuple(self.ActiveDimensions.tolist())
@@ -464,10 +488,15 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
                          for field in fields]
+        domain_dims = self.pf.domain_dimensions.astype("int64") \
+                    * self.pf.relative_refinement(0, self.level)
         for chunk in self._data_source.chunks(fields, "io"):
             input_fields = [chunk[field] for field in fields]
+            # NOTE: This usage of "refine_by" is actually *okay*, because it's
+            # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
-                        self.global_startindex, chunk.icoords, chunk.ires)
+                        self.global_startindex, chunk.icoords, chunk.ires,
+                        domain_dims, self.pf.refine_by)
         for name, v in zip(fields, output_fields):
             self[name] = v
 
@@ -510,7 +539,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="F")
+        return vals.reshape(self.ActiveDimensions, order="C")
 
 class YTArbitraryGridBase(YTCoveringGridBase):
     """A 3D region with arbitrary bounds and dimensions.
@@ -620,13 +649,16 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def _fill_fields(self, fields):
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
-            tot = 0
+            domain_dims = self.pf.domain_dimensions.astype("int64") \
+                        * self.pf.relative_refinement(0, self.level)
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
-                tot += fill_region(input_fields, ls.fields, ls.current_level,
+                # NOTE: This usage of "refine_by" is actually *okay*, because it's
+                # being used with respect to iref, which is *already* scaled!
+                fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
-                            chunk.ires)
+                            chunk.ires, domain_dims, self.pf.refine_by)
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
@@ -655,14 +687,16 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def _update_level_state(self, level_state):
         ls = level_state
         if ls.current_level >= self.level: return
+        rf = float(self.pf.relative_refinement(
+                    ls.current_level, ls.current_level + 1))
         ls.current_level += 1
-        ls.current_dx = self._base_dx / self.pf.refine_by**ls.current_level
+        ls.current_dx = self._base_dx / \
+            self.pf.relative_refinement(0, ls.current_level)
         self._setup_data_source(ls)
         LL = self.left_edge - self.pf.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
         ls.domain_iwidth = np.rint(self.pf.domain_width/ls.current_dx).astype('int64') 
-        rf = float(self.pf.refine_by)
         input_left = (level_state.old_global_startindex + 0.5) * rf 
         width = (self.ActiveDimensions*self.dds)
         output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
@@ -670,7 +704,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         new_fields = []
         for input_field in level_state.fields:
             output_field = np.zeros(output_dims, dtype="float64")
-            output_left = self.global_startindex + 0.5
+            output_left = level_state.global_startindex + 0.5
             ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
             new_fields.append(output_field)

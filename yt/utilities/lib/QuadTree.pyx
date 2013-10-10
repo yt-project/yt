@@ -1,27 +1,17 @@
 """
 A refine-by-two AMR-specific quadtree
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 
 import numpy as np
@@ -131,7 +121,7 @@ cdef class QuadTree:
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
-        cdef np.float64_t *vals = <np.float64_t *> alloca(
+        cdef np.float64_t *vals = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*nvals)
         cdef np.float64_t weight_val = 0.0
         self.nvals = nvals
@@ -160,6 +150,7 @@ cdef class QuadTree:
                 self.root_nodes[i][j] = QTN_initialize(
                     pos, nvals, vals, weight_val)
         self.num_cells = self.top_grid_dims[0] * self.top_grid_dims[1]
+        free(vals)
 
     cdef int count_total_cells(self, QuadTreeNode *root):
         cdef int total = 0
@@ -342,6 +333,7 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.cdivision(True)
     def get_all(self, int count_only = 0, int style = 1):
         cdef int i, j, vi
         cdef int total = 0
@@ -372,7 +364,7 @@ cdef class QuadTree:
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
         cdef np.float64_t wtoadd
-        cdef np.float64_t *vtoadd = <np.float64_t *> alloca(
+        cdef np.float64_t *vtoadd = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*self.nvals)
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -380,6 +372,7 @@ cdef class QuadTree:
                 wtoadd = 0.0
                 curpos += self.fill(self.root_nodes[i][j],
                     curpos, px, py, pdx, pdy, vdata, wdata, vtoadd, wtoadd, 0)
+        free(vtoadd)
         return opx, opy, opdx, opdy, nvals, nwvals
 
     cdef int count(self, QuadTreeNode *node):
@@ -391,6 +384,7 @@ cdef class QuadTree:
                 count += self.count(node.children[i][j])
         return count
 
+    @cython.cdivision(True)
     cdef int fill(self, QuadTreeNode *node, 
                         np.int64_t curpos,
                         np.float64_t *px,
@@ -403,6 +397,8 @@ cdef class QuadTree:
                         np.float64_t wtoadd,
                         np.int64_t level):
         cdef int i, j, n
+        cdef np.float64_t *vorig
+        vorig = <np.float64_t *> malloc(sizeof(np.float64_t) * self.nvals)
         if node.children[0][0] == NULL:
             if self.merged == -1:
                 for i in range(self.nvals):
@@ -422,6 +418,7 @@ cdef class QuadTree:
         cdef np.int64_t added = 0
         if self.merged == 1:
             for i in range(self.nvals):
+                vorig[i] = vtoadd[i]
                 vtoadd[i] += node.val[i]
             wtoadd += node.weight_val
         elif self.merged == -1:
@@ -437,8 +434,9 @@ cdef class QuadTree:
                         vtoadd, wtoadd, level + 1)
         if self.merged == 1:
             for i in range(self.nvals):
-                vtoadd[i] -= node.val[i]
+                vtoadd[i] = vorig[i]
             wtoadd -= node.weight_val
+        free(vorig)
         return added
 
     @cython.boundscheck(False)

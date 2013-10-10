@@ -1,29 +1,17 @@
 """
 Task queue in yt
 
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: Michigan State University
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import time, threading, random
@@ -133,14 +121,14 @@ def task_queue(func, tasks, njobs=0):
     comm = _get_comm(())
     if not parallel_capable:
         mylog.error("Cannot create task queue for serial process.")
-        raise RunTimeError
+        raise RuntimeError
     my_size = comm.comm.size
     if njobs <= 0:
         njobs = my_size - 1
     if njobs >= my_size:
         mylog.error("You have asked for %s jobs, but only %s processors are available.",
                     njobs, (my_size - 1))
-        raise RunTimeError
+        raise RuntimeError
     my_rank = comm.rank
     all_new_comms = np.array_split(np.arange(1, my_size), njobs)
     all_new_comms.insert(0, np.array([0]))
@@ -161,14 +149,14 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
     comm = _get_comm(())
     if not parallel_capable:
         mylog.error("Cannot create task queue for serial process.")
-        raise RunTimeError
+        raise RuntimeError
     my_size = comm.comm.size
     if njobs <= 0:
         njobs = my_size - 1
     if njobs >= my_size:
         mylog.error("You have asked for %s jobs, but only %s processors are available.",
                     njobs, (my_size - 1))
-        raise RunTimeError
+        raise RuntimeError
     my_rank = comm.rank
     all_new_comms = np.array_split(np.arange(1, my_size), njobs)
     all_new_comms.insert(0, np.array([0]))

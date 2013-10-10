@@ -1,18 +1,20 @@
 #
 # Physical Constants and Units Conversion Factors
 #
-# Values for these constants are drawn from IAU and IUPAC data 
-# unless otherwise noted:
+# Values for these constants, unless otherwise noted, are drawn from IAU,
+# IUPAC, and NIST data, whichever is newer.
 # http://maia.usno.navy.mil/NSFA/IAU2009_consts.html
 # http://goldbook.iupac.org/list_goldbook_phys_constants_defs.html
+# http://physics.nist.gov/cuu/Constants/index.html
 
 from yt.data_objects.yt_array import YTQuantity
 
 # Masses
-mass_hydrogen_cgs = YTQuantity(1.674534e-24, 'g')
-mass_electron_cgs = YTQuantity(9.1093898e-28, 'g')
-amu_cgs           = YTQuantity(1.6605402e-24, 'g')
+mass_electron_cgs = YTQuantity(9.109382e-28, 'g')
+amu_cgs           = YTQuantity(1.660538921e-24, 'g')
+mass_hydrogen_cgs = 1.007947*amu_cgs
 mass_sun_cgs = YTQuantity(1.98841586e33, 'g')
+
 # Velocities
 speed_of_light_cgs = YTQuantity(2.99792458e10, 'cm/s')
 
@@ -24,10 +26,15 @@ cross_section_thompson_cgs = YTQuantity(6.65245854533e-25, 'cm**2')
 charge_proton_cgs = YTQuantity(4.8032056e-10, 'esu')
 
 # Physical Constants
-boltzmann_constant_cgs = YTQuantity(1.3806504e-16, 'erg/K')
-gravitational_constant_cgs  = YTQuantity(6.67428e-8, 'cm**3/g/s**2')
-planck_constant_cgs   = YTQuantity(6.62606896e-27, 'erg*s')
-stefan_boltzmann_constant_cgs = YTQuantity(5.67051e-5, 'erg/cm**2/s**1/K**4')
+boltzmann_constant_cgs = YTQuantity(1.3806488e-16, 'erg/K')
+gravitational_constant_cgs  = YTQuantity(6.67384-8, 'cm**3/g/s**2')
+planck_constant_cgs   = YTQuantity(6.62606957e-27, 'erg*s')
+stefan_boltzmann_constant_cgs = YTQuantity(5.670373e-5, 'erg/cm**2/s**1/K**4')
+# The following value was calcualted assuming H = 100 km/s/Mpc.
+# To get the correct value for your cosmological parameters, 
+# you'll need to multiply through by h^2
+# [where h = H / (100 km/s/Mpc)].  See the Overdensity field in
+# yt.data_objects.universal_fields.
 rho_crit_now = YTQuantity(1.8788e-29, 'g/cm**3/h**2') # (cosmology critical density)
 
 # Misc. Approximations
@@ -65,17 +72,21 @@ pc_per_km     = 1.0 / km_per_pc
 cm_per_pc     = 1.0 / pc_per_cm
 
 # time
+# "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
 sec_per_Gyr  = 31.5576e15
 sec_per_Myr  = 31.5576e12
 sec_per_kyr  = 31.5576e9
-sec_per_year = 31.5576e6   # "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
+sec_per_year = 31.5576e6
 sec_per_day  = 86400.0
 sec_per_hr   = 3600.0
 day_per_year = 365.25
 
 # temperature / energy
-erg_per_eV = 1.602176487e-12 # http://goldbook.iupac.org/E02014.html
+erg_per_eV = 1.602176562e-12
 erg_per_keV = erg_per_eV * 1.0e3
+K_per_keV = erg_per_keV / boltzmann_constant_cgs
+keV_per_K = 1.0 / K_per_keV
+Tcmb = YTQuantity(2.726, 'K') # Current CMB temperature
 
 #Short cuts
 G = gravitational_constant_cgs
