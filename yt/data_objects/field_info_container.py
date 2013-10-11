@@ -330,6 +330,8 @@ class FieldDetector(defaultdict):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return np.random.random(3) * 1e-2
+        elif param in ['axis']:
+            return 0
         else:
             return 0.0
     _num_ghost_zones = 0
