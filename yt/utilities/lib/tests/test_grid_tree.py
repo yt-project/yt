@@ -43,7 +43,7 @@ def setup():
     ]
 
     for grid in grid_data:
-        grid["Density"] = \
+        grid["density"] = \
             np.random.random(grid["dimensions"]) * 2 ** grid["level"]
     test_pf = load_amr_grids(grid_data, [16, 16, 16], 1.0)
 

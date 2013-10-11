@@ -120,7 +120,7 @@ class TestSetWidth(unittest.TestCase):
     def setUp(self):
         if self.pf is None:
             self.pf = fake_random_pf(64)
-            self.slc = SlicePlot(self.pf, 0, 'Density')
+            self.slc = SlicePlot(self.pf, 0, "density")
 
     def _assert_15kpc(self):
         assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
@@ -174,15 +174,15 @@ class TestPlotWindowSave(unittest.TestCase):
         projections = []
         projections_ds = []
         for dim in range(3):
-            projections.append(ProjectionPlot(test_pf, dim, 'Density'))
-            projections_ds.append(ProjectionPlot(test_pf, dim, 'Density',
+            projections.append(ProjectionPlot(test_pf, dim, "density"))
+            projections_ds.append(ProjectionPlot(test_pf, dim, "density",
                                                  data_source=ds_region))
 
-        cls.slices = [SlicePlot(test_pf, dim, 'Density') for dim in range(3)]
+        cls.slices = [SlicePlot(test_pf, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
-        cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, 'Density')
-        cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, 'Density')
+        cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, "density")
+        cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, "density")
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()

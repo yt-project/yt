@@ -176,7 +176,7 @@ class Camera(ParallelAnalysisInterface):
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
-        if fields is None: fields = ["Density"]
+        if fields is None: fields = ["density"]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
@@ -1142,7 +1142,7 @@ class HEALpixCamera(Camera):
             self._sampler_object = VolumeRenderSampler
             self._needs_tf = 1
 
-        if fields is None: fields = ["Density"]
+        if fields is None: fields = ["density"]
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
@@ -1277,7 +1277,7 @@ class AdaptiveHEALpixCamera(Camera):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
-        if fields is None: fields = ["Density"]
+        if fields is None: fields = ["density"]
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
@@ -1366,7 +1366,7 @@ class FisheyeCamera(Camera):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
-        if fields is None: fields = ["Density"]
+        if fields is None: fields = ["density"]
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
@@ -1458,7 +1458,7 @@ class MosaicCamera(Camera):
         if north_vector is not None: self.steady_north=True
         self.north_vector = north_vector
         self.normal_vector = normal_vector
-        if fields is None: fields = ["Density"]
+        if fields is None: fields = ["density"]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
@@ -1750,7 +1750,7 @@ class MosaicFisheyeCamera(Camera):
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
-        if fields is None: fields = ["Density"]
+        if fields is None: fields = ["density"]
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
@@ -2010,7 +2010,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     --------
 
     >>> image = allsky_projection(pf, [0.5, 0.5, 0.5], 1.0/pf['mpc'],
-                      32, "Temperature", "Density")
+                      32, "temperature", "density")
     >>> plot_allsky_healpix(image, 32, "healpix.png")
 
     """
@@ -2304,7 +2304,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     --------
 
     >>> image = off_axis_projection(pf, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-                      0.2, N, "Temperature", "Density")
+                      0.2, N, "temperature", "density")
     >>> write_image(np.log10(image), "offaxis.png")
 
     """

@@ -6,15 +6,15 @@ def test_update_data() :
     pf = fake_random_pf(64, nprocs=8)
     pf.h
     dims = (32,32,32)
-    grid_data = [{"Temperature":uniform(size=dims)}
+    grid_data = [{"temperature":uniform(size=dims)}
                  for i in xrange(pf.h.num_grids)]
     pf.h.update_data(grid_data)
-    prj = pf.h.proj("Temperature", 2)
-    prj["Temperature"]
+    prj = pf.h.proj("temperature", 2)
+    prj["temperature"]
     dd = pf.h.all_data()
-    profile = BinnedProfile1D(dd, 10, "Density",
-                              dd["Density"].min(),
-                              dd["Density"].max())
-    profile.add_fields(["Temperature"])
-    profile["Temperature"]
+    profile = BinnedProfile1D(dd, 10, "density",
+                              dd["density"].min(),
+                              dd["density"].max())
+    profile.add_fields(["temperature"])
+    profile["temperature"]
                               

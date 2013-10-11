@@ -1,7 +1,7 @@
 from yt.testing import *
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 
-_fields = ("Density", "x-velocity", "y-velocity", "z-velocity")
+_fields = ("density", "x-velocity", "y-velocity", "z-velocity")
 
 def test_obtain_rvec():
     pf = fake_random_pf(64, nprocs=8, fields=_fields, 

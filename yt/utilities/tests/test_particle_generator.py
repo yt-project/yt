@@ -15,9 +15,9 @@ def test_particle_generator() :
     domain_dims = (128, 128, 128)
     dens = np.zeros(domain_dims) + 0.1
     temp = 4.*np.ones(domain_dims)
-    fields = {"Density": dens, "Temperature": temp}
+    fields = {"density": dens, "temperature": temp}
     ug = load_uniform_grid(fields, domain_dims, 1.0)
-    fo = [ic.BetaModelSphere(1.0,0.1,0.5,[0.5,0.5,0.5],{"Density":(10.0)})]
+    fo = [ic.BetaModelSphere(1.0,0.1,0.5,[0.5,0.5,0.5],{"density":(10.0)})]
     rc = [fm.flagging_method_registry["overdensity"](4.0)]
     pf = refine_amr(ug, rc, fo, 3)
 
@@ -27,7 +27,7 @@ def test_particle_generator() :
                   "particle_position_z","particle_index",
                   "particle_gas_density"]
     num_particles = 1000000
-    field_dict = {"Density": "particle_gas_density"}
+    field_dict = {"density": "particle_gas_density"}
     sphere = pf.h.sphere(pf.domain_center, 0.45)
 
     particles1 = WithDensityParticleGenerator(pf, sphere, num_particles, field_list)
@@ -49,8 +49,8 @@ def test_particle_generator() :
     le = np.array([0.25,0.25,0.25])
     re = np.array([0.75,0.75,0.75])
     new_field_list = field_list + ["particle_gas_temperature"]
-    new_field_dict = {"Density": "particle_gas_density",
-                      "Temperature": "particle_gas_temperature"}
+    new_field_dict = {"density": "particle_gas_density",
+                      "temperature": "particle_gas_temperature"}
 
     particles2 = LatticeParticleGenerator(pf, pdims, le, re, new_field_list)
     particles2.assign_indices(function=new_indices)

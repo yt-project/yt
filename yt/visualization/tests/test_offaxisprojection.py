@@ -41,7 +41,7 @@ def test_write_projection():
     norm = [0.5, 0.5, 0.5]
     W = [0.5,0.5,1.0]
     N = 64
-    field = "Density"
+    field = "density"
     oap_args = [test_pf, c, norm, W, N, field]
 
     # kwargs for off_axis_projection

@@ -227,6 +227,7 @@ class FieldDetector(defaultdict):
             pf["Massarr"] = np.ones(6)
             pf.current_redshift = pf.omega_lambda = pf.omega_matter = \
                 pf.cosmological_simulation = 0.0
+            pf.gamma = 5./3.0
             pf.hubble_constant = 0.7
             pf.domain_left_edge = np.zeros(3, 'float64')
             pf.domain_right_edge = np.ones(3, 'float64')
