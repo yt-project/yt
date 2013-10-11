@@ -106,7 +106,7 @@ from .two_point_functions.api import \
 from .radmc3d_export.api import \
     RadMC3DWriter
 
-from .synthetic_obs.api import \
+from .photon_simulator.api import \
      PhotonList, \
      EventList, \
      XSpecThermalModel, \
