@@ -30,10 +30,10 @@ class IOHandlerStream(BaseIOHandler):
 
     _data_style = "stream"
 
-    def __init__(self, stream_handler):
-        self.fields = stream_handler.fields
-        self.field_units = stream_handler.field_units
-        BaseIOHandler.__init__(self)
+    def __init__(self, pf):
+        self.fields = pf.stream_handler.fields
+        self.field_units = pf.stream_handler.field_units
+        super(IOHandlerStream, self).__init__(pf)
 
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
@@ -126,9 +126,9 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     _data_style = "stream_particles"
 
-    def __init__(self, stream_handler):
-        self.fields = stream_handler.fields
-        BaseIOHandler.__init__(self)
+    def __init__(self, pf):
+        self.fields = pf.stream_handler.fields
+        super(StreamParticleIOHandler, self).__init__(pf)
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
@@ -206,9 +206,9 @@ class StreamParticleIOHandler(BaseIOHandler):
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _data_style = "stream_hexahedral"
 
-    def __init__(self, stream_handler):
-        self.fields = stream_handler.fields
-        BaseIOHandler.__init__(self)
+    def __init__(self, pf):
+        self.fields = pf.stream_handler.fields
+        super(IOHandlerStreamHexahedral, self).__init__(pf)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -235,9 +235,9 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
 class IOHandlerStreamOctree(BaseIOHandler):
     _data_style = "stream_octree"
 
-    def __init__(self, stream_handler):
-        self.fields = stream_handler.fields
-        BaseIOHandler.__init__(self)
+    def __init__(self, pf):
+        self.fields = pf.stream_handler.fields
+        super(IOHandlerStreamOctree, self).__init__(pf)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}

@@ -119,7 +119,8 @@ cdef class OctreeContainer:
     def load_octree(cls, header):
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = header['octree']
-        cdef OctreeContainer obj = cls(header['dims'], header['left_edge'], header['right_edge'])
+        cdef OctreeContainer obj = cls(header['dims'], header['left_edge'],
+                header['right_edge'], over_refine = header['over_refine'])
         # NOTE: We do not allow domain/file indices to be specified.
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         cdef OctVisitorData data
@@ -166,7 +167,9 @@ cdef class OctreeContainer:
                 pos[1] += dds[1]
             pos[0] += dds[0]
         obj.nocts = cur.n_assigned
-        assert(obj.nocts == ref_mask.size)
+        if obj.nocts != ref_mask.size:
+            print "SOMETHING WRONG", ref_mask.size, obj.nocts, obj.oref
+            raise RuntimeError
         return obj
 
     cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
@@ -298,6 +301,8 @@ cdef class OctreeContainer:
             else:
                 next = NULL
         if oinfo == NULL: return cur
+        cdef np.float64_t factor = 1.0 / (1 << (self.oref-1))
+        if self.oref == 0: factor = 1.0
         for i in range(3):
             # This will happen *after* we quit out, so we need to back out the
             # last change to cp
@@ -309,9 +314,11 @@ cdef class OctreeContainer:
             # from the oct width, thus making it already the cell width.
             # But, for some cases where the oref != 1, this needs to be
             # changed.
-            oinfo.dds[i] = dds[i] / (1 << (self.oref-1)) # Cell width
+            oinfo.dds[i] = dds[i] * factor # Cell width
             oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
             oinfo.ipos[i] = ipos[i]
+        if self.oref == 0:
+            oinfo.dds[i] = dds[i] # Same here as elsewhere
         oinfo.level = level
         return cur
 
@@ -491,7 +498,8 @@ cdef class OctreeContainer:
         # Get the header
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
-                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]))
+                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
+                      over_refine = self.oref)
         if self.partial_coverage == 1:
             raise NotImplementedError
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)

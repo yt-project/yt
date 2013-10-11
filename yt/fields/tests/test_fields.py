@@ -2,7 +2,7 @@ from yt.testing import *
 import numpy as np
 from yt.data_objects.field_info_container import \
     FieldInfo
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 

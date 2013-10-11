@@ -21,7 +21,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType, \
     NullFunc, \
     TranslationFunc
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 
 log_translation_dict = {"Density": "density",
                         "Pressure": "pressure"}

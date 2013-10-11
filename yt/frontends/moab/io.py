@@ -23,10 +23,8 @@ def field_dname(field_name):
 class IOHandlerMoabH5MHex8(BaseIOHandler):
     _data_style = "moab_hex8"
 
-    def __init__(self, pf, *args, **kwargs):
-        # TODO check if _num_per_stride is needed
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
+    def __init__(self, pf):
+        super(IOHandlerMoabH5MHex8, self).__init__(pf)
         self._handle = pf._handle
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -51,11 +49,6 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
 
 class IOHandlerMoabPyneHex8(BaseIOHandler):
     _data_style = "moab_hex8_pyne"
-
-    def __init__(self, pf, *args, **kwargs):
-        # TODO check if _num_per_stride is needed
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)

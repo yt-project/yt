@@ -25,7 +25,13 @@ from _artio_caller import \
 import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from .fields import ARTIOFieldInfo, KnownARTIOFields, b2t
+from .fields import \
+    ARTIOFieldInfo, \
+    KnownARTIOFields, \
+    b2t, \
+    _setup_particle_fields
+from yt.fields.particle_fields import \
+    standard_particle_fields
 
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
@@ -472,7 +478,7 @@ class ARTIOStaticOutput(StaticOutput):
                             "species_%02d_secondary_variable_labels"
                             % (species, )])
 
-            self.particle_types = ("all",) + tuple(
+            self.particle_types = tuple(
                 set(art_to_yt[s] for s in
                     self.artio_parameters["particle_species_labels"]))
             self.particle_types = tuple(self.particle_types)
@@ -480,6 +486,7 @@ class ARTIOStaticOutput(StaticOutput):
             self.num_species = 0
             self.particle_variables = []
             self.particle_types = ()
+        self.particle_types_raw = self.particle_types
 
         self.current_time = b2t(self.artio_parameters["tl"][0])
 
@@ -513,6 +520,12 @@ class ARTIOStaticOutput(StaticOutput):
 
         # hard coded assumption of 3D periodicity (add to parameter file)
         self.periodicity = (True, True, True)
+
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
+        _setup_particle_fields(self.field_info, ptype)
+        standard_particle_fields(self.field_info, ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

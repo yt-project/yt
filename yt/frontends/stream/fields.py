@@ -23,8 +23,8 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.data_objects.universal_fields
-from yt.data_objects.particle_fields import \
+import yt.fields.universal_fields
+from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions
 

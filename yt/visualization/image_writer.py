@@ -235,57 +235,6 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot = np.clip(to_plot, 0, 255)
     return to_plot
 
-def annotate_image(image, text, xpos, ypos, font_name = "Vera",
-                   font_size = 24, dpi = 100):
-    r"""Add text on to an existing uint8 bitmap array.
-
-    This function accepts an image array and then directly calls freetype to
-    add text on top of that array.  No array is returned.
-
-    Parameters
-    ----------
-    image : array_like
-        This is a (scaled) array of UINT8 values, shape (N,N,[3,4]) to
-        overplot text on.
-    text : string
-        Text to place
-    xpos : int
-        The starting point, in pixels, of the text along the x axis.
-    ypos : int
-        The starting point, in pixels, of the text along the y axis.  Note that
-        0 will be the top of the image, not the bottom.
-    font_name : string (optional)
-        The font to load.
-    font_size : int (optional)
-        Font size in points of the overlaid text.
-    dpi : int (optional)
-        Dots per inch for calculating the font size in pixels.
-        
-    Returns
-    -------
-    Nothing
-
-    Examples
-    --------
-
-    >>> sl = pf.h.slice(0, 0.5, "Density")
-    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> bitmap = write_image(frb1["Density"], "saved.png")
-    >>> annotate_image(bitmap, "Hello!", 0, 100)
-    >>> write_bitmap(bitmap, "saved.png")
-    """
-    if len(image.shape) != 3 or image.dtype != np.uint8:
-        raise RuntimeError("This routine requires a UINT8 bitmapped image.")
-    font_path = os.path.join(imp.find_module("matplotlib")[1],
-                             "mpl-data/fonts/ttf/",
-                             "%s.ttf" % font_name)
-    if not os.path.isfile(font_path):
-        mylog.error("Could not locate %s", font_path)
-        raise IOError(font_path)
-    # The hard-coded 0 is the font face index.
-    au.simple_writing(font_path, 0, dpi, font_size, text, image, xpos, ypos)
-
 def map_to_colors(buff, cmap_name):
     if cmap_name not in cmd.color_map_luts:
         print "Your color map was not found in the extracted colormap file."

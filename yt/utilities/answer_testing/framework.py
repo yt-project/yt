@@ -370,7 +370,7 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field", )
 
     def __init__(self, pf_fn, field, obj_type = None,
-                 decimals = None):
+                 decimals = 10):
         super(FieldValuesTest, self).__init__(pf_fn)
         self.obj_type = obj_type
         self.field = field

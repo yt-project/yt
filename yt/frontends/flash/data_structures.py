@@ -50,10 +50,6 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-    @property
-    def filename(self):
-        return None
-
 class FLASHHierarchy(GridGeometryHandler):
 
     grid = FLASHGrid
@@ -199,9 +195,6 @@ class FLASHHierarchy(GridGeometryHandler):
                 # Translating an already-converted field
                 self.parameter_file.conversion_factors[field] = 1.0 
                 
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
-
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo

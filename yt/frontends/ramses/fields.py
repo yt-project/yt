@@ -25,8 +25,8 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.data_objects.universal_fields
-from yt.data_objects.particle_fields import \
+import yt.fields.universal_fields
+from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions
 from yt.utilities.physical_constants import \
@@ -57,8 +57,7 @@ known_ramses_fields = [
 
 for f in known_ramses_fields:
     if f not in KnownRAMSESFields:
-        add_ramses_field(f, function=NullFunc, take_log=True,
-                  validators = [ValidateDataField(f)])
+        add_ramses_field(f, function=NullFunc, take_log=True)
 
 def dx(field, data):
     return data.fwidth[:,0]
@@ -90,34 +89,36 @@ for ax in ['x','y','z']:
     f._convert_function = _convertVelocity
     f.take_log = False
 
-known_ramses_particle_fields = [
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_velocity_x",
-    "particle_velocity_y",
-    "particle_velocity_z",
-    "particle_mass",
-    "particle_identifier",
-    "particle_refinement_level",
-    "particle_age",
-    "particle_metallicity",
-]
-
-for f in known_ramses_particle_fields:
-    add_ramses_field(("all", f), function=NullFunc, take_log=True,
-              particle_type = True)
-
-for ax in 'xyz':
-    KnownRAMSESFields["all", "particle_velocity_%s" % ax]._convert_function = \
-        _convertVelocity
-
 def _convertParticleMass(data):
     return data.convert("mass")
 
-KnownRAMSESFields["all", "particle_mass"]._convert_function = \
-        _convertParticleMass
-KnownRAMSESFields["all", "particle_mass"]._units = "g"
+def _setup_particle_fields(registry, ptype):
+    particle_vector_functions(ptype,
+            ["particle_position_%s" % ax for ax in 'xyz'],
+            ["particle_velocity_%s" % ax for ax in 'xyz'],
+            registry)
+    particle_deposition_functions(ptype, "Coordinates",
+        "particle_mass", registry)
+
+    for ax in 'xyz':
+        fn = "particle_velocity_%s" % ax
+        registry.add_field((ptype, fn), function=NullFunc,
+                  convert_function=_convertVelocity,
+                  units = "cm / s",
+                  take_log = False,
+                  particle_type=True)
+    for fn in ["particle_position_%s" % ax for ax in 'xyz'] + \
+              ["particle_identifier", "particle_refinement_level",
+               "particle_age", "particle_metallicity"]:
+        registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
+
+    registry.add_field((ptype, "particle_index"),
+      function=TranslationFunc((ptype, "particle_identifier")),
+      particle_type = True)
+    registry.add_field((ptype, "particle_mass"), function=NullFunc, 
+              particle_type=True, convert_function = _convertParticleMass,
+              units = "g")
+    return
 
 def _Temperature(field, data):
     rv = data["Pressure"]/data["Density"]
@@ -179,24 +180,15 @@ for species in _speciesList:
              display_name="%s\/Fraction" % species)
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
-             validators=ValidateDataField("%s_Density" % species),
              display_name="Comoving\/%s\/Density" % species)
     add_field("%s_Mass" % species, units="g", 
               function=_SpeciesMass, 
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
     add_field("%s_MassMsun" % species, units="Msun",
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
 
-# PARTICLE FIELDS
-particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
-                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
-                          RAMSESFieldInfo)
-particle_deposition_functions("all", "Coordinates", "particle_mass",
-                               RAMSESFieldInfo)
 _cool_axes = ("lognH", "logT", "logTeq")
 _cool_arrs = ("metal", "cool", "heat", "metal_prime", "cool_prime",
               "heat_prime", "mu", "abundances")

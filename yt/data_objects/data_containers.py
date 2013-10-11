@@ -482,7 +482,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fd = self.pf.field_dependencies.get(field, None) or \
                  self.pf.field_dependencies.get(field[1], None)
             if fd is None: continue
-            fd = self.pf.field_dependencies[field]
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps

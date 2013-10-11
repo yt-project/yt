@@ -30,6 +30,8 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
     filter_registry
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
 
@@ -49,13 +51,17 @@ class StaticOutput(object):
 
     default_fluid_type = "gas"
     fluid_types = ("gas","deposit")
-    particle_types = ("all",)
+    particle_types = ("io",) # By default we have an 'all'
+    particle_types_raw = ("io",)
     geometry = "cartesian"
     coordinates = None
     max_level = 99
     storage_filename = None
     _particle_mass_name = None
     _particle_coordinates_name = None
+    _particle_velocity_name = None
+    particle_unions = None
+    known_filters = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -93,7 +99,8 @@ class StaticOutput(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
-        self.known_filters = {}
+        self.known_filters = self.known_filters or {}
+        self.particle_unions = self.particle_unions or {}
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -211,6 +218,11 @@ class StaticOutput(object):
                 raise RuntimeError("You should not instantiate StaticOutput.")
             self._instantiated_hierarchy = self._hierarchy_class(
                 self, data_style=self.data_style)
+            # Now we do things that we need an instantiated hierarchy for
+            if "all" not in self.particle_types:
+                mylog.debug("Creating Particle Union 'all'")
+                pu = ParticleUnion("all", list(self.particle_types_raw))
+                self.add_particle_union(pu)
         return self._instantiated_hierarchy
     h = hierarchy  # alias
 
@@ -306,11 +318,40 @@ class StaticOutput(object):
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
-        if guessing_type and ("all", fname) in self.field_info:
-            self._last_freq = ("all", fname)
-            self._last_finfo = self.field_info["all", fname]
-            return self._last_finfo
+        if guessing_type:
+            for ftype in ("all", self.default_fluid_type):
+                if (ftype, fname) in self.field_info:
+                    self._last_freq = (ftype, fname)
+                    self._last_finfo = self.field_info[(ftype, fname)]
+                    return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
+
+    def add_particle_union(self, union):
+        # No string lookups here, we need an actual union.
+        f = self.particle_fields_by_type
+        fields = set_intersection([f[s] for s in union
+                                   if s in self.particle_types_raw])
+        self.particle_types += (union.name,)
+        self.particle_unions[union.name] = union
+        fields = [ (union.name, field) for field in fields]
+        self.h.field_list.extend(fields)
+        # Give ourselves a chance to add them here, first, then...
+        # ...if we can't find them, we set them up as defaults.
+        self.h._setup_particle_types([union.name])
+        self.h._setup_unknown_fields(fields, self.field_info,
+                                     skip_removal = True)
+
+    def _setup_particle_type(self, ptype):
+        mylog.debug("Don't know what to do with %s", ptype)
+        return []
+
+    @property
+    def particle_fields_by_type(self):
+        fields = defaultdict(list)
+        for field in self.h.field_list:
+            if field[0] in self.particle_types_raw:
+                fields[field[0]].append(field[1])
+        return fields
 
     @property
     def ires_factor(self):

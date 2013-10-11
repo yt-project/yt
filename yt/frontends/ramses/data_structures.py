@@ -43,7 +43,10 @@ from yt.geometry.oct_container import \
 from .fields import \
     RAMSESFieldInfo, \
     KnownRAMSESFields, \
-    create_cooling_fields
+    create_cooling_fields, \
+    _setup_particle_fields
+from yt.fields.particle_fields import \
+    standard_particle_fields
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -153,11 +156,12 @@ class RAMSESDomainFile(object):
         _pfields = {}
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
-            field_offsets["all", field] = f.tell()
-            _pfields["all", field] = vtype
+            field_offsets["io", field] = f.tell()
+            _pfields["io", field] = vtype
             fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
+        self.particle_types = self.particle_types_raw = ("io",)
 
     def _read_amr_header(self):
         hvals = {}
@@ -342,7 +346,8 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
-        self.field_list = self.fluid_field_list + self.particle_field_list
+        self.field_list = [("gas", f) for f in self.fluid_field_list] \
+                        + self.particle_field_list
 
     def _setup_derived_fields(self):
         self._parse_cooling()
@@ -506,6 +511,12 @@ class RAMSESStaticOutput(StaticOutput):
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level
+
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
+        _setup_particle_fields(self.field_info, ptype)
+        standard_particle_fields(self.field_info, ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

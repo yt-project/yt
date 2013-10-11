@@ -729,9 +729,13 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     cdef public artio_fileset artio_handle
     cdef ARTIOSFCRangeHandler range_handler
     cdef np.int64_t level_indices[32]
+    cdef np.int64_t sfc_start
+    cdef np.int64_t sfc_end
 
     def __init__(self, ARTIOSFCRangeHandler range_handler):
         self.range_handler = range_handler
+        self.sfc_start = range_handler.sfc_start
+        self.sfc_end = range_handler.sfc_end
         self.artio_handle = range_handler.artio_handle
         # Note the final argument is partial_coverage, which indicates whether
         # or not an Oct can be partially refined.
@@ -897,11 +901,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 
     def fill_sfc_particles(self, fields):
         # This handles not getting particles for refined sfc values.
-        cdef np.int64_t sfc_start, sfc_end
-        sfc_start = self.domains[0].con_id
-        sfc_end = self.domains[self.num_domains - 1].con_id
-        rv = read_sfc_particles(self.artio_handle, sfc_start, sfc_end,
-                                0, fields, self.range_handler.doct_count,
+        rv = read_sfc_particles(self.artio_handle, self.sfc_start,
+                                self.sfc_end, 0, fields,
+                                self.range_handler.doct_count,
                                 self.range_handler.pcount)
         return rv
 
@@ -982,14 +984,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             "species_%02u_secondary_variable_labels" % (species,), [])
         tp = total_particles[species]
         vp = &vpoints[species]
-        if field == "MASS" and params["particle_species_mass"][species] != 0.0:
-            vp.n_mass = 1
-            data[(species, field)] = np.zeros(tp, dtype="float64")
-            npf64arr = data[(species, field)]
-            # We fill this *now*
-            npf64arr += params["particle_species_mass"][species]
-            vp.mass = <np.float64_t*> npf64arr.data
-        elif field == "PID":
+        if field == "PID":
             vp.n_pid = 1
             data[(species, field)] = np.zeros(tp, dtype="int64")
             npi64arr = data[(species, field)]
@@ -1013,6 +1008,13 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             vp.s_ind[vp.n_s] = sec_vars.index(field)
             vp.svars[vp.n_s] = <np.float64_t *> npf64arr.data
             vp.n_s += 1
+        elif field == "MASS":
+            vp.n_mass = 1
+            data[(species, field)] = np.zeros(tp, dtype="float64")
+            npf64arr = data[(species, field)]
+            # We fill this *now*
+            npf64arr += params["particle_species_mass"][species]
+            vp.mass = <np.float64_t*> npf64arr.data
 
     status = artio_particle_cache_sfc_range( handle,
             sfc_start, sfc_end ) 
@@ -1043,7 +1045,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
                         secondary_variables)
                 check_artio_status(status)
                 ind = vp.count
-
+                
                 for i in range(vp.n_p):
                     vind = vp.p_ind[i]
                     vp.pvars[i][ind] = primary_variables[vind]

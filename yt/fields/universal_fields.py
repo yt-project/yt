@@ -26,7 +26,7 @@ from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
-from field_info_container import \
+from yt.data_objects.field_info_container import \
     add_field, \
     ValidateDataField, \
     ValidateGridType, \
@@ -50,6 +50,11 @@ from yt.utilities.physical_constants import \
     rho_crit_now, \
     speed_of_light_cgs, \
     km_per_cm
+
+def _get_conv(unit):
+    def _conv(data):
+        return data.convert(unit)
+    return _conv
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -131,18 +136,6 @@ def _courant_time_step(field, data):
 
 add_field("courant_time_step", function=_courant_time_step,
           units="s")
-
-def _particle_velocity_magnitude(field, data):
-    """ M{|v|} """
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity is None:
-        bulk_velocity = np.zeros(3)
-    return np.sqrt( (data["particle_velocity_x"] - bulk_velocity[0])**2
-                    + (data["particle_velocity_y"] - bulk_velocity[1])**2
-                    + (data["particle_velocity_z"] - bulk_velocity[2])**2 )
-
-add_field("particle_velocity_magnitude", function=_particle_velocity_magnitude,
-          particle_type=True, take_log=False, units="cm/s")
 
 def _velocity_magnitude(field, data):
     """ M{|v|} """
@@ -590,88 +583,6 @@ add_field("angular_momentum_z", function=_angular_momentum_z,
          units="g * cm**2 / s", vector_field=False,
          validators=[ValidateParameter('center')])
 
-def _particle_specific_angular_momentum(field, data):
-    """
-    Calculate the angular of a particle velocity.  Returns a vector for each
-    particle.
-    """
-    if data.has_field_parameter("bulk_velocity"):
-        bv = data.get_field_parameter("bulk_velocity")
-    else: bv = np.zeros(3, dtype=np.float64)
-    xv = data["particle_velocity_x"] - bv[0]
-    yv = data["particle_velocity_y"] - bv[1]
-    zv = data["particle_velocity_z"] - bv[2]
-    center = data.get_field_parameter('center')
-    coords = np.array([data['particle_position_x'],
-                       data['particle_position_y'],
-                       data['particle_position_z']], dtype=np.float64)
-    new_shape = tuple([3] + [1]*(len(coords.shape)-1))
-    r_vec = coords - np.reshape(center,new_shape)
-    v_vec = np.array([xv,yv,zv], dtype=np.float64)
-    return np.cross(r_vec, v_vec, axis=0)
-
-
-def _particle_specific_angular_momentum_x(field, data):
-    if data.has_field_parameter("bulk_velocity"):
-        bv = data.get_field_parameter("bulk_velocity")
-    else: bv = np.zeros(3, dtype=np.float64)
-    center = data.get_field_parameter('center')
-    y = data["particle_position_y"] - center[1]
-    z = data["particle_position_z"] - center[2]
-    yv = data["particle_velocity_y"] - bv[1]
-    zv = data["particle_velocity_z"] - bv[2]
-    return yv*z - zv*y
-
-def _particle_specific_angular_momentum_y(field, data):
-    if data.has_field_parameter("bulk_velocity"):
-        bv = data.get_field_parameter("bulk_velocity")
-    else: bv = np.zeros(3, dtype=np.float64)
-    center = data.get_field_parameter('center')
-    x = data["particle_position_x"] - center[0]
-    z = data["particle_position_z"] - center[2]
-    xv = data["particle_velocity_x"] - bv[0]
-    zv = data["particle_velocity_z"] - bv[2]
-    return -(xv*z - zv*x)
-
-def _particle_specific_angular_momentum_z(field, data):
-    if data.has_field_parameter("bulk_velocity"):
-        bv = data.get_field_parameter("bulk_velocity")
-    else: bv = np.zeros(3, dtype=np.float64)
-    center = data.get_field_parameter('center')
-    x = data["particle_position_x"] - center[0]
-    y = data["particle_position_y"] - center[1]
-    xv = data["particle_velocity_x"] - bv[0]
-    yv = data["particle_velocity_y"] - bv[1]
-    return xv*y - yv*x
-
-for ax in 'xyz':
-    n = "particle_specific_angular_momentum_%s" % ax
-    add_field(n, function=eval("_%s" % n), particle_type=True,
-              units="cm**2/s", validators=[ValidateParameter("center")])
-    
-def _particle_angular_momentum(field, data):
-    return data["particle_mass"] * data["particle_specific_angular_momentum"]
-
-#add_field("ParticleAngularMomentum",
-#          function=_ParticleAngularMomentum, units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
-#          particle_type=True, validators=[ValidateParameter('center')])
-
-def _particle_angular_momentum_x(field, data):
-    return data["cell_mass"] * data["particle_specific_angular_momentum_x"]
-add_field("particle_angular_momentum_x", function=_particle_angular_momentum_x,
-         units="g*cm**2/s", particle_type=True,
-         validators=[ValidateParameter('center')])
-def _particle_angular_momentum_y(field, data):
-    return data["cell_mass"] * data["particle_specific_angular_momentum_y"]
-add_field("particle_angular_momentum_y", function=_particle_angular_momentum_y,
-         units="g*cm**2/s", particle_type=True,
-         validators=[ValidateParameter('center')])
-def _particle_angular_momentum_z(field, data):
-    return data["cell_mass"] * data["particle_specific_angular_momentum_z"]
-add_field("particle_angular_momentum_z", function=_particle_angular_momentum_z,
-         units="g*cm**2/s", particle_type=True,
-         validators=[ValidateParameter('center')])
-
 def get_radius(data, field_prefix):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
@@ -695,15 +606,9 @@ def get_radius(data, field_prefix):
     np.sqrt(radius, radius)
     return radius
 
-def _particle_radius(field, data):
-    return get_radius(data, "particle_position_")
 def _radius(field, data):
     return get_radius(data, "")
 
-add_field("particle_radius", function=_particle_radius,
-          validators=[ValidateParameter("center")],
-          units="cm", particle_type = True,
-          display_name = "Particle Radius")
 add_field("radius", function=_radius,
           validators=[ValidateParameter("center")],
           units="cm")

@@ -233,7 +233,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             pmass_min, pmass_max = dd.quantities["Extrema"](
                 (ptype, "ParticleMassMsun"), non_zero = True)[0]
             if pmass_min != pmass_max:
-                raise YTRockstarMultiMassNotSupported
+                raise YTRockstarMultiMassNotSupported(pmass_min, pmass_max,
+                    ptype)
             particle_mass = pmass_min
         # NOTE: We want to take our Msun and turn it into Msun/h .  Its value
         # should be such that dividing by little h gives the original value.
@@ -244,6 +245,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             # Get total_particles in parallel.
             tp = dd.quantities['TotalQuantity']((ptype, "particle_ones"))[0]
             p['total_particles'] = int(tp)
+            mylog.warning("Total Particle Count: %0.3e", int(tp))
         p['left_edge'] = tpf.domain_left_edge
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0

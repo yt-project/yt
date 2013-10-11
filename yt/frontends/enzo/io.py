@@ -16,7 +16,6 @@ Enzo-specific IO functions
 import exceptions
 import os
 
-from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
@@ -35,119 +34,97 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     _data_style = "enzo_packed_3d"
     _base = slice(None)
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
-
     def _read_field_names(self, grid):
-        return hdf5_light_reader.ReadListOfDatasets(
-                    grid.filename, "/Grid%08i" % grid.id)
+        if grid.filename is None: return []
+        f = h5py.File(grid.filename, "r")
+        group = f["/Grid%08i" % grid.id]
+        fields = []
+        for name, v in group.iteritems():
+            # NOTE: This won't work with 1D datasets.
+            if not hasattr(v, "shape"):
+                continue
+            elif len(v.dims) == 1:
+                fields.append( ("io", str(name)) )
+            else:
+                fields.append( ("gas", str(name)) )
+        f.close()
+        return fields
 
     @property
     def _read_exception(self):
-        return (exceptions.KeyError, hdf5_light_reader.ReadingError)
+        return (exceptions.KeyError,)
 
-    def _read_particle_selection_by_type(self, chunks, selector, fields):
-        rv = {}
-        ptypes = list(set([ftype for ftype, fname in fields]))
-        fields = list(set(fields))
-        if len(ptypes) > 1: raise NotImplementedError
-        pn = _particle_position_names.get(ptypes[0], r"particle_position_%s")
-        pfields = [(ptypes[0], pn % ax) for ax in 'xyz']
-        size = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, pfields, 'active', 
-                        "/Particles/%s" % ptypes[0])
-            for g in chunk.objs:
-                if g.NumberOfActiveParticles[ptypes[0]] == 0: continue
-                x, y, z = (data[g.id].pop(fn) for ft, fn in pfields)
-                size += g.count_particles(selector, x, y, z)
-        read_fields = fields[:]
-        for field in fields:
-            # TODO: figure out dataset types
-            rv[field] = np.empty(size, dtype='float64')
-        for pfield in pfields:
-            if pfield not in fields: read_fields.append(pfield)
-        ind = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, read_fields, 'active',
-                        "/Particles/%s" % ptypes[0])
-            for g in chunk.objs:
-                if g.NumberOfActiveParticles[ptypes[0]] == 0: continue
-                x, y, z = (data[g.id][fn] for ft, fn in pfields)
-                mask = g.select_particles(selector, x, y, z)
-                if mask is None: continue
-                for field in set(fields):
-                    ftype, fname = field
-                    gdata = data[g.id].pop(fname)[mask]
-                    if fname in _convert_mass:
-                        gdata *= g.dds.prod()
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
-                data.pop(g.id)
-        return rv
-
-    def _read_particle_selection(self, chunks, selector, fields):
-        last = None
-        rv = {}
+    def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        # Now we have to do something unpleasant
-        if any((ftype != "all" for ftype, fname in fields)):
-            type_fields = [(ftype, fname) for ftype, fname in fields
-                           if ftype != "all"]
-            rv.update(self._read_particle_selection_by_type(
-                      chunks, selector, type_fields))
-            if len(rv) == len(fields): return rv
-            fields = [f for f in fields if f not in rv]
-        mylog.debug("First pass: counting particles.")
-        xn, yn, zn = ("particle_position_%s" % ax for ax in 'xyz')
-        size = 0
-        pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, pfields, 'any')
+        for chunk in chunks: # These should be organized by grid filename
+            f = None
             for g in chunk.objs:
+                if g.filename is None: continue
+                if f is None:
+                    #print "Opening (count) %s" % g.filename
+                    f = h5py.File(g.filename, "r")
                 if g.NumberOfParticles == 0: continue
-                x, y, z = (
-                    np.asarray(data[g.id].pop("particle_position_%s" % ax),
-                               dtype="float64")
-                    for ax in 'xyz')
-                size += g.count_particles(selector, x, y, z)
-        read_fields = fields[:]
-        for field in fields:
-            # TODO: figure out dataset types
-            rv[field] = np.empty(size, dtype='float64')
-        for pfield in pfields:
-            if pfield not in fields: read_fields.append(pfield)
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s grids",
-                   size, [f2 for f1, f2 in fields], ng)
-        ind = 0
-        for chunk in chunks:
-            data = self._read_chunk_data(chunk, read_fields, 'any')
+                ds = f.get("/Grid%08i" % g.id)
+                for ptype, field_list in sorted(ptf.items()):
+                    if ptype != "io":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = ds.get("Particles/%s" % ptype)
+                    else:
+                        pds = ds
+                    pn = _particle_position_names.get(ptype,
+                            r"particle_position_%s")
+                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
+                               for ax in 'xyz')
+                    yield ptype, (x, y, z)
+            if f: f.close()
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            f = None
             for g in chunk.objs:
+                if g.filename is None: continue
+                if f is None:
+                    #print "Opening (read) %s" % g.filename
+                    f = h5py.File(g.filename, "r")
                 if g.NumberOfParticles == 0: continue
-                x, y, z = (data[g.id]["particle_position_%s" % ax]
-                           for ax in 'xyz')
-                x, y, z = (np.array(arr, dtype='float64') for arr in (x, y, z))
-                mask = g.select_particles(selector, x, y, z)
-                if mask is None: continue
-                for field in set(fields):
-                    ftype, fname = field
-                    gdata = data[g.id].pop(fname)[mask]
-                    if fname in _convert_mass:
-                        gdata *= g.dds.prod()
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
-        return rv
-        
+                ds = f.get("/Grid%08i" % g.id)
+                for ptype, field_list in sorted(ptf.items()):
+                    if ptype != "io":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = ds.get("Particles/%s" % ptype)
+                    else:
+                        pds = ds
+                    pn = _particle_position_names.get(ptype,
+                            r"particle_position_%s")
+                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
+                               for ax in 'xyz')
+                    mask = selector.select_points(x, y, z)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = np.asarray(pds.get(field).value, "=f8")
+                        if field in _convert_mass:
+                            data *= g.dds.prod(dtype="f8")
+                        yield (ptype, field), data[mask]
+            if f: f.close()
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
         if selector.__class__.__name__ == "GridSelector":
-            return self._read_grid_chunk(chunks, fields)
-        if any((ftype != "gas" for ftype, fname in fields)):
-            raise NotImplementedError
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            f = h5py.File(g.filename, 'r')
+            gds = f.get("/Grid%08i" % g.id)
+            for ftype, fname in fields:
+                rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
+            f.close()
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -157,64 +134,38 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
-            data = self._read_chunk_data(chunk, fields)
+            fid = None
             for g in chunk.objs:
+                if g.filename is None: continue
+                if fid is None:
+                    fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
+                data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+                data_view = data.swapaxes(0,2)
                 for field in fields:
                     ftype, fname = field
-                    ds = data[g.id].pop(fname).swapaxes(0,2)
-                    nd = g.select(selector, ds, rv[field], ind) # caches
+                    dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                    dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+                    nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
-                data.pop(g.id)
+            if fid: fid.close()
         return rv
 
-    def _read_grid_chunk(self, chunks, fields):
-        sets = [fname for ftype, fname in fields]
-        g = chunks[0].objs[0]
-        if g.filename is None:
-            return {}
-        rv = hdf5_light_reader.ReadMultipleGrids(
-            g.filename, [g.id], sets, "")[g.id]
-        for ftype, fname in fields:
-            rv[(ftype, fname)] = rv.pop(fname).swapaxes(0,2)
-        return rv
-
-    def _read_chunk_data(self, chunk, fields, filter_particles = False,
-                         suffix = ""):
-        data = {}
-        grids_by_file = defaultdict(list)
-        for g in chunk.objs:
-            if filter_particles == 'any' and g.NumberOfParticles == 0:
-                continue
-            elif filter_particles == 'active' and \
-                 g.NumberOfActiveParticles[fields[0][0]] == 0:
-                continue
-            elif g.filename is None:
-                continue
-            grids_by_file[g.filename].append(g.id)
-        #if len(chunk.objs) == 1 and len(grids_by_file) > 0:
-        #    raise RuntimeError
-        sets = [fname for ftype, fname in fields]
-        for filename in grids_by_file:
-            nodes = grids_by_file[filename]
-            nodes.sort()
-            data.update(hdf5_light_reader.ReadMultipleGrids(
-                filename, nodes, sets, suffix))
-        return data
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
+    def __init__(self, *args, **kwargs):
+        super(IOHandlerPackgedHDF5GhostZones, self).__init__(*args, **kwargs)
         NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
         self._base = (slice(NGZ, -NGZ),
                       slice(NGZ, -NGZ),
                       slice(NGZ, -NGZ))
 
     def _read_raw_data_set(self, grid, field):
-        return hdf5_light_reader.ReadData(grid.filename,
-                "/Grid%08i/%s" % (grid.id, field))
+        f = h5py.File(grid.filename, "r")
+        ds = f["/Grid%08i/%s" % (grid.id, field)][:].swapaxes(0,2)
+        f.close()
+        return ds
 
 class IOHandlerInMemory(BaseIOHandler):
 
@@ -229,7 +180,7 @@ class IOHandlerInMemory(BaseIOHandler):
         self.my_slice = (slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones))
-        BaseIOHandler.__init__(self)
+        BaseIOHandler.__init__(self, pf)
 
     def _read_data_set(self, grid, field):
         if grid.id not in self.grids_in_memory:
@@ -273,23 +224,31 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        return hdf5_light_reader.ReadData(grid.filename,
-            "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
+        f = h5py.File(grid.filename, "r")
+        ds = f["/Grid%08i/%s" % (grid.id, field)][:]
+        f.close()
+        return ds.transpose()[:,:,None]
 
     def modify(self, field):
         pass
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
-                        (grid.id, field)).transpose()
-        return t
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
         if selector.__class__.__name__ == "GridSelector":
-            return self._read_grid_chunk(chunks, fields)
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            f = h5py.File(g.filename, 'r')
+            gds = f.get("/Grid%08i" % g.id)
+            for ftype, fname in fields:
+                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname).value)
+            f.close()
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
         if any((ftype != "gas" for ftype, fname in fields)):
             raise NotImplementedError
         for field in fields:
@@ -301,16 +260,19 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
-            data = self._read_chunk_data(chunk, fields)
+            f = None
             for g in chunk.objs:
+                if f is None:
+                    #print "Opening (count) %s" % g.filename
+                    f = h5py.File(g.filename, "r")
+                gds = f.get("/Grid%08i" % g.id)
                 for field in fields:
                     ftype, fname = field
-                    ds = np.atleast_3d(data[g.id].pop(fname))
-                    nd = g.select(selector, ds, rv[field], ind)  # caches
+                    ds = np.atleast_3d(gds.get(fname).value)
+                    nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
-                data.pop(g.id)
+            f.close()
         return rv
-
 
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
@@ -318,14 +280,10 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        return hdf5_light_reader.ReadData(grid.filename,
-            "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
+        f = h5py.File(grid.filename, "r")
+        ds = f["/Grid%08i/%s" % (grid.id, field)][:]
+        f.close()
+        return ds.transpose()[:,None,None]
 
     def modify(self, field):
         pass
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
-                        (grid.id, field))
-        return t
-

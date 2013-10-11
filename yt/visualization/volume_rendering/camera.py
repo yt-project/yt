@@ -2029,7 +2029,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             function=_make_wf(field, weight))
         # Now we have to tell the parameter file to add it and to calculate its
         # dependencies..
-        pf.h._derived_fields_add(["temp_weightfield"], [])
+        pf.h._derived_fields_add(["temp_weightfield"])
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
@@ -2120,7 +2120,7 @@ class ProjectionCamera(Camera):
                 function=_make_wf(self.field, self.weight))
             # Now we have to tell the parameter file to add it and to calculate
             # its dependencies..
-            pf.h._derived_fields_add(["temp_weightfield"], [])
+            pf.h._derived_fields_add(["temp_weightfield"])
             fields = ["temp_weightfield", self.weight]
         
         self.fields = fields

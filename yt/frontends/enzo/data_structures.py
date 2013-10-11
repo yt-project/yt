@@ -38,7 +38,6 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
@@ -46,18 +45,10 @@ from .definitions import parameterDict
 from .fields import \
     EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
     add_enzo_field, add_enzo_2d_field, add_enzo_1d_field, \
-    KnownEnzoFields
+    KnownEnzoFields, _setup_particle_fields
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
-
-def get_field_names_helper(filename, id, results):
-    try:
-        names = hdf5_light_reader.ReadListOfDatasets(
-                    filename, "/Grid%08i" % id)
-        results.put((names, "Grid %s has: %s" % (id, names)))
-    except (exceptions.KeyError, hdf5_light_reader.ReadingError):
-        results.put((None, "Grid %s is a bit funky?" % id))
 
 class EnzoGrid(AMRGridPatch):
     """
@@ -253,34 +244,21 @@ class EnzoHierarchy(GridGeometryHandler):
             mylog.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
         if self.data_style is not None: return
-        try:
-            a = SD.SD(test_grid)
-            self.data_style = 'enzo_hdf4'
-            mylog.debug("Detected HDF4")
-        except:
-            try:
-                list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
-            except:
-                print "Could not find dataset.  Defaulting to packed HDF5"
-                list_of_sets = []
-            if len(list_of_sets) == 0 and rank == 3:
-                mylog.debug("Detected packed HDF5")
-                if self.parameters.get("WriteGhostZones", 0) == 1:
-                    self.data_style= "enzo_packed_3d_gz"
-                    self.grid = EnzoGridGZ
-                else:
-                    self.data_style = 'enzo_packed_3d'
-            elif len(list_of_sets) > 0 and rank == 3:
-                mylog.debug("Detected unpacked HDF5")
-                self.data_style = 'enzo_hdf5'
-            elif len(list_of_sets) == 0 and rank == 2:
-                mylog.debug("Detect packed 2D")
-                self.data_style = 'enzo_packed_2d'
-            elif len(list_of_sets) == 0 and rank == 1:
-                mylog.debug("Detect packed 1D")
-                self.data_style = 'enzo_packed_1d'
+        if rank == 3:
+            mylog.debug("Detected packed HDF5")
+            if self.parameters.get("WriteGhostZones", 0) == 1:
+                self.data_style= "enzo_packed_3d_gz"
+                self.grid = EnzoGridGZ
             else:
-                raise TypeError
+                self.data_style = 'enzo_packed_3d'
+        elif rank == 2:
+            mylog.debug("Detect packed 2D")
+            self.data_style = 'enzo_packed_2d'
+        elif rank == 1:
+            mylog.debug("Detect packed 1D")
+            self.data_style = 'enzo_packed_1d'
+        else:
+            raise NotImplementedError
 
     # Sets are sorted, so that won't work!
     def _parse_hierarchy(self):
@@ -422,7 +400,7 @@ class EnzoHierarchy(GridGeometryHandler):
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
-            handle = h5py.File(g.filename)
+            handle = h5py.File(g.filename, "r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue
@@ -449,57 +427,24 @@ class EnzoHierarchy(GridGeometryHandler):
         self.field_list = []
         # Do this only on the root processor to save disk work.
         if self.comm.rank in (0, None):
-            field_list = self.get_data("/", "DataFields")
-            if field_list is None:
-                mylog.info("Gathering a field list (this may take a moment.)")
-                field_list = set()
-                random_sample = self._generate_random_grids()
-                tothread = ytcfg.getboolean("yt","thread_field_detection")
-                if tothread:
-                    jobs = []
-                    result_queue = Queue.Queue()
-                    # Start threads
-                    for grid in random_sample:
-                        if not hasattr(grid, 'filename'): continue
-                        helper = Thread(target = get_field_names_helper, 
-                            args = (grid.filename, grid.id, result_queue))
-                        jobs.append(helper)
-                        helper.start()
-                    # Here we make sure they're finished.
-                    for helper in jobs:
-                        helper.join()
-                    for grid in random_sample:
-                        res = result_queue.get()
-                        mylog.debug(res[1])
-                        if res[0] is not None:
-                            field_list = field_list.union(res[0])
-                else:
-                    for grid in random_sample:
-                        if not hasattr(grid, 'filename'): continue
-                        try:
-                            gf = self.io._read_field_names(grid)
-                        except self.io._read_exception:
-                            mylog.debug("Grid %s is a bit funky?", grid.id)
-                            continue
-                        mylog.debug("Grid %s has: %s", grid.id, gf)
-                        field_list = field_list.union(gf)
+            mylog.info("Gathering a field list (this may take a moment.)")
+            field_list = set()
+            random_sample = self._generate_random_grids()
+            for grid in random_sample:
+                if not hasattr(grid, 'filename'): continue
+                try:
+                    gf = self.io._read_field_names(grid)
+                except self.io._read_exception:
+                    mylog.debug("Grid %s is a bit funky?", grid.id)
+                    continue
+                mylog.debug("Grid %s has: %s", grid.id, gf)
+                field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.parameter_file.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
         else:
             field_list = None
-        field_list = self.comm.mpi_bcast(field_list)
-        self.field_list = []
-        # Now we will iterate over all fields, trying to avoid the problem of
-        # particle types not having names.  This should convert all known
-        # particle fields that exist in Enzo outputs into the construction
-        # ("all", field) and should not otherwise affect ActiveParticle
-        # simulations.
-        for field in field_list:
-            if ("all", field) in KnownEnzoFields:
-                self.field_list.append(("all", field))
-            else:
-                self.field_list.append(field)
+        self.field_list = list(self.comm.mpi_bcast(field_list))
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
@@ -571,10 +516,6 @@ class EnzoHierarchy(GridGeometryHandler):
                 for p in pfields:
                     result[p] = result[p][0:max_num]
         return result
-
-    def _setup_data_io(self):
-            self.io = io_registry[self.data_style](self.parameter_file)
-
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
 
@@ -897,13 +838,16 @@ class EnzoStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
-        self.particle_types = ["all"]
+        self.particle_types = ["io"]
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
         if self.parameters["NumberOfParticles"] > 0 and \
             "AppendActiveParticleType" in self.parameters.keys():
-            self.particle_types.append("DarkMatter")
+            # If this is the case, then we know we should have a DarkMatter
+            # particle type, and we don't need the "io" type.
+            self.particle_types = ["DarkMatter"]
             self.parameters["AppendActiveParticleType"].append("DarkMatter")
+        self.particle_types = tuple(self.particle_types)
 
         if self.dimensionality == 1:
             self._setup_1d()
@@ -1009,6 +953,11 @@ class EnzoStaticOutput(StaticOutput):
         if ("%s" % (args[0])).endswith(".hierarchy"):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
+
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
+        _setup_particle_fields(self.field_info, ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
