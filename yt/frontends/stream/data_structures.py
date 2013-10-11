@@ -69,7 +69,7 @@ from yt.data_objects.unstructured_mesh import \
 from .fields import \
     StreamFieldInfo, \
     add_stream_field, \
-    StreamFieldInfo, \
+    add_field, \
     KnownStreamFields
 
 class StreamGrid(AMRGridPatch):
@@ -277,7 +277,7 @@ class StreamHierarchy(GridGeometryHandler):
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
     _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = StreamFieldInfo
+    _fieldinfo_known = KnownStreamFields
     _data_style = 'stream'
 
     def __init__(self, stream_handler, storage_filename = None):

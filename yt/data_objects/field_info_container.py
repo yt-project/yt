@@ -325,12 +325,15 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
-        FI = getattr(self.pf, "field_info", FieldInfo)
-        if field_name in FI and FI[field_name].particle_type:
+        if hasattr(self.pf, "field_info"):
+            finfo = self.pf._get_field_info(*field_name)
+        else:
+            finfo = FieldInfo[field_name]
+        if finfo.particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return YTArray(defaultdict.__missing__(self, field_name),
-                       input_units=FI[field_name].units,
+                       input_units=finfo.units,
                        registry=self.pf.unit_registry)
 
     fp_units = {

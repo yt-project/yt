@@ -178,10 +178,14 @@ class GeometryHandler(ParallelAnalysisInterface):
 
     def _setup_unknown_fields(self, list_of_fields = None, field_info = None,
                               skip_removal = False):
-        field_info = field_info or self.pf._fieldinfo_known
-        field_list = list_of_fields or self.field_list
+        if field_info is None:
+            field_info = self.pf._fieldinfo_known
+        # Sometimes it's len() == 0
+        if list_of_fields is None:
+            field_list = self.field_list
+        else:
+            field_list = list_of_fields
         dftype = self.parameter_file.default_fluid_type
-        mylog.debug("Checking %s", field_list)
         for field in field_list:
             # By allowing a backup, we don't mandate that it's found in our
             # current field info.  This means we'll instead simply override
@@ -253,7 +257,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         fi = self.parameter_file.field_info
         # First we construct our list of fields to check
         fields_to_check = []
-        for field in fi.keys():
+        for field in fi:
             finfo = fi[field]
             # Explicitly defined
             if isinstance(field, tuple):
