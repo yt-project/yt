@@ -1,40 +1,24 @@
 """
-
-Spectral models for generating photons
-
-Author: John ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/GSFC
-Homepage: http://yt-project.org/
-License:
-Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+Photon emission and absoprtion models for use with the
+photon simulator.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import os
 from yt.funcs import *
 import h5py
 try:
-    import pyfits
+    import astropy.io.fits as pyfits
 except:
-    try:
-        import astropy.io.fits as pyfits
-    except:
-        mylog.error("You don't have pyFITS installed. The APEC table model won't be available.")
+    mylog.warning("You don't have AstroPy installed. The APEC table model won't be available.")
 try:
     import xspec
 except ImportError:
@@ -66,12 +50,33 @@ class PhotonModel(object):
         pass
                                                         
 class XSpecThermalModel(PhotonModel):
+    r"""
+    Initialize a thermal gas emission model from PyXspec.
+    
+    Parameters
+    ----------
 
+    model_name : string
+        The name of the thermal emission model.
+    emin : float
+        The minimum energy for the spectral model.
+    emax : float
+        The maximum energy for the spectral model.
+    nchan : integer
+        The number of channels in the spectral model.
+
+    Examples
+    --------
+    >>> mekal_model = XSpecThermalModel("mekal", 0.05, 50.0, 1000)
+    """
     def __init__(self, model_name, emin, emax, nchan):
         self.model_name = model_name
         PhotonModel.__init__(self, emin, emax, nchan)
         
     def prepare(self):
+        """
+        Prepare the thermal model for execution.
+        """
         xspec.Xset.chatter = 0
         xspec.AllModels.setEnergies("%f %f %d lin" %
                                     (self.emin, self.emax, self.nchan))
@@ -82,6 +87,9 @@ class XSpecThermalModel(PhotonModel):
             self.norm = 1.0e-14
         
     def get_spectrum(self, kT):
+        """
+        Get the thermal emission spectrum given a temperature *kT* in keV. 
+        """
         m = getattr(self.model,self.model_name)
         m.kT = kT
         m.Abundanc = 0.0
@@ -96,13 +104,36 @@ class XSpecThermalModel(PhotonModel):
         return cosmic_spec, metal_spec
         
 class XSpecAbsorbModel(PhotonModel):
+    r"""
+    Initialize an absorption model from PyXspec.
+    
+    Parameters
+    ----------
 
+    model_name : string
+        The name of the absorption model.
+    nH : float
+        The foreground column density *nH* in units of 10^22 cm^{-2}.
+    emin : float, optional
+        The minimum energy for the spectral model.
+    emax : float, optional
+        The maximum energy for the spectral model.
+    nchan : integer, optional
+        The number of channels in the spectral model.
+
+    Examples
+    --------
+    >>> abs_model = XSpecAbsorbModel("wabs", 0.1)
+    """
     def __init__(self, model_name, nH, emin=0.01, emax=50.0, nchan=100000):
         self.model_name = model_name
         self.nH = nH
         PhotonModel.__init__(self, emin, emax, nchan)
         
     def prepare(self):
+        """
+        Prepare the absorption model for execution.
+        """
         xspec.Xset.chatter = 0
         xspec.AllModels.setEnergies("%f %f %d lin" %
                                     (self.emin, self.emax, self.nchan))
@@ -111,12 +142,44 @@ class XSpecAbsorbModel(PhotonModel):
         self.model.powerlaw.PhoIndex = 0.0
 
     def get_spectrum(self):
+        """
+        Get the absorption spectrum.
+        """
         m = getattr(self.model,self.model_name)
         m.nH = self.nH
         return np.array(self.model.values(0))
 
 class TableApecModel(PhotonModel):
+    r"""
+    Initialize a thermal gas emission model from the AtomDB APEC tables
+    available at http://www.atomdb.org. This code borrows heavily from Python
+    routines used to read the APEC tables developed by Adam Foster at the
+    CfA (afoster@cfa.harvard.edu). 
+    
+    Parameters
+    ----------
 
+    apec_root : string
+        The directory root where the APEC model files are stored.
+    emin : float
+        The minimum energy for the spectral model.
+    emax : float
+        The maximum energy for the spectral model.
+    nchan : integer
+        The number of channels in the spectral model.
+    apec_vers : string, optional
+        The version identifier string for the APEC files, e.g.
+        "2.0.2"
+    thermal_broad : boolean, optional
+        Whether to apply thermal broadening to spectral lines. Only should
+        be used if you are attemping to simulate a high-spectral resolution
+        detector.
+
+    Examples
+    --------
+    >>> apec_model = TableApecModel("/Users/jzuhone/Data/atomdb_v2.0.2/", 0.05, 50.0,
+                                    1000, thermal_broad=True)
+    """
     def __init__(self, apec_root, emin, emax, nchan,
                  apec_vers="2.0.2", thermal_broad=False):
         self.apec_root = apec_root
@@ -140,6 +203,9 @@ class TableApecModel(PhotonModel):
                            55.8450,58.9332,58.6934,63.5460,65.3800])
         
     def prepare(self):
+        """
+        Prepare the thermal model for execution.
+        """
         try:
             self.line_handle = pyfits.open(self.linefile)
         except IOError:
@@ -153,7 +219,7 @@ class TableApecModel(PhotonModel):
         self.minlam = self.wvbins.min()
         self.maxlam = self.wvbins.max()
     
-    def make_spectrum(self, element, tindex):
+    def _make_spectrum(self, element, tindex):
         
         tmpspec = np.zeros((self.nchan))
         
@@ -197,6 +263,9 @@ class TableApecModel(PhotonModel):
         return tmpspec
 
     def get_spectrum(self, kT):
+        """
+        Get the thermal emission spectrum given a temperature *kT* in keV. 
+        """
         cspec_l = np.zeros((self.nchan))
         mspec_l = np.zeros((self.nchan))
         cspec_r = np.zeros((self.nchan))
@@ -205,17 +274,32 @@ class TableApecModel(PhotonModel):
         dT = (kT-self.Tvals[tindex])/self.dTvals[tindex]
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
-            cspec_l += self.make_spectrum(elem, tindex+2)
-            cspec_r += self.make_spectrum(elem, tindex+3)            
+            cspec_l += self._make_spectrum(elem, tindex+2)
+            cspec_r += self._make_spectrum(elem, tindex+3)            
         # Next do the metals
         for elem in self.metal_elem:
-            mspec_l += self.make_spectrum(elem, tindex+2)
-            mspec_r += self.make_spectrum(elem, tindex+3)
+            mspec_l += self._make_spectrum(elem, tindex+2)
+            mspec_r += self._make_spectrum(elem, tindex+3)
         cosmic_spec = cspec_l*(1.-dT)+cspec_r*dT
         metal_spec = mspec_l*(1.-dT)+mspec_r*dT        
         return cosmic_spec, metal_spec
 
 class TableAbsorbModel(PhotonModel):
+    r"""
+    Initialize an absorption model from a table stored in an HDF5 file.
+    
+    Parameters
+    ----------
+
+    filename : string
+        The name of the table file.
+    nH : float
+        The foreground column density *nH* in units of 10^22 cm^{-2}.
+
+    Examples
+    --------
+    >>> abs_model = XSpecAbsorbModel("wabs", 0.1)
+    """
 
     def __init__(self, filename, nH):
         if not os.path.exists(filename):
@@ -231,7 +315,13 @@ class TableAbsorbModel(PhotonModel):
         self.nH = nH*1.0e22
         
     def prepare(self):
+        """
+        Prepare the absorption model for execution.
+        """
         pass
         
     def get_spectrum(self):
+        """
+        Get the absorption spectrum.
+        """
         return np.exp(-self.sigma*self.nH)

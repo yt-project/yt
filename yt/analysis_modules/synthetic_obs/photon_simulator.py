@@ -1,27 +1,14 @@
 """
 Classes for generating lists of photons and detected events
-
-Author: John ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/GSFC
-Homepage: http://yt-project.org/
-License:
-Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -33,14 +20,14 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, parallel_capable
 
-import os
 import h5py
 
 try:
     import astropy.io.fits as pyfits
     import astropy.wcs as pywcs
 except ImportError:
-    mylog.error("You don't have AstroPy installed.")
+    mylog.warning("You don't have AstroPy installed. " +
+                  "You will be unable to write FITS events files or images.")
                    
 N_TBIN = 10000
 TMIN = 8.08e-2
@@ -86,9 +73,9 @@ class PhotonList(object):
             return self.photons[key]
     
     @classmethod
-    def from_file(cls, filename, cosmology=None):
-        """
-        Initialize a PhotonList from an HDF5 file given by filename.
+    def from_file(cls, filename):
+        r"""
+        Initialize a PhotonList from the HDF5 file *filename*.
         """
         photons = {}
 
@@ -99,7 +86,10 @@ class PhotonList(object):
         photons["FiducialRedshift"] = f["/fid_redshift"].value
         photons["FiducialAngularDiameterDistance"] = f["/fid_d_a"].value
         photons["DomainDimension"] = f["/domain_dimension"].value
-        
+        photons["HubbleConstant"] = f["/hubble"].value
+        photons["OmegaMatter"] = f["/omega_matter"].value
+        photons["OmegaLambda"] = f["/omega_lambda"].value
+
         num_cells = f["/x"][:].shape[0]
         start_c = comm.rank*num_cells/comm.size
         end_c = (comm.rank+1)*num_cells/comm.size
@@ -128,30 +118,73 @@ class PhotonList(object):
         photons["Energy"] = f["/energy"][start_e:end_e]
         
         f.close()
-                                        
-        return cls(photons=photons, cosmo=cosmology, p_bins=p_bins)
+
+        cosmo = Cosmology(HubbleConstantNow=photons["HubbleConstant"],
+                          OmegaMatterNow=photons["OmegaMatter"],
+                          OmegaLambdaNow=photons["OmegaLambda"])
+        
+        return cls(photons=photons, cosmo=cosmo, p_bins=p_bins)
 
     @classmethod
-    def from_thermal_model(cls, data_source, redshift, eff_A,
+    def from_thermal_model(cls, data_source, redshift, area,
                            exp_time, emission_model, center="c",
                            X_H=0.75, Zmet=0.3, dist=None, cosmology=None):
-        """
-        Initialize a PhotonList from a data container. 
+        r"""
+        Initialize a PhotonList from a thermal plasma. 
+
+        Parameters
+        ----------
+
+        data_source : `yt.data_objects.api.AMRData`
+            The data source from which the photons will be generated.
+        redshift : float
+            The cosmological redshift for the photons.
+        area : float
+            The collecting area to determine the number of photons in cm^2.
+        exp_time : float
+            The exposure time to determine the number of photons in seconds.
+        emission_model : `yt.analysis_modules.photon_simulator.PhotonModel`
+            The thermal emission model from which to draw the photon samples
+        center : string or array_like, optional
+            The origin of the photons. Accepts "c", "max", or a coordinate. 
+        X_H : float, optional
+            The hydrogen mass fraction.
+        Zmet : float, optional
+            The metallicity of the gas. If there is a "Metallicity" field
+            this parameter is ignored.
+        dist : float, optional
+            The angular diameter distance in Mpc, used for nearby sources.
+            This may be optionally supplied instead of it being determined
+            from the *redshift* and given *cosmology*.
+        cosmology : `yt.utilities.cosmology.Cosmology`, optional
+            Cosmological information. If not supplied, it assumes \LambdaCDM with
+            the default yt parameters.
+
+        Examples
+        --------
+
+        >>> redshift = 0.1
+        >>> area = 6000.0
+        >>> time = 2.0e5
+        >>> sp = pf.h.sphere("c", (1.0, "mpc"))
+        >>> apec_model = XSpecThermalModel("apec", 0.05, 50.0, 1000)
+        >>> my_photons = PhotonList.from_thermal_model(sp, redshift, area,
+        ...                                            time, apec_model)
+
         """
         pf = data_source.pf
                 
         vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
 
-        if cosmology is None and dist is None:
+        if cosmology is None:
             cosmo = Cosmology()
         else:
-            if cosmology is None:
-                D_A = dist*cm_per_mpc
-                cosmo = None
-            else:
-                cosmo = cosmology
-        if cosmo is not None:
+            cosmo = cosmology
+        if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
+        else:
+            D_A = dist*cm_per_mpc
+            redshift = 0.0
         dist_fac = 1.0/(4.*np.pi*D_A*D_A*(1.+redshift)**3)
         
         num_cells = data_source["Temperature"].shape[0]
@@ -163,6 +196,8 @@ class PhotonList(object):
         dx = data_source["dx"][start_c:end_c].copy()
         EM = (data_source["Density"][start_c:end_c].copy()/mp)**2
         EM *= 0.5*(1.+X_H)*X_H*vol
+
+        print EM.sum()
         
         data_source.clear_data()
         
@@ -232,18 +267,19 @@ class PhotonList(object):
             em_sum_m = (metalZ[ibegin:iend]*cell_em[ibegin:iend]).sum() 
 
             cspec, mspec = emission_model.get_spectrum(kT)
+            print (cspec+0.3*mspec).max(), kT
             cspec *= dist_fac*em_sum_c/vol_scale
             mspec *= dist_fac*em_sum_m/vol_scale
             
             cumspec_c = np.cumsum(cspec)
             counts_c = cumspec_c[:]/cumspec_c[-1]
             counts_c = np.insert(counts_c, 0, 0.0)
-            tot_ph_c = cumspec_c[-1]*eff_A*exp_time
+            tot_ph_c = cumspec_c[-1]*area*exp_time
 
             cumspec_m = np.cumsum(mspec)
             counts_m = cumspec_m[:]/cumspec_m[-1]
             counts_m = np.insert(counts_m, 0, 0.0)
-            tot_ph_m = cumspec_m[-1]*eff_A*exp_time
+            tot_ph_m = cumspec_m[-1]*area*exp_time
             
             for icell in xrange(ibegin, iend):
                 
@@ -284,43 +320,90 @@ class PhotonList(object):
         photons["Energy"] = np.concatenate(energies)
                 
         photons["FiducialExposureTime"] = exp_time
-        photons["FiducialArea"] = eff_A
+        photons["FiducialArea"] = area
         photons["FiducialRedshift"] = redshift
         photons["FiducialAngularDiameterDistance"] = D_A/cm_per_mpc
         photons["DomainDimension"] = np.max((pf.domain_dimensions*(2**pf.h.max_level)))
-        
+        photons["HubbleConstant"] = cosmo.HubbleConstantNow
+        photons["OmegaMatter"] = cosmo.OmegaMatterNow
+        photons["OmegaLambda"] = cosmo.OmegaLambdaNow
+
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
         
         return cls(photons=photons, cosmo=cosmo, p_bins=p_bins)
 
     @classmethod
-    def from_user_model(cls, data_source, redshift, eff_A,
-                        exp_time, user_function, parameters={},
+    def from_user_model(cls, data_source, redshift, area,
+                        exp_time, user_function, parameters=None,
                         dist=None, cosmology=None):
+        """
+        Initialize a PhotonList from a user-provided model.  
+
+        Parameters
+        ----------
+
+        data_source : `yt.data_objects.api.AMRData`
+            The data source from which the photons will be generated.
+        redshift : float
+            The cosmological redshift for the photons.
+        area : float
+            The collecting area to determine the number of photons in cm^2.
+        exp_time : float
+            The exposure time to determine the number of photons in seconds.
+        user_function : function
+            A function that takes the *data_source* and any parameters and
+            generates the photons. 
+        parameters : dict, optional
+            A dictionary of parameters to be passed to the user function. 
+        dist : float, optional
+            The angular diameter distance in Mpc, used for nearby sources.
+            This may be optionally supplied instead of it being determined
+            from the *redshift* and given *cosmology*.
+        cosmology : `yt.utilities.cosmology.Cosmology`, optional
+            Cosmological information. If not supplied, it assumes \LambdaCDM with
+            the default yt parameters.
+
+        Examples
+        --------
+
+        >>> def powerlaw_func(source, redshift, area, exp_time, D_A, norm, index, E0):
+        ...
+        ...     spec = norm*source["Density"]*(/E0
+        >>> redshift = 0.02
+        >>> area = 6000.0
+        >>> time = 2.0e5
+        >>> dd = pf.h.all_data
+        >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
+        ...                                         time, powerlaw_func)
+
+        """
 
         pf = data_source.pf
-        
-        if cosmology is None and dist is None:
-            cosmo = Cosmology(HubbleConstantNow=71., OmegaMatterNow=0.27,
-                              OmegaLambdaNow=0.73)
+
+        if parameters is None:
+             parameters = {}
+        if cosmology is None:
+            cosmo = Cosmology()
         else:
-            if cosmology is None:
-                D_A = dist*cm_per_mpc
-                cosmo = None
-            else:
-                cosmo = cosmology
-        if cosmo is not None:
+            cosmo = cosmology
+        if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
+        else:
+            D_A = dist*cm_per_mpc
+            redshift = 0.0
                     
-        photons = user_function(data_source, redshift, eff_A,
+        photons = user_function(data_source, redshift, area,
                                 exp_time, D_A, parameters)
         
         photons["FiducialExposureTime"] = exp_time
-        photons["FiducialArea"] = eff_A
+        photons["FiducialArea"] = area
         photons["FiducialRedshift"] = redshift
         photons["FiducialAngularDiameterDistance"] = D_A
         photons["DomainDimension"] = np.max((pf.domain_dimensions*(2**pf.h.max_level)))
+        photons["HubbleConstant"] = cosmo.HubbleConstantNow
+        photons["OmegaMatter"] = cosmo.OmegaMatterNow
+        photons["OmegaLambda"] = cosmo.OmegaLambdaNow
 
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
@@ -328,7 +411,9 @@ class PhotonList(object):
         return cls(photons=photons, cosmo=cosmo, p_bins=p_bins)
         
     def write_h5_file(self, photonfile):
-
+        """
+        Write the photons to the HDF5 file *photonfile*.
+        """
         if parallel_capable:
             
             mpi_long = get_mpi_type("int64")
@@ -409,6 +494,9 @@ class PhotonList(object):
             f.create_dataset("fid_area", data=self.photons["FiducialArea"])
             f.create_dataset("fid_exp_time", data=self.photons["FiducialExposureTime"])
             f.create_dataset("fid_redshift", data=self.photons["FiducialRedshift"])
+            f.create_dataset("hubble", data=self.photons["HubbleConstant"])
+            f.create_dataset("omega_matter", data=self.photons["OmegaMatter"])
+            f.create_dataset("omega_lambda", data=self.photons["OmegaLambda"])
             f.create_dataset("fid_d_a", data=self.photons["FiducialAngularDiameterDistance"])
             f.create_dataset("domain_dimension", data=self.photons["DomainDimension"])
 
@@ -432,17 +520,46 @@ class PhotonList(object):
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
                         sky_center=None):
-        """
-        Projects photons onto an image plane given a line of sight. 
+        r"""
+        Projects photons onto an image plane given a line of sight.
+
+        Parameters
+        ----------
+
+        L : array_like
+            Normal vector to the plane of projection.
+        area_new : float or filename, optional
+            New value for the effective area of the detector. 
+            Either a single float value or a standard ARF file
+            containing the effective area as a function of energy.
+        texp_new : float, optional
+            The new value for the exposure time.
+        redshift_new : float, optional
+            The new value for the cosmological redshift.
+        dist_new : float, optional
+            The new value for the angular diameter distance, used for nearby
+            objects. If this is not set it will be determined from the cosmological
+            redshift.
+        absorb_model : 'yt.analysis_modules.photon_simulator.PhotonModel`, optional
+            A model for galactic absorption.
+        psf_sigma : float, optional
+            Quick-and-dirty psf simulation using Gaussian smoothing with
+            standard deviation *psf_sigma* in degrees. 
+        sky_center : array_like, optional
+            Center RA, Dec of the events in degrees.
+
+        Examples
+        --------
+        >>> L = np.array([0.1,-0.2,0.3])
+        >>> events = my_photons.project_photons(L, area_new="sim_arf.fits",
+        ...                                     redshift_new=0.05,
+        ...                                     psf_sigma=0.01)
         """
 
         if redshift_new is not None and dist_new is not None:
             mylog.error("You may specify a new redshift or distance, "+
                         "but not both!")
-
-        if redshift_new is not None and self.cosmo is None:
-            mylog.error("Specified a new redshift, but no cosmology!")
-
+        
         if sky_center is None:
              sky_center = np.array([30.,45.])
 
@@ -450,7 +567,8 @@ class PhotonList(object):
         nx = self.photons["DomainDimension"]
         if psf_sigma is not None:
              psf_sigma /= 3600.
-             
+
+        L = np.array(L)
         L /= np.sqrt(np.dot(L, L))
         vecs = np.identity(3)
         t = np.cross(L, vecs).sum(axis=1)
@@ -497,7 +615,7 @@ class PhotonList(object):
                 D_A = self.photons["FiducialAngularDiameterDistance"]*1000.                    
             else:
                 if redshift_new is None:
-                    zobs = self.photons["FiducialRedshift"]
+                    zobs = 0.0
                     D_A = dist_new*1000.
                 else:
                     zobs = redshift_new
@@ -630,7 +748,7 @@ class EventList(object) :
     @classmethod
     def from_h5_file(cls, h5file):
         """
-        Initialize an EventList from a HDF5 file with filename h5file.
+        Initialize an EventList from a HDF5 file with filename *h5file*.
         """
         events = {}
         
@@ -661,7 +779,7 @@ class EventList(object) :
         if "pha" in f:
             events["PHA"] = f["/pha"][:]
         events["sky_center"] = f["/sky_center"][:]
-        events["dtheta"] = f["/dtheta"][:]
+        events["dtheta"] = f["/dtheta"].value
         events["pix_center"] = f["/pix_center"][:]
         
         f.close()
@@ -671,7 +789,7 @@ class EventList(object) :
     @classmethod
     def from_fits_file(cls, fitsfile):
         """
-        Initialize an EventList from a FITS file with filename fitsfile.
+        Initialize an EventList from a FITS file with filename *fitsfile*.
         """
         hdulist = pyfits.open(fitsfile)
 
@@ -710,6 +828,9 @@ class EventList(object) :
 
     @classmethod
     def join_events(cls, events1, events2):
+        """
+        Join two sets of events, *events1* and *events2*.
+        """
         events = {}
         for item1, item2 in zip(events1.items(), events2.items()):
             k1, v1 = item1
@@ -721,7 +842,10 @@ class EventList(object) :
         return cls(events)
 
     def convolve_with_response(self, respfile):
-
+        """
+        Convolve the events with a RMF file *respfile*.
+        """
+        mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
         if not "ARF" in self.events:
             mylog.warning("Photons have not been processed with an"+
                           " auxiliary response file. Spectral fitting"+
@@ -731,13 +855,13 @@ class EventList(object) :
         
         hdulist = pyfits.open(respfile)
 
-        tblhdu = hdulist[1]
+        tblhdu = hdulist["MATRIX"]
         n_de = len(tblhdu.data["ENERG_LO"])
         mylog.info("Number of Energy Bins: %d" % (n_de))
         de = tblhdu.data["ENERG_HI"] - tblhdu.data["ENERG_LO"]
 
         mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
-                                             max(tblhdu.data["ENERG_HI"] )))
+                                             max(tblhdu.data["ENERG_HI"])))
 
         if "ARF" in self.events:
             f = pyfits.open(self.events["ARF"])
@@ -745,14 +869,14 @@ class EventList(object) :
             ehi = f[1].data.field("ENERG_HI")
             f.close()
             try:
-                assert_allclose(elo, tblhdu.data["ENERG_LO"])
-                assert_allclose(ehi, tblhdu.data["ENERG_HI"])
+                assert_allclose(elo, tblhdu.data["ENERG_LO"], rtol=1.0e-6)
+                assert_allclose(ehi, tblhdu.data["ENERG_HI"], rtol=1.0e-6)
             except AssertionError:
                 mylog.warning("Energy binning does not match for "+
-                              "ARF and RMF. This will make spectral"+
+                              "ARF and RMF. This may make spectral "+
                               "fitting difficult.")
                                               
-        tblhdu2 = hdulist[2]
+        tblhdu2 = hdulist["EBOUNDS"]
         n_ch = len(tblhdu2.data["CHANNEL"])
         mylog.info("Number of Channels: %d" % (n_ch))
         
@@ -781,8 +905,12 @@ class EventList(object) :
             # build channel number list associated to array value,
             # there are groups of channels in rmfs with nonzero probabilities
             trueChannel = []
-            for start,nchan in zip(tblhdu.data[k]["F_CHAN"],
-                                   tblhdu.data[k]["N_CHAN"]):
+            f_chan = tblhdu.data[k]["F_CHAN"]
+            n_chan = tblhdu.data[k]["N_CHAN"]
+            if not iterable(f_chan):
+                 f_chan = [f_chan]
+                 n_chan = [n_chan]
+            for start,nchan in zip(f_chan, n_chan):
                 end = start + nchan
                 for j in range(start,end):
                     trueChannel.append(j)
@@ -813,7 +941,8 @@ class EventList(object) :
     @parallel_root_only
     def write_fits_file(self, fitsfile, clobber=False):
         """
-        Write events to a FITS binary table file.
+        Write events to a FITS binary table file with filename *fitsfile*.
+        Set *clobber* to True if you need to overwrite a previous file.
         """
         
         cols = []
@@ -882,16 +1011,34 @@ class EventList(object) :
         tbhdu.writeto(fitsfile, clobber=clobber)
 
     @parallel_root_only    
-    def write_simput_file(self, prefix, clobber=False, e_min=None, e_max=None):
-        """
-        Write events to a SIMPUT file.
-        """
-        if e_min is None:
-            e_min = 0.0
-        if e_max is None:
-            e_max = 100.0
+    def write_simput_file(self, prefix, clobber=False, emin=None, emax=None):
+        r"""
+        Write events to a SIMPUT file that may be read by the SIMX instrument
+        simulator.
 
-        idxs = np.logical_and(self.events["eobs"] >= e_min, self.events["eobs"] <= e_max)
+        Parameters
+        ----------
+
+        prefix : string
+            The filename prefix.
+        clobber : boolean, optional
+            Set to True to overwrite previous files.
+        e_min : float, optional
+            The minimum energy of the photons to save in keV.
+        e_max : float, optional
+            The maximum energy of the photons to save in keV.
+        """
+
+        if isinstance(self.events["Area"], basestring):
+             mylog.error("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
+             raise TypeError
+        
+        if emin is None:
+            emin = self.events["eobs"].min()*0.95
+        if emax is None:
+            emax = self.events["eobs"].max()*1.05
+
+        idxs = np.logical_and(self.events["eobs"] >= emin, self.events["eobs"] <= emax)
         flux = erg_per_keV*np.sum(self.events["eobs"][idxs])/self.events["ExposureTime"]/self.events["Area"]
         
         col1 = pyfits.Column(name='ENERGY', format='E',
@@ -923,8 +1070,8 @@ class EventList(object) :
         col1 = pyfits.Column(name='SRC_ID', format='J', array=np.array([1]).astype("int32"))
         col2 = pyfits.Column(name='RA', format='D', array=np.array([self.center[0]]))
         col3 = pyfits.Column(name='DEC', format='D', array=np.array([self.center[1]]))
-        col4 = pyfits.Column(name='E_MIN', format='D', array=np.array([e_min]))
-        col5 = pyfits.Column(name='E_MAX', format='D', array=np.array([e_max]))
+        col4 = pyfits.Column(name='E_MIN', format='D', array=np.array([emin]))
+        col5 = pyfits.Column(name='E_MAX', format='D', array=np.array([emax]))
         col6 = pyfits.Column(name='FLUX', format='D', array=np.array([flux]))
         col7 = pyfits.Column(name='SPECTRUM', format='80A', array=np.array([phfile+"[PHLIST,1]"]))
         col8 = pyfits.Column(name='IMAGE', format='80A', array=np.array([phfile+"[PHLIST,1]"]))
@@ -953,7 +1100,7 @@ class EventList(object) :
     @parallel_root_only
     def write_h5_file(self, h5file):
         """
-        Write an EventList to the HDF5 file given by h5file.
+        Write an EventList to the HDF5 file given by *h5file*.
         """
         f = h5py.File(h5file, "w")
 
@@ -990,8 +1137,20 @@ class EventList(object) :
     @parallel_root_only
     def write_fits_image(self, imagefile, clobber=False,
                          emin=None, emax=None):
-        """
+        r"""
         Generate a image by binning X-ray counts and write it to a FITS file.
+
+        Parameters
+        ----------
+
+        imagefile : string
+            The name of the image file to write.
+        clobber : boolean, optional
+            Set to True to overwrite a previous file.
+        emin : float, optional
+            The minimum energy of the photons to put in the image, in keV.
+        emax : float, optional
+            The maximum energy of the photons to put in the image, in keV.
         """
         if emin is None:
             mask_emin = np.ones((self.num_events), dtype='bool')
@@ -1033,28 +1192,63 @@ class EventList(object) :
         hdu.writeto(imagefile, clobber=clobber)
                                     
     @parallel_root_only
-    def write_spectrum(self, specfile, emin=0.1, emax=10.0, nchan=2000, clobber=False):
+    def write_spectrum(self, specfile, energy_bins=False, emin=0.1,
+                       emax=10.0, nchan=2000, clobber=False):
+        r"""
+        Bin event energies into a spectrum and write it to a FITS binary table. Can bin
+        on energy or channel, the latter only if the photons were convolved with an
+        RMF. In that case, the spectral binning will be determined by the RMF binning.
 
-        if "chan" in self.events:
-            spectype = self.events["ChannelType"]
-            espec = self.events["chan"]
-        else:
+        Parameters
+        ----------
+
+        specfile : string
+            The name of the FITS file to be written.
+        energy_bins : boolean, optional
+            Bin on energy or channel. 
+        emin : float, optional
+            The minimum energy of the spectral bins in keV. Only used if binning on energy.
+        emax : float, optional
+            The maximum energy of the spectral bins in keV. Only used if binning on energy.
+        nchan : integer, optional
+            The number of channels. Only used if binning on energy.
+        """
+
+        if energy_bins:
             spectype = "energy"
             espec = self.events["eobs"]
-            
-        if spectype == "PI":
-            bins = 1024
-            range = (0.5, 1024.5)
-        else:
-            bins = nchan
             range = (emin, emax)
+            spec, ee = np.histogram(espec, bins=nchan, range=range)
+            bins = 0.5*(ee[1:]+ee[:-1])
+        else:
+            if not self.events.has_key("ChannelType"):
+                mylog.error("These events were not convolved with an RMF. Set energy_bins=True.")
+                raise KeyError
+            spectype = self.events["ChannelType"]
+            espec = self.events[spectype]
+            f = pyfits.open(self.events["RMF"])
+            nchan = int(f[1].header["DETCHANS"])
+            try:
+                cmin = int(f[1].header["TLMIN4"])
+            except KeyError:
+                mylog.warning("Cannot determine minimum allowed value for channel. " +
+                              "Setting to 0, which may be wrong.")
+                cmin = int(0)
+            try:
+                cmax = int(f[1].header["TLMAX4"])
+            except KeyError:
+                mylog.warning("Cannot determine maximum allowed value for channel. " +
+                              "Setting to DETCHANS, which may be wrong.")
+                cmax = int(nchan)
+            f.close()
+            minlength = nchan
+            if cmin == 1: minlength += 1
+            spec = np.bincount(self.events[spectype],minlength=minlength)
+            if cmin == 1: spec = spec[1:]
+            bins = np.arange(nchan).astype("int32")+cmin
             
-        spec, ee = np.histogram(espec, bins=bins, range=range)
-
-        emid = 0.5*(ee[1:]+ee[:-1])
-
-        col1 = pyfits.Column(name='CHANNEL', format='1J', array=np.arange(spec.shape[0], dtype='int32')+1)
-        col2 = pyfits.Column(name=spectype.upper(), format='1D', array=emid)
+        col1 = pyfits.Column(name='CHANNEL', format='1J', array=bins)
+        col2 = pyfits.Column(name=spectype.upper(), format='1D', array=bins.astype("float64"))
         col3 = pyfits.Column(name='COUNTS', format='1J', array=spec.astype("int32"))
         col4 = pyfits.Column(name='COUNT_RATE', format='1D', array=spec/self.events["ExposureTime"])
         
@@ -1063,41 +1257,42 @@ class EventList(object) :
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("SPECTRUM")
 
-        tbhdu.header.update("DETCHANS", spec.shape[0])
-        tbhdu.header.update("TOTCTS", spec.sum())
-        tbhdu.header.update("EXPOSURE", self.events["ExposureTime"])
-        tbhdu.header.update("LIVETIME", self.events["ExposureTime"])        
-        tbhdu.header.update("CONTENT", spectype)
-        tbhdu.header.update("HDUCLASS", "OGIP")
-        tbhdu.header.update("HDUCLAS1", "SPECTRUM")
-        tbhdu.header.update("HDUCLAS2", "TOTAL")
-        tbhdu.header.update("HDUCLAS3", "TYPE:I")
-        tbhdu.header.update("HDUCLAS4", "COUNT")
-        tbhdu.header.update("HDUVERS", "1.1.0")
-        tbhdu.header.update("HDUVERS1", "1.1.0")
-        tbhdu.header.update("CHANTYPE", spectype)
-        tbhdu.header.update("BACKFILE", "none")
-        tbhdu.header.update("CORRFILE", "none")
-        tbhdu.header.update("POISSERR", True)
-        if self.events.has_key("RMF"):
-            tbhdu.header.update("RESPFILE", self.events["RMF"])
-        else:
-            tbhdu.header.update("RESPFILE", "none")
-        if self.events.has_key("ARF"):
-            tbhdu.header.update("ANCRFILE", self.events["ARF"])
-        else:        
-            tbhdu.header.update("ANCRFILE", "none")
-        if self.events.has_key("Telescope"):
-            tbhdu.header.update("TELESCOP", self.events["Telescope"])
-        else:
-            tbhdu.header.update("TELESCOP", "none")
-        if self.events.has_key("Instrument"):
-            tbhdu.header.update("INSTRUME", self.events["Instrument"])
-        else:
-            tbhdu.header.update("INSTRUME", "none")
-        tbhdu.header.update("AREASCAL", 1.0)
-        tbhdu.header.update("CORRSCAL", 0.0)
-        tbhdu.header.update("BACKSCAL", 1.0)
+        if not energy_bins:
+            tbhdu.header.update("DETCHANS", spec.shape[0])
+            tbhdu.header.update("TOTCTS", spec.sum())
+            tbhdu.header.update("EXPOSURE", self.events["ExposureTime"])
+            tbhdu.header.update("LIVETIME", self.events["ExposureTime"])        
+            tbhdu.header.update("CONTENT", spectype)
+            tbhdu.header.update("HDUCLASS", "OGIP")
+            tbhdu.header.update("HDUCLAS1", "SPECTRUM")
+            tbhdu.header.update("HDUCLAS2", "TOTAL")
+            tbhdu.header.update("HDUCLAS3", "TYPE:I")
+            tbhdu.header.update("HDUCLAS4", "COUNT")
+            tbhdu.header.update("HDUVERS", "1.1.0")
+            tbhdu.header.update("HDUVERS1", "1.1.0")
+            tbhdu.header.update("CHANTYPE", spectype)
+            tbhdu.header.update("BACKFILE", "none")
+            tbhdu.header.update("CORRFILE", "none")
+            tbhdu.header.update("POISSERR", True)
+            if self.events.has_key("RMF"):
+                 tbhdu.header.update("RESPFILE", self.events["RMF"])
+            else:
+                 tbhdu.header.update("RESPFILE", "none")
+            if self.events.has_key("ARF"):
+                tbhdu.header.update("ANCRFILE", self.events["ARF"])
+            else:        
+                tbhdu.header.update("ANCRFILE", "none")
+            if self.events.has_key("Telescope"):
+                tbhdu.header.update("TELESCOP", self.events["Telescope"])
+            else:
+                tbhdu.header.update("TELESCOP", "none")
+            if self.events.has_key("Instrument"):
+                tbhdu.header.update("INSTRUME", self.events["Instrument"])
+            else:
+                tbhdu.header.update("INSTRUME", "none")
+            tbhdu.header.update("AREASCAL", 1.0)
+            tbhdu.header.update("CORRSCAL", 0.0)
+            tbhdu.header.update("BACKSCAL", 1.0)
                                 
         hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), tbhdu])
         
