@@ -152,10 +152,10 @@ class PhotonList(object):
         Zmet : float, optional
             The metallicity of the gas. If there is a "Metallicity" field
             this parameter is ignored.
-        dist : float, optional
-            The angular diameter distance in Mpc, used for nearby sources.
-            This may be optionally supplied instead of it being determined
-            from the *redshift* and given *cosmology*.
+        dist : tuple, optional
+            The angular diameter distance in the form (value, unit), used
+            mainly for nearby sources. This may be optionally supplied
+            instead of it being determined from the *redshift* and given *cosmology*.
         cosmology : `yt.utilities.cosmology.Cosmology`, optional
             Cosmological information. If not supplied, it assumes \LambdaCDM with
             the default yt parameters.
@@ -183,7 +183,7 @@ class PhotonList(object):
         if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
         else:
-            D_A = dist*cm_per_mpc
+            D_A = dist[0]*pf.units["cm"]/pf.units[dist[1]]
             redshift = 0.0
         dist_fac = 1.0/(4.*np.pi*D_A*D_A*(1.+redshift)**3)
         
@@ -196,8 +196,6 @@ class PhotonList(object):
         dx = data_source["dx"][start_c:end_c].copy()
         EM = (data_source["Density"][start_c:end_c].copy()/mp)**2
         EM *= 0.5*(1.+X_H)*X_H*vol
-
-        print EM.sum()
         
         data_source.clear_data()
         
@@ -267,7 +265,6 @@ class PhotonList(object):
             em_sum_m = (metalZ[ibegin:iend]*cell_em[ibegin:iend]).sum() 
 
             cspec, mspec = emission_model.get_spectrum(kT)
-            print (cspec+0.3*mspec).max(), kT
             cspec *= dist_fac*em_sum_c/vol_scale
             mspec *= dist_fac*em_sum_m/vol_scale
             
@@ -338,7 +335,10 @@ class PhotonList(object):
                         exp_time, user_function, parameters=None,
                         dist=None, cosmology=None):
         """
-        Initialize a PhotonList from a user-provided model.  
+        Initialize a PhotonList from a user-provided model. The idea is
+        to give the user full flexibility. The redshift, collecting area,
+        exposure time, and cosmology are stored in the `photons` dictionary which
+        is passed to the user function. 
 
         Parameters
         ----------
@@ -352,14 +352,15 @@ class PhotonList(object):
         exp_time : float
             The exposure time to determine the number of photons in seconds.
         user_function : function
-            A function that takes the *data_source* and any parameters and
-            generates the photons. 
+            A function that takes the *data_source*, the photons dictionary,
+            and the *parameters* dictionary and generates the photons.
+            Must be of the form: user_function(data_source, photons, parameters)
         parameters : dict, optional
             A dictionary of parameters to be passed to the user function. 
-        dist : float, optional
-            The angular diameter distance in Mpc, used for nearby sources.
-            This may be optionally supplied instead of it being determined
-            from the *redshift* and given *cosmology*.
+        dist : tuple, optional
+            The angular diameter distance in the form (value, unit), used
+            mainly for nearby sources. This may be optionally supplied
+            instead of it being determined from the *redshift* and given *cosmology*.
         cosmology : `yt.utilities.cosmology.Cosmology`, optional
             Cosmological information. If not supplied, it assumes \LambdaCDM with
             the default yt parameters.
@@ -367,12 +368,39 @@ class PhotonList(object):
         Examples
         --------
 
-        >>> def powerlaw_func(source, redshift, area, exp_time, D_A, norm, index, E0):
+        This is a simple example where a point source with a single line emission
+        spectrum of photons is created. More complicated examples which actually
+        create photons based on the fields in the dataset could be created. 
+
+        >>> from scipy.stats import powerlaw
+        >>> def powerlaw_func(source, photons, parameters):
         ...
-        ...     spec = norm*source["Density"]*(/E0
-        >>> redshift = 0.02
+        ...     pf = source.pf
+        ... 
+        ...     num_photons = parameters["num_photons"]
+        ...     E0  = parameters["line_energy"]
+        ...     sigE = parameters["line_sigma"]
+        ...
+        ...     energies = norm.rvs(loc=E0, scale=sigE, size=num_photons)
+        ...     
+        ...     photons["x"] = np.zeros((1)) # Place everything in the center cell
+        ...     photons["y"] = np.zeros((1))
+        ...     photons["z"] = np.zeros((1))
+        ...     photons["vx"] = np.zeros((1))
+        ...     photons["vy"] = np.zeros((1))
+        ...     photons["vz"] = 100.*np.ones((1))
+        ...     photons["dx"] = source["dx"][0]*pf.units["kpc"]*np.ones((1)) 
+        ...     photons["NumberOfPhotons"] = num_photons*np.ones((1))
+        ...     photons["Energy"] = np.array(energies)
+        >>>
+        >>> redshift = 0.05
         >>> area = 6000.0
         >>> time = 2.0e5
+        >>> parameters = {"num_photons" : 10000, "line_energy" : 5.0,
+        ...               "line_sigma" : 0.1}
+        >>> ddims = (128,128,128)
+        >>> random_data = {"Density":np.random.random(ddims)}
+        >>> pf = load_uniform_grid(random_data, ddims)
         >>> dd = pf.h.all_data
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
         ...                                         time, powerlaw_func)
@@ -390,12 +418,9 @@ class PhotonList(object):
         if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
         else:
-            D_A = dist*cm_per_mpc
+            D_A = dist[0]*pf.units["cm"]/pf.units[dist[1]]
             redshift = 0.0
-                    
-        photons = user_function(data_source, redshift, area,
-                                exp_time, D_A, parameters)
-        
+            
         photons["FiducialExposureTime"] = exp_time
         photons["FiducialArea"] = area
         photons["FiducialRedshift"] = redshift
@@ -405,6 +430,8 @@ class PhotonList(object):
         photons["OmegaMatter"] = cosmo.OmegaMatterNow
         photons["OmegaLambda"] = cosmo.OmegaLambdaNow
 
+        user_function(data_source, photons, parameters)
+        
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
                         
@@ -536,10 +563,10 @@ class PhotonList(object):
             The new value for the exposure time.
         redshift_new : float, optional
             The new value for the cosmological redshift.
-        dist_new : float, optional
-            The new value for the angular diameter distance, used for nearby
-            objects. If this is not set it will be determined from the cosmological
-            redshift.
+        dist_new : tuple, optional
+            The new value for the angular diameter distance in the form
+            (value, unit), used mainly for nearby sources. This may be optionally supplied
+            instead of it being determined from the cosmology.
         absorb_model : 'yt.analysis_modules.photon_simulator.PhotonModel`, optional
             A model for galactic absorption.
         psf_sigma : float, optional
@@ -616,7 +643,7 @@ class PhotonList(object):
             else:
                 if redshift_new is None:
                     zobs = 0.0
-                    D_A = dist_new*1000.
+                    D_A = dist[0]*self.pf.units["kpc"]/self.pf.units[dist[1]]
                 else:
                     zobs = redshift_new
                     D_A = self.cosmo.AngularDiameterDistance(0.0,zobs)*1000.
