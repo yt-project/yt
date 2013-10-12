@@ -340,7 +340,10 @@ class FieldDetector(defaultdict):
     fp_units = {
         'bulk_velocity' : 'cm/s',
         'center' : 'cm',
-        'normal' : ''
+        'normal' : '',
+        'cp_x_vec': '',
+        'cp_y_vec': '',
+        'cp_z_vec': '',
         }
 
     def get_field_parameter(self, param, default = None):
@@ -349,6 +352,11 @@ class FieldDetector(defaultdict):
             return YTArray(np.random.random(3) * 1e-2, self.fp_units[param])
         elif param in ['axis']:
             return 0
+        elif param.startswith("cp_"):
+            ax = param[3]
+            rv = YTArray((0.0, 0.0, 0.0), self.fp_units[param])
+            rv['xyz'.index(ax)] = 1.0
+            return rv
         else:
             return 0.0
 

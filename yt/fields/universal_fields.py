@@ -90,7 +90,7 @@ add_field("ones_over_dx", function=_ones_over_dx,
           display_field=False)
 
 def _zeros(field, data):
-    arr = np.zeros(data.shape, dtype='float64')
+    arr = np.zeros(data["ones"].shape, dtype='float64')
     return field.apply_units(arr)
 
 add_field("zeros", function=_zeros,
@@ -644,13 +644,12 @@ add_field("tangential_velocity",
 def _cutting_plane_velocity_x(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity == None:
-        bulk_velocity = np.zeros(3)
-    v_vec = np.array([data["%s-velocity" % ax] - bv \
-                for ax, bv in zip('xyz', bulk_velocity)])
-    v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-    return np.sum(x_vec * v_vec, axis=-1)
+    bv = data.get_field_parameter("bulk_velocity")
+    if bv == None: bv = np.zeros(3)
+    tr  = (data["x-velocity"] - bv[0]) * x_vec[0]
+    tr += (data["y-velocity"] - bv[1]) * x_vec[1]
+    tr += (data["z-velocity"] - bv[2]) * x_vec[2]
+    return tr
 add_field("cutting_plane_velocity_x",
           function=_cutting_plane_velocity_x,
           validators=[ValidateParameter("cp_%s_vec" % ax)
@@ -658,13 +657,12 @@ add_field("cutting_plane_velocity_x",
 def _cutting_plane_velocity_y(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity == None:
-        bulk_velocity = np.zeros(3)
-    v_vec = np.array([data["%s-velocity" % ax] - bv \
-                for ax, bv in zip('xyz', bulk_velocity)])
-    v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-    return np.sum(y_vec * v_vec, axis=-1)
+    bv = data.get_field_parameter("bulk_velocity")
+    if bv == None: bv = np.zeros(3)
+    tr  = (data["x-velocity"] - bv[0]) * y_vec[0]
+    tr += (data["y-velocity"] - bv[1]) * y_vec[1]
+    tr += (data["z-velocity"] - bv[2]) * y_vec[2]
+    return tr
 add_field("cutting_plane_velocity_y",
           function=_cutting_plane_velocity_y,
           validators=[ValidateParameter("cp_%s_vec" % ax)
@@ -673,8 +671,10 @@ add_field("cutting_plane_velocity_y",
 def _cutting_plane_magnetic_field_x(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
-    b_vec = np.array([data["magnetic_field_%s" % ax] for ax in 'xyz'])
-    return np.dot(x_vec, b_vec)
+    tr  = data["magnetic_field_x"] * x_vec[0]
+    tr += data["magnetic_field_y"] * x_vec[1]
+    tr += data["magnetic_field_z"] * x_vec[2]
+    return tr
 add_field("cutting_plane_magnetic_field_x",
           function=_cutting_plane_magnetic_field_x,
           validators=[ValidateParameter("cp_%s_vec" % ax)
@@ -682,8 +682,10 @@ add_field("cutting_plane_magnetic_field_x",
 def _cutting_plane_magnetic_field_y(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
                            for ax in 'xyz']
-    b_vec = np.array([data["magnetic_field_%s" % ax] for ax in 'xyz'])
-    return np.dot(y_vec, b_vec)
+    tr  = data["magnetic_field_x"] * y_vec[0]
+    tr += data["magnetic_field_y"] * y_vec[1]
+    tr += data["magnetic_field_z"] * y_vec[2]
+    return tr
 add_field("cutting_plane_magnetic_field_y",
           function=_cutting_plane_magnetic_field_y,
           validators=[ValidateParameter("cp_%s_vec" % ax)
