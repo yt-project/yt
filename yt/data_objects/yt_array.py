@@ -579,7 +579,7 @@ class YTArray(np.ndarray):
     def __ge__(self, other):
         """ Test if this is greater than or equal to other. """
         # Check that the other is a YTArray.
-        if isinstance(right_object, YTArray):
+        if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
                 raise YTUnitOperationError("greater than or equal",
                                            self.units, other.units)

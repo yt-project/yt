@@ -7,7 +7,7 @@ def test_ortho_ray():
 
     axes = ['x', 'y', 'z']
     for ax, an in enumerate(axes):
-        ocoord = np.random.random(2)
+        ocoord = YTArray(np.random.random(2), 'code_length')
 
         my_oray = pf.h.ortho_ray(ax, ocoord)
 
