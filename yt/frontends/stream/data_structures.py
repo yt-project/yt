@@ -380,7 +380,7 @@ def assign_particle_data(pf, pdata) :
     will overwrite any existing particle data, so be careful!
     """
     
-    if pf.h.num_grids > 1 :
+    if len(pf.stream_handler.fields) > 1:
 
         try:
             x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
@@ -413,8 +413,10 @@ def assign_particle_data(pf, pdata) :
     else :
 
         grid_pdata = [pdata]
-        
-    pf.h.update_data(grid_pdata)
+    
+    for pd, gi in zip(grid_pdata, sorted(pf.stream_handler.fields)):
+        pd.pop("number_of_particles")
+        pf.stream_handler.fields[gi].update(pd)
                                         
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
@@ -486,6 +488,8 @@ Parameters
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+    number_of_particles = data.pop("number_of_particles", 0)
+    
     if all([isinstance(val, np.ndarray) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
     elif all([(len(val) == 2) for val in data.values()]):
@@ -511,11 +515,6 @@ Parameters
 
     sfh = StreamDictFieldHandler()
 
-    if data.has_key("number_of_particles") :
-        number_of_particles = data.pop("number_of_particles")
-    else:
-        number_of_particles = int(0)
-    
     if number_of_particles > 0 :
         particle_types = set_particle_types(data)
         pdata = {}

@@ -577,6 +577,7 @@ class YTDataChunk(object):
     @cached_property
     def fcoords(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
+        ci = YTArray(ci, input_units = "code_length")
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -601,6 +602,7 @@ class YTDataChunk(object):
     @cached_property
     def fwidth(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
+        ci = YTArray(ci, input_units = "code_length")
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:

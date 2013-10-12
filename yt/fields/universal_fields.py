@@ -690,10 +690,11 @@ add_field("mean_molecular_weight", function=_mean_molecular_weight, units=r"")
 
 def _pdensity(field, data):
     pmass = data[('deposit','all_mass')]
-    np.divide(pmass, data["cell_volume"], pmass)
-    return pmass
+    pmass /= data["cell_volume"]
+    return field.apply_units(pmass)
 add_field("particle_density", function=_pdensity,
           validators=[ValidateGridType()],
+          units = "g / cm**3",
           display_name=r"\mathrm{Particle}\/\mathrm{Density}")
 
 def _magnetic_energy(field,data):

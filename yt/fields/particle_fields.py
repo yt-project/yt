@@ -78,7 +78,9 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        return d
+        d = YTArray(d, units = "dimensionless",
+                    registry = data.pf.unit_registry)
+        return field.apply_units(d)
 
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
@@ -89,7 +91,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        return d
+        return field.apply_units(d)
 
     registry.add_field(("deposit", "%s_mass" % ptype),
              function = particle_mass,
@@ -100,8 +102,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d /= data["gas","CellVolume"]
-        return d
+        d /= data["gas", "CellVolume"]
+        return field.apply_units(d)
 
     registry.add_field(("deposit", "%s_density" % ptype),
              function = particle_density,
@@ -112,6 +114,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_cic(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
+        d = field.apply_units(d, data[ptype, mass_name].units)
         d /= data["gas","CellVolume"]
         return d
 
@@ -124,7 +127,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     # Now some translation functions.
 
     def particle_ones(field, data):
-        return np.ones(data[ptype, mass_name].shape, dtype="float64")
+        v = np.ones(data[ptype, mass_name].shape, dtype="float64")
+        return self.apply_units(v)
 
     registry.add_field((ptype, "particle_ones"),
                        function = particle_ones,
@@ -148,7 +152,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         # deposit operation.
         #_ids = ids.view("float64")
         data.deposit(pos, [ids], method = "mesh_id")
-        return ids
+        return self.apply_units(ids, "dimensionless")
     registry.add_field((ptype, "mesh_id"),
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],

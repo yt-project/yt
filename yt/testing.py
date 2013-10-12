@@ -155,9 +155,13 @@ def fake_random_pf(
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-            data = dict( \
-                (field, (((np.random.random(ndims) - offset) * peak_value),u)) \
-                 for field, offset, u in zip(fields,offsets,units) )
+    data = {}
+    for field, offset, u in zip(fields, offsets, units):
+        v = (np.random.random(ndims) - offset) * peak_value
+        if field[0] == "all":
+            data['number_of_particles'] = v.size
+            v = v.ravel()
+        data[field] = (v, u)
     ug = load_uniform_grid(data, ndims, 1.0, nprocs=nprocs)
     return ug
 

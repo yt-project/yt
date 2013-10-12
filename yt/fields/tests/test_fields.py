@@ -18,7 +18,6 @@ def setup():
         units.append(v.units)
     base_pf = fake_random_pf(4, fields = fields, units = units)
     base_pf.h
-    #raise RuntimeError
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     np.seterr(all = 'ignore')
@@ -40,7 +39,9 @@ _base_fields = (("gas", "density"),
 
 def realistic_pf(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
-    pf = fake_random_pf(16, fields = fields, nprocs = nprocs)
+    units = [KnownStreamFields[f].units for f in fields]
+    pf = fake_random_pf(16, fields = fields, units = units,
+                        nprocs = nprocs)
     pf.parameters["HydroMethod"] = "streaming"
     pf.parameters["EOSType"] = 1.0
     pf.parameters["EOSSoundSpeed"] = 1.0
@@ -54,6 +55,8 @@ def realistic_pf(fields, nprocs):
 
 def _strip_ftype(field):
     if not isinstance(field, tuple):
+        return field
+    elif field[0] == "all":
         return field
     return field[1]
 
