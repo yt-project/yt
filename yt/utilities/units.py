@@ -407,10 +407,7 @@ class Unit(Expr):
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
-            raise InvalidUnitOperation("Tried to test equality between a Unit" \
-                                       " object and '%s' (type %s). This " \
-                                       "behavior is undefined." % (u, type(u)) )
-
+            return False
         return \
           (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
@@ -418,10 +415,7 @@ class Unit(Expr):
     def __ne__(self, u):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
-            raise InvalidUnitOperation("Tried to test equality between a Unit" \
-                                       " object and '%s' (type %s). This " \
-                                       "behavior is undefined." % (u, type(u)) )
-
+            return True
         return \
           (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
 
