@@ -244,7 +244,7 @@ def test_string_representation():
     assert str(Myr) == "Myr"
     assert str(speed) == "pc/Myr"
     assert repr(speed) == "pc/Myr"
-    assert str(dimensionless) == "(dimensionless)"
+    assert str(dimensionless) == "dimensionless"
 
 #
 # Start operation tests
