@@ -90,18 +90,23 @@ add_field("ones_over_dx", function=_ones_over_dx,
           display_field=False)
 
 def _zeros(field, data):
-    return np.zeros(data.shape, dtype='float64')
+    arr = np.zeros(data.shape, dtype='float64')
+    return field.apply_units(arr)
 
-add_field("zeros", function=_zeros, projection_conversion="unitary",
+add_field("zeros", function=_zeros,
+          units = "dimensionless",
+          projection_conversion="unitary",
           display_field=False)
 
 def _ones(field, data):
-    tr = np.ones(data.ires.shape, dtype="float64")
+    arr = np.ones(data.ires.shape, dtype="float64")
     if data._spatial:
-        return data._reshape_vals(tr)
-    return tr
+        return data._reshape_vals(arr)
+    return field.apply_units(arr)
 
-add_field("ones", function=_ones, projection_conversion="unitary",
+add_field("ones", function=_ones,
+          projection_conversion="unitary",
+          units = "dimensionless",
           display_field=False)
 
 add_field("cells_per_bin", function=_ones,

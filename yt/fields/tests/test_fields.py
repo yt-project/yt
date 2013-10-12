@@ -118,7 +118,7 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, field._function(field, g), 4)
 
 def test_all_fields():
-    for field in FieldInfo:
+    for field in sorted(FieldInfo):
         if isinstance(field, types.TupleType):
             fname = field[0]
         else:
