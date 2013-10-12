@@ -7,6 +7,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \
     KnownStreamFields
+from yt.data_objects.yt_array import YTArray
 
 def setup():
     global base_pf
@@ -18,8 +19,8 @@ def setup():
 
 _sample_parameters = dict(
     axis = 0,
-    center = np.array((0.0, 0.0, 0.0)),
-    bulk_velocity = np.array((0.0, 0.0, 0.0)),
+    center = YTArray((0.0, 0.0, 0.0), "cm"),
+    bulk_velocity = YTArray((0.0, 0.0, 0.0), "cm/s"),
     normal = np.array((0.0, 0.0, 1.0)),
     cp_x_vec = np.array((1.0, 0.0, 0.0)),
     cp_y_vec = np.array((0.0, 1.0, 0.0)),
@@ -45,7 +46,12 @@ def realistic_pf(fields, nprocs):
     pf.omega_matter = 0.27
     return pf
 
-def _correct_field(field):
+def _strip_ftype(field):
+    if not isinstance(field, tuple):
+        return field
+    return field[1]
+
+def _expand_field(field):
     if isinstance(field, tuple):
         return field
     if field in KnownStreamFields:
@@ -76,13 +82,12 @@ class TestFieldAccess(object):
         needs_spatial = False
         for v in field.validators:
             f = getattr(v, "fields", None)
-            if f:
-                fields += [_correct_field(_) for _ in fields]
+            if f: fields += f
             if getattr(v, "ghost_zones", 0) > 0:
                 skip_grids = True
             if hasattr(v, "ghost_zones"):
                 needs_spatial = True
-        fields = list(set(fields))
+        fields = list(set((_strip_ftype(f) for f in fields)))
         pf = realistic_pf(fields, self.nproc)
         # This gives unequal sized grids as well as subgrids
         dd1 = pf.h.all_data()
@@ -90,19 +95,18 @@ class TestFieldAccess(object):
         dd1.field_parameters.update(_sample_parameters)
         dd2.field_parameters.update(_sample_parameters)
         v1 = dd1[self.field_name]
-        conv = field._convert_function(dd1) or 1.0
+        # No more conversion checking
         if not field.particle_type:
             assert_equal(v1, dd1["gas", self.field_name])
         if not needs_spatial:
-            assert_array_almost_equal_nulp(v1, conv*field._function(field, dd2), 4)
+            assert_array_almost_equal_nulp(v1, field._function(field, dd2), 4)
         if not skip_grids:
             for g in pf.h.grids:
                 g.field_parameters.update(_sample_parameters)
-                conv = field._convert_function(g) or 1.0
                 v1 = g[self.field_name]
                 g.clear_data()
                 g.field_parameters.update(_sample_parameters)
-                assert_array_almost_equal_nulp(v1, conv*field._function(field, g), 4)
+                assert_array_almost_equal_nulp(v1, field._function(field, g), 4)
 
 def test_all_fields():
     for field in FieldInfo:

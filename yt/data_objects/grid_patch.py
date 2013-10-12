@@ -129,8 +129,12 @@ class AMRGridPatch(YTSelectionContainer):
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
-        if self.pf.dimensionality < 3: self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
+        if self.pf.dimensionality < 2:
+            self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
+        if self.pf.dimensionality < 3:
+            self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
+        self.dds = YTArray(self.dds, "code_length",
+                           registry = self.pf.unit_registry)
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)

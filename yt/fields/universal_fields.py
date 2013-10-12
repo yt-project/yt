@@ -498,7 +498,7 @@ def _velocity_divergence(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    ds = div_fac * data["dx"].flat[0]
+    ds = div_fac * just_one(data["dx"])
     f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
     f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
     if data.pf.dimensionality > 1:
