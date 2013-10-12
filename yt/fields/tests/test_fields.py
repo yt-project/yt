@@ -11,8 +11,14 @@ from yt.data_objects.yt_array import YTArray
 
 def setup():
     global base_pf
-    base_pf = fake_random_pf(64)
+    # Make this super teeny tiny
+    fields, units = [], []
+    for k, v in sorted(KnownStreamFields.items()):
+        fields.append(k)
+        units.append(v.units)
+    base_pf = fake_random_pf(4, fields = fields, units = units)
     base_pf.h
+    #raise RuntimeError
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     np.seterr(all = 'ignore')

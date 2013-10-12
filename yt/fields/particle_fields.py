@@ -136,14 +136,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             particle_type = True,
             units = "g")
 
-    def _ParticleMassMsun(field, data):
-        return data[ptype, mass_name].copy()
-    def _conv_Msun(data):
-        return 1.0/mass_sun_cgs
-
     registry.add_field((ptype, "ParticleMassMsun"),
-            function = _ParticleMassMsun,
-            convert_function = _conv_Msun,
+            function = TranslationFunc((ptype, mass_name)),
             particle_type = True,
             units = "Msun")
 
