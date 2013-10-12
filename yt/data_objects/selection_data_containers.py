@@ -359,27 +359,27 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
         if field == "px":
-            x = self._current_chunk.fcoords[:,0] - self.center[0].to_ndarray()
-            y = self._current_chunk.fcoords[:,1] - self.center[1].to_ndarray()
-            z = self._current_chunk.fcoords[:,2] - self.center[2].to_ndarray()
+            x = self._current_chunk.fcoords[:,0] - self.center[0]
+            y = self._current_chunk.fcoords[:,1] - self.center[1]
+            z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(self.size, dtype='float64')
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
             return tr
         elif field == "py":
-            x = self._current_chunk.fcoords[:,0] - self.center[0].to_ndarray()
-            y = self._current_chunk.fcoords[:,1] - self.center[1].to_ndarray()
-            z = self._current_chunk.fcoords[:,2] - self.center[2].to_ndarray()
+            x = self._current_chunk.fcoords[:,0] - self.center[0]
+            y = self._current_chunk.fcoords[:,1] - self.center[1]
+            z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(self.size, dtype='float64')
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
             return tr
         elif field == "pz":
-            x = self._current_chunk.fcoords[:,0] - self.center[0].to_ndarray()
-            y = self._current_chunk.fcoords[:,1] - self.center[1].to_ndarray()
-            z = self._current_chunk.fcoords[:,2] - self.center[2].to_ndarray()
+            x = self._current_chunk.fcoords[:,0] - self.center[0]
+            y = self._current_chunk.fcoords[:,1] - self.center[1]
+            z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(self.size, dtype='float64')
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
