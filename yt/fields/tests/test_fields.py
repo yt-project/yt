@@ -22,15 +22,22 @@ def setup():
     ytcfg["yt","__withintesting"] = "True"
     np.seterr(all = 'ignore')
 
-_sample_parameters = dict(
-    axis = 0,
-    center = YTArray((0.0, 0.0, 0.0), "cm"),
-    bulk_velocity = YTArray((0.0, 0.0, 0.0), "cm/s"),
-    normal = np.array((0.0, 0.0, 1.0)),
-    cp_x_vec = np.array((1.0, 0.0, 0.0)),
-    cp_y_vec = np.array((0.0, 1.0, 0.0)),
-    cp_z_vec = np.array((0.0, 0.0, 1.0)),
-)
+def get_params(pf):
+    return dict(
+        axis = 0,
+        center = YTArray((0.0, 0.0, 0.0), "cm",
+            registry = pf.unit_registry),
+        bulk_velocity = YTArray((0.0, 0.0, 0.0),
+            "cm/s", registry = pf.unit_registry),
+        normal = YTArray((0.0, 0.0, 1.0),
+            "", registry = pf.unit_registry),
+        cp_x_vec = YTArray((1.0, 0.0, 0.0),
+            "", registry = pf.unit_registry),
+        cp_y_vec = YTArray((0.0, 1.0, 0.0),
+            "", registry = pf.unit_registry),
+        cp_z_vec = YTArray((0.0, 0.0, 1.0),
+            "", registry = pf.unit_registry),
+    )
 
 _base_fields = (("gas", "density"),
                 ("gas", "x-velocity"),
@@ -101,8 +108,9 @@ class TestFieldAccess(object):
         # This gives unequal sized grids as well as subgrids
         dd1 = pf.h.all_data()
         dd2 = pf.h.all_data()
-        dd1.field_parameters.update(_sample_parameters)
-        dd2.field_parameters.update(_sample_parameters)
+        sp = get_params(pf)
+        dd1.field_parameters.update(sp)
+        dd2.field_parameters.update(sp)
         v1 = dd1[self.field_name]
         # No more conversion checking
         if not field.particle_type:
@@ -111,11 +119,14 @@ class TestFieldAccess(object):
             assert_array_almost_equal_nulp(v1, field._function(field, dd2), 4)
         if not skip_grids:
             for g in pf.h.grids:
-                g.field_parameters.update(_sample_parameters)
+                g.field_parameters.update(sp)
                 v1 = g[self.field_name]
                 g.clear_data()
-                g.field_parameters.update(_sample_parameters)
-                assert_array_almost_equal_nulp(v1, field._function(field, g), 4)
+                g.field_parameters.update(sp)
+                with field.unit_registry(g):
+                    res = field._function(field, g)
+                    res = field.apply_units(res)
+                assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
     for field in sorted(FieldInfo):
