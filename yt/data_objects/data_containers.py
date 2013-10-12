@@ -192,7 +192,7 @@ class YTDataContainer(object):
         if f not in self.field_data and key not in self.field_data:
             if f in self._container_fields:
                 self.field_data[f] = \
-                    YTArray(self._generate_container_field(f), input_units='1')
+                    YTArray(self._generate_container_field(f))
                 return self.field_data[f]
             else:
                 self.get_data(f)
