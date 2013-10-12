@@ -492,7 +492,7 @@ Parameters
         new_data, field_units = {}, {}
         for field in data:
             try:
-                assert isinstance(field, basestring), \
+                assert isinstance(field, (basestring, tuple)), \
                   "Field name is not a string!"
                 assert isinstance(data[field][0], np.ndarray), \
                   "Field data is not an ndarray!"

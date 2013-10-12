@@ -5,8 +5,13 @@ from yt.data_objects.field_info_container import \
 import yt.fields.universal_fields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.frontends.stream.fields import \
+    KnownStreamFields
 
 def setup():
+    global base_pf
+    base_pf = fake_random_pf(64)
+    base_pf.h
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     np.seterr(all = 'ignore')
@@ -21,7 +26,10 @@ _sample_parameters = dict(
     cp_z_vec = np.array((0.0, 0.0, 1.0)),
 )
 
-_base_fields = ["density", "x-velocity", "y-velocity", "z-velocity"]
+_base_fields = (("gas", "density"),
+                ("gas", "x-velocity"),
+                ("gas", "y-velocity"),
+                ("gas", "z-velocity"))
 
 def realistic_pf(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
@@ -35,11 +43,21 @@ def realistic_pf(fields, nprocs):
     pf.current_redshift = 0.0001
     pf.hubble_constant = 0.7
     pf.omega_matter = 0.27
-    for unit in mpc_conversion:
-        pf.units[unit+'h'] = pf.units[unit]
-        pf.units[unit+'cm'] = pf.units[unit]
-        pf.units[unit+'hcm'] = pf.units[unit]
     return pf
+
+def _correct_field(field):
+    if isinstance(field, tuple):
+        return field
+    if field in KnownStreamFields:
+        fi = KnownStreamFields[field]
+        if fi.particle_type:
+            return ("all", field)
+        else:
+            return ("gas", field)
+    # Otherwise, we just guess.
+    if "particle" in field:
+        return ("all", field)
+    return ("gas", field)
 
 class TestFieldAccess(object):
     description = None
@@ -52,17 +70,19 @@ class TestFieldAccess(object):
 
     def __call__(self):
         field = FieldInfo[self.field_name]
-        deps = field.get_dependencies()
-        fields = list(set(deps.requested + _base_fields))
+        deps = field.get_dependencies(pf = base_pf)
+        fields = deps.requested + list(_base_fields)
         skip_grids = False
         needs_spatial = False
         for v in field.validators:
             f = getattr(v, "fields", None)
-            if f: fields += f
+            if f:
+                fields += [_correct_field(_) for _ in fields]
             if getattr(v, "ghost_zones", 0) > 0:
                 skip_grids = True
             if hasattr(v, "ghost_zones"):
                 needs_spatial = True
+        fields = list(set(fields))
         pf = realistic_pf(fields, self.nproc)
         # This gives unequal sized grids as well as subgrids
         dd1 = pf.h.all_data()
