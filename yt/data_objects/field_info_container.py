@@ -502,15 +502,34 @@ class DerivedField(object):
             e[self.name]
         return e
 
+    _unit_registry = None
+    @contextlib.contextmanager
+    def unit_registry(self, data):
+        old_registry = self._unit_registry
+        if hasattr(data, 'unit_registry'):
+            ur = data.unit_registry
+        elif hasattr(data, 'pf'):
+            ur = data.pf.unit_registry
+        else:
+            ur = None
+        self._unit_registry = ur
+        yield
+        self._unit_registry = old_registry
+
+    def apply_units(self, arr, units = None):
+        if units is None: units = self.units
+        return YTArray(arr, input_units = units,
+                       registry = self._unit_registry)
+
     def __call__(self, data):
         """ Return the value of the field in a given *data* object. """
         ii = self.check_available(data)
         original_fields = data.keys() # Copy
-        if self._function is not NullFunc:
-            dd = self._function(self, data)
-        else:
+        if self._function is NullFunc:
             raise RuntimeError(
                 "Something has gone terribly wrong, _function is NullFunc")
+        with self.unit_registry(data):
+            dd = self._function(self, data)
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
