@@ -78,7 +78,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        d = YTArray(d, units = "dimensionless",
+        d = YTArray(d, units = "cm**-3",
                     registry = data.pf.unit_registry)
         return field.apply_units(d)
 
@@ -152,7 +152,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         # deposit operation.
         #_ids = ids.view("float64")
         data.deposit(pos, [ids], method = "mesh_id")
-        return self.apply_units(ids, "dimensionless")
+        return self.apply_units(ids, "")
     registry.add_field((ptype, "mesh_id"),
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],

@@ -94,7 +94,7 @@ def _zeros(field, data):
     return field.apply_units(arr)
 
 add_field("zeros", function=_zeros,
-          units = "dimensionless",
+          units = "",
           projection_conversion="unitary",
           display_field=False)
 
@@ -106,7 +106,7 @@ def _ones(field, data):
 
 add_field("ones", function=_ones,
           projection_conversion="unitary",
-          units = "dimensionless",
+          units = "",
           display_field=False)
 
 add_field("cells_per_bin", function=_ones,
