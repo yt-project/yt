@@ -364,7 +364,7 @@ class Unit(Expr):
     # Start unit operations
     #
 
-    @cache_op
+    #@cache_op
     def __mul__(self, u):
         """ Multiply Unit with u (Unit object). """
         if not isinstance(u, Unit):
@@ -377,7 +377,7 @@ class Unit(Expr):
                     dimensions=(self.dimensions * u.dimensions),
                     registry=self.registry)
 
-    @cache_op
+    #@cache_op
     def __div__(self, u):
         """ Divide Unit by u (Unit object). """
         if not isinstance(u, Unit):
@@ -390,7 +390,7 @@ class Unit(Expr):
                     dimensions=(self.dimensions / u.dimensions),
                     registry=self.registry)
 
-    @cache_op
+    #@cache_op
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
@@ -403,7 +403,7 @@ class Unit(Expr):
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
                     dimensions=(self.dimensions**p), registry=self.registry)
 
-    @cache_op
+    #@cache_op
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
@@ -414,7 +414,7 @@ class Unit(Expr):
         return \
           (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
-    @cache_op
+    #@cache_op
     def __ne__(self, u):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
