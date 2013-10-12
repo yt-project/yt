@@ -119,6 +119,10 @@ class YTDataContainer(object):
         self.set_field_parameter(
             "normal",np.array([0,0,1],dtype='float64'))
 
+    def apply_units(self, arr, units):
+        return YTArray(arr, input_units = units,
+                       unit_registry = self.pf.unit_registry)
+
     def _set_center(self, center):
         if center is None:
             pass
@@ -528,7 +532,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         elif self._locked == True:
             raise GenerationInProgress(fields)
         # At this point, we want to figure out *all* our dependencies.
-        fields_to_get = self._identify_dependencies(fields_to_get)
+        fields_to_get = self._identify_dependencies(fields_to_get,
+            self._spatial)
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         for ftype, fname in fields_to_get:
