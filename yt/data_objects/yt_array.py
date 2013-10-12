@@ -641,7 +641,7 @@ class YTArray(np.ndarray):
             # unary operators
             unit = self._ufunc_registry[context[0]](context[1][0].units)
             if unit is None:
-                out_arr = np.array(out_arr)
+                ret = np.array(ret)
             else:
                 ret.units = unit
         elif len(context[1]) in (2,3):
@@ -664,7 +664,7 @@ class YTArray(np.ndarray):
                     unit2 = Unit()
             unit = self._ufunc_registry[context[0]](unit1, unit2)
             if unit is None:
-                ret = np.array(out_arr)
+                ret = np.array(ret)
             else:
                 ret.units = unit
         else:
