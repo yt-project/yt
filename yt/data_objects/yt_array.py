@@ -191,6 +191,12 @@ class YTArray(np.ndarray):
 
     def __new__(cls, input_array, input_units=None, registry=None):
         if isinstance(input_array, YTArray):
+            if input_units is None:
+                pass
+            elif isinstance(input_units, Unit):
+                input_array.units = input_units
+            else:
+                input_array.units = Unit(input_units, registry=registry)
             return input_array
 
         # Input array is an already formed ndarray instance
@@ -605,17 +611,17 @@ class YTArray(np.ndarray):
     def prod(self, axis=None, dtype=None, out=None):
         ret = super(YTArray, self).prod(axis, dtype, out)
         if axis:
-            ret.units = self.units**(self.shape[axis])
+            ret = YTArray(ret, self.units**(self.shape[axis]))
         else:
-            ret.units = self.units**(self.size)
+            ret = YTArray(ret, self.units**(self.size))
         return ret
 
     def mean(self, axis=None, dtype=None, out=None):
         ret = super(YTArray, self).mean(axis, dtype, out)
         return YTArray(ret, self.units)
 
-    def std(self, axis=None, dtype=None, out=None, ddof=0):
-        ret = super(YTArray, self).std(axis, dtype, out, ddof)
+    def sum(self, axis=None, dtype=None, out=None):
+        ret = super(YTArray, self).sum(axis, dtype, out)
         return YTArray(ret, self.units)
 
     def __getitem__(self, item):
@@ -626,17 +632,18 @@ class YTArray(np.ndarray):
             return ret
 
     def __array_wrap__(self, out_arr, context=None):
+        ret = super(YTArray, self).__array_wrap__(out_arr, context)
         if context is None:
-            if type(out_arr) is np.ndarray:
-                if out_arr.shape == ():
-                    out_arr = YTArray(out_arr, self.units)
+            if ret.shape == ():
+                return ret[()]
+            return ret
         elif len(context[1]) == 1:
             # unary operators
             unit = self._ufunc_registry[context[0]](context[1][0].units)
             if unit is None:
                 out_arr = np.array(out_arr)
             else:
-                out_arr.units = unit
+                ret.units = unit
         elif len(context[1]) in (2,3):
             if len(context[1]) == 3:
                 # note we use `is`, not ==.
@@ -657,12 +664,12 @@ class YTArray(np.ndarray):
                     unit2 = Unit()
             unit = self._ufunc_registry[context[0]](unit1, unit2)
             if unit is None:
-                out_arr = np.array(out_arr)
+                ret = np.array(out_arr)
             else:
-                out_arr.units = unit
+                ret.units = unit
         else:
             raise RuntimeError("Operation is not defined.")
-        return super(YTArray, self).__array_wrap__(out_arr, context)
+        return ret
 
 class YTQuantity(YTArray):
     def __new__(cls, input, input_units=None, registry=None):
