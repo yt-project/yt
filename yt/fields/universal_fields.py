@@ -635,11 +635,9 @@ add_field("radius", function=_radius,
 
 def _radial_velocity(field, data):
     normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data).transpose()
+    velocities = obtain_rv_vec(data)
     theta = data['spherical_theta'].copy()
     phi = data['spherical_phi'].copy()
-    theta = np.tile(theta, (3,) + (1,)*len(theta.shape)).transpose()
-    phi   = np.tile(phi, (3,) + (1,)*len(phi.shape)).transpose()
     return get_sph_r_component(velocities, theta, phi, normal)
 
 def _radial_velocity_absolute(field, data):
@@ -762,16 +760,15 @@ add_field("magnetic_pressure",
 
 def _magnetic_field_poloidal(field,data):
     normal = data.get_field_parameter("normal")
+    d = data['magnetic_field_x']
 
-    Bfields = np.array([data['magnetic_field_x'],
-                        data['magnetic_field_y'],
-                        data['magnetic_field_z']])
-    Bfields = np.rollaxis(Bfields, 0, len(Bfields.shape))
+    Bfields = YTArray([data['magnetic_field_x'],
+                       data['magnetic_field_y'],
+                       data['magnetic_field_z']],
+                       d.units)
     
     theta = data['spherical_theta']
     phi   = data['spherical_phi']
-    theta = np.tile(phi, (3,) + (1,)*len(theta.shape)).transpose()
-    phi = np.tile(phi, (3,) + (1,)*len(phi.shape)).transpose()
     
     return get_sph_theta_component(Bfields, theta, phi, normal)
 
@@ -781,12 +778,15 @@ add_field("magnetic_field_poloidal", function=_magnetic_field_poloidal,
 
 def _magnetic_field_toroidal(field,data):
     normal = data.get_field_parameter("normal")
+    d = data['magnetic_field_x']
 
-    Bfields = np.array([data['magnetic_field_x'], data['magnetic_field_y'], data['magnetic_field_z']])
+    Bfields = YTArray([data['magnetic_field_x'],
+                       data['magnetic_field_y'],
+                       data['magnetic_field_z']],
+                       d.units)
     Bfields = np.rollaxis(Bfields, 0, len(Bfields.shape))
     
     phi = data['spherical_phi']
-    phi = np.tile(phi, (3,) + (1,)*len(phi.shape)).transpose()
     
     return get_sph_phi_component(Bfields, phi, normal)
 
@@ -797,13 +797,15 @@ add_field("magnetic_field_toroidal", function=_magnetic_field_toroidal,
 def _magnetic_field_radial(field,data):
     normal = data.get_field_parameter("normal")
 
-    Bfields = np.array([data['magnetic_field_x'], data['magnetic_field_y'], data['magnetic_field_z']])
-    Bfields = np.rollaxis(Bfields, 0, len(Bfields.shape))
+    d = data['magnetic_field_x']
+
+    Bfields = YTArray([data['magnetic_field_x'],
+                       data['magnetic_field_y'],
+                       data['magnetic_field_z']],
+                       d.units)
     
     theta = data['spherical_theta']
     phi   = data['spherical_phi']
-    theta = np.tile(phi, (3,) + (1,)*len(theta.shape)).transpose()
-    phi = np.tile(phi, (3,) + (1,)*len(phi.shape)).transpose()
     
     return get_sph_r_component(Bfields, theta, phi, normal)
 
