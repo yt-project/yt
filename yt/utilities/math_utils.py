@@ -798,13 +798,14 @@ def get_ortho_basis(normal):
 def get_sph_r(coords):
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
-    return np.sqrt(np.sum(coords**2, axis=-1))
+
+    return np.sqrt(np.sum(coords**2, axis=0))
 
 def resize_vector(vector,vector_array):
     if len(vector_array.shape) == 4:
-        res_vector = np.resize(vector,(1,1,1,3))
+        res_vector = np.resize(vector,(3,1,1,1))
     else:
-        res_vector = np.resize(vector,(1,3))
+        res_vector = np.resize(vector,(3,1))
     return res_vector
 
 def get_sph_theta(coords, normal):
@@ -814,13 +815,13 @@ def get_sph_theta(coords, normal):
     
     res_normal = resize_vector(normal, coords)
 
-    tile_shape = list(coords.shape)[:-1] + [1]
+    tile_shape = [1] + list(coords.shape)[1:]
     
     J = np.tile(res_normal,tile_shape)
 
-    JdotCoords = np.sum(J*coords,axis=-1)
+    JdotCoords = np.sum(J*coords,axis=0)
     
-    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=-1)) )
+    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)) )
 
 def get_sph_phi(coords, normal):
     # We have freedom with respect to what axis (xprime) to define
@@ -838,12 +839,12 @@ def get_sph_phi(coords, normal):
     res_xprime = resize_vector(xprime, coords)
     res_yprime = resize_vector(yprime, coords)
 
-    tile_shape = list(coords.shape)[:-1] + [1]
+    tile_shape = [1] + list(coords.shape)[1:]
     Jx = np.tile(res_xprime,tile_shape)
     Jy = np.tile(res_yprime,tile_shape)
 
-    Px = np.sum(Jx*coords,axis=-1)
-    Py = np.sum(Jy*coords,axis=-1)
+    Px = np.sum(Jx*coords,axis=0)
+    Py = np.sum(Jy*coords,axis=0)
     
     return np.arctan2(Py,Px)
 
@@ -853,11 +854,11 @@ def get_cyl_r(coords, normal):
 
     res_normal = resize_vector(normal, coords)
 
-    tile_shape = list(coords.shape)[:-1] + [1]
+    tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
     
-    JcrossCoords = np.cross(J, coords)
-    return np.sqrt(np.sum(JcrossCoords**2, axis=-1))
+    JcrossCoords = np.cross(J, coords, axisa=0, axisb=0, axisc=0)
+    return np.sqrt(np.sum(JcrossCoords**2, axis=0))
 
 def get_cyl_z(coords, normal):
     # The dot product of the normal (J) with the coordinate vector 
@@ -865,10 +866,10 @@ def get_cyl_z(coords, normal):
 
     res_normal = resize_vector(normal, coords)
     
-    tile_shape = list(coords.shape)[:-1] + [1]
+    tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
 
-    return np.sum(J*coords, axis=-1)  
+    return np.sum(J*coords, axis=0)  
 
 def get_cyl_theta(coords, normal):
     # This is identical to the spherical phi component
@@ -884,13 +885,13 @@ def get_cyl_r_component(vectors, theta, normal):
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
 
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = [1] + list(vectors.shape)[1:]
     Jx = np.tile(res_xprime,tile_shape)
     Jy = np.tile(res_yprime,tile_shape)
 
     rhat = Jx*np.cos(theta) + Jy*np.sin(theta)
 
-    return np.sum(vectors*rhat,axis=-1)
+    return np.sum(vectors*rhat,axis=0)
 
 def get_cyl_theta_component(vectors, theta, normal):
     # The theta component of a vector is the vector dotted with thetahat
@@ -900,13 +901,13 @@ def get_cyl_theta_component(vectors, theta, normal):
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
 
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = [1] + list(vectors.shape)[1:]
     Jx = np.tile(res_xprime,tile_shape)
     Jy = np.tile(res_yprime,tile_shape)
 
     thetahat = -Jx*np.sin(theta) + Jy*np.cos(theta)
 
-    return np.sum(vectors*thetahat, axis=-1)
+    return np.sum(vectors*thetahat, axis=0)
 
 def get_cyl_z_component(vectors, normal):
     # The z component of a vector is the vector dotted with zhat
@@ -914,10 +915,10 @@ def get_cyl_z_component(vectors, normal):
 
     res_zprime = resize_vector(zprime, vectors)
 
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = [1] + list(vectors.shape)[1:]
     zhat = np.tile(res_zprime, tile_shape)
 
-    return np.sum(vectors*zhat, axis=-1)
+    return np.sum(vectors*zhat, axis=0)
 
 def get_sph_r_component(vectors, theta, phi, normal):
     # The r component of a vector is the vector dotted with rhat
@@ -928,7 +929,7 @@ def get_sph_r_component(vectors, theta, phi, normal):
     res_yprime = resize_vector(yprime, vectors)
     res_zprime = resize_vector(zprime, vectors)
 
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = [1] + list(vectors.shape)[1:]
     Jx = np.tile(res_xprime,tile_shape)
     Jy = np.tile(res_yprime,tile_shape)
     Jz = np.tile(res_zprime,tile_shape)
@@ -937,7 +938,7 @@ def get_sph_r_component(vectors, theta, phi, normal):
            Jy*np.sin(theta)*np.sin(phi) + \
            Jz*np.cos(theta)
 
-    return np.sum(vectors*rhat, axis=-1)
+    return np.sum(vectors*rhat, axis=0)
 
 def get_sph_phi_component(vectors, phi, normal):
     # The phi component of a vector is the vector dotted with phihat
@@ -947,13 +948,13 @@ def get_sph_phi_component(vectors, phi, normal):
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
 
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = [1] + list(vectors.shape)[1:]
     Jx = np.tile(res_xprime,tile_shape)
     Jy = np.tile(res_yprime,tile_shape)
 
     phihat = -Jx*np.sin(phi) + Jy*np.cos(phi)
 
-    return np.sum(vectors*phihat, axis=-1)
+    return np.sum(vectors*phihat, axis=0)
 
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
@@ -964,7 +965,7 @@ def get_sph_theta_component(vectors, theta, phi, normal):
     res_yprime = resize_vector(yprime, vectors)
     res_zprime = resize_vector(zprime, vectors)
 
-    tile_shape = list(vectors.shape)[:-1] + [1]
+    tile_shape = [1] + list(vectors.shape)[1:]
     Jx = np.tile(res_xprime,tile_shape)
     Jy = np.tile(res_yprime,tile_shape)
     Jz = np.tile(res_zprime,tile_shape)
@@ -973,4 +974,4 @@ def get_sph_theta_component(vectors, theta, phi, normal):
                Jy*np.cos(theta)*np.sin(phi) - \
                Jz*np.sin(theta)
 
-    return np.sum(vectors*thetahat, axis=-1)
+    return np.sum(vectors*thetahat, axis=0)

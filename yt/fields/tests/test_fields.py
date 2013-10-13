@@ -126,8 +126,13 @@ class TestFieldAccess(object):
                 v1 = g[self.field_name]
                 g.clear_data()
                 g.field_parameters.update(sp)
+                for ax in 'xyz':
+                    assert_array_equal(g[ax].shape, v1.shape)
+                r1 = field._function(field, g)
+                assert_array_equal(r1.shape, v1.shape)
                 with field.unit_registry(g):
                     res = field._function(field, g)
+                    assert_array_equal(v1.shape, res.shape)
                     res = field.apply_units(res)
                 assert_array_almost_equal_nulp(v1, res, 4)
 

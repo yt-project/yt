@@ -419,9 +419,9 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
 
     return img
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
+#@cython.cdivision(True)
+#@cython.boundscheck(False)
+#@cython.wraparound(False)
 def obtain_rvec(data):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
@@ -455,7 +455,7 @@ def obtain_rvec(data):
         zg = data['z']
         shape = (3, xg.shape[0], xg.shape[1], xg.shape[2])
         rg = YTArray(np.empty(shape, 'float64'), xg.units)
-        rg = YTArray(rg, xg.units)
+        #rg = YTArray(rg, xg.units)
         for i in range(xg.shape[0]):
             for j in range(xg.shape[1]):
                 for k in range(xg.shape[2]):

@@ -176,7 +176,10 @@ add_field("entropy", units="erg/K", function=_entropy)
 ### spherical coordinates: r (radius)
 def _spherical_r(field, data):
     center = data.get_field_parameter("center")
-    coords = obtain_rvec(data).transpose() - center
+    coords = obtain_rvec(data)
+    coords[0,...] -= center[0]
+    coords[1,...] -= center[1]
+    coords[2,...] -= center[2]
     return get_sph_r(coords)
 
 add_field("spherical_r", function=_spherical_r,
@@ -187,7 +190,10 @@ add_field("spherical_r", function=_spherical_r,
 def _spherical_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose() - center
+    coords = obtain_rvec(data)
+    coords[0,...] -= center[0]
+    coords[1,...] -= center[1]
+    coords[2,...] -= center[2]
     return get_sph_theta(coords, normal)
 
 add_field("spherical_theta", function=_spherical_theta,
@@ -197,7 +203,10 @@ add_field("spherical_theta", function=_spherical_theta,
 def _spherical_phi(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose() - center
+    coords = obtain_rvec(data)
+    coords[0,...] -= center[0]
+    coords[1,...] -= center[1]
+    coords[2,...] -= center[2]
     return get_sph_phi(coords, normal)
 
 add_field("spherical_phi", function=_spherical_phi,
@@ -207,7 +216,10 @@ add_field("spherical_phi", function=_spherical_phi,
 def _cylindrical_r(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose() - center
+    coords = obtain_rvec(data)
+    coords[0,...] -= center[0]
+    coords[1,...] -= center[1]
+    coords[2,...] -= center[2]
     return get_cyl_r(coords, normal)
 
 add_field("cylindrical_r", function=_cylindrical_r,
@@ -218,7 +230,10 @@ add_field("cylindrical_r", function=_cylindrical_r,
 def _cylindrical_z(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose() - center
+    coords = obtain_rvec(data)
+    coords[0,...] -= center[0]
+    coords[1,...] -= center[1]
+    coords[2,...] -= center[2]
     return get_cyl_z(coords, normal)
 
 add_field("cylindrical_z", function=_cylindrical_z,
@@ -229,7 +244,10 @@ add_field("cylindrical_z", function=_cylindrical_z,
 def _cylindrical_theta(field, data):
     center = data.get_field_parameter("center")
     normal = data.get_field_parameter("normal")
-    coords = obtain_rvec(data).transpose() - center
+    coords = obtain_rvec(data)
+    coords[0,...] -= center[0]
+    coords[1,...] -= center[1]
+    coords[2,...] -= center[2]
     return get_cyl_theta(coords, normal)
 
 add_field("cylindrical_theta", function=_cylindrical_theta,
