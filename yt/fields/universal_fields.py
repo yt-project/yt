@@ -275,7 +275,7 @@ add_field("height", function=_height,
 
 def _cylindrical_radial_velocity(field, data):
     normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data).transpose()
+    velocities = obtain_rv_vec(data)
     theta = resize_vector(data['cylindrical_theta'], velocities)
     return get_cyl_r_component(velocities, theta, normal)
 
@@ -290,9 +290,9 @@ add_field("cylindrical_radial_velocity_absolute",
 
 def _cylindrical_tangential_velocity(field, data):
     normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data).transpose()
+    velocities = obtain_rv_vec(data)
     theta = data['cylindrical_theta'].copy()
-    theta = np.tile(theta, (3,) + (1,)*len(theta.shape)).transpose()
+    theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
     return get_cyl_theta_component(velocities, theta, normal)
 
 def _cylindrical_tangential_velocity_absolute(field, data):

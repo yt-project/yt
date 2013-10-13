@@ -137,11 +137,15 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
+    #do = 0
     for field in sorted(FieldInfo):
         if isinstance(field, types.TupleType):
             fname = field[0]
         else:
             fname = field
+        #if fname == "dynamical_time":
+        #    do = 1
+        #if do == 0: continue
         if fname.startswith("CuttingPlane"): continue
         if fname.startswith("particle"): continue
         if fname.startswith("CIC"): continue
