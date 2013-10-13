@@ -37,6 +37,7 @@ add_stream_field = KnownStreamFields.add_field
 add_stream_field("density", function = NullFunc, units='code_mass/code_length**3')
 add_stream_field("number_density", function = NullFunc, units='1/code_length**3')
 add_stream_field("pressure", function = NullFunc, units='dyne/code_length**2')
+add_stream_field("thermal_energy", function = NullFunc, units='erg / g')
 add_stream_field("temperature", function = NullFunc, units='K')
 add_stream_field("x-velocity", function = NullFunc, units='code_length/code_time')
 add_stream_field("y-velocity", function = NullFunc, units='code_length/code_time')
