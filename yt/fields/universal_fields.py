@@ -113,10 +113,6 @@ add_field("cells_per_bin", function=_ones,
           display_field = False)
 
 def _sound_speed(field, data):
-    # This is defined only for enzo data.
-    if data.pf["EOSType"] == 1:
-        return ( np.ones(data["density"].shape, dtype=np.float64)
-                 * data.pf["EOSSoundSpeed"] )
     return np.sqrt( data.pf.gamma * data["pressure"] / data["density"] )
 
 add_field("sound_speed", function=_sound_speed, units="cm/s")
@@ -137,7 +133,8 @@ def _courant_time_step(field, data):
     t1 = data["dx"] / (data["sound_speed"] + np.abs(data["x-velocity"]))
     t2 = data["dy"] / (data["sound_speed"] + np.abs(data["y-velocity"]))
     t3 = data["dz"] / (data["sound_speed"] + np.abs(data["z-velocity"]))
-    return np.minimum(np.minimum(t1, t2), t3)
+    tr = np.minimum(np.minimum(t1, t2), t3)
+    return field.apply_units(tr)
 
 add_field("courant_time_step", function=_courant_time_step,
           units="s")
@@ -164,12 +161,12 @@ def _pressure(field, data):
 add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 def _entropy(field, data):
-    if data.has_field_parameter("mu"):
-        mw = mh * data.get_field_parameter("mu")
-    else:
-        mw = mh
+    mw = data.get_field_parameter("mu"):
+    if mw is None:
+        mw = 1.0
+    mw = mh
     try:
-        gammam1 = data.pf["Gamma"] - 1.0
+        gammam1 = data.pf.gamma - 1.0
     except:
         gammam1 = 5./3. - 1.0
     return kboltz * data["temperature"] / \
@@ -507,11 +504,11 @@ def _velocity_divergence(field, data):
     f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
     f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
     if data.pf.dimensionality > 1:
-        ds = div_fac * data["dy"].flat[0]
+        ds = div_fac * just_one(data["dy"])
         f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
         f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
     if data.pf.dimensionality > 2:
-        ds = div_fac * data["dz"].flat[0]
+        ds = div_fac * just_one(flat[0])
         f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
         f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = YTArray(np.zeros(data["x-velocity"].shape,
