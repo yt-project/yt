@@ -796,7 +796,6 @@ add_field("magnetic_field_toroidal", function=_magnetic_field_toroidal,
 
 def _magnetic_field_radial(field,data):
     normal = data.get_field_parameter("normal")
-
     d = data['magnetic_field_x']
 
     Bfields = YTArray([data['magnetic_field_x'],
@@ -809,8 +808,9 @@ def _magnetic_field_radial(field,data):
     
     return get_sph_r_component(Bfields, theta, phi, normal)
 
-add_field("magnetic_field_radial", function=_magnetic_field_toroidal,
-          units="gauss", validators=[ValidateParameter("normal")])
+add_field("magnetic_field_radial", function=_magnetic_field_radial,
+          units="gauss",
+          validators=[ValidateParameter("normal")])
 
 def _vorticity_squared(field, data):
     mylog.debug("Generating vorticity on %s", data)

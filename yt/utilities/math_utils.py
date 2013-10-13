@@ -15,6 +15,8 @@ Commonly used mathematical functions.
 
 import numpy as np
 import math
+from yt.data_objects.yt_array import \
+    YTArray
 
 prec_accum = {
     np.int:                 np.int64,
@@ -930,9 +932,10 @@ def get_sph_r_component(vectors, theta, phi, normal):
     res_zprime = resize_vector(zprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
-    Jz = np.tile(res_zprime,tile_shape)
+
+    Jx, Jy, Jz = (
+        YTArray(np.tile(rprime, tile_shape), "")
+        for rprime in (res_xprime, res_yprime, res_zprime))
 
     rhat = Jx*np.sin(theta)*np.cos(phi) + \
            Jy*np.sin(theta)*np.sin(phi) + \
@@ -949,8 +952,8 @@ def get_sph_phi_component(vectors, phi, normal):
     res_yprime = resize_vector(yprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
+    Jx = YTArray(np.tile(res_xprime,tile_shape), "")
+    Jy = YTArray(np.tile(res_yprime,tile_shape), "")
 
     phihat = -Jx*np.sin(phi) + Jy*np.cos(phi)
 
@@ -966,9 +969,10 @@ def get_sph_theta_component(vectors, theta, phi, normal):
     res_zprime = resize_vector(zprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
-    Jz = np.tile(res_zprime,tile_shape)
+    Jx, Jy, Jz = (
+        YTArray(np.tile(rprime, tile_shape), "")
+        for rprime in (res_xprime, res_yprime, res_zprime))
+
     
     thetahat = Jx*np.cos(theta)*np.cos(phi) + \
                Jy*np.cos(theta)*np.sin(phi) - \
