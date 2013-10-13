@@ -161,7 +161,7 @@ def _pressure(field, data):
 add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 def _entropy(field, data):
-    mw = data.get_field_parameter("mu"):
+    mw = data.get_field_parameter("mu")
     if mw is None:
         mw = 1.0
     mw = mh
