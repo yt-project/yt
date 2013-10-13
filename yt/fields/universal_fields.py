@@ -87,6 +87,7 @@ def _ones_over_dx(field, data):
     return np.ones(data["ones"].shape,
                    dtype=data["density"].dtype)/data['dx']
 add_field("ones_over_dx", function=_ones_over_dx,
+          units = "1 / cm",
           display_field=False)
 
 def _zeros(field, data):
