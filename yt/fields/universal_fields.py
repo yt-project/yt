@@ -329,7 +329,7 @@ def _cell_mass(field, data):
 add_field("cell_mass", function=_cell_mass, units="g")
 
 def _total_mass(field, data):
-    return (data["density"] + data["particle_density"])*data["cell_volume"]
+    return data["cell_mass"] + data["deposit","all_mass"]
 
 add_field("total_mass", function=_total_mass, units="g")
 
@@ -527,7 +527,7 @@ def _velocity_divergence(field, data):
         f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
         f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
     if data.pf.dimensionality > 2:
-        ds = div_fac * just_one(flat[0])
+        ds = div_fac * just_one(data["dz"])
         f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
         f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = YTArray(np.zeros(data["x-velocity"].shape,
@@ -826,26 +826,26 @@ def _vorticity_squared(field, data):
     new_field = YTArray(np.zeros(data["x-velocity"].shape), 'cm/s')
     dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
              data["z-velocity"][1:-1,sl_left,1:-1]) \
-             / (div_fac*data["dy"].flat[0])
+             / (div_fac*just_one(data["dy"]))
     dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
              data["y-velocity"][1:-1,1:-1,sl_left]) \
-             / (div_fac*data["dz"].flat[0])
+             / (div_fac*just_one(data["dz"]))
     new_field[1:-1,1:-1,1:-1] += (dvzdy - dvydz)**2.0
     del dvzdy, dvydz
     dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
              data["x-velocity"][1:-1,1:-1,sl_left]) \
-             / (div_fac*data["dz"].flat[0])
+             / (div_fac*just_one(data["dz"]))
     dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
              data["z-velocity"][sl_left,1:-1,1:-1]) \
-             / (div_fac*data["dx"].flat[0])
+             / (div_fac*just_one(data["dx"]))
     new_field[1:-1,1:-1,1:-1] += (dvxdz - dvzdx)**2.0
     del dvxdz, dvzdx
     dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
              data["y-velocity"][sl_left,1:-1,1:-1]) \
-             / (div_fac*data["dx"].flat[0])
+             / (div_fac*just_one(data["dx"]))
     dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
              data["x-velocity"][1:-1,sl_left,1:-1]) \
-             / (div_fac*data["dy"].flat[0])
+             / (div_fac*just_one(data["dy"]))
     new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
     del dvydx, dvxdy
     new_field = np.abs(new_field)
@@ -869,7 +869,7 @@ def _pressure_gradient_x(field, data):
         div_fac = 2.0
     new_field = YTArray(np.zeros(data["pressure"].shape, dtype=np.float64),
                         'dyne/cm**3')
-    ds = div_fac * data['dx'].flat[0]
+    ds = div_fac * just_one(data['dx'])
     new_field[1:-1,1:-1,1:-1]  = data["pressure"][sl_right,1:-1,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["pressure"][sl_left ,1:-1,1:-1]/ds
     return new_field
@@ -886,7 +886,7 @@ def _pressure_gradient_y(field, data):
         div_fac = 2.0
     new_field = YTArray(np.zeros(data["pressure"].shape, dtype=np.float64),
                         'dyne/cm**3')
-    ds = div_fac * data['dy'].flat[0]
+    ds = div_fac * just_one(data['dy'])
     new_field[1:-1,1:-1,1:-1]  = data["pressure"][1:-1,sl_right,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["pressure"][1:-1,sl_left ,1:-1]/ds
     return new_field
@@ -903,7 +903,7 @@ def _pressure_gradient_z(field, data):
         div_fac = 2.0
     new_field = YTArray(np.zeros(data["pressure"].shape, dtype=np.float64),
                         'dyne/cm**3')
-    ds = div_fac * data['dz'].flat[0]
+    ds = div_fac * just_one(data['dz'])
     new_field[1:-1,1:-1,1:-1]  = data["pressure"][1:-1,1:-1,sl_right]/ds
     new_field[1:-1,1:-1,1:-1] -= data["pressure"][1:-1,1:-1,sl_left ]/ds
     return new_field
@@ -934,7 +934,7 @@ def _density_gradient_x(field, data):
         div_fac = 2.0
     new_field = YTArray(np.zeros(data["density"].shape, dtype=np.float64),
                         'g/cm**4')
-    ds = div_fac * data['dx'].flat[0]
+    ds = div_fac * just_one(data['dx'])
     new_field[1:-1,1:-1,1:-1]  = data["density"][sl_right,1:-1,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["density"][sl_left ,1:-1,1:-1]/ds
     return new_field
@@ -950,7 +950,7 @@ def _density_gradient_y(field, data):
         div_fac = 2.0
     new_field = YTArray(np.zeros(data["density"].shape, dtype=np.float64),
                         'g/cm**4')
-    ds = div_fac * data['dy'].flat[0]
+    ds = div_fac * just_one(data['dy'])
     new_field[1:-1,1:-1,1:-1]  = data["density"][1:-1,sl_right,1:-1]/ds
     new_field[1:-1,1:-1,1:-1] -= data["density"][1:-1,sl_left ,1:-1]/ds
     return new_field
@@ -966,7 +966,7 @@ def _density_gradient_z(field, data):
         div_fac = 2.0
     new_field = YTArray(np.zeros(data["density"].shape, dtype=np.float64),
                         'g/cm**4')
-    ds = div_fac * data['dz'].flat[0]
+    ds = div_fac * just_one(data['dz'])
     new_field[1:-1,1:-1,1:-1]  = data["density"][1:-1,1:-1,sl_right]/ds
     new_field[1:-1,1:-1,1:-1] -= data["density"][1:-1,1:-1,sl_left ]/ds
     return new_field
@@ -1026,10 +1026,10 @@ def _vorticity_x(field, data):
       YTArray(np.zeros(data["z-velocity"].shape, dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["z-velocity"][1:-1,sl_right,1:-1] -
                                  data["z-velocity"][1:-1,sl_left,1:-1]) \
-                                 / (div_fac*data["dy"].flat[0])
+                                 / (div_fac*just_one(data["dy"]))
     new_field[1:-1,1:-1,1:-1] -= (data["y-velocity"][1:-1,1:-1,sl_right] -
                                   data["y-velocity"][1:-1,1:-1,sl_left]) \
-                                  / (div_fac*data["dz"].flat[0])
+                                  / (div_fac*just_one(data["dz"]))
     return new_field
 def _vorticity_y(field, data):
     # We need to set up stencils
@@ -1045,10 +1045,10 @@ def _vorticity_y(field, data):
       YTArray(np.zeros(data["z-velocity"].shape, dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["x-velocity"][1:-1,1:-1,sl_right] -
                                  data["x-velocity"][1:-1,1:-1,sl_left]) \
-                                 / (div_fac*data["dz"].flat[0])
+                                 / (div_fac*just_one(data["dz"]))
     new_field[1:-1,1:-1,1:-1] -= (data["z-velocity"][sl_right,1:-1,1:-1] -
                                   data["z-velocity"][sl_left,1:-1,1:-1]) \
-                                  / (div_fac*data["dx"].flat[0])
+                                  / (div_fac*just_one(data["dx"]))
     return new_field
 def _vorticity_z(field, data):
     # We need to set up stencils
@@ -1064,10 +1064,10 @@ def _vorticity_z(field, data):
       YTArray(np.zeros(data["z-velocity"].shape, dtype=np.float64), '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["y-velocity"][sl_right,1:-1,1:-1] -
                                  data["y-velocity"][sl_left,1:-1,1:-1]) \
-                                 / (div_fac*data["dx"].flat[0])
+                                 / (div_fac*just_one(data["dx"]))
     new_field[1:-1,1:-1,1:-1] -= (data["x-velocity"][1:-1,sl_right,1:-1] -
                                   data["x-velocity"][1:-1,sl_left,1:-1]) \
-                                  / (div_fac*data["dy"].flat[0])
+                                  / (div_fac*just_one(data["dy"]))
     return new_field
 
 for ax in 'xyz':
