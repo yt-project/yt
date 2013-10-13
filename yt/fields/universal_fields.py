@@ -784,7 +784,6 @@ def _magnetic_field_toroidal(field,data):
                        data['magnetic_field_y'],
                        data['magnetic_field_z']],
                        d.units)
-    Bfields = np.rollaxis(Bfields, 0, len(Bfields.shape))
     
     phi = data['spherical_phi']
     
