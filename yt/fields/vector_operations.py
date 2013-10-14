@@ -13,15 +13,15 @@ This is where we define a handful of vector operations for fields.
 
 from yt.data_objects.yt_array import YTArray
 
-def create_vector_fields(pf, registry, basename, field_units,
+def create_vector_fields(registry, basename, field_units,
                          ftype = "gas", slice_info = None)
 
     xn, yn, zn = ["%s_%s" % (basename, ax) for ax in 'xyz']
 
     # Is this safe?
-    if pf.dimensionality < 3:
+    if registry.pf.dimensionality < 3:
         zn = "zeros"
-    if pf.dimensionality < 2:
+    if registry.pf.dimensionality < 2:
         yn = "zeros"
 
     def _magnitude(field, data):
