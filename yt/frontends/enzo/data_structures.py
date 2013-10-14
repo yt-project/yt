@@ -43,9 +43,10 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
 from .fields import \
-    EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
-    add_enzo_field, add_enzo_2d_field, add_enzo_1d_field, \
-    KnownEnzoFields, _setup_particle_fields
+    setup_species_fields, \
+    setup_enzo_gas_fields, \
+    setup_energy_field, \
+    setup_enzo_particle_fields
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -650,8 +651,6 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
-    _fieldinfo_fallback = EnzoFieldInfo
-    _fieldinfo_known = KnownEnzoFields
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"
 
@@ -682,7 +681,6 @@ class EnzoStaticOutput(StaticOutput):
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
-        self._fieldinfo_fallback = Enzo1DFieldInfo
         self.domain_left_edge = \
             np.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
@@ -690,7 +688,6 @@ class EnzoStaticOutput(StaticOutput):
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
-        self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \

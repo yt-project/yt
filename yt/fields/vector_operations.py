@@ -103,6 +103,3 @@ def create_vector_fields(pf, registry, basename, field_units,
     registry.add_field((ftype, "%s_divergence_absolute" % basename),
                        function = _divergence, units = "1/s")
 
-def create_gradient_fields(pf, registry, basename, field_units,
-                           ftype = "gas", slice_info = None)
-
