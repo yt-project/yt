@@ -170,8 +170,11 @@ def _entropy(field, data):
         gammam1 = data.pf.gamma - 1.0
     except:
         gammam1 = 5./3. - 1.0
-    return kboltz * data["temperature"] / \
+    tr = kboltz * data["temperature"] / \
            ((data["density"]/mw)**gammam1)
+    # Gamma here needs some fancy units.
+    # TODO: Add fancy units for Gamma!
+    return field.apply_units(tr)
 add_field("entropy", units="erg/K", function=_entropy)
 
 ### spherical coordinates: r (radius)
