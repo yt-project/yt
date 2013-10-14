@@ -1098,6 +1098,7 @@ def _vorticity_stretching_z(field, data):
 for ax in 'xyz':
     n = "vorticity_stretching_%s" % ax
     add_field(n, function=eval("_%s" % n),
+              units = "s**(-2)",
               validators=[ValidateSpatial(0)])
 def _vorticity_stretching_magnitude(field, data):
     return np.sqrt(data["vorticity_stretching_x"]**2 +
