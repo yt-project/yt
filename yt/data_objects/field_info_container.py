@@ -51,6 +51,12 @@ class FieldInfoContainer(dict): # Resistance has utility
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
 
+    def add_output_field(self, name, **kwargs):
+        self[name] = DerivedField(name, NullFunc, **kwargs)
+
+    def alias(self, alias_name, original_name):
+        self[alias_name] = self[original_name]
+
     def add_grad(self, field, **kwargs):
         """
         Creates the partial derivative of a given field. This function will

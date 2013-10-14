@@ -467,7 +467,10 @@ def obtain_rvec(data):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def obtain_rv_vec(data):
+def obtain_rv_vec(data, field_names = ("x-velocity",
+                                       "y-velocity",
+                                       "z-velocity"),
+                  bulk_vector = "bulk_velocity"):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] vxf
@@ -480,15 +483,15 @@ def obtain_rv_vec(data):
     cdef np.ndarray[np.float64_t, ndim=4] rvg
     cdef np.float64_t bv[3]
     cdef int i, j, k
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity == None:
-        bulk_velocity = np.zeros(3)
-    bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
-    if len(data['x-velocity'].shape) == 1:
+    bulk_vector = data.get_field_parameter(bulk_vectory)
+    if bulk_vector == None:
+        bulk_vector = np.zeros(3)
+    bv[0] = bulk_vector[0]; bv[1] = bulk_vector[1]; bv[2] = bulk_vector[2]
+    if len(data[field_names[0]].shape) == 1:
         # One dimensional data
-        vxf = data['x-velocity'].astype("float64")
-        vyf = data['y-velocity'].astype("float64")
-        vzf = data['z-velocity'].astype("float64")
+        vxf = data[field_names[0]].astype("float64")
+        vyf = data[field_names[1]].astype("float64")
+        vzf = data[field_names[2]].astype("float64")
         rvf = YTArray(np.empty((3, vxf.shape[0]), 'float64'), vxf.units)
         for i in range(vxf.shape[0]):
             rvf[0, i] = vxf[i] - bv[0]
@@ -497,9 +500,9 @@ def obtain_rv_vec(data):
         return rvf
     else:
         # Three dimensional data
-        vxg = data['x-velocity'].astype("float64")
-        vyg = data['y-velocity'].astype("float64")
-        vzg = data['z-velocity'].astype("float64")
+        vxg = data[field_names[0]].astype("float64")
+        vyg = data[field_names[1]].astype("float64")
+        vzg = data[field_names[2]].astype("float64")
         shape = (3, vxg.shape[0], vxg.shape[1], vxg.shape[2])
         rvg = YTArray(np.empty(shape, 'float64'), vxg.units)
         for i in range(vxg.shape[0]):

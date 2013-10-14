@@ -110,9 +110,6 @@ add_field("ones", function=_ones,
           units = "",
           display_field=False)
 
-add_field("cells_per_bin", function=_ones,
-          display_field = False)
-
 def _sound_speed(field, data):
     return np.sqrt( data.pf.gamma * data["pressure"] / data["density"] )
 
@@ -139,14 +136,6 @@ def _courant_time_step(field, data):
 
 add_field("courant_time_step", function=_courant_time_step,
           units="s")
-
-def _velocity_magnitude(field, data):
-    """ M{|v|} """
-    velocities = obtain_rv_vec(data)
-    return np.sqrt(np.sum(velocities**2, axis=0))
-
-add_field("velocity_magnitude", function=_velocity_magnitude,
-          take_log=False, units="cm/s")
 
 def _tangential_over_velocity_magnitude(field, data):
     # @todo: can velocity_magnitude be negative?
@@ -511,43 +500,6 @@ def _averaged_density(field, data):
 add_field("averaged_density", function=_averaged_density,
           validators=[ValidateSpatial(1, ["density"])])
 
-def _velocity_divergence(field, data):
-    # We need to set up stencils.
-    # This is based on enzo parameters and should probably be changed.
-    if data.pf["HydroMethod"] == 2:
-        sl_left = slice(None,-2,None)
-        sl_right = slice(1,-1,None)
-        div_fac = 1.0
-    else:
-        sl_left = slice(None,-2,None)
-        sl_right = slice(2,None,None)
-        div_fac = 2.0
-    ds = div_fac * just_one(data["dx"])
-    f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
-    f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-    if data.pf.dimensionality > 1:
-        ds = div_fac * just_one(data["dy"])
-        f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-        f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-    if data.pf.dimensionality > 2:
-        ds = div_fac * just_one(data["dz"])
-        f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-        f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
-    new_field = YTArray(np.zeros(data["x-velocity"].shape,
-                                 dtype=np.float64), '1/s')
-    new_field[1:-1,1:-1,1:-1] = f
-    return new_field
-
-add_field("velocity_divergence", function=_velocity_divergence,
-          validators=[ValidateSpatial(1, ["x-velocity", "y-velocity",
-                                          "z-velocity"])],
-          units="1/s", take_log=False)
-
-def _velocity_divergence_absolute(field, data):
-    return np.abs(data["velocity_divergence"])
-
-add_field("velocity_divergence_absolute", function=_velocity_divergence_absolute, units="1/s")
-
 def _contours(field, data):
     return -YTArray(np.ones_like(data["ones"]))
 
@@ -637,77 +589,6 @@ add_field("radius", function=_radius,
           validators=[ValidateParameter("center")],
           units="cm")
 
-def _radial_velocity(field, data):
-    normal = data.get_field_parameter("normal")
-    velocities = obtain_rv_vec(data)
-    theta = data['spherical_theta'].copy()
-    phi = data['spherical_phi'].copy()
-    return get_sph_r_component(velocities, theta, phi, normal)
-
-def _radial_velocity_absolute(field, data):
-    return np.abs(_radial_velocity(field, data))
-add_field("radial_velocity", function=_radial_velocity,
-          units="cm/s")
-add_field("radial_velocity_absolute", function=_radial_velocity_absolute,
-          units="cm/s")
-
-def _tangential_velocity(field, data):
-    return np.sqrt(data["velocity_magnitude"]**2.0
-                 - data["radial_velocity"]**2.0)
-add_field("tangential_velocity",
-          function=_tangential_velocity,
-          take_log=False, units="cm/s")
-
-def _cutting_plane_velocity_x(field, data):
-    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                           for ax in 'xyz']
-    bv = data.get_field_parameter("bulk_velocity")
-    if bv == None: bv = np.zeros(3)
-    tr  = (data["x-velocity"] - bv[0]) * x_vec[0]
-    tr += (data["y-velocity"] - bv[1]) * x_vec[1]
-    tr += (data["z-velocity"] - bv[2]) * x_vec[2]
-    return tr
-add_field("cutting_plane_velocity_x",
-          function=_cutting_plane_velocity_x,
-          validators=[ValidateParameter("cp_%s_vec" % ax)
-                      for ax in 'xyz'], units="km/s")
-def _cutting_plane_velocity_y(field, data):
-    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                           for ax in 'xyz']
-    bv = data.get_field_parameter("bulk_velocity")
-    if bv == None: bv = np.zeros(3)
-    tr  = (data["x-velocity"] - bv[0]) * y_vec[0]
-    tr += (data["y-velocity"] - bv[1]) * y_vec[1]
-    tr += (data["z-velocity"] - bv[2]) * y_vec[2]
-    return tr
-add_field("cutting_plane_velocity_y",
-          function=_cutting_plane_velocity_y,
-          validators=[ValidateParameter("cp_%s_vec" % ax)
-                      for ax in 'xyz'], units="km/s")
-
-def _cutting_plane_magnetic_field_x(field, data):
-    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                           for ax in 'xyz']
-    tr  = data["magnetic_field_x"] * x_vec[0]
-    tr += data["magnetic_field_y"] * x_vec[1]
-    tr += data["magnetic_field_z"] * x_vec[2]
-    return tr
-add_field("cutting_plane_magnetic_field_x",
-          function=_cutting_plane_magnetic_field_x,
-          validators=[ValidateParameter("cp_%s_vec" % ax)
-                      for ax in 'xyz'], units="gauss")
-def _cutting_plane_magnetic_field_y(field, data):
-    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                           for ax in 'xyz']
-    tr  = data["magnetic_field_x"] * y_vec[0]
-    tr += data["magnetic_field_y"] * y_vec[1]
-    tr += data["magnetic_field_z"] * y_vec[2]
-    return tr
-add_field("cutting_plane_magnetic_field_y",
-          function=_cutting_plane_magnetic_field_y,
-          validators=[ValidateParameter("cp_%s_vec" % ax)
-                      for ax in 'xyz'], units="gauss")
-
 def _mean_molecular_weight(field,data):
     return (data["density"] / (mh *data["number_density"]))
 add_field("mean_molecular_weight", function=_mean_molecular_weight, units=r"")
@@ -732,18 +613,6 @@ def _magnetic_energy(field,data):
 add_field("magnetic_energy",function=_magnetic_energy,
           units="erg / cm**3",
           display_name=r"\rm{Magnetic}\/\rm{Energy}")
-
-def _magnetic_field_magnitude(field,data):
-    """This assumes that your front end has provided Bx, By, Bz in
-    units of Gauss. If you use MKS, make sure to write your own
-    magnetic_field_magnitude field to deal with non-unitary \mu_0.
-    """
-    return np.sqrt((data["magnetic_field_x"]**2 +
-                    data["magnetic_field_y"]**2 +
-                    data["magnetic_field_z"]**2))
-add_field("magnetic_field_magnitude",
-          function=_magnetic_field_magnitude,
-          display_name=r"|B|", units="gauss")
 
 def _plasma_beta(field,data):
     """This assumes that your front end has provided Bx, By, Bz in
@@ -794,24 +663,6 @@ def _magnetic_field_toroidal(field,data):
     return get_sph_phi_component(Bfields, phi, normal)
 
 add_field("magnetic_field_toroidal", function=_magnetic_field_toroidal,
-          units="gauss",
-          validators=[ValidateParameter("normal")])
-
-def _magnetic_field_radial(field,data):
-    normal = data.get_field_parameter("normal")
-    d = data['magnetic_field_x']
-
-    Bfields = YTArray([data['magnetic_field_x'],
-                       data['magnetic_field_y'],
-                       data['magnetic_field_z']],
-                       d.units)
-    
-    theta = data['spherical_theta']
-    phi   = data['spherical_phi']
-    
-    return get_sph_r_component(Bfields, theta, phi, normal)
-
-add_field("magnetic_field_radial", function=_magnetic_field_radial,
           units="gauss",
           validators=[ValidateParameter("normal")])
 
