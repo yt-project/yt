@@ -276,6 +276,7 @@ class YTArray(np.ndarray):
 
         self *= conversion_factor
         self.units = new_units
+        return self
 
     def convert_to_cgs(self):
         """
