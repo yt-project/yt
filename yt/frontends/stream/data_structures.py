@@ -55,7 +55,9 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.lib import \
-    get_box_grids_level
+    get_box_grids_level, \
+    GridTree, \
+    MatchPointsToGrids
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.data_objects.yt_array import YTQuantity, YTArray
@@ -380,19 +382,40 @@ def assign_particle_data(pf, pdata) :
     will overwrite any existing particle data, so be careful!
     """
     
+    # Note: what we need to do here is a bit tricky.  Because occasionally this
+    # gets called before we property handle the field detection, we cannot use
+    # any information about the hierarchy.  Fortunately for us, we can generate
+    # most of the GridTree utilizing information we already have from the
+    # stream handler.
+    
     if len(pf.stream_handler.fields) > 1:
 
         try:
             x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
         except KeyError:
             raise KeyError("Cannot decompose particle data without position fields!")
-        
-        particle_grids, particle_grid_inds = pf.h.find_points(x,y,z)
+        num_grids = len(pf.stream_handler.fields)
+        parent_ids = pf.stream_handler.parent_ids
+        num_children = np.zeros(num_grids, dtype='int64')
+        # We're going to do this the slow way
+        mask = np.empty(num_grids, dtype="bool")
+        for i in xrange(num_grids):
+            np.equal(parent_ids, i, mask)
+            num_children[i] = mask.sum()
+        levels = pf.stream_handler.levels.astype("int64").ravel()
+        grid_tree = GridTree(num_grids, 
+                             pf.stream_handler.left_edges,
+                             pf.stream_handler.right_edges,
+                             pf.stream_handler.parent_ids,
+                             levels, num_children)
+
+        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+        particle_grid_inds = pts.find_points_in_tree()
         idxs = np.argsort(particle_grid_inds)
         particle_grid_count = np.bincount(particle_grid_inds,
-                                          minlength=pf.h.num_grids)
-        particle_indices = np.zeros(pf.h.num_grids + 1, dtype='int64')
-        if pf.h.num_grids > 1 :
+                                          minlength=num_grids)
+        particle_indices = np.zeros(num_grids + 1, dtype='int64')
+        if num_grids > 1 :
             np.add.accumulate(particle_grid_count.squeeze(),
                               out=particle_indices[1:])
         else :
