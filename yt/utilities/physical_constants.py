@@ -27,7 +27,7 @@ charge_proton_cgs = YTQuantity(4.8032056e-10, 'esu')
 
 # Physical Constants
 boltzmann_constant_cgs = YTQuantity(1.3806488e-16, 'erg/K')
-gravitational_constant_cgs  = YTQuantity(6.67384-8, 'cm**3/g/s**2')
+gravitational_constant_cgs  = YTQuantity(6.67384e-8, 'cm**3/g/s**2')
 planck_constant_cgs   = YTQuantity(6.62606957e-27, 'erg*s')
 stefan_boltzmann_constant_cgs = YTQuantity(5.670373e-5, 'erg/cm**2/s**1/K**4')
 # The following value was calcualted assuming H = 100 km/s/Mpc.
