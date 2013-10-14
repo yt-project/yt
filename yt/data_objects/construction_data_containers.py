@@ -498,10 +498,12 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                         self.global_startindex, chunk.icoords, chunk.ires,
                         domain_dims, self.pf.refine_by)
         for name, v in zip(fields, output_fields):
-            self[name] = v
+            fi = self.pf._get_field_info(*name)
+            self[name] = YTArray(v, fi.units)
 
     def _generate_container_field(self, field):
-        rv = YTArray(np.ones(self.ActiveDimensions, dtype="float64"))
+        rv = YTArray(np.ones(self.ActiveDimensions, dtype="float64"),
+                             "code_length")
         if field == "dx":
             np.multiply(rv, self.dds[0], rv)
         elif field == "dy":
@@ -662,7 +664,8 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
-            self[name] = v
+            fi = self.pf._get_field_info(*name)
+            self[name] = YTArray(v, fi.units)
 
     def _initialize_level_state(self, fields):
         ls = LevelState()
