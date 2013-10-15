@@ -47,6 +47,12 @@ if __level >= int(ytcfg_defaults["loglevel"]):
     mylog.debug("Turning off NumPy error reporting")
     np.seterr(all = 'ignore')
 
+from yt.fields.api import \
+    field_plugins, \
+    DerivedField, \
+    FieldDetector, \
+    FieldInfoContainer
+
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \

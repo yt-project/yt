@@ -20,6 +20,9 @@ import numpy as np
 import inspect
 import copy
 
+from .derived_field import \
+    ValidateParameter
+
 from .field_plugin_registry import \
     register_field_plugin
 

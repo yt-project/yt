@@ -28,6 +28,8 @@ from .field_detector import \
     FieldDetector
 from yt.utilities.exceptions import \
     YTFieldNotFound
+from .field_plugin_registry import \
+    field_plugins
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -39,10 +41,11 @@ class FieldInfoContainer(dict): # Resistance has utility
     """
     fallback = None
 
-    def __init__(self, pf, field_list):
+    def __init__(self, pf, field_list, slice_info = None):
         self.pf = pf
         # Now we start setting things up.
         self.field_list = field_list
+        self.slice_info = slice_info
 
     def add_field(self, name, function=None, **kwargs):
         """
@@ -58,6 +61,24 @@ class FieldInfoContainer(dict): # Resistance has utility
                 return function
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
+
+    def load_all_plugins(self, ftype="gas"):
+        for n in sorted(field_plugins):
+            loaded, unavail = self.load_plugin(n, ftype)
+            mylog.debug("Loaded %s (%s new fields)",
+                n, len(loaded))
+
+    def load_plugin(self, plugin_name, ftype = "gas"):
+        orig = set(self.items())
+        f = field_plugins[plugin_name]
+        f(self, ftype, slice_info = self.slice_info)
+        loaded = [n for n, v in set(self.items()).difference(orig)]
+        deps, unavailable = self.check_derived_fields(loaded)
+        self.pf.field_dependencies.update(deps)
+        # Note we may have duplicated
+        dfl = set(self.pf.h.derived_field_list).union(deps.keys())
+        self.pf.h.derived_field_list = list(sorted(dfl))
+        return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
         self[name] = DerivedField(name, NullFunc, **kwargs)
@@ -167,6 +188,7 @@ class FieldInfoContainer(dict): # Resistance has utility
         unavailable = []
         fields_to_check = fields_to_check or self.keys()
         for field in fields_to_check:
+            mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError
             if field in self.field_list: continue
             fi = self[field]

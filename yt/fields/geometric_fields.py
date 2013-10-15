@@ -16,7 +16,7 @@ transformations.
 
 import numpy as np
 
-from yt.data_objects.derived_fields import \
+from .derived_field import \
     ValidateParameter
 
 from .field_plugin_registry import \

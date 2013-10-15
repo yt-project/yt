@@ -249,6 +249,8 @@ class StaticOutput(object):
                 mylog.info("Parameters: %-25s = %s", a, v)
 
     def create_field_info(self):
+        self.field_dependencies = {}
+        self.h.derived_field_list = []
         self.field_info = self._field_info_class(self, self.h.field_list)
         self.coordinates.setup_fields(self.field_info)
         self.field_info.setup_fluid_fields()
@@ -259,9 +261,6 @@ class StaticOutput(object):
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
         deps, unavailable = self.field_info.check_derived_fields()
-        self.h.derived_field_list = [deps.keys()]
-        self.field_dependencies = deps
-        self.h.derived_field_list.sort()
 
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":

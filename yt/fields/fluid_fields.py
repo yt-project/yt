@@ -15,8 +15,9 @@ Here are some fields that are specific to fluids.
 
 import numpy as np
 
-from yt.data_objects.derived_fields import \
-    ValidateParameter
+from .derived_field import \
+    ValidateParameter, \
+    ValidateSpatial
 
 from .field_plugin_registry import \
     register_field_plugin
@@ -112,7 +113,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     # This may not be appropriate to have an 'ftype' for.
     def _mean_molecular_weight(field,data):
         return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
-    add_field((ftype, "mean_molecular_weight"),
+    registry.add_field((ftype, "mean_molecular_weight"),
               function=_mean_molecular_weight,
               units=r"")
 
