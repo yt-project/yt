@@ -15,6 +15,8 @@ import contextlib
 
 from yt.funcs import \
     ensure_list
+from yt.data_objects.yt_array import \
+    YTArray
 from .field_exceptions import \
     ValidationException, \
     NeedsGridType, \
@@ -23,6 +25,8 @@ from .field_exceptions import \
     NeedsProperty, \
     NeedsParameter, \
     FieldUnitsError
+from .field_detector import \
+    FieldDetector
 
 def derived_field(**kwargs):
     def inner_decorator(function):

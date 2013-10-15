@@ -49,6 +49,7 @@ class GeometryHandler(ParallelAnalysisInterface):
     _unsupported_objects = ()
 
     def __init__(self, pf, data_style):
+        self.filtered_particle_types = []
         ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file

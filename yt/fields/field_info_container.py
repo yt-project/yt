@@ -17,11 +17,16 @@ native.
 
 import numpy as np
 
+from yt.funcs import mylog
 from yt.utilities.units import Unit
 from yt.data_objects.yt_array import YTArray
 from .derived_field import \
     DerivedField, \
     NullFunc
+from .field_detector import \
+    FieldDetector
+from yt.utilities.exceptions import \
+    YTFieldNotFound
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -157,3 +162,27 @@ class FieldInfoContainer(dict): # Resistance has utility
             keys += self.fallback.keys()
         return keys
 
+    def check_derived_fields(self, fields_to_check = None):
+        deps = {}
+        unavailable = []
+        fields_to_check = fields_to_check or self.keys()
+        for field in fields_to_check:
+            if field not in self: raise RuntimeError
+            fi = self[field]
+            try:
+                fd = fi.get_dependencies(pf = self.pf)
+            except Exception as e:
+                if type(e) != YTFieldNotFound:
+                    mylog.debug("Raises %s during field %s detection.",
+                                str(type(e)), field)
+                continue
+            # This next bit checks that we can't somehow generate everything.
+            # We also manually update the 'requested' attribute
+            missing = not all(f in self.field_list for f in fd.requested)
+            if missing:
+                self.pop(field)
+                unavailable.append(field)
+                continue
+            fd.requested = set(fd.requested)
+            deps[field] = fd
+        return deps, unavailable

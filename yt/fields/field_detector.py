@@ -17,6 +17,14 @@ import numpy as np
 from collections import defaultdict
 from yt.utilities.units import Unit
 from yt.data_objects.yt_array import YTArray
+from .field_exceptions import \
+    ValidationException, \
+    NeedsGridType, \
+    NeedsOriginalGrid, \
+    NeedsDataField, \
+    NeedsProperty, \
+    NeedsParameter, \
+    FieldUnitsError
 
 class FieldDetector(defaultdict):
     Level = 1

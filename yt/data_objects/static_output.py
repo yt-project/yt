@@ -258,7 +258,10 @@ class StaticOutput(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
-        self.h.derived_field_list = []
+        deps, unavailable = self.field_info.check_derived_fields()
+        self.h.derived_field_list = [deps.keys()]
+        self.field_dependencies = deps
+        self.h.derived_field_list.sort()
 
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":

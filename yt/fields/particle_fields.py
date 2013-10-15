@@ -77,7 +77,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        d = YTArray(d, units = "cm**-3",
+        d = YTArray(d, input_units = "cm**-3",
                     registry = data.pf.unit_registry)
         return field.apply_units(d)
 
@@ -127,7 +127,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
 
     def particle_ones(field, data):
         v = np.ones(data[ptype, mass_name].shape, dtype="float64")
-        return self.apply_units(v)
+        return field.apply_units(v)
 
     registry.add_field((ptype, "particle_ones"),
                        function = particle_ones,
@@ -465,7 +465,7 @@ def standard_particle_fields(registry, ptype,
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
             top[bnz] /= bottom[bnz]
-            d = YTArray(top, units = units)
+            d = YTArray(top, iinput_units = units)
             return top
 
     for ax in 'xyz':
