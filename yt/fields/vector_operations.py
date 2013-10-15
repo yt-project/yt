@@ -103,3 +103,50 @@ def create_vector_fields(registry, basename, field_units,
     registry.add_field((ftype, "%s_divergence_absolute" % basename),
                        function = _divergence, units = "1/s")
 
+    def _tangential_over_magnitude(field, data):
+        tr = data[ftype, "tangential_%s" % basename] / \
+             data[ftype, "%s_magnitude" % basename]
+        return np.abs(tr)
+    registry.add_field((ftype, "tangential_over_%s_magnitude" % basename),
+             function=_tangential_over_magnitude,
+             take_log=False)
+
+    def _cylindrical_radial(field, data):
+        normal = data.get_field_parameter("normal")
+        vectors = obtain_rv_vec(data, (xn, yn, zn),
+                                "bulk_%s" % basename)
+        theta = resize_vector(data['cylindrical_theta'], vectors)
+        return get_cyl_r_component(vectors, theta, normal)
+
+    def _cylindrical_radial_absolute(field, data):
+        return np.abs(_cylindrical_radial(field, data))
+
+    registry.add_field((ftype, "cylindrical_radial_%s" % basename),
+             function=_cylindrical_radial,
+             units=field_units,
+             validators=[ValidateParameter("normal")])
+    registry.add_field((ftype, "cylindrical_radial_%s_absolute" % basename),
+             function=_cylindrical_radial_absolute,
+             units=field_units,
+             validators=[ValidateParameter("normal")])
+
+    def _cylindrical_tangential(field, data):
+        normal = data.get_field_parameter("normal")
+        vectors = obtain_rv_vec(data, (xn, yn, zn),
+                                "bulk_%s" % basename)
+        theta = data['cylindrical_theta'].copy()
+        theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
+        return get_cyl_theta_component(vectors, theta, normal)
+
+    def _cylindrical_tangential_absolute(field, data):
+        return np.abs(_cylindrical_tangential(field, data))
+
+    add_field((ftype, "cylindrical_tangential_%s" % basename),
+              function=_cylindrical_tangential,
+              units=field_units,
+              validators=[ValidateParameter("normal")])
+    add_field((ftype, "cylindrical_tangential_%s_absolute" % basename),
+              function=_cylindrical_tangential_absolute,
+              units=field_units,
+              validators=[ValidateParameter("normal")])
+
