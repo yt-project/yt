@@ -60,6 +60,23 @@ class GridGeometryHandler(GeometryHandler):
     def parameters(self):
         return self.parameter_file.parameters
 
+    def _detect_fields_backup(self):
+        # grab fields from backup file as well, if present
+        return
+        try:
+            backup_filename = self.parameter_file.backup_filename
+            f = h5py.File(backup_filename, 'r')
+            g = f["data"]
+            grid = self.grids[0] # simply check one of the grids
+            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            for field_name in grid_group:
+                if field_name != 'particles':
+                    self.field_list.append(field_name)
+        except KeyError:
+            return
+        except IOError:
+            return
+
     def select_grids(self, level):
         """
         Returns an array of grids at *level*.

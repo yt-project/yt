@@ -19,6 +19,7 @@ import numpy as np
 
 from yt.utilities.units import Unit
 from yt.data_objects.yt_array import YTArray
+from .universal_fields import UniversalFields
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -29,6 +30,12 @@ class FieldInfoContainer(dict): # Resistance has utility
 
     """
     fallback = None
+
+    def __init__(self, pf, field_list):
+        self.fallback = UniversalFields
+        self.pf = pf
+        # Now we start setting things up.
+        self.field_list = field_list
 
     def add_field(self, name, function=None, **kwargs):
         """

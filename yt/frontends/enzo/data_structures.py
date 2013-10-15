@@ -424,7 +424,7 @@ class EnzoHierarchy(GridGeometryHandler):
                 dd.pop("name")
                 add_field((apt, fname), **dd)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
         if self.comm.rank in (0, None):

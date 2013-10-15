@@ -27,20 +27,13 @@ from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
 from yt.data_objects.field_info_container import \
-    add_field, \
-    ValidateDataField, \
     ValidateGridType, \
     ValidateParameter, \
     ValidateSpatial, \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    NullFunc
+    NeedsParameter
 
 from yt.utilities.physical_constants import \
-     mass_sun_cgs, \
+    mass_sun_cgs, \
     mh, \
     me, \
     sigma_thompson, \
@@ -50,11 +43,6 @@ from yt.utilities.physical_constants import \
     rho_crit_now, \
     speed_of_light_cgs, \
     km_per_cm
-
-def _get_conv(unit):
-    def _conv(data):
-        return data.convert(unit)
-    return _conv
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -67,6 +55,9 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
+
+UniversalFields = FieldInfoContainer()
+add_field = UniversalFields.add_field
 
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship

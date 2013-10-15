@@ -133,8 +133,6 @@ class StaticOutput(object):
             pass
         self.print_key_parameters()
 
-        self.create_field_info()
-
         self.set_units()
 
     def _set_derived_attrs(self):
@@ -219,10 +217,8 @@ class StaticOutput(object):
             self._instantiated_hierarchy = self._hierarchy_class(
                 self, data_style=self.data_style)
             # Now we do things that we need an instantiated hierarchy for
-            if "all" not in self.particle_types:
-                mylog.debug("Creating Particle Union 'all'")
-                pu = ParticleUnion("all", list(self.particle_types_raw))
-                self.add_particle_union(pu)
+            # ...first off, we create our field_info now.
+            self.create_field_info()
         return self._instantiated_hierarchy
     h = hierarchy  # alias
 
@@ -246,16 +242,15 @@ class StaticOutput(object):
                 mylog.info("Parameters: %-25s = %s", a, v)
 
     def create_field_info(self):
-        if getattr(self, "field_info", None) is None:
-            # The setting up of fields occurs in the hierarchy, which is only
-            # instantiated once.  So we have to double check to make sure that,
-            # in the event of double-loads of a parameter file, we do not blow
-            # away the exising field_info.
-            self.field_info = FieldInfoContainer.create_with_fallback(
-                                self._fieldinfo_fallback)
-            self.field_info.update(self.coordinates.coordinate_fields())
-        if getattr(self, "field_dependencies", None) is None:
-            self.field_dependencies = {}
+        self.field_info = self._field_info_class(self, self.h.field_list)
+        self.coordinates.setup_fields(self.field_info)
+        self.field_info.setup_fluid_fields()
+        for ptype in self.particle_types:
+            self.field_info.setup_particle_fields(ptype)
+        if "all" not in self.particle_types:
+            mylog.debug("Creating Particle Union 'all'")
+            pu = ParticleUnion("all", list(self.particle_types_raw))
+            self.add_particle_union(pu)
 
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":
@@ -266,6 +261,21 @@ class StaticOutput(object):
             self.coordinates = PolarCoordinateHandler(self)
         else:
             raise YTGeometryNotSupported(self.geometry)
+
+    def add_particle_union(self, union):
+        # No string lookups here, we need an actual union.
+        f = self.particle_fields_by_type
+        fields = set_intersection([f[s] for s in union
+                                   if s in self.particle_types_raw])
+        self.particle_types += (union.name,)
+        self.particle_unions[union.name] = union
+        fields = [ (union.name, field) for field in fields]
+        self.h.field_list.extend(fields)
+        # Give ourselves a chance to add them here, first, then...
+        # ...if we can't find them, we set them up as defaults.
+        self.h._setup_particle_types([union.name])
+        self.h._setup_unknown_fields(fields, self.field_info,
+                                     skip_removal = True)
 
     def add_particle_filter(self, filter):
         # This is a dummy, which we set up to enable passthrough of "all"
@@ -325,21 +335,6 @@ class StaticOutput(object):
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
-
-    def add_particle_union(self, union):
-        # No string lookups here, we need an actual union.
-        f = self.particle_fields_by_type
-        fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw])
-        self.particle_types += (union.name,)
-        self.particle_unions[union.name] = union
-        fields = [ (union.name, field) for field in fields]
-        self.h.field_list.extend(fields)
-        # Give ourselves a chance to add them here, first, then...
-        # ...if we can't find them, we set them up as defaults.
-        self.h._setup_particle_types([union.name])
-        self.h._setup_unknown_fields(fields, self.field_info,
-                                     skip_removal = True)
 
     def _setup_particle_type(self, ptype):
         mylog.debug("Don't know what to do with %s", ptype)

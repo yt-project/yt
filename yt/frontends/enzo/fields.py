@@ -15,7 +15,7 @@ Fields specific to Enzo
 
 import numpy as np
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.data_objects.yt_array import \
     YTArray
@@ -73,6 +73,7 @@ known_other_fields = {
     "z-velocity": (vel_units, ["velocity_z"]),
     "RaySegements": ("", ["ray_segments"]),
     "PhotoGamma": (ra_units, ["photo_gamma"]),
+    "Density": (rho_units, ["density"]),
 }
 
 known_particle_fields = {
@@ -91,11 +92,6 @@ known_particle_fields = {
 }
 
 class EnzoFieldInfo(FieldInfoContainer):
-  def __init__(self, dataset, field_list):
-        self.dataset = dataset
-        # Now we start setting things up.
-        self.
-
     def add_species_field(self, species):
         # This is currently specific to Enzo.  Hopefully in the future we will
         # have deeper integration with other systems, such as Dengo, to provide
@@ -109,26 +105,29 @@ class EnzoFieldInfo(FieldInfoContainer):
                            take_log=True,
                            units="code_mass/code_length**3")
         self.alias(("gas", "%s_density" % species),
-                       ("gas", "%s_Density" % species))
+                   ("gas", "%s_Density" % species))
         def _species_mass(field, data):
-            return data["gas", "%s_Density"] * data["CellVolume"]
+            return data["gas", "%s_Density" % species] \
+                 * data["CellVolume"]
         self.add_field(("gas", "%s_mass" % species),
                            function=_species_mass,
                            units = "g")
         def _species_fraction(field, data):
-            return data["gas", "%s_density"] / data["gas","density"]
+            return data["gas", "%s_density" % species] \
+                 / data["gas","density"]
         self.add_field(("gas", "%s_fraction" % species),
                            function=_species_fraction,
                            units = "")
         def _species_number_density(field, data):
-            return data["gas", "%s_density"] / _species_mass[species]
+            return data["gas", "%s_density" % species] \
+                / known_species_mass[species]
         self.add_field(("gas", "%s_number_density" % species),
                            function=_species_number_density,
                            units = "1/cm**3")
 
-    def setup_species_fields(self, field_list):
-        species_names = [field.rsplit("_Density")[0] for field in field_list
-                         if field.endswith("_Density")]
+    def setup_species_fields(self):
+        species_names = [field.rsplit("_Density")[0] for field in 
+                         self.field_list if field.endswith("_Density")]
         for sp in species_names:
             self.add_species_field(sp)
         def _number_density(_sp_list, masses):
@@ -142,24 +141,8 @@ class EnzoFieldInfo(FieldInfoContainer):
                            function = func,
                            units = "1 / cm**3")
 
-
-    def setup_enzo_gas_fields(self, field_list):
-        # We have a few defaults to set up and alias
-        self.add_output_field(("gas", "Density"),
-            units = "code_mass / code_length**3")
-        self.alias(("gas", "density"), ("gas", "Density"))
-        self.add_output_field(("gas", "x-velocity"),
-            units = "code_length / code_time")
-        self.add_output_field(("gas", "y-velocity"),
-            units = "code_length / code_time")
-        self.add_output_field(("gas", "z-velocity"),
-            units = "code_length / code_time")
-
-        # Now we conditionally load a few other things.
-        if self.pf.parameters["MultiSpecies"] > 0:
-            setup_species_fields(self.pf, self, field_list)
-        
-        for field in field_list:
+    def setup_fluid_fields(self):
+        for field in self.field_list:
             if isinstance(field, tuple): field = field[0]
             args = known_other_fields.get(field, None)
             if args is None: continue
@@ -169,17 +152,21 @@ class EnzoFieldInfo(FieldInfoContainer):
             for alias in aliases:
                 self.alias(alias, field)
 
-    def setup_energy_field(self, self, field_list):
+        # Now we conditionally load a few other things.
+        if self.pf.parameters["MultiSpecies"] > 0:
+            self.setup_species_fields(self.pf, self)
+        
+    def setup_energy_field(self, self):
         # We check which type of field we need, and then we add it.
         ge_name = None
         te_name = None
-        if "Gas_Energy" in field_list:
+        if "Gas_Energy" in self.field_list:
             ge_name = "Gas_Energy"
-        elif "GasEnergy" in field_list:
+        elif "GasEnergy" in self.field_list:
             ge_name = "GasEnergy"
-        if "Total_Energy" in field_list:
+        if "Total_Energy" in self.field_list:
             te_name = "Total_Energy"
-        elif "TotalEnergy" in field_list:
+        elif "TotalEnergy" in self.field_list:
             te_name = "TotalEnergy"
 
         if self.pf.parameters["HydroMethod"] == 2:
@@ -229,7 +216,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         self.add_field("kinetic_energy", function = _kin_energy,
             units = "erg / cm**3")
 
-    def setup_enzo_particle_fields(self, ptype):
+    def setup_particle_fields(self, ptype):
         for f, (units, aliases) in sorted(known_particle_fields.items()):
             self.add_output_field((ptype, f),
                 units = units, particle_type = True)
