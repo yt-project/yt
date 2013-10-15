@@ -80,6 +80,7 @@ class AMRGridPatch(YTSelectionContainer):
         start_index = (self.Parent.get_global_startindex()) + \
                        np.rint((self.LeftEdge - self.Parent.LeftEdge) / pdx)
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
+        self.start_index = self.start_index.to_ndarray()
         return self.start_index
 
     def __getitem__(self, key):

@@ -262,7 +262,6 @@ class StaticOutput(object):
         self.h.derived_field_list = [deps.keys()]
         self.field_dependencies = deps
         self.h.derived_field_list.sort()
-        import pdb; pdb.set_trace()
 
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":
