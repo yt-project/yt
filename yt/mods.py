@@ -62,8 +62,7 @@ from yt.data_objects.derived_quantities import \
 
 from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, \
-    EnzoSimulation, EnzoFieldInfo, \
-    add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
+    EnzoSimulation, EnzoFieldInfo, add_enzo_field
 
 # Boxlib stuff
 #from yt.frontends.boxlib.api import \

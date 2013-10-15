@@ -32,8 +32,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs, \
     mh
 from .universal_fields import \
-    get_radius, \
-    _get_conv
+    get_radius
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -472,5 +471,5 @@ def standard_particle_fields(registry, ptype,
     for ax in 'xyz':
         registry.add_field(("deposit", "%s_cic_velocity_%s" % ax),
                 function=_get_cic_field(svel % ax, "cm/s"),
-                units = "cm/s" take_log=False,
+                units = "cm/s", take_log=False,
                 validators=[ValidateSpatial(0)])

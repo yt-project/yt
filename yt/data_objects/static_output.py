@@ -35,9 +35,11 @@ from yt.data_objects.particle_unions import \
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
 
-from yt.geometry.coordinate_handler import \
-    CartesianCoordinateHandler, \
-    PolarCoordinateHandler, \
+from yt.geometry.cartesian_coordinates import \
+    CartesianCoordinateHandler
+from yt.geometry.polar_coordinates import \
+    PolarCoordinateHandler
+from yt.geometry.cylindrical_coordinates import \
     CylindricalCoordinateHandler
 
 # We want to support the movie format in the future.

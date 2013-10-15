@@ -29,13 +29,6 @@ from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
 import yt.visualization._MPL as _MPL
 
-from .cartesian_coordinates import \
-    CartesianCoordinateHandler
-from .cylindrical_fields import \
-    CylindricalCoordinateHandler
-from .polar_fields import \
-    PolarCoordinateHandler
-
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
 

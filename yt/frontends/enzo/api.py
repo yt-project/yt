@@ -27,12 +27,8 @@ from .simulation_handling import \
     EnzoSimulation
 
 from .fields import \
-      EnzoFieldInfo, \
-      Enzo2DFieldInfo, \
-      Enzo1DFieldInfo, \
-      add_enzo_field, \
-      add_enzo_1d_field, \
-      add_enzo_2d_field
+      EnzoFieldInfo
+add_enzo_field = EnzoFieldInfo.add_field
 
 from .io import \
       IOHandlerPackedHDF5, \

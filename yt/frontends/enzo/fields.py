@@ -39,18 +39,18 @@ vel_units = "code_length / code_time"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
-                ("HI": 1.0),
-                ("HII": 1.0),
-                ("Electron": 1.0),
-                ("HeI": 4.0),
-                ("HeII": 4.0),
-                ("HeIII": 4.0),
-                ("H2I": 2.0),
-                ("H2II": 2.0),
-                ("HM": 1.0),
-                ("DI": 2.0),
-                ("DII": 2.0),
-                ("HDI": 3.0),
+                ("HI", 1.0),
+                ("HII", 1.0),
+                ("Electron", 1.0),
+                ("HeI", 4.0),
+                ("HeII", 4.0),
+                ("HeIII", 4.0),
+                ("H2I", 2.0),
+                ("H2II", 2.0),
+                ("HM", 1.0),
+                ("DI", 2.0),
+                ("DII", 2.0),
+                ("HDI", 3.0),
     ])
 
 known_other_fields = {
@@ -59,12 +59,12 @@ known_other_fields = {
     "HeI_kph": ("1/code_time", []),
     "HeII_kph": ("1/code_time", []),
     "H2I_kdiss": ("1/code_time", []),
-    "Bx": (b_units, ["magnetic_field_x"],
-    "By": (b_units, ["magnetic_field_y"],
-    "Bz": (b_units, ["magnetic_field_z"],
-    "RadAccel1": (ra_units, ["radiation_acceleration_x"],
-    "RadAccel2": (ra_units, ["radiation_acceleration_y"],
-    "RadAccel3": (ra_units, ["radiation_acceleration_z"],
+    "Bx": (b_units, ["magnetic_field_x"]),
+    "By": (b_units, ["magnetic_field_y"]),
+    "Bz": (b_units, ["magnetic_field_z"]),
+    "RadAccel1": (ra_units, ["radiation_acceleration_x"]),
+    "RadAccel2": (ra_units, ["radiation_acceleration_y"]),
+    "RadAccel3": (ra_units, ["radiation_acceleration_z"]),
     "Dark_Matter_Mass": (rho_units, ["dark_matter_mass"]),
     "Temperature": ("K", ["temperature"]),
     "Dust_Temperature": ("K", ["dust_temperature"]),
@@ -156,7 +156,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         if self.pf.parameters["MultiSpecies"] > 0:
             self.setup_species_fields(self.pf, self)
         
-    def setup_energy_field(self, self):
+    def setup_energy_field(self):
         # We check which type of field we need, and then we add it.
         ge_name = None
         te_name = None
@@ -171,7 +171,7 @@ class EnzoFieldInfo(FieldInfoContainer):
 
         if self.pf.parameters["HydroMethod"] == 2:
             self.add_output_field(("gas", te_name),
-                units="code_length**2/code_time**2"))
+                units="code_length**2/code_time**2")
             self.alias(("gas", "thermal_energy"), ("gas", te_name))
 
         elif self.pf.parameters["DualEnergyFormalism"] == 1:
@@ -221,7 +221,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field((ptype, f),
                 units = units, particle_type = True)
             for alias in aliases:
-                self.alias((alias, (ptype, f))
+                self.alias(alias, (ptype, f))
 
         particle_vector_functions(ptype,
                 ["particle_position_%s" % ax for ax in 'xyz'],

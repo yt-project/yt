@@ -30,7 +30,8 @@ from yt.data_objects.field_info_container import \
     ValidateGridType, \
     ValidateParameter, \
     ValidateSpatial, \
-    NeedsParameter
+    NeedsParameter, \
+    FieldInfoContainer
 
 from yt.utilities.physical_constants import \
     mass_sun_cgs, \

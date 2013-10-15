@@ -14,7 +14,7 @@ This is where we define a handful of vector operations for fields.
 from yt.data_objects.yt_array import YTArray
 
 def create_vector_fields(registry, basename, field_units,
-                         ftype = "gas", slice_info = None)
+                         ftype = "gas", slice_info = None):
 
     xn, yn, zn = ["%s_%s" % (basename, ax) for ax in 'xyz']
 
@@ -41,7 +41,7 @@ def create_vector_fields(registry, basename, field_units,
         phi   = data['spherical_phi']
         return get_sph_r_component(vectors, theta, phi, normal)
     def _radial_absolute(field, data):
-        return np.abs(data["radial_%s" % basename)
+        return np.abs(data["radial_%s" % basename])
 
     def _tangential(field, data):
         return np.sqrt(data["%s_magnitude" % basename]**2.0

@@ -43,10 +43,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
 from .fields import \
-    setup_species_fields, \
-    setup_enzo_gas_fields, \
-    setup_energy_field, \
-    setup_enzo_particle_fields
+    EnzoFieldInfo
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
