@@ -26,6 +26,9 @@ from yt.data_objects.field_info_container import \
     NeedsParameter, \
     FieldInfoContainer
 
+from .field_plugin_registry import \
+    register_field_plugin
+
 from yt.utilities.math_utils import \
     get_sph_r_component, \
     get_sph_theta_component, \
@@ -38,7 +41,8 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
 
-def setup_magnetic_field_fields(registry, ftype = "gas"):
+@register_field_plugin
+def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _magnetic_energy(field,data):
         """This assumes that your front end has provided Bx, By, Bz in
         units of Gauss. If you use MKS, make sure to write your own

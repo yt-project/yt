@@ -20,10 +20,14 @@ import numpy as np
 import inspect
 import copy
 
+from .field_plugin_registry import \
+    register_field_plugin
+
 def obtain_velocities(data):
     return obtain_rv_vec(data)
 
-def setup_angular_momentum(registry, ftype = "gas"):
+@register_field_plugin
+def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     def _specific_angular_momentum_x(field, data):
         xv, yv, zv = obtain_velocities(data)
         center = data.get_field_parameter('center')

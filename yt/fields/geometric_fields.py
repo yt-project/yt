@@ -19,6 +19,9 @@ import numpy as np
 from yt.data_objects.derived_fields import \
     ValidateParameter
 
+from .field_plugin_registry import \
+    register_field_plugin
+
 from yt.utilities.math_utils import \
     get_sph_r_component, \
     get_sph_theta_component, \
@@ -31,7 +34,8 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
 
-def setup_geometric_fields(registry):
+@register_field_plugin
+def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     ### spherical coordinates: r (radius)
     def _spherical_r(field, data):
         center = data.get_field_parameter("center")
