@@ -483,7 +483,7 @@ def obtain_rv_vec(data, field_names = ("x-velocity",
     cdef np.ndarray[np.float64_t, ndim=4] rvg
     cdef np.float64_t bv[3]
     cdef int i, j, k
-    bulk_vector = data.get_field_parameter(bulk_vectory)
+    bulk_vector = data.get_field_parameter(bulk_vector)
     if bulk_vector == None:
         bulk_vector = np.zeros(3)
     bv[0] = bulk_vector[0]; bv[1] = bulk_vector[1]; bv[2] = bulk_vector[2]
