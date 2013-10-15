@@ -37,6 +37,11 @@ def derived_field(**kwargs):
         return function
     return inner_decorator
 
+def TranslationFunc(field_name):
+    def _TranslationFunc(field, data):
+        return data[field_name]
+    return _TranslationFunc
+
 def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
  

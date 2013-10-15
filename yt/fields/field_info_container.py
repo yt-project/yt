@@ -22,7 +22,8 @@ from yt.utilities.units import Unit
 from yt.data_objects.yt_array import YTArray
 from .derived_field import \
     DerivedField, \
-    NullFunc
+    NullFunc, \
+    TranslationFunc
 from .field_detector import \
     FieldDetector
 from yt.utilities.exceptions import \
@@ -39,9 +40,6 @@ class FieldInfoContainer(dict): # Resistance has utility
     fallback = None
 
     def __init__(self, pf, field_list):
-        if self.fallback is None:
-            from .universal_fields import UniversalFields
-            self.fallback = UniversalFields
         self.pf = pf
         # Now we start setting things up.
         self.field_list = field_list
@@ -65,7 +63,9 @@ class FieldInfoContainer(dict): # Resistance has utility
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name):
-        self[alias_name] = self[original_name]
+        self.add_field(alias_name,
+            function = TranslationFunc(original_name),
+            units = self[original_name].units)
 
     def add_grad(self, field, **kwargs):
         """
@@ -168,6 +168,7 @@ class FieldInfoContainer(dict): # Resistance has utility
         fields_to_check = fields_to_check or self.keys()
         for field in fields_to_check:
             if field not in self: raise RuntimeError
+            if field in self.field_list: continue
             fi = self[field]
             try:
                 fd = fi.get_dependencies(pf = self.pf)

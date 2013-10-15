@@ -834,7 +834,7 @@ class EnzoStaticOutput(StaticOutput):
             length_unit = k['uxyz']
             mass_unit = k['urho'] * length_unit**3
             time_unit = k['utim']
-        elif "LengthUnit" in self.parameters:
+        elif "LengthUnits" in self.parameters:
             length_unit = self.parameters["LengthUnits"]
             mass_unit = self.parameters["MassUnits"]
             time_unit = self.parameters["TimeUnits"]
