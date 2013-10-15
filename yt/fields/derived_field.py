@@ -11,6 +11,10 @@ Derived field base class.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import contextlib
+
+from yt.funcs import \
+    ensure_list
 from .field_exceptions import \
     ValidationException, \
     NeedsGridType, \
@@ -29,6 +33,9 @@ def derived_field(**kwargs):
         return function
     return inner_decorator
 
+def NullFunc(field, data):
+    raise YTFieldNotFound(field.name)
+ 
 class DerivedField(object):
     """
     This is the base class used to describe a cell-by-cell derived field.

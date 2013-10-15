@@ -122,7 +122,7 @@ class GeometryHandler(ParallelAnalysisInterface):
                 df += self.pf._setup_particle_type(ptype)
             # Now we have a bunch of new fields to add!
             # This is where the dependencies get calculated.
-            self._derived_fields_add(df)
+            #self._derived_fields_add(df)
             return
         fi = self.pf.field_info
         def _get_conv(cf):

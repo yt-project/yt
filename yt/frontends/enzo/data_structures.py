@@ -40,8 +40,8 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
+from yt.data_objects.yt_array import YTQuantity
 
-from .definitions import parameterDict
 from .fields import \
     EnzoFieldInfo
 
@@ -648,6 +648,7 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
+    _field_info_class = EnzoFieldInfo
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"
 
@@ -696,12 +697,7 @@ class EnzoStaticOutput(StaticOutput):
         """
         if self.parameters.has_key(parameter):
             return self.parameters[parameter]
-
-        # Let's read the file
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        lines = open(self.parameter_filename).readlines()
-        for lineI, line in enumerate(lines):
+        for line in open(self.parameter_filename):
             if line.find("#") >= 1: # Keep the commented lines
                 line=line[:line.find("#")]
             line=line.strip().rstrip()
@@ -736,10 +732,10 @@ class EnzoStaticOutput(StaticOutput):
         # Let's read the file
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        lines = open(self.parameter_filename).readlines()
         data_labels = {}
         data_label_factors = {}
-        for line in (l.strip() for l in lines):
+        conversion_factors = {}
+        for line in (l.strip() for l in open(self.parameter_filename)):
             if len(line) < 2: continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
@@ -763,39 +759,21 @@ class EnzoStaticOutput(StaticOutput):
                     else:
                         pcast = int
             # Now we figure out what to do with it.
-            if param.endswith("Units") and not param.startswith("Temperature"):
-                dataType = param[:-5]
-                # This one better be a float.
-                self.conversion_factors[dataType] = float(vals[0])
-            if param.startswith("#DataCGS") or \
-                 param.startswith("#CGSConversionFactor"):
-                # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                # Which one does it belong to?
-                data_id = param[param.find("[")+1:param.find("]")]
-                data_label_factors[data_id] = float(vals[0])
-            if param.startswith("DataLabel"):
-                data_id = param[param.find("[")+1:param.find("]")]
-                data_labels[data_id] = vals[0]
             if len(vals) == 0:
                 vals = ""
             elif len(vals) == 1:
                 vals = pcast(vals[0])
             else:
                 vals = np.array([pcast(i) for i in vals if i != "-99999"])
-            if param.startswith("Append") and param not in self.parameters:
-                self.parameters[param] = []
             if param.startswith("Append"):
+                if param not in self.parameters:
+                    self.parameters[param] = []
                 self.parameters[param].append(vals)
             else:
                 self.parameters[param] = vals
-        for p, v in self._parameter_override.items():
-            self.parameters[p] = v
-        for p, v in self._conversion_override.items():
-            self.conversion_factors[p] = v
-        for k, v in data_label_factors.items():
-            self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        self.periodicity = ensure_tuple(
+            self.parameters["LeftFaceBoundaryCondition"] == 3)
         self.dimensionality = self.parameters["TopGridRank"]
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
@@ -816,13 +794,12 @@ class EnzoStaticOutput(StaticOutput):
             self.domain_dimensions = np.array([self.parameters["TopGridDimensions"],1,1])
             self.periodicity += (False, False)
 
-        self.current_time = self.parameters["InitialTime"]
         self.gamma = self.parameters["Gamma"]
         # To be enabled when we can break old pickles:
         #if "MetaDataSimulationUUID" in self.parameters:
         #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
-        if "CurrentTimeIdentifier" in self.parameters:
-            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        self.unique_identifier = self.parameters.get("MetaDataDatasetUUID",
+                self.parameters.get("CurrentTimeIdentifier", None))
         if self.parameters["ComovingCoordinates"]:
             self.cosmological_simulation = 1
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
@@ -833,6 +810,8 @@ class EnzoStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self.particle_types = ["io"]
+        self.current_time = YTQuantity(self.parameters["InitialTime"],
+                                       'code_time')
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
         if self.parameters["NumberOfParticles"] > 0 and \
@@ -849,70 +828,30 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_2d()
 
     def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        if "EOSType" not in self.parameters: self.parameters["EOSType"] = -1
-        if self["ComovingCoordinates"]:
-            self._setup_comoving_units()
-        elif self.has_key("LengthUnit"):
-            # 'Why share when we can reinvent incompatibly?'
-            self.parameters["LengthUnits"] = self["LengthUnit"]
-            self._setup_getunits_units()
-        elif self.has_key("LengthUnits"):
-            self._setup_getunits_units()
+        if self.cosmological_simulation:
+            k = self.cosmology_get_units()
+            # Now some CGS values
+            length_unit = k['uxyz']
+            mass_unit = k['urho'] * length_unit**3
+            time_unit = k['utim']
+        elif "LengthUnit" in self.parameters:
+            length_unit = self.parameters["LengthUnits"]
+            mass_unit = self.parameters["MassUnits"]
+            time_unit = self.parameters["TimeUnits"]
         else:
-            self._setup_nounits_units()
-        self.time_units['1'] = 1
-        self.units['1'] = 1
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self["Time"] / sec_conversion[unit]
+            mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+            mylog.warning("Setting 1.0 in code units to be 1.0 s")
+            mylog.warning("Setting 1.0 in code units to be 1.0 g")
+            length_unit = mass_unit = time_unit = 1.0
+
+        self.length_unit = YTQuantity(length_unit, "cm")
+        self.mass_unit = YTQuantity(mass_unit, "g")
+        self.time_unit = YTQuantity(time_unit, "s")
 
     def set_code_units(self):
-        from yt.utilities.units import length, mass, time
-        self.unit_registry.add("code_length", self.parameters["LengthUnits"], length)
-        self.unit_registry.add("code_mass", self.parameters["MassUnits"], mass)
-        self.unit_registry.add("code_time", self.parameters["TimeUnits"], time)
-
-    def _setup_comoving_units(self):
-        z = self["CosmologyCurrentRedshift"]
-        h = self["CosmologyHubbleConstantNow"]
-        boxcm_cal = self["CosmologyComovingBoxSize"]
-        boxcm_uncal = boxcm_cal / h
-        box_proper = boxcm_uncal/(1+z)
-        self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z + 1.0)
-        if not self.has_key("Time"):
-            cu = self.cosmology_get_units()
-            self.conversion_factors["Time"] = cu['utim']
-        for unit in mpc_conversion:
-            self.units[unit] = mpc_conversion[unit] * box_proper
-            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
-            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
-            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
-
-    def _setup_getunits_units(self):
-        # We are given LengthUnits, which is number of cm per box length
-        # So we convert that to box-size in Mpc
-        box_proper = 3.24077e-25 * self["LengthUnits"]
-        self.units['aye']  = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] * box_proper
-        if not self.has_key("TimeUnits"):
-            self.conversion_factors["Time"] = self["LengthUnits"] / self["x-velocity"]
-
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+        self.unit_registry.modify("code_length", self.length_unit.value)
+        self.unit_registry.modify("code_mass", self.mass_unit.value)
+        self.unit_registry.modify("code_time", self.time_unit.value)
 
     def cosmology_get_units(self):
         """
@@ -950,7 +889,7 @@ class EnzoStaticOutput(StaticOutput):
 
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
-        _setup_particle_fields(self.field_info, ptype)
+        self.field_info.setup_particle_fields(ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):

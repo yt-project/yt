@@ -326,7 +326,7 @@ def standard_particle_fields(registry, ptype,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
-    def _ParticleRadius(field, data):
+    def _particle_radius(field, data):
         return get_radius(data, "particle_position_")
     registry.add_field((ptype, "particle_radius"),
               function=_particle_radius,
@@ -334,7 +334,7 @@ def standard_particle_fields(registry, ptype,
               units="cm", particle_type = True,
               display_name = "Particle Radius")
 
-    def _ParticleRadiusSpherical(field, data):
+    def _particle_radius_spherical(field, data):
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -346,13 +346,13 @@ def standard_particle_fields(registry, ptype,
         sphr = get_sph_r_component(pos, theta, phi, normal)
         return sphr
 
-    registry.add_field((ptype, "ParticleRadiusSpherical"),
-              function=_ParticleRadiusSpherical,
-              particle_type=True, units=r"\rm{cm}/\rm{s}",
+    registry.add_field((ptype, "particle_radius_spherical"),
+              function=_particle_radius_spherical,
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _ParticleThetaSpherical(field, data):
+    def _particle_theta_spherical(field, data):
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -364,13 +364,13 @@ def standard_particle_fields(registry, ptype,
         spht = get_sph_theta_component(pos, theta, phi, normal)
         return spht
 
-    registry.add_field((ptype, "ParticleThetaSpherical"),
-              function=_ParticleThetaSpherical,
-              particle_type=True, units=r"\rm{cm}/\rm{s}",
+    registry.add_field((ptype, "particle_theta_spherical"),
+              function=_particle_theta_spherical,
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _ParticlePhiSpherical(field, data):
+    def _particle_phi_spherical(field, data):
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -383,13 +383,13 @@ def standard_particle_fields(registry, ptype,
         sphp = get_sph_phi_component(pos, theta, phi, normal)
         return sphp
 
-    registry.add_field((ptype, "ParticlePhiSpherical"),
-              function=_ParticleThetaSpherical,
-              particle_type=True, units=r"\rm{cm}/\rm{s}",
+    registry.add_field((ptype, "particle_phi_spherical"),
+              function=_particle_phi_spherical,
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _ParticleRadialVelocity(field, data):
+    def _particle_radial_velocity(field, data):
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -404,13 +404,13 @@ def standard_particle_fields(registry, ptype,
         sphr = get_sph_r_component(vel, theta, phi, normal)
         return sphr
 
-    registry.add_field((ptype, "ParticleRadialVelocity"),
-              function=_ParticleRadialVelocity,
-              particle_type=True, units=r"\rm{cm}/\rm{s}",
+    registry.add_field((ptype, "particle_radial_velocity"),
+              function=_particle_radial_velocity,
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _ParticleThetaVelocity(field, data):
+    def _particle_theta_velocity(field, data):
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -425,13 +425,13 @@ def standard_particle_fields(registry, ptype,
         spht = get_sph_theta_component(vel, theta, phi, normal)
         return spht
 
-    registry.add_field((ptype, "ParticleThetaVelocity"),
-              function=_ParticleThetaVelocity,
-              particle_type=True, units=r"\rm{cm}/\rm{s}",
+    registry.add_field((ptype, "particle_theta_velocity"),
+              function=_particle_theta_velocity,
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _ParticlePhiVelocity(field, data):
+    def _particle_phi_velocity(field, data):
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -444,9 +444,9 @@ def standard_particle_fields(registry, ptype,
         sphp = get_sph_phi_component(vel, phi, normal)
         return sphp
 
-    registry.add_field((ptype, "ParticlePhiVelocity"),
-              function=_ParticleThetaVelocity,
-              particle_type=True, units=r"\rm{cm}/\rm{s}",
+    registry.add_field((ptype, "particle_phi_velocity"),
+              function=_particle_phi_velocity,
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
@@ -469,7 +469,8 @@ def standard_particle_fields(registry, ptype,
             return top
 
     for ax in 'xyz':
-        registry.add_field(("deposit", "%s_cic_velocity_%s" % ax),
-                function=_get_cic_field(svel % ax, "cm/s"),
-                units = "cm/s", take_log=False,
-                validators=[ValidateSpatial(0)])
+        registry.add_field(
+            ("deposit", "%s_cic_velocity_%s" % (ptype, ax)),
+            function=_get_cic_field(svel % ax, "cm/s"),
+            units = "cm/s", take_log=False,
+            validators=[ValidateSpatial(0)])

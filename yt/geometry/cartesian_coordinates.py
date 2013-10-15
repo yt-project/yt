@@ -25,14 +25,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def __init__(self, pf):
         super(CartesianCoordinateHandler, self).__init__(pf)
 
-    def coordinate_fields(self, registry):
+    def setup_fields(self, registry):
         def _get_coord_fields(axi, ax):
             def _dds(field, data):
                 return YTArray(data.fwidth[...,axi], 'code_length')
             def _coords(field, data):
                 return YTArray(data.fcoords[...,axi], 'code_length')
             return _dds, _coords
-        for axi, ax in enmerate('xyz'):
+        for axi, ax in enumerate('xyz'):
             f1, f2 = _get_coord_fields(axi, ax)
             registry.add_field("d%s" % ax, function = f1,
                                display_field = False,

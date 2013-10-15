@@ -253,6 +253,7 @@ class StaticOutput(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
+        self.h.derived_field_list = []
 
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":
@@ -276,8 +277,8 @@ class StaticOutput(object):
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         self.h._setup_particle_types([union.name])
-        self.h._setup_unknown_fields(fields, self.field_info,
-                                     skip_removal = True)
+        #self.h._setup_unknown_fields(fields, self.field_info,
+        #                             skip_removal = True)
 
     def add_particle_filter(self, filter):
         # This is a dummy, which we set up to enable passthrough of "all"
@@ -303,9 +304,9 @@ class StaticOutput(object):
     _last_finfo = None
     def _get_field_info(self, ftype, fname):
         guessing_type = False
-        if ftype == "unknown" and self._last_freq[0] != None:
-            ftype = self._last_freq[0]
+        if ftype == "unknown":
             guessing_type = True
+            ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
         if field == self._last_freq:
             return self._last_finfo
@@ -375,10 +376,6 @@ class StaticOutput(object):
             self.unit_registry.add("h", self.hubble_constant, dimensionless)
             # Comoving lengths: pc, AU, m... anything else?
             #self.unit_registry.add("pccm", ...)
-
-        # @todo: Can we remove this now?
-        for field in self.field_info.values():
-            field.unit_obj = self.get_unit_from_registry(field.units)
 
     def get_unit_from_registry(self, unit_str):
         """

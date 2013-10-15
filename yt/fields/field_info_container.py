@@ -19,6 +19,9 @@ import numpy as np
 
 from yt.utilities.units import Unit
 from yt.data_objects.yt_array import YTArray
+from .derived_field import \
+    DerivedField, \
+    NullFunc
 
 class FieldInfoContainer(dict): # Resistance has utility
     """

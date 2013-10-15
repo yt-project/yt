@@ -30,7 +30,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         if ordering != 'rzt': raise NotImplementedError
         super(CylindricalCoordinateHandler, self).__init__(pf)
 
-    def coordinate_fields(self, registry):
+    def setup_fields(self, registry):
         # return the fields for r, z, theta
         registry.add_field("dx", function=_unknown_coord)
         registry.add_field("dy", function=_unknown_coord)
