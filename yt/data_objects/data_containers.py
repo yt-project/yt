@@ -552,12 +552,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for f, v in read_fluids.items():
             self.field_data[f] = YTArray(v, input_units = finfos[f].units,
                                          registry = self.pf.unit_registry)
+            self.field_data[f].convert_to_cgs()
 
         read_particles, gen_particles = self.hierarchy._read_particle_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
             self.field_data[f] = YTArray(v, input_units = finfos[f].units,
                                          registry = self.pf.unit_registry)
+            self.field_data[f].convert_to_cgs()
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
