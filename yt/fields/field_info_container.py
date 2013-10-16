@@ -83,10 +83,11 @@ class FieldInfoContainer(dict): # Resistance has utility
     def add_output_field(self, name, **kwargs):
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name):
+    def alias(self, alias_name, original_name, units = None):
+        units = units or self[original_name].units
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
-            units = self[original_name].units)
+            units = units)
 
     def add_grad(self, field, **kwargs):
         """
