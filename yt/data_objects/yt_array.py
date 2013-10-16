@@ -345,14 +345,15 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(right_object.units):
                 raise YTUnitOperationError('addition', self.units,
                                            right_object.units)
+            ro = right_object.in_units(self.units)
         # If the other object is not a YTArray, the only valid case is adding
         # dimensionless things.
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('addition', self.units,
                                            right_object.units)
-
-        return YTArray(super(YTArray, self).__add__(right_object))
+            ro = right_object
+        return YTArray(super(YTArray, self).__add__(ro))
 
     def __radd__(self, left_object):
         """ See __add__. """
@@ -360,12 +361,13 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(left_object.units):
                 raise YTUnitOperationError('addition', left_object.units,
                                            self.units)
+            lo = left_object.in_units(self.units)
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('addition', left_object.units,
                                            self.units)
-
-        return YTArray(super(YTArray, self).__radd__(left_object))
+            lo = left_object
+        return YTArray(super(YTArray, self).__radd__(lo))
 
     def __iadd__(self, other):
         """ See __add__. """
@@ -383,12 +385,14 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(right_object.units):
                 raise YTUnitOperationError('subtraction', self.units,
                                            right_object.units)
+            ro = right_object.in_units(self.units)
         # If the other object is not a YTArray, the only valid case is adding
         # dimensionless things.
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('subtraction', self.units,
                                            right_object.units)
+            ro = right_object
 
         return YTArray(super(YTArray, self).__sub__(right_object))
 
@@ -398,12 +402,13 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(left_object.units):
                 raise YTUnitOperationError('subtraction', left_object.units,
                                            self.units)
+            lo = left_object.in_units(self.units)
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('subtraction', left_object.units,
                                            self.units)
-
-        return YTArray(super(YTArray, self).__rsub__(left_object))
+            lo = left_object
+        return YTArray(super(YTArray, self).__rsub__(lo))
 
     def __isub__(self, other):
         """ See __sub__. """
