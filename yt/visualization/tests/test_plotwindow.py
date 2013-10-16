@@ -24,7 +24,7 @@ from yt.utilities.answer_testing.framework import \
     requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
-
+from yt.data_objects.yt_array import YTQuantity
 
 def setup():
     """Test specific setup."""
@@ -124,15 +124,17 @@ class TestSetWidth(unittest.TestCase):
 
     def _assert_15kpc(self):
         assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
-                         [(-7.5 / self.pf['kpc'], 7.5 / self.pf['kpc']),
-                          (-7.5 / self.pf['kpc'], 7.5 / self.pf['kpc']),
-                          (15.0 / self.pf['kpc'], 15. / self.pf['kpc'])], 15)
+                         [(YTQuantity(-7.5, 'kpc'), YTQuantity(7.5, 'kpc')),
+                          (YTQuantity(-7.5, 'kpc'), YTQuantity(7.5, 'kpc')),
+                          (YTQuantity(15.0, 'kpc'), YTQuantity(15., 'kpc'))],
+                         15)
 
     def _assert_15_10kpc(self):
         assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
-                         [(-7.5 / self.pf['kpc'], 7.5 / self.pf['kpc']),
-                          (-5.0 / self.pf['kpc'], 5.0 / self.pf['kpc']),
-                          (15.0 / self.pf['kpc'], 10. / self.pf['kpc'])], 15)
+                         [(YTQuantity(-7.5, 'kpc'), YTQuantity(7.5, 'kpc')),
+                          (YTQuantity(-5.0, 'kpc'), YTQuantity(5.0, 'kpc')),
+                          (YTQuantity(15.0, 'kpc'), YTQuantity(10., 'kpc'))], 
+                         15)
 
     def test_set_width_one(self):
         assert_equal([self.slc.xlim, self.slc.ylim, self.slc.width],

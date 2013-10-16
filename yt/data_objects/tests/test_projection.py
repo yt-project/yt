@@ -20,8 +20,8 @@ def test_projection():
         pf = fake_random_pf(64, nprocs = nprocs)
         dims = pf.domain_dimensions
         xn, yn, zn = pf.domain_dimensions
-        xi, yi, zi = pf.domain_left_edge + 1.0/(pf.domain_dimensions * 2)
-        xf, yf, zf = pf.domain_right_edge - 1.0/(pf.domain_dimensions * 2)
+        xi, yi, zi = pf.domain_left_edge.to_ndarray() + 1.0/(pf.domain_dimensions * 2)
+        xf, yf, zf = pf.domain_right_edge.to_ndarray() - 1.0/(pf.domain_dimensions * 2)
         dd = pf.h.all_data()
         rho_tot = dd.quantities["TotalQuantity"]("density")[0]
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]

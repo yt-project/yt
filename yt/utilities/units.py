@@ -168,6 +168,9 @@ class UnitRegistry:
         if add_default_symbols:
             self.lut.update(default_unit_symbol_lut)
 
+    def __getitem__(self, key):
+        return self.lut[key]
+
     def add(self, symbol, cgs_value, dimensions):
         """
         Add a symbol to this registry.
@@ -207,6 +210,13 @@ class UnitRegistry:
                 "in this registry." % symbol)
 
         self.lut[symbol] = (cgs_value, self.lut[symbol][1])
+
+    def keys(self):
+        """
+        Print out the units contained in the lookup table.
+
+        """
+        return self.lut.keys()
 
 default_unit_registry = UnitRegistry()
 

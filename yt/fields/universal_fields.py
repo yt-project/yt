@@ -112,10 +112,11 @@ add_field("dynamical_time", function=_dynamical_time, units="s")
 
 def jeans_mass(field, data):
     MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
-      (3.0 / (4.0 * np.pi)) ** (0.5) / mass_sun_cgs
-    return ( MJ_constant
-             * ((data["temperature"] / data["mean_molecular_weight"])**(1.5))
-             * (data["density"]**(-0.5)) )
+      (3.0 / (4.0 * np.pi)) ** (0.5)
+    u = (MJ_constant * \
+         ((data["temperature"] / data["mean_molecular_weight"])**(1.5)) * \
+         (data["density"]**(-0.5))).convert_to_cgs()
+    return u
 
 add_field("jeans_mass", function=jeans_mass, units="g")
 

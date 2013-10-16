@@ -1,31 +1,17 @@
 """
 YTArray class.
 
-Author: Casey W. Stark <caseywstark@gmail.com>
-Affiliation: UC Berkeley
-Author: Nathan Goldbaum <goldbaum@ucolick.org>
-Affiliartion: UCSC
 
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2013 Casey W. Stark.  All Rights Reserved.
-
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import copy
 
@@ -48,6 +34,12 @@ from numpy import \
 from yt.utilities.units import Unit
 from yt.utilities.exceptions import YTUnitOperationError, YTUnitConversionError
 from numbers import Number as numeric_type
+
+# redefine this here to avoid a circular import from yt.funcs
+def iterable(obj):
+    try: len(obj)
+    except: return False
+    return True
 
 def ensure_unitless(func):
     def wrapped(unit):
@@ -189,6 +181,8 @@ class YTArray(np.ndarray):
         trunc: passthrough_unit
         }
 
+    __array_priority__ = 2.0
+
     def __new__(cls, input_array, input_units=None, registry=None):
         if isinstance(input_array, YTArray):
             if input_units is None:
@@ -198,6 +192,11 @@ class YTArray(np.ndarray):
             else:
                 input_array.units = Unit(input_units, registry=registry)
             return input_array
+        elif isinstance(input_array, np.ndarray):
+            pass
+        elif iterable(input_array):
+            if isinstance(input_array[0], YTQuantity):
+                return YTArray(np.array(input_array), input_array[0].units)
 
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
@@ -276,6 +275,7 @@ class YTArray(np.ndarray):
 
         self *= conversion_factor
         self.units = new_units
+        return self
 
     def convert_to_cgs(self):
         """
@@ -345,14 +345,15 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(right_object.units):
                 raise YTUnitOperationError('addition', self.units,
                                            right_object.units)
+            ro = right_object.in_units(self.units)
         # If the other object is not a YTArray, the only valid case is adding
         # dimensionless things.
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('addition', self.units,
                                            right_object.units)
-
-        return YTArray(super(YTArray, self).__add__(right_object))
+            ro = right_object
+        return YTArray(super(YTArray, self).__add__(ro))
 
     def __radd__(self, left_object):
         """ See __add__. """
@@ -360,12 +361,13 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(left_object.units):
                 raise YTUnitOperationError('addition', left_object.units,
                                            self.units)
+            lo = left_object.in_units(self.units)
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('addition', left_object.units,
                                            self.units)
-
-        return YTArray(super(YTArray, self).__radd__(left_object))
+            lo = left_object
+        return YTArray(super(YTArray, self).__radd__(lo))
 
     def __iadd__(self, other):
         """ See __add__. """
@@ -383,25 +385,30 @@ class YTArray(np.ndarray):
             if not self.units.same_dimensions_as(right_object.units):
                 raise YTUnitOperationError('subtraction', self.units,
                                            right_object.units)
+            ro = right_object.in_units(self.units)
         # If the other object is not a YTArray, the only valid case is adding
         # dimensionless things.
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('subtraction', self.units,
                                            right_object.units)
+            ro = right_object
 
         return YTArray(super(YTArray, self).__sub__(right_object))
 
     def __rsub__(self, left_object):
         """ See __sub__. """
         if isinstance(left_object, YTArray):
+            if not self.units.same_dimensions_as(left_object.units):
                 raise YTUnitOperationError('subtraction', left_object.units,
                                            self.units)
+            lo = left_object.in_units(self.units)
         else:
+            if not self.units.is_dimensionless:
                 raise YTUnitOperationError('subtraction', left_object.units,
                                            self.units)
-
-        return YTArray(super(YTArray, self).__rsub__(left_object))
+            lo = left_object
+        return YTArray(super(YTArray, self).__rsub__(lo))
 
     def __isub__(self, other):
         """ See __sub__. """
@@ -623,6 +630,10 @@ class YTArray(np.ndarray):
     def sum(self, axis=None, dtype=None, out=None):
         ret = super(YTArray, self).sum(axis, dtype, out)
         return YTArray(ret, self.units)
+
+    def dot(self, b, out=None):
+        ret = super(YTArray, self).dot(b)
+        return YTArray(ret, self.units*b.units)
 
     def __getitem__(self, item):
         ret = super(YTArray, self).__getitem__(item)

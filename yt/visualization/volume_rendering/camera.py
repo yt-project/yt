@@ -18,6 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.math_utils import *
+from yt.data_objects.yt_array import YTArray
 from copy import deepcopy
 
 from .grid_partitioner import HomogenizedVolume
@@ -205,10 +206,10 @@ class Camera(ParallelAnalysisInterface):
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
         self.center = center
-        self.box_vectors = np.array([unit_vectors[0]*width[0],
-                                     unit_vectors[1]*width[1],
-                                     unit_vectors[2]*width[2]])
-        self.origin = center - 0.5*np.dot(width,unit_vectors)
+        self.box_vectors = YTArray([unit_vectors[0]*width[0],
+                                    unit_vectors[1]*width[1],
+                                    unit_vectors[2]*width[2]])
+        self.origin = center - 0.5*width.dot(YTArray(unit_vectors))
         self.back_center =  center - 0.5*width[2]*unit_vectors[2]
         self.front_center = center + 0.5*width[2]*unit_vectors[2]         
 
@@ -2159,7 +2160,7 @@ class ProjectionCamera(Camera):
         field = dd._determine_fields([self.field])[0]
         finfo = pf._get_field_info(*field)
         if self.weight is None:
-            dl = self.width[2] * pf.units[finfo.projection_conversion]
+            dl = self.width[2]
             image *= dl
         else:
             image[:,:,0] /= image[:,:,1]
