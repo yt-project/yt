@@ -575,14 +575,15 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 field = fields_to_generate[index % len(fields_to_generate)]
                 index += 1
                 if field in self.field_data: continue
+                fi = self.pf._get_field_info(*field)
                 try:
                     fd = self._generate_field(field)
                     if type(fd) == np.ndarray:
-                        fd = YTArray(fd, self.pf._get_field_info(*field).units,
-                                     self.pf.unit_registry)
-                    if fd == None:
+                        fd = YTArray(fd, fi.units, self.pf.unit_registry)
+                    if fd is None:
                         raise RuntimeError
                     self.field_data[field] = fd
+                    fd.convert_to_units(fi.units)
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:

@@ -39,7 +39,8 @@ def derived_field(**kwargs):
 
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
-        return data[field_name]
+        # We do a bunch of in-place modifications, so we will copy this.
+        return data[field_name].copy()
     return _TranslationFunc
 
 def NullFunc(field, data):

@@ -30,6 +30,8 @@ from yt.utilities.exceptions import \
     YTFieldNotFound
 from .field_plugin_registry import \
     field_plugins
+from yt.utilities.units import \
+    Unit
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -84,7 +86,11 @@ class FieldInfoContainer(dict): # Resistance has utility
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
-        units = units or self[original_name].units
+        if units is None:
+            # We default to CGS here, but in principle, this can be pluggable
+            # as well.
+            u = Unit(self[original_name].units)
+            units = str(u.get_cgs_equivalent())
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
             units = units)
