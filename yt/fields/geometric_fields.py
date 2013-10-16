@@ -45,7 +45,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[2,...] -= center[2]
         return get_sph_r(coords)
 
-    registry.add_field("spherical_r",
+    registry.add_field(("index", "spherical_r"),
              function=_spherical_r,
              validators=[ValidateParameter("center")],
              units="cm")
@@ -60,7 +60,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[2,...] -= center[2]
         return get_sph_theta(coords, normal)
 
-    registry.add_field("spherical_theta",
+    registry.add_field(("index", "spherical_theta"),
              function=_spherical_theta,
              validators=[ValidateParameter("center"),
              ValidateParameter("normal")])
@@ -75,7 +75,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[2,...] -= center[2]
         return get_sph_phi(coords, normal)
 
-    registry.add_field("spherical_phi",
+    registry.add_field(("index", "spherical_phi"),
              function=_spherical_phi,
              validators=[ValidateParameter("center"),
              ValidateParameter("normal")])
@@ -90,7 +90,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[2,...] -= center[2]
         return get_cyl_r(coords, normal)
 
-    registry.add_field("cylindrical_r",
+    registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
              validators=[ValidateParameter("center"),
                         ValidateParameter("normal")],
@@ -106,7 +106,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[2,...] -= center[2]
         return get_cyl_z(coords, normal)
 
-    registry.add_field("cylindrical_z",
+    registry.add_field(("index", "cylindrical_z"),
              function=_cylindrical_z,
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
@@ -122,7 +122,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[2,...] -= center[2]
         return get_cyl_theta(coords, normal)
 
-    registry.add_field("cylindrical_theta",
+    registry.add_field(("index", "cylindrical_theta"),
              function=_cylindrical_theta,
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
@@ -132,9 +132,9 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     ### 'theta' angle. I'm keeping DiskAngle for backwards compatibility.
     # @todo: remove in 3.0?
     def _disk_angle(field, data):
-        return data["spherical_theta"]
+        return data["index", "spherical_theta"]
 
-    registry.add_field("disk_angle",
+    registry.add_field(("index", "disk_angle"),
               function=_disk_angle, take_log=False,
               validators=[ValidateParameter("center"),
                           ValidateParameter("normal")],
@@ -145,7 +145,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     ### field. I'm keeping Height for backwards compatibility.
     # @todo: remove in 3.0?
     def _height(field, data):
-        return data["cylindrical_z"]
+        return data["index", "cylindrical_z"]
 
     registry.add_field("height", function=_height, 
              validators=[ValidateParameter("center"),

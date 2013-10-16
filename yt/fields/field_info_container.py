@@ -65,7 +65,7 @@ class FieldInfoContainer(dict): # Resistance has utility
     def load_all_plugins(self, ftype="gas"):
         for n in sorted(field_plugins):
             loaded, not_loaded = self.load_plugin(n, ftype)
-            mylog.debug("Loaded %s (%s new fields)",
+            mylog.info("Loaded %s (%s new fields)",
                 n, len(loaded))
 
     def load_plugin(self, plugin_name, ftype = "gas"):
@@ -211,4 +211,6 @@ class FieldInfoContainer(dict): # Resistance has utility
             fd.requested = set(fd.requested)
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
+        dfl = set(self.pf.h.derived_field_list).union(deps.keys())
+        self.pf.h.derived_field_list = list(sorted(dfl))
         return deps, unavailable

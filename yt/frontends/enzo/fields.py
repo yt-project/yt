@@ -230,7 +230,8 @@ class EnzoFieldInfo(FieldInfoContainer):
             return 0.5*data["density"] * ( data["x-velocity"]**2
                                          + data["y-velocity"]**2.0
                                          + data["z-velocity"]**2.0 )
-        self.add_field("kinetic_energy", function = _kin_energy,
+        self.add_field(("gas", "kinetic_energy"),
+            function = _kin_energy,
             units = "erg / cm**3")
 
     def setup_particle_fields(self, ptype):
