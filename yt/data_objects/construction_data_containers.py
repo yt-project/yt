@@ -252,16 +252,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
                         bounds, style = self.proj_style)
 
-    def _get_conv(self, fields):
-        # Place holder for a time when maybe we will not be doing just
-        # a single dx for every field.
-        convs = np.empty(len(fields), dtype="float64")
-        fields = self._determine_fields(fields)
-        for i, field in enumerate(fields):
-            fi = self.pf._get_field_info(*field)
-            convs[i] = (self.pf.units[fi.projection_conversion])
-        return convs
-
     def get_data(self, fields = None):
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
@@ -303,9 +293,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.multiply(pdy, self.pf.domain_width[y_dict[self.axis]], pdy)
         if self.weight_field is not None:
             np.divide(nvals, nwvals[:,None], nvals)
-        if self.weight_field is None:
-            convs = self._get_conv(fields)
-            nvals *= convs[None,:]
         # We now convert to half-widths and center-points
         data = {}
         data['px'] = px

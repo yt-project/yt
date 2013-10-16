@@ -513,8 +513,14 @@ class YTRegionBase(YTSelectionContainer3D):
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
-        self.left_edge = left_edge
-        self.right_edge = right_edge
+        if not isinstance(left_edge, YTArray):
+            self.left_edge = YTArray(left_edge, 'code_length')
+        else:
+            self.left_edge = left_edge
+        if not isinstance(right_edge, YTArray):
+            self.right_edge = YTArray(right_edge, 'code_length')
+        else:
+            self.right_edge = right_edge
 
 class YTDataCollectionBase(YTSelectionContainer3D):
     """
