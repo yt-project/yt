@@ -275,6 +275,7 @@ cdef class ParticleRegions:
     cdef np.int32_t dims[3]
     cdef public np.uint64_t nfiles
     cdef public object masks
+    cdef public object counts
 
     def __init__(self, left_edge, right_edge, dims, nfiles):
         cdef int i
@@ -289,6 +290,7 @@ cdef class ParticleRegions:
         self.masks = []
         for i in range(nfiles/64 + 1):
             self.masks.append(np.zeros(dims, dtype="uint64"))
+        self.counts = np.zeros(dims, dtype="uint64")
 
     def add_data_file(self, np.ndarray pos, int file_id, int filter = 0):
         if pos.dtype == np.float32:
@@ -304,8 +306,9 @@ cdef class ParticleRegions:
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
         cdef int ind[3], i, use
-        cdef np.ndarray[np.uint64_t, ndim=3] mask
+        cdef np.ndarray[np.uint64_t, ndim=3] mask, counts
         mask = self.masks[file_id/64]
+        counts = self.counts
         cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
         for p in range(no):
             # Now we locate the particle
@@ -319,6 +322,8 @@ cdef class ParticleRegions:
                 ind[i] = iclip(ind[i], 0, self.dims[i])
             if use == 1:
                 mask[ind[0],ind[1],ind[2]] |= val
+                mask[ind[0],ind[1],ind[2]] |= val
+                counts[ind[0],ind[1],ind[2]] += 1
         return
 
     def identify_data_files(self, SelectorObject selector):
