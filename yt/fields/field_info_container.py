@@ -197,7 +197,6 @@ class FieldInfoContainer(dict): # Resistance has utility
         for field in fields_to_check:
             mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError
-            if field in self.field_list: continue
             fi = self[field]
             try:
                 fd = fi.get_dependencies(pf = self.pf)
