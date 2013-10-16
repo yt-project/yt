@@ -845,11 +845,15 @@ class EnzoStaticOutput(StaticOutput):
             mylog.warning("Setting 1.0 in code units to be 1.0 g")
             length_unit = mass_unit = time_unit = 1.0
 
+        magnetic_unit = np.sqrt(4*np.pi * mass_unit /
+                                (time_unit**2 * length_unit))
+        self.magnetic_unit = YTQuantity(magnetic_unit, "gauss")
         self.length_unit = YTQuantity(length_unit, "cm")
         self.mass_unit = YTQuantity(mass_unit, "g")
         self.time_unit = YTQuantity(time_unit, "s")
 
     def set_code_units(self):
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
         self.unit_registry.modify("code_length", self.length_unit.value)
         self.unit_registry.modify("code_mass", self.mass_unit.value)
         self.unit_registry.modify("code_time", self.time_unit.value)

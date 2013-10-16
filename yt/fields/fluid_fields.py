@@ -69,6 +69,14 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              function=_radial_mach_number,
              units = "")
 
+    def _kin_energy(field, data):
+        return 0.5*data["density"] * ( data["velocity_x"]**2.0
+                                     + data["velocity_y"]**2.0
+                                     + data["velocity_z"]**2.0 )
+    registry.add_field(("gas", "kinetic_energy"),
+                       function = _kin_energy,
+                       units = "erg / cm**3")
+
     def _mach_number(field, data):
         """ M{|v|/t_sound} """
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]

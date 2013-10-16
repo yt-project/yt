@@ -141,9 +141,14 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
                 data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
                 data_view = data.swapaxes(0,2)
+                nd = 0
                 for field in fields:
                     ftype, fname = field
-                    dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                    try:
+                        dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                    except KeyError:
+                        if fname == "Dark_Matter_Density": continue
+                        raise
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd

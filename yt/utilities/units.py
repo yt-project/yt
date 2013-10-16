@@ -88,6 +88,7 @@ default_unit_symbol_lut = {
     "unitary"   : (1.0, length),
     "code_mass" : (1.0, mass),
     "code_time" : (1.0, time),
+    "code_magnetic" : (1.0, magnetic_field),
 
     # other cgs
     "dyne": (1.0, force),

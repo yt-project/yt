@@ -33,7 +33,7 @@ from yt.utilities.physical_constants import \
 
 import yt.utilities.lib as amr_utils
 
-b_units = "" # Gotta fix this
+b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_length / code_time"
@@ -161,8 +161,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
                 raise RuntimeError
-            args = known_other_fields.get(field[1], None)
-            if args is None: continue
+            args = known_other_fields.get(field[1], ("", []))
             units, aliases = args
             self.add_output_field(field, units = units)
             for alias in aliases:
@@ -225,14 +224,6 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_field(
                 ("gas", "thermal_energy"),
                 units = "erg/g")
-
-        def _kin_energy(field, data):
-            return 0.5*data["density"] * ( data["x-velocity"]**2
-                                         + data["y-velocity"]**2.0
-                                         + data["z-velocity"]**2.0 )
-        self.add_field(("gas", "kinetic_energy"),
-            function = _kin_energy,
-            units = "erg / cm**3")
 
     def setup_particle_fields(self, ptype):
         for f, (units, aliases) in sorted(known_particle_fields.items()):
