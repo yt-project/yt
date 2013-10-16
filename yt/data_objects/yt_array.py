@@ -424,11 +424,19 @@ class YTArray(np.ndarray):
         The unit objects handle being multiplied.
 
         """
-        return YTArray(super(YTArray, self).__mul__(right_object))
+        if isinstance(right_object, YTArray):
+            ro = right_object.in_units(self.units)
+        else:
+            ro = right_object
+        return YTArray(super(YTArray, self).__mul__(ro))
 
     def __rmul__(self, left_object):
         """ See __mul__. """
-        return YTArray(super(YTArray, self).__rmul__(left_object))
+        if isinstance(left_object, YTArray):
+            lo = left_object.in_units(self.units)
+        else:
+            lo = left_object
+        return YTArray(super(YTArray, self).__rmul__(lo))
 
     def __imul__(self, other):
         """ See __mul__. """
@@ -439,33 +447,57 @@ class YTArray(np.ndarray):
         Divide this YTArray by the object on the right of the `/` operator.
 
         """
-        return YTArray(super(YTArray, self).__div__(right_object))
+        if isinstance(right_object, YTArray):
+            ro = right_object.in_units(self.units)
+        else:
+            ro = right_object
+        return YTArray(super(YTArray, self).__div__(ro))
 
     def __rdiv__(self, left_object):
         """ See __div__. """
-        return YTArray(super(YTArray, self).__rdiv__(left_object))
+        if isinstance(left_object, YTArray):
+            lo = left_object.in_units(self.units)
+        else:
+            lo = left_object
+        return YTArray(super(YTArray, self).__rdiv__(lo))
 
     def __idiv__(self, other):
         """ See __div__. """
         return np.divide(self, other, out=self)
 
     def __truediv__(self, right_object):
-        return YTArray(super(YTArray, self).__truediv__(right_object))
+        if isinstance(right_object, YTArray):
+            ro = right_object.in_units(self.units)
+        else:
+            ro = right_object
+        return YTArray(super(YTArray, self).__truediv__(ro))
 
     def __rtruediv__(self, left_object):
         """ See __div__. """
-        return YTArray(super(YTArray, self).__rtruediv__(left_object))
+        if isinstance(left_object, YTArray):
+            lo = left_object.in_units(self.units)
+        else:
+            lo = left_object
+        return YTArray(super(YTArray, self).__rtruediv__(lo))
 
     def __itruediv__(self, other):
         """ See __div__. """
         return np.true_divide(self, other, out=self)
 
     def __floordiv__(self, right_object):
-        return YTArray(super(YTArray, self).__floordiv__(right_object))
+        if isinstance(right_object, YTArray):
+            ro = right_object.in_units(self.units)
+        else:
+            ro = right_object
+        return YTArray(super(YTArray, self).__floordiv__(ro))
 
     def __rfloordiv__(self, left_object):
         """ See __div__. """
-        return YTArray(super(YTArray, self).__rfloordiv__(left_object))
+        if isinstance(left_object, YTArray):
+            lo = left_object.in_units(self.units)
+        else:
+            lo = left_object
+        return YTArray(super(YTArray, self).__rfloordiv__(lo))
 
     def __ifloordiv__(self, other):
         """ See __div__. """
