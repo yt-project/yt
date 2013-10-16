@@ -34,12 +34,20 @@ class CartesianCoordinateHandler(CoordinateHandler):
             return _dds, _coords
         for axi, ax in enumerate('xyz'):
             f1, f2 = _get_coord_fields(axi, ax)
-            registry.add_field("d%s" % ax, function = f1,
+            registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
                                units = "code_length")
-            registry.add_field("%s" % ax, function = f2,
+            registry.add_field(("index", "%s" % ax), function = f2,
                                display_field = False,
                                units = "code_length")
+        def _cell_volume(field, data):
+            return data.fwidth.prod(axis=1)
+        registry.add_field(("index", "cell_volume"), function=_cell_volume,
+                           display_field=False, units = "code_length**3")
+        registry.check_derived_fields(
+            [("index", "dx"), ("index", "dy"), ("index", "dz"),
+             ("index", "x"), ("index", "y"), ("index", "z"),
+             ("index", "cell_volume")])
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
         if dimension < 3:

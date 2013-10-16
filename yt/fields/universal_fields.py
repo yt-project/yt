@@ -120,7 +120,7 @@ def jeans_mass(field, data):
 add_field("jeans_mass", function=jeans_mass, units="g")
 
 def _cell_mass(field, data):
-    return data["density"] * data["cell_volume"]
+    return data["density"] * data["index", "cell_volume"]
 
 add_field("cell_mass", function=_cell_mass, units="g")
 

@@ -101,7 +101,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d /= data["gas", "CellVolume"]
+        d /= data["gas", "index", "cell_volume"]
         return field.apply_units(d)
 
     registry.add_field(("deposit", "%s_density" % ptype),
@@ -114,7 +114,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
         d = field.apply_units(d, data[ptype, mass_name].units)
-        d /= data["gas","CellVolume"]
+        d /= data["index", "cell_volume"]
         return d
 
     registry.add_field(("deposit", "%s_cic" % ptype),
@@ -151,7 +151,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         # deposit operation.
         #_ids = ids.view("float64")
         data.deposit(pos, [ids], method = "mesh_id")
-        return self.apply_units(ids, "")
+        return field.apply_units(ids, "")
     registry.add_field((ptype, "mesh_id"),
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],
@@ -458,7 +458,7 @@ def standard_particle_fields(registry, ptype,
             """
             pos = data[ptype, 'Coordinates']
             # Get back into density
-            pden = data[ptype, 'particle_mass'] / data["CellVolume"] 
+            pden = data[ptype, 'particle_mass'] / data["index", "cell_volume"] 
             top = data.deposit(pos, [data[('all', particle_field)]*pden],
                                method = 'cic')
             bottom = data.deposit(pos, [pden], method = 'cic')

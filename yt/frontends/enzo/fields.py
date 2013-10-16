@@ -115,13 +115,13 @@ class EnzoFieldInfo(FieldInfoContainer):
         # off, we add the species field itself.  Then we'll add a few more
         # items...
         #
-        self.add_output_field(("gas", "%s_Density" % species),
+        self.add_output_field(("enzo", "%s_Density" % species),
                            take_log=True,
                            units="code_mass/code_length**3")
         self.alias(("gas", "%s_density" % species),
-                   ("gas", "%s_Density" % species))
+                   ("enzo", "%s_Density" % species))
         def _species_mass(field, data):
-            return data["gas", "%s_Density" % species] \
+            return data["gas", "%s_density" % species] \
                  * data["cell_volume"]
         self.add_field(("gas", "%s_mass" % species),
                            function=_species_mass,
@@ -148,7 +148,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_species_field(sp)
         def _number_density(_sp_list, masses):
             def _num_dens_func(field, data):
-                num = YTArray(np.zeros(data["Density"].shape, "float64"))
+                num = YTArray(np.zeros(data["density"].shape, "float64"))
                 for sp in _sp_list:
                     num += data["%s_density" % sp] / masses[sp]
             return _num_dens_func
@@ -171,40 +171,37 @@ class EnzoFieldInfo(FieldInfoContainer):
         # Now we conditionally load a few other things.
         if self.pf.parameters["MultiSpecies"] > 0:
             self.setup_species_fields()
+        self.setup_energy_field()
 
-        self.check_derived_fields()
-        mylog.info("Loading field plugins.")
-        self.load_all_plugins()
-        
     def setup_energy_field(self):
         # We check which type of field we need, and then we add it.
         ge_name = None
         te_name = None
-        if "Gas_Energy" in self.field_list:
+        if ("enzo", "Gas_Energy") in self.field_list:
             ge_name = "Gas_Energy"
-        elif "GasEnergy" in self.field_list:
+        elif ("enzo", "GasEnergy") in self.field_list:
             ge_name = "GasEnergy"
-        if "Total_Energy" in self.field_list:
+        if ("enzo", "Total_Energy") in self.field_list:
             te_name = "Total_Energy"
-        elif "TotalEnergy" in self.field_list:
+        elif ("enzo", "TotalEnergy") in self.field_list:
             te_name = "TotalEnergy"
 
         if self.pf.parameters["HydroMethod"] == 2:
-            self.add_output_field(("gas", te_name),
+            self.add_output_field(("enzo", te_name),
                 units="code_length**2/code_time**2")
-            self.alias(("gas", "thermal_energy"), ("gas", te_name))
+            self.alias(("gas", "thermal_energy"), ("enzo", te_name))
 
         elif self.pf.parameters["DualEnergyFormalism"] == 1:
             self.add_output_field(
-                ("gas", ge_name),
+                ("enzo", ge_name),
                 units="code_length**2/code_time**2")
             self.alias(
                 ("gas", "thermal_energy"),
-                ("gas", ge_name),
+                ("enzo", ge_name),
                 units = "erg/g")
         elif self.pf.paramters["HydroMethod"] in (4, 6):
             self.add_output_field(
-                ("gas", te_name),
+                ("enzo", te_name),
                 units="code_length**2/code_time**2")
             # Subtract off B-field energy
             def _sub_b(field, data):
@@ -218,7 +215,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 function=_sub_b, units = "erg/g")
         else: # Otherwise, we assume TotalEnergy is kinetic+thermal
             self.add_output_field(
-                ("gas", te_name),
+                ("enzo", te_name),
                 units = "code_length**2/code_time**2")
             def _tot_minus_kin(field, data):
                 return data[te_name] - 0.5*(

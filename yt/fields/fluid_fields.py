@@ -22,6 +22,9 @@ from .derived_field import \
 from .field_plugin_registry import \
     register_field_plugin
 
+from .vector_operations import \
+    create_vector_fields
+
 from yt.utilities.math_utils import \
     get_sph_r_component, \
     get_sph_theta_component, \
@@ -48,6 +51,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         div_fac = 2.0
     else:
         sl_left, sl_right, div_face = slice_info
+
+    create_vector_fields(registry, "velocity", "cm / s", ftype, slice_info)
 
     def _sound_speed(field, data):
         tr = data.pf.gamma * data[ftype, "pressure"] / data[ftype, "density"]

@@ -52,7 +52,7 @@ _pf_store = ParameterFileStore()
 class StaticOutput(object):
 
     default_fluid_type = "gas"
-    fluid_types = ("gas","deposit")
+    fluid_types = ("gas", "deposit", "index")
     particle_types = ("io",) # By default we have an 'all'
     particle_types_raw = ("io",)
     geometry = "cartesian"
@@ -260,7 +260,10 @@ class StaticOutput(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
-        deps, unavailable = self.field_info.check_derived_fields()
+        deps, unloaded = self.field_info.check_derived_fields()
+        self.field_dependencies.update(deps)
+        mylog.info("Loading field plugins.")
+        self.field_info.load_all_plugins()
 
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":
@@ -339,7 +342,10 @@ class StaticOutput(object):
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
-            for ftype in ("all", self.default_fluid_type):
+            to_guess = ["all", self.default_fluid_type] \
+                     + list(self.fluid_types) \
+                     + list(self.particle_types)
+            for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]

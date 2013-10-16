@@ -64,7 +64,7 @@ class FieldInfoContainer(dict): # Resistance has utility
 
     def load_all_plugins(self, ftype="gas"):
         for n in sorted(field_plugins):
-            loaded, unavail = self.load_plugin(n, ftype)
+            loaded, not_loaded = self.load_plugin(n, ftype)
             mylog.debug("Loaded %s (%s new fields)",
                 n, len(loaded))
 
@@ -195,6 +195,8 @@ class FieldInfoContainer(dict): # Resistance has utility
             try:
                 fd = fi.get_dependencies(pf = self.pf)
             except Exception as e:
+                if "mach_number" in field:
+                    raise
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
@@ -208,4 +210,5 @@ class FieldInfoContainer(dict): # Resistance has utility
                 continue
             fd.requested = set(fd.requested)
             deps[field] = fd
+            mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
         return deps, unavailable

@@ -46,7 +46,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             elif len(v.dims) == 1:
                 fields.append( ("io", str(name)) )
             else:
-                fields.append( ("gas", str(name)) )
+                fields.append( ("enzo", str(name)) )
         f.close()
         return fields
 

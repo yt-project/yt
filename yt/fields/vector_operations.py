@@ -11,7 +11,16 @@ This is where we define a handful of vector operations for fields.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+
 from yt.data_objects.yt_array import YTArray
+
+from .derived_field import \
+    ValidateParameter, \
+    ValidateSpatial
+
+from .field_plugin_registry import \
+    register_field_plugin
 
 def create_vector_fields(registry, basename, field_units,
                          ftype = "gas", slice_info = None):
@@ -25,13 +34,13 @@ def create_vector_fields(registry, basename, field_units,
         yn = "zeros"
 
     def _magnitude(field, data):
-        mag  = xn*xn
-        mag += yn*yn
-        mag += zn*zn
+        mag  = data[xn] * data[xn]
+        mag += data[yn] * data[yn]
+        mag += data[zn] * data[zn]
         return np.sqrt(mag)
 
     registry.add_field((ftype, "%s_magnitude" % basename),
-                       function = _magnitude, units = units)
+                       function = _magnitude, units = field_units)
 
     def _radial(field, data):
         normal = data.get_field_parameter("normal")
@@ -48,11 +57,11 @@ def create_vector_fields(registry, basename, field_units,
                      - data["radial_%s" % basename]**2.0)
 
     registry.add_field((ftype, "radial_%s" % basename),
-                       function = _radial, units = units)
+                       function = _radial, units = field_units)
     registry.add_field((ftype, "radial_%s_absolute" % basename),
-                       function = _radial, units = units)
+                       function = _radial, units = field_units)
     registry.add_field((ftype, "tangential_%s" % basename),
-                       function=_tangential, units=units)
+                       function=_tangential, units = field_units)
 
     def _cp_vectors(ax):
         def _cp_val(field, data):
@@ -65,11 +74,11 @@ def create_vector_fields(registry, basename, field_units,
             return tr
         return _cp_val
     registry.add_field((ftype, "cutting_plane_%s_x" % basename),
-                       function = _cp_vectors('x'), units=units)
+                       function = _cp_vectors('x'), units = field_units)
     registry.add_field((ftype, "cutting_plane_%s_y" % basename),
-                       function = _cp_vectors('y'), units=units)
+                       function = _cp_vectors('y'), units = field_units)
     registry.add_field((ftype, "cutting_plane_%s_z" % basename),
-                       function = _cp_vectors('z'), units=units)
+                       function = _cp_vectors('z'), units = field_units)
 
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
@@ -141,12 +150,14 @@ def create_vector_fields(registry, basename, field_units,
     def _cylindrical_tangential_absolute(field, data):
         return np.abs(_cylindrical_tangential(field, data))
 
-    add_field((ftype, "cylindrical_tangential_%s" % basename),
-              function=_cylindrical_tangential,
-              units=field_units,
-              validators=[ValidateParameter("normal")])
-    add_field((ftype, "cylindrical_tangential_%s_absolute" % basename),
-              function=_cylindrical_tangential_absolute,
-              units=field_units,
-              validators=[ValidateParameter("normal")])
+    registry.add_field(
+             (ftype, "cylindrical_tangential_%s" % basename),
+             function=_cylindrical_tangential,
+             units=field_units,
+             validators=[ValidateParameter("normal")])
+    registry.add_field(
+             (ftype, "cylindrical_tangential_%s_absolute" % basename),
+             function=_cylindrical_tangential_absolute,
+             units=field_units,
+             validators=[ValidateParameter("normal")])
 
