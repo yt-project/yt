@@ -11,13 +11,16 @@ Unit test the sunyaev_zeldovich analysis module.
 #-----------------------------------------------------------------------------
 
 from yt.frontends.stream.api import load_uniform_grid
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, mylog
 from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
      mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
 from yt.testing import *
 from yt.utilities.answer_testing.framework import requires_pf, \
-     GenericArrayTest, data_dir_load
-from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
+     GenericArrayTest, data_dir_load, GenericImageTest
+try:
+    from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
+except ImportError:
+    pass
 import numpy as np
 try:
     import SZpack
@@ -109,18 +112,24 @@ M7 = "DD0010/moving7_0010"
 @requires_pf(M7)
 def test_M7_onaxis():
     pf = data_dir_load(M7)
-    def onaxis_func():
-        szprj = SZProjection(pf, freqs)
-        szprj.on_axis(2)
-        return szprj
-    yield GenericArrayTest(pf, onaxis_func)
-        
+    szprj = SZProjection(pf, freqs)
+    szprj.on_axis(2, nx=100)
+    def onaxis_array_func():
+        return szprj.data
+    def onaxis_image_func(filename_prefix):
+        szprj.write_png(filename_prefix)
+    yield GenericArrayTest(pf, onaxis_array_func)
+    yield GenericImageTest(pf, onaxis_image_func, 3)
+       
 @requires_module("SZpack")
 @requires_pf(M7)
 def test_M7_offaxis():
-    pf = data_dir_load(sloshing)
-    def offaxis_func():
-        szprj = SZProjection(pf, freqs)
-        szprj.off_axis(np.array([0.1,-0.2,0.4]))
-        return szprj                    
-    yield GenericArrayTest(pf, offaxis_func)
+    pf = data_dir_load(M7)
+    szprj = SZProjection(pf, freqs)
+    szprj.off_axis(np.array([0.1,-0.2,0.4]), nx=100)
+    def offaxis_array_func():
+        return szprj.data
+    def offaxis_image_func(filename_prefix):
+        szprj.write_png(filename_prefix)
+    yield GenericArrayTest(pf, offaxis_array_func)
+    yield GenericImageTest(pf, offaxis_image_func, 3)
