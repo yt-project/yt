@@ -332,8 +332,13 @@ cdef class ParticleRegions:
         cdef np.uint64_t fmask, offset, fcheck
         cdef np.float64_t LE[3], RE[3]
         cdef np.ndarray[np.uint64_t, ndim=3] mask
+        cdef np.ndarray[np.uint64_t, ndim=3] counts = self.counts
+        cdef np.ndarray[np.uint8_t, ndim=3] omask
+        omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
+                         dtype="uint8")
         files = []
         for n in range(len(self.masks)):
+            pcount = 0 # Each loop
             fmask = 0
             mask = self.masks[n]
             LE[0] = self.left_edge[0]
@@ -346,7 +351,9 @@ cdef class ParticleRegions:
                     RE[2] = LE[2] + self.dds[2]
                     for k in range(self.dims[2]):
                         if selector.select_grid(LE, RE, 0) == 1:
+                            omask[i, j, k] = 1
                             fmask |= mask[i,j,k]
+                            pcount += counts[i,j,k]
                         LE[2] += self.dds[2]
                         RE[2] += self.dds[2]
                     LE[1] += self.dds[1]
@@ -357,5 +364,66 @@ cdef class ParticleRegions:
             for fcheck in range(64):
                 if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
                     files.append(fcheck + n * 64)
-        return files
+        return files, pcount, omask
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def mask_range(self, int i0, int i1, int mask_id,
+                   np.ndarray[np.uint8_t, ndim=3] omask):
+        cdef np.uint64_t fmask, fcheck
+        cdef int i, j, k, n
+        cdef np.ndarray[np.uint64_t, ndim=3] mask = self.masks[mask_id]
+        pcount = 0
+        fmask = 0
+        for i in range(i0, i1 + 1):
+            for j in range(self.dims[1]):
+                for k in range(self.dims[2]):
+                    fmask |= (omask[i,j,k] * mask[i,j,k])
+        file_ids = []
+        for fcheck in range(64):
+            if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
+                file_ids.append(fcheck + mask_id * 64)
+        return file_ids
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def split_pcount(self, np.int64_t desired_particles, SelectorObject selector):
+        cdef np.float64_t LE[3], RE[3]
+        cdef np.int64_t pcount = 0, selected
+        cdef np.ndarray[np.uint64_t, ndim=3] counts
+        cdef np.ndarray[np.uint8_t, ndim=3] omask
+        omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
+                         dtype="uint8")
+        counts = self.counts
+        cdef int i0, i, j, k, n, nm
+        nm = len(self.masks)
+        i0 = 0
+        LE[0] = self.left_edge[0]
+        RE[0] = LE[0] + self.dds[0]
+        filesets = []
+        for i in range(self.dims[0]):
+            LE[1] = self.left_edge[1]
+            RE[1] = LE[1] + self.dds[1]
+            for j in range(self.dims[1]):
+                LE[2] = self.left_edge[2]
+                RE[2] = LE[2] + self.dds[2]
+                for k in range(self.dims[2]):
+                    selected = selector.select_grid(LE, RE, 0)
+                    omask[i,j,k] = selected
+                    pcount += selected * counts[i,j,k]
+                    LE[2] += self.dds[2]
+                    RE[2] += self.dds[2]
+                LE[1] += self.dds[1]
+                RE[1] += self.dds[1]
+            if pcount > desired_particles or (i == self.dims[0] - 1):
+                file_ids = []
+                for n in range(nm):
+                    file_ids += self.mask_range(i0, i, n, omask)
+                filesets.append( (pcount, file_ids, (i0, i)) )
+                i0 = i
+                pcount = 0
+            LE[0] += self.dds[0]
+            RE[0] += self.dds[0]
+        return filesets

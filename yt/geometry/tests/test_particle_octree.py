@@ -174,7 +174,7 @@ def test_particle_regions():
         for i in range(nfiles):
             fr.set_edges(i)
             selector = RegionSelector(fr)
-            df = reg.identify_data_files(selector)
+            df, pcount, omask = reg.identify_data_files(selector)
             yield assert_equal, len(df), 1
             yield assert_equal, df[0], i
             pos[:,0] += 1.0

@@ -82,7 +82,7 @@ class ParticleIndex(Index):
         self.oct_handler.n_ref = ds.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
-        N = min(len(self.data_files), 256) 
+        N = min(len(2*self.data_files), 256) 
         self.regions = ParticleRegions(
                 ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files))
@@ -136,8 +136,11 @@ class ParticleIndex(Index):
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
             if data_files is None:
-                data_files = [self.data_files[i] for i in
-                              self.regions.identify_data_files(dobj.selector)]
+                dfi, count, omask = self.regions.identify_data_files(
+                                        dobj.selector)
+                #n_cells = omask.sum()
+                data_files = [self.data_files[i] for i in dfi]
+                mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
             oref = self.dataset.over_refine_factor
             subset = [ParticleOctreeSubset(base_region, data_files, 
