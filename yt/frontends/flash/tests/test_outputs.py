@@ -29,6 +29,7 @@ def test_sloshing():
     pf = data_dir_load(sloshing)
     yield assert_equal, str(pf), "sloshing_low_res_hdf5_plt_cnt_0300"
     for test in small_patch_amr(sloshing, _fields):
+        test_sloshing.__name__ = test.description
         yield test
 
 _fields_2d = ("Temperature", "Density")
@@ -39,4 +40,5 @@ def test_wind_tunnel():
     pf = data_dir_load(wt)
     yield assert_equal, str(pf), "windtunnel_4lev_hdf5_plt_cnt_0030"
     for test in small_patch_amr(wt, _fields_2d):
+        test_wind_tunnel.__name__ = test.description
         yield test

@@ -29,11 +29,11 @@ except ImportError:
 
 mue = 1./0.88
 freqs = np.array([30., 90., 240.])
-    
+
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"        
+    ytcfg["yt", "__withintesting"] = "True"
 
 def full_szpack3d(pf, xo):
     data = pf.h.grids[0]
@@ -43,7 +43,7 @@ def full_szpack3d(pf, xo):
     Dtau = sigma_thompson*data["Density"]/(mh*mue)*dz
     Te = data["Temperature"]/K_per_keV
     betac = data["z-velocity"]/clight
-    pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx) 
+    pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx)
     for i in xrange(nx):
         pbar.update(i)
         for j in xrange(ny):
@@ -67,7 +67,7 @@ def setup_cluster():
     a = 200.
     v0 = 300.*cm_per_km
     ddims = (nx,ny,nz)
-    
+
     x, y, z = np.mgrid[-R:R:nx*1j,
                        -R:R:ny*1j,
                        -R:R:nz*1j]
@@ -87,7 +87,7 @@ def setup_cluster():
     data["z-velocity"] = velz
 
     bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
-    
+
     L = 2*R*cm_per_kpc
     dl = L/nz
 
@@ -118,9 +118,11 @@ def test_M7_onaxis():
         return szprj.data
     def onaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
-    yield GenericArrayTest(pf, onaxis_array_func)
-    yield GenericImageTest(pf, onaxis_image_func, 3)
-       
+    for test in [GenericArrayTest(pf, onaxis_array_func),
+                 GenericImageTest(pf, onaxis_image_func, 3)]:
+        test_M7_onaxis.__name__ = test.description
+        yield test
+
 @requires_module("SZpack")
 @requires_pf(M7)
 def test_M7_offaxis():
@@ -131,5 +133,7 @@ def test_M7_offaxis():
         return szprj.data
     def offaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
-    yield GenericArrayTest(pf, offaxis_array_func)
-    yield GenericImageTest(pf, offaxis_image_func, 3)
+    for test in [GenericArrayTest(pf, offaxis_array_func),
+                 GenericImageTest(pf, offaxis_image_func, 3)]:
+        test_M7_offaxis.__name__ = test.description
+        yield test
