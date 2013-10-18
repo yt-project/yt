@@ -369,17 +369,19 @@ cdef class ParticleRegions:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask_range(self, int i0, int i1, int mask_id,
+    def mask_range(self, int mask_id, np.uint64_t index0, np.uint64_t index1,
                    np.ndarray[np.uint8_t, ndim=3] omask):
         cdef np.uint64_t fmask, fcheck
-        cdef int i, j, k, n
+        cdef np.uint64_t i
         cdef np.ndarray[np.uint64_t, ndim=3] mask = self.masks[mask_id]
+        cdef np.uint64_t *dmask = <np.uint64_t *> mask.data
+        cdef np.uint8_t *domask = <np.uint8_t *> omask.data
         pcount = 0
         fmask = 0
-        for i in range(i0, i1 + 1):
-            for j in range(self.dims[1]):
-                for k in range(self.dims[2]):
-                    fmask |= (omask[i,j,k] * mask[i,j,k])
+        for i in range(index0, index1+1):
+            if domask[i] == 1:
+                fmask |= dmask[i]
+        #print "SEARCHED", index0, index1+1, fmask
         file_ids = []
         for fcheck in range(64):
             if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
@@ -397,12 +399,14 @@ cdef class ParticleRegions:
         omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
                          dtype="uint8")
         counts = self.counts
-        cdef int i0, i, j, k, n, nm
+        cdef int i0, i, j0, j, k0, k, n, nm
         nm = len(self.masks)
-        i0 = 0
+        i0 = j0 = k0 = 0
         LE[0] = self.left_edge[0]
         RE[0] = LE[0] + self.dds[0]
         filesets = []
+        cdef np.uint64_t index0 = 0
+        cdef np.uint64_t index1 = 0
         for i in range(self.dims[0]):
             LE[1] = self.left_edge[1]
             RE[1] = LE[1] + self.dds[1]
@@ -415,15 +419,24 @@ cdef class ParticleRegions:
                     pcount += selected * counts[i,j,k]
                     LE[2] += self.dds[2]
                     RE[2] += self.dds[2]
+                    if pcount > desired_particles:
+                        file_ids = []
+                        for n in range(nm):
+                            file_ids += self.mask_range(n,
+                                index0, index1, omask)
+                        filesets.append( (pcount, file_ids,
+                            (index0, index1)) )
+                        #print "Split at ", index0, index1
+                        index0 = index1
+                        pcount = 0
+                    index1 += 1
                 LE[1] += self.dds[1]
                 RE[1] += self.dds[1]
-            if pcount > desired_particles or (i == self.dims[0] - 1):
-                file_ids = []
-                for n in range(nm):
-                    file_ids += self.mask_range(i0, i, n, omask)
-                filesets.append( (pcount, file_ids, (i0, i)) )
-                i0 = i
-                pcount = 0
             LE[0] += self.dds[0]
             RE[0] += self.dds[0]
+        # Now, we wrap up.
+        file_ids = []
+        for n in range(nm):
+            file_ids += self.mask_range(n, index0, index1, omask)
+        filesets.append( (pcount, file_ids, (index0, index1)) )
         return filesets
