@@ -1208,7 +1208,7 @@ class PWViewerMPL(PWViewer):
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
 
-class SlicePlot(PWViewerMPL):
+class OnAxisSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
 
     Given a pf object, an axis to slice along, and a field name
@@ -1989,3 +1989,32 @@ class WindowPlotMPL(ImagePlotMPL):
             yfrac
         )
         return axrect, caxrect
+
+def SlicePlot(pf, normal, fields, *args, **kwargs):
+    r"""
+    A factory function for
+    :class:`yt.visualization.plot_window.OnAxisSlicePlot`
+    and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
+    essentially allows for a single entry point to both types of slice plots.
+
+    Parameters
+    ----------
+    pf : :class:`yt.data_objects.api.StaticOutput`
+        This is the parameter file object corresponding to the
+        simulation output to be plotted.
+
+    normal : int or one of 'x', 'y', 'z', or sequence of floats
+        This specifies the normal vector to the slice.  If given as an integer
+        or a coordinate string (0=x, 1=y, 2=z), this function will return an
+        :class:`OnAxisSlicePlot` object.  If given as a sequence of floats,
+        this is interpretted as an off-axis vector and an
+        :class:`OffAxisSlicePlot` object is returned.
+    fields : string
+        The name of the field(s) to be plotted.
+
+    """
+    
+    if iterable(normal) and not isinstance(normal,str):
+        return OffAxisSlicePlot(pf, normal, fields, *args, **kwargs)
+    else:
+        return OnAxisSlicePlot(pf, normal, fields, *args, **kwargs)
