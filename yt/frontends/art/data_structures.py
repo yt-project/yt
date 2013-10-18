@@ -459,8 +459,9 @@ class ARTDomainSubset(OctreeSubset):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
+                        # Note: C order because our index converts C to F.
                         source[field][:,ii] = \
-                            dt[i::2,j::2,k::2].ravel(order="F")
+                            dt[i::2,j::2,k::2].ravel(order="C")
         oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
         del source
         # Now we continue with the additional levels.
