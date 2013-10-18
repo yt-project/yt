@@ -43,32 +43,21 @@ def identify_contours(data_source, field, min_val, max_val,
             [contour_ids.view("float64")],
             empty_mask, g.dds * gi, g.dds * (gi + dims),
             dims.astype("int64"))
-        contours[nid] = (g.Level, node.node_ind, pg)
+        contours[nid] = (g.Level, node.node_ind, pg, sl)
     node_ids = np.array(node_ids)
     trunk = data_source.tiles.tree.trunk
+    mylog.info("Linking node (%s) contours.", len(contours))
     amr_utils.link_node_contours(trunk, contours, tree, node_ids)
     #joins = tree.cull_joins(bt)
     #tree.add_joins(joins)
     joins = tree.export()
-    ff = data_source["tempContours"].astype("int64")
-    amr_utils.update_joins(joins, ff)
-    data_source["tempContours"] = ff.astype("float64")
-    data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
-    del data_source.field_data["tempContours"] # Force a reload from the grids
-    data_source.get_data("tempContours")
-    contour_ind = {}
-    i = 0
-    handled = set()
-    for contour_id in data_source["tempContours"]:
-        if contour_id == -1 or contour_id in handled: continue
-        handled.add(contour_id)
-        contour_ind[i] = np.where(data_source["tempContours"] == contour_id)
-        mylog.debug("Contour id %s has %s cells", i, contour_ind[i][0].size)
-        i += 1
-    print "TREE ENTRIES", tree.count()
-    mylog.info("Identified %s contours between %0.5e and %0.5e",
-               len(contour_ind.keys()),min_val,max_val)
-    for grid in chain(grid_set):
-        grid.field_data.pop("tempContours", None)
-    del data_source.field_data["tempContours"]
-    return contour_ind
+    contour_ids = defaultdict(list)
+    pbar = get_pbar("Updating joins ... ", len(contours))
+    for i, nid in enumerate(sorted(contours)):
+        level, node_ind, pg, sl = contours[nid]
+        ff = pg.my_data[0].view("int64")
+        amr_utils.update_joins(joins, ff)
+        contour_ids[pg.parent_grid_id].append((sl, ff))
+        pbar.update(i)
+    pbar.finish()
+    return dict(contour_ids.items())

@@ -582,12 +582,17 @@ add_field("AbsDivV", function=_AbsDivV,
           units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
-    return -np.ones_like(data["Ones"])
-add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
-          display_field=False, function=_Contours)
-add_field("tempContours", function=_Contours,
-          validators=[ValidateSpatial(0), ValidateGridType()],
-          take_log=False, display_field=False)
+    fd = data.get_field_parameter("contour_slices")
+    vals = data["Ones"] * -1
+    if fd is None or fd == 0.0:
+        return vals
+    for sl, v in fd.get(data.id, []):
+        vals[sl] = v
+    return vals
+add_field("Contours", validators=[ValidateSpatial(0)],
+          take_log=False,
+          display_field=False,
+          function=_Contours)
 
 def obtain_velocities(data):
     return obtain_rv_vec(data)
