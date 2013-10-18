@@ -25,24 +25,10 @@ cdef extern from "stdlib.h":
 
 DEF Nch = 4
 
-cdef struct Split:
-    int dim
-    np.float64_t pos
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef class Node:
-
-    cdef public Node left
-    cdef public Node right
-    cdef public Node parent
-    cdef public int grid
-    cdef public np.int64_t node_id
-    cdef np.float64_t left_edge[3]
-    cdef np.float64_t right_edge[3]
-    cdef public data
-    cdef Split * split
 
     def __cinit__(self, 
                   Node parent, 
@@ -152,11 +138,11 @@ cdef int should_i_build(Node node, int rank, int size):
 def kd_traverse(Node trunk, viewpoint=None):
     if viewpoint is None:
         for node in depth_traverse(trunk):
-            if kd_is_leaf(node) and node.grid != -1:
+            if _kd_is_leaf(node) == 1 and node.grid != -1:
                 yield node
     else:
         for node in viewpoint_traverse(trunk, viewpoint):
-            if kd_is_leaf(node) and node.grid != -1:
+            if _kd_is_leaf(node) == 1 and node.grid != -1:
                 yield node
 
 @cython.boundscheck(False)
@@ -172,7 +158,7 @@ cdef add_grid(Node node,
     if not should_i_build(node, rank, size):
         return
 
-    if kd_is_leaf(node):
+    if _kd_is_leaf(node) == 1:
         insert_grid(node, gle, gre, gid, rank, size)
     else:
         less_id = gle[node.split.dim] < node.split.pos
@@ -295,7 +281,7 @@ cdef add_grids(Node node,
     if not should_i_build(node, rank, size):
         return
 
-    if kd_is_leaf(node):
+    if _kd_is_leaf(node) == 1:
         insert_grids(node, ngrids, gles, gres, gids, rank, size)
         return
 
@@ -766,11 +752,16 @@ def kd_is_leaf(Node node):
     assert has_l_child == has_r_child
     return has_l_child
 
+cdef int _kd_is_leaf(Node node):
+    if node.left is None or node.right is None:
+        return 1
+    return 0
+
 def step_depth(Node current, Node previous):
     '''
     Takes a single step in the depth-first traversal
     '''
-    if kd_is_leaf(current): # At a leaf, move back up
+    if _kd_is_leaf(current) == 1: # At a leaf, move back up
         previous = current
         current = current.parent
 
@@ -862,7 +853,7 @@ def step_viewpoint(Node current,
     Takes a single step in the viewpoint based traversal.  Always
     goes to the node furthest away from viewpoint first.
     '''
-    if kd_is_leaf(current): # At a leaf, move back up
+    if _kd_is_leaf(current) == 1: # At a leaf, move back up
         previous = current
         current = current.parent
     elif current.split.dim is None: # This is a dead node
@@ -913,6 +904,13 @@ cdef int point_in_node(Node node,
         inside *= node.right_edge[i] > point[i]
     return inside
 
+cdef Node _find_node(Node node, np.float64_t *point):
+    while _kd_is_leaf(node) == 0:
+        if point[node.split.dim] < node.split.pos:
+            node = node.left
+        else:
+            node = node.right
+    return node
 
 def find_node(Node node,
               np.ndarray[np.float64_t, ndim=1] point):
@@ -920,12 +918,5 @@ def find_node(Node node,
     Find the AMRKDTree node enclosing a position
     """
     assert(point_in_node(node, point))
-    while not kd_is_leaf(node):
-        if point[node.split.dim] < node.split.pos:
-            node = node.left
-        else:
-            node = node.right
-    return node
-
-
+    return _find_node(node, <np.float64_t *> point.data)
 

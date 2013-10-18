@@ -16,7 +16,6 @@ Simple integrators for the radiative transfer equation
 import numpy as np
 cimport numpy as np
 cimport cython
-cimport kdtree_utils
 #cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
@@ -58,16 +57,6 @@ ctypedef void sampler_function(
                 void *data) nogil
 
 cdef class PartitionedGrid:
-    cdef public object my_data
-    cdef public object source_mask 
-    cdef public object LeftEdge
-    cdef public object RightEdge
-    cdef public int parent_grid_id
-    cdef VolumeContainer *container
-    cdef kdtree_utils.kdtree *star_list
-    cdef np.float64_t star_er
-    cdef np.float64_t star_sigma_num
-    cdef np.float64_t star_coeff
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

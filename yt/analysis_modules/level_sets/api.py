@@ -14,7 +14,6 @@ API for level_sets
 #-----------------------------------------------------------------------------
 
 from .contour_finder import \
-    coalesce_join_tree, \
     identify_contours
 
 from .clump_handling import \
