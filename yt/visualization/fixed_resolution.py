@@ -284,6 +284,7 @@ class FixedResolutionBuffer(object):
         units : string, optional
             the length units that the coordinates are written in, default 'cm'
             If units are set to "deg" then assume that sky coordinates are
+            requested.
         sky_center : array_like, optional
             Center of the image in (ra,dec) in degrees if sky coordinates
             (units="deg") are requested.
