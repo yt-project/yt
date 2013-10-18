@@ -278,7 +278,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                 chunk_fields, "io")): 
             mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
                 get_memory_usage()/1024.)
-            self._handle_chunk(chunk, fields, tree)
+            with chunk._field_parameter_state(self.field_parameters):
+                self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1

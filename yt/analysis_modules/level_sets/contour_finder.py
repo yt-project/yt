@@ -48,16 +48,20 @@ def identify_contours(data_source, field, min_val, max_val,
     trunk = data_source.tiles.tree.trunk
     mylog.info("Linking node (%s) contours.", len(contours))
     amr_utils.link_node_contours(trunk, contours, tree, node_ids)
+    mylog.info("Linked.")
     #joins = tree.cull_joins(bt)
     #tree.add_joins(joins)
     joins = tree.export()
     contour_ids = defaultdict(list)
     pbar = get_pbar("Updating joins ... ", len(contours))
+    final_joins = np.unique(joins[:,1])
     for i, nid in enumerate(sorted(contours)):
         level, node_ind, pg, sl = contours[nid]
         ff = pg.my_data[0].view("int64")
-        amr_utils.update_joins(joins, ff)
+        amr_utils.update_joins(joins, ff, final_joins)
         contour_ids[pg.parent_grid_id].append((sl, ff))
         pbar.update(i)
     pbar.finish()
-    return dict(contour_ids.items())
+    rv = dict()
+    rv.update(contour_ids)
+    return rv

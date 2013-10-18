@@ -367,6 +367,13 @@ class YTDataContainer(object):
         return s
 
     @contextmanager
+    def _field_parameter_state(self, field_parameters):
+        old_field_parameters = self.field_parameters
+        self.field_parameters = field_parameters
+        yield
+        self.field_parameters = old_field_parameters
+
+    @contextmanager
     def _field_type_state(self, ftype, finfo, obj = None):
         if obj is None: obj = self
         old_particle_type = obj._current_particle_type

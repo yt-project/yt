@@ -318,7 +318,7 @@ cdef class TileContourTree:
             if container[i] != NULL: free(container[i])
         free(container)
 
-#@cython.boundscheck(False)
+@cython.boundscheck(False)
 @cython.wraparound(False)
 def link_node_contours(Node trunk, contours, ContourTree tree,
         np.ndarray[np.int64_t, ndim=1] node_ids):
@@ -351,7 +351,7 @@ cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
         if spos[i] < vc.left_edge[i] or spos[i] > vc.right_edge[i]: return 0
     return 1
 
-#@cython.boundscheck(False)
+@cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void construct_boundary_relationships(Node trunk, ContourTree tree, 
                 np.int64_t nid, np.ndarray[np.uint8_t, ndim=1] examined,
@@ -561,11 +561,13 @@ def extract_identified_contours(int max_ind, joins):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
-                 np.ndarray[np.int64_t, ndim=3] contour_ids):
+                 np.ndarray[np.int64_t, ndim=3] contour_ids,
+                 np.ndarray[np.int64_t, ndim=1] final_joins):
     cdef np.int64_t new, old
-    cdef int i, j, nj
+    cdef int i, j, nj, nf
     cdef int ci, cj, ck
     nj = joins.shape[0]
+    nf = final_joins.shape[0]
     for ci in range(contour_ids.shape[0]):
         for cj in range(contour_ids.shape[1]):
             for ck in range(contour_ids.shape[2]):
@@ -573,4 +575,8 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                 for j in range(nj):
                     if contour_ids[ci,cj,ck] == joins[j,0]:
                         contour_ids[ci,cj,ck] = joins[j,1]
+                        break
+                for j in range(nf):
+                    if contour_ids[ci,cj,ck] == final_joins[j]:
+                        contour_ids[ci,cj,ck] = j
                         break
