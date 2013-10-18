@@ -670,7 +670,7 @@ class ChunkDataCache(object):
             if len(self.queue) == 0: raise StopIteration
             chunk = YTDataChunk(None, "cache", self.queue, cache=False)
             self.cache = self.geometry_handler.io._read_chunk_data(
-                chunk, self.preload_fields)
+                chunk, self.preload_fields) or {}
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
