@@ -320,23 +320,23 @@ cdef class TileContourTree:
 
 #@cython.boundscheck(False)
 @cython.wraparound(False)
-def link_node_contours(Node trunk, contours, ContourTree tree):
-    cdef int n_nodes = max(contours)
+def link_node_contours(Node trunk, contours, ContourTree tree,
+        np.ndarray[np.int64_t, ndim=1] node_ids):
+    cdef int n_nodes = node_ids.shape[0]
+    cdef np.int64_t node_ind
     cdef VolumeContainer **vcs = <VolumeContainer **> malloc(
         sizeof(VolumeContainer*) * n_nodes)
     cdef int i
     cdef PartitionedGrid pg
     for i in range(n_nodes):
-        v = contours.get(i, None)
-        if v is None:
-            vcs[i] = NULL
-            continue
-        pg = v
+        pg = contours[node_ids[i]][2]
         vcs[i] = pg.container
     cdef np.ndarray[np.uint8_t] examined = np.zeros(n_nodes, "uint8")
-    for nid, (level, pg) in sorted(contours.items(), key = lambda a: -a[1][0]):
-        construct_boundary_relationships(trunk, tree, nid, examined,
-            vcs)
+    for nid, (level, node_ind, pg) in sorted(contours.items(),
+                                        key = lambda a: -a[1][0]):
+        construct_boundary_relationships(trunk, tree, node_ind,
+            examined, vcs, node_ids)
+        examined[node_ind] = 1
 
 cdef inline void get_spos(VolumeContainer *vc, int i, int j, int k,
                           int axis, np.float64_t *spos):
@@ -355,7 +355,8 @@ cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
 @cython.wraparound(False)
 cdef void construct_boundary_relationships(Node trunk, ContourTree tree, 
                 np.int64_t nid, np.ndarray[np.uint8_t, ndim=1] examined,
-                VolumeContainer **vcs):
+                VolumeContainer **vcs,
+                np.ndarray[np.int64_t, ndim=1] node_ids):
     # We only look at the boundary and find the nodes next to it.
     # Contours is a dict, keyed by the node.id.
     cdef int i, j, nx, ny, nz, offset_i, offset_j, oi, oj, level
@@ -382,8 +383,8 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                     # Adjust by -1 in x, then oi and oj in y and z
                     get_spos(vc0, -1, i + oi, j + oj, 0, spos)
                     adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_id]
-                    if examined[adj_node.node_id] == 0 and \
+                    vc1 = vcs[adj_node.node_ind]
+                    if examined[adj_node.node_ind] == 0 and \
                        spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, 0, i, j)
@@ -397,8 +398,8 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                     # This is outside our vc
                     get_spos(vc0, nx, i + oi, j + oj, 0, spos)
                     adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_id]
-                    if examined[adj_node.node_id] == 0 and \
+                    vc1 = vcs[adj_node.node_ind]
+                    if examined[adj_node.node_ind] == 0 and \
                        spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, nx - 1, i, j)
@@ -420,8 +421,8 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                     oj = offset_j - 1
                     get_spos(vc0, i + oi, -1, j + oj, 1, spos)
                     adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_id]
-                    if examined[adj_node.node_id] == 0 and \
+                    vc1 = vcs[adj_node.node_ind]
+                    if examined[adj_node.node_ind] == 0 and \
                        spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, i, 0, j)
@@ -432,13 +433,14 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                             joins[ti,0] = i64max(c1,c2)
                             joins[ti,1] = i64min(c1,c2)
                             ti += 1
+
                     get_spos(vc0, i + oi, ny, j + oj, 1, spos)
                     adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_id]
-                    if examined[adj_node.node_id] == 0 and \
+                    vc1 = vcs[adj_node.node_ind]
+                    if examined[adj_node.node_ind] == 0 and \
                        spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, i, ny, j)
+                        index = vc_index(vc0, i, ny - 1, j)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
@@ -456,22 +458,11 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                     oj = offset_j - 1
                     get_spos(vc0, i + oi,  j + oj, -1, 2, spos)
                     adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_id]
-                    if examined[adj_node.node_id] == 0 and \
+                    vc1 = vcs[adj_node.node_ind]
+                    if examined[adj_node.node_ind] == 0 and \
                        spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, i, j, 0)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-
-                    get_spos(vc0, i + oi, j + oj, nz, 2, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_id]
-                    if examined[adj_node.node_id] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, i, j, nz)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
@@ -479,7 +470,23 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                             joins[ti,0] = i64max(c1,c2)
                             joins[ti,1] = i64min(c1,c2)
                             ti += 1
-    new_joins = tree.cull_joins(tree[:ti,:])
+
+                    get_spos(vc0, i + oi, j + oj, nz, 2, spos)
+                    adj_node = _find_node(trunk, spos)
+                    vc1 = vcs[adj_node.node_ind]
+                    if examined[adj_node.node_ind] == 0 and \
+                       spos_contained(vc1, spos):
+                        # This is outside our VC, as 0 is a boundary layer
+                        index = vc_index(vc0, i, j, nz - 1)
+                        c1 = (<np.int64_t*>vc0.data[0])[index]
+                        index = vc_pos_index(vc1, spos)
+                        c2 = (<np.int64_t*>vc1.data[0])[index]
+                        if c1 > -1 and c2 > -1:
+                            joins[ti,0] = i64max(c1,c2)
+                            joins[ti,1] = i64min(c1,c2)
+                            ti += 1
+    if ti == 0: return
+    new_joins = tree.cull_joins(joins[:ti,:])
     tree.add_joins(new_joins)
 
 cdef inline int are_neighbors(

@@ -199,7 +199,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                   slice(li[1], ri[1]),
                   slice(li[2], ri[2]))
             gi = grid.get_global_startindex() + li
-            yield grid, node.node_id, (sl, dims, gi)
+            yield grid, node, (sl, dims, gi)
 
     def get_node(self, nodeid):
         path = np.binary_repr(nodeid)

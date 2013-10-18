@@ -27,6 +27,7 @@ cdef class Node:
     cdef public Node parent
     cdef public int grid
     cdef public np.int64_t node_id
+    cdef public np.int64_t node_ind
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef public data

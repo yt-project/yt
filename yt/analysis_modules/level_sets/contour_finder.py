@@ -27,20 +27,26 @@ def identify_contours(data_source, field, min_val, max_val,
     total_contours = 0
     contours = {}
     empty_mask = np.ones((1,1,1), dtype="uint8")
-    for (grid, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
+    node_ids = []
+    for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
+        node.node_ind = len(node_ids)
         nid = node.node_id
-        values = grid[field][sl].astype("float64")
+        node_ids.append(nid)
+        values = g[field][sl].astype("float64")
         contour_ids = np.zeros(dims, "int64") - 1
         gct.identify_contours(values, contour_ids, total_contours)
         new_contours = tree.cull_candidates(contour_ids)
         total_contours += new_contours.shape[0]
         tree.add_contours(new_contours)
         # Now we can create a partitioned grid with the contours.
-        pg = amr_utils.PartitionedGrid(
-            [contour_ids], empty_mask, g.dds * gi, g.dds * (gi + dims), dims)
-        contours[nid] = (g.Level, pg)
+        pg = amr_utils.PartitionedGrid(g.id,
+            [contour_ids.view("float64")],
+            empty_mask, g.dds * gi, g.dds * (gi + dims),
+            dims.astype("int64"))
+        contours[nid] = (g.Level, node.node_ind, pg)
+    node_ids = np.array(node_ids)
     trunk = data_source.tiles.tree.trunk
-    amr_utils.link_node_contours(trunk, contours, tree)
+    amr_utils.link_node_contours(trunk, contours, tree, node_ids)
     #joins = tree.cull_joins(bt)
     #tree.add_joins(joins)
     joins = tree.export()
