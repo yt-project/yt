@@ -578,5 +578,5 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                         break
                 for j in range(nf):
                     if contour_ids[ci,cj,ck] == final_joins[j]:
-                        contour_ids[ci,cj,ck] = j
+                        contour_ids[ci,cj,ck] = j + 1
                         break

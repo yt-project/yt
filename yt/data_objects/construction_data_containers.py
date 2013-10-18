@@ -274,11 +274,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for chunk in self.data_source.chunks([], "io"):
             self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
-        for chunk in parallel_objects(self.data_source.chunks(
-                chunk_fields, "io")): 
-            mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
-                get_memory_usage()/1024.)
-            with chunk._field_parameter_state(self.field_parameters):
+        with self.data_source._field_parameter_state(self.field_parameters):
+            for chunk in parallel_objects(self.data_source.chunks(
+                                         chunk_fields, "io")):
+                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
+                    get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":

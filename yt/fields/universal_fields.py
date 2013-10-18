@@ -592,6 +592,7 @@ def _Contours(field, data):
 add_field("Contours", validators=[ValidateSpatial(0)],
           take_log=False,
           display_field=False,
+          projection_conversion="1",
           function=_Contours)
 
 def obtain_velocities(data):
