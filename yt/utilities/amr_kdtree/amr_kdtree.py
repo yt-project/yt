@@ -183,6 +183,24 @@ class AMRKDTree(ParallelAnalysisInterface):
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
             yield self.get_brick_data(node)
 
+    def slice_traverse(self, viewpoint = None):
+        if not hasattr(self.pf.h, "grid"):
+            raise NotImplementedError
+        for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
+            grid = self.pf.h.grids[node.grid - self._id_offset]
+            dds = grid.dds
+            gle = grid.LeftEdge
+            nle = get_left_edge(node)
+            nre = get_right_edge(node)
+            li = np.rint((nle-gle)/dds).astype('int32')
+            ri = np.rint((nre-gle)/dds).astype('int32')
+            dims = (ri - li).astype('int32')
+            sl = (slice(li[0], ri[0]),
+                  slice(li[1], ri[1]),
+                  slice(li[2], ri[2]))
+            gi = grid.get_global_startindex() + li
+            yield grid, node.node_id, (sl, dims, gi)
+
     def get_node(self, nodeid):
         path = np.binary_repr(nodeid)
         depth = 1

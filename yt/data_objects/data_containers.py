@@ -33,6 +33,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
+from yt.utilities.amr_kdtree.api import \
+    AMRKDTree
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
     NeedsGridType, ValidateSpatial
@@ -406,6 +408,14 @@ class YTDataContainer(object):
                 raise YTFieldTypeNotFound(ftype)
             explicit_fields.append((ftype, fname))
         return explicit_fields
+
+    _tree = None
+
+    @property
+    def tiles(self):
+        if self._tree is not None: return self._tree
+        self._tree = AMRKDTree(self.pf, data_source=self)
+        return self._tree
 
     @property
     def blocks(self):
