@@ -107,7 +107,6 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
         initWl = speciesDict['wavelength'][0]
 
         for b_i,b in enumerate(cBounds):
-            print b
             xBounded=x[b[1]:b[2]]
             yDatBounded=fluxData[b[1]:b[2]]
             yFitBounded=yFit[b[1]:b[2]]
