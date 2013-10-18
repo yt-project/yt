@@ -197,13 +197,18 @@ class AthenaHierarchy(AMRHierarchy):
             raise TypeError
 
         # Need to determine how many grids: self.num_grids
-        dname = self.hierarchy_filename
-        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        dataset_dir = os.path.dirname(self.hierarchy_filename)
+        dname = os.path.split(self.hierarchy_filename)[-1]
+        if dataset_dir.endswith("id0"):
+            dname = "id0/"+dname
+            dataset_dir = dataset_dir[:-3]
+                        
+        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         gridlistread.insert(0,self.hierarchy_filename)
         if 'id0' in dname :
-            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -426,12 +431,17 @@ class AthenaStaticOutput(StaticOutput):
         else:
             self.periodicity = (True,)*self.dimensionality
 
-        dname = self.parameter_filename
-        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        dataset_dir = os.path.dirname(self.parameter_filename)
+        dname = os.path.split(self.parameter_filename)[-1]
+        if dataset_dir.endswith("id0"):
+            dname = "id0/"+dname
+            dataset_dir = dataset_dir[:-3]
+            
+        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         if 'id0' in dname :
-            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \

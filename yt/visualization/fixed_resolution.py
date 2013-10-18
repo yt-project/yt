@@ -19,6 +19,7 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 from .volume_rendering.api import off_axis_projection
+from image_writer import write_fits
 from yt.data_objects.image_array import ImageArray
 import _MPL
 import numpy as np
@@ -264,23 +265,11 @@ class FixedResolutionBuffer(object):
         output.close()
 
     def export_fits(self, filename_prefix, fields=None, clobber=False,
-                    other_keys=None, gzip_file=False, units="1",
-                    sky_center=(0.0,0.0), D_A=None):
-
-        """
-        This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filename is
-        *filename_prefix*. If clobber is set to True, this will overwrite any
-        existing FITS file.
-
-        This requires the *pyfits* module, which is a standalone module
-        provided by STSci to interface with FITS-format files.
-        """
+                    other_keys=None, units="cm", sky_center=(0.0,0.0), D_A=None):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filename is the
-        the specified prefix.
+        or all the fields already in the object.
 
         Parameters
         ----------
@@ -292,15 +281,12 @@ class FixedResolutionBuffer(object):
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
-        gzip_file : boolean, optional
-            Gzip the file after writing, default False
         units : string, optional
-            The length units that the coordinates are written in, default '1'.
-            If units are set to "sky" then assume that sky coordinates are
-            requested.
+            the length units that the coordinates are written in, default 'cm'
+            If units are set to "deg" then assume that sky coordinates are
         sky_center : array_like, optional
-            Center of the image in (ra,dec) in degrees if sky coordinates are
-            requested.
+            Center of the image in (ra,dec) in degrees if sky coordinates
+            (units="deg") are requested.
         D_A : float or tuple, optional
             Angular diameter distance, given in code units as a float or
             a tuple containing the value and the length unit. Required if
@@ -308,103 +294,58 @@ class FixedResolutionBuffer(object):
         """
 
         try:
-            import pyfits
+            import astropy.io.fits as pyfits
         except:
-            try:
-                import astropy.io.fits as pyfits
-            except:
-                mylog.error("You don't have pyFITS or AstroPy installed!")
-                
+            mylog.error("You don't have AstroPy installed!")
+            raise ImportError
+        
         from os import system
 
         if units == "deg" and D_A is None:
-            mylog.error("Sky coordinates require an angular diameter distance. Please specify D_A.")
-
+            mylog.error("Sky coordinates require an angular diameter distance. Please specify D_A.")    
+            raise ValueError
+    
         if iterable(D_A):
             dist = D_A[0]/self.pf.units[D_A[1]]
         else:
             dist = D_A
+
+        if other_keys is None:
+            hdu_keys = {}
+        else:
+            hdu_keys = other_keys
+
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
-        if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
         if fields is None: 
             fields = [field for field in self.data_source.fields 
                       if field not in extra_fields]
 
+        coords = {}
         nx, ny = self.buff_size
         dx = (self.bounds[1]-self.bounds[0])/nx
         dy = (self.bounds[3]-self.bounds[2])/ny
-        if units == "sky":
-            dx = np.rad2deg(dx/dist)
-            dy = np.rad2deg(dy/dist)
+        if units == "deg":  
+            coords["dx"] = -np.rad2deg(dx/dist)
+            coords["dy"] = np.rad2deg(dy/dist)
+            coords["xctr"] = sky_center[0]
+            coords["yctr"] = sky_center[1]
+            hdu_keys["MTYPE1"] = "EQPOS"
+            hdu_keys["MFORM1"] = "RA,DEC"
+            hdu_keys["CTYPE1"] = "RA---TAN"
+            hdu_keys["CTYPE2"] = "DEC--TAN"
         else:
-            dx *= self.pf.units[units]
-            dy *= self.pf.units[units]
-            xmin = self.bounds[0]*self.pf.units[units]
-            ymin = self.bounds[2]*self.pf.units[units]
-        simtime = self.pf.current_time
-
-        hdus = [pyfits.PrimaryHDU()]
-
-        print "HAHAH"
+            coords["dx"] = dx*self.pf.units[units]
+            coords["dy"] = dy*self.pf.units[units]
+            coords["xctr"] = 0.5*(self.bounds[0]+self.bounds[1])*self.pf.units[units]
+            coords["yctr"] = 0.5*(self.bounds[2]+self.bounds[3])*self.pf.units[units]
+        coords["units"] = units
         
-        for field in fields:
+        hdu_keys["Time"] = self.pf.current_time
 
-            hdu = pyfits.ImageHDU(self[field])
-                
-            if self.data_source.has_key('weight_field'):
-                weightname = self.data_source._weight
-                if weightname is not None:
-                    hdu.header.update("Weight", weightname)
-                    
-            hdu.header.update("Field", field)
-            hdu.header.update("Time", simtime)
+        data = dict([(field,self[field]) for field in fields])
+        write_fits(data, filename_prefix, clobber=clobber, coords=coords,
+                   other_keys=hdu_keys)
 
-            if units == "sky":
-                hdu.header.update("MTYPE1", "EQPOS")
-                hdu.header.update("MFORM1", "RA,DEC")
-                hdu.header.update("CTYPE1", "RA---TAN")
-                hdu.header.update("CTYPE2", "DEC--TAN")
-                hdu.header.update("CRPIX1", 0.5*(nx+1))
-                hdu.header.update("CRPIX2", 0.5*(ny+1))
-                hdu.header.update("CRVAL1", sky_center[0])
-                hdu.header.update("CRVAL2", sky_center[1])
-                hdu.header.update("CUNIT1", "deg")
-                hdu.header.update("CUNIT2", "deg")
-                hdu.header.update("CDELT1", -dx)
-                hdu.header.update("CDELT2", dy)
-            else:
-                hdu.header.update('CTYPE1', "LINEAR")
-                hdu.header.update('CTYPE2', "LINEAR")
-                hdu.header.update('CUNIT1', units)
-                hdu.header.update('CUNIT2', units)
-                hdu.header.update('CRPIX1', 0.5)
-                hdu.header.update('CRPIX2', 0.5)
-                hdu.header.update('CRVAL1', xmin)
-                hdu.header.update('CRVAL2', ymin)
-                hdu.header.update('CDELT1', dx)
-                hdu.header.update('CDELT2', dy)
-                                                                    
-            if other_keys is not None:
-
-                for k,v in other_keys.items() :
-
-                    hdu.header.update(k,v)
-
-            hdus.append(hdu)
-            
-        hdulist = pyfits.HDUList(hdus)
-
-        hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)
-
-        print "YOURMOM"
-        
-        if gzip_file:
-            clob = ""
-            if (clobber) : clob = "-f"
-            system("gzip "+clob+" %s.fits" % (filename_prefix))
-
-        print "pffft"
-        
     def open_in_ds9(self, field, take_log=True):
         """
         This will open a given field in the DS9 viewer.

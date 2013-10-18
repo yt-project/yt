@@ -918,6 +918,8 @@ do_setup_py $PYTHON_HGLIB
 do_setup_py $SYMPY
 [ $INST_PYX -eq 1 ] && do_setup_py $PYX
 
+( ${DEST_DIR}/bin/pip install jinja2 2>&1 ) 1>> ${LOG_FILE}
+
 # Now we build Rockstar and set its environment variable.
 if [ $INST_ROCKSTAR -eq 1 ]
 then
