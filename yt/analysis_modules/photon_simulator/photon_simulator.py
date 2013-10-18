@@ -19,6 +19,7 @@ from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, parallel_capable
+from IPython import embed
 
 import h5py
 
@@ -731,6 +732,10 @@ class PhotonList(object):
         
         events["xpix"] = xsky[detected]/dx.min() + 0.5*(nx+1) 
         events["ypix"] = ysky[detected]/dx.min() + 0.5*(nx+1)
+        events["eobs"] = eobs[detected]
+
+        events = comm.par_combine_object(events, datatype="dict", op="cat")
+
         if psf_sigma is not None:
             events["xpix"] += np.random.normal(sigma=psf_sigma/dtheta)
             events["ypix"] += np.random.normal(sigma=psf_sigma/dtheta)
@@ -742,10 +747,7 @@ class PhotonList(object):
         w.wcs.cunit = ["deg"]*2
         events["xsky"], events["ysky"] = w.wcs_pix2world(events["xpix"], events["ypix"],
                                                          1, ra_dec_order=True)
-        events["eobs"] = eobs[detected]
-
-        events = comm.par_combine_object(events, datatype="dict", op="cat")
-        
+                                                                                            
         num_events = len(events["xsky"])
             
         if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
