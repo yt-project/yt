@@ -320,11 +320,19 @@ class PhotonList(object):
         photons["FiducialArea"] = area
         photons["FiducialRedshift"] = redshift
         photons["FiducialAngularDiameterDistance"] = D_A/cm_per_mpc
-        photons["DomainDimension"] = np.max((pf.domain_dimensions*(2**pf.h.max_level)))
         photons["HubbleConstant"] = cosmo.HubbleConstantNow
         photons["OmegaMatter"] = cosmo.OmegaMatterNow
         photons["OmegaLambda"] = cosmo.OmegaLambdaNow
 
+        domain_dimension = 0
+        for ax in "xyz":
+             pos = data_source[ax]
+             delta = data_source["d%s"%(ax)]
+             le = np.min(pos-0.5*delta)
+             re = np.max(pos+0.5*delta)
+             domain_dimension = max(domain_dimension, int((re-le)/delta.min()))
+        photons["DomainDimension"] = domain_dimension
+        
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
         
@@ -378,8 +386,8 @@ class PhotonList(object):
         ...     pf = source.pf
         ... 
         ...     num_photons = parameters["num_photons"]
-        ...     E0  = parameters["line_energy"]
-        ...     sigE = parameters["line_sigma"]
+        ...     E0  = parameters["line_energy"] # Energies are in keV
+        ...     sigE = parameters["line_sigma"] 
         ...
         ...     energies = norm.rvs(loc=E0, scale=sigE, size=num_photons)
         ...     
@@ -425,10 +433,18 @@ class PhotonList(object):
         photons["FiducialArea"] = area
         photons["FiducialRedshift"] = redshift
         photons["FiducialAngularDiameterDistance"] = D_A
-        photons["DomainDimension"] = np.max((pf.domain_dimensions*(2**pf.h.max_level)))
         photons["HubbleConstant"] = cosmo.HubbleConstantNow
         photons["OmegaMatter"] = cosmo.OmegaMatterNow
         photons["OmegaLambda"] = cosmo.OmegaLambdaNow
+
+        domain_dimension = 0
+        for ax in "xyz":
+             pos = data_source[ax]
+             delta = data_source["d%s"%(ax)]
+             le = np.min(pos-0.5*delta)
+             re = np.max(pos+0.5*delta)
+             domain_dimension = max(domain_dimension, int((re-le)/delta.min()))
+        photons["DomainDimension"] = domain_dimension
 
         user_function(data_source, photons, parameters)
         
@@ -628,9 +644,9 @@ class PhotonList(object):
             elif isinstance(area_new, basestring):
                 mylog.info("Using energy-dependent effective area.")
                 f = pyfits.open(area_new)
-                elo = f[1].data.field("ENERG_LO")
-                ehi = f[1].data.field("ENERG_HI")
-                eff_area = f[1].data.field("SPECRESP")
+                elo = f["SPECRESP"].data.field("ENERG_LO")
+                ehi = f["SPECRESP"].data.field("ENERG_HI")
+                eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
                 f.close()
                 Aratio = eff_area.max()/self.photons["FiducialArea"]
             else:
@@ -892,8 +908,8 @@ class EventList(object) :
 
         if "ARF" in self.events:
             f = pyfits.open(self.events["ARF"])
-            elo = f[1].data.field("ENERG_LO")
-            ehi = f[1].data.field("ENERG_HI")
+            elo = f["SPECRESP"].data.field("ENERG_LO")
+            ehi = f["SPECRESP"].data.field("ENERG_HI")
             f.close()
             try:
                 assert_allclose(elo, tblhdu.data["ENERG_LO"], rtol=1.0e-6)
@@ -927,27 +943,33 @@ class EventList(object) :
         
         for low,high in zip(tblhdu.data["ENERG_LO"],tblhdu.data["ENERG_HI"]):
             # weight function for probabilities from RMF
-            weights = tblhdu.data[k]["MATRIX"][:]
+            weights = np.nan_to_num(tblhdu.data[k]["MATRIX"][:])
             weights /= weights.sum()
             # build channel number list associated to array value,
             # there are groups of channels in rmfs with nonzero probabilities
             trueChannel = []
-            f_chan = tblhdu.data[k]["F_CHAN"]
-            n_chan = tblhdu.data[k]["N_CHAN"]
+            f_chan = np.nan_to_num(tblhdu.data["F_CHAN"][k])
+            n_chan = np.nan_to_num(tblhdu.data["N_CHAN"][k])
+            n_grp = np.nan_to_num(tblhdu.data["N_CHAN"][k])
             if not iterable(f_chan):
-                 f_chan = [f_chan]
-                 n_chan = [n_chan]
+                f_chan = [f_chan]
+                n_chan = [n_chan]
+                n_grp  = [n_grp]
             for start,nchan in zip(f_chan, n_chan):
                 end = start + nchan
-                for j in range(start,end):
-                    trueChannel.append(j)
-            for q in range(fcurr,last):
-                if phEE[q]  >= low and phEE[q] < high:
-                    channelInd = np.random.choice(len(weights), p=weights)
-                    fcurr +=1
-                    detectedChannels.append(trueChannel[channelInd])
-                if phEE[q] >= high:
-                    break
+                if start == end:
+                    trueChannel.append(start)
+                else:
+                    for j in range(start,end):
+                        trueChannel.append(j)
+            if len(trueChannel) > 0:
+                for q in range(fcurr,last):
+                    if phEE[q] >= low and phEE[q] < high:
+                        channelInd = np.random.choice(len(weights), p=weights)
+                        fcurr +=1
+                        detectedChannels.append(trueChannel[channelInd])
+                    if phEE[q] >= high:
+                        break
             pbar.update(k)
             k+=1
         pbar.finish()
