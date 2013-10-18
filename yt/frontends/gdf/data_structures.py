@@ -67,10 +67,6 @@ class GDFGrid(AMRGridPatch):
             if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-    @property
-    def filename(self):
-        return None
-
 class GDFHierarchy(GridGeometryHandler):
 
     grid = GDFGrid
@@ -151,7 +147,7 @@ class GDFHierarchy(GridGeometryHandler):
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
-        self.derived_field_list = []
+        super(GDFHierarchy, self)._setup_derived_fields()
 
     def _get_box_grids(self, left_edge, right_edge):
         """
@@ -163,6 +159,8 @@ class GDFHierarchy(GridGeometryHandler):
 
         return self.grids[grid_i], grid_i
 
+    def convert(self, unit):
+        return 1.0
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')

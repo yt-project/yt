@@ -14,6 +14,7 @@ The data-file handling functions
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import h5py
 from yt.funcs import \
     mylog
 from yt.utilities.io_handler import \
@@ -31,34 +32,14 @@ class IOHandlerGDFHDF5(BaseIOHandler):
     _data_string = 'data:datatype=0'
 
     def __init__(self, pf, *args, **kwargs):
-        # TODO check if _num_per_stride is needed
-        self._num_per_stride = kwargs.pop("num_per_stride", 1000000)
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
-
-
-    def _read_data_set(self, grid, field):
-        if self.pf.field_ordering == 1:
-            data = self._handle[field_dname(grid.id, field)][:].swapaxes(0, 2)
-        else:
-            data = self._handle[field_dname(grid.id, field)][:, :, :]
-        return data.astype("float64")
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        slc = [slice(None), slice(None), slice(None)]
-        slc[axis] = slice(coord, coord + 1)
-        if self.pf.field_ordering == 1:
-            data = self._handle[field_dname(grid.id, field)][:].swapaxes(0, 2)[slc]
-        else:
-            data = self._handle[field_dname(grid.id, field)][slc]
-        return data.astype("float64")
+        super(IOHandlerGDFHDF5, self).__init__(pf)
+        # Now we cache the particle fields
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         if any((ftype != "gas" for ftype, fname in fields)):
             raise NotImplementedError
-        fhandle = self._handle
+        fhandle = h5py.File(self.pf.parameter_filename, "r")
         rv = {}
         for field in fields:
             ftype, fname = field
@@ -75,5 +56,6 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                     data = fhandle[field_dname(grid.id, fname)][:]
                     if self.pf.field_ordering == 1:
                         data = data.swapaxes(0, 2)
-                    ind += g.select(selector, data, rv[field], ind) # caches
+                    ind += grid.select(selector, data, rv[field], ind) # caches
+        fhandle.close()
         return rv
