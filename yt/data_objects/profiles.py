@@ -975,7 +975,7 @@ class Profile3D(ProfileND):
                       storage.used)
         # We've binned it!
 
-def create_profile(data_source, bin_fields, n, weight_field = None,
+def create_profile(data_source, bin_fields, n = None, weight_field = None,
                    fields = None):
     if len(bin_fields) == 1:
         cls = Profile1D
@@ -985,6 +985,7 @@ def create_profile(data_source, bin_fields, n, weight_field = None,
         cls = Profile3D
     else:
         raise NotImplementedError
+    if n is None: n = 64
     if not iterable(n):
         n = [n] * len(bin_fields)
     ex = data_source.quantities["Extrema"](bin_fields)

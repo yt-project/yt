@@ -88,21 +88,23 @@ class ProfilePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields, weight_field=None,
-                 n_bins=64, profiles=None):
+                 n_bins=64, label=None, profiles=None):
         self.y_log = {}
         self.y_title = {}
         self.figures = FigureContainer()
         self.axes = AxesContainer(self.figures)
-
         if profiles is None:
             self.profiles = [create_profile(data_source, [x_field], n_bins,
                                             fields=ensure_list(y_fields),
                                             weight_field=None)]
         else:
             self.profiles = profiles
+        self.label = label
+        if not isinstance(self.label, list):
+            self.label = [self.label] * len(self.profiles)
 
         self._make_plot()
-
+        
     def save(self, name = "%(uid)s_profile.png"):
         if not self._plot_valid: self._make_plot()
         unique = set(self.figures.values())
@@ -119,9 +121,10 @@ class ProfilePlot(object):
 
     def _make_plot(self):
 
-        for profile in self.profiles:
+        for i, profile in enumerate(self.profiles):
             for field, field_data in profile.field_data.items():
-                self.axes[field].plot(profile.x[:-1], field_data)
+                self.axes[field].plot(profile.x[:-1], field_data, 
+                                      label=self.label[i])
         
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
@@ -131,7 +134,16 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
+            axes.legend(loc="best")
+        self._plot_valid = True
 
+    @classmethod
+    def from_profiles(cls, profiles, labels=None):
+        if labels is not None and len(profiles) != len(labels):
+            raise RuntimeError("Profiles list and labels list must be the same size.")
+        obj = cls(None, None, None, profiles=profiles, label=labels)
+        return obj
+            
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
         yfi = pf.field_info[field_y]
