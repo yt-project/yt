@@ -1208,7 +1208,7 @@ class PWViewerMPL(PWViewer):
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
 
-class OnAxisSlicePlot(PWViewerMPL):
+class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
 
     Given a pf object, an axis to slice along, and a field name
@@ -1993,7 +1993,7 @@ class WindowPlotMPL(ImagePlotMPL):
 def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     r"""
     A factory function for
-    :class:`yt.visualization.plot_window.OnAxisSlicePlot`
+    :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
     and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
     essentially allows for a single entry point to both types of slice plots,
     the distinction being determined by the specified normal vector to the
@@ -2010,7 +2010,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     normal : int or one of 'x', 'y', 'z', or sequence of floats
         This specifies the normal vector to the slice.  If given as an integer
         or a coordinate string (0=x, 1=y, 2=z), this function will return an
-        :class:`OnAxisSlicePlot` object.  If given as a sequence of floats,
+        :class:`AxisAlignedSlicePlot` object.  If given as a sequence of floats,
         this is interpretted as an off-axis vector and an
         :class:`OffAxisSlicePlot` object is returned.
     fields : string
@@ -2054,7 +2054,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
          units, and only show the axes name.
     origin : string or length 1, 2, or 3 sequence of strings
          The location of the origin of the plot coordinate system for
-         `OnAxisSlicePlot` objects; for `OffAxisSlicePlot` objects,
+         `AxisAlignedSlicePlot` objects; for `OffAxisSlicePlot` objects,
          this parameter is discarded.  This is represented by '-' separated
          string or a tuple of strings.  In the first index the y-location is
          given by 'lower', 'upper', or 'center'.  The second index is the
@@ -2083,7 +2083,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
          ==================================     ============================
     north-vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
-        used in `OnAxisSlicePlot`.  This option sets the orientation of the
+        used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
         slicing plane.  If not set, an arbitrary grid-aligned north-vector is
         chosen.
     fontsize : integer
@@ -2118,7 +2118,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     if fields is None:
         raise AssertionError("Must pass field(s) to plot!")
 
-    # use an OnAxisSlicePlot where possible, e.g.:
+    # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
     if iterable(normal) and not isinstance(normal,str):
         normal = np.array(normal)
@@ -2137,11 +2137,11 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
         
         return OffAxisSlicePlot(pf, normal, fields, *args, **kwargs)
     else:
-        # north_vector not used in OnAxisSlicePlots; remove it if in kwargs
+        # north_vector not used in AxisAlignedSlicePlots; remove it if in kwargs
         if 'north_vector' in kwargs: 
             msg = "Ignoring 'north_vector' keyword as it is ill-defined for " \
-                  "an OnAxisSlicePlot object."
+                  "an AxisAlignedSlicePlot object."
             mylog.warn(msg)
             del kwargs['north_vector']
         
-        return OnAxisSlicePlot(pf, normal, fields, *args, **kwargs)
+        return AxisAlignedSlicePlot(pf, normal, fields, *args, **kwargs)
