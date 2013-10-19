@@ -58,6 +58,14 @@ def get_canvas(name):
         canvas_cls = FigureCanvasAgg
     return canvas_cls
 
+def invalidate_plot(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        args[0]._plot_valid = False
+        return rv
+    return newfunc
+
 class FigureContainer(dict):
     def __init__(self):
         super(dict, self).__init__()
@@ -88,25 +96,31 @@ class ProfilePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields, weight_field=None,
-                 n_bins=64, label=None, profiles=None):
+                 n_bins=64, label=None, profiles=None, plot_spec=None):
         self.y_log = {}
         self.y_title = {}
-        self.figures = FigureContainer()
-        self.axes = AxesContainer(self.figures)
+
         if profiles is None:
             self.profiles = [create_profile(data_source, [x_field], n_bins,
                                             fields=ensure_list(y_fields),
                                             weight_field=None)]
         else:
             self.profiles = profiles
+
         self.label = label
         if not isinstance(self.label, list):
             self.label = [self.label] * len(self.profiles)
 
-        self._make_plot()
+        self.plot_spec = plot_spec
+        if self.plot_spec is None:
+            self.plot_spec = [{}] * len(self.profiles)
+        if not isinstance(self.plot_spec, list):
+            self.plot_spec = [self.plot_spec] * len(self.profiles)
+        
+        self._setup_plots()
         
     def save(self, name = "%(uid)s_profile.png"):
-        if not self._plot_valid: self._make_plot()
+        if not self._plot_valid: self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
             figiter = izip(xrange(len(unique)), sorted(unique))
@@ -119,12 +133,14 @@ class ProfilePlot(object):
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
 
-    def _make_plot(self):
-
+    def _setup_plots(self):
+        self.figures = FigureContainer()
+        self.axes = AxesContainer(self.figures)
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.field_data.items():
                 self.axes[field].plot(profile.x[:-1], field_data, 
-                                      label=self.label[i])
+                                      label=self.label[i],
+                                      **self.plot_spec[i])
         
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
@@ -138,11 +154,23 @@ class ProfilePlot(object):
         self._plot_valid = True
 
     @classmethod
-    def from_profiles(cls, profiles, labels=None):
+    def from_profiles(cls, profiles, labels=None, plot_specs=None):
         if labels is not None and len(profiles) != len(labels):
             raise RuntimeError("Profiles list and labels list must be the same size.")
-        obj = cls(None, None, None, profiles=profiles, label=labels)
+        if plot_specs is not None and len(plot_specs) != len(profiles):
+            raise RuntimeError("Profiles list and plot_specs list must be the same size.")
+        obj = cls(None, None, None, profiles=profiles, label=labels,
+                  plot_spec=plot_specs)
         return obj
+
+    @invalidate_plot
+    def set_line_property(self, property, value, index=None):
+        if index is None:
+            specs = self.plot_spec
+        else:
+            specs = [self.plot_spec[index]]
+        for spec in specs:
+            spec[property] = value
             
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
