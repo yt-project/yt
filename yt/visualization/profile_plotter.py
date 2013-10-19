@@ -23,6 +23,8 @@ import numpy as np
 
 from .image_writer import \
     write_image, apply_colormap
+from yt.data_objects.profiles import \
+     create_profile
 from yt.utilities.lib import \
     write_png_to_string
 from yt.data_objects.profiles import \
@@ -75,7 +77,7 @@ class AxesContainer(dict):
         self[key] = figure.add_subplot(111)
         return self[key]
 
-class ProfilePlotter(object):
+class ProfilePlot(object):
     scale = None
     plot_spec = None
     x_log = None
@@ -85,18 +87,24 @@ class ProfilePlotter(object):
 
     _plot_valid = False
 
-    def __init__(self, profiles):
-        if not iterable(profiles):
-            profiles = [profiles]
+    def __init__(self, data_source, x_field, y_fields, weight_field=None,
+                 n_bins=64, profiles=None):
         self.y_log = {}
         self.y_title = {}
-        self.profiles = profiles
         self.figures = FigureContainer()
         self.axes = AxesContainer(self.figures)
-        self._setup_plot()
+
+        if profiles is None:
+            self.profiles = [create_profile(data_source, [x_field], n_bins,
+                                            fields=ensure_list(y_fields),
+                                            weight_field=None)]
+        else:
+            self.profiles = profiles
+
+        self._make_plot()
 
     def save(self, name = "%(uid)s_profile.png"):
-        if not self._plot_valid: self._setup_plot()
+        if not self._plot_valid: self._make_plot()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
             figiter = izip(xrange(len(unique)), sorted(unique))
@@ -109,23 +117,12 @@ class ProfilePlotter(object):
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
 
-    def _setup_plot(self):
+    def _make_plot(self):
 
-        if self.plot_spec is None or isinstance(self.plot_spec, (dict, str)):
-            ps = repeat(self.plot_spec)
-        elif iterable(self.plot_spec):
-            ps = self.plot_spec
-        else:
-            raise RuntimeError
+        for profile in self.profiles:
+            for field, field_data in profile.field_data.items():
+                self.axes[field].plot(profile.x[:-1], field_data)
         
-        # Profiles need to be the outer loop
-        for profile, spec in izip(self.profiles, ps):
-            if spec is None: spec = {} # Set here for mutability concerns
-            # This only iterates over the y values
-            for field, field_spec, field_data in profile:
-                # Do we want to simply strip the final value?
-                self.axes[field].plot(profile.x[:-1], field_data, **spec)
-
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
             xscale, yscale = self._get_field_log(fname, profile)
