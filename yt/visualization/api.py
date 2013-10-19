@@ -49,6 +49,7 @@ from streamlines import \
 
 from plot_window import \
     SlicePlot, \
+    OnAxisSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
     OffAxisProjectionPlot
