@@ -2083,7 +2083,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
          ==================================     ============================
     north-vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
-        used in OnAxisSlicePlots.  This option sets the orientation of the
+        used in `OnAxisSlicePlot`.  This option sets the orientation of the
         slicing plane.  If not set, an arbitrary grid-aligned north-vector is
         chosen.
     fontsize : integer
