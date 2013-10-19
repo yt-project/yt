@@ -2,26 +2,17 @@
 A class that manages the coordinate system for orientable data
 containers and cameras.
 
-Author: Nathan Goldbaum <goldbaum@ucolick.org>
-Affiliation: UCSC Astronomy
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -58,6 +49,8 @@ class Orientation:
         if north_vector is not None: self.steady_north = True
         self.north_vector = north_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
+        if self.north_vector is None:
+            self.north_vector = self.unit_vectors[1] 
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
         # Now we set up our various vectors

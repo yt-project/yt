@@ -1,27 +1,17 @@
 """
 MergerTree class and member functions.
 
-Author: Stephen Skory <s@skory.us>
-Affiliation: CASS/UC San Diego, CA
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Stephen Skory.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import os, glob, time, gc, md5, sys
@@ -36,7 +26,7 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
 from yt.utilities.logger import ytLogger as mylog
-import yt.utilities.pydot as pydot
+import yt.extern.pydot as pydot
 from yt.utilities.spatial import cKDTree
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
@@ -123,52 +113,55 @@ class DatabaseFunctions(object):
         self.conn.close()
 
 class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
+    r"""Build a merger tree of halos over a time-ordered set of snapshots.
+    This will run a halo finder to find the halos first if it hasn't already
+    been done. The output is a SQLite database file, which may need to
+    be stored on a different disk than the data snapshots. See the full
+    documentation for details.
+    
+    Parameters
+    ----------
+    
+    restart_files : List of strings
+        A list containing the paths to the forward time-ordered set of
+        data snapshots.
+    database : String
+        Name of SQLite database file. Default = "halos.db".
+    halo_finder_function : HaloFinder name
+        The name of the halo finder to use if halo finding is run by 
+        the merger tree. Options: HaloFinder, FOFHaloFinder, parallelHF.
+        Note that this is not a string, so no quotes. Default = HaloFinder.
+    halo_finder_threshold : Float
+        If using HaloFinder or parallelHF, the value of the density threshold
+        used when halo finding. Default = 160.0.
+    FOF_link_length : Float
+        If using FOFHaloFinder, the linking length between particles.
+        Default = 0.2.
+    dm_only : Boolean
+        When halo finding, whether to restrict to only dark matter particles.
+        Default = False.
+    refresh : Boolean
+        True forces the halo finder to run even if the halo data has been
+        detected on disk. Default = False.
+    index : Boolean
+        SQLite databases can have added to them an index which greatly
+        speeds up future queries of the database,
+        at the cost of doubling the disk space used by the file.
+        Default = True.
+
+    Examples
+    --------
+
+    >>> rf = ['/scratch/user/sim1/DD0000/data0000',
+    ... '/scratch/user/sim1/DD0001/data0001',
+    ... '/scratch/user/sim1/DD0002/data0002']
+    >>> MergerTree(rf, database = '/home/user/sim1-halos.db',
+    ... halo_finder_function=parallelHF)
+    """
     def __init__(self, restart_files=[], database='halos.db',
-            halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
+            halo_finder_function=HaloFinder, halo_finder_threshold=160.0,
             FOF_link_length=0.2, dm_only=False, refresh=False,
             index=True):
-        r"""Build a merger tree of halos over a time-ordered set of snapshots.
-        This will run a halo finder to find the halos first if it hasn't already
-        been done. The output is a SQLite database file, which may need to
-        be stored on a different disk than the data snapshots. See the full
-        documentation for details.
-        
-        Parameters
-        ---------
-        restart_files : List of strings
-            A list containing the paths to the forward time-ordered set of
-            data snapshots.
-        database : String
-            Name of SQLite database file. Default = "halos.db".
-        halo_finder_function : HaloFinder name
-            The name of the halo finder to use if halo finding is run by 
-            the merger tree. Options: HaloFinder, FOFHaloFinder, parallelHF.
-            Note that this is not a string, so no quotes. Default = HaloFinder.
-        halo_finder_threshold : Float
-            If using HaloFinder or parallelHF, the value of the density threshold
-            used when halo finding. Default = 80.0.
-        FOF_link_length : Float
-            If using FOFHaloFinder, the linking length between particles.
-            Default = 0.2.
-        dm_only : Boolean
-            When halo finding, whether to restrict to only dark matter particles.
-            Default = False.
-        refresh : Boolean
-            True forces the halo finder to run even if the halo data has been
-            detected on disk. Default = False.
-        index : Boolean
-            SQLite databases can have added to them an index which greatly
-            speeds up future queries of the database,
-            at the cost of doubling the disk space used by the file.
-            Default = True.
-
-        Examples:
-        >>> rf = ['/scratch/user/sim1/DD0000/data0000',
-        ... '/scratch/user/sim1/DD0001/data0001',
-        ... '/scratch/user/sim1/DD0002/data0002']
-        >>> MergerTree(rf, database = '/home/user/sim1-halos.db',
-        ... halo_finder_function=parallelHF)
-        """
         ParallelAnalysisInterface.__init__(self)
         self.restart_files = restart_files # list of enzo restart files
         self.with_halos = np.ones(len(restart_files), dtype='bool')
@@ -726,18 +719,18 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         return 0.
 
 class MergerTreeConnect(DatabaseFunctions):
+    r"""Create a convenience object for accessing data from the halo database.
+    
+    Parameters
+    ----------
+    database : String
+        The name of the halo database to access. Default = 'halos.db'.
+    
+    Examples
+    -------
+    >>> mtc = MergerTreeConnect('/home/user/sim1-halos.db')
+    """
     def __init__(self, database='halos.db'):
-        r"""Create a convenience object for accessing data from the halo database.
-        
-        Parameters
-        ----------
-        database : String
-            The name of the halo database to access. Default = 'halos.db'.
-        
-        Examples
-        -------
-        >>> mtc = MergerTreeConnect('/home/user/sim1-halos.db')
-        """
         self.database = database
         result = self._open_database()
         if not result:
@@ -755,17 +748,19 @@ class MergerTreeConnect(DatabaseFunctions):
     
     def query(self, string):
         r"""Performs a query of the database and returns the results as a list
-        of tuple(s), even if the result is singular.
+        of tuples, even if the result is singular.
         
         Parameters
         ----------
-        string : String
+        
+        string : str
             The SQL query of the database.
         
         Examples
-        -------
+        --------
+
         >>> results = mtc.query("SELECT GlobalHaloID from Halos where SnapHaloID = 0 and \
-        ... SnapZ = 0;")
+        ...    SnapZ = 0;")
         """
         # Query the database and return a list of tuples.
         if string is None:
@@ -783,7 +778,8 @@ class MergerTreeConnect(DatabaseFunctions):
         r"""Returns the GlobalHaloID for the given halo.
         
         Parameters
-        ---------
+        ----------
+
         SnapHaloID : Integer
             The index label for the halo of interest, equivalent to
             the first column of the halo finder text output file.
@@ -794,6 +790,7 @@ class MergerTreeConnect(DatabaseFunctions):
         
         Examples
         --------
+
         >>> this_halo = mtc.get_GlobalHaloID(0, 0.)
         """
         string = "SELECT GlobalHaloID,SnapZ FROM Halos WHERE SnapHaloID = %d;" \
@@ -933,44 +930,46 @@ class Link(object):
         self.fractions = []
 
 class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
+    r"""Output the merger tree history for a given set of halo(s) in Graphviz
+    format.
+    
+    Parameters
+    ----------
+
+    halos : Integer or list of integers
+        If current_time below is not specified or is None, this is an integer
+        or list of integers with the GlobalHaloIDs of the halos to be
+        tracked. If current_time is specified, this is the SnapHaloIDs
+        for the halos to be tracked, which is identical to what is in
+        HopAnalysis.out files (for example).
+    database : String
+        The name of the database file. Default = 'halos.db'.
+    dotfile : String
+        The name of the file to write to. Default = 'MergerTree.gv'.
+        The suffix of this name gives the format of the output file,
+        so 'MergerTree.jpg' would output a jpg file. "dot -v" (from the
+        command line) will print
+        a list of image formats supported on the system. The default
+        suffix '.gv' will output the results to a text file in the Graphviz
+        markup language.
+    current_time : Integer
+        The SnapCurrentTimeIdentifier for the snapshot for the halos to
+        be tracked. This is identical to the CurrentTimeIdentifier in
+        Enzo restart files. Default = None.
+    link_min : Float
+        When establishing a parent/child relationship, this is the minimum
+        mass fraction of the parent halo contributed to
+        the child halo that will be tracked
+        while building the Graphviz file. Default = 0.2.
+    
+    Examples
+    --------
+
+    >>> MergerTreeDotOutput(halos=182842, database='/home/user/sim1-halos.db',
+    ... dotfile = 'halo-182842.gv')
+    """
     def __init__(self, halos=None, database='halos.db',
             dotfile='MergerTree.gv', current_time=None, link_min=0.2):
-        r"""Output the merger tree history for a given set of halo(s) in Graphviz
-        format.
-        
-        Parameters
-        ---------
-        halos : Integer or list of integers
-            If current_time below is not specified or is None, this is an integer
-            or list of integers with the GlobalHaloIDs of the halos to be
-            tracked. If current_time is specified, this is the SnapHaloIDs
-            for the halos to be tracked, which is identical to what is in
-            HopAnalysis.out files (for example).
-        database : String
-            The name of the database file. Default = 'halos.db'.
-        dotfile : String
-            The name of the file to write to. Default = 'MergerTree.gv'.
-            The suffix of this name gives the format of the output file,
-            so 'MergerTree.jpg' would output a jpg file. "dot -v" (from the
-            command line) will print
-            a list of image formats supported on the system. The default
-            suffix '.gv' will output the results to a text file in the Graphviz
-            markup language.
-        current_time : Integer
-            The SnapCurrentTimeIdentifier for the snapshot for the halos to
-            be tracked. This is identical to the CurrentTimeIdentifier in
-            Enzo restart files. Default = None.
-        link_min : Float
-            When establishing a parent/child relationship, this is the minimum
-            mass fraction of the parent halo contributed to
-            the child halo that will be tracked
-            while building the Graphviz file. Default = 0.2.
-        
-        Examples
-        --------
-        >>> MergerTreeDotOutput(halos=182842, database='/home/user/sim1-halos.db',
-        ... dotfile = 'halo-182842.gv')
-        """
         ParallelAnalysisInterface.__init__(self)
         self.database = database
         self.link_min = link_min
@@ -1102,22 +1101,22 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
         self.graph.write("%s" % dotfile, format=suffix)
 
 class MergerTreeTextOutput(DatabaseFunctions, ParallelAnalysisInterface):
+    r"""Dump the contents of the merger tree database to a text file.
+    This is generally not recommended.
+    
+    Parameters
+    ----------
+    database : String
+        Name of the database to access. Default = 'halos.db'.
+    outfile : String
+        Name of the file to write to. Default = 'MergerTreeDB.txt'.
+    
+    Examples
+    --------
+    >>> MergerTreeTextOutput(database='/home/user/sim1-halos.db',
+    ... outfile='halos-db.txt')
+    """
     def __init__(self, database='halos.db', outfile='MergerTreeDB.txt'):
-        r"""Dump the contents of the merger tree database to a text file.
-        This is generally not recommended.
-        
-        Parameters
-        ----------
-        database : String
-            Name of the database to access. Default = 'halos.db'.
-        outfile : String
-            Name of the file to write to. Default = 'MergerTreeDB.txt'.
-        
-        Examples
-        --------
-        >>> MergerTreeTextOutput(database='/home/user/sim1-halos.db',
-        ... outfile='halos-db.txt')
-        """
         ParallelAnalysisInterface.__init__(self)
         self.database = database
         self.outfile = outfile

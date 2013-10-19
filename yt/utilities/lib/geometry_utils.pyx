@@ -1,27 +1,17 @@
 """
 Simple integrators for the radiative transfer equation
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -183,7 +173,7 @@ cdef inline int cutting_plane_cell(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def cutting_plane_cells(dobj, gobj):
-    cdef np.ndarray[np.uint8_t, ndim=3] mask 
+    cdef np.ndarray[np.uint8_t, ndim=3] mask
     cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
     cdef np.ndarray[np.float64_t, ndim=1] dds = gobj.dds
     cdef int i, j, k
@@ -205,58 +195,6 @@ def cutting_plane_cells(dobj, gobj):
             y += dds[1]
         x += dds[0]
     return mask
-                
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
-                        np.ndarray[np.float64_t, ndim=1] right_edge,
-                        int level,
-                        np.ndarray[np.float64_t, ndim=2] left_edges,
-                        np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask,
-                        int min_index = 0):
-    cdef int i, n
-    cdef int nx = left_edges.shape[0]
-    cdef int inside 
-    for i in range(nx):
-        if i < min_index or levels[i,0] != level:
-            mask[i] = 0
-            continue
-        inside = 1
-        for n in range(3):
-            if left_edge[n] >= right_edges[i,n] or \
-               right_edge[n] <= left_edges[i,n]:
-                inside = 0
-                break
-        if inside == 1: mask[i] = 1
-        else: mask[i] = 0
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def get_box_grids_below_level(
-                        np.ndarray[np.float64_t, ndim=1] left_edge,
-                        np.ndarray[np.float64_t, ndim=1] right_edge,
-                        int level,
-                        np.ndarray[np.float64_t, ndim=2] left_edges,
-                        np.ndarray[np.float64_t, ndim=2] right_edges,
-                        np.ndarray[np.int32_t, ndim=2] levels,
-                        np.ndarray[np.int32_t, ndim=1] mask):
-    cdef int i, n
-    cdef int nx = left_edges.shape[0]
-    cdef int inside 
-    for i in range(nx):
-        mask[i] = 0
-        if levels[i,0] <= level:
-            inside = 1
-            for n in range(3):
-                if left_edge[n] >= right_edges[i,n] or \
-                   right_edge[n] <= left_edges[i,n]:
-                    inside = 0
-                    break
-            if inside == 1: mask[i] = 1
 
 # Finally, miscellaneous routines.
 

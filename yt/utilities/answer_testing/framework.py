@@ -1,27 +1,17 @@
 """
 Answer Testing using Nose as a starting point
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import logging
 import os
@@ -30,17 +20,24 @@ import contextlib
 import urllib2
 import cPickle
 import sys
-
-from nose.plugins import Plugin
-from yt.testing import *
-from yt.config import ytcfg
-from yt.mods import *
-from yt.data_objects.static_output import StaticOutput
 import cPickle
 import shelve
+import zlib
+import tempfile
+import glob
 
+from matplotlib.testing.compare import compare_images
+from nose.plugins import Plugin
+from yt.testing import *
+from yt.convenience import load, simulation
+from yt.config import ytcfg
+from yt.data_objects.static_output import StaticOutput
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
+
+import matplotlib.image as mpimg
+import yt.visualization.plot_window as pw
+import yt.extern.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -66,6 +63,8 @@ class AnswerTesting(Plugin):
         parser.add_option("--answer-big-data", dest="big_data",
             default=False, help="Should we run against big data, too?",
             action="store_true")
+        parser.add_option("--local-dir", dest="output_dir", metavar='str',
+                          help="The name of the directory to store local results")
 
     @property
     def my_version(self, version=None):
@@ -96,7 +95,7 @@ class AnswerTesting(Plugin):
                 self.store_name = options.answer_name
             self.compare_name = None
         # if we're not storing, then we're comparing, and we want default
-        # comparison name to be the latest gold standard 
+        # comparison name to be the latest gold standard
         # either on network or local
         else:
             if options.answer_name is None:
@@ -117,18 +116,21 @@ class AnswerTesting(Plugin):
             self.compare_name = None
         elif self.compare_name == "latest":
             self.compare_name = _latest
-            
-        # Local/Cloud storage 
+
+        # Local/Cloud storage
         if options.local_results:
+            if options.output_dir is None:
+                print 'Please supply an output directory with the --local-dir option'
+                sys.exit(1)
             storage_class = AnswerTestLocalStorage
-            # Fix up filename for local storage 
+            # Fix up filename for local storage
             if self.compare_name is not None:
                 self.compare_name = "%s/%s/%s" % \
-                    (os.path.realpath(options.output_dir), self.compare_name, 
+                    (os.path.realpath(options.output_dir), self.compare_name,
                      self.compare_name)
             if self.store_name is not None:
                 name_dir_path = "%s/%s" % \
-                    (os.path.realpath(options.output_dir), 
+                    (os.path.realpath(options.output_dir),
                     self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
@@ -147,7 +149,10 @@ class AnswerTesting(Plugin):
 
     def finalize(self, result=None):
         if self.store_results is False: return
-        self.storage.dump(self.result_storage)        
+        self.storage.dump(self.result_storage)
+
+    def help(self):
+        return "yt answer testing support"
 
 class AnswerTestStorage(object):
     def __init__(self, reference_name=None, answer_name=None):
@@ -155,9 +160,9 @@ class AnswerTestStorage(object):
         self.answer_name = answer_name
         self.cache = {}
     def dump(self, result_storage, result):
-        raise NotImplementedError 
+        raise NotImplementedError
     def get(self, pf_name, default=None):
-        raise NotImplementedError 
+        raise NotImplementedError
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, pf_name, default = None):
@@ -185,6 +190,9 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         self.cache[pf_name] = rv
         return rv
 
+    def progress_callback(self, current, total):
+        self.pbar.update(current)
+
     def dump(self, result_storage):
         if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
@@ -195,12 +203,24 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         bucket = c.get_bucket("yt-answer-tests")
         for pf_name in result_storage:
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name)) 
+            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
             if tk is not None: tk.delete()
             k = Key(bucket)
             k.key = "%s_%s" % (self.answer_name, pf_name)
-            k.set_contents_from_string(rs)
+
+            pb_widgets = [
+                unicode(k.key, errors='ignore').encode('utf-8'), ' ',
+                progressbar.FileTransferSpeed(),' <<<', progressbar.Bar(),
+                '>>> ', progressbar.Percentage(), ' ', progressbar.ETA()
+                ]
+            self.pbar = progressbar.ProgressBar(widgets=pb_widgets,
+                                                maxval=sys.getsizeof(rs))
+
+            self.pbar.start()
+            k.set_contents_from_string(rs, cb=self.progress_callback,
+                                       num_cb=100000)
             k.set_acl("public-read")
+            self.pbar.finish()
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
@@ -209,7 +229,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         ds = shelve.open(self.answer_name, protocol=-1)
         for pf_name in result_storage:
             answer_name = "%s" % pf_name
-            if name in ds:
+            if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[pf_name]
         ds.close()
@@ -242,7 +262,7 @@ def can_run_pf(pf_fn):
     with temp_cwd(path):
         try:
             load(pf_fn)
-        except:
+        except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
@@ -277,7 +297,7 @@ class AnswerTestingTest(object):
         nv = self.run()
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
-            if dd is None or self.description not in dd: 
+            if dd is None or self.description not in dd:
                 raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
@@ -302,6 +322,16 @@ class AnswerTestingTest(object):
         cls = getattr(pf.h, obj_type[0])
         obj = cls(*obj_type[1])
         return obj
+
+    def create_plot(self, pf, plot_type, plot_field, plot_axis, plot_kwargs = None):
+        # plot_type should be a string
+        # plot_args should be a tuple
+        # plot_kwargs should be a dict
+        if plot_type is None:
+            raise RuntimeError('Must explicitly request a plot type')
+        cls = getattr(pw, plot_type)
+        plot = cls(*(pf, plot_axis, plot_field), **plot_kwargs)
+        return plot
 
     @property
     def sim_center(self):
@@ -335,7 +365,7 @@ class AnswerTestingTest(object):
         args = [self._type_name, str(self.pf), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
         return "_".join(args)
-        
+
 class FieldValuesTest(AnswerTestingTest):
     _type_name = "FieldValues"
     _attrs = ("field", )
@@ -357,7 +387,7 @@ class FieldValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % self.field
         if self.decimals is None:
-            assert_equal(new_result, old_result, 
+            assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
             assert_allclose(new_result, old_result, 10.**(-self.decimals),
@@ -381,12 +411,12 @@ class AllFieldValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = "All field values for %s not equal." % self.field
         if self.decimals is None:
-            assert_equal(new_result, old_result, 
+            assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
             assert_rel_equal(new_result, old_result, self.decimals,
                              err_msg=err_msg, verbose=True)
-            
+
 class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
@@ -426,7 +456,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_equal(new_result[k], old_result[k],
                              err_msg=err_msg)
             else:
-                assert_allclose(new_result[k], old_result[k], 
+                assert_allclose(new_result[k], old_result[k],
                                  10.**-(self.decimals), err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
@@ -505,7 +535,7 @@ class VerifySimulationSameTest(AnswerTestingTest):
             assert_equal(new_result[i], old_result[i],
                          err_msg="Output times not equal.",
                          verbose=True)
-        
+
 class GridHierarchyTest(AnswerTestingTest):
     _type_name = "GridHierarchy"
     _attrs = ()
@@ -547,6 +577,108 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+def compare_image_lists(new_result, old_result, decimals):
+    fns = ['old.png', 'new.png']
+    num_images = len(old_result)
+    assert(num_images > 0)
+    for i in xrange(num_images):
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        for fn in fns: os.remove(fn)
+            
+class PlotWindowAttributeTest(AnswerTestingTest):
+    _type_name = "PlotWindowAttribute"
+    _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
+    def __init__(self, pf_fn, plot_field, plot_axis, attr_name, attr_args,
+                 decimals, plot_type = 'SlicePlot'):
+        super(PlotWindowAttributeTest, self).__init__(pf_fn)
+        self.plot_type = plot_type
+        self.plot_field = plot_field
+        self.plot_axis = plot_axis
+        self.plot_kwargs = {}
+        self.attr_name = attr_name
+        self.attr_args = attr_args
+        self.decimals = decimals
+
+    def run(self):
+        plot = self.create_plot(self.pf, self.plot_type, self.plot_field,
+                                self.plot_axis, self.plot_kwargs)
+        attr = getattr(plot, self.attr_name)
+        attr(*self.attr_args[0], **self.attr_args[1])
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
+class GenericArrayTest(AnswerTestingTest):
+    _type_name = "GenericArray"
+    _attrs = ('array_func_name','args','kwargs')
+    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
+        super(GenericArrayTest, self).__init__(pf_fn)
+        self.array_func = array_func
+        self.array_func_name = array_func.func_name
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        return self.array_func(*args, **kwargs)
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result),
+                                          err_msg="Number of outputs not equal.",
+                                          verbose=True)
+        for k in new_result:
+            if self.decimals is None:
+                assert_equal(new_result[k], old_result[k])
+            else:
+                assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
+
+class GenericImageTest(AnswerTestingTest):
+    _type_name = "GenericImage"
+    _attrs = ('image_func_name','args','kwargs')
+    def __init__(self, pf_fn, image_func, decimals, args=None, kwargs=None):
+        super(GenericImageTest, self).__init__(pf_fn)
+        self.image_func = image_func
+        self.image_func_name = image_func.func_name
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        comp_imgs = []
+        tmpdir = tempfile.mkdtemp()
+        image_prefix = os.path.join(tmpdir,"test_img")
+        self.image_func(image_prefix, *args, **kwargs)
+        imgs = glob.glob(image_prefix+"*")
+        assert(len(imgs) > 0)
+        for img in imgs:
+            img_data = mpimg.imread(img)
+            os.remove(img)
+            comp_imgs.append(zlib.compress(img_data.dumps()))
+        return comp_imgs
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 def requires_pf(pf_fn, big_data = False):
     def ffalse(func):
         return lambda: None
@@ -602,4 +734,3 @@ class AssertWrapper(object):
 
     def __call__(self):
         self.args[0](*self.args[1:])
-

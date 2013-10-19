@@ -1,27 +1,17 @@
 """
 Particle operations for Lagrangian Volume
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt.enzotools.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import os, sys
@@ -163,6 +153,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
     all_fields = set(pf.h.derived_field_list + pf.h.field_list)
+    has_particle_type = ("particle_type" in all_fields)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
@@ -170,12 +161,19 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
         local_parts = 0
         for g in pf.h._get_objs("grids"):
             if g.NumberOfParticles == 0: continue
-            if rh.dm_only:
-                iddm = Ellipsis
-            elif "particle_type" in all_fields:
-                iddm = g["particle_type"] == rh.dm_type
+            if (rh.dm_only or (not has_particle_type)):
+                if rh.hires_only:
+                    iddm = (g['ParticleMassMsun'] < PARTICLE_MASS*1.1)
+                else:
+                    iddm = Ellipsis
+            elif has_particle_type:
+                if rh.hires_only:
+                    iddm = ( (g["particle_type"]==rh.dm_type) &
+                             (g['ParticleMassMsun'] < PARTICLE_MASS*1.1) )                    
+                else:
+                    iddm = g["particle_type"] == rh.dm_type
             else:
-                iddm = Ellipsis
+                iddm = Ellipsis # should never get here
             arri = g["particle_index"].astype("int64")
             arri = arri[iddm] #pick only DM
             local_parts += arri.size
@@ -195,12 +193,19 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p) wit
     pi = 0
     for g in pf.h._get_objs("grids"):
         if g.NumberOfParticles == 0: continue
-        if rh.dm_only:
-            iddm = Ellipsis
-        elif "particle_type" in all_fields:
-            iddm = g["particle_type"] == rh.dm_type
-        else:
-            iddm = Ellipsis
+        if (rh.dm_only or (not has_particle_type)):
+            if rh.hires_only:
+                iddm = (g['ParticleMassMsun'] < PARTICLE_MASS*1.1)
+            else:
+                iddm = Ellipsis
+        elif has_particle_type:
+            if rh.hires_only:
+                iddm = ( (g["particle_type"]==rh.dm_type) &
+                         (g['ParticleMassMsun'] < PARTICLE_MASS*1.1) )                    
+            else:
+                iddm = g["particle_type"] == rh.dm_type
+        else:            
+            iddm = Ellipsis # should never get here
         arri = g["particle_index"].astype("int64")
         arri = arri[iddm] #pick only DM
         npart = arri.size
@@ -230,6 +235,7 @@ cdef class RockstarInterface:
     cdef public int dm_type
     cdef public int total_particles
     cdef public int dm_only
+    cdef public int hires_only
 
     def __cinit__(self, ts):
         self.ts = ts
@@ -244,7 +250,7 @@ cdef class RockstarInterface:
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, force_res=None,
                        int min_halo_size = 25, outbase = "None",
-                       int dm_only = 0):
+                       int dm_only = 0, int hires_only = False):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -276,6 +282,7 @@ cdef class RockstarInterface:
         TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
         self.dm_only = dm_only
+        self.hires_only = hires_only
         
         tpf = self.ts[0]
         h0 = tpf.hubble_constant

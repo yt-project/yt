@@ -60,26 +60,39 @@ utilities
 All broadly useful code that doesn't clearly fit in one of the other
 categories goes here.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 __version__ = "2.5-dev"
+
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+    import nose, os, sys
+    from yt.config import ytcfg
+    nose_argv = sys.argv
+    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    if verbose:
+        nose_argv.append('-v')
+    if run_answer_tests:
+        nose_argv.append('--with-answer-testing')
+    if answer_big_data:
+        nose_argv.append('--answer-big-data')
+    log_suppress = ytcfg.getboolean("yt","suppressStreamLogging")
+    ytcfg.set("yt","suppressStreamLogging", 'True')
+    initial_dir = os.getcwd()
+    yt_file = os.path.abspath(__file__)
+    yt_dir = os.path.dirname(yt_file)
+    os.chdir(yt_dir)
+    try:
+        nose.run(argv=nose_argv)
+    finally:
+        os.chdir(initial_dir)
+        ytcfg.set("yt","suppressStreamLogging", str(log_suppress))

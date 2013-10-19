@@ -1,27 +1,17 @@
 """
 RAMSES-specific data structures
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import stat
@@ -298,6 +288,10 @@ class RAMSESStaticOutput(StaticOutput):
     def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
+        print "Hi there!  RAMSES support in yt-2.X is currently very poor."
+        print "We don't recommend you use it.  However, in yt-3.0, we've"
+        print "improved it considerably!  So please give that a whirl instead."
+        raise NotImplementedError
         import _ramses_reader
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
@@ -354,6 +348,7 @@ class RAMSESStaticOutput(StaticOutput):
         # distinguish them.
         mylog.warning("No current mechanism of distinguishing cosmological simulations in RAMSES!")
         self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
         self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]

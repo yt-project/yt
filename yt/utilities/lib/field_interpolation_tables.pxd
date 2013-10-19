@@ -1,31 +1,23 @@
 """
 Field Interpolation Tables
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 cimport cython
 cimport numpy as np
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
+
+DEF Nch = 4
 
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
@@ -92,11 +84,11 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
         if fid != -1: istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
+
     if grey_opacity == 1:
-        ttot = trgba[0] + trgba[1] + trgba[2]
-        ta = fmax(1.0 - dt*ttot, 0.0)
-        for i in range(3):
-            rgba[i] = (1.0-ta)*trgba[i] + ta*rgba[i]
+        ta = fmax(1.0 - dt*trgba[3],0.0)
+        for i in range(4):
+            rgba[i] = dt*trgba[i] + ta*rgba[i]
     else:
         for i in range(3):
             ta = fmax(1.0-dt*trgba[i], 0.0)

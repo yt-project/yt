@@ -1,28 +1,19 @@
 """
 HaloProfiler class and member functions.
 
-Author: Britton Smith <brittons@origins.colorado.edu>
-Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+import gc
 import numpy as np
 import os
 import h5py
@@ -59,7 +50,130 @@ from yt.visualization.image_writer import write_image
 PROFILE_RADIUS_THRESHOLD = 2
 
 class HaloProfiler(ParallelAnalysisInterface):
-    "Radial profiling, filtering, and projections for halos in cosmological simulations."
+    r"""Initialize a Halo Profiler object.
+
+    In order to run the halo profiler, the Halo Profiler object must be
+    instantiated. At the minimum, the path to a parameter file
+    must be provided as the first term.
+
+    Parameters
+    ----------
+
+    dataset : string, required
+        The path to the parameter file for the dataset to be analyzed.
+    output_dir : string, optional
+        If specified, all output will be put into this path instead of
+        in the dataset directories.  Default: None.
+    halos :  {"multiple", "single"}, optional
+        For profiling more than one halo.  In this mode halos are read in
+        from a list or identified with a halo finder.  In "single" mode,
+        the one and only halo
+        center is identified automatically as the location of the peak
+        in the density field.
+        Default: "multiple".
+    halo_list_file : string, optional
+        The name of a file containing the list of halos.  The HaloProfiler
+        will  look for this file in the data directory.
+        Default: "HopAnalysis.out".
+    halo_list_format : {string, dict}
+        The format of the halo list file.  "yt_hop" for the format
+        given by yt's halo finders.  "enzo_hop" for the format written
+        by enzo_hop. "p-groupfinder"  for P-Groupfinder.  This keyword
+        can also be given in the form of a dictionary specifying the
+        column in which various properties can be found.
+        For example, {"id": 0, "center": [1, 2, 3], "mass": 4, "radius": 5}.
+        Default: "yt_hop".
+    halo_finder_function : function
+        If halos is set to multiple and the file given by
+        halo_list_file does not exit, the halo finding function
+        specified here will be called.
+        Default: HaloFinder (yt_hop).
+    halo_finder_args : tuple
+        Args given with call to halo finder function.  Default: None.
+    halo_finder_kwargs : dict
+        kwargs given with call to halo finder function. Default: None.
+    recenter : {string, function}
+        The exact location of the sphere center can significantly affect
+        radial profiles.  The halo center loaded by the HaloProfiler will
+        typically be the dark matter center of mass calculated by a halo
+        finder.  However, this may not be the best location for centering
+        profiles of baryon quantities.  For example, one may want to center
+        on the maximum density.
+        If recenter is given as a string, one of the existing recentering
+        functions will be used:
+
+            * Min_Dark_Matter_Density : location of minimum dark matter density
+            * Max_Dark_Matter_Density : location of maximum dark matter density
+            * CoM_Dark_Matter_Density : dark matter center of mass
+            * Min_Gas_Density : location of minimum gas density
+            * Max_Gas_Density : location of maximum gas density
+            * CoM_Gas_Density : gas center of mass
+            * Min_Total_Density : location of minimum total density
+            * Max_Total_Density : location of maximum total density
+            * CoM_Total_Density : total center of mass
+            * Min_Temperature : location of minimum temperature
+            * Max_Temperature : location of maximum temperature
+
+        Alternately, a function can be supplied for custom recentering.
+        The function should take only one argument, a sphere object.  Example
+        function::
+            
+               def my_center_of_mass(data):
+                   my_x, my_y, my_z = data.quantities['CenterOfMass']()
+                   return (my_x, my_y, my_z)
+            
+        Default: None.
+    halo_radius : float
+        If no halo radii are provided in the halo list file, this
+        parameter is used to specify the radius out to which radial
+        profiles will be made.  This keyword is also
+        used when halos is set to single.  Default: 0.1.
+    radius_units : string
+        The units of halo_radius.  Default: "1" (code units).
+    n_profile_bins : int
+        The number of bins in the radial profiles.  Default: 50.
+    profile_output_dir : str
+        The subdirectory, inside the data directory, in which radial profile
+        output files will be created.  The directory will be created if it does
+        not exist.  Default: "radial_profiles".
+    projection_output_dir : str
+        The subdirectory, inside the data directory, in which projection
+        output files will be created.  The directory will be created if it does
+        not exist.  Default: "projections".
+    projection_width : float
+        The width of halo projections.  Default: 8.0.
+    projection_width_units : string
+        The units of projection_width. Default: "mpc".
+    project_at_level : {"max", int}
+        The maximum refinement level to be included in projections.
+        Default: "max" (maximum level within the dataset).
+    velocity_center  : array_like
+        The method in which the halo bulk velocity is calculated (used for
+        calculation of radial and tangential velocities.  Valid options are:
+
+            * ["bulk", "halo"] (Default): the velocity provided in
+              the halo list
+            * ["bulk", "sphere"]: the bulk velocity of the sphere
+              centered on the halo center.
+            * ["max", field]: the velocity of the cell that is the
+              location of the maximum of the field specified.
+
+    filter_quantities : array_like
+        Quantities from the original halo list file to be written out in the
+        filtered list file.  Default: ['id','center'].
+    use_critical_density : bool
+        If True, the definition of overdensity for virial quantities
+        is calculated with respect to the critical density.
+        If False, overdensity is with respect to mean matter density,
+        which is lower by a factor of Omega_M.  Default: False.
+
+    Examples
+    --------
+
+    >>> from yt.analysis_modules.halo_profiler.api import *
+    >>> hp = HaloProfiler("RedshiftOutput0005/RD0005")
+
+    """
     def __init__(self, dataset, output_dir=None,
                  halos='multiple', halo_list_file='HopAnalysis.out',
                  halo_list_format='yt_hop', halo_finder_function=parallelHF,
@@ -73,125 +187,6 @@ class HaloProfiler(ParallelAnalysisInterface):
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
                  velocity_center=['bulk', 'halo'], filter_quantities=['id', 'center', 'r_max'],
                  use_critical_density=False):
-        r"""Initialize a Halo Profiler object.
-
-        In order to run the halo profiler, the Halo Profiler object must be
-        instantiated. At the minimum, the path to a parameter file
-        must be provided as the first term.
-
-        Parameters
-        ----------
-
-        dataset : string, required
-            The path to the parameter file for the dataset to be analyzed.
-        output_dir : string, optional
-            If specified, all output will be put into this path instead of
-            in the dataset directories.  Default: None.
-        halos :  {"multiple", "single"}, optional
-            For profiling more than one halo.  In this mode halos are read in
-            from a list or identified with a halo finder.  In "single" mode,
-            the one and only halo
-            center is identified automatically as the location of the peak
-            in the density field.
-            Default: "multiple".
-        halo_list_file : string, optional
-            The name of a file containing the list of halos.  The HaloProfiler
-            will  look for this file in the data directory.
-            Default: "HopAnalysis.out".
-        halo_list_format : {string, dict}
-            The format of the halo list file.  "yt_hop" for the format
-            given by yt's halo finders.  "enzo_hop" for the format written
-            by enzo_hop. "p-groupfinder"  for P-Groupfinder.  This keyword
-            can also be given in the form of a dictionary specifying the
-            column in which various properties can be found.
-            For example, {"id": 0, "center": [1, 2, 3], "mass": 4, "radius": 5}.
-            Default: "yt_hop".
-        halo_finder_function : function
-            If halos is set to multiple and the file given by
-            halo_list_file does not exit, the halo finding function
-            specified here will be called.
-            Default: HaloFinder (yt_hop).
-        halo_finder_args : tuple
-            Args given with call to halo finder function.  Default: None.
-        halo_finder_kwargs : dict
-            kwargs given with call to halo finder function. Default: None.
-        recenter : {string, function}
-            The exact location of the sphere center can significantly affect
-            radial profiles.  The halo center loaded by the HaloProfiler will
-            typically be the dark matter center of mass calculated by a halo
-            finder.  However, this may not be the best location for centering
-            profiles of baryon quantities.  For example, one may want to center
-            on the maximum density.
-            If recenter is given as a string, one of the existing recentering
-            functions will be used:
-                Min_Dark_Matter_Density : location of minimum dark matter density
-                Max_Dark_Matter_Density : location of maximum dark matter density
-                CoM_Dark_Matter_Density : dark matter center of mass
-                Min_Gas_Density : location of minimum gas density
-                Max_Gas_Density : location of maximum gas density
-                CoM_Gas_Density : gas center of mass
-                Min_Total_Density : location of minimum total density
-                Max_Total_Density : location of maximum total density
-                CoM_Total_Density : total center of mass
-                Min_Temperature : location of minimum temperature
-                Max_Temperature : location of maximum temperature
-            Alternately, a function can be supplied for custom recentering.
-            The function should take only one argument, a sphere object.
-                Example function:
-                    def my_center_of_mass(data):
-                       my_x, my_y, my_z = data.quantities['CenterOfMass']()
-                       return (my_x, my_y, my_z)
-            Default: None.
-        halo_radius : float
-            If no halo radii are provided in the halo list file, this
-            parameter is used to specify the radius out to which radial
-            profiles will be made.  This keyword is also
-            used when halos is set to single.  Default: 0.1.
-        radius_units : string
-            The units of halo_radius.  Default: "1" (code units).
-        n_profile_bins : int
-            The number of bins in the radial profiles.  Default: 50.
-        profile_output_dir : str
-            The subdirectory, inside the data directory, in which radial profile
-            output files will be created.
-            The directory will be created if it does not exist.
-            Default: "radial_profiles".
-        projection_output_dir : str
-            The subdirectory, inside the data directory, in which projection
-            output files will be created.
-            The directory will be created if it does not exist.
-            Default: "projections".
-        projection_width : float
-            The width of halo projections.  Default: 8.0.
-        projection_width_units : string
-            The units of projection_width. Default: "mpc".
-        project_at_level : {"max", int}
-            The maximum refinement level to be included in projections.
-            Default: "max" (maximum level within the dataset).
-        velocity_center  : array_like
-            The method in which the halo bulk velocity is calculated (used for
-            calculation of radial and tangential velocities.  Valid options are:
-     	        * ["bulk", "halo"] (Default): the velocity provided in
-     	          the halo list
-                * ["bulk", "sphere"]: the bulk velocity of the sphere
-                  centered on the halo center.
-    	        * ["max", field]: the velocity of the cell that is the
-    	          location of the maximum of the field specified.
-        filter_quantities : array_like
-            Quantities from the original halo list file to be written out in the
-            filtered list file.  Default: ['id','center'].
-        use_critical_density : bool
-            If True, the definition of overdensity for virial quantities
-            is calculated with respect to the critical density.
-            If False, overdensity is with respect to mean matter density,
-            which is lower by a factor of Omega_M.  Default: False.
-
-        Examples
-        --------
-        >>> from yt.analysis_modules.halo_profiler.api import *
-        >>> hp = HaloProfiler("RedshiftOutput0005/RD0005")
-
-        """
         ParallelAnalysisInterface.__init__(self)
 
         self.dataset = dataset
@@ -281,10 +276,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         # Create output directories.
         self.output_dir = output_dir
         if output_dir is None:
-            output_dir = '.'
+            self.output_dir = self.pf.fullpath
         else:
             self.__check_directory(output_dir)
-        self.output_dir = os.path.join(output_dir, os.path.basename(self.pf.fullpath))
+            self.output_dir = os.path.join(output_dir, self.pf.directory)
         self.__check_directory(self.output_dir)
         self.profile_output_dir = os.path.join(self.output_dir, profile_output_dir)
         self.projection_output_dir = os.path.join(self.output_dir, projection_output_dir)
@@ -426,8 +421,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         After all the calls to `add_profile`, this will trigger the actual
         calculations and output the profiles to disk.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
+
         filename : str
             If set, a file will be written with all of the filtered halos
             and the quantities returned by the filter functions.
@@ -454,6 +450,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Examples
         --------
+
         >>> hp.make_profiles(filename="FilteredQuantities.out",
                  prefilters=["halo['mass'] > 1e13"])
 
@@ -577,7 +574,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
-                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
 
             # get a sphere object to profile
@@ -624,6 +621,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                 g.clear_data()
             sphere.clear_data()
             del sphere
+            # Currently, this seems to be the only way to prevent large 
+            # halo profiling runs from running out of ram.
+            # It would be good to track down the real cause at some point.
+            gc.collect()
 
         return profile
 
@@ -703,7 +704,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         calculations and saves the output to disk.
 
         Parameters
-        ---------
+        ----------
+
         axes : array_like
             A list of the axes to project along, using the usual 0,1,2
             convention. Default=[0,1,2]
@@ -729,6 +731,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Examples
         --------
+
         >>> hp.make_projections(axes=[0, 1, 2], save_cube=True,
             save_images=True, halo_list="filtered")
 
@@ -872,14 +875,17 @@ class HaloProfiler(ParallelAnalysisInterface):
         to the provided analysis function.
 
         Parameters
-        ---------
+        ----------
+
         analysis_function : function
             A function taking two arguments, the halo dictionary, and a
             sphere object.
-            Example function to calculate total mass of halo:
+            Example function to calculate total mass of halo::
+
                 def my_analysis(halo, sphere):
                     total_mass = sphere.quantities['TotalMass']()
                     print total_mass
+            
         halo_list : {'filtered', 'all'}
             Which set of halos to make profiles of, either ones passed by the
             halo filters (if enabled/added), or all halos.
@@ -898,6 +904,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         Examples
         --------
+
         >>> hp.analyze_halo_spheres(my_analysis, halo_list="filtered",
                                     analysis_output_dir='special_analysis')
 
@@ -1237,7 +1244,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("Output directory exists, but is not a directory: %s." % my_output_dir)
                 raise IOError(my_output_dir)
         else:
-            os.mkdir(my_output_dir)
+            os.makedirs(my_output_dir)
 
 def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """

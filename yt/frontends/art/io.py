@@ -1,27 +1,17 @@
 """
 ART-specific IO
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import struct
@@ -132,7 +122,7 @@ class IOHandlerART(BaseIOHandler):
             return dat[idx]
         raise KeyError
         
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         if field in particle_fields:
             return self._read_particle_field(grid, field)
         pf = grid.pf
@@ -160,11 +150,6 @@ class IOHandlerART(BaseIOHandler):
             grids = next_grids
             l_delta += 1
         return tr.astype("float64")
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid, field)[sl]
 
 def _count_art_octs(f, offset, 
                    MinLev, MaxLevelNow):

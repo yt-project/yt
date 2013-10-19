@@ -1,33 +1,25 @@
-"""Provides utility and helper functions for testing in yt.
-
-Author: Anthony Scpatz <scopatz@gmail.com>
-Affiliation: The University of Chicago
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Anthony Scopatz.  All Rights Reserved.
-
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+import itertools as it
 import numpy as np
+import importlib
 from yt.funcs import *
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
-    assert_allclose
+    assert_allclose, assert_raises
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -37,13 +29,13 @@ def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
         # Mask out NaNs
         a1[np.isnan(a1)] = 1.0
         a2[np.isnan(a2)] = 1.0
-    elif np.isnan(a1) and np.isnan(a2):
+    elif np.any(np.isnan(a1)) and np.any(np.isnan(a2)):
         return True
-    return assert_almost_equal(a1/a2, 1.0, decimals, err_msg=err_msg,
+    return assert_almost_equal(np.array(a1)/np.array(a2), 1.0, decimals, err_msg=err_msg,
                                verbose=verbose)
 
 def amrspace(extent, levels=7, cells=8):
-    """Creates two numpy arrays representing the left and right bounds of 
+    """Creates two numpy arrays representing the left and right bounds of
     an AMR grid as well as an array for the AMR level of each cell.
 
     Parameters
@@ -57,7 +49,7 @@ def amrspace(extent, levels=7, cells=8):
         length ndims), then each dimension will be refined down to this level.
         All values in this array must be the same or zero.  A zero valued dimension
         indicates that this dim should not be refined.  Taking the 3D cylindrical
-        example above if we don't want refine theta but want r and z at 5 we would 
+        example above if we don't want refine theta but want r and z at 5 we would
         set levels=(5, 5, 0).
     cells : int, optional
         This is the number of cells per refinement level.
@@ -163,3 +155,120 @@ def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
                  for field,offset in zip(fields,offsets))
     ug = load_uniform_grid(data, ndims, 1.0, nprocs = nprocs)
     return ug
+
+def expand_keywords(keywords, full=False):
+    """
+    expand_keywords is a means for testing all possible keyword
+    arguments in the nosetests.  Simply pass it a dictionary of all the
+    keyword arguments and all of the values for these arguments that you
+    want to test.
+
+    It will return a list of kwargs dicts containing combinations of
+    the various kwarg values you passed it.  These can then be passed
+    to the appropriate function in nosetests. 
+
+    If full=True, then every possible combination of keywords is produced,
+    otherwise, every keyword option is included at least once in the output
+    list.  Be careful, by using full=True, you may be in for an exponentially
+    larger number of tests! 
+
+    keywords : dict
+        a dictionary where the keys are the keywords for the function,
+        and the values of each key are the possible values that this key
+        can take in the function
+
+   full : bool
+        if set to True, every possible combination of given keywords is 
+        returned
+
+    Returns
+    -------
+    array of dicts
+        An array of dictionaries to be individually passed to the appropriate
+        function matching these kwargs.
+
+    Examples
+    --------
+    >>> keywords = {}
+    >>> keywords['dpi'] = (50, 100, 200)
+    >>> keywords['cmap'] = ('algae', 'jet')
+    >>> list_of_kwargs = expand_keywords(keywords)
+    >>> print list_of_kwargs
+
+    array([{'cmap': 'algae', 'dpi': 50}, 
+           {'cmap': 'jet', 'dpi': 100},
+           {'cmap': 'algae', 'dpi': 200}], dtype=object)
+
+    >>> list_of_kwargs = expand_keywords(keywords, full=True)
+    >>> print list_of_kwargs
+
+    array([{'cmap': 'algae', 'dpi': 50}, 
+           {'cmap': 'algae', 'dpi': 100},
+           {'cmap': 'algae', 'dpi': 200}, 
+           {'cmap': 'jet', 'dpi': 50},
+           {'cmap': 'jet', 'dpi': 100}, 
+           {'cmap': 'jet', 'dpi': 200}], dtype=object)
+
+    >>> for kwargs in list_of_kwargs:
+    ...     write_projection(*args, **kwargs)
+    """
+
+    # if we want every possible combination of keywords, use iter magic
+    if full:
+        keys = sorted(keywords)
+        list_of_kwarg_dicts = np.array([dict(zip(keys, prod)) for prod in \
+                              it.product(*(keywords[key] for key in keys))])
+            
+    # if we just want to probe each keyword, but not necessarily every 
+    # combination
+    else:
+        # Determine the maximum number of values any of the keywords has
+        num_lists = 0
+        for val in keywords.values():
+            if isinstance(val, str):
+                num_lists = max(1.0, num_lists)
+            else:
+                num_lists = max(len(val), num_lists)
+    
+        # Construct array of kwargs dicts, each element of the list is a different
+        # **kwargs dict.  each kwargs dict gives a different combination of
+        # the possible values of the kwargs
+    
+        # initialize array
+        list_of_kwarg_dicts = np.array([dict() for x in range(num_lists)])
+    
+        # fill in array
+        for i in np.arange(num_lists):
+            list_of_kwarg_dicts[i] = {}
+            for key in keywords.keys():
+                # if it's a string, use it (there's only one)
+                if isinstance(keywords[key], str):
+                    list_of_kwarg_dicts[i][key] = keywords[key]
+                # if there are more options, use the i'th val
+                elif i < len(keywords[key]):
+                    list_of_kwarg_dicts[i][key] = keywords[key][i]
+                # if there are not more options, use the 0'th val
+                else:
+                    list_of_kwarg_dicts[i][key] = keywords[key][0]
+
+    return list_of_kwarg_dicts
+
+def requires_module(module):
+    """
+    Decorator that takes a module name as an argument and tries to import it.
+    If the module imports without issue, the function is returned, but if not, 
+    a null function is returned. This is so tests that depend on certain modules
+    being imported will not fail if the module is not installed on the testing
+    platform.
+    """
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    try:
+        importlib.import_module(module)
+    except ImportError:
+        return ffalse
+    else:
+        return ftrue
+    

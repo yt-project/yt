@@ -1,27 +1,17 @@
 """
 halo_mass_function - Halo Mass Function and supporting functions.
 
-Author: Stephen Skory <s@skory.us>
-Affiliation: UC San Diego / CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Stephen Skory (and others).  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 import math, time
@@ -33,52 +23,52 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
 
 class HaloMassFcn(ParallelAnalysisInterface):
+    """
+    Initalize a HaloMassFcn object to analyze the distribution of haloes
+    as a function of mass.
+    :param halo_file (str): The filename of the output of the Halo Profiler.
+    Default=None.
+    :param omega_matter0 (float): The fraction of the universe made up of
+    matter (dark and baryonic). Default=None.
+    :param omega_lambda0 (float): The fraction of the universe made up of
+    dark energy. Default=None.
+    :param omega_baryon0 (float): The fraction of the universe made up of
+    ordinary baryonic matter. This should match the value
+    used to create the initial conditions, using 'inits'. This is 
+    *not* stored in the enzo datset so it must be checked by hand.
+    Default=0.05.
+    :param hubble0 (float): The expansion rate of the universe in units of
+    100 km/s/Mpc. Default=None.
+    :param sigma8input (float): The amplitude of the linear power
+    spectrum at z=0 as specified by the rms amplitude of mass-fluctuations
+    in a top-hat sphere of radius 8 Mpc/h. This should match the value
+    used to create the initial conditions, using 'inits'. This is 
+    *not* stored in the enzo datset so it must be checked by hand.
+    Default=0.86.
+    :param primoridal_index (float): This is the index of the mass power
+    spectrum before modification by the transfer function. A value of 1
+    corresponds to the scale-free primordial spectrum. This should match
+    the value used to make the initial conditions using 'inits'. This is 
+    *not* stored in the enzo datset so it must be checked by hand.
+    Default=1.0.
+    :param this_redshift (float): The current redshift. Default=None.
+    :param log_mass_min (float): The log10 of the mass of the minimum of the
+    halo mass range. Default=None.
+    :param log_mass_max (float): The log10 of the mass of the maximum of the
+    halo mass range. Default=None.
+    :param num_sigma_bins (float): The number of bins (points) to use for
+    the calculations and generated fit. Default=360.
+    :param fitting_function (int): Which fitting function to use.
+    1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
+    5 = Tinker
+    Default=4.
+    :param mass_column (int): The column of halo_file that contains the
+    masses of the haloes. Default=4.
+    """
     def __init__(self, pf, halo_file=None, omega_matter0=None, omega_lambda0=None,
     omega_baryon0=0.05, hubble0=None, sigma8input=0.86, primordial_index=1.0,
     this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
     fitting_function=4, mass_column=5):
-        """
-        Initalize a HaloMassFcn object to analyze the distribution of haloes
-        as a function of mass.
-        :param halo_file (str): The filename of the output of the Halo Profiler.
-        Default=None.
-        :param omega_matter0 (float): The fraction of the universe made up of
-        matter (dark and baryonic). Default=None.
-        :param omega_lambda0 (float): The fraction of the universe made up of
-        dark energy. Default=None.
-        :param omega_baryon0 (float): The fraction of the universe made up of
-        ordinary baryonic matter. This should match the value
-        used to create the initial conditions, using 'inits'. This is 
-        *not* stored in the enzo datset so it must be checked by hand.
-        Default=0.05.
-        :param hubble0 (float): The expansion rate of the universe in units of
-        100 km/s/Mpc. Default=None.
-        :param sigma8input (float): The amplitude of the linear power
-        spectrum at z=0 as specified by the rms amplitude of mass-fluctuations
-        in a top-hat sphere of radius 8 Mpc/h. This should match the value
-        used to create the initial conditions, using 'inits'. This is 
-        *not* stored in the enzo datset so it must be checked by hand.
-        Default=0.86.
-        :param primoridal_index (float): This is the index of the mass power
-        spectrum before modification by the transfer function. A value of 1
-        corresponds to the scale-free primordial spectrum. This should match
-        the value used to make the initial conditions using 'inits'. This is 
-        *not* stored in the enzo datset so it must be checked by hand.
-        Default=1.0.
-        :param this_redshift (float): The current redshift. Default=None.
-        :param log_mass_min (float): The log10 of the mass of the minimum of the
-        halo mass range. Default=None.
-        :param log_mass_max (float): The log10 of the mass of the maximum of the
-        halo mass range. Default=None.
-        :param num_sigma_bins (float): The number of bins (points) to use for
-        the calculations and generated fit. Default=360.
-        :param fitting_function (int): Which fitting function to use.
-        1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
-        5 = Tinker
-        Default=4.
-        :param mass_column (int): The column of halo_file that contains the
-        masses of the haloes. Default=4.
-        """
         ParallelAnalysisInterface.__init__(self)
         self.pf = pf
         self.halo_file = halo_file
@@ -132,7 +122,6 @@ class HaloMassFcn(ParallelAnalysisInterface):
         not stored in enzo datasets, so must be entered by hand.
         sigma8input=%f primordial_index=%f omega_baryon0=%f
         """ % (self.sigma8input, self.primordial_index, self.omega_baryon0))
-        time.sleep(1)
         
         # Do the calculations.
         self.sigmaM()
@@ -213,7 +202,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
             if i == (self.num_sigma_bins - 3): break
 
-        self.dis = dis  / self.pf['CosmologyComovingBoxSize']**3.0 * self.hubble0**3.0
+        self.dis = dis  / (self.pf.domain_width * self.pf.units["mpccm"]).prod()
 
     def sigmaM(self):
         """
@@ -544,22 +533,22 @@ the user may access them in an external program, via "extern" declarations. */
 """
 
 class TransferFunction(object):
+    """
+    /* This routine takes cosmological parameters and a redshift and sets up
+    all the internal scalar quantities needed to compute the transfer function. */
+    /* INPUT: omega_matter -- Density of CDM, baryons, and massive neutrinos,
+                    in units of the critical density. */
+    /* 	  omega_baryon -- Density of baryons, in units of critical. */
+    /* 	  omega_hdm    -- Density of massive neutrinos, in units of critical */
+    /* 	  degen_hdm    -- (Int) Number of degenerate massive neutrino species */
+    /*        omega_lambda -- Cosmological constant */
+    /* 	  hubble       -- Hubble constant, in units of 100 km/s/Mpc */
+    /*        redshift     -- The redshift at which to evaluate */
+    /* OUTPUT: Returns 0 if all is well, 1 if a warning was issued.  Otherwise,
+        sets many global variables for use in TFmdm_onek_mpc() */
+    """
     def __init__(self, omega_matter, omega_baryon, omega_hdm,
 	    degen_hdm, omega_lambda, hubble, redshift):
-        """
-        /* This routine takes cosmological parameters and a redshift and sets up
-        all the internal scalar quantities needed to compute the transfer function. */
-        /* INPUT: omega_matter -- Density of CDM, baryons, and massive neutrinos,
-                        in units of the critical density. */
-        /* 	  omega_baryon -- Density of baryons, in units of critical. */
-        /* 	  omega_hdm    -- Density of massive neutrinos, in units of critical */
-        /* 	  degen_hdm    -- (Int) Number of degenerate massive neutrino species */
-        /*        omega_lambda -- Cosmological constant */
-        /* 	  hubble       -- Hubble constant, in units of 100 km/s/Mpc */
-        /*        redshift     -- The redshift at which to evaluate */
-        /* OUTPUT: Returns 0 if all is well, 1 if a warning was issued.  Otherwise,
-            sets many global variables for use in TFmdm_onek_mpc() */
-        """
         self.qwarn = 0;
         self.theta_cmb = 2.728/2.7 # Assuming T_cmb = 2.728 K
     

@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import numpy as np
@@ -44,7 +34,8 @@ from field_info_container import \
     NeedsOriginalGrid, \
     NeedsDataField, \
     NeedsProperty, \
-    NeedsParameter
+    NeedsParameter, \
+    NullFunc
 
 from yt.utilities.physical_constants import \
      mh, \
@@ -55,7 +46,7 @@ from yt.utilities.physical_constants import \
      G, \
      rho_crit_now, \
      speed_of_light_cgs, \
-     km_per_cm
+     km_per_cm, keV_per_K
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -66,7 +57,8 @@ from yt.utilities.math_utils import \
     get_cyl_theta_component, \
     get_cyl_r, get_cyl_theta, \
     get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi
+    get_sph_theta, get_sph_phi, \
+    periodic_dist, euclidean_dist
      
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
@@ -215,17 +207,24 @@ def _Pressure(field, data):
            data["Density"] * data["ThermalEnergy"]
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
+def _TempkeV(field, data):
+    return data["Temperature"] * keV_per_K
+add_field("TempkeV", function=_TempkeV, units=r"\rm{keV}",
+          display_name="Temperature")
+
 def _Entropy(field, data):
     if data.has_field_parameter("mu"):
         mw = mh*data.get_field_parameter("mu")
     else :
         mw = mh
+    try:
+        gammam1 = data.pf["Gamma"] - 1.0
+    except:
+        gammam1 = 5./3. - 1.0
     return kboltz * data["Temperature"] / \
-           ((data["Density"]/mw)**(data.pf["Gamma"] - 1.0))
+           ((data["Density"]/mw)**gammam1)
 add_field("Entropy", units=r"\rm{ergs}\ \rm{cm}^{3\gamma-3}",
           function=_Entropy)
-
-
 
 ### spherical coordinates: r (radius)
 def _sph_r(field, data):
@@ -432,7 +431,7 @@ add_field("CellMassCode",
           convert_function=_convertCellMassCode)
 
 def _TotalMass(field,data):
-    return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
+    return (data["Density"]+data["particle_density"]) * data["CellVolume"]
 add_field("TotalMass", function=_TotalMass, units=r"\rm{g}")
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
@@ -445,7 +444,7 @@ add_field("StarMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _Matter_Density(field,data):
-    return (data['Density'] + data['Dark_Matter_Density'])
+    return (data['Density'] + data['particle_density'])
 add_field("Matter_Density",function=_Matter_Density,units=r"\rm{g}/\rm{cm^3}")
 
 def _ComovingDensity(field, data):
@@ -506,11 +505,11 @@ add_field("WeakLensingConvergence", function=_DensityPerturbation,
 def _CellVolume(field, data):
     if data['dx'].size == 1:
         try:
-            return data['dx']*data['dy']*data['dx']*\
+            return data['dx'] * data['dy'] * data['dz'] * \
                 np.ones(data.ActiveDimensions, dtype='float64')
         except AttributeError:
-            return data['dx']*data['dy']*data['dx']
-    return data["dx"]*data["dy"]*data["dz"]
+            return data['dx'] * data['dy'] * data['dz']
+    return data["dx"] * data["dy"] * data["dz"]
 def _ConvertCellVolumeMpc(data):
     return data.convert("mpc")**3.0
 def _ConvertCellVolumeCGS(data):
@@ -783,25 +782,32 @@ add_field("ParticleAngularMomentumZ", function=_ParticleAngularMomentumZ,
          units=r"\rm{g}\/\rm{cm}^2/\rm{s}", particle_type=True,
          validators=[ValidateParameter('center')])
 
+def get_radius(data, field_prefix):
+    center = data.get_field_parameter("center")
+    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
+    radius = np.zeros(data[field_prefix+"x"].shape, dtype='float64')
+    r = radius.copy()
+    if any(data.pf.periodicity):
+        rdw = radius.copy()
+    for i, ax in enumerate('xyz'):
+        np.subtract(data["%s%s" % (field_prefix, ax)], center[i], r)
+        if data.pf.dimensionality < i+1:
+            break
+        if data.pf.periodicity[i] == True:
+            np.abs(r, r)
+            np.subtract(r, DW[i], rdw)
+            np.abs(rdw, rdw)
+            np.minimum(r, rdw, r)
+        np.power(r, 2.0, r)
+        np.add(radius, r, radius)
+    np.sqrt(radius, radius)
+    return radius
 
 def _ParticleRadius(field, data):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data["particle_position_x"].shape, dtype='float64')
-    for i, ax in enumerate('xyz'):
-        r = np.abs(data["particle_position_%s" % ax] - center[i])
-        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
-    np.sqrt(radius, radius)
-    return radius
+    return get_radius(data, "particle_position_")
 def _Radius(field, data):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = np.zeros(data["x"].shape, dtype='float64')
-    for i, ax in enumerate('xyz'):
-        r = np.abs(data[ax] - center[i])
-        radius += np.minimum(r, np.abs(DW[i]-r))**2.0
-    np.sqrt(radius, radius)
-    return radius
+    return get_radius(data, "")
+
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
 add_field("ParticleRadius", function=_ParticleRadius,
@@ -969,23 +975,30 @@ def _JeansMassMsun(field,data):
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
 
-def _convertDensity(data):
-    return data.convert("Density")
+# We add these fields so that the field detector can use them
+for field in ["particle_position_%s" % ax for ax in "xyz"] + \
+             ["ParticleMass"]:
+    # This marker should let everyone know not to use the fields, but NullFunc
+    # should do that, too.
+    add_field(field, function=NullFunc, particle_type = True,
+        units=r"UNDEFINED")
+
 def _pdensity(field, data):
-    blank = np.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return blank
+    blank = np.zeros(data.ActiveDimensions, dtype='float64')
+    if data["particle_position_x"].size == 0: return blank
     CICDeposit_3(data["particle_position_x"].astype(np.float64),
                  data["particle_position_y"].astype(np.float64),
                  data["particle_position_z"].astype(np.float64),
-                 data["particle_mass"].astype(np.float32),
-                 np.int64(data.NumberOfParticles),
+                 data["ParticleMass"],
+                 data["particle_position_x"].size,
                  blank, np.array(data.LeftEdge).astype(np.float64),
                  np.array(data.ActiveDimensions).astype(np.int32),
                  np.float64(data['dx']))
+    np.divide(blank, data["CellVolume"], blank)
     return blank
 add_field("particle_density", function=_pdensity,
-          validators=[ValidateGridType()], convert_function=_convertDensity,
-          display_name=r"$\mathrm{Particle}\/\mathrm{Density}$")
+          validators=[ValidateGridType()],
+          display_name=r"\mathrm{Particle}\/\mathrm{Density}")
 
 def _MagneticEnergy(field,data):
     """This assumes that your front end has provided Bx, By, Bz in
@@ -1021,8 +1034,8 @@ def _MagneticPressure(field,data):
     return data['MagneticEnergy']
 add_field("MagneticPressure",
           function=_MagneticPressure,
-          display_name=r"\rm{Magnetic}\/\rm{Energy}",
-          units="\rm{ergs}\/\rm{cm}^{-3}")
+          display_name=r"\rm{Magnetic}\/\rm{Pressure}",
+          units=r"\rm{ergs}\/\rm{cm}^{-3}")
 
 def _BPoloidal(field,data):
     normal = data.get_field_parameter("normal")
@@ -1061,7 +1074,7 @@ def _BRadial(field,data):
 
     return get_sph_r_component(Bfields, theta, phi, normal)
 
-add_field("BRadial", function=_BPoloidal,
+add_field("BRadial", function=_BRadial,
           units=r"\rm{Gauss}",
           validators=[ValidateParameter("normal")])
 
@@ -1394,7 +1407,7 @@ def _VorticityGrowthTimescale(field, data):
     domegax_dt = data["VorticityX"] / data["VorticityGrowthX"]
     domegay_dt = data["VorticityY"] / data["VorticityGrowthY"]
     domegaz_dt = data["VorticityZ"] / data["VorticityGrowthZ"]
-    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt)
+    return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
 add_field("VorticityGrowthTimescale", function=_VorticityGrowthTimescale,
           validators=[ValidateSpatial(1, 
                       ["x-velocity", "y-velocity", "z-velocity"])],

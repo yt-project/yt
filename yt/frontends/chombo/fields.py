@@ -1,27 +1,17 @@
 """
 Chombo-specific fields
 
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009-2011 J. S. Oishi, Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, \
@@ -163,10 +153,12 @@ _particle_field_list = ["mass",
                         "angmomen_y",
                         "angmomen_z",
                         "mlast",
+                        "r",
                         "mdeut",
                         "n",
                         "mdot",
                         "burnstate",
+                        "luminosity",
                         "id"]
 
 for pf in _particle_field_list:
@@ -174,3 +166,18 @@ for pf in _particle_field_list:
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)
+
+def _ParticleMass(field, data):
+    particles = data["particle_mass"].astype('float64')
+    return particles
+
+def _ParticleMassMsun(field, data):
+    particles = data["particle_mass"].astype('float64')
+    return particles/1.989e33
+
+add_field("ParticleMass",
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
+          particle_type=True)
+add_field("ParticleMassMsun",
+          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
+          particle_type=True)

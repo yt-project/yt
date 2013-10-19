@@ -1,30 +1,21 @@
 """
 Data structures for Streaming, in-memory datasets
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import weakref
 import numpy as np
+import uuid
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -105,7 +96,9 @@ class StreamGrid(AMRGridPatch):
 class StreamHandler(object):
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
-                 fields, io = None, particle_types = {}):
+                 fields, io = None, particle_types = None, 
+                 periodicity = (True, True, True)):
+        if particle_types is None: particle_types = {}
         self.left_edges = left_edges
         self.right_edges = right_edges
         self.dimensions = dimensions
@@ -117,6 +110,7 @@ class StreamHandler(object):
         self.fields = fields
         self.io = io
         self.particle_types = particle_types
+        self.periodicity = periodicity
             
     def get_fields(self):
         return self.fields.all_fields
@@ -299,7 +293,10 @@ class StreamStaticOutput(StaticOutput):
         #self._conversion_override = conversion_override
 
         self.stream_handler = stream_handler
-        StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
+        name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
+        from yt.data_objects.static_output import _cached_pfs
+        _cached_pfs[name] = self
+        StaticOutput.__init__(self, name, self._data_style)
 
         self.units = {}
         self.time_units = {}
@@ -312,6 +309,7 @@ class StreamStaticOutput(StaticOutput):
         self.domain_right_edge = self.stream_handler.domain_right_edge[:]
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality
+        self.periodicity = self.stream_handler.periodicity
         self.domain_dimensions = self.stream_handler.domain_dimensions
         self.current_time = self.stream_handler.simulation_time
         if self.stream_handler.cosmology_simulation:
@@ -330,6 +328,10 @@ class StreamStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False
+
+    @property
+    def _skip_cache(self):
+        return True
 
 class StreamDictFieldHandler(dict):
 
@@ -397,7 +399,7 @@ def assign_particle_data(pf, pdata) :
     pf.h.update_data(grid_pdata)
                                         
 def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
-                      nprocs=1, sim_time=0.0):
+                      nprocs=1, sim_time=0.0, periodicity=(True, True, True)):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -426,6 +428,9 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
         The simulation time in seconds
+    periodicity : tuple of booleans
+        Determines whether the data will be treated as periodic along
+        each axis
 
     Examples
     --------
@@ -491,7 +496,8 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
-        particle_types=particle_types
+        particle_types=particle_types,
+        periodicity=periodicity
     )
 
     handler.name = "UniformGridData"
@@ -671,6 +677,8 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     last_gc = base_pf.h.num_grids
     cur_gc = -1
     pf = base_pf    
+    bbox = np.array( [ (pf.domain_left_edge[i], pf.domain_right_edge[i])
+                       for i in range(3) ])
     while pf.h.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   pf.h.max_level)
@@ -691,7 +699,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
             fg = FlaggingGrid(g, refinement_criteria)
             nsg = fg.find_subgrids()
             for sg in nsg:
-                LE = sg.left_index * g.dds
+                LE = sg.left_index * g.dds + pf.domain_left_edge
                 dims = sg.dimensions * pf.refine_by
                 grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
@@ -700,7 +708,9 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                     if not pf.field_info[field].particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
-        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0)
+        
+        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0,
+                            bbox = bbox)
         cur_gc = pf.h.num_grids
 
     # Now reassign particle data to grids

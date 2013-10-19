@@ -3,27 +3,17 @@ Quantities that can be derived from Enzo data that may also required additional
 arguments.  (Standard arguments -- such as the center of a distribution of
 points -- are excluded here, and left to the EnzoDerivedFields.)
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -151,8 +141,12 @@ def _TotalMass(data):
     particle masses in the object.
     """
     baryon_mass = data["CellMassMsun"].sum()
-    particle_mass = data["ParticleMassMsun"].sum()
-    return [baryon_mass + particle_mass]
+    try:
+        particle_mass = data["ParticleMassMsun"].sum()
+        total_mass = baryon_mass + particle_mass
+    except KeyError:
+        total_mass = baryon_mass
+    return [total_mass]
 def _combTotalMass(data, total_mass):
     return total_mass.sum()
 add_quantity("TotalMass", function=_TotalMass,
@@ -203,6 +197,29 @@ def _combWeightedAverageQuantity(data, field, weight):
     return field.sum()/weight.sum()
 add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
+
+def _WeightedVariance(data, field, weight):
+    """
+    This function returns the variance of a field.
+
+    :param field: The target field
+    :param weight: The field to weight by
+
+    Returns the weighted variance and the weighted mean.
+    """
+    my_weight = data[weight].sum()
+    if my_weight == 0:
+        return 0.0, 0.0, 0.0
+    my_mean = (data[field] * data[weight]).sum() / my_weight
+    my_var2 = (data[weight] * (data[field] - my_mean)**2).sum() / my_weight
+    return my_weight, my_mean, my_var2
+def _combWeightedVariance(data, my_weight, my_mean, my_var2):
+    all_weight = my_weight.sum()
+    all_mean = (my_weight * my_mean).sum() / all_weight
+    return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
+                    all_weight), all_mean]
+add_quantity("WeightedVariance", function=_WeightedVariance,
+             combine_function=_combWeightedVariance, n_ret=3)
 
 def _BulkVelocity(data):
     """
@@ -366,7 +383,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
     # in code.
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
     # Check for periodicity of the clump.
-    two_root = 2. / np.array(data.pf.domain_dimensions)
+    two_root = 2. * np.array(data.pf.domain_width) / np.array(data.pf.domain_dimensions)
     domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
     periodic = np.array([0., 0., 0.])
     for i,dim in enumerate(["x", "y", "z"]):
@@ -409,7 +426,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # Calculate the binding energy using the treecode method.
         # Faster but less accurate.
         # The octree doesn't like uneven root grids, so we will make it cubical.
-        root_dx = 1./np.array(data.pf.domain_dimensions).astype('float64')
+        root_dx = (data.pf.domain_width/np.array(data.pf.domain_dimensions)).astype('float64')
         left = min([np.amin(local_data['x']), np.amin(local_data['y']),
             np.amin(local_data['z'])])
         right = max([np.amax(local_data['x']), np.amax(local_data['y']),
@@ -420,8 +437,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         # edges for making indexes.
         cover_min = cover_min - cover_min % root_dx
         cover_max = cover_max - cover_max % root_dx
-        cover_imin = (cover_min * np.array(data.pf.domain_dimensions)).astype('int64')
-        cover_imax = (cover_max * np.array(data.pf.domain_dimensions) + 1).astype('int64')
+        cover_imin = (cover_min / root_dx).astype('int64')
+        cover_imax = (cover_max / root_dx + 1).astype('int64')
         cover_ActiveDimensions = cover_imax - cover_imin
         # Create the octree with these dimensions.
         # One value (mass) with incremental=True.
@@ -433,7 +450,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False,
         dyes = np.unique(data['dy']) # so these will all have the same
         dzes = np.unique(data['dz']) # order.
         # We only need one dim to figure out levels, we'll use x.
-        dx = 1./data.pf.domain_dimensions[0]
+        dx = data.pf.domain_width[0]/data.pf.domain_dimensions[0]
         levels = (np.log(dx / dxes) / np.log(data.pf.refine_by)).astype('int')
         lsort = levels.argsort()
         levels = levels[lsort]

@@ -1,31 +1,17 @@
 """
 Data structures for GDF.
 
-Author: Samuel W. Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: Matthew Turk <matthewturk@gmail.com>
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Samuel W. Skillman, Matthew Turk, J. S. Oishi.
-  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -74,8 +60,9 @@ class GDFGrid(AMRGridPatch):
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = np.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        if self.pf.data_software != "piernik":
+            if self.pf.dimensionality < 2: self.dds[1] = 1.0
+            if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class GDFHierarchy(AMRHierarchy):
@@ -197,13 +184,16 @@ class GDFStaticOutput(StaticOutput):
         self._handle = h5py.File(self.parameter_filename, "r")
         for field_name in self._handle["/field_types"]:
             current_field = self._handle["/field_types/%s" % field_name]
-            try:
+            if 'field_to_cgs' in current_field.attrs:
                 self.units[field_name] = current_field.attrs['field_to_cgs']
-            except:
+            else:
                 self.units[field_name] = 1.0
-            try:
-                current_fields_unit = current_field.attrs['field_units'][0]
-            except:
+            if 'field_units' in current_field.attrs:
+                if type(current_field.attrs['field_units']) == str:
+                    current_fields_unit = current_field.attrs['field_units']
+                else:
+                    current_fields_unit = just_one(current_field.attrs['field_units'])
+            else:
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(field_name, function=NullFunc, take_log=False,
                    units=current_fields_unit, projected_units="",
@@ -214,6 +204,11 @@ class GDFStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
+        if 'data_software' in self._handle['gridded_data_format'].attrs:
+            self.data_software = \
+                self._handle['gridded_data_format'].attrs['data_software']
+        else:
+            self.data_software = "unknown"
         sp = self._handle["/simulation_parameters"].attrs
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
@@ -229,6 +224,8 @@ class GDFStaticOutput(StaticOutput):
         self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
+        p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
+        self.periodicity = ensure_tuple(p)
         if self.cosmological_simulation:
             self.current_redshift = sp["current_redshift"]
             self.omega_lambda = sp["omega_lambda"]
@@ -247,8 +244,8 @@ class GDFStaticOutput(StaticOutput):
         try:
             fileh = h5py.File(args[0],'r')
             if "gridded_data_format" in fileh:
-                return True
                 fileh.close()
+                return True
             fileh.close()
         except:
             pass

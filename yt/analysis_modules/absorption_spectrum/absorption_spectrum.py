@@ -1,27 +1,17 @@
 """
 AbsorptionSpectrum class and member functions.
 
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: Michigan State University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -36,14 +26,20 @@ from yt.utilities.physical_constants import \
 speed_of_light_kms = speed_of_light_cgs * km_per_cm
 
 class AbsorptionSpectrum(object):
-    def __init__(self, lambda_min, lambda_max, n_lambda):
-        """
-        Create an absorption spectrum object.
-        :param lambda_min (float): lower wavelength bound in angstroms.
-        :param lambda_max (float): upper wavelength bound in angstroms.
-        :param n_lambda (float): number of wavelength bins.
-        """
+    r"""Create an absorption spectrum object.
 
+    Parameters
+    ----------
+
+    lambda_min : float
+       lower wavelength bound in angstroms.
+    lambda_max : float
+       upper wavelength bound in angstroms.
+    n_lambda : float
+       number of wavelength bins.
+    """
+
+    def __init__(self, lambda_min, lambda_max, n_lambda):
         self.n_lambda = n_lambda
         self.tau_field = None
         self.flux_field = None
@@ -56,16 +52,24 @@ class AbsorptionSpectrum(object):
     def add_line(self, label, field_name, wavelength,
                  f_value, gamma, atomic_mass,
                  label_threshold=None):
-        """
-        Add an absorption line to the list of lines included in the spectrum.
-        :param label (string): label for the line.
-        :param field_name (string): field name from ray data for column densities.
-        :param wavelength (float): line rest wavelength in angstroms.
-        :param f_value (float): line f-value.
-        :param gamma (float): line gamme value.
-        :param atomic_mass (float): mass of atom in amu.
-        """
+        r"""Add an absorption line to the list of lines included in the spectrum.
 
+        Parameters
+        ----------
+        
+        label : string
+           label for the line.
+        field_name : string
+           field name from ray data for column densities.
+        wavelength : float
+           line rest wavelength in angstroms.
+        f_value  : float
+           line f-value.
+        gamma : float
+           line gamme value.
+        atomic_mass : float
+           mass of atom in amu.
+        """
         self.line_list.append({'label': label, 'field_name': field_name,
                                'wavelength': wavelength, 'f_value': f_value,
                                'gamma': gamma, 'atomic_mass': atomic_mass,
@@ -75,11 +79,20 @@ class AbsorptionSpectrum(object):
                       normalization, index):
         """
         Add a continuum feature that follows a power-law.
-        :param label (string): label for the feature.
-        :param field_name (string): field name from ray data for column densities.
-        :param wavelength (float): line rest wavelength in angstroms.
-        :param normalization (float): the column density normalization.
-        :param index (float): the power-law index for the wavelength dependence.
+
+        Parameters
+        ----------
+
+        label : string
+           label for the feature.
+        field_name : string
+           field name from ray data for column densities.
+        wavelength : float
+           line rest wavelength in angstroms.
+        normalization : float
+           the column density normalization.
+        index : float
+           the power-law index for the wavelength dependence.
         """
 
         self.continuum_list.append({'label': label, 'field_name': field_name,
@@ -92,14 +105,17 @@ class AbsorptionSpectrum(object):
                       use_peculiar_velocity=True):
         """
         Make spectrum from ray data using the line list.
-        :param input_file (string): path to input ray data.
-        :param output_file (string): path for output file.
-               File formats are chosen based on the filename extension.
-                    - .h5: hdf5.
-                    - .fits: fits.
-                    - anything else: ascii.
-        :param use_peculiar_velocity (bool): if True, include line of sight
-        velocity for shifting lines.
+
+        Parameters
+        ----------
+
+        input_file : string
+           path to input ray data.
+        output_file : string
+           path for output file.  File formats are chosen based on the filename extension.
+           ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
+        use_peculiar_velocity : bool
+           if True, include line of sight velocity for shifting lines.
         """
 
         input_fields = ['dl', 'redshift', 'Temperature']

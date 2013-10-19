@@ -1,27 +1,17 @@
 """
 Parallel data mapping techniques for yt
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import cPickle
 import cStringIO
@@ -198,9 +188,9 @@ def parallel_passthrough(func):
     output; otherwise, the function gets called.  Used as a decorator.
     """
     @wraps(func)
-    def passage(self, data, **kwargs):
-        if not self._distributed: return data
-        return func(self, data, **kwargs)
+    def passage(self, *args, **kwargs):
+        if not self._distributed: return args[0]
+        return func(self, *args, **kwargs)
     return passage
 
 def _get_comm(args):
@@ -257,7 +247,7 @@ def parallel_root_only(func):
             try:
                 rv = func(*args, **kwargs)
                 all_clear = 1
-            except:
+            except Exception as ex:
                 traceback.print_last()
                 all_clear = 0
         else:
@@ -799,7 +789,7 @@ class Communicator(object):
                 if target < size:
                     #print "RECEIVING FROM %02i on %02i" % (target, rank)
                     buf = self.recv_quadtree(target, tgd, args)
-                    qto = QuadTree(tgd, args[2])
+                    qto = QuadTree(tgd, args[2], qt.bounds)
                     qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
                     merge_quadtrees(qt, qto, style = merge_style)
                     del qto
@@ -819,7 +809,7 @@ class Communicator(object):
         self.comm.Bcast([buf[2], MPI.DOUBLE], root=0)
         self.refined = buf[0]
         if rank != 0:
-            qt = QuadTree(tgd, args[2])
+            qt = QuadTree(tgd, args[2], qt.bounds)
             qt.frombuffer(buf[0], buf[1], buf[2], merge_style)
         return qt
 

@@ -1,27 +1,17 @@
 """
 Time series analysis functions.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import inspect, functools, weakref, glob, types
 
@@ -78,28 +68,28 @@ class TimeSeriesParametersContainer(object):
         raise AttributeError(attr)
 
 class TimeSeriesData(object):
+    r"""The TimeSeriesData object is a container of multiple datasets,
+    allowing easy iteration and computation on them.
+
+    TimeSeriesData objects are designed to provide easy ways to access,
+    analyze, parallelize and visualize multiple datasets sequentially.  This is
+    primarily expressed through iteration, but can also be constructed via
+    analysis tasks (see :ref:`time-series-analysis`).
+
+    The best method to construct TimeSeriesData objects is through 
+    :meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.
+
+
+    Examples
+    --------
+
+    >>> ts = TimeSeriesData.from_filenames(
+            "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+    >>> for pf in ts:
+    ...     SlicePlot(pf, "x", "Density").save()
+
+    """
     def __init__(self, outputs, parallel = True ,**kwargs):
-        r"""The TimeSeriesData object is a container of multiple datasets,
-        allowing easy iteration and computation on them.
-
-        TimeSeriesData objects are designed to provide easy ways to access,
-        analyze, parallelize and visualize multiple datasets sequentially.  This is
-        primarily expressed through iteration, but can also be constructed via
-        analysis tasks (see :ref:`time-series-analysis`).
-
-        The best method to construct TimeSeriesData objects is through 
-        :meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.
-
-
-        Examples
-        --------
-
-        >>> ts = TimeSeriesData.from_filenames(
-                "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
-        >>> for pf in ts:
-        ...     SlicePlot(pf, "x", "Density").save()
-
-        """
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
         self._pre_outputs = outputs[:]
@@ -346,10 +336,11 @@ class SimulationTimeSeries(TimeSeriesData):
 
         # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
-        self.print_key_parameters()
-
         # Get all possible datasets.
+        self.all_time_outputs = []
         self._get_all_outputs(find_outputs=find_outputs)
+        
+        self.print_key_parameters()
 
     def __repr__(self):
         return self.parameter_filename
@@ -377,3 +368,5 @@ class SimulationTimeSeries(TimeSeriesData):
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
+        mylog.info("Total datasets: %d." % len(self.all_outputs))
+

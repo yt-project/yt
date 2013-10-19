@@ -1,27 +1,17 @@
 """
 Some simple localhost-only remote pdb hacks
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import cmd, pdb, cStringIO, xmlrpclib, socket, sys
 import traceback
@@ -55,7 +45,7 @@ def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
     task = ytcfg.getint("yt", "__global_parallel_rank")
     size = ytcfg.getint("yt", "__global_parallel_size")
-    print "Starting RPDB server on task %s ; connect with 'yt rpdb %s'" \
+    print "Starting RPDB server on task %s ; connect with 'yt rpdb -t %s'" \
             % (task,task)
     handler = pdb_handler(tb)
     server = PdbXMLRPCServer(("localhost", 8010+task))

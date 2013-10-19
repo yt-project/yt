@@ -2,30 +2,17 @@
 Maestro data-file handling functions - identical to Orion frontend,
 but with all instances of "orion" changed to "maestro".
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Chris Malone <chris.m.malone@gmail.com>
-Affiliation: SUNY Stony Brook
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import os
 import numpy as np
@@ -42,7 +29,7 @@ class IOHandlerNative(BaseIOHandler):
     def modify(self, field):
         return field.swapaxes(0,2)
 
-    def _read_data_set(self,grid,field):
+    def _read_data(self,grid,field):
         """
         reads packed multiFABs output by BoxLib in "NATIVE" format.
 
@@ -120,13 +107,4 @@ class IOHandlerNative(BaseIOHandler):
 
         inFile.close()
         return field
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        """wishful thinking?
-        """
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        #sl = tuple(reversed(sl))
-        return self._read_data_set(grid,field)[sl]
-
 

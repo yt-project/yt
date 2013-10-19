@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import inspect
@@ -226,6 +216,7 @@ class FieldDetector(defaultdict):
             pf.domain_left_edge = np.zeros(3, 'float64')
             pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
+            pf.periodicity = (True, True, True)
         self.pf = pf
 
         class fake_hierarchy(object):
@@ -270,17 +261,19 @@ class FieldDetector(defaultdict):
                 else: self[item] = vv.ravel()
                 return self[item]
         self.requested.append(item)
-        return defaultdict.__missing__(self, item)
+        if item not in self:
+            self[item] = self._read_data(item)
+        return self[item]
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
         FI = getattr(self.pf, "field_info", FieldInfo)
-        if FI.has_key(field_name) and FI[field_name].particle_type:
+        if field_name in FI and FI[field_name].particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
-    def get_field_parameter(self, param):
+    def get_field_parameter(self, param, default = None):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return np.random.random(3) * 1e-2
@@ -292,6 +285,40 @@ class FieldDetector(defaultdict):
     def convert(self, item): return 1
 
 class DerivedField(object):
+    """
+    This is the base class used to describe a cell-by-cell derived field.
+
+    Parameters
+    ----------
+
+    name : str
+       is the name of the field.
+    function : callable
+       A function handle that defines the field.  Should accept
+       arguments (field, data)
+    convert_function : callable
+       A function that converts to CGS, **only if necessary**
+    units : str
+       A mathtext-formatted string that describes the field
+    projected_units : str
+       If we display a projection, what should the units be?
+    take_log : bool
+       Describes whether the field should be logged
+    validators : list
+       A list of :class:`FieldValidator` objects
+    particle_type : bool
+       Is this a particle (1D) field?
+    vector_field : bool
+       Describes the dimensionality of the field.  Currently unused.
+    display_field : bool
+       Governs its appearance in the dropdowns in Reason
+    not_in_all : bool
+       Used for baryon fields from the data that are not in all the grids
+    display_name : str
+       A name used in the plots
+    projection_conversion : unit
+       which unit should we multiply by in a projection?
+    """
     def __init__(self, name, function,
                  convert_function = None,
                  particle_convert_function = None,
@@ -300,26 +327,6 @@ class DerivedField(object):
                  particle_type = False, vector_field=False,
                  display_field = True, not_in_all=False,
                  display_name = None, projection_conversion = "cm"):
-        """
-        This is the base class used to describe a cell-by-cell derived field.
-
-        :param name: is the name of the field.
-        :param function: is a function handle that defines the field
-        :param convert_function: must convert to CGS, if it needs to be done
-        :param units: is a mathtext-formatted string that describes the field
-        :param projected_units: if we display a projection, what should the
-                                units be?
-        :param take_log: describes whether the field should be logged
-        :param validators: is a list of :class:`FieldValidator` objects
-        :param particle_type: is this field based on particles?
-        :param vector_field: describes the dimensionality of the field
-        :param display_field: governs its appearance in the dropdowns in reason
-        :param not_in_all: is used for baryon fields from the data that are not
-                           in all the grids
-        :param display_name: a name used in the plots
-        :param projection_conversion: which unit should we multiply by in a
-                                      projection?
-        """
         self.name = name
         self._function = function
         if validators:

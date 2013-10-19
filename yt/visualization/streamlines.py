@@ -1,27 +1,17 @@
 """
 Import the components of the volume rendering extension
 
-Author: Samuel Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Samuel Skillman.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from yt.funcs import *
@@ -110,7 +100,8 @@ class Streamlines(ParallelAnalysisInterface):
         self.direction = np.sign(direction)
         if volume is None:
             volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
-                            log_fields=[False,False,False], merge_trees=True)
+                            log_fields=[False,False,False])
+            volume.join_parallel_trees()
         self.volume = volume
         if dx is None:
             dx = self.pf.h.get_smallest_dx()
@@ -138,8 +129,8 @@ class Streamlines(ParallelAnalysisInterface):
                 thismag = self.magnitudes[i,:]
             step = self.steps
             while (step > 1):
-                this_brick = self.volume.locate_brick(stream[-step,:])
-                step = self._integrate_through_brick(this_brick, stream, step, mag=thismag)
+                this_node = self.volume.locate_node(stream[-step,:])
+                step = self._integrate_through_brick(this_node, stream, step, mag=thismag)
             pbar.update(i)
         pbar.finish()
         
@@ -155,7 +146,7 @@ class Streamlines(ParallelAnalysisInterface):
                                  periodic=False, mag=None):
         while (step > 1):
             self.volume.get_brick_data(node)
-            brick = node.brick
+            brick = node.data
             stream[-step+1] = stream[-step]
             if mag is None:
                 brick.integrate_streamline(stream[-step+1], self.direction*self.dx, None)
@@ -168,8 +159,8 @@ class Streamlines(ParallelAnalysisInterface):
                    np.any(stream[-step+1,:] >= self.pf.domain_right_edge):
                 return 0
 
-            if np.any(stream[-step+1,:] < node.l_corner) | \
-                   np.any(stream[-step+1,:] >= node.r_corner):
+            if np.any(stream[-step+1,:] < node.get_left_edge()) | \
+                   np.any(stream[-step+1,:] >= node.get_right_edge()):
                 return step-1
             step -= 1
         return step

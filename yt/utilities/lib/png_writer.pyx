@@ -1,27 +1,17 @@
 """
 A light interface to libpng
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -93,6 +83,7 @@ cdef extern from "png.h":
         int filter_method)
 
     cdef int PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE
+    cdef int PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_ADAM7
     cdef int PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE
 
     void png_set_pHYs(png_structp png_ptr, png_infop info_ptr,
@@ -240,7 +231,8 @@ cdef public void my_png_write_data(png_structp png_ptr, png_bytep data,
 cdef public void my_png_flush(png_structp png_ptr):
     return
 
-def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100):
+def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100,
+                        int gray = 0):
 
     # This is something of a translation of the matplotlib _png module
     cdef png_byte *pix_buffer = <png_byte *> buffer.data
@@ -263,16 +255,27 @@ def write_png_to_string(np.ndarray[np.uint8_t, ndim=3] buffer, int dpi=100):
     
     # Um we are ignoring setjmp sorry guys
 
+    cdef int im_type, interlace_type
+    interlace_type = PNG_INTERLACE_NONE
+    if gray == 0:
+        im_type = PNG_COLOR_TYPE_RGB_ALPHA
+        sig_bit.gray = 0
+        sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 8
+    elif gray == 1:
+        im_type = PNG_COLOR_TYPE_GRAY
+        sig_bit.gray = 8
+        sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 0
+    else:
+        raise RuntimeError
+
     png_set_IHDR(png_ptr, info_ptr, width, height, 8,
-                 PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
+                 im_type, interlace_type,
                  PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE)
 
     cdef size_t dots_per_meter = <size_t> (dpi / (2.54 / 100.0))
     png_set_pHYs(png_ptr, info_ptr, dots_per_meter, dots_per_meter,
                  PNG_RESOLUTION_METER)
 
-    sig_bit.gray = 0
-    sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 8
 
     png_set_sBIT(png_ptr, info_ptr, &sig_bit)
 

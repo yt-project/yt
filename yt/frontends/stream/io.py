@@ -1,27 +1,17 @@
 """
 Enzo-specific IO functions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from collections import defaultdict
 
@@ -40,15 +30,13 @@ class IOHandlerStream(BaseIOHandler):
         self.fields = stream_handler.fields
         BaseIOHandler.__init__(self)
 
-    def _read_data_set(self, grid, field):
+    def _read_data(self, grid, field):
         # This is where we implement processor-locking
         #if grid.id not in self.grids_in_memory:
         #    mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
         #    raise KeyError
-        tr = self.fields[grid.id][field]
+        tr = self.fields[grid.id][field].copy()
         # If it's particles, we copy.
-        if len(tr.shape) == 1: return tr.copy()
-        # New in-place unit conversion breaks if we don't copy first
         return tr
 
     def modify(self, field):
@@ -56,14 +44,6 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_field_names(self, grid):
         return self.fields[grid.id].keys()
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        sl = tuple(sl)
-        tr = self.fields[grid.id][field][sl]
-        # In-place unit conversion requires we return a copy
-        return tr.copy()
 
     @property
     def _read_exception(self):

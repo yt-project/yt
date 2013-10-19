@@ -1,29 +1,17 @@
 """
 Profile classes, to deal with generating and obtaining profiles
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Samuel Skillman <samskillman@gmail.com>
-Affiliation: CASA, University of Colorado at Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -202,23 +190,23 @@ class BinnedProfile(ParallelAnalysisInterface):
 
 # @todo: Fix accumulation with overriding
 class BinnedProfile1D(BinnedProfile):
+    """
+    A 'Profile' produces either a weighted (or unweighted) average or a
+    straight sum of a field in a bin defined by another field.  In the case
+    of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)
+
+    We accept a *data_source*, which will be binned into *n_bins*
+    by the field *bin_field* between the *lower_bound* and the
+    *upper_bound*.  These bins may or may not be equally divided
+    in *log_space*, and the *lazy_reader* flag controls whether we
+    use a memory conservative approach. If *end_collect* is True,
+    take all values outside the given bounds and store them in the
+    0 and *n_bins*-1 values.
+    """
     def __init__(self, data_source, n_bins, bin_field,
                  lower_bound, upper_bound,
                  log_space = True, lazy_reader=False,
                  end_collect=False):
-        """
-        A 'Profile' produces either a weighted (or unweighted) average or a
-        straight sum of a field in a bin defined by another field.  In the case
-        of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)
-
-        We accept a *data_source*, which will be binned into *n_bins*
-        by the field *bin_field* between the *lower_bound* and the
-        *upper_bound*.  These bins may or may not be equally divided
-        in *log_space*, and the *lazy_reader* flag controls whether we
-        use a memory conservative approach. If *end_collect* is True,
-        take all values outside the given bounds and store them in the
-        0 and *n_bins*-1 values.
-        """
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.bin_field = bin_field
         self._x_log = log_space
@@ -371,27 +359,27 @@ class BinnedProfile1D(BinnedProfile):
         return [self.bin_field]
 
 class BinnedProfile2D(BinnedProfile):
+    """
+    A 'Profile' produces either a weighted (or unweighted) average
+    or a straight sum of a field in a bin defined by two other
+    fields.  In the case of a weighted average, we have: p_i =
+    sum( w_i * v_i ) / sum(w_i)
+
+    We accept a *data_source*, which will be binned into
+    *x_n_bins* by the field *x_bin_field* between the
+    *x_lower_bound* and the *x_upper_bound* and then again binned
+    into *y_n_bins* by the field *y_bin_field* between the
+    *y_lower_bound* and the *y_upper_bound*.  These bins may or
+    may not be equally divided in log-space as specified by
+    *x_log* and *y_log*, and the *lazy_reader* flag controls
+    whether we use a memory conservative approach. If
+    *end_collect* is True, take all values outside the given
+    bounds and store them in the 0 and *n_bins*-1 values.
+    """
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
                  lazy_reader=False, end_collect=False):
-        """
-        A 'Profile' produces either a weighted (or unweighted) average
-        or a straight sum of a field in a bin defined by two other
-        fields.  In the case of a weighted average, we have: p_i =
-        sum( w_i * v_i ) / sum(w_i)
-
-        We accept a *data_source*, which will be binned into
-        *x_n_bins* by the field *x_bin_field* between the
-        *x_lower_bound* and the *x_upper_bound* and then again binned
-        into *y_n_bins* by the field *y_bin_field* between the
-        *y_lower_bound* and the *y_upper_bound*.  These bins may or
-        may not be equally divided in log-space as specified by
-        *x_log* and *y_log*, and the *lazy_reader* flag controls
-        whether we use a memory conservative approach. If
-        *end_collect* is True, take all values outside the given
-        bounds and store them in the 0 and *n_bins*-1 values.
-        """
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.x_bin_field = x_bin_field
         self.y_bin_field = y_bin_field

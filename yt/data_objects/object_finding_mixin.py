@@ -1,27 +1,17 @@
 """
 AMR hierarchy container class
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -117,27 +107,32 @@ class ObjectFindingMixin(object) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
         """
-        num_points = len(x)
+        x = ensure_numpy_array(x)
+        y = ensure_numpy_array(y)
+        z = ensure_numpy_array(z)
+        if not len(x) == len(y) == len(z):
+            raise AssertionError("Arrays of indices must be of the same size")
+
         grid_tree = self.get_grid_tree()
-        pts = MatchPointsToGrids(grid_tree,num_points,x,y,z)
-        ind = pts.find_points_in_tree() 
+        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+        ind = pts.find_points_in_tree()
         return self.grids[ind], ind
-    
+
     def find_field_value_at_point(self, fields, coord):
         r"""Find the value of fields at a point.
-        
+
         Returns the values [field1, field2,...] of the fields at the given
         (x,y,z) point. Returns a list of field values in the same order
         as the input *fields*.
-        
+
         Parameters
         ----------
         fields : string or list of strings
             The field(s) that will be returned.
-        
+
         coord : list or array of floats
             The location for which field values will be returned.
-        
+
         Examples
         --------
         >>> pf.h.find_field_value_at_point(['Density', 'Temperature'],
@@ -193,8 +188,10 @@ class ObjectFindingMixin(object) :
         """
         Gets back all the grids between a left edge and right edge
         """
-        grid_i = np.where((np.all(self.grid_right_edge > left_edge, axis=1)
-                         & np.all(self.grid_left_edge < right_edge, axis=1)) == True)
+        eps = np.finfo(np.float64).eps
+        grid_i = np.where((np.all((self.grid_right_edge - left_edge) > eps, axis=1)
+                         & np.all((right_edge - self.grid_left_edge) > eps, axis=1)) == True)
+
         return self.grids[grid_i], grid_i
 
     def get_periodic_box_grids(self, left_edge, right_edge):
