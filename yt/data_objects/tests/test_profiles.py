@@ -88,59 +88,68 @@ def test_profiles():
         # individually.
         for lf in [True, False]: 
             p1d = Profile1D(dd, 
-                "Density",     nb, rmi*e1, rma*e2, lf)
-            p1d.add_fields(["Ones", "Temperature"], weight=None)
+                "Density",     nb, rmi*e1, rma*e2, lf,
+                weight_field = None)
+            p1d.add_fields(["Ones", "Temperature"])
             yield assert_equal, p1d["Ones"].sum(), nv
             yield assert_rel_equal, tt, p1d["Temperature"].sum(), 7
 
             p2d = Profile2D(dd, 
                 "Density",     nb, rmi*e1, rma*e2, lf,
-                "Temperature", nb, tmi*e1, tma*e2, lf)
-            p2d.add_fields(["Ones", "Temperature"], weight=None)
+                "Temperature", nb, tmi*e1, tma*e2, lf,
+                weight_field = None)
+            p2d.add_fields(["Ones", "Temperature"])
             yield assert_equal, p2d["Ones"].sum(), nv
             yield assert_rel_equal, tt, p2d["Temperature"].sum(), 7
 
             p3d = Profile3D(dd, 
                 "Density",     nb, rmi*e1, rma*e2, lf,
                 "Temperature", nb, tmi*e1, tma*e2, lf,
-                "Dinosaurs",   nb, dmi*e1, dma*e2, lf)
-            p3d.add_fields(["Ones", "Temperature"], weight=None)
+                "Dinosaurs",   nb, dmi*e1, dma*e2, lf,
+                weight_field = None)
+            p3d.add_fields(["Ones", "Temperature"])
             yield assert_equal, p3d["Ones"].sum(), nv
             yield assert_rel_equal, tt, p3d["Temperature"].sum(), 7
 
-        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False)
-        p1d.add_fields("Ones", weight=None)
+        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False,
+                        weight_field = None)
+        p1d.add_fields("Ones")
         av = nv / nb
         yield assert_equal, p1d["Ones"], np.ones(nb)*av
 
         # We re-bin ones with a weight now
-        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False)
-        p1d.add_fields(["Ones"], weight="Temperature")
+        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False,
+                        weight_field = "Temperature")
+        p1d.add_fields(["Ones"])
         yield assert_equal, p1d["Ones"], np.ones(nb)
 
         p2d = Profile2D(dd, "x", nb, 0.0, 1.0, False,
-                            "y", nb, 0.0, 1.0, False)
-        p2d.add_fields("Ones", weight=None)
+                            "y", nb, 0.0, 1.0, False,
+                            weight_field = None)
+        p2d.add_fields("Ones")
         av = nv / nb**2
         yield assert_equal, p2d["Ones"], np.ones((nb, nb))*av
 
         # We re-bin ones with a weight now
         p2d = Profile2D(dd, "x", nb, 0.0, 1.0, False,
-                            "y", nb, 0.0, 1.0, False)
-        p2d.add_fields(["Ones"], weight="Temperature")
+                            "y", nb, 0.0, 1.0, False,
+                            weight_field = "Temperature")
+        p2d.add_fields(["Ones"])
         yield assert_equal, p2d["Ones"], np.ones((nb, nb))
 
         p3d = Profile3D(dd, "x", nb, 0.0, 1.0, False,
                             "y", nb, 0.0, 1.0, False,
-                            "z", nb, 0.0, 1.0, False)
-        p3d.add_fields("Ones", weight=None)
+                            "z", nb, 0.0, 1.0, False,
+                            weight_field = None)
+        p3d.add_fields("Ones")
         av = nv / nb**3
         yield assert_equal, p3d["Ones"], np.ones((nb, nb, nb))*av
 
         # We re-bin ones with a weight now
         p3d = Profile3D(dd, "x", nb, 0.0, 1.0, False,
                             "y", nb, 0.0, 1.0, False,
-                            "z", nb, 0.0, 1.0, False)
-        p3d.add_fields(["Ones"], weight="Temperature")
+                            "z", nb, 0.0, 1.0, False,
+                            weight_field = "Temperature")
+        p3d.add_fields(["Ones"])
         yield assert_equal, p3d["Ones"], np.ones((nb,nb,nb))
 

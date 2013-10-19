@@ -796,21 +796,6 @@ class BinnedProfile3D(BinnedProfile):
         self._data_source.hierarchy.save_data(values, "/Profiles", name,
                                               set_attr, force=force)
 
-class ProfileFieldInfo(object):
-    def __init__(self, weight, accumulation, fractional):
-        """
-        Weight is either the name of a field or None.  Accumulation is None,
-        'x' or 'y'.  Fractional is True or False.  We make no effort to decide
-        if the combination is reasonable.
-        """
-        self.weight = weight
-        self.accumulation = accumulation
-        self.fractional = fractional
-
-    def __str__(self):
-        return "Field Spec: weight :%s, accumulation: %s, fractional: %s" % (
-                    self.weight, self.accumulation, self.fractional)
-
 class ProfileFieldAccumulator(object):
     def __init__(self, n_fields, size):
         shape = size + (n_fields,)
@@ -821,42 +806,31 @@ class ProfileFieldAccumulator(object):
         self.weight_values = np.zeros(size, dtype="float64")
 
 class ProfileND(ParallelAnalysisInterface):
-    def __init__(self, data_source):
+    def __init__(self, data_source, weight_field = None):
         self.data_source = data_source
         self.pf = data_source.pf
         self.field_data = YTFieldData()
-        self.field_spec = {}
+        self.weight_field = weight_field
 
-    def add_fields(self, fields, weight = None, accumulation = False,
-                   fractional = False):
-        # We can share an instance of ProfileFieldInfo between all the fields
-        # here-defined
+    def add_fields(self, fields):
         fields = ensure_list(fields)
-        pfi = ProfileFieldInfo(weight, accumulation, fractional)
-        if weight is not None and weight in fields:
-            raise RuntimeError
-        for field in fields:
-            if field in self.field_spec:
-                raise YTDuplicateFieldInProfile(field, pfi,
-                        self.field_spec[field])
-            self.field_spec[field] = pfi
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
         for g in parallel_objects(self.data_source._grids):
-            self._bin_grid(g, fields, pfi, temp_storage)
-        self._finalize_storage(fields, weight, temp_storage)
+            self._bin_grid(g, fields, temp_storage)
+        self._finalize_storage(fields, temp_storage)
 
-    def _finalize_storage(self, fields, weight, temp_storage):
+    def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
         # FIXME: Add parallelism and combining std stuff
-        if weight is not None:
+        if self.weight_field is not None:
             temp_storage.values /= temp_storage.weight_values[...,None]
         blank = ~temp_storage.used
         for i, field in enumerate(fields):
             self.field_data[field] = temp_storage.values[...,i]
             self.field_data[field][blank] = 0.0
         
-    def _bin_grid(self, grid, fields, field_info, storage):
+    def _bin_grid(self, grid, fields, storage):
         raise NotImplementedError
 
     def _filter(self, bin_fields, cut_points):
@@ -869,7 +843,7 @@ class ProfileND(ParallelAnalysisInterface):
             filter &= (data < ma)
         return filter, [data[filter] for data in bin_fields]
         
-    def _get_data(self, grid, fields, field_info):
+    def _get_data(self, grid, fields):
         # Now we ask our source which values to include
         pointI = self.data_source._get_point_indices(grid)
         bin_fields = [grid[bf] for bf in self.bin_fields]
@@ -880,8 +854,8 @@ class ProfileND(ParallelAnalysisInterface):
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
             arr[:,i] = grid[field][filter]
-        if field_info.weight is not None:
-            weight_data = grid[field_info.weight]
+        if self.weight_field is not None:
+            weight_data = grid[self.weight_field]
         else:
             weight_data = np.ones(grid.ActiveDimensions, dtype="float64")
         weight_data = weight_data[filter]
@@ -892,8 +866,7 @@ class ProfileND(ParallelAnalysisInterface):
         return self.field_data[key]
 
     def __iter__(self):
-        for f in self.field_spec:
-            yield (f, self.field_spec[f], self.field_data[f])
+        return sorted(self.field_data.items())
 
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:
@@ -902,8 +875,9 @@ class ProfileND(ParallelAnalysisInterface):
             return np.linspace(mi, ma, n+1)
 
 class Profile1D(ProfileND):
-    def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log):
-        super(Profile1D, self).__init__(data_source)
+    def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log,
+                 weight_field = None):
+        super(Profile1D, self).__init__(data_source, weight_field)
         self.x_field = x_field
         self.x_log = x_log
         self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
@@ -913,8 +887,8 @@ class Profile1D(ProfileND):
         self.bounds = ((self.x_bins[0], self.x_bins[-1]),)
         self.x = self.x_bins
 
-    def _bin_grid(self, grid, fields, field_info, storage):
-        fdata, wdata, (bf_x,) = self._get_data(grid, fields, field_info)
+    def _bin_grid(self, grid, fields, storage):
+        fdata, wdata, (bf_x,) = self._get_data(grid, fields)
         bin_ind = np.digitize(bf_x, self.x_bins) - 1
         new_bin_profile1d(bin_ind, wdata, fdata,
                       storage.weight_values, storage.values,
@@ -925,8 +899,9 @@ class Profile1D(ProfileND):
 class Profile2D(ProfileND):
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max, x_log,
-                 y_field, y_n, y_min, y_max, y_log):
-        super(Profile2D, self).__init__(data_source)
+                 y_field, y_n, y_min, y_max, y_log,
+                 weight_field = None):
+        super(Profile2D, self).__init__(data_source, weight_field)
         self.x_field = x_field
         self.x_log = x_log
         self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
@@ -942,8 +917,8 @@ class Profile2D(ProfileND):
         self.x = self.x_bins
         self.y = self.y_bins
 
-    def _bin_grid(self, grid, fields, field_info, storage):
-        rv = self._get_data(grid, fields, field_info)
+    def _bin_grid(self, grid, fields, storage):
+        rv = self._get_data(grid, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y) = rv
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
@@ -958,8 +933,9 @@ class Profile3D(ProfileND):
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max, x_log,
                  y_field, y_n, y_min, y_max, y_log,
-                 z_field, z_n, z_min, z_max, z_log):
-        super(Profile3D, self).__init__(data_source)
+                 z_field, z_n, z_min, z_max, z_log,
+                 weight_field = None):
+        super(Profile3D, self).__init__(data_source, weight_field)
         # X
         self.x_field = x_field
         self.x_log = x_log
@@ -986,8 +962,8 @@ class Profile3D(ProfileND):
         self.y = self.y_bins
         self.z = self.z_bins
 
-    def _bin_grid(self, grid, fields, field_info, storage):
-        rv = self._get_data(grid, fields, field_info)
+    def _bin_grid(self, grid, fields, storage):
+        rv = self._get_data(grid, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y, bf_z) = rv
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
@@ -999,24 +975,25 @@ class Profile3D(ProfileND):
                       storage.used)
         # We've binned it!
 
-def create_profile(data_source, fields, n, field_spec = None):
-    if len(fields) == 1:
+def create_profile(data_source, bin_fields, n, weight_field = None,
+                   fields = None):
+    if len(bin_fields) == 1:
         cls = Profile1D
-    elif len(fields) == 2:
+    elif len(bin_fields) == 2:
         cls = Profile2D
-    elif len(fields) == 3:
+    elif len(bin_fields) == 3:
         cls = Profile3D
     else:
         raise NotImplementedError
     if not iterable(n):
-        n = [n] * len(fields)
-    ex = data_source.quantities["Extrema"](fields)
-    logs = [data_source.pf.field_info[f].take_log for f in fields]
+        n = [n] * len(bin_fields)
+    ex = data_source.quantities["Extrema"](bin_fields)
+    logs = [data_source.pf.field_info[f].take_log for f in bin_fields]
     args = [data_source]
-    for f, n, (mi, ma), l in zip(fields, n, ex, logs):
+    for f, n, (mi, ma), l in zip(bin_fields, n, ex, logs):
         args += [f, n, mi, ma, l] 
-    obj = cls(*args)
-    if field_spec is not None:
-        obj.add_fields(*field_spec)
+    obj = cls(*args, weight_field = weight_field)
+    if fields is not None:
+        obj.add_fields(fields)
     return obj
 
