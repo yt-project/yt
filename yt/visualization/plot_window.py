@@ -2129,11 +2129,19 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     # by now the normal should be properly set to get either a On/Off Axis plot
     if iterable(normal) and not isinstance(normal,str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
-        if 'origin' in kwargs: del kwargs['origin']
+        if 'origin' in kwargs: 
+            msg = "Ignoring 'origin' keyword as it is ill-defined for " \
+                  "an OffAxisSlicePlot object."
+            mylog.warn(msg)
+            del kwargs['origin']
         
         return OffAxisSlicePlot(pf, normal, fields, *args, **kwargs)
     else:
         # north_vector not used in OnAxisSlicePlots; remove it if in kwargs
-        if 'north_vector' in kwargs: del kwargs['north_vector']
+        if 'north_vector' in kwargs: 
+            msg = "Ignoring 'north_vector' keyword as it is ill-defined for " \
+                  "an OnAxisSlicePlot object."
+            mylog.warn(msg)
+            del kwargs['north_vector']
         
         return OnAxisSlicePlot(pf, normal, fields, *args, **kwargs)
