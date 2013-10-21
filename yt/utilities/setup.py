@@ -73,11 +73,12 @@ def get_location_from_cfg(cfg):
 def check_prefix(inc_dir, lib_dir):
     if platform.system() == 'Linux':
         distname, version, did = platform.linux_distribution()
-        if distname in ('Ubuntu', 'Debian'):
+        if distname.lower() in ('ubuntu', 'debian'):
             print("Since you are using multiarch distro it's hard to detect")
             print("whether library matches the header file. We will assume")
             print("it does. If you encounter any build failures please use")
             print("proper cfg files to provide path to the dependencies")
+            print("")
             return (inc_dir, lib_dir)
     prefix = os.path.commonprefix([inc_dir, lib_dir]).rstrip('/\\')
     if prefix is not '' and prefix == os.path.dirname(inc_dir):
