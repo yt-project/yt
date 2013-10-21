@@ -178,7 +178,7 @@ class ProfilePlot(object):
         if profiles is None:
             self.profiles = [create_profile(data_source, [x_field], n_bins,
                                             fields=ensure_list(y_fields),
-                                            weight_field=None)]
+                                            weight_field=weight_field)]
         else:
             self.profiles = ensure_list(profiles)
 
