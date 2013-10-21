@@ -471,7 +471,7 @@ class YTArray(np.ndarray):
 
     def __truediv__(self, right_object):
         if isinstance(right_object, YTArray) and \
-                self.units.same_dimensions_as(right_object.units)::
+                self.units.same_dimensions_as(right_object.units):
             ro = right_object.in_units(self.units)
         else:
             ro = right_object
@@ -492,7 +492,7 @@ class YTArray(np.ndarray):
 
     def __floordiv__(self, right_object):
         if isinstance(right_object, YTArray) and \
-                self.units.same_dimensions_as(right_object.units)::
+                self.units.same_dimensions_as(right_object.units):
             ro = right_object.in_units(self.units)
         else:
             ro = right_object
