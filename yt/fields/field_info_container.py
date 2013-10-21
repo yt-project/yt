@@ -42,12 +42,27 @@ class FieldInfoContainer(dict): # Resistance has utility
 
     """
     fallback = None
+    known_other_fields = ()
+    known_particle_fields = ()
 
     def __init__(self, pf, field_list, slice_info = None):
         self.pf = pf
         # Now we start setting things up.
         self.field_list = field_list
         self.slice_info = slice_info
+        self.setup_fluid_aliases()
+
+    def setup_fluid_aliases(self):
+        known_other_fields = dict(self.known_other_fields)
+        for field in sorted(self.field_list):
+            if not isinstance(field, tuple):
+                raise RuntimeError
+            args = known_other_fields.get(
+                field[1], ("", []))
+            units, aliases = args
+            self.add_output_field(field, units = units)
+            for alias in aliases:
+                self.alias(("gas", alias), field)
 
     def add_field(self, name, function=None, **kwargs):
         """
