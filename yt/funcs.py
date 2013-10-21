@@ -629,3 +629,30 @@ def ensure_dir_exists(path):
 def camelcase_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+def set_intersection(some_list):
+    if len(some_list) == 0: return set([])
+    # This accepts a list of iterables, which we get the intersection of.
+    s = set(some_list[0])
+    for l in some_list[1:]:
+        s.intersection_update(l)
+    return s
+
+@contextlib.contextmanager
+def memory_checker(interval = 15):
+    import threading
+    class MemoryChecker(threading.Thread):
+        def __init__(self, event, interval):
+            self.event = event
+            self.interval = interval
+            threading.Thread.__init__(self)
+
+        def run(self):
+            while not self.event.wait(self.interval):
+                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+
+    e = threading.Event()
+    mem_check = MemoryChecker(e, interval)
+    mem_check.start()
+    yield
+    e.set()

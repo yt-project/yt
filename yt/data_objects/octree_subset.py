@@ -113,7 +113,7 @@ class OctreeSubset(YTSelectionContainer):
     _domain_ind = None
 
     def select_blocks(self, selector):
-        mask = self.oct_handler.mask(selector)
+        mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
         mask = self._reshape_vals(mask)
         slicer = OctreeSubsetBlockSlice(self)
         for i, sl in slicer:
@@ -271,12 +271,14 @@ class OctreeSubsetBlockSlice(object):
 
     @property
     def LeftEdge(self):
-        LE = self._fcoords[0,0,0,self.ind,:] - self._fwidth[0,0,0,self.ind,:]*0.5
+        LE = (self._fcoords[0,0,0,self.ind,:]
+            - self._fwidth[0,0,0,self.ind,:])*0.5
         return LE
 
     @property
     def RightEdge(self):
-        RE = self._fcoords[1,1,1,self.ind,:] + self._fwidth[1,1,1,self.ind,:]*0.5
+        RE = (self._fcoords[-1,-1,-1,self.ind,:]
+            + self._fwidth[-1,-1,-1,self.ind,:])*0.5
         return RE
 
     @property

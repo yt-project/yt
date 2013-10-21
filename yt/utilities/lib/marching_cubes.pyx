@@ -535,6 +535,7 @@ def march_cubes_grid(np.float64_t isovalue,
     vertices = np.zeros((triangles.count*3,3), dtype='float64')
     if do_sample == 0:
         FillAndWipeTriangles(vertices, triangles.first)
+        return vertices
     cdef int nskip
     if do_sample == 1:
         nskip = 1

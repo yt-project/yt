@@ -233,11 +233,16 @@ cdef class SelectorObject:
                             data.pos[1] = (data.pos[1] >> 1)
                             data.pos[2] = (data.pos[2] >> 1)
                             data.level -= 1
-                        elif this_level == 1:
+                        elif this_level == 1 and data.oref > 0:
                             data.global_index += increment
                             increment = 0
                             self.visit_oct_cells(data, root, ch, spos, sdds,
                                                  func, i, j, k)
+                        elif this_level == 1 and increment == 1:
+                            data.global_index += increment
+                            increment = 0
+                            data.ind[0] = data.ind[1] = data.ind[2] = 0
+                            func(root, data, 1)
                         spos[2] += sdds[2]
                     spos[1] += sdds[1]
                 spos[0] += sdds[0]

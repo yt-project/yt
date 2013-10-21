@@ -1498,7 +1498,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         if axes_unit is None and units != ('1', '1'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
-        cutting = pf.h.cutting(normal, center,
+        cutting = pf.h.cutting(normal, center, north_vector = north_vector,
                               field_parameters = field_parameters)
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options

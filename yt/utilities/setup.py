@@ -147,10 +147,6 @@ def check_for_dependencies(env, cfg, header, library):
     sys.exit(1)
 
 
-def check_for_hdf5():
-    return check_for_dependencies("HDF5_DIR", "hdf5.cfg", "hdf5.h", "hdf5")
-
-
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('utilities', parent_package, top_path)
@@ -166,14 +162,6 @@ def configuration(parent_package='', top_path=None):
                          "yt/utilities/data_point_utilities.c",
                          libraries=["m"])
     config.add_subpackage("tests")
-    hdf5_inc, hdf5_lib = check_for_hdf5()
-    include_dirs = [hdf5_inc]
-    library_dirs = [hdf5_lib]
-    config.add_extension("hdf5_light_reader",
-                         "yt/utilities/hdf5_light_reader.c",
-                         define_macros=[("H5_USE_16_API", True)],
-                         libraries=["m", "hdf5"],
-                         library_dirs=library_dirs, include_dirs=include_dirs)
     config.make_config_py()  # installs __config__.py
     # config.make_svn_version_py()
     return config

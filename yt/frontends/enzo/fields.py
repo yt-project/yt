@@ -25,21 +25,17 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.data_objects.universal_fields
-from yt.data_objects.particle_fields import \
+import yt.fields.universal_fields
+from yt.fields.particle_fields import \
     particle_deposition_functions, \
-    particle_vector_functions
+    particle_vector_functions, \
+    standard_particle_fields
 from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs
 from yt.funcs import *
 
 import yt.utilities.lib as amr_utils
-
-def _check_ftype(field):
-    if isinstance(field.name, tuple):
-        return field.name[0]
-    return "all"
 
 EnzoFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo, "EFI")
 add_field = EnzoFieldInfo.add_field
@@ -82,26 +78,21 @@ def _ConvertNumberDensity(data):
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
-             validators=ValidateDataField("%s_Density" % species),
              display_name="%s\/Fraction" % species)
     add_field("Comoving_%s_Density" % species,
              function=_SpeciesComovingDensity,
-             validators=ValidateDataField("%s_Density" % species),
              display_name="Comoving\/%s\/Density" % species)
     add_field("%s_Mass" % species, units=r"\rm{g}", 
               function=_SpeciesMass, 
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
     add_field("%s_MassMsun" % species, units=r"M_{\odot}", 
               function=_SpeciesMass, 
               convert_function=_convertCellMassMsun,
-              validators=ValidateDataField("%s_Density" % species),
               display_name="%s\/Mass" % species)
     if _speciesMass.has_key(species):
         add_field("%s_NumberDensity" % species,
                   function=_SpeciesNumberDensity,
-                  convert_function=_ConvertNumberDensity,
-                  validators=ValidateDataField("%s_Density" % species))
+                  convert_function=_ConvertNumberDensity)
 
 def _Metallicity(field, data):
     return data["Metal_Fraction"]
@@ -110,7 +101,6 @@ def _ConvertMetallicity(data):
 add_field("Metallicity", units=r"Z_{\rm{\odot}}",
           function=_Metallicity,
           convert_function=_ConvertMetallicity,
-          validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
 
 def _Metallicity3(field, data):
@@ -118,12 +108,10 @@ def _Metallicity3(field, data):
 add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           function=_Metallicity3,
           convert_function=_ConvertMetallicity,
-          validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
 
 add_enzo_field("Cooling_Time", units=r"\rm{s}",
                function=NullFunc,
-               validators=ValidateDataField("Cooling_Time"),
                projection_conversion="1")
 
 def _ThermalEnergy(field, data):
@@ -269,8 +257,7 @@ _default_fields += [ "%s_Density" % sp for sp in _speciesList ]
 for field in _default_fields:
     dn = field.replace("_","\/")
     add_enzo_field(field, function=NullFunc, take_log=True,
-              display_name = dn,
-              validators=[ValidateDataField(field)], units=r"Unknown")
+              display_name = dn, units=r"Unknown")
 KnownEnzoFields["x-velocity"].projection_conversion='1'
 KnownEnzoFields["y-velocity"].projection_conversion='1'
 KnownEnzoFields["z-velocity"].projection_conversion='1'
@@ -307,7 +294,6 @@ def _RadiationAccelerationMagnitude(field, data):
              data["RadAccel3"]**2 )**(1.0/2.0)
 add_field("RadiationAcceleration", 
           function=_RadiationAccelerationMagnitude,
-          validators=ValidateDataField(["RadAccel1", "RadAccel2", "RadAccel3"]),
           display_name="Radiation\/Acceleration", units=r"\rm{cm} \rm{s}^{-2}")
 
 # Now we override
@@ -322,19 +308,16 @@ for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ] + \
 
 add_enzo_field("Dark_Matter_Density", function=NullFunc,
           convert_function=_convertDensity,
-          validators=[ValidateDataField("Dark_Matter_Density"),
-                      ValidateSpatial(0)],
+          validators=[ValidateSpatial(0)],
           display_name = "Dark\/Matter\/Density",
           not_in_all = True)
 
 def _Dark_Matter_Mass(field, data):
     return data['Dark_Matter_Density'] * data["CellVolume"]
 add_field("Dark_Matter_Mass", function=_Dark_Matter_Mass,
-          validators=ValidateDataField("Dark_Matter_Density"),
           display_name="Dark\/Matter\/Mass", units=r"\rm{g}")
 add_field("Dark_Matter_MassMsun", function=_Dark_Matter_Mass,
           convert_function=_convertCellMassMsun,
-          validators=ValidateDataField("Dark_Matter_Density"),
           display_name="Dark\/Matter\/Mass", units=r"M_{\odot}")
 
 KnownEnzoFields["Temperature"]._units = r"\rm{K}"
@@ -480,47 +463,8 @@ add_field("Bmag", function=_Bmag,display_name=r"$|B|$",units=r"\rm{Gauss}")
 
 # Particle functions
 
-for pf in ["type", "mass"] + \
-          ["position_%s" % ax for ax in 'xyz']:
-    add_enzo_field(('all',"particle_%s" % pf), NullFunc, particle_type=True)
-
-def _convRetainInt(data):
-    return 1
-add_enzo_field(("all", "particle_index"), function=NullFunc,
-          particle_type=True, convert_function=_convRetainInt)
-
-def _get_vel_convert(ax):
-    def _convert_p_vel(data):
-        return data.convert("%s-velocity" % ax)
-    return _convert_p_vel
-for ax in 'xyz':
-    pf = "particle_velocity_%s" % ax
-    cfunc = _get_vel_convert(ax)
-    add_enzo_field(("all", pf), function=NullFunc, convert_function=cfunc,
-              particle_type=True)
-
-for pf in ["creation_time", "dynamical_time", "metallicity_fraction"] \
-        + ["particle_position_%s" % ax for ax in 'xyz'] \
-        + ["particle_velocity_%s" % ax for ax in 'xyz']:
-    add_enzo_field(pf, function=NullFunc,
-              validators = [ValidateDataField(pf)],
-              particle_type=True)
-
-def _convertParticleMass(data):
-    return data.convert("Density")*(data.convert("cm")**3.0)
-def _convertParticleMassMsun(data):
-    return data.convert("Density")*((data.convert("cm")**3.0)/mass_sun_cgs)
 # We have now multiplied by grid.dds.prod() inside the IO function.
 # So here we multiply just by the conversion to density.
-add_field(('all', "particle_mass"), function=NullFunc, 
-          particle_type=True, convert_function = _convertParticleMass)
-
-add_field("ParticleMass",
-          function=TranslationFunc("particle_mass"),
-          particle_type=True, convert_function=_convertParticleMass)
-add_field("ParticleMassMsun",
-          function=TranslationFunc("particle_mass"),
-          particle_type=True, convert_function=_convertParticleMassMsun)
 
 def _ParticleAge(field, data):
     current_time = data.pf.current_time
@@ -528,7 +472,6 @@ def _ParticleAge(field, data):
 def _convertParticleAge(data):
     return data.convert("years")
 add_field("ParticleAge", function=_ParticleAge,
-          validators=[ValidateDataField("creation_time")],
           particle_type=True, convert_function=_convertParticleAge)
 
 
@@ -601,13 +544,35 @@ def _yvel(field, data):
 add_enzo_1d_field("z-velocity", function=_zvel)
 add_enzo_1d_field("y-velocity", function=_yvel)
 
-for ax in 'xyz':
-    add_field(("CenOstriker","particle_position_%s" % ax),
-               function=TranslationFunc(("CenOstriker","position_%s" % ax)),
-               particle_type = True)
+def _get_vel_convert(ax):
+    def _convert_p_vel(data):
+        return data.convert("%s-velocity" % ax)
+    return _convert_p_vel
 
-particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
-                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
-                          EnzoFieldInfo)
-particle_deposition_functions("all", "Coordinates", "ParticleMass",
-                               EnzoFieldInfo)
+def _convertParticleMass(data):
+    return data.pf.conversion_factors["Density"] * \
+           data.pf.units["cm"]**3.0
+
+def _setup_particle_fields(registry, ptype):
+    particle_vector_functions(ptype,
+            ["particle_position_%s" % ax for ax in 'xyz'],
+            ["particle_velocity_%s" % ax for ax in 'xyz'],
+            registry)
+    particle_deposition_functions(ptype, "Coordinates",
+        "particle_mass", registry)
+
+    for ax in 'xyz':
+        fn = "particle_velocity_%s" % ax
+        cfunc = _get_vel_convert(ax)
+        registry.add_field((ptype, fn), function=NullFunc,
+                  convert_function=_get_vel_convert(ax),
+                  particle_type=True)
+    for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
+              ["particle_type", "particle_index"] + \
+              ["particle_position_%s" % ax for ax in 'xyz']:
+        registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
+
+    registry.add_field((ptype, "particle_mass"), function=NullFunc, 
+              particle_type=True, convert_function = _convertParticleMass)
+
+    standard_particle_fields(registry, ptype)

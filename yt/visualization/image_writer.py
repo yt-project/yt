@@ -235,57 +235,6 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot = np.clip(to_plot, 0, 255)
     return to_plot
 
-def annotate_image(image, text, xpos, ypos, font_name = "Vera",
-                   font_size = 24, dpi = 100):
-    r"""Add text on to an existing uint8 bitmap array.
-
-    This function accepts an image array and then directly calls freetype to
-    add text on top of that array.  No array is returned.
-
-    Parameters
-    ----------
-    image : array_like
-        This is a (scaled) array of UINT8 values, shape (N,N,[3,4]) to
-        overplot text on.
-    text : string
-        Text to place
-    xpos : int
-        The starting point, in pixels, of the text along the x axis.
-    ypos : int
-        The starting point, in pixels, of the text along the y axis.  Note that
-        0 will be the top of the image, not the bottom.
-    font_name : string (optional)
-        The font to load.
-    font_size : int (optional)
-        Font size in points of the overlaid text.
-    dpi : int (optional)
-        Dots per inch for calculating the font size in pixels.
-        
-    Returns
-    -------
-    Nothing
-
-    Examples
-    --------
-
-    >>> sl = pf.h.slice(0, 0.5, "Density")
-    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> bitmap = write_image(frb1["Density"], "saved.png")
-    >>> annotate_image(bitmap, "Hello!", 0, 100)
-    >>> write_bitmap(bitmap, "saved.png")
-    """
-    if len(image.shape) != 3 or image.dtype != np.uint8:
-        raise RuntimeError("This routine requires a UINT8 bitmapped image.")
-    font_path = os.path.join(imp.find_module("matplotlib")[1],
-                             "mpl-data/fonts/ttf/",
-                             "%s.ttf" % font_name)
-    if not os.path.isfile(font_path):
-        mylog.error("Could not locate %s", font_path)
-        raise IOError(font_path)
-    # The hard-coded 0 is the font face index.
-    au.simple_writing(font_path, 0, dpi, font_size, text, image, xpos, ypos)
-
 def map_to_colors(buff, cmap_name):
     if cmap_name not in cmd.color_map_luts:
         print "Your color map was not found in the extracted colormap file."
@@ -333,7 +282,8 @@ def splat_points(image, points_x, points_y,
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
                      title=None, limits=None, take_log=True, figsize=(8,6),
-                     dpi=100, cmap_name='algae'):
+                     dpi=100, cmap_name='algae', extent=None, xlabel=None,
+                     ylabel=None):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
@@ -392,16 +342,22 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     # Create the figure and paint the data on
     fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
-    fig.tight_layout()
-
-    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm, cmap=cmap_name)
+    
+    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm,
+                    extent=extent, cmap=cmap_name)
     
     if title:
         ax.set_title(title)
 
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+
     # Suppress the x and y pixel counts
-    ax.set_xticks(())
-    ax.set_yticks(())
+    if extent is None:
+        ax.set_xticks(())
+        ax.set_yticks(())
 
     # Add a color bar and label if requested
     if colorbar:
@@ -409,6 +365,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
 
+    fig.tight_layout()
+        
     suffix = get_image_suffix(filename)
 
     if suffix == '':
@@ -429,70 +387,89 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     return filename
 
 
-def write_fits(image, filename_prefix, clobber=True, coords=None, gzip_file=False) :
+def write_fits(image, filename_prefix, clobber=True, coords=None,
+               other_keys=None):
     """
     This will export a FITS image of a floating point array. The output filename is
     *filename_prefix*. If clobber is set to True, this will overwrite any existing
     FITS file.
     
     This requires the *pyfits* module, which is a standalone module
-    provided by STSci to interface with FITS-format files.
+    provided by STSci to interface with FITS-format files, and is also part of
+    AstroPy.
     """
-    r"""Write out a floating point array directly to a FITS file, optionally
-    adding coordinates. 
+    r"""Write out floating point arrays directly to a FITS file, optionally
+    adding coordinates and header keywords.
         
     Parameters
     ----------
-    image : array_like
-        This is an (unscaled) array of floating point values, shape (N,N,) to save
-        in a FITS file.
+    image : array_like, or dict of array_like objects
+        This is either an (unscaled) array of floating point values, or a dict of
+        such arrays, shape (N,N,) to save in a FITS file. 
     filename_prefix : string
         This prefix will be prepended to every FITS file name.
     clobber : boolean
         If the file exists, this governs whether we will overwrite.
     coords : dictionary, optional
         A set of header keys and values to write to the FITS header to set up
-        a coordinate system. 
-    gzip_file : boolean, optional
-        gzip the file after writing, default False
+        a coordinate system, which is assumed to be linear unless specified otherwise
+        in *other_keys*
+        "units": the length units
+        "xctr","yctr": the center of the image
+        "dx","dy": the pixel width in each direction                                                
+    other_keys : dictionary, optional
+        A set of header keys and values to write into the FITS header.    
     """
+
+    try:
+        import pyfits
+    except ImportError:
+        try:
+            import astropy.io.fits as pyfits
+        except:
+            raise ImportError("You don't have pyFITS or AstroPy installed.")
     
-    import pyfits
     from os import system
     
-    if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
-    
-    hdu = pyfits.PrimaryHDU(image)
+    try:
+        image.keys()
+        image_dict = image
+    except:
+        image_dict = dict(yt_data=image)
 
-    if (coords is not None) :
+    hdulist = [pyfits.PrimaryHDU()]
 
-        hdu.header.update('WCSNAMEP', "PHYSICAL")
-        hdu.header.update('CTYPE1P', "LINEAR")
-        hdu.header.update('CTYPE2P', "LINEAR")
-        hdu.header.update('CRPIX1P', 0.5)
-        hdu.header.update('CRPIX2P', 0.5)
-        hdu.header.update('CRVAL1P', coords["xmin"])
-        hdu.header.update('CRVAL2P', coords["ymin"])
-        hdu.header.update('CDELT1P', coords["dx"])
-        hdu.header.update('CDELT2P', coords["dy"])
+    for key in image_dict.keys():
+
+        mylog.info("Writing image block \"%s\"" % (key))
+        hdu = pyfits.ImageHDU(image_dict[key])
+        hdu.update_ext_name(key)
         
-        hdu.header.update('CTYPE1', "LINEAR")
-        hdu.header.update('CTYPE2', "LINEAR")
-        hdu.header.update('CUNIT1', coords["units"])
-        hdu.header.update('CUNIT2', coords["units"])
-        hdu.header.update('CRPIX1', 0.5)
-        hdu.header.update('CRPIX2', 0.5)
-        hdu.header.update('CRVAL1', coords["xmin"])
-        hdu.header.update('CRVAL2', coords["ymin"])
-        hdu.header.update('CDELT1', coords["dx"])
-        hdu.header.update('CDELT2', coords["dy"])
+        if coords is not None:
 
-    hdu.writeto("%s.fits" % (filename_prefix), clobber=clobber)
+            nx, ny = image_dict[key].shape
 
-    if (gzip_file) :
-        clob = ""
-        if (clobber) : clob="-f"
-        system("gzip "+clob+" %s.fits" % (filename_prefix))
+            hdu.header.update('CUNIT1', coords["units"])
+            hdu.header.update('CUNIT2', coords["units"])
+            hdu.header.update('CRPIX1', 0.5*(nx+1))
+            hdu.header.update('CRPIX2', 0.5*(ny+1))
+            hdu.header.update('CRVAL1', coords["xctr"])
+            hdu.header.update('CRVAL2', coords["yctr"])
+            hdu.header.update('CDELT1', coords["dx"])
+            hdu.header.update('CDELT2', coords["dy"])
+            # These are the defaults, but will get overwritten if
+            # the caller has specified them
+            hdu.header.update('CTYPE1', "LINEAR")
+            hdu.header.update('CTYPE2', "LINEAR")
+                                    
+        if other_keys is not None:
+            for k,v in other_keys.items():
+                hdu.header.update(k,v)
+
+        hdulist.append(hdu)
+
+    hdulist = pyfits.HDUList(hdulist)
+    hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)                    
 
 def display_in_notebook(image, max_val=None):
     """

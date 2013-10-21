@@ -264,7 +264,7 @@ class FieldDetector(defaultdict):
             if not isinstance(item, tuple):
                 field = ("unknown", item)
                 finfo = self.pf._get_field_info(*field)
-                mylog.debug("Guessing field %s is %s", item, finfo.name)
+                #mylog.debug("Guessing field %s is %s", item, finfo.name)
             else:
                 field = item
             finfo = self.pf._get_field_info(*field)
@@ -301,7 +301,8 @@ class FieldDetector(defaultdict):
                 return self[item]
         elif finfo is not None and finfo.particle_type:
             if item == "Coordinates" or item[1] == "Coordinates" or \
-               item == "Velocities" or item[1] == "Velocities":
+               item == "Velocities" or item[1] == "Velocities" or \
+               item == "Velocity" or item[1] == "Velocity":
                 # A vector
                 self[item] = np.ones((self.NumberOfParticles, 3))
             else:
@@ -329,6 +330,8 @@ class FieldDetector(defaultdict):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return np.random.random(3) * 1e-2
+        elif param in ['axis']:
+            return 0
         else:
             return 0.0
     _num_ghost_zones = 0
