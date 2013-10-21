@@ -424,7 +424,8 @@ class YTArray(np.ndarray):
         The unit objects handle being multiplied.
 
         """
-        if isinstance(right_object, YTArray):
+        if isinstance(right_object, YTArray) and \
+                self.units.same_dimensions_as(right_object.units):
             ro = right_object.in_units(self.units)
         else:
             ro = right_object
@@ -432,7 +433,8 @@ class YTArray(np.ndarray):
 
     def __rmul__(self, left_object):
         """ See __mul__. """
-        if isinstance(left_object, YTArray):
+        if isinstance(left_object, YTArray) and \
+                self.units.same_dimensions_as(left_object.units):
             lo = left_object.in_units(self.units)
         else:
             lo = left_object
@@ -447,7 +449,8 @@ class YTArray(np.ndarray):
         Divide this YTArray by the object on the right of the `/` operator.
 
         """
-        if isinstance(right_object, YTArray):
+        if isinstance(right_object, YTArray) and \
+                self.units.same_dimensions_as(right_object.units):
             ro = right_object.in_units(self.units)
         else:
             ro = right_object
@@ -455,7 +458,8 @@ class YTArray(np.ndarray):
 
     def __rdiv__(self, left_object):
         """ See __div__. """
-        if isinstance(left_object, YTArray):
+        if isinstance(left_object, YTArray) and \
+                self.units.same_dimensions_as(left_object.units):
             lo = left_object.in_units(self.units)
         else:
             lo = left_object
@@ -466,7 +470,8 @@ class YTArray(np.ndarray):
         return np.divide(self, other, out=self)
 
     def __truediv__(self, right_object):
-        if isinstance(right_object, YTArray):
+        if isinstance(right_object, YTArray) and \
+                self.units.same_dimensions_as(right_object.units)::
             ro = right_object.in_units(self.units)
         else:
             ro = right_object
@@ -474,7 +479,8 @@ class YTArray(np.ndarray):
 
     def __rtruediv__(self, left_object):
         """ See __div__. """
-        if isinstance(left_object, YTArray):
+        if isinstance(left_object, YTArray) and \
+                self.units.same_dimensions_as(left_object.units):
             lo = left_object.in_units(self.units)
         else:
             lo = left_object
@@ -485,7 +491,8 @@ class YTArray(np.ndarray):
         return np.true_divide(self, other, out=self)
 
     def __floordiv__(self, right_object):
-        if isinstance(right_object, YTArray):
+        if isinstance(right_object, YTArray) and \
+                self.units.same_dimensions_as(right_object.units)::
             ro = right_object.in_units(self.units)
         else:
             ro = right_object
@@ -493,7 +500,8 @@ class YTArray(np.ndarray):
 
     def __rfloordiv__(self, left_object):
         """ See __div__. """
-        if isinstance(left_object, YTArray):
+        if isinstance(left_object, YTArray) and \
+                self.units.same_dimensions_as(left_object.units):
             lo = left_object.in_units(self.units)
         else:
             lo = left_object
