@@ -82,7 +82,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = "2.5-dev"
+__version__ = "2.5.5"
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     import nose, os, sys
