@@ -535,7 +535,9 @@ class PlotWindow(object):
         new_center : two or three element sequence of floats
             The coordinates of the new center of the image.
             If the unit keyword is not specified, the
-            coordinates are assumed to be in code units
+            coordinates are assumed to be in code units.
+            new_center must be specified relative to the simulation
+            coordinate system.
 
         unit : string
             The name of the unit new_center is given in.
@@ -544,6 +546,9 @@ class PlotWindow(object):
         if new_center is None:
             self.center = None
         elif iterable(new_center):
+            assert all(isinstance(el, Number) for el in new_center) \
+                and len(new_center) in (2,3), \
+                "new_center must be a list or tuple of floats"
             if len(new_center) == 3:
                 try:
                     axis_index = self.data_source.axis
