@@ -532,7 +532,7 @@ class PlotWindow(object):
 
         parameters
         ----------
-        new_center : two element sequence of floats
+        new_center : two or three element sequence of floats
             The coordinates of the new center of the image.
             If the unit keyword is not specified, the
             coordinates are assumed to be in code units
@@ -543,9 +543,21 @@ class PlotWindow(object):
         """
         if new_center is None:
             self.center = None
-        else:
+        elif iterable(new_center):
+            if len(new_center) == 3:
+                try:
+                    axis_index = self.data_source.axis
+                    new_center = [new_center[x_dict[axis_index]],
+                                  new_center[y_dict[axis_index]]]
+                except AttributeError:
+                    #FIXME convert to off-axis coordinate system.
+                    raise RuntimeError("Must specify center in window "
+                                       "coordinates for off-axis plots.")
             new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
+        else:
+            raise RuntimeError("set_center accepts a two or three-element "
+                               "list or tuple of floats.")
         self.set_window(self.bounds)
         return self
 
