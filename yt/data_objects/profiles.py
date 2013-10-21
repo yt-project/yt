@@ -888,7 +888,9 @@ class Profile1D(ProfileND):
         self.x = self.x_bins
 
     def _bin_grid(self, grid, fields, storage):
-        fdata, wdata, (bf_x,) = self._get_data(grid, fields)
+        gd = self._get_data(grid, fields)
+        if gd is None: return
+        fdata, wdata, (bf_x,) = gd
         bin_ind = np.digitize(bf_x, self.x_bins) - 1
         new_bin_profile1d(bin_ind, wdata, fdata,
                       storage.weight_values, storage.values,
