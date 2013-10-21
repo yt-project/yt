@@ -36,7 +36,7 @@ def get_default_dirs():
     _archs = ['lib64', 'lib']
     if platform.system() == 'Linux':
         distname, version, did = platform.linux_distribution()
-        if distname in ('Ubuntu', 'Debian'):
+        if distname.lower() in ('ubuntu', 'debian'):
             _archs.extend(
                 ['lib/x86_64-linux-gnu',
                  'lib/i686-linux-gnu',
