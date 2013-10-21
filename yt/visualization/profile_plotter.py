@@ -32,15 +32,10 @@ from yt.data_objects.profiles import \
     BinnedProfile2D
 from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.logger import ytLogger as mylog
-from .plot_window import \
-    invalidate_plot, \
-    invalidate_data, \
-    apply_callback, \
-    CallbackWrapper, \
-    FieldTransform, \
-    get_image_suffix
 import _mpl_imports as mpl
-from yt.funcs import *
+from yt.funcs import \
+     ensure_list, \
+     get_image_suffix
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
@@ -86,7 +81,87 @@ class AxesContainer(dict):
         return self[key]
 
 class ProfilePlot(object):
-    scale = None
+    r"""
+    Create a 1d profile plot from a data source or from a list 
+    of profile objects.
+
+    Given a data object (all_data, region, sphere, etc.), an x field, 
+    and a y field (or fields), this will create a one-dimensional profile 
+    of the average (or total) value of the y field in bins of the x field.
+
+    This can be used to create profiles from given fields or to plot 
+    multiple profiles created from 
+    `yt.data_objects.profiles.create_profile`.
+    
+    Parameters
+    ----------
+    data_source : AMR4DData Object
+        The data object to be profiled, such as all_data, region, or 
+        sphere.
+    x_field : str
+        The binning field for the profile.
+    y_fields : str or list
+        The field or fields to be profiled.
+    weight_field : str
+        The weight field for calculating weighted averages.  If None, 
+        the profile values are the sum of the field values within the bin.
+        Otherwise, the values are a weighted average.
+        Default : "CellMass".
+    n_bins : int
+        The number of bins in the profile.
+        Default: 64.
+    accumulation : bool
+        If True, the profile values for a bin N are the cumulative sum of 
+        all the values from bin 0 to N.
+        Default: False.
+    label : str or list of strings
+        If a string, the label to be put on the line plotted.  If a list, 
+        this should be a list of labels for each profile to be overplotted.
+        Default: None.
+    plot_spec : dict or list of dicts
+        A dictionary or list of dictionaries containing plot keyword 
+        arguments.  For example, dict(color="red", linestyle=":").
+        Default: None.
+    profiles : list of profiles
+        If not None, a list of profile objects created with 
+        `yt.data_objects.profiles.create_profile`.
+        Default: None.
+
+    Examples
+    --------
+
+    This creates profiles of a single dataset.
+
+    >>> pf = load("DD0046/DD0046")
+    >>> ad = pf.h.all_data()
+    >>> plot = ProfilePlot(ad, "Density", ["Temperature", "x-velocity"], 
+                           weight_field="CellMass",
+                           plot_spec=dict(color='red', linestyle="--"))
+    >>> plot.save()
+
+    This creates profiles from a time series object.
+    
+    >>> es = simulation("AMRCosmology.enzo", "Enzo")
+    >>> es.get_time_series()
+
+    >>> profiles = []
+    >>> labels = []
+    >>> plot_specs = []
+    >>> for pf in es[-4:]:
+    ...     ad = pf.h.all_data()
+    ...     profiles.append(create_profile(ad, ["Density"],
+    ...                                    fields=["Temperature",
+    ...                                            "x-velocity"]))
+    ...     labels.append(pf.current_redshift)
+    ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
+    >>>
+    >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
+    ...                                  plot_specs=plot_specs)
+    >>> plot.save()
+
+    Use plot_line_property to change line properties of one or all profiles.
+    
+    """
     plot_spec = None
     x_log = None
     y_log = None
@@ -95,18 +170,24 @@ class ProfilePlot(object):
 
     _plot_valid = False
 
-    def __init__(self, data_source, x_field, y_fields, weight_field=None,
-                 n_bins=64, label=None, profiles=None, plot_spec=None):
+    def __init__(self, data_source, x_field, y_fields, 
+                 weight_field="CellMass", n_bins=64, accumulation=False,
+                 label=None, plot_spec=None, profiles=None):
         self.y_log = {}
         self.y_title = {}
-
         if profiles is None:
             self.profiles = [create_profile(data_source, [x_field], n_bins,
                                             fields=ensure_list(y_fields),
                                             weight_field=None)]
         else:
-            self.profiles = profiles
+            self.profiles = ensure_list(profiles)
 
+        if accumulation:
+            for profile in self.profiles:
+                for field in profile.field_data:
+                    profile.field_data[field] = \
+                      profile.field_data[field].cumsum()
+        
         self.label = label
         if not isinstance(self.label, list):
             self.label = [self.label] * len(self.profiles)
@@ -119,17 +200,37 @@ class ProfilePlot(object):
         
         self._setup_plots()
         
-    def save(self, name = "%(uid)s_profile.png"):
+    def save(self, name=None):
+        r"""
+        Saves a 1d profile plot.
+
+        Parameters
+        ----------
+        name : str
+            The output file keyword.
+        
+        """
         if not self._plot_valid: self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
             figiter = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
+        if name is None:
+            if len(self.profiles) == 1:
+                prefix = self.profiles[0].pf
+            else:
+                prefix = "Multi-data"
+            name = "%s.png" % prefix
+        suffix = get_image_suffix(name)
+        prefix = name[:name.rfind(suffix)]
+        if not suffix:
+            suffix = ".png"
         canvas_cls = get_canvas(name)
         for uid, fig in iters:
             canvas = canvas_cls(fig)
-            fn = name % {'uid':uid}
+            fn = "%s_1d-Profile_%s_%s%s" % \
+              (prefix, self.profiles[0].x_field, uid, suffix)
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
 
@@ -155,6 +256,45 @@ class ProfilePlot(object):
 
     @classmethod
     def from_profiles(cls, profiles, labels=None, plot_specs=None):
+        r"""
+        Instantiate a ProfilePlot object from a list of profiles 
+        created with `yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        profiles : list of profiles
+            If not None, a list of profile objects created with 
+            `yt.data_objects.profiles.create_profile`.
+        labels : list of strings
+            A list of labels for each profile to be overplotted.
+            Default: None.
+        plot_specs : list of dicts
+            A list of dictionaries containing plot keyword 
+            arguments.  For example, [dict(color="red", linestyle=":")].
+            Default: None.
+
+        Examples
+        --------
+
+        >>> es = simulation("AMRCosmology.enzo", "Enzo")
+        >>> es.get_time_series()
+
+        >>> profiles = []
+        >>> labels = []
+        >>> plot_specs = []
+        >>> for pf in es[-4:]:
+        ...     ad = pf.h.all_data()
+        ...     profiles.append(create_profile(ad, ["Density"],
+        ...                                    fields=["Temperature",
+        ...                                            "x-velocity"]))
+        ...     labels.append(pf.current_redshift)
+        ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
+        >>>
+        >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
+        ...                                  plot_specs=plot_specs)
+        >>> plot.save()
+        
+        """
         if labels is not None and len(profiles) != len(labels):
             raise RuntimeError("Profiles list and labels list must be the same size.")
         if plot_specs is not None and len(plot_specs) != len(profiles):
@@ -165,6 +305,30 @@ class ProfilePlot(object):
 
     @invalidate_plot
     def set_line_property(self, property, value, index=None):
+        r"""
+        Set properties for one or all lines to be plotted.
+
+        Parameters
+        ----------
+        property : str
+            The line property to be set.
+        value : str, int, float
+            The value to set for the line property.
+        index : int
+            The index of the profile in the list of profiles to be 
+            changed.  If None, change all plotted lines.
+            Default : None.
+
+        Examples
+        --------
+
+        Change all the lines in a plot
+        plot.set_line_property("linestyle", "-")
+
+        Change a single line.
+        plot.set_line_property("linewidth", 4, index=0)
+        
+        """
         if index is None:
             specs = self.plot_spec
         else:

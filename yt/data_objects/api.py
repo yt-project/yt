@@ -34,7 +34,8 @@ from profiles import \
     BinnedProfile, \
     BinnedProfile1D, \
     BinnedProfile2D, \
-    BinnedProfile3D
+    BinnedProfile3D, \
+    create_profile
 
 from time_series import \
     TimeSeriesData, \

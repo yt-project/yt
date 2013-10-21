@@ -975,8 +975,45 @@ class Profile3D(ProfileND):
                       storage.used)
         # We've binned it!
 
-def create_profile(data_source, bin_fields, n = None, weight_field = None,
-                   fields = None):
+def create_profile(data_source, bin_fields, n = None, 
+                   weight_field = "CellMass", fields = None):
+    r"""
+    Create a 1, 2, or 3D profile object.
+
+    The dimensionality of the profile object is chosen by the number of 
+    fields given in the bin_fields argument.
+
+    Parameters
+    ----------
+    data_source : AMR3DData Object
+        The data object to be profiled.
+    bin_fields : list of strings
+        List of the binning fields for profiling.
+    n : int or list of ints
+        The number of bins in each dimension.  If None, 64 bins for 
+        each bin are used for each bin field.
+        Default: None
+    weight_field : str
+        The weight field for computing weighted average for the profile 
+        values.  If None, the profile values are sums of the data in 
+        each bin.
+    fields : list of strings
+        The fields to be profiled.
+
+    Examples
+    --------
+
+    Create a 1d profile.  Access bin field from profile.x and field 
+    data from profile.field_data.
+
+    >>> pf = load("DD0046/DD0046")
+    >>> ad = pf.h.all_data()
+    >>> profile = create_profile(ad, ["Density"],
+    ...                          fields=["Temperature", "x-velocity"]))
+    >>> print profile.x
+    >>> print profile.field_data["Temperature"]
+    
+    """
     if len(bin_fields) == 1:
         cls = Profile1D
     elif len(bin_fields) == 2:
