@@ -532,37 +532,35 @@ class PlotWindow(object):
 
         parameters
         ----------
-        new_center : two or three element sequence of floats
-            The coordinates of the new center of the image.
-            If the unit keyword is not specified, the
-            coordinates are assumed to be in code units.
-            new_center must be specified relative to the simulation
-            coordinate system.
+        new_center : two or element sequence of floats
+            The coordinates of the new center of the image in the
+            coordinate system defined by the plot axes. If the unit
+            keyword is not specified, the coordinates are assumed to
+            be in code units.
 
         unit : string
             The name of the unit new_center is given in.
 
         """
+        error = RuntimeError(
+            "\n"
+            "new_center must be a two-element list or tuple of floats \n"
+            "corresponding to a coordinate in the plot relative to \n"
+            "the plot coordinate system.\n"
+        )
         if new_center is None:
             self.center = None
         elif iterable(new_center):
-            assert all(isinstance(el, Number) for el in new_center) \
-                and len(new_center) in (2,3), \
-                "new_center must be a list or tuple of floats"
-            if len(new_center) == 3:
-                try:
-                    axis_index = self.data_source.axis
-                    new_center = [new_center[x_dict[axis_index]],
-                                  new_center[y_dict[axis_index]]]
-                except AttributeError:
-                    #FIXME convert to off-axis coordinate system.
-                    raise RuntimeError("Must specify center in window "
-                                       "coordinates for off-axis plots.")
+            try:
+                assert all(isinstance(el, Number) for el in new_center)
+            except AssertionError:
+                raise error
+            if len(new_center) != 2:
+                raise error
             new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
         else:
-            raise RuntimeError("set_center accepts a two or three-element "
-                               "list or tuple of floats.")
+            raise error
         self.set_window(self.bounds)
         return self
 
