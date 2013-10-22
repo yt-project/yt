@@ -14,7 +14,7 @@ Useful functions.  If non-original, see function for citation.
 #-----------------------------------------------------------------------------
 
 import __builtin__
-import time, types, signal, inspect, traceback, sys, pdb, os
+import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
@@ -625,6 +625,10 @@ def ensure_dir_exists(path):
         return
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
+
+def camelcase_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 def set_intersection(some_list):
     if len(some_list) == 0: return set([])
