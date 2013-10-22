@@ -17,23 +17,17 @@ from yt.funcs import *
 import h5py
 try:
     import astropy.io.fits as pyfits
-except:
-    mylog.warning("You don't have AstroPy installed. The APEC table model won't be available.")
-try:
     import xspec
-except ImportError:
-    mylog.warning("You don't have PyXSpec installed. Some models won't be available.")
-try:
     from scipy.integrate import cumtrapz
-    from scipy import stats
+    from scipy import stats        
 except ImportError:
-    mylog.warning("You don't have SciPy installed. The APEC table model won't be avabilable.")
+    pass
     
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 
 hc = 1.0e8*hcgs*clight/erg_per_keV
 
-class PhotonModel(object):
+class SpectralModel(object):
 
     def __init__(self, emin, emax, nchan):
         self.emin = emin
@@ -49,7 +43,7 @@ class PhotonModel(object):
     def get_spectrum(self):
         pass
                                                         
-class XSpecThermalModel(PhotonModel):
+class XSpecThermalModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from PyXspec.
     
@@ -103,7 +97,7 @@ class XSpecThermalModel(PhotonModel):
             metal_spec = self.norm*np.array(self.model.values(0)) - cosmic_spec
         return cosmic_spec, metal_spec
         
-class XSpecAbsorbModel(PhotonModel):
+class XSpecAbsorbModel(SpectralModel):
     r"""
     Initialize an absorption model from PyXspec.
     
@@ -149,7 +143,7 @@ class XSpecAbsorbModel(PhotonModel):
         m.nH = self.nH
         return np.array(self.model.values(0))
 
-class TableApecModel(PhotonModel):
+class TableApecModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from the AtomDB APEC tables
     available at http://www.atomdb.org. This code borrows heavily from Python
@@ -284,7 +278,7 @@ class TableApecModel(PhotonModel):
         metal_spec = mspec_l*(1.-dT)+mspec_r*dT        
         return cosmic_spec, metal_spec
 
-class TableAbsorbModel(PhotonModel):
+class TableAbsorbModel(SpectralModel):
     r"""
     Initialize an absorption model from a table stored in an HDF5 file.
     

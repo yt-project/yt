@@ -10,11 +10,15 @@ API for yt.analysis_modules.photon_simulator.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from .photon_models import \
+     ThermalModel
+
 from .photon_simulator import \
      PhotonList, \
      EventList
 
-from .photon_models import \
+from .spectral_models import \
+     SpectralModel, \
      XSpecThermalModel, \
      XSpecAbsorbModel, \
      TableApecModel, \
