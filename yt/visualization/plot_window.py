@@ -532,7 +532,7 @@ class PlotWindow(object):
 
         parameters
         ----------
-        new_center : two or element sequence of floats
+        new_center : two element sequence of floats
             The coordinates of the new center of the image in the
             coordinate system defined by the plot axes. If the unit
             keyword is not specified, the coordinates are assumed to
