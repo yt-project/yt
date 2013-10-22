@@ -1,27 +1,17 @@
 """
 Data structures for Castro.
 
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2010 J. S. Oishi.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import re
 import os
@@ -59,7 +49,7 @@ class CastroGrid(AMRGridPatch):
 
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset,
                  dimensions, start, stop, paranoia=False, **kwargs):
-        super(CastroGrid, self).__init__(self, index, **kwargs)
+        super(CastroGrid, self).__init__(index, **kwargs)
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia  # TODO: Factor this behavior out in tests
@@ -71,7 +61,7 @@ class CastroGrid(AMRGridPatch):
         self.LeftEdge  = LeftEdge.copy()
         self.RightEdge = RightEdge.copy()
         self.index = index
-        self.level = level
+        self.Level = level
 
     def get_global_startindex(self):
         return self.start_index
@@ -114,8 +104,6 @@ class CastroHierarchy(AMRHierarchy):
     grid = CastroGrid
 
     def __init__(self, pf, data_style='castro_native'):
-        super(CastroHierarchy, self).__init__(self, pf, self.data_style)
-
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir, 'Header')
@@ -127,6 +115,8 @@ class CastroHierarchy(AMRHierarchy):
                                 self.parameter_file.paranoid_read) 
         self.read_particle_header()
         self._cache_endianness(self.levels[-1].grids[-1])
+
+        super(CastroHierarchy, self).__init__(pf, data_style)
         self._setup_data_io()
         self._setup_field_list()
         self._populate_hierarchy()
@@ -180,7 +170,7 @@ class CastroHierarchy(AMRHierarchy):
         counter += 1
 
         self.dx = np.zeros((self.n_levels, 3))
-        for i, line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
+        for i, line in enumerate(self._global_header_lines[counter:counter+self.n_levels]):
             self.dx[i] = np.array(map(float, line.split()))
         counter += self.n_levels
         self.geometry = int(self._global_header_lines[counter])
@@ -423,21 +413,6 @@ class CastroHierarchy(AMRHierarchy):
         return self.grids[mask]
 
     def _setup_field_list(self):
-        self.derived_field_list = []
-
-        for field in self.field_info:
-            try:
-                fd = self.field_info[field].get_dependencies(pf=self.parameter_file)
-            except:
-                continue
-
-            available = np.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-
         if self.parameter_file.use_particles:
             # We know which particle fields will exist -- pending further
             # changes in the future.
@@ -520,15 +495,15 @@ class CastroStaticOutput(StaticOutput):
          * ASCII (not implemented in yt)
 
         """
-        super(CastroStaticOutput, self).__init__(self, plotname.rstrip("/"),
-                                                 data_style='castro_native')
         self.storage_filename = storage_filename
         self.paranoid_read = paranoia
         self.parameter_filename = paramFilename
         self.fparameter_filename = fparamFilename
         self.__ipfn = paramFilename
-
         self.fparameters = {}
+        super(CastroStaticOutput, self).__init__(plotname.rstrip("/"),
+                                                 data_style='castro_native')
+
 
         # These should maybe not be hardcoded?
         ### TODO: this.
@@ -597,9 +572,8 @@ class CastroStaticOutput(StaticOutput):
                 continue
 
             try:
-                param, vals = [strip(i) for i in
+                param, vals = [i.strip() for i in
                                 (j.rstrip() for j in line.split("="))]
-                #param, vals = map(strip, map(rstrip, line.split("=")))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
 
@@ -619,11 +593,12 @@ class CastroStaticOutput(StaticOutput):
                 self.domain_left_edge = np.array([float(i) for i in vals.split()])
             elif param.startswith("particles.write_in_plotfile"):
                 self.use_particles = boxlib_bool_to_int(vals)
+            self.fparameters[param] = vals
 
         self.parameters["TopGridRank"] = len(self.parameters["TopGridDimensions"])
         self.dimensionality = self.parameters["TopGridRank"]
         self.periodicity = ensure_tuple(self.fparameters['castro.lo_bc'] == 0)
-        self.domain_dimensions = self.parameters["TopGridDimensions"]
+        self.domain_dimensions = np.array(self.parameters["TopGridDimensions"])
         self.refine_by = self.parameters.get("RefineBy", 2)
 
         if (self.parameters.has_key("ComovingCoordinates") and
@@ -655,11 +630,14 @@ class CastroStaticOutput(StaticOutput):
         lines = open(self.fparameter_filename).readlines()
         for line in lines:
             if line.count("=") == 1:
-                param, vals = [strip(i) for i in
+                param, vals = [i.strip() for i in
                                 (j.rstrip() for j in line.split("="))]
-                #param, vals = map(strip, map(rstrip, line.split("=")))
-                if vals.count("'") == 0:
-                    t = map(float, [a.replace('D','e').replace('d','e') for a in vals.split()]) # all are floating point.
+                if vals.count("'") == 0 and vals.count("\"") == 0:
+                    try:
+                        t = [float(a.replace('D','e').replace('d','e'))
+                                   for a in in vals.split()])
+                    except ValueError:
+                        print "Failed on line", line
                 else:
                     t = vals.split()
                 if len(t) == 1:

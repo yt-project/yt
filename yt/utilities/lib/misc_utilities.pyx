@@ -1,27 +1,17 @@
 """
 Simple utilities that don't fit anywhere else
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -121,16 +111,17 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.int64_t, ndim=1] xs,
           np.ndarray[np.int64_t, ndim=1] ys,
           np.ndarray[np.float64_t, ndim=2] colors,
-          int points_per_color=1):
+          int points_per_color=1,
+          int thick=1):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4]
+    cdef np.float64_t alpha[4], outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
-    cdef int has_alpha = (image.shape[-1] == 4)
+    cdef int has_alpha = (image.shape[2] == 4)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
@@ -153,17 +144,25 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
         else:
             sy = -1
         while(1):
-            if (x0 < 0 and sx == -1): break
-            elif (x0 >= nx and sx == 1): break
-            elif (y0 < 0 and sy == -1): break
-            elif (y0 >= nx and sy == 1): break
-            if (x0 >=0 and x0 < nx and y0 >= 0 and y0 < ny):
-                if has_alpha:
-                    for i in range(4):
-                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
-                else:
-                    for i in range(3):
-                        image[x0,y0,i] = (1.-alpha[i])*image[x0,y0,i] + alpha[i]
+            if (x0 < thick and sx == -1): break
+            elif (x0 >= nx-thick+1 and sx == 1): break
+            elif (y0 < thick and sy == -1): break
+            elif (y0 >= ny-thick+1 and sy == 1): break
+            if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
+                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                    for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if has_alpha:
+                            image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3])
+                            if outa != 0.0:
+                                outa = 1.0/outa
+                            for i in range(3):
+                                image[xi, yi, i] = \
+                                        ((1.-alpha[3])*image[xi, yi, i]*image[xi, yi, 3]
+                                         + alpha[3]*alpha[i])*outa
+                        else:
+                            for i in range(3):
+                                image[xi, yi, i] = \
+                                        (1.-alpha[i])*image[xi,yi,i] + alpha[i]
 
             if (x0 == x1 and y0 == y1):
                 break

@@ -1,30 +1,21 @@
 """
 Data structures for Streaming, in-memory datasets
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import weakref
 import numpy as np
+import uuid
 
 from yt.utilities.io_handler import io_registry
 from yt.funcs import *
@@ -302,7 +293,10 @@ class StreamStaticOutput(StaticOutput):
         #self._conversion_override = conversion_override
 
         self.stream_handler = stream_handler
-        StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
+        name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
+        from yt.data_objects.static_output import _cached_pfs
+        _cached_pfs[name] = self
+        StaticOutput.__init__(self, name, self._data_style)
 
         self.units = {}
         self.time_units = {}
@@ -334,6 +328,10 @@ class StreamStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False
+
+    @property
+    def _skip_cache(self):
+        return True
 
 class StreamDictFieldHandler(dict):
 

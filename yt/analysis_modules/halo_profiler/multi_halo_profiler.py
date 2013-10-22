@@ -1,28 +1,19 @@
 """
 HaloProfiler class and member functions.
 
-Author: Britton Smith <brittons@origins.colorado.edu>
-Affiliation: CASA/University of CO, Boulder
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Britton Smith.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+import gc
 import numpy as np
 import os
 import h5py
@@ -583,7 +574,7 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
-                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
 
             # get a sphere object to profile
@@ -630,6 +621,10 @@ class HaloProfiler(ParallelAnalysisInterface):
                 g.clear_data()
             sphere.clear_data()
             del sphere
+            # Currently, this seems to be the only way to prevent large 
+            # halo profiling runs from running out of ram.
+            # It would be good to track down the real cause at some point.
+            gc.collect()
 
         return profile
 
@@ -1249,7 +1244,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.error("Output directory exists, but is not a directory: %s." % my_output_dir)
                 raise IOError(my_output_dir)
         else:
-            os.mkdir(my_output_dir)
+            os.makedirs(my_output_dir)
 
 def _shift_projections(pf, projections, oldCenter, newCenter, axis):
     """

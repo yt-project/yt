@@ -1,28 +1,17 @@
 """
 Castro data-file handling functions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2010 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import os
 import numpy as np
@@ -100,10 +89,10 @@ class IOHandlerNative(BaseIOHandler):
             if (gridSize != grid.ActiveDimensions).any():
                 print "Paranoia Error: Cell_H and %s do not agree on grid dimensions." %grid.filename
                 error_count += 1
-            if bytesPerReal != grid.hierarchy._bytesPerReal:
+            if bytesPerReal != grid.hierarchy._bytes_per_real:
                 print "Paranoia Error: Cell_H and %s do not agree on bytes per real number." %grid.filename
                 error_count += 1
-            if (bytesPerReal == grid.hierarchy._bytesPerReal and dtype != grid.hierarchy._dtype):
+            if (bytesPerReal == grid.hierarchy._bytes_per_real and dtype != grid.hierarchy._dtype):
                 print "Paranoia Error: Cell_H and %s do not agree on endianness." %grid.filename
                 error_count += 1
 
@@ -114,7 +103,7 @@ class IOHandlerNative(BaseIOHandler):
             start = grid.start_index
             stop = grid.stop_index
             dtype = grid.hierarchy._dtype
-            bytesPerReal = grid.hierarchy._bytesPerReal
+            bytesPerReal = grid.hierarchy._bytes_per_real
 
         nElements = grid.ActiveDimensions.prod()
 

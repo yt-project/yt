@@ -1,33 +1,23 @@
 """
 Simple integrators for the radiative transfer equation
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
 cimport cython
 cimport kdtree_utils
-cimport healpix_interface
+#cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
@@ -67,7 +57,7 @@ cdef struct VolumeContainer:
     np.float64_t idds[3]
     int dims[3]
 
-ctypedef void sample_function(
+ctypedef void sampler_function(
                 VolumeContainer *vc,
                 np.float64_t v_pos[3],
                 np.float64_t v_dir[3],
@@ -235,7 +225,7 @@ cdef struct ImageAccumulator:
 
 cdef class ImageSampler:
     cdef ImageContainer *image
-    cdef sample_function *sampler
+    cdef sampler_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
     cdef void *supp_data
     cdef np.float64_t width[3]
@@ -929,7 +919,7 @@ cdef class ProtoPrism:
 cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
-                     sample_function *sampler,
+                     sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
                      np.float64_t enter_t = -1.0) nogil:
@@ -963,6 +953,14 @@ cdef int walk_volume(VolumeContainer *vc,
             tl = (vc.right_edge[i] - v_pos[i])*iv_dir[i]
         temp_x = (v_pos[x] + tl*v_dir[x])
         temp_y = (v_pos[y] + tl*v_dir[y])
+        if fabs(temp_x - vc.left_edge[x]) < 1e-10*vc.dds[x]:
+            temp_x = vc.left_edge[x]
+        elif fabs(temp_x - vc.right_edge[x]) < 1e-10*vc.dds[x]:
+            temp_x = vc.right_edge[x]
+        if fabs(temp_y - vc.left_edge[y]) < 1e-10*vc.dds[y]:
+            temp_y = vc.left_edge[y]
+        elif fabs(temp_y - vc.right_edge[y]) < 1e-10*vc.dds[y]:
+            temp_y = vc.right_edge[y]
         if vc.left_edge[x] <= temp_x and temp_x <= vc.right_edge[x] and \
            vc.left_edge[y] <= temp_y and temp_y <= vc.right_edge[y] and \
            0.0 <= tl and tl < intersect_t:
@@ -1024,6 +1022,7 @@ cdef int walk_volume(VolumeContainer *vc,
     return hit
 
 def hp_pix2vec_nest(long nside, long ipix):
+    raise NotImplementedError
     cdef double v[3]
     healpix_interface.pix2vec_nest(nside, ipix, v)
     cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
@@ -1034,6 +1033,7 @@ def hp_pix2vec_nest(long nside, long ipix):
 
 def arr_pix2vec_nest(long nside,
                      np.ndarray[np.int64_t, ndim=1] aipix):
+    raise NotImplementedError
     cdef int n = aipix.shape[0]
     cdef int i
     cdef double v[3]
@@ -1048,6 +1048,7 @@ def arr_pix2vec_nest(long nside,
     return tr
 
 def hp_vec2pix_nest(long nside, double x, double y, double z):
+    raise NotImplementedError
     cdef double v[3]
     v[0] = x
     v[1] = y
@@ -1060,6 +1061,7 @@ def arr_vec2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] x,
                      np.ndarray[np.float64_t, ndim=1] y,
                      np.ndarray[np.float64_t, ndim=1] z):
+    raise NotImplementedError
     cdef int n = x.shape[0]
     cdef int i
     cdef double v[3]
@@ -1074,11 +1076,13 @@ def arr_vec2pix_nest(long nside,
     return tr
 
 def hp_pix2ang_nest(long nside, long ipnest):
+    raise NotImplementedError
     cdef double theta, phi
     healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
     return (theta, phi)
 
 def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
+    raise NotImplementedError
     cdef int n = aipnest.shape[0]
     cdef int i
     cdef long ipnest
@@ -1092,6 +1096,7 @@ def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
     return tr
 
 def hp_ang2pix_nest(long nside, double theta, double phi):
+    raise NotImplementedError
     cdef long ipix
     healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
     return ipix
@@ -1099,6 +1104,7 @@ def hp_ang2pix_nest(long nside, double theta, double phi):
 def arr_ang2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] atheta,
                      np.ndarray[np.float64_t, ndim=1] aphi):
+    raise NotImplementedError
     cdef int n = atheta.shape[0]
     cdef int i
     cdef long ipnest
@@ -1118,6 +1124,7 @@ def pixelize_healpix(long nside,
                      np.ndarray[np.float64_t, ndim=1] values,
                      long ntheta, long nphi,
                      np.ndarray[np.float64_t, ndim=2] irotation):
+    raise NotImplementedError
     # We will first to pix2vec, rotate, then calculate the angle
     cdef int i, j, thetai, phii
     cdef long ipix
@@ -1164,6 +1171,7 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
                         long nside,
                         np.ndarray[np.float64_t, ndim=2] image,
                         np.ndarray[np.float64_t, ndim=2] irotation):
+    raise NotImplementedError
     cdef double pi = np.pi
     cdef int i, j, k, l
     cdef np.float64_t x, y, z, zb

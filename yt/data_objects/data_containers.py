@@ -1,31 +1,17 @@
 """
 Various non-grid data containers.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <Britton.Smith@colorado.edu>
-Affiliation: University of Colorado at Boulder
-Author: Geoffrey So <gsiisg@gmail.com>
-Affiliation: UCSD Physics/CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 data_object_registry = {}
 
@@ -35,6 +21,8 @@ import weakref
 import itertools
 import shelve
 import cStringIO
+import fileinput
+from re import finditer
 
 from yt.funcs import *
 from yt.config import ytcfg
@@ -952,7 +940,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         interpolated using the nearest neighbor method, with *side* points on a
         side.
         """
-        import yt.utilities.delaunay as de
+        import matplotlib.delaunay.triangulate as de
         if log_spacing:
             zz = np.log10(self[field])
         else:
@@ -1875,7 +1863,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
         tree = self._get_tree(len(fields))
         tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
-        coord_data, field_data, weight_data, dxs = [], [], [], []
+        coord_data, field_data, weight_data, dxs, dys = [], [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
             coord_data.append(npos)
@@ -1884,10 +1872,12 @@ class AMRQuadTreeProjBase(AMR2DData):
             weight_data.append(nwvals)
             gs = self.source.select_grids(level)
             if len(gs) > 0:
-                ds = gs[0].dds[0]
+                dx = gs[0].dds[x_dict[self.axis]]
+                dy = gs[0].dds[y_dict[self.axis]]
             else:
-                ds = 0.0
-            dxs.append(np.ones(nvals.shape[0], dtype='float64') * ds)
+                dx = dy = 0.0
+            dxs.append(np.ones(nvals.shape[0], dtype='float64') * dx)
+            dys.append(np.ones(nvals.shape[0], dtype='float64') * dy)
         coord_data = np.concatenate(coord_data, axis=0).transpose()
         field_data = np.concatenate(field_data, axis=0).transpose()
         if self._weight is None:
@@ -1895,17 +1885,19 @@ class AMRQuadTreeProjBase(AMR2DData):
             field_data *= convs[:,None]
         weight_data = np.concatenate(weight_data, axis=0).transpose()
         dxs = np.concatenate(dxs, axis=0).transpose()
+        dys = np.concatenate(dys, axis=0).transpose()
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
+        data['pdy'] = dys
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
+        data['py'] = (coord_data[1,:]+0.5) * data['pdy'] + oy
         data['weight_field'] = weight_data
         del coord_data
         data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
+        data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = np.vsplit(data.pop('fields'), len(fields))
@@ -3118,6 +3110,8 @@ class InLineExtractedRegionBase(AMR3DData):
     In-line extracted regions accept a base region and a set of field_cuts to
     determine which points in a grid should be included.
     """
+    _type_name = "cut_region"
+    _con_args = ("_base_region", "_field_cuts")
     def __init__(self, base_region, field_cuts, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
@@ -3584,12 +3578,12 @@ class AMREllipsoidBase(AMR3DData):
         given the tilt about the x axis when e0 was aligned
         to x after t1, t2 rotations about z, y
         """
-        RX = get_rotation_matrix(-tilt, (1,0,0)).transpose()
-        RY = get_rotation_matrix(-t2,   (0,1,0)).transpose()
-        RZ = get_rotation_matrix(-t1,   (0,0,1)).transpose()
-        e1 = ((0, 1, 0) * RX).sum(axis = 1)
-        e1 = (e1 * RY).sum(axis = 1)
-        e1 = (e1 * RZ).sum(axis = 1)
+        RX = get_rotation_matrix(-tilt, (1, 0, 0)).transpose()
+        RY = get_rotation_matrix(-t2,   (0, 1, 0)).transpose()
+        RZ = get_rotation_matrix(-t1,   (0, 0, 1)).transpose()
+        e1 = ((0, 1, 0) * RX).sum(axis=1)
+        e1 = (e1 * RY).sum(axis=1)
+        e1 = (e1 * RZ).sum(axis=1)
         e2 = np.cross(e0, e1)
 
         self._e1 = e1
@@ -3609,86 +3603,63 @@ class AMREllipsoidBase(AMR3DData):
         can just use the sphere one and forget about checking orientation
         but feed in the A parameter for radius
         """
-    def _get_list_of_grids(self, field = None):
+    def _get_list_of_grids(self, field=None):
         """
         This returns the grids that are possibly within the ellipse
         """
-        grids,ind = self.hierarchy.find_sphere_grids(self.center, self._A)
+        grids, ind = self.hierarchy.find_sphere_grids(self.center, self._A)
         # Now we sort by level
         grids = grids.tolist()
-        grids.sort(key=lambda x: (x.Level, \
-                                  x.LeftEdge[0], \
-                                  x.LeftEdge[1], \
+        grids.sort(key=lambda x: (x.Level,
+                                  x.LeftEdge[0],
+                                  x.LeftEdge[1],
                                   x.LeftEdge[2]))
-        self._grids = np.array(grids, dtype = 'object')
+        self._grids = np.array(grids, dtype='object')
 
     def _is_fully_enclosed(self, grid):
         """
         check if all grid corners are inside the ellipsoid
         """
-        # vector from corner to center
-        vr = (grid._corners - self.center)
-        # 3 possible cases of locations taking periodic BC into account
-        # just listing the components, find smallest later
-        dotarr=np.array([vr, vr + self.DW, vr - self.DW])
-        # these vrdote# finds the product of vr components with e#
-        # square the results
-        # find the smallest
-        # sums it
-        vrdote0_2 = (np.multiply(dotarr, self._e0)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        vrdote1_2 = (np.multiply(dotarr, self._e1)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        vrdote2_2 = (np.multiply(dotarr, self._e2)**2).min(axis \
-                                                           = 0).sum(axis = 1)
-        return np.all(vrdote0_2 / self._A**2 + \
-                      vrdote1_2 / self._B**2 + \
-                      vrdote2_2 / self._C**2 <=1.0)
+        return False
 
-    @restore_grid_state # Pains me not to decorate with cache_mask here
-    def _get_cut_mask(self, grid, field = None):
+    @restore_grid_state  # Pains me not to decorate with cache_mask here
+    def _get_cut_mask(self, grid, field=None):
         """
         This checks if each cell is inside the ellipsoid
         """
         # We have the *property* center, which is not necessarily
         # the same as the field_parameter
         if self._is_fully_enclosed(grid):
-            return True # We do not want child masking here
+            return True  # We do not want child masking here
         if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
            and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
-        Inside = np.zeros(grid["x"].shape, dtype = 'float64')
-        dim = grid["x"].shape
-        # need this to take into account non-cube root grid tiles
-        if (len(dim) == 1):
-            dot_evec = np.zeros([3, dim[0]])
-        elif (len(dim) == 2):
-            dot_evec = np.zeros([3, dim[0], dim[1]])
-        elif (len(dim) == 3):
-            dot_evec = np.zeros([3, dim[0], dim[1], dim[2]])
+
+        dot_evecx = np.zeros(grid.ActiveDimensions)
+        dot_evecy = np.zeros(grid.ActiveDimensions)
+        dot_evecz = np.zeros(grid.ActiveDimensions)
 
         for i, ax in enumerate('xyz'):
             # distance to center
-            ar  = grid[ax]-self.center[i]
-            # cases to take into account periodic BC
-            case = np.array([ar, ar + self.DW[i], ar - self.DW[i]])
-            # find which of the 3 cases is smallest in magnitude
-            index = np.abs(case).argmin(axis = 0)
-            # restrict distance to only the smallest cases
-            vec = np.choose(index, case)
+            ar = grid[ax]-self.center[i]
+            # correct for periodicity
+            vec = np.array([ar, ar + self.DW[i], ar - self.DW[i]])
+            ind = np.argmin(np.abs(vec), axis=0)
+            vec = np.choose(ind, vec)
             # sum up to get the dot product with e_vectors
-            dot_evec += np.array([vec * self._e0[i], \
-                                  vec * self._e1[i], \
-                                  vec * self._e2[i]])
+            dot_evecx += vec * self._e0[i] / self._A
+            dot_evecy += vec * self._e1[i] / self._B
+            dot_evecz += vec * self._e2[i] / self._C
+
         # Calculate the eqn of ellipsoid, if it is inside
         # then result should be <= 1.0
-        Inside = dot_evec[0]**2 / self._A**2 + \
-                 dot_evec[1]**2 / self._B**2 + \
-                 dot_evec[2]**2 / self._C**2
-        cm = ((Inside <= 1.0) & grid.child_mask)
+        cm = ((dot_evecx**2 +
+               dot_evecy**2 +
+               dot_evecz**2 <= 1.0) & grid.child_mask)
         if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
             self._cut_masks[grid.id] = cm
         return cm
+
 
 class AMRCoveringGridBase(AMR3DData):
     """A 3D region with all data extracted to a single, specified
@@ -3708,7 +3679,6 @@ class AMRCoveringGridBase(AMR3DData):
     Examples
     --------
     cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                              right_edge=[1.0, 1.0, 1.0],
                               dims=[128, 128, 128])
     """
     _spatial = True
@@ -3720,8 +3690,10 @@ class AMRCoveringGridBase(AMR3DData):
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
+        dims = np.array(dims)
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
-        self.dds = self.pf.domain_width/rdx.astype("float64")
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
+        self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
@@ -4100,7 +4072,7 @@ class AMRBooleanRegionBase(AMR3DData):
             if region in ["OR", "AND", "NOT", "(", ")"]:
                 s += region
             else:
-                s += region.__repr__(clean = True)
+                s += region.__repr__()
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
@@ -4373,6 +4345,230 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
 
+    def export_obj(self, filename, transparency = 1.0, dist_fac = None,
+                   color_field = None, emit_field = None, color_map = "algae", 
+                   color_log = True, emit_log = True, plot_index = None, 
+                   color_field_max = None, color_field_min = None, 
+                   emit_field_max = None, emit_field_min = None):
+        r"""This exports the surface to the OBJ format, suitable for visualization
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
+        and an .mtl file, both with the general 'filename' as a prefix.  
+        The .obj file points to the .mtl file in its header, so if you move the 2 
+        files, make sure you change the .obj header to account for this. ALSO NOTE: 
+        the emit_field needs to be a combination of the other 2 fields used to 
+        have the emissivity track with the color.
+
+        Parameters
+        ----------
+        filename : string
+            The file this will be exported to.  This cannot be a file-like object.
+            Note - there are no file extentions included - both obj & mtl files 
+            are created.
+        transparency : float
+            This gives the transparency of the output surface plot.  Values
+            from 0.0 (invisible) to 1.0 (opaque).
+        dist_fac : float
+            Divide the axes distances by this amount.
+        color_field : string
+            Should a field be sample and colormapped?
+        emit_field : string
+            Should we track the emissivity of a field?
+              NOTE: this should be a combination of the other 2 fields being used.
+        color_map : string
+            Which color map should be applied?
+        color_log : bool
+            Should the color field be logged before being mapped?
+        emit_log : bool
+            Should the emitting field be logged before being mapped?
+        plot_index : integer
+            Index of plot for multiple plots.  If none, then only 1 plot.
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
+        emit_field_max : float
+            Maximum value of the emitting field across all surfaces.
+        emit_field_min : float
+            Minimum value of the emitting field across all surfaces.
+
+        Examples
+        --------
+
+        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> trans = 1.0
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+
+        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> for i, r in enumerate(rhos):
+        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', dist_fac = distf, 
+        ...                      plot_index = i, color_field_max = ma, 
+        ...                      color_field_min = mi)
+
+        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> def _Emissivity(field, data):
+        ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
+        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        >>> for i, r in enumerate(rhos):
+        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', emit_field = 'Emissivity', 
+        ...                      dist_fac = distf, plot_index = i)
+
+        """
+        if self.vertices is None:
+            self.get_data(color_field,"face")
+        elif color_field is not None:
+            if color_field not in self.field_data:
+                self[color_field]
+        if emit_field is not None:
+            if color_field not in self.field_data:
+                self[emit_field]
+        only_on_root(self._export_obj, filename, transparency, dist_fac, color_field, emit_field, 
+                             color_map, color_log, emit_log, plot_index, color_field_max, 
+                             color_field_min, emit_field_max, emit_field_min)
+
+    def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
+                           color_field_max, color_field_min, 
+                           emit_field_max, emit_field_min): # this now holds for obj files
+        if color_log: cs = np.log10(cs)
+        if emit_log: em = np.log10(em)
+        if color_field_min is None:
+            mi = cs.min()
+        else:
+            mi = color_field_min
+            if color_log: mi = np.log10(mi)
+        if color_field_max is None:
+            ma = cs.max()
+        else:
+            ma = color_field_max
+            if color_log: ma = np.log10(ma)
+        cs = (cs - mi) / (ma - mi)
+        # to get color indicies for OBJ formatting
+        from yt.visualization._colormap_data import color_map_luts
+        lut = color_map_luts[color_map]
+        x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
+        arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
+        # now, get emission
+        if emit_field_min is None:
+            emi = em.min()
+        else:
+            emi = emit_field_min
+            if emit_log: emi = np.log10(emi)
+        if emit_field_max is None:
+            ema = em.max()
+        else:
+            ema = emit_field_max
+            if emit_log: ema = np.log10(ema)
+        em = (em - emi)/(ema - emi)
+        x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
+        arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
+
+    @parallel_root_only
+    def _export_obj(self, filename, transparency, dist_fac = None, 
+                    color_field = None, emit_field = None, color_map = "algae", 
+                    color_log = True, emit_log = True, plot_index = None, 
+                    color_field_max = None, color_field_min = None, 
+                    emit_field_max = None, emit_field_min = None):
+        if plot_index is None:
+            plot_index = 0
+        if isinstance(filename, file):
+            fobj = filename + '.obj'
+            fmtl = filename + '.mtl'
+        else:
+            if plot_index == 0:
+                fobj = open(filename + '.obj', "w")
+                fmtl = open(filename + '.mtl', 'w')
+                cc = 1
+            else:
+                # read in last vertex
+                linesave = ''
+                for line in fileinput.input(filename + '.obj'):
+                    if line[0] == 'f':
+                        linesave = line
+                p = [m.start() for m in finditer(' ', linesave)]
+                cc = int(linesave[p[len(p)-1]:])+1
+                fobj = open(filename + '.obj', "a")
+                fmtl = open(filename + '.mtl', 'a')
+        ftype = [("cind", "uint8"), ("emit", "float")]
+        vtype = [("x","float"),("y","float"), ("z","float")]
+        if plot_index == 0:
+            fobj.write("# yt OBJ file\n")
+            fobj.write("# www.yt-project.com\n")
+            fobj.write("mtllib " + filename + '.mtl\n\n')  # use this material file for the faces
+            fmtl.write("# yt MLT file\n")
+            fmtl.write("# www.yt-project.com\n\n")
+        #(0) formulate vertices
+        nv = self.vertices.shape[1] # number of groups of vertices
+        f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
+        v = np.empty(nv, dtype=vtype) # stores vertices
+        if color_field is not None:
+            cs = self[color_field]
+        else:
+            cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        if emit_field is not None:
+            em = self[emit_field]
+        else:
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
+                                color_field_max, color_field_min, 
+                                emit_field_max, emit_field_min) # map color values to color scheme
+        from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
+        lut = color_map_luts[color_map] # enumerate colors
+        # interpolate emissivity to enumerated colors
+        emiss = np.interp(np.mgrid[0:lut[0].shape[0]],np.mgrid[0:len(cs)],f["emit"][:])
+        if dist_fac is None: # then normalize by bounds
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+            for i, ax in enumerate("xyz"):
+                # Do the bounds first since we cast to f32
+                tmp = self.vertices[i,:]
+                np.subtract(tmp, bounds[i][0], tmp)
+                w = bounds[i][1] - bounds[i][0]
+                np.divide(tmp, w, tmp)
+                np.subtract(tmp, 0.5, tmp) # Center at origin.
+                v[ax][:] = tmp   
+        else:
+            for i, ax in enumerate("xyz"):
+                tmp = self.vertices[i,:]
+                np.divide(tmp, dist_fac, tmp)
+                v[ax][:] = tmp
+        #(1) write all colors per surface to mtl file
+        for i in range(0,lut[0].shape[0]): 
+            omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
+            fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
+            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
+            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
+            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
+            fmtl.write("d %.6f\n" %(transparency))  # transparency
+            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
+            fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
+            fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
+        #(2) write vertices
+        for i in range(0,self.vertices.shape[1]):
+            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
+        fobj.write("#done defining vertices\n\n")
+        #(3) define faces and materials for each face
+        for i in range(0,self.triangles.shape[0]):
+            omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
+            fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
+            fobj.write("f " + str(cc) + ' ' + str(cc+1) + ' ' + str(cc+2) + '\n\n') # vertices to color
+            cc = cc+3
+        fmtl.close()
+        fobj.close()
+
+
     def export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
         r"""This exports the surface to the PLY format, suitable for visualization
@@ -4605,22 +4801,46 @@ class AMRSurfaceBase(AMRData, ParallelAnalysisInterface):
             mylog.error("Problem uploading.")
         return upload_id
 
+# Many of these items are set up specifically to ensure that
+# we are not breaking old pickle files.  This means we must only call the
+# _reconstruct_object and that we cannot mandate any additional arguments to
+# the reconstruction function.
+#
+# In the future, this would be better off being set up to more directly
+# reference objects or retain state, perhaps with a context manager.
+#
+# One final detail: time series or multiple parameter files in a single pickle
+# seems problematic.
+
+class ReconstructedObject(tuple):
+    pass
+
+def _check_nested_args(arg, ref_pf):
+    if not isinstance(arg, (tuple, list, ReconstructedObject)):
+        return arg
+    elif isinstance(arg, ReconstructedObject) and ref_pf == arg[0]:
+        return arg[1]
+    narg = [_check_nested_args(a, ref_pf) for a in arg]
+    return narg
+
+def _get_pf_by_hash(hash):
+    from yt.data_objects.static_output import _cached_pfs
+    for pf in _cached_pfs.values():
+        if pf._hash() == hash: return pf
+    return None
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]
     dtype = args[1]
+    pf = _get_pf_by_hash(pfid)
+    if not pf:
+        pfs = ParameterFileStore()
+        pf = pfs.get_pf_hash(pfid)
     field_parameters = args[-1]
     # will be much nicer when we can do pfid, *a, fp = args
-    args, new_args = args[2:-1], []
-    for arg in args:
-        if iterable(arg) and len(arg) == 2 \
-           and not isinstance(arg, types.DictType) \
-           and isinstance(arg[1], AMRData):
-            new_args.append(arg[1])
-        else: new_args.append(arg)
-    pfs = ParameterFileStore()
-    pf = pfs.get_pf_hash(pfid)
+    args = args[2:-1]
+    new_args = [_check_nested_args(a, pf) for a in args]
     cls = getattr(pf.h, dtype)
     obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
-    return pf, obj
+    return ReconstructedObject((pf, obj))

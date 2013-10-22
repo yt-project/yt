@@ -1,29 +1,17 @@
 """
 Automagical cartesian domain decomposition.
 
-Author: Kacper Kowalik <xarthisius.kk@gmail.com>
-Affiliation: CA UMK
-Author: Artur Gawryszczak <gawrysz@gmail.com>
-Affiliation: PCSS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2012 Kacper Kowalik. All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -69,8 +57,8 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
     """ Evaluate longest to shortest edge ratio
         BEWARE: lot's of magic here """
     eff_dim = (n_d > 1).sum()
-    ideal_bsize = eff_dim * (pieces * np.product(n_d) ** (eff_dim - 1)
-                             ) ** (1.0 / eff_dim)
+    exp = float(eff_dim - 1) / float(eff_dim)
+    ideal_bsize = eff_dim * pieces ** (1.0 / eff_dim) * np.product(n_d) ** exp
     mask = np.where(n_d > 1)
     nd_arr = np.array(n_d, dtype=np.float64)[mask]
     bsize = int(np.sum(ldom[mask] / nd_arr * np.product(nd_arr)))
@@ -109,6 +97,10 @@ def get_psize(n_d, pieces):
     fac = factorize_number(pieces)
     nfactors = len(fac[:, 2])
     best = 0.0
+    p_size = np.ones(3, dtype=np.int)
+    if pieces == 1:
+        return p_size
+
     while np.all(fac[:, 2] > 0):
         ldom = np.ones(3, dtype=np.int)
         for nfac in range(nfactors):

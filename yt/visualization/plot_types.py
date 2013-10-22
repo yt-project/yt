@@ -3,27 +3,17 @@ This is an interface to MatPlotLib <http://matplotlib.sf.net> to plot
 irregularly shaped grids, with the presumption that at any point we could have
 data that is "hidden" in deeper levels of refinement.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -546,7 +536,7 @@ class PCSlicePlot(VMPlot):
 
 class NNVMPlot:
     def _get_buff(self, width=None):
-        import yt.utilities.delaunay as de
+        import matplotlib.delaunay.triangulate as de
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:

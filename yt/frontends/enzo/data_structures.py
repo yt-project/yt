@@ -1,27 +1,17 @@
 """
 Data structures for Enzo
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import weakref
@@ -50,6 +40,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities import hdf5_light_reader
+from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
@@ -105,6 +96,9 @@ class EnzoGrid(AMRGridPatch):
         """
         Intelligently set the filename.
         """
+        if filename is None:
+            self.filename = filename
+            return
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -138,10 +132,11 @@ class EnzoGridGZ(EnzoGrid):
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
                              smoothed=False):
-        # We ignore smoothed in this case.
-        if n_zones > 3:
+        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        if n_zones > NGZ:
             return EnzoGrid.retrieve_ghost_zones(
                 self, n_zones, fields, all_levels, smoothed)
+
         # ----- Below is mostly the original code, except we remove the field
         # ----- access section
         # We will attempt this by creating a datacube that is exactly bigger
@@ -169,7 +164,12 @@ class EnzoGridGZ(EnzoGrid):
                 level, new_left_edge, **kwargs)
         # ----- This is EnzoGrid.get_data, duplicated here mostly for
         # ----  efficiency's sake.
-        sl = [slice(3 - n_zones, -(3 - n_zones)) for i in range(3)]
+        start_zone = NGZ - n_zones
+        if start_zone == 0:
+            end_zone = None
+        else:
+            end_zone = -(NGZ - n_zones)
+        sl = [slice(start_zone, end_zone) for i in range(3)]
         if fields is None: return cube
         for field in ensure_list(fields):
             if field in self.hierarchy.field_list:
@@ -302,7 +302,7 @@ class EnzoHierarchy(AMRHierarchy):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(["-1"])
+            fn.append([None])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
@@ -373,6 +373,7 @@ class EnzoHierarchy(AMRHierarchy):
         giter = izip(grids, levels, procs, parents)
         bn = self._bn % (self.pf)
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
+        pmap.append((None, )) # Now, P==-1 will give None
         for grid,L,P,Pid in giter:
             grid.Level = L
             grid._parent_id = Pid
@@ -405,7 +406,10 @@ class EnzoHierarchy(AMRHierarchy):
                 parents.append(g.Parent.id)
             else:
                 parents.append(-1)
-            procs.append(int(self.filenames[i][0][-4:]))
+            if self.filenames[i][0] is None:
+                procs.append(-1)
+            else:
+                procs.append(int(self.filenames[i][0][-4:]))
             levels.append(g.Level)
 
         parents = np.array(parents, dtype='int64')
@@ -546,6 +550,9 @@ class EnzoHierarchy(AMRHierarchy):
                     result[p] = result[p][0:max_num]
         return result
 
+    def _setup_data_io(self):
+            self.io = io_registry[self.data_style](self.parameter_file)
+
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
 
@@ -633,6 +640,24 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self.__class__._cached_derived_field_list = self.derived_field_list
         else:
             self.derived_field_list = self.__class__._cached_derived_field_list
+
+    def _detect_fields(self):
+        self.field_list = []
+        # Do this only on the root processor to save disk work.
+        mylog.info("Gathering a field list (this may take a moment.)")
+        field_list = set()
+        random_sample = self._generate_random_grids()
+        for grid in random_sample:
+            try:
+                gf = self.io._read_field_names(grid)
+            except self.io._read_exception:
+                mylog.debug("Grid %s is a bit funky?", grid.id)
+                continue
+            mylog.debug("Grid %s has: %s", grid.id, gf)
+            field_list = field_list.union(gf)
+        field_list = self.comm.par_combine_object(list(field_list),
+                        datatype="list", op = "cat")
+        self.field_list = list(set(field_list))
 
     def _generate_random_grids(self):
         my_rank = self.comm.rank
@@ -770,7 +795,7 @@ class EnzoStaticOutput(StaticOutput):
         data_label_factors = {}
         for line in (l.strip() for l in lines):
             if len(line) < 2: continue
-            param, vals = (i.strip() for i in line.split("="))
+            param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.
