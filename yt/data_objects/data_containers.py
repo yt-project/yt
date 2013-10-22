@@ -834,7 +834,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         # We take a 3-tuple of the coordinate we want to slice through, as well
         # as the axis we're slicing along
         self._get_list_of_grids()
-        if not self.has_key('pdx'):
+        if 'pdx' not in self.field_data:
             self._generate_coords()
         if fields == None:
             fields_to_get = self.fields[:]
@@ -1606,7 +1606,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         Iterates over the list of fields and generates/reads them all.
         """
         self._get_list_of_grids()
-        if not self.has_key('pdx'):
+        if 'pdx' not in self.field_data:
             self._generate_coords()
         if fields == None:
             fields_to_get = self.fields[:]
@@ -2485,7 +2485,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         Iterates over the list of fields and generates/reads them all.
         """
         self._get_list_of_grids()
-        if not self.has_key('pdx'):
+        if 'pdx' not in self.field_data():
             self._generate_coords()
         if fields == None:
             fields_to_get = [f for f in self.fields if f not in self._key_fields]
