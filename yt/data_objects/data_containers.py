@@ -20,12 +20,13 @@ import math
 import weakref
 import itertools
 import shelve
-import cStringIO
+from yt.extern.six.moves import StringIO
 import fileinput
 from re import finditer
 
 from yt.funcs import *
 from yt.config import ytcfg
+from yt.extern.six import add_metaclass
 
 from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
@@ -182,6 +183,13 @@ class FakeGridForParticles(object):
         else: tr = self.field_data[field]
         return tr
 
+class RegisteredDataObject(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "_type_name") and not cls._skip_add:
+            data_object_registry[cls._type_name] = cls
+
+@add_metaclass(RegisteredDataObject)
 class AMRData(object):
     """
     Generic AMRData container.  By itself, will attempt to
@@ -192,12 +200,6 @@ class AMRData(object):
     _num_ghost_zones = 0
     _con_args = ()
     _skip_add = False
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "_type_name") and not cls._skip_add:
-                data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, fields, **kwargs):
         """

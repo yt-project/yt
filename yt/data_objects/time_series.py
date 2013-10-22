@@ -16,6 +16,7 @@ Time series analysis functions.
 import inspect, functools, weakref, glob, types
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.convenience import load
 from .data_containers import data_object_registry
 from .analyzer_objects import create_quantity_proxy, \
@@ -305,15 +306,16 @@ class TimeSeriesDataObject(object):
         return cls(*self._args, **self._kwargs)
 
 
-class SimulationTimeSeries(TimeSeriesData):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            code_name = name[:name.find('Simulation')]
-            if code_name:
-                simulation_time_series_registry[code_name] = cls
-                mylog.debug("Registering simulation: %s as %s", code_name, cls)
+class RegisteredSimulationTimeSeries(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        code_name = name[:name.find('Simulation')]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
+@add_metaclass(RegisteredSimulationTimeSeries)
+class SimulationTimeSeries(TimeSeriesData):
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.

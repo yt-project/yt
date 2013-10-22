@@ -16,6 +16,7 @@ The particle-IO handler
 import numpy as np
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 
 particle_handler_registry = defaultdict()
 
@@ -30,13 +31,14 @@ def particle_converter(func):
         return tr
     return save_state
 
-class ParticleIOHandler(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "_source_type"):
-                particle_handler_registry[cls._source_type] = cls
+class RegisteredParticleIOType(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "_source_type"):
+            particle_handler_registry[cls._source_type] = cls
 
+@add_metaclass(RegisteredParticleIOType)
+class ParticleIOHandler(object):
     _source_type = None
 
     def __init__(self, pf, source):

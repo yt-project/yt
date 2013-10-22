@@ -17,7 +17,6 @@ import os.path
 import glob
 import stat
 import weakref
-import cStringIO
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \

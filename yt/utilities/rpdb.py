@@ -13,7 +13,8 @@ Some simple localhost-only remote pdb hacks
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cmd, pdb, cStringIO, xmlrpclib, socket, sys
+import cmd, pdb, xmlrpclib, socket, sys
+from yt.extern.six.moves import StringIO
 import traceback
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from yt.config import ytcfg
@@ -64,9 +65,9 @@ def rpdb_excepthook(exc_type, exc, tb):
 
 class pdb_handler(object):
     def __init__(self, tb):
-        self.cin = cStringIO.StringIO()
+        self.cin = StringIO()
         sys.stdin = self.cin
-        self.cout = cStringIO.StringIO()
+        self.cout = StringIO()
         sys.stdout = self.cout
         sys.stderr = self.cout
         self.debugger = pdb.Pdb(stdin=self.cin, stdout=self.cout)

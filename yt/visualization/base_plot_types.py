@@ -13,7 +13,7 @@ This is a place for base classes of the various plot types.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import matplotlib
-import cStringIO
+from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
@@ -90,7 +90,7 @@ class ImagePlotMPL(PlotMPL):
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
-        f = cStringIO.StringIO()
+        f = StringIO()
         canvas.print_figure(f)
         f.seek(0)
         return f.read()

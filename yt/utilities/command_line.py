@@ -18,6 +18,7 @@ ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
 import urllib, urllib2, base64, os
@@ -44,25 +45,26 @@ def _add_arg(sc, arg):
     if "long" in argc: argnames.append(argc.pop('long'))
     sc.add_argument(*argnames, **argc)
 
+class YTCommandSubtype(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if cls.name is not None:
+            names = ensure_list(cls.name)
+            for name in names:
+                sc = subparsers.add_parser(name,
+                    description = cls.description,
+                    help = cls.description)
+                sc.set_defaults(func=cls.run)
+                for arg in cls.args:
+                    _add_arg(sc, arg)
+
+@add_metaclass(YTCommandSubtype)
 class YTCommand(object):
     args = ()
     name = None
     description = ""
     aliases = ()
     npfs = 1
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if cls.name is not None:
-                names = ensure_list(cls.name)
-                for name in names:
-                    sc = subparsers.add_parser(name,
-                        description = cls.description,
-                        help = cls.description)
-                    sc.set_defaults(func=cls.run)
-                    for arg in cls.args:
-                        _add_arg(sc, arg)
 
     @classmethod
     def run(cls, args):

@@ -14,7 +14,6 @@ Parallel data mapping techniques for yt
 #-----------------------------------------------------------------------------
 
 import cPickle
-import cStringIO
 import itertools
 import logging
 import numpy as np

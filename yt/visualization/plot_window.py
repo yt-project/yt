@@ -15,8 +15,8 @@ A plotting mechanism based on the idea of a "window" into the data.
 import base64
 import numpy as np
 import matplotlib
-import cStringIO
 import types
+from yt.extern.six.moves import StringIO
 import sys
 import os
 import __builtin__
@@ -1653,7 +1653,7 @@ class PWViewerExtJS(PWViewer):
         self._apply_vectors(ax, vi, vj)
 
         canvas = FigureCanvasAgg(fig)
-        f = cStringIO.StringIO()
+        f = StringIO()
         canvas.print_figure(f)
         f.seek(0)
         img = f.read()

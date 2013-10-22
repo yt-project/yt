@@ -13,7 +13,7 @@ Easy plotting.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from _mpl_imports import *
+from ._mpl_imports import *
 from yt.data_objects.profiles import BinnedProfile1D
 
 plot_type_registry = {}

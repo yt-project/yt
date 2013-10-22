@@ -24,6 +24,7 @@ import glob
 import os
 import os.path as path
 from collections import defaultdict
+from yt.extern.six import add_metaclass
 
 from yt.funcs import *
 
@@ -48,12 +49,12 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 TINY = 1.e-40
 
+@add_metaclass(ParallelDummy)
 class Halo(object):
     """
     A data source that returns particle information about the members of a
     HOP-identified halo.
     """
-    __metaclass__ = ParallelDummy  # This will proxy up our methods
     _distributed = False
     _processing = False
     _owner = 0

@@ -20,6 +20,7 @@ import numpy as np
 import os
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 
 from yt.config import ytcfg
 from yt.data_objects.profiles import \
@@ -1634,8 +1635,8 @@ class _Interactify(type):
                     elif attrname.startswith("set_"):
                         setattr(cls, attrname, wrap_pylab_show(attr))
 
+@add_metaclass(_Interactify)
 class PlotCollectionInteractive(PlotCollection):
-    __metaclass__ = _Interactify
 
     autoscale = wrap_pylab_show(PlotCollection.autoscale)
     switch_field = wrap_pylab_show(PlotCollection.switch_field)

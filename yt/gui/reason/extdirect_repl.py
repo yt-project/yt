@@ -17,7 +17,7 @@ commands through ExtDirect calls
 import json
 import os
 import stat
-import cStringIO
+from cStringIO import StringIO
 import logging
 import uuid
 import numpy as np
@@ -370,11 +370,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def paste_session(self):
-        import xmlrpclib, cStringIO
+        import xmlrpclib
         p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
-        cs = cStringIO.StringIO()
+        cs = StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs = cs.getvalue()
         ret = p.pastes.newPaste('python', cs, None, '', '', True)
@@ -383,7 +383,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def paste_text(self, to_paste):
-        import xmlrpclib, cStringIO
+        import xmlrpclib
         p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
@@ -412,7 +412,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def _session_py(self):
-        cs = cStringIO.StringIO()
+        cs = StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs.seek(0)
         response.headers["content-disposition"] = "attachment;"

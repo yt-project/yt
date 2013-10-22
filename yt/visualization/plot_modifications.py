@@ -16,6 +16,7 @@ Callbacks to add additional functionality on to plots.
 import numpy as np
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from _mpl_imports import *
 from yt.utilities.definitions import \
     x_dict, x_names, \
@@ -32,12 +33,13 @@ from . import _MPL
 
 callback_registry = {}
 
-class PlotCallback(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            callback_registry[name] = cls
+class RegisteredCallback(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        callback_registry[name] = cls
 
+@add_metaclass(RegisteredCallback)
+class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
