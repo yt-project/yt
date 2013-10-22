@@ -1,4 +1,4 @@
-include distribute_setup.py README* CREDITS FUNDING LICENSE.txt
+include distribute_setup.py README* CREDITS COPYING.txt CITATION
 recursive-include yt/gui/reason/html *.html *.png *.ico *.js
-recursive-include yt *.pyx *.pxd *.hh *.h README*
+recursive-include yt *.pyx *.pxd *.h README*
 recursive-include yt/utilities/kdtree *.f90 *.v Makefile LICENSE
