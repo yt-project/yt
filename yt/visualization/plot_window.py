@@ -19,7 +19,7 @@ import types
 from yt.extern.six.moves import StringIO
 import sys
 import os
-import __builtin__
+from yt.extern.six.moves import builtins
 
 from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
@@ -1154,7 +1154,7 @@ class PWViewerMPL(PWViewer):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()

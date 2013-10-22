@@ -19,7 +19,7 @@ import numpy as np
 from yt.funcs import *
 import _colormap_data as cmd
 import yt.utilities.lib as au
-import __builtin__
+from yt.extern.six.moves import builtins
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -540,7 +540,7 @@ def display_in_notebook(image, max_val=None):
         three channels.
     """
  
-    if "__IPYTHON__" in dir(__builtin__):
+    if "__IPYTHON__" in dir(builtins):
         from IPython.core.displaypub import publish_display_data
         data = write_bitmap(image, None, max_val=max_val)
         publish_display_data(

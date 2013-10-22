@@ -1063,11 +1063,11 @@ def rblocks(f, blocksize=4096):
     # the rest aligned on a blocksize boundary.  This may be more 
     # efficient than having the last (first in file) block be short
     f.seek(-lastblock,2)
-    yield f.read(lastblock)
+    yield f.read(lastblock).decode('ascii')
 
     for i in range(fullblocks-1,-1, -1):
         f.seek(i * blocksize)
-        yield f.read(blocksize)
+        yield f.read(blocksize).decode('ascii')
 
 def rlines(f, keepends=False):
     """Iterate through the lines of a file in reverse order.

@@ -13,7 +13,7 @@ Import the components of the volume rendering extension
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import __builtin__
+from yt.extern.six.moves import builtins
 import numpy as np
 
 from yt.funcs import *
@@ -761,7 +761,7 @@ class Camera(ParallelAnalysisInterface):
         >>> cam.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             from IPython.core.displaypub import publish_display_data
             image = self.snapshot()[:,:,:3]
             if clip_ratio is not None: clip_ratio *= image.std()

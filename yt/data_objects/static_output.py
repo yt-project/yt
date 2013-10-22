@@ -124,7 +124,7 @@ class StaticOutput(object):
             self.current_time, self.unique_identifier)
         try:
             import hashlib
-            return hashlib.md5(s).hexdigest()
+            return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
 
