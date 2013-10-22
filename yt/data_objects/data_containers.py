@@ -642,7 +642,7 @@ class AMRRayBase(AMR1DData):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
