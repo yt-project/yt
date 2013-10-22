@@ -55,41 +55,9 @@ def read_and_seek(char *filename, np.int64_t offset1,
     fread(buf, 1, bytes, f)
     fclose(f)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def read_tiger_section(
-                     char *fn,
-                     np.ndarray[np.int64_t, ndim=1] slab_start,
-                     np.ndarray[np.int64_t, ndim=1] slab_size,
-                     np.ndarray[np.int64_t, ndim=1] root_size,
-                     int offset = 36):
-    cdef int strides[3]
-    strides[0] = 1
-    strides[1] = root_size[0] * strides[0]
-    strides[2] = strides[1] * root_size[1] + 2
-    cdef np.int64_t i, j, k
-    cdef np.ndarray buffer = np.zeros(slab_size, dtype='float32', order='F')
-    cdef FILE *f = fopen(fn, "rb")
-    #for i in range(3): offset += strides[i] * slab_start[i]
-    cdef np.int64_t pos = 0
-    cdef np.int64_t moff = 0
-    cdef float *data = <float *> buffer.data
-    fseek(f, offset, 0)
-    # If anybody wants to convert this loop to a SEEK_CUR, that'd be great.
-    for i in range(slab_size[2]):
-        for j in range(slab_size[1]):
-            moff = (slab_start[0]    ) * strides[0] \
-                 + (slab_start[1] + j) * strides[1] \
-                 + (slab_start[2] + i) * strides[2]
-            #print offset + 4 * moff, pos
-            fseek(f, offset + 4 * moff, SEEK_SET)
-            fread(<void *> (data + pos), 4, slab_size[0], f)
-            pos += slab_size[0]
-    return buffer
-
 def count_art_octs(char *fn, long offset,
                    int min_level, int max_level,
-                   int nhydro_vars,                   
+                   int nhydro_vars,
                    level_info):
     cdef int nchild = 8
     cdef int i, Lev, next_record, nLevel
@@ -108,12 +76,12 @@ def count_art_octs(char *fn, long offset,
         # Offset for one record header we just read
         next_record = (nLevel * (next_record + 2*sizeof(int))) - sizeof(int)
         fseek(f, next_record, SEEK_CUR)
-        # Now we skip the second section 
+        # Now we skip the second section
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
         nhydro_vars = next_record/4-2-3 #nhvar in daniel's code
         #record length is normally 2 pad bytes, 8 + 2 hvars (the 2 is nchem)
         # and then 3 vars, but we can find nhvars only here and not in other
-        # file headers 
+        # file headers
         next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
         next_record -= sizeof(int)
         fseek(f, next_record, SEEK_CUR)
@@ -121,13 +89,13 @@ def count_art_octs(char *fn, long offset,
     fclose(f)
 
 def read_art_tree(char *fn, long offset,
-                  int min_level, int max_level, 
+                  int min_level, int max_level,
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
                   np.ndarray[np.int64_t, ndim=2] oct_info):
     #             np.ndarray[np.int64_t, ndim=1] oct_mask,
     #             np.ndarray[np.int64_t, ndim=1] oct_parents,
-    
+
     # This accepts the filename of the ART header and an integer offset that
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
@@ -162,7 +130,7 @@ def read_art_tree(char *fn, long offset,
         #print ftell(f)
         for ic1 in range(nLevel):
             iOctMax = max(iOctMax, iOct)
-            #print readin, iOct, nLevel, sizeof(int) 
+            #print readin, iOct, nLevel, sizeof(int)
             next_record = ftell(f)
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             assert readin==52
@@ -185,30 +153,30 @@ def read_art_tree(char *fn, long offset,
             fseek(f, next_record, SEEK_SET)
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             assert readin==52
-            
+
         total_masked = 0
         level_offsets.append(ftell(f))
-        
+
         #skip over the hydro variables
         #find the length of one child section
         #print 'measuring child record ',
-        fread(&next_record, sizeof(int), 1, f); 
+        fread(&next_record, sizeof(int), 1, f);
         #print next_record,
         FIX_LONG(next_record)
         #print next_record
         fseek(f,ftell(f)-sizeof(int),SEEK_SET) #rewind
         #This is a sloppy fix; next_record is 64bit
-        #and I don't think FIX_LONG(next_record) is working 
+        #and I don't think FIX_LONG(next_record) is working
         #correctly for 64bits
         if next_record > 4294967296L:
             next_record -= 4294967296L
         assert next_record == 56
-        
+
         #find the length of all of the children section
         child_record = ftell(f) +  (next_record+2*sizeof(int))*nLevel*nchild
         #print 'Skipping over hydro vars', ftell(f), child_record
         fseek(f, child_record, SEEK_SET)
-        
+
         # for ic1 in range(nLevel * nchild):
         #     fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
         #     fread(&idc, sizeof(int), 1, f); FIX_LONG(idc); idc -= 1 + (128**3)
@@ -220,7 +188,7 @@ def read_art_tree(char *fn, long offset,
     fclose(f)
     return level_offsets
 
-def read_art_root_vars(char *fn, long root_grid_offset, 
+def read_art_root_vars(char *fn, long root_grid_offset,
                     int nhydro_vars, int nx, int ny, int nz,
                     int ix, int iy, int iz, fields, var):
 
@@ -235,7 +203,7 @@ def read_art_root_vars(char *fn, long root_grid_offset,
     fseek(f, cell_record_size * my_offset, SEEK_CUR)
     #(((C)*GridDimension[1]+(B))*GridDimension[0]+A)
     for j in range(nhydro_vars):
-        fread(&temp, sizeof(float), 1, f); 
+        fread(&temp, sizeof(float), 1, f);
         if j in fields:
             FIX_FLOAT(temp)
             var[l]=temp
@@ -243,7 +211,7 @@ def read_art_root_vars(char *fn, long root_grid_offset,
     fclose(f)
 
 cdef void read_art_vars(FILE *f,
-                    int min_level, int max_level, int nhydro_vars, 
+                    int min_level, int max_level, int nhydro_vars,
                     int grid_level,long grid_id,long child_offset,
                     fields,
                     np.ndarray[np.int64_t, ndim=1] level_offsets,
@@ -273,7 +241,7 @@ cdef void read_art_vars(FILE *f,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def read_art_grid(int varindex, 
+def read_art_grid(int varindex,
               np.ndarray[np.int64_t, ndim=1] start_index,
               np.ndarray[np.int32_t, ndim=1] grid_dims,
               np.ndarray[np.float32_t, ndim=3] data,
