@@ -288,7 +288,7 @@ class EnzoHierarchy(AMRHierarchy):
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
-        f = open(self.hierarchy_filename, "rb")
+        f = open(self.hierarchy_filename, "rt")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
@@ -477,7 +477,7 @@ class EnzoHierarchy(AMRHierarchy):
             field_list = None
         field_list = self.comm.mpi_bcast(field_list)
         self.save_data(list(field_list),"/","DataFields",passthrough=True)
-        self.field_list = list(field_list)
+        self.field_list = [f.decode("ascii") for f in field_list]
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
