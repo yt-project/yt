@@ -1161,9 +1161,9 @@ class HEALpixCamera(Camera):
                  sub_samples = 5, log_fields = None, volume = None,
                  pf = None, use_kd=True, no_ghost=False, use_light=False,
                  inner_radius = 10):
-        print "Because of recent relicensing, we currently cannot provide"
-        print "HEALpix functionality.  Please visit yt-users for more"
-        print "information."
+        print ("Because of recent relicensing, we currently cannot provide")
+        print ("HEALpix functionality.  Please visit yt-users for more")
+        print ("information.")
         raise NotImplementedError
         ParallelAnalysisInterface.__init__(self)
         if pf is not None: self.pf = pf

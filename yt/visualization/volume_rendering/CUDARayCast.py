@@ -34,14 +34,14 @@ if __name__ == "__main__":
     cuda.init()
     assert (cuda.Device.count() >= 1)
 
-    print "Extracting hierarchy."
+    print ("Extracting hierarchy.")
     opf = load("/u/ki/mturk/ki05/MSM96-SIM3-restart-J64/DataDump0081.dir/DataDump0081")
     pf = hs.ExtractedParameterFile(opf, 20)
 
     cpu = {}
     gpu = {}
 
-    print "Reading data."
+    print ("Reading data.")
     #fn = "DataDump0081_partitioned.h5"
     fn = "RedshiftOutput0005_partitioned.h5"
     f = h5py.File("/u/ki/mturk/ki05/%s" % fn)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     cpu['left_edge'] = f["/PGrids/LeftEdges"][:].astype("float32")
     cpu['right_edge'] = f["/PGrids/RightEdges"][:].astype("float32")
 
-    print "Constructing transfer function."
+    print ("Constructing transfer function.")
     if "Data" in fn:
         mh = np.log10(1.67e-24)
         tf = ColorTransferFunction((7.5+mh, 14.0+mh))
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     c = np.array([0.47284317, 0.48062515, 0.58282089], dtype='float32')
 
-    print "Getting cutting plane."
+    print ("Getting cutting plane.")
     cp = pf.h.cutting(cpu['v_dir'], c)
 
     W = 2000.0/pf['au']
@@ -99,21 +99,21 @@ if __name__ == "__main__":
     cpu['image_b'] = np.zeros((Nvec, Nvec), dtype='float32').ravel()
     cpu['image_a'] = np.zeros((Nvec, Nvec), dtype='float32').ravel()
 
-    print "Generating module"
+    print ("Generating module")
     source = open("yt/extensions/volume_rendering/_cuda_caster.cu").read()
     mod = compiler.SourceModule(source)
     func = mod.get_function("ray_cast")
 
     for n, a in cpu.items():
         ss = a.size * a.dtype.itemsize
-        print "Allocating %0.3e megabytes for %s" % (ss/(1024*1024.), n)
+        print ("Allocating %0.3e megabytes for %s" % (ss/(1024*1024.), n))
         gpu[n] = cuda.to_device(a.ravel('F'))
         #pycuda.autoinit.context.synchronize()
 
     BLOCK_SIZE = 8
     grid_size = Nvec / BLOCK_SIZE
 
-    print "Running ray_cast function."
+    print ("Running ray_cast function.")
     t1 = time.time()
     ret = func(gpu['ngrids'],
                gpu['grid_data'],
@@ -134,7 +134,7 @@ if __name__ == "__main__":
          block=(BLOCK_SIZE,BLOCK_SIZE,1),
          grid=(grid_size, grid_size), time_kernel=True)
     t2 = time.time()
-    print "BACK: %0.3e" % (t2-t1)
+    print ("BACK: %0.3e" % (t2-t1))
 
     mi, ma = 1e300, -1e300
     image = []
@@ -145,8 +145,8 @@ if __name__ == "__main__":
         cpu[ii] = cuda.from_device(gpu[ii], sh, dtype).reshape((Nvec,Nvec))
         mi, ma = min(cpu[ii].min(),mi), max(cpu[ii].max(), ma)
         image.append(cpu[ii])
-        print "Min/max of %s %0.3e %0.3e" % (
-                im, image[-1].min(), image[-1].max())
+        print ("Min/max of %s %0.3e %0.3e" % (
+                im, image[-1].min(), image[-1].max()))
         pylab.clf()
         pylab.imshow(image[-1], interpolation='nearest')
         pylab.savefig("/u/ki/mturk/public_html/vr6/%s.png" % (ii))

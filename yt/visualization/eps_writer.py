@@ -389,9 +389,9 @@ class DualEPS(object):
         # axes, and resize the figure to span the entire figure
         if plot.colorbar != None and \
                isinstance(plot, VMPlot):
-            print "WARNING: Image (slices, projections, etc.) plots must not"\
-                  "have a colorbar."
-            print "Removing it."
+            print ("WARNING: Image (slices, projections, etc.) plots must not")
+            print ("have a colorbar.")
+            print ("Removing it.")
             plot.colorbar = None
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()

@@ -162,7 +162,7 @@ def assert_valid_width_tuple(width):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         assert valid, msg
-    except AssertionError, e:
+    except AssertionError as e:
         raise YTInvalidWidthError(e)
 
 def validate_iterable_width(width, unit=None):

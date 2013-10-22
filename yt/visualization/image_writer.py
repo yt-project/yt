@@ -288,7 +288,7 @@ def annotate_image(image, text, xpos, ypos, font_name = "Vera",
 
 def map_to_colors(buff, cmap_name):
     if cmap_name not in cmd.color_map_luts:
-        print "Your color map was not found in the extracted colormap file."
+        print ("Your color map was not found in the extracted colormap file.")
         raise KeyError(cmap_name)
     lut = cmd.color_map_luts[cmap_name]
     x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]

@@ -635,7 +635,7 @@ class CastroStaticOutput(StaticOutput):
                 if vals.count("'") == 0 and vals.count("\"") == 0:
                     try:
                         t = [float(a.replace('D','e').replace('d','e'))
-                                   for a in in vals.split()])
+                                   for a in vals.split()]
                     except ValueError:
                         print "Failed on line", line
                 else:

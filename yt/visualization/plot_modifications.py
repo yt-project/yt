@@ -978,7 +978,7 @@ class CoordAxesCallback(PlotCallback):
         unit_conversion = plot.pf[plot.im["Unit"]]
         aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
 
-        print "aspect ratio = ", aspect
+        print ("aspect ratio = %s" % aspect)
 
         # if coords is False, label axes relative to the center of the
         # display. if coords is True, label axes with the absolute

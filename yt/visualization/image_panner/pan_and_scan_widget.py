@@ -33,13 +33,13 @@ from enthought.chaco.tools.image_inspector_tool import ImageInspectorTool, \
      ImageInspectorOverlay
 
 if not hasattr(DataRange2D, "_subranges_updated"):
-    print "You'll need to add _subranges updated to enthought/chaco/data_range_2d.py"
-    print 'Add this at the correct indentation level:'
-    print
-    print '    @on_trait_change("_xrange.updated,_yrange.updated")'
-    print '    def _subranges_updated(self):'
-    print '        self.updated = True'
-    print
+    print ("You'll need to add _subranges updated to enthought/chaco/data_range_2d.py")
+    print ('Add this at the correct indentation level:')
+    print ()
+    print ('    @on_trait_change("_xrange.updated,_yrange.updated")')
+    print ('    def _subranges_updated(self):')
+    print ('        self.updated = True')
+    print ()
     raise RuntimeError
 
 # We like the algae colormap; for now we re-implement it here.
