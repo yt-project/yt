@@ -1876,7 +1876,7 @@ class AMRQuadTreeProjBase(AMR2DData):
                 dx = gs[0].dds[x_dict[self.axis]]
                 dy = gs[0].dds[y_dict[self.axis]]
             else:
-                ds = 0.0
+                dx = dy = 0.0
             dxs.append(np.ones(nvals.shape[0], dtype='float64') * dx)
             dys.append(np.ones(nvals.shape[0], dtype='float64') * dy)
         coord_data = np.concatenate(coord_data, axis=0).transpose()
