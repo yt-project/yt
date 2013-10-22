@@ -66,11 +66,8 @@ def _get_conv(cf):
         return data.convert(cf)
     return _convert
 
-# TIPSY
-# =====
-
-def _setup_particle_fields(registry, ptype):
-    registry.add_field((ptype, "Mass"), function=NullFunc,
+def _setup_particle_fields(registry, ptype, mass_name = "Mass"):
+    registry.add_field((ptype, mass_name), function=NullFunc,
         particle_type = True,
         convert_function=_get_conv("mass"),
         units = r"\mathrm{g}")
@@ -80,7 +77,7 @@ def _setup_particle_fields(registry, ptype):
         units = r"\mathrm{cm}/\mathrm{s}")
     # Note that we have to do this last so that TranslationFunc operates
     # correctly.
-    particle_deposition_functions(ptype, "Coordinates", "Mass",
+    particle_deposition_functions(ptype, "Coordinates", mass_name,
                                   registry)
     particle_scalar_functions(ptype, "Coordinates", "Velocities",
                               registry)
