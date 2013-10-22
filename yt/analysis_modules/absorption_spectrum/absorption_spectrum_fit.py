@@ -86,6 +86,10 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
     #Empty fit without any lines
     yFit = na.ones(len(fluxData))
 
+    #Force the first and last flux pixel to be 1 to prevent OOB
+    fluxData[0]=1
+    fluxData[-1]=1
+
     #Find all regions where lines/groups of lines are present
     cBounds = _find_complexes(x, fluxData, fitLim=fitLim,
             complexLim=complexLim, minLength=minLength,
@@ -120,9 +124,10 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
                     z,fitLim,minError*(b[2]-b[1]),speciesDict)
 
             #Check existence of partner lines if applicable
-            newLinesP = _remove_unaccepted_partners(newLinesP, x, fluxData, 
-                    b, minError*(b[2]-b[1]),
-                    x0, xRes, speciesDict)
+            if len(speciesDict['wavelength']) != 1:
+                newLinesP = _remove_unaccepted_partners(newLinesP, x, fluxData, 
+                        b, minError*(b[2]-b[1]),
+                        x0, xRes, speciesDict)
 
             #If flagged as a bad fit, species is lyman alpha,
             #   and it may be a saturated line, use special tools
@@ -547,6 +552,10 @@ def _line_exists(wavelengths, y, z, x0, xRes,fluxMin):
 
         #Index of the redshifted wavelength
         indexRedWl = (redWl-x0)/xRes
+
+        #Check to see if even in flux range
+        if indexRedWl > len(y):
+            return False
 
         #Check if surpasses minimum absorption bound
         if y[int(indexRedWl)]>fluxMin:
