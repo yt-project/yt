@@ -13,9 +13,10 @@ Symbolic unit handling.
 #-----------------------------------------------------------------------------
 
 from sympy import Expr, Mul, Number, Pow, Rational, Symbol
-from sympy import nsimplify, posify, sympify
+from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
+import string
 
 # Define a sympy one object.
 sympy_one = sympify(1)
@@ -101,7 +102,7 @@ default_unit_symbol_lut = {
 
     # dimensionless stuff
     "h": (1.0, dimensionless),
-    
+
     # times
     "min": (60.0, time),
     "hr":  (3600.0, time),
@@ -134,6 +135,24 @@ default_unit_symbol_lut = {
     "amu": (1.6605402e-24, mass),
 
 }
+
+# Add LaTeX representations for units with trivial representations.
+latex_symbol_lut = {
+    "unitary" : "",
+    "code_length" : "code\/length",
+    "code_time" : "code\/time",
+    "code_mass" : "code\/mass",
+    "Msun" : "\\rm{Msun}",
+    "msun" : "\\rm{msun}",
+    "Rsun" : "\\rm{Rsun}",
+    "rsun" : "\\rm{rsun}",
+    "Lsun" : "\\rm{Lsun}",
+    "Tsun" : "\\rm{Tsun}",
+    "Zsun" : "\\rm{Zsun}",
+}
+for key in default_unit_symbol_lut:
+    if key not in latex_symbol_lut:
+        latex_symbol_lut[key] = "\\rm{" + key + "}"
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
 unit_prefixes = {
@@ -170,7 +189,7 @@ class UnitRegistry:
     def __getitem__(self, key):
         return self.lut[key]
 
-    def add(self, symbol, cgs_value, dimensions):
+    def add(self, symbol, cgs_value, dimensions, tex_repr):
         """
         Add a symbol to this registry.
 
@@ -183,7 +202,7 @@ class UnitRegistry:
         _validate_dimensions(dimensions)
 
         # Add to lut
-        self.lut.update( {symbol: (cgs_value, dimensions)} )
+        self.lut.update( {symbol: (cgs_value, dimensions, tex_repr)} )
 
     def remove(self, symbol):
         """
@@ -319,8 +338,7 @@ class Unit(Expr):
             _validate_dimensions( sympify(dimensions) )
         else:
             # lookup the unit symbols
-            cgs_value, dimensions = _get_unit_data_from_expr(unit_expr,
-                                                             registry.lut)
+            cgs_value, dimensions = _get_unit_data_from_expr(unit_expr, registry.lut)
 
         # Sympy trick to get dimensions powers as Rationals
         dimensions = nsimplify(dimensions)
@@ -338,7 +356,9 @@ class Unit(Expr):
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
+
         # Return `obj` so __init__ can handle it.
+
         return obj
 
     ### Some sympy conventions
@@ -460,6 +480,13 @@ class Unit(Expr):
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
 
+    def latex_representation(self):
+        symbol_table = {}
+        for ex in self.expr.free_symbols:
+            symbol_table[ex] = latex_symbol_lut[str(ex)]
+        import pdb; pdb.set_trace()
+        return latex(self.expr, symbol_names=symbol_table,
+                     fold_frac_powers=True, fold_short_frac=True)
 #
 # Unit manipulation functions
 #
@@ -597,7 +624,9 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
     if isinstance(unit_expr, Pow):
         unit_data = _get_unit_data_from_expr(unit_expr.args[0], unit_symbol_lut)
         power = unit_expr.args[1]
-        return (float(unit_data[0]**power), unit_data[1]**power)
+        conv = float(unit_data[0]**power)
+        unit = unit_data[1]**power
+        return (conv, unit)
 
     if isinstance(unit_expr, Mul):
         cgs_value = 1.0
@@ -640,6 +669,11 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
             # lookup successful, it's a symbol with a prefix
             unit_data = unit_symbol_lut[symbol_wo_prefix]
             prefix_value = unit_prefixes[possible_prefix]
+
+            if symbol_str not in latex_symbol_lut:
+                latex_symbol_lut[symbol_str] = \
+                    string.replace(latex_symbol_lut[symbol_wo_prefix],
+                                   '{'+symbol_wo_prefix+'}', '{'+symbol_str+'}')
 
             # don't forget to account for the prefix value!
             return (unit_data[0] * prefix_value, unit_data[1])

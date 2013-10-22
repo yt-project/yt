@@ -492,9 +492,9 @@ def get_smallest_appropriate_unit(v, pf):
     good_u = None
     for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
         uq = YTQuantity(1.0, unit)
-        if uq/v < max_nu and uq/v > 1.0:
+        if uq < v:
             good_u = unit
-            max_nu = v*pf[unit]
+            break
     if good_u is None : good_u = 'cm'
     return good_u
 

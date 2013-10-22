@@ -484,10 +484,12 @@ class DerivedField(object):
         return dd
 
     def get_units(self):
-        return "unknown"
+        u = Unit(self.units)
+        return u.latex_representation()
 
     def get_projected_units(self):
-        return "unknown"
+        u = Unit(self.units)*Unit('cm')
+        return u.latex_representation()
 
     def check_available(self, data):
         """
