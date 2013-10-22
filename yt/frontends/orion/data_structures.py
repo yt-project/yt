@@ -571,7 +571,7 @@ class OrionStaticOutput(StaticOutput):
         lines = open(self.fparameter_filename).readlines()
         for line in lines:
             if line.count("=") == 1:
-                param, vals = [strip(i) for i in
+                param, vals = [i.strip() for i in
                                 (j.rstrip() for j in line.split("="))]
                 #param, vals = map(strip,map(rstrip,line.split("=")))
                 if vals.count("'") == 0:

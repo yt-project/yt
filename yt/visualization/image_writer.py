@@ -151,7 +151,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
-        au.write_png(bitmap_array.copy(), filename)
+        au.write_png(bitmap_array.copy(), filename.encode('ascii'))
     else:
         return au.write_png_to_string(bitmap_array.copy())
     return bitmap_array
