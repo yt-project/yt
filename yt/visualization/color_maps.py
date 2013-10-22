@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
-import _colormap_data as _cm
+from . import _colormap_data as _cm
 
 def is_colormap(cmap):
     return isinstance(cmap,cc.Colormap)

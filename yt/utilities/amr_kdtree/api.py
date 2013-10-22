@@ -12,4 +12,4 @@ API for yt.utilities.amr_kdtree
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from amr_kdtree import AMRKDTree
+from .amr_kdtree import AMRKDTree

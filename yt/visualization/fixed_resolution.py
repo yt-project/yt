@@ -19,7 +19,7 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 from .volume_rendering.api import off_axis_projection
-from image_writer import write_fits
+from .image_writer import write_fits
 from yt.data_objects.image_array import ImageArray
 from . import _MPL
 import numpy as np
