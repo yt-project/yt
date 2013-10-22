@@ -111,7 +111,10 @@ from .radmc3d_export.api import \
 from .photon_simulator.api import \
      PhotonList, \
      EventList, \
+     SpectralModel, \
      XSpecThermalModel, \
      XSpecAbsorbModel, \
      TableApecModel, \
-     TableAbsorbModel
+     TableAbsorbModel, \
+     PhotonModel, \
+     ThermalPhotonModel
