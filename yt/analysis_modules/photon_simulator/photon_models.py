@@ -21,7 +21,7 @@ Biffi et al 2013: http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 import numpy as np
 from yt.funcs import *
 from yt.utilities.physical_constants import \
-     mp, cm_per_km, K_per_keV
+     mp, cm_per_km, K_per_keV, cm_per_mpc
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system
 
@@ -42,7 +42,7 @@ class PhotonModel(object):
 
 class ThermalPhotonModel(PhotonModel):
 
-    def __init__(self, X_H, Zmet, spectral_model):
+    def __init__(self, spectral_model, X_H=0.75, Zmet=0.3):
         self.X_H = X_H
         self.Zmet = Zmet
         self.spectral_model = spectral_model
@@ -50,7 +50,13 @@ class ThermalPhotonModel(PhotonModel):
     def __call__(self, data_source, parameters):
         
         pf = data_source.pf
-        
+
+        exp_time = parameters["FiducialExposureTime"]
+        area = parameters["FiducialArea"]
+        redshift = parameters["FiducialRedshift"]
+        D_A = parameters["FiducialAngularDiameterDistance"]*cm_per_mpc
+        dist_fac = 1.0/(4.*np.pi*D_A*D_A*(1.+redshift)**3)
+                
         vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
         
         num_cells = data_source["Temperature"].shape[0]

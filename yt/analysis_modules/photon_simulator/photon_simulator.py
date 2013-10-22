@@ -20,8 +20,8 @@ Biffi et al 2013: http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 import numpy as np
 from numpy.testing import assert_allclose
 from yt.funcs import *
-from yt.utilities.physical_constants import mp, clight, cm_per_kpc, \
-     cm_per_mpc, cm_per_km, K_per_keV, erg_per_keV
+from yt.utilities.physical_constants import clight, \
+     cm_per_km, erg_per_keV
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -35,10 +35,6 @@ try:
     import astropy.wcs as pywcs
 except ImportError:
     pass
-
-N_TBIN = 10000
-TMIN = 8.08e-2
-TMAX = 50.
 
 comm = communication_system.communicators[-1]
     
@@ -133,234 +129,15 @@ class PhotonList(object):
                           OmegaLambdaNow=parameters["OmegaLambda"])
 
         return cls(photons, parameters, cosmo, p_bins)
-        
-    @classmethod
-    def from_thermal_model(cls, data_source, redshift, area,
-                           exp_time, emission_model, center="c",
-                           X_H=0.75, Zmet=0.3, dist=None, cosmology=None):
-        r"""
-        Initialize a PhotonList from a thermal plasma. 
-
-        Parameters
-        ----------
-
-        data_source : `yt.data_objects.api.AMRData`
-            The data source from which the photons will be generated.
-        redshift : float
-            The cosmological redshift for the photons.
-        area : float
-            The collecting area to determine the number of photons in cm^2.
-        exp_time : float
-            The exposure time to determine the number of photons in seconds.
-        emission_model : `yt.analysis_modules.photon_simulator.PhotonModel`
-            The thermal emission model from which to draw the photon samples
-        center : string or array_like, optional
-            The origin of the photons. Accepts "c", "max", or a coordinate. 
-        X_H : float, optional
-            The hydrogen mass fraction.
-        Zmet : float, optional
-            The metallicity of the gas. If there is a "Metallicity" field
-            this parameter is ignored.
-        dist : tuple, optional
-            The angular diameter distance in the form (value, unit), used
-            mainly for nearby sources. This may be optionally supplied
-            instead of it being determined from the *redshift* and given *cosmology*.
-        cosmology : `yt.utilities.cosmology.Cosmology`, optional
-            Cosmological information. If not supplied, it assumes \LambdaCDM with
-            the default yt parameters.
-
-        Examples
-        --------
-
-        >>> redshift = 0.1
-        >>> area = 6000.0
-        >>> time = 2.0e5
-        >>> sp = pf.h.sphere("c", (1.0, "mpc"))
-        >>> apec_model = XSpecThermalModel("apec", 0.05, 50.0, 1000)
-        >>> my_photons = PhotonList.from_thermal_model(sp, redshift, area,
-        ...                                            time, apec_model)
-
-        """
-        pf = data_source.pf
-                
-        vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
-
-        if cosmology is None:
-            cosmo = Cosmology()
-        else:
-            cosmo = cosmology
-        if dist is None:
-            D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
-        else:
-            D_A = dist[0]*pf.units["cm"]/pf.units[dist[1]]
-            redshift = 0.0
-        dist_fac = 1.0/(4.*np.pi*D_A*D_A*(1.+redshift)**3)
-
-        if center == "c":
-            src_ctr = pf.domain_center
-        elif center == "max":
-            src_ctr = pf.h.find_max("Density")[-1]
-        elif iterable(center):
-            src_ctr = center
-                                                        
-        num_cells = data_source["Temperature"].shape[0]
-        start_c = comm.rank*num_cells/comm.size
-        end_c = (comm.rank+1)*num_cells/comm.size
-
-        kT = data_source["Temperature"][start_c:end_c].copy()/K_per_keV
-        vol = data_source["CellVolume"][start_c:end_c].copy()
-        dx = data_source["dx"][start_c:end_c].copy()
-        EM = (data_source["Density"][start_c:end_c].copy()/mp)**2
-        EM *= 0.5*(1.+X_H)*X_H*vol
-        
-        data_source.clear_data()
-        
-        x = data_source["x"][start_c:end_c].copy()
-        y = data_source["y"][start_c:end_c].copy()
-        z = data_source["z"][start_c:end_c].copy()
-
-        data_source.clear_data()
-                
-        vx = data_source["x-velocity"][start_c:end_c].copy()
-        vy = data_source["y-velocity"][start_c:end_c].copy()
-        vz = data_source["z-velocity"][start_c:end_c].copy()
-
-        if isinstance(Zmet, basestring):
-            metalZ = data_source[zmet][start_c:end_c].copy()
-        else:
-            metalZ = Zmet*np.ones(EM.shape)
-            
-        data_source.clear_data()
-                
-        idxs = np.argsort(kT)
-        dshape = idxs.shape
-                    
-        kT_bins = np.linspace(TMIN, max(kT[idxs][-1], TMAX), num=N_TBIN+1)
-        dkT = kT_bins[1]-kT_bins[0]
-        kT_idxs = np.digitize(kT[idxs], kT_bins)
-        kT_idxs = np.minimum(np.maximum(1, kT_idxs), N_TBIN) - 1
-        bcounts = np.bincount(kT_idxs).astype("int")
-        bcounts = bcounts[bcounts > 0]
-        n = int(0)
-        bcell = []
-        ecell = []
-        for bcount in bcounts:
-            bcell.append(n)
-            ecell.append(n+bcount)
-            n += bcount
-        kT_idxs = np.unique(kT_idxs)
-
-        emission_model.prepare()
-        energy = emission_model.ebins
-              
-        cell_em = EM[idxs]*vol_scale
-        cell_vol = vol[idxs]*vol_scale
-        
-        number_of_photons = np.zeros(dshape, dtype='uint64')
-        energies = []
-        
-        u = np.random.random(cell_em.shape)
-        
-        pbar = get_pbar("Generating Photons", dshape[0])
-
-        for i, ikT in enumerate(kT_idxs):
-            
-            ncells = int(bcounts[i])
-            ibegin = bcell[i]
-            iend = ecell[i]
-            kT = kT_bins[ikT] + 0.5*dkT
-            
-            em_sum_c = cell_em[ibegin:iend].sum()
-            em_sum_m = (metalZ[ibegin:iend]*cell_em[ibegin:iend]).sum() 
-
-            cspec, mspec = emission_model.get_spectrum(kT)
-            cspec *= dist_fac*em_sum_c/vol_scale
-            mspec *= dist_fac*em_sum_m/vol_scale
-            
-            cumspec_c = np.cumsum(cspec)
-            counts_c = cumspec_c[:]/cumspec_c[-1]
-            counts_c = np.insert(counts_c, 0, 0.0)
-            tot_ph_c = cumspec_c[-1]*area*exp_time
-
-            cumspec_m = np.cumsum(mspec)
-            counts_m = cumspec_m[:]/cumspec_m[-1]
-            counts_m = np.insert(counts_m, 0, 0.0)
-            tot_ph_m = cumspec_m[-1]*area*exp_time
-            
-            for icell in xrange(ibegin, iend):
-                
-                cell_norm_c = tot_ph_c*cell_em[icell]/em_sum_c
-                cell_n_c = np.uint64(cell_norm_c) + np.uint64(np.modf(cell_norm_c)[0] >= u[icell])
-
-                cell_norm_m = tot_ph_m*metalZ[icell]*cell_em[icell]/em_sum_m
-                cell_n_m = np.uint64(cell_norm_m) + np.uint64(np.modf(cell_norm_m)[0] >= u[icell])
-                                                
-                cell_n = cell_n_c + cell_n_m
-                
-                if cell_n > 0:
-                    number_of_photons[icell] = cell_n                    
-                    randvec_c = np.random.uniform(size=cell_n_c)
-                    randvec_c.sort()
-                    randvec_m = np.random.uniform(size=cell_n_m)
-                    randvec_m.sort()
-                    cell_e_c = np.interp(randvec_c, counts_c, energy)
-                    cell_e_m = np.interp(randvec_m, counts_m, energy)
-                    energies.append(np.concatenate([cell_e_c,cell_e_m]))
-                    
-                pbar.update(icell)
-            
-        pbar.finish()
-
-        active_cells = number_of_photons > 0
-        idxs = idxs[active_cells]
-        
-        photons = {}
-        parameters = {}
-        
-        photons["x"] = (x[idxs]-src_ctr[0])*pf.units["kpc"]
-        photons["y"] = (y[idxs]-src_ctr[1])*pf.units["kpc"]
-        photons["z"] = (z[idxs]-src_ctr[2])*pf.units["kpc"]
-        photons["vx"] = vx[idxs]/cm_per_km
-        photons["vy"] = vy[idxs]/cm_per_km
-        photons["vz"] = vz[idxs]/cm_per_km
-        photons["dx"] = dx[idxs]*pf.units["kpc"]
-        photons["NumberOfPhotons"] = number_of_photons[active_cells]
-        photons["Energy"] = np.concatenate(energies)
-                
-        parameters["FiducialExposureTime"] = exp_time
-        parameters["FiducialArea"] = area
-        parameters["FiducialRedshift"] = redshift
-        parameters["FiducialAngularDiameterDistance"] = D_A/cm_per_mpc
-        parameters["HubbleConstant"] = cosmo.HubbleConstantNow
-        parameters["OmegaMatter"] = cosmo.OmegaMatterNow
-        parameters["OmegaLambda"] = cosmo.OmegaLambdaNow
-
-        dimension = 0
-        width = 0.0
-        for i, ax in enumerate("xyz"):
-            pos = data_source[ax]
-            delta = data_source["d%s"%(ax)]
-            le = np.min(pos-0.5*delta)
-            re = np.max(pos+0.5*delta)
-            width = 2.*max(width, re-src_ctr[i], src_ctr[i]-le)
-            dimension = max(dimension, int(width/delta.min()))
-        parameters["Dimension"] = dimension
-        parameters["Width"] = width*pf.units["kpc"]
-                
-        p_bins = np.cumsum(photons["NumberOfPhotons"])
-        p_bins = np.insert(p_bins, 0, [np.uint64(0)])
-    
-        return cls(photons, parameters, cosmo, p_bins)
     
     @classmethod
     def from_scratch(cls, data_source, redshift, area,
-                     exp_time, gen_func, parameters=None,
+                     exp_time, photon_model, parameters=None,
                      center=None, dist=None, cosmology=None):
         """
-        Initialize a PhotonList from a user-provided model. The idea is
-        to give the user full flexibility. The redshift, collecting area,
-        exposure time, and cosmology are stored in the `photons` dictionary which
-        is passed to the user function. 
+        Initialize a PhotonList from a photon model. The redshift, collecting area,
+        exposure time, and cosmology are stored in the *parameters* dictionary which
+        is passed to the *photon_model* function. 
 
         Parameters
         ----------
@@ -373,10 +150,10 @@ class PhotonList(object):
             The collecting area to determine the number of photons in cm^2.
         exp_time : float
             The exposure time to determine the number of photons in seconds.
-        user_function : function
-            A function that takes the *data_source*, the photons dictionary,
-            and the *parameters* dictionary and generates the photons.
-            Must be of the form: user_function(data_source, photons, parameters)
+        photon_model : function
+            A function that takes the *data_source* and the *parameters*
+            dictionary and returns a *photons* dictionary. Must be of the
+            form: photon_model(data_source, parameters)
         parameters : dict, optional
             A dictionary of parameters to be passed to the user function. 
         center : string or array_like, optional
@@ -440,9 +217,9 @@ class PhotonList(object):
         else:
             cosmo = cosmology
         if dist is None:
-            D_A = cosmo.AngularDiameterDistance(0.0,redshift)*cm_per_mpc
+            D_A = cosmo.AngularDiameterDistance(0.0,redshift)
         else:
-            D_A = dist[0]*pf.units["cm"]/pf.units[dist[1]]
+            D_A = dist[0]*pf.units["mpc"]/pf.units[dist[1]]
             redshift = 0.0
 
         if center == "c":
@@ -452,7 +229,7 @@ class PhotonList(object):
         elif iterable(center):
             parameters["center"] = center
         elif center is None:
-            center = data_source.get_field_parameter("center")
+            parameters["center"] = data_source.get_field_parameter("center")
             
         parameters["FiducialExposureTime"] = exp_time
         parameters["FiducialArea"] = area
@@ -469,7 +246,7 @@ class PhotonList(object):
             delta = data_source["d%s"%(ax)]
             le = np.min(pos-0.5*delta)
             re = np.max(pos+0.5*delta)
-            width = 2.*max(width, re-src_ctr[i], src_ctr[i]-le)
+            width = 2.*max(width, re-parameters["center"][i], parameters["center"][i]-le)
             dimension = max(dimension, int(width/delta.min()))
         parameters["Dimension"] = dimension
         parameters["Width"] = width*pf.units["kpc"]

@@ -65,7 +65,7 @@ class XSpecThermalModel(SpectralModel):
     """
     def __init__(self, model_name, emin, emax, nchan):
         self.model_name = model_name
-        PhotonModel.__init__(self, emin, emax, nchan)
+        SpectralModel.__init__(self, emin, emax, nchan)
         
     def prepare(self):
         """
@@ -122,7 +122,7 @@ class XSpecAbsorbModel(SpectralModel):
     def __init__(self, model_name, nH, emin=0.01, emax=50.0, nchan=100000):
         self.model_name = model_name
         self.nH = nH
-        PhotonModel.__init__(self, emin, emax, nchan)
+        SpectralModel.__init__(self, emin, emax, nchan)
         
     def prepare(self):
         """
@@ -182,7 +182,7 @@ class TableApecModel(SpectralModel):
                                      self.apec_prefix+"_coco.fits")
         self.linefile = os.path.join(self.apec_root,
                                      self.apec_prefix+"_line.fits")
-        PhotonModel.__init__(self, emin, emax, nchan)
+        SpectralModel.__init__(self, emin, emax, nchan)
         self.wvbins = hc/self.ebins[::-1]
         # H, He, and trace elements
         self.cosmic_elem = [1,2,3,4,5,9,11,15,17,19,21,22,23,24,25,27,29,30]
@@ -305,7 +305,7 @@ class TableAbsorbModel(SpectralModel):
         self.sigma = f["cross_section"][:]
         nchan = self.sigma.shape[0]
         f.close()
-        PhotonModel.__init__(self, emin, emax, nchan)
+        SpectralModel.__init__(self, emin, emax, nchan)
         self.nH = nH*1.0e22
         
     def prepare(self):
