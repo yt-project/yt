@@ -1162,7 +1162,7 @@ class AMRSliceBase(AMR2DData):
             return grid[field]
         elif field in self.pf.field_info and self.pf.field_info[field].not_in_all:
             dv = grid[field][sl]
-        elif not grid.has_key(field):
+        elif field not in grid.field_data:
             conv_factor = 1.0
             if self.pf.field_info.has_key(field):
                 conv_factor = self.pf.field_info[field]._convert_function(self)
@@ -2652,7 +2652,7 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
             np = pointI[0].ravel().size
-            if grid.has_key(field):
+            if field in grid.field_data:
                 new_field = grid[field]
             else:
                 new_field = np.ones(grid.ActiveDimensions, dtype=dtype) * default_val
@@ -3809,8 +3809,10 @@ class AMRCoveringGridBase(AMR3DData):
         ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         g_fields = []
         for field in fields:
-            if not grid.has_key(field): grid[field] = \
-               np.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
+            if field not in grid.field_data:
+                grid[field] = \
+                    np.zeros(grid.ActiveDimensions,
+                        dtype=self[field].dtype)
             g_fields.append(grid[field])
         c_fields = [self[field] for field in fields]
         FillRegion(ref_ratio,
@@ -4026,11 +4028,11 @@ class AMRBooleanRegionBase(AMR3DData):
         # Before anything, we simply find out which regions are involved in all
         # of this process, uniquely.
         for item in self.regions:
-            if isinstance(item, types.StringType): continue
-            self._all_regions.append(item)
+            if isinstance(item, (str, types.StringType)): continue
+            if item not in self._all_regions:
+                self._all_regions.append(item)
             # So cut_masks don't get messed up.
             item._boolean_touched = True
-        self._all_regions = np.unique(self._all_regions)
 
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
