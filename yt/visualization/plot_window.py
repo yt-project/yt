@@ -104,7 +104,7 @@ def apply_callback(f):
     def newfunc(*args, **kwargs):
         rv = f(*args[1:], **kwargs)
         args[0]._callbacks.append((f.__name__,(args,kwargs)))
-        return rv
+        return args[0]
     return newfunc
 
 field_transforms = {}
@@ -290,7 +290,8 @@ class PlotWindow(object):
     _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, window_size=10.0):
+                 periodic=True, origin='center-window', oblique=False,
+                 window_size=10.0, fields=None):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
@@ -304,6 +305,12 @@ class PlotWindow(object):
         self.buff_size = buff_size
         self.window_size = window_size
         self.antialias = antialias
+        skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
+        if fields is None:
+            fields = []
+        else:
+            fields = ensure_list(fields)
+        self.override_fields = list(np.intersect1d(fields, skip))
         self.set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
@@ -359,6 +366,8 @@ class PlotWindow(object):
             self._frb._get_data_source_fields()
         else:
             for key in old_fields: self._frb[key]
+        for key in self.override_fields:
+            self._frb[key]
         self._data_valid = True
 
     def _setup_plots(self):
@@ -366,7 +375,7 @@ class PlotWindow(object):
 
     @property
     def fields(self):
-        return self._frb.data.keys()
+        return self._frb.data.keys() + self.override_fields
 
     @property
     def width(self):
@@ -515,6 +524,7 @@ class PlotWindow(object):
             mw = max([width[0][0], width[1][0]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
+        return self
 
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -537,6 +547,7 @@ class PlotWindow(object):
             new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
         self.set_window(self.bounds)
+        return self
 
     @invalidate_data
     def set_antialias(self,aa):
@@ -556,6 +567,7 @@ class PlotWindow(object):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
+        return self
 
     @invalidate_plot
     @invalidate_figure
@@ -569,11 +581,12 @@ class PlotWindow(object):
             including the margins but not the colorbar.
         """
         self.window_size = float(size)
+        return self
 
     @invalidate_data
     def refresh(self):
         # invalidate_data will take care of everything
-        pass
+        return self
 
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
@@ -619,12 +632,14 @@ class PWViewer(PlotWindow):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+        return self
 
     @invalidate_plot
     def set_transform(self, field, name):
         if name not in field_transforms:
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
+        return self
 
     @invalidate_plot
     def set_cmap(self, field, cmap_name):
@@ -647,6 +662,7 @@ class PWViewer(PlotWindow):
         for field in fields:
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
+        return self
 
     @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
@@ -693,6 +709,7 @@ class PWViewer(PlotWindow):
 
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
+        return self
 
     def setup_callbacks(self):
         for key in callback_registry:
@@ -754,6 +771,7 @@ class PWViewer(PlotWindow):
                 except KeyError:
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
+        return self
 
 class PWViewerMPL(PWViewer):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
@@ -894,10 +912,23 @@ class PWViewerMPL(PWViewer):
                                           cax)
 
             axes_unit_labels = ['', '']
+            comoving = False
+            hinv = False
             for i, un in enumerate((unit_x, unit_y)):
+                if un.endswith('cm') and un != 'cm':
+                    comoving = True
+                    un = un[:-2]
+                # no length units end in h so this is safe
+                if un.endswith('h'):
+                    hinv = True
+                    un = un[:-1]
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
+                    if hinv:
+                        un = un + '\,h^{-1}'
+                    if comoving:
+                        un = un + '\,(1+z)^{-1}'
                     axes_unit_labels[i] = '\/\/('+un+')'
 
             if self.oblique:
@@ -1007,7 +1038,7 @@ class PWViewerMPL(PWViewer):
             self._font_color = font_dict.pop('color')
         self._font_properties = \
             FontProperties(**font_dict)
-
+        return self
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
@@ -1038,6 +1069,7 @@ class PWViewerMPL(PWViewer):
             if not is_colormap(cmap) and cmap is not None:
                 raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
             self.plots[field].image.set_cmap(cmap)
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
@@ -1251,7 +1283,8 @@ class SlicePlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis], center=center, fields=fields, **field_parameters)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin,
+                             fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1368,7 +1401,8 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
                          center=center, source=data_source, **field_parameters)
-        PWViewerMPL.__init__(self, proj, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, proj, bounds, origin=origin,
+                             fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1427,8 +1461,9 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector, **field_parameters)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window', periodic=False,
-                             oblique=True, fontsize=fontsize)
+        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window',
+                             periodic=False, oblique=True, fontsize=fontsize,
+                             fields=fields)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):

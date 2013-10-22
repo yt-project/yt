@@ -94,3 +94,86 @@ class ImagePlotMPL(PlotMPL):
         canvas.print_figure(f)
         f.seek(0)
         return f.read()
+
+def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
+                   cbar_padding = 0.4):
+    r"""Construct a multiple axes plot object, with or without a colorbar, into
+    which multiple plots may be inserted.
+
+    This will create a set of :class:`matplotlib.axes.Axes`, all lined up into
+    a grid, which are then returned to the user and which can be used to plot
+    multiple plots on a single figure.
+
+    Parameters
+    ----------
+    nx : int
+        Number of axes to create along the x-direction
+    ny : int
+        Number of axes to create along the y-direction
+    colorbar : {'vertical', 'horizontal', None}, optional
+        Should Axes objects for colorbars be allocated, and if so, should they
+        correspond to the horizontal or vertical set of axes?
+    bw : number
+        The base height/width of an axes object inside the figure, in inches
+    dpi : number
+        The dots per inch fed into the Figure instantiation
+
+    Returns
+    -------
+    fig : :class:`matplotlib.figure.Figure`
+        The figure created inside which the axes reside
+    tr : list of list of :class:`matplotlib.axes.Axes` objects
+        This is a list, where the inner list is along the x-axis and the outer
+        is along the y-axis
+    cbars : list of :class:`matplotlib.axes.Axes` objects
+        Each of these is an axes onto which a colorbar can be placed.
+
+    Notes
+    -----
+    This is a simple implementation for a common use case.  Viewing the source
+    can be instructure, and is encouraged to see how to generate more
+    complicated or more specific sets of multiplots for your own purposes.
+    """
+    hf, wf = 1.0/ny, 1.0/nx
+    fudge_x = fudge_y = 1.0
+    if colorbar is None:
+        fudge_x = fudge_y = 1.0
+    elif colorbar.lower() == 'vertical':
+        fudge_x = nx/(cbar_padding+nx)
+        fudge_y = 1.0
+    elif colorbar.lower() == 'horizontal':
+        fudge_x = 1.0
+        fudge_y = ny/(cbar_padding+ny)
+    fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
+    from _mpl_imports import FigureCanvasAgg
+    fig.set_canvas(FigureCanvasAgg(fig))
+    fig.subplots_adjust(wspace=0.0, hspace=0.0,
+                        top=1.0, bottom=0.0,
+                        left=0.0, right=1.0)
+    tr = []
+    for j in range(ny):
+        tr.append([])
+        for i in range(nx):
+            left = i*wf*fudge_x
+            bottom = fudge_y*(1.0-(j+1)*hf) + (1.0-fudge_y)
+            ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
+            tr[-1].append(ax)
+    cbars = []
+    if colorbar is None:
+        pass
+    elif colorbar.lower() == 'horizontal':
+        for i in range(nx):
+            # left, bottom, width, height
+            # Here we want 0.10 on each side of the colorbar
+            # We want it to be 0.05 tall
+            # And we want a buffer of 0.15
+            ax = fig.add_axes([wf*(i+0.10)*fudge_x, hf*fudge_y*0.20,
+                               wf*(1-0.20)*fudge_x, hf*fudge_y*0.05])
+            cbars.append(ax)
+    elif colorbar.lower() == 'vertical':
+        for j in range(ny):
+            ax = fig.add_axes([wf*(nx+0.05)*fudge_x, hf*fudge_y*(ny-(j+0.95)),
+                               wf*fudge_x*0.05, hf*fudge_y*0.90])
+            ax.clear()
+            cbars.append(ax)
+    return fig, tr, cbars
