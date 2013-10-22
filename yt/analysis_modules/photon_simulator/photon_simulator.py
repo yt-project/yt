@@ -42,8 +42,7 @@ TMAX = 50.
 
 comm = communication_system.communicators[-1]
     
-class PhotonList(object):
-                                                                                                                                                                                                                                                            
+class PhotonList(object):                                                                                                                                                                                                                                                            
     def __init__(self, photons, parameters, cosmo, p_bins):
         self.photons = photons
         self.parameters = parameters
@@ -356,7 +355,7 @@ class PhotonList(object):
     @classmethod
     def from_scratch(cls, data_source, redshift, area,
                      exp_time, gen_func, parameters=None,
-                     center="c", dist=None, cosmology=None):
+                     center=None, dist=None, cosmology=None):
         """
         Initialize a PhotonList from a user-provided model. The idea is
         to give the user full flexibility. The redshift, collecting area,
@@ -447,12 +446,14 @@ class PhotonList(object):
             redshift = 0.0
 
         if center == "c":
-            src_ctr = pf.domain_center
+            parameters["center"] = pf.domain_center
         elif center == "max":
-            src_ctr = pf.h.find_max("Density")[-1]
+            parameters["center"] = pf.h.find_max("Density")[-1]
         elif iterable(center):
-            src_ctr = center
-                                                            
+            parameters["center"] = center
+        elif center is None:
+            center = data_source.get_field_parameter("center")
+            
         parameters["FiducialExposureTime"] = exp_time
         parameters["FiducialArea"] = area
         parameters["FiducialRedshift"] = redshift

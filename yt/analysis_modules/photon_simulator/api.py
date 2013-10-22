@@ -11,7 +11,8 @@ API for yt.analysis_modules.photon_simulator.
 #-----------------------------------------------------------------------------
 
 from .photon_models import \
-     ThermalModel
+     PhotonModel, \
+     ThermalPhotonModel
 
 from .photon_simulator import \
      PhotonList, \
