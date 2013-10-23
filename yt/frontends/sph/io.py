@@ -336,7 +336,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                     field, req = field
                     if req is ZeroMass:
                         if m > 0.0 : continue
-                    elif req != field:
+                    elif req != ptype:
                         continue
                 field_list.append((ptype, field))
         return field_list
