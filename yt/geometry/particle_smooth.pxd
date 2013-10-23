@@ -41,7 +41,9 @@ cdef inline np.float64_t r2dist(np.float64_t ppos[3],
     r2 = 0.0
     for i in range(3):
         DR = (ppos[i] - cpos[i])
-        if (DR > DW[i]/2.0):
+        if periodicity[i] == 0:
+            pass
+        elif (DR > DW[i]/2.0):
             DR -= DW[i]/2.0
         elif (DR < -DW[i]/2.0):
             DR += DW[i]/2.0
@@ -67,7 +69,7 @@ cdef class ParticleSmoothOperation:
                                np.float64_t **fields, np.int64_t nneighbors,
                                np.int64_t *nind, np.int64_t *doffs,
                                np.int64_t *pinds, np.int64_t *pcounts,
-                               np.int64_t offset)
+                               np.int64_t offset, np.float64_t **index_fields)
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3])
     cdef void neighbor_reset(self)
@@ -80,4 +82,5 @@ cdef class ParticleSmoothOperation:
                             np.float64_t *ppos,
                             np.float64_t cpos[3])
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields)
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields)

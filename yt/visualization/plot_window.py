@@ -1427,7 +1427,8 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
-                 fontsize=18, field_parameters=None, data_source=None):
+                 fontsize=18, field_parameters=None, data_source=None,
+                 proj_style = "integrate"):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1438,7 +1439,7 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
                          center=center, data_source=data_source,
-                         field_parameters = field_parameters)
+                         field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize)
         self.set_axes_unit(axes_unit)

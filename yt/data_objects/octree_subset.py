@@ -148,21 +148,22 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
-    def smooth(self, positions, fields = None, method = None):
+    def smooth(self, positions, fields = None, index_fields = None, method = None):
         # Here we perform our particle deposition.
         if fields is None: fields = []
+        if index_fields is None: index_fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
-        if fields is None: fields = []
         op = cls(nvals, len(fields), 64)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
         op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
-            self.domain_id, self._domain_offset, self.pf.periodicity)
+            self.domain_id, self._domain_offset, self.pf.periodicity,
+            index_fields)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):
