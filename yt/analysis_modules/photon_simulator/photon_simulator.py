@@ -37,8 +37,9 @@ except ImportError:
     pass
 
 comm = communication_system.communicators[-1]
-    
-class PhotonList(object):                                                                                                                                                                                                                                                            
+
+class PhotonList(object):
+
     def __init__(self, photons, parameters, cosmo, p_bins):
         self.photons = photons
         self.parameters = parameters
@@ -368,7 +369,7 @@ class PhotonList(object):
     def project_photons(self, L, area_new=None, texp_new=None, 
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
-                        sky_center=None):
+                        sky_center=None, responses=None):
         r"""
         Projects photons onto an image plane given a line of sight.
 
@@ -434,7 +435,14 @@ class PhotonList(object):
         n_ph_tot = n_ph.sum()
         
         eff_area = None
+
+        parameters = {}
         
+        if responses is not None:
+            parameters["ARF"] = responses[0]
+            parameters["RMF"] = responses[1]
+            area_new = parameters["ARF"]
+            
         if (texp_new is None and area_new is None and
             redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
@@ -449,11 +457,13 @@ class PhotonList(object):
                 Aratio = 1.
             elif isinstance(area_new, basestring):
                 if comm.rank == 0:
-                    mylog.info("Using energy-dependent effective area.")
+                    mylog.info("Using energy-dependent effective area: %s" % (parameters["ARF"]))
                 f = pyfits.open(area_new)
                 elo = f["SPECRESP"].data.field("ENERG_LO")
                 ehi = f["SPECRESP"].data.field("ENERG_HI")
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
+                weights = self._normalize_arf(parameters["RMF"])
+                eff_area *= weights
                 f.close()
                 Aratio = eff_area.max()/self.parameters["FiducialArea"]
             else:
@@ -552,8 +562,10 @@ class PhotonList(object):
             
         if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
 
-        parameters = {}
-        
+        if responses is not None:
+            events, info = self._convolve_with_rmf(parameters["RMF"], events)
+            for k, v in info.items(): parameters[k] = v
+                
         if texp_new is None:
             parameters["ExposureTime"] = self.parameters["FiducialExposureTime"]
         else:
@@ -564,14 +576,101 @@ class PhotonList(object):
             parameters["Area"] = area_new
         parameters["Redshift"] = zobs
         parameters["AngularDiameterDistance"] = D_A/1000.
-        if isinstance(area_new, basestring):
-            parameters["ARF"] = area_new
         parameters["sky_center"] = np.array(sky_center)
         parameters["pix_center"] = np.array([0.5*(nx+1)]*2)
         parameters["dtheta"] = dtheta
         
         return EventList(events, parameters)
 
+    def _normalize_arf(self, respfile):
+        rmf = pyfits.open(respfile)
+        table = rmf["MATRIX"]
+        weights = np.array([w.sum() for w in table.data["MATRIX"]])
+        rmf.close()
+        return weights
+
+    def _convolve_with_rmf(self, respfile, events):
+        """
+        Convolve the events with a RMF file.
+        """
+        mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
+        mylog.info("Reading response matrix file (RMF): %s" % (respfile))
+        
+        hdulist = pyfits.open(respfile)
+
+        tblhdu = hdulist["MATRIX"]
+        n_de = len(tblhdu.data["ENERG_LO"])
+        mylog.info("Number of energy bins in RMF: %d" % (n_de))
+        de = tblhdu.data["ENERG_HI"] - tblhdu.data["ENERG_LO"]
+        mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
+                                             max(tblhdu.data["ENERG_HI"])))
+
+        tblhdu2 = hdulist["EBOUNDS"]
+        n_ch = len(tblhdu2.data["CHANNEL"])
+        mylog.info("Number of channels in RMF: %d" % (n_ch))
+        
+        eidxs = np.argsort(events["eobs"])
+
+        phEE = events["eobs"][eidxs]
+        phXX = events["xpix"][eidxs]
+        phYY = events["ypix"][eidxs]
+
+        detectedChannels = []
+        pindex = 0
+
+        # run through all photon energies and find which bin they go in
+        k = 0
+        fcurr = 0
+        last = len(phEE)-1
+
+        pbar = get_pbar("Scattering energies with RMF:", n_de)
+        
+        for low,high in zip(tblhdu.data["ENERG_LO"],tblhdu.data["ENERG_HI"]):
+            # weight function for probabilities from RMF
+            weights = np.nan_to_num(tblhdu.data[k]["MATRIX"][:])
+            weights /= weights.sum()
+            # build channel number list associated to array value,
+            # there are groups of channels in rmfs with nonzero probabilities
+            trueChannel = []
+            f_chan = np.nan_to_num(tblhdu.data["F_CHAN"][k])
+            n_chan = np.nan_to_num(tblhdu.data["N_CHAN"][k])
+            n_grp = np.nan_to_num(tblhdu.data["N_CHAN"][k])
+            if not iterable(f_chan):
+                f_chan = [f_chan]
+                n_chan = [n_chan]
+                n_grp  = [n_grp]
+            for start,nchan in zip(f_chan, n_chan):
+                end = start + nchan
+                if start == end:
+                    trueChannel.append(start)
+                else:
+                    for j in range(start,end):
+                        trueChannel.append(j)
+            if len(trueChannel) > 0:
+                for q in range(fcurr,last):
+                    if phEE[q] >= low and phEE[q] < high:
+                        channelInd = np.random.choice(len(weights), p=weights)
+                        fcurr +=1
+                        detectedChannels.append(trueChannel[channelInd])
+                    if phEE[q] >= high:
+                        break
+            pbar.update(k)
+            k+=1
+        pbar.finish()
+        
+        dchannel = np.array(detectedChannels)
+
+        events["xpix"] = phXX
+        events["ypix"] = phYY
+        events["eobs"] = phEE
+        events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
+
+        info = {"ChannelType" : tblhdu.header["CHANTYPE"],
+                "Telescope" : tblhdu.header["TELESCOP"],
+                "Instrument" : tblhdu.header["INSTRUME"]}
+        
+        return events, info
+    
 class EventList(object) :
 
     def __init__(self, events, parameters) :
@@ -700,7 +799,7 @@ class EventList(object) :
             events[k1] = np.concatenate([v1,v2])
         
         return cls(events, events1.parameters)
-
+        
     def convolve_with_response(self, respfile):
         """
         Convolve the events with a RMF file *respfile*.
@@ -723,19 +822,6 @@ class EventList(object) :
         mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
                                              max(tblhdu.data["ENERG_HI"])))
 
-        if "ARF" in self.parameters:
-            f = pyfits.open(self.parameters["ARF"])
-            elo = f["SPECRESP"].data.field("ENERG_LO")
-            ehi = f["SPECRESP"].data.field("ENERG_HI")
-            f.close()
-            try:
-                assert_allclose(elo, tblhdu.data["ENERG_LO"], rtol=1.0e-6)
-                assert_allclose(ehi, tblhdu.data["ENERG_HI"], rtol=1.0e-6)
-            except AssertionError:
-                mylog.warning("Energy binning does not match for "+
-                              "ARF and RMF. This may make spectral "+
-                              "fitting difficult.")
-                                              
         tblhdu2 = hdulist["EBOUNDS"]
         n_ch = len(tblhdu2.data["CHANNEL"])
         mylog.info("Number of Channels: %d" % (n_ch))
