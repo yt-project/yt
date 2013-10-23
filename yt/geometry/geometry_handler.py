@@ -459,6 +459,18 @@ class GeometryHandler(ParallelAnalysisInterface):
             del self._data_file
             self._data_file = None
 
+    def find_max(self, field):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        mylog.debug("Searching for maximum value of %s", field)
+        source = self.all_data()
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        return max_val, np.array([mx, my, mz], dtype="float64")
+
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
         obj = type(class_name, (base,), dd)
@@ -674,3 +686,4 @@ class ChunkDataCache(object):
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
+

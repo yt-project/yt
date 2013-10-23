@@ -333,8 +333,9 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
-        cdef np.float64_t weight, r2, val
+        cdef np.float64_t weight, r2, val, norm
         cdef np.int64_t pn
+        # rho_i = sum(j = 1 .. n) m_j * W_ij
         for n in range(self.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
@@ -345,7 +346,10 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
             # Mass of the particle times the value divided by the Density
             for fi in range(self.nfields - 3):
                 val = fields[1][pn] * fields[fi + 3][pn]/fields[2][pn]
-                self.fp[fi + 3][gind(i,j,k,dim) + offset] = val * weight
+                self.fp[fi + 3][gind(i,j,k,dim) + offset] += val * weight
+            norm += weight
+        for fi in range(self.nfields - 3):
+            self.fp[fi + 3][gind(i,j,k,dim) + offset] /= norm
         return
 
 simple_neighbor_smooth = SimpleNeighborSmooth
