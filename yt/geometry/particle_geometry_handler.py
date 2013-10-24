@@ -105,11 +105,15 @@ class ParticleIndex(Index):
         # For now we will do this in serial.
         morton = np.empty(self.total_particles, dtype="uint64")
         ind = 0
-        for data_file in self.data_files:
+        pb = get_pbar("Initializing Morton curve ", len(self.data_files))
+        for i, data_file in enumerate(self.data_files):
+            pb.update(i)
             npart = sum(data_file.total_particles.values())
             morton[ind:ind + npart] = \
                 self.io._initialize_index(data_file, self.regions)
             ind += npart
+        pb.finish()
+        mylog.debug("Sorting and adding Morton curve.")
         morton.sort()
         # Now we add them all at once.
         self.oct_handler.add(morton)
