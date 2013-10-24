@@ -1052,7 +1052,7 @@ class StreamOctreeHandler(OctreeGeometryHandler):
                       right_edge = self.pf.domain_right_edge,
                       octree = self.pf.octree_mask,
                       over_refine = self.pf.over_refine_factor,
-                      partial_coverage = 1)
+                      partial_coverage = self.pf.partial_coverage)
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
@@ -1102,7 +1102,7 @@ class StreamOctreeStaticOutput(StreamStaticOutput):
 
 def load_octree(octree_mask, data, sim_unit_to_cm,
                 bbox=None, sim_time=0.0, periodicity=(True, True, True),
-                over_refine_factor = 1):
+                over_refine_factor = 1, partial_coverage = 1):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1130,6 +1130,9 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    partial_coverage : boolean
+        Whether or not an oct can be refined cell-by-cell, or whether all 8 get
+        refined.
 
     """
 
@@ -1176,6 +1179,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
 
     spf = StreamOctreeStaticOutput(handler)
     spf.octree_mask = octree_mask
+    spf.partial_coverage = partial_coverage
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0

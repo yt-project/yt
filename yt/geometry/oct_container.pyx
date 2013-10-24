@@ -127,7 +127,6 @@ cdef class OctreeContainer:
         cdef OctVisitorData data
         obj.setup_data(&data, -1)
         assert(ref_mask.shape[0] / 8.0 == <int>(ref_mask.shape[0]/8.0))
-        print ref_mask.shape[0], ref_mask.shape[0]/8.0
         obj.allocate_domains([ref_mask.shape[0] / 8.0])
         cdef int i, j, k, n
         data.global_index = -1

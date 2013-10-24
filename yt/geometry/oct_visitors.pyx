@@ -177,7 +177,7 @@ cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
 
 cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.uint8_t *arr, res, ii
-    ii = cind(data.ind[2], data.ind[1], data.ind[0])
+    ii = cind(data.ind[0], data.ind[1], data.ind[2])
     arr = <np.uint8_t *> data.array
     if o.children == NULL or o.children[ii] == NULL:
         res = 0
@@ -193,7 +193,7 @@ cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef np.int64_t *nocts = <np.int64_t*> p[2]
     cdef np.int64_t *nfinest = <np.int64_t*> p[3]
     cdef int i, ii
-    ii = cind(data.ind[2], data.ind[1], data.ind[0])
+    ii = cind(data.ind[0], data.ind[1], data.ind[2])
     if arr[data.index] == 0:
         o.children = NULL
         o.file_ind = nfinest[0]
