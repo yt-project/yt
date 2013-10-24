@@ -121,6 +121,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             self.parameter_file.particle_types = ["darkmatter", "stars"]
             for specie in range(nspecies):
                 self.parameter_file.particle_types.append("specie%i" % specie)
+            self.parameter_file.particle_types_raw = tuple(
+                self.parameter_file.particle_types)
         else:
             self.parameter_file.particle_types = []
         for ptype in self.parameter_file.particle_types:
