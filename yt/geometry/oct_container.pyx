@@ -500,8 +500,6 @@ cdef class OctreeContainer:
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
                       right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
                       over_refine = self.oref)
-        if self.partial_coverage == 1:
-            raise NotImplementedError
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
