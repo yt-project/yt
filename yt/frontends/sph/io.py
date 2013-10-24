@@ -129,11 +129,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     yield (ptype, field), data
             f.close()
 
-    def _initialize_index(self, data_file, regions):
+    def _initialize_coarse_index(self, data_file, regions):
         f = _get_h5_handle(data_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
-        morton = np.empty(pcount, dtype='uint64')
-        ind = 0
         for key in f.keys():
             if not key.startswith("PartType"): continue
             if "Coordinates" not in f[key]: continue
@@ -141,16 +139,8 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
-            regions.add_data_file(pos, data_file.file_id,
-                                  data_file.ds.filter_bbox)
-            morton[ind:ind+pos.shape[0]] = compute_morton(
-                pos[:,0], pos[:,1], pos[:,2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-                data_file.ds.filter_bbox)
-            ind += pos.shape[0]
+            regions.add_data_file(pos, data_file.file_id)
         f.close()
-        return morton
 
     def _count_particles(self, data_file):
         f = _get_h5_handle(data_file.filename)
@@ -320,21 +310,16 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             arr = arr.reshape((count/3, 3), order="C")
         return arr.astype("float64")
 
-    def _initialize_index(self, data_file, regions):
+    def _initialize_coarse_index(self, data_file, regions):
         count = sum(data_file.total_particles.values())
-        DLE = data_file.ds.domain_left_edge
-        DRE = data_file.ds.domain_right_edge
-        dx = (DRE - DLE) / 2**_ORDER_MAX
+        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
-        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
-        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
-                                data_file.ds.filter_bbox)
-        return morton
+        regions.add_data_file(pp, data_file.file_id)
 
     def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
@@ -603,15 +588,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ds.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
                                  DW.units.dimensions)
 
-    def _initialize_index(self, data_file, regions):
-        ds = data_file.ds
-        morton = np.empty(sum(data_file.total_particles.values()),
-                          dtype="uint64")
-        ind = 0
-        DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
-        dx = (DRE - DLE) / (2**_ORDER_MAX)
-        self.domain_left_edge = DLE.in_units("code_length").ndarray_view()
-        self.domain_right_edge = DRE.in_units("code_length").ndarray_view()
+    def _initialize_coarse_index(self, data_file, regions):
+        ds = data_file.pf
         with open(data_file.filename, "rb") as f:
             f.seek(ds._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
@@ -633,16 +611,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         mas[axi] = ma
                     pos = np.empty((pp.size, 3), dtype="float64")
                     for i, ax in enumerate("xyz"):
-                        eps = np.finfo(pp["Coordinates"][ax].dtype).eps
                         pos[:,i] = pp["Coordinates"][ax]
                     regions.add_data_file(pos, data_file.file_id,
                                           data_file.ds.filter_bbox)
-                    morton[ind:ind+c] = compute_morton(
-                        pos[:,0], pos[:,1], pos[:,2],
-                        DLE, DRE, data_file.ds.filter_bbox)
-                    ind += c
-        mylog.info("Adding %0.3e particles", morton.size)
-        return morton
 
     def _count_particles(self, data_file):
         npart = {

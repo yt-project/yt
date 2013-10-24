@@ -455,4 +455,5 @@ cdef class ParticleForest:
                 data_files.append(i)
         free(masks)
         free(file_ids)
-        return data_files, indices
+        # Now we can actually create a sparse octree.
+        return nroot, data_files

@@ -425,3 +425,12 @@ class YTGDFAlreadyExists(Exception):
 
     def __str__(self):
         return "A file already exists at %s and clobber=False." % self.filename
+
+class YTNonIndexedDataContainer(YTException):
+    def __init__(self, cont):
+        self.cont = cont
+
+    def __str__(self):
+        return "The data container (%s) is of an unindexed type.\n" + \
+               "This operations such as ires, icoords, fcoords and fwidth " + \
+               "will not work on it."

@@ -36,6 +36,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.octree_subset import ParticleOctreeSubset
+from yt.data_objects.particle_container import ParticleContainer
 
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
@@ -86,38 +87,11 @@ class ParticleIndex(Index):
         self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files))
-        self._initialize_indices()
-        self.oct_handler.finalize()
-        self.max_level = self.oct_handler.max_level
-        tot = sum(self.oct_handler.recursively_count().values())
-        mylog.info("Identified %0.3e octs", tot)
-
-    def _initialize_indices(self):
-        # This will be replaced with a parallel-aware iteration step.
-        # Roughly outlined, what we will do is:
-        #   * Generate Morton indices on each set of files that belong to
-        #     an individual processor
-        #   * Create a global, accumulated histogram
-        #   * Cut based on estimated load balancing
-        #   * Pass particles to specific processors, along with NREF buffer
-        #   * Broadcast back a serialized octree to join
-        #
-        # For now we will do this in serial.
-        morton = np.empty(self.total_particles, dtype="uint64")
-        ind = 0
-        pb = get_pbar("Initializing Morton curve ", len(self.data_files))
+        pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
-            npart = sum(data_file.total_particles.values())
-            morton[ind:ind + npart] = \
-                self.io._initialize_index(data_file, self.regions)
-            ind += npart
+            self.io._initialize_coarse_index(data_file, self.regions)
         pb.finish()
-        mylog.debug("Sorting Morton curve.")
-        morton.sort()
-        # Now we add them all at once.
-        mylog.debug("Creating Octree.")
-        self.oct_handler.add(morton)
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
@@ -147,10 +121,8 @@ class ParticleIndex(Index):
                 data_files = [self.data_files[i] for i in dfi]
                 mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
-            oref = self.dataset.over_refine_factor
-            subset = [ParticleOctreeSubset(base_region, data_files, 
-                        self.dataset, over_refine_factor = oref)]
-            dobj._chunk_info = subset
+            dobj._chunk_info = [ParticleContainer(base_region, df)
+                                for df in data_files]
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
@@ -173,8 +145,8 @@ class ParticleIndex(Index):
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for subset in oobjs:
-            yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
+        for container in oobjs:
+            yield YTDataChunk(dobj, "io", [container], None, cache = cache)
 
 class ParticleDataChunk(YTDataChunk):
     def __init__(self, oct_handler, regions, *args, **kwargs):

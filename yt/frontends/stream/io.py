@@ -163,9 +163,8 @@ class StreamParticleIOHandler(BaseIOHandler):
                     data = f[ptype, field][mask]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
+    def _initialize_coarse_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
-        morton = []
         for ptype in self.ds.particle_types_raw:
             try:
                 pos = np.column_stack(self.fields[data_file.filename][
@@ -178,11 +177,6 @@ class StreamParticleIOHandler(BaseIOHandler):
                                        data_file.ds.domain_left_edge,
                                        data_file.ds.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
-            morton.append(compute_morton(
-                    pos[:,0], pos[:,1], pos[:,2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge))
-        return np.concatenate(morton)
 
     def _count_particles(self, data_file):
         pcount = {}
