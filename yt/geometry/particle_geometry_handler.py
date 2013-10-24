@@ -82,7 +82,7 @@ class ParticleIndex(Index):
         self.oct_handler.n_ref = ds.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
-        N = min(len(8*self.data_files), 256) 
+        N = min(len(4*self.data_files), 256) 
         self.regions = ParticleRegions(
                 ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files))

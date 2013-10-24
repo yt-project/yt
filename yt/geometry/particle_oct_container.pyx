@@ -25,6 +25,7 @@ import numpy as np
 from selection_routines cimport SelectorObject, \
     OctVisitorData, oct_visitor_function
 cimport cython
+from collections import defaultdict
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -369,33 +370,12 @@ cdef class ParticleRegions:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def mask_range(self, int mask_id, np.uint64_t index0, np.uint64_t index1,
-                   np.ndarray[np.uint8_t, ndim=3] omask):
-        cdef np.uint64_t fmask, fcheck
-        cdef np.uint64_t i
-        cdef np.ndarray[np.uint64_t, ndim=3] mask = self.masks[mask_id]
-        cdef np.uint64_t *dmask = <np.uint64_t *> mask.data
-        cdef np.uint8_t *domask = <np.uint8_t *> omask.data
-        pcount = 0
-        fmask = 0
-        for i in range(index0, index1+1):
-            if domask[i] == 1:
-                fmask |= dmask[i]
-        #print "SEARCHED", index0, index1+1, fmask
-        file_ids = []
-        for fcheck in range(64):
-            if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
-                file_ids.append(fcheck + mask_id * 64)
-        return file_ids
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def split_pcount(self, np.int64_t desired_particles, SelectorObject selector):
         cdef np.float64_t LE[3], RE[3]
-        cdef np.int64_t pcount = 0, selected
+        cdef np.int64_t pcount = 0, selected, fcheck
         cdef np.ndarray[np.uint64_t, ndim=3] counts
         cdef np.ndarray[np.uint8_t, ndim=3] omask
+        cdef np.ndarray[np.uint64_t, ndim=3] mask 
         omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
                          dtype="uint8")
         counts = self.counts
@@ -406,7 +386,8 @@ cdef class ParticleRegions:
         RE[0] = LE[0] + self.dds[0]
         filesets = []
         cdef np.uint64_t index0 = 0
-        cdef np.uint64_t index1 = 0
+        cdef np.uint64_t index1 = -1
+        file_collections = defaultdict(list)
         for i in range(self.dims[0]):
             LE[1] = self.left_edge[1]
             RE[1] = LE[1] + self.dds[1]
@@ -416,27 +397,19 @@ cdef class ParticleRegions:
                 for k in range(self.dims[2]):
                     selected = selector.select_grid(LE, RE, 0)
                     omask[i,j,k] = selected
-                    pcount += selected * counts[i,j,k]
                     LE[2] += self.dds[2]
                     RE[2] += self.dds[2]
-                    if pcount > desired_particles:
-                        file_ids = []
-                        for n in range(nm):
-                            file_ids += self.mask_range(n,
-                                index0, index1, omask)
-                        filesets.append( (pcount, file_ids,
-                            (index0, index1)) )
-                        #print "Split at ", index0, index1
-                        index0 = index1
-                        pcount = 0
                     index1 += 1
+                    if selected == 0: continue
+                    for n in range(nm):
+                        mask = self.masks[n]
+                        for fcheck in range(64):
+                            if ((mask[i,j,k] >> fcheck) & ONEBIT) == ONEBIT:
+                                file_collections[fcheck + n*64].append(
+                                    index1)
                 LE[1] += self.dds[1]
                 RE[1] += self.dds[1]
             LE[0] += self.dds[0]
             RE[0] += self.dds[0]
         # Now, we wrap up.
-        file_ids = []
-        for n in range(nm):
-            file_ids += self.mask_range(n, index0, index1, omask)
-        filesets.append( (pcount, file_ids, (index0, index1)) )
-        return filesets
+        return file_collections
