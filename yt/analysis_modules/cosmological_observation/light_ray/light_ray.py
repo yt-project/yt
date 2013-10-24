@@ -51,7 +51,9 @@ class LightRay(CosmologySplice):
     near_redshift : float
         The near (lowest) redshift for the light ray.
     far_redshift : float
-        The far (highest) redshift for the light ray.
+        The far (highest) redshift for the light ray.  NOTE: in order 
+        to use only a single dataset in a light ray, set the 
+        near_redshift and far_redshift to be the same.
     use_minimum_datasets : bool
         If True, the minimum number of datasets is used to connect the
         initial and final redshift.  If false, the light ray solution
@@ -111,65 +113,92 @@ class LightRay(CosmologySplice):
                                        time_data=time_data,
                                        redshift_data=redshift_data)
 
-    def _calculate_light_ray_solution(self, seed=None, filename=None):
+    def _calculate_light_ray_solution(self, seed=None, 
+                                      start_position=None, end_position=None,
+                                      trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
 
         # Calculate dataset sizes, and get random dataset axes and centers.
         np.random.seed(seed)
 
-        # For box coherence, keep track of effective depth travelled.
-        box_fraction_used = 0.0
-
-        for q in range(len(self.light_ray_solution)):
-            if (q == len(self.light_ray_solution) - 1):
-                z_next = self.near_redshift
+        # If using only one dataset, set start and stop manually.
+        if start_position is not None:
+            if len(self.light_ray_solution) > 1:
+                raise RuntimeError("LightRay Error: cannot specify start_position if light ray uses more than one dataset.")
+            if not ((end_position is None) ^ (trajectory is None)):
+                raise RuntimeError("LightRay Error: must specify either end_position or trajectory, but not both.")
+            self.light_ray_solution[0]['start'] = np.array(start_position)
+            if end_position is not None:
+                self.light_ray_solution[0]['end'] = np.array(end_position)
             else:
-                z_next = self.light_ray_solution[q+1]['redshift']
+                # assume trajectory given as r, theta, phi
+                if len(trajectory) != 3:
+                    raise RuntimeError("LightRay Error: trajectory must have lenght 3.")
+                r, theta, phi = trajectory
+                self.light_ray_solution[0]['end'] = self.light_ray_solution[0]['start'] + \
+                  r * np.array([np.cos(phi) * np.sin(theta),
+                                np.sin(phi) * np.sin(theta),
+                                np.cos(theta)])
+            self.light_ray_solution[0]['traversal_box_fraction'] = \
+              vector_length(self.light_ray_solution[0]['start'], 
+                            self.light_ray_solution[0]['end'])
 
-            # Calculate fraction of box required for a depth of delta z
-            self.light_ray_solution[q]['traversal_box_fraction'] = \
-                self.cosmology.ComovingRadialDistance(\
-                z_next, self.light_ray_solution[q]['redshift']) * \
-                self.simulation.hubble_constant / \
-                self.simulation.box_size
+        # the normal way (random start positions and trajectories for each dataset)
+        else:
+            
+            # For box coherence, keep track of effective depth travelled.
+            box_fraction_used = 0.0
 
-            # Simple error check to make sure more than 100% of box depth
-            # is never required.
-            if (self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
-                mylog.error("Warning: box fraction required to go from z = %f to %f is %f" %
-                            (self.light_ray_solution[q]['redshift'], z_next,
-                             self.light_ray_solution[q]['traversal_box_fraction']))
-                mylog.error("Full box delta z is %f, but it is %f to the next data dump." %
-                            (self.light_ray_solution[q]['deltazMax'],
-                             self.light_ray_solution[q]['redshift']-z_next))
+            for q in range(len(self.light_ray_solution)):
+                if (q == len(self.light_ray_solution) - 1):
+                    z_next = self.near_redshift
+                else:
+                    z_next = self.light_ray_solution[q+1]['redshift']
 
-            # Get dataset axis and center.
-            # If using box coherence, only get start point and vector if
-            # enough of the box has been used,
-            # or if box_fraction_used will be greater than 1 after this slice.
-            if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-                    (box_fraction_used >
-                     self.minimum_coherent_box_fraction) or \
-                    (box_fraction_used +
-                     self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
-                # Random start point
-                self.light_ray_solution[q]['start'] = np.random.random(3)
-                theta = np.pi * np.random.random()
-                phi = 2 * np.pi * np.random.random()
-                box_fraction_used = 0.0
-            else:
-                # Use end point of previous segment and same theta and phi.
-                self.light_ray_solution[q]['start'] = \
-                  self.light_ray_solution[q-1]['end'][:]
+                # Calculate fraction of box required for a depth of delta z
+                self.light_ray_solution[q]['traversal_box_fraction'] = \
+                    self.cosmology.ComovingRadialDistance(\
+                    z_next, self.light_ray_solution[q]['redshift']) * \
+                    self.simulation.hubble_constant / \
+                    self.simulation.box_size
 
-            self.light_ray_solution[q]['end'] = \
-              self.light_ray_solution[q]['start'] + \
-                self.light_ray_solution[q]['traversal_box_fraction'] * \
-                np.array([np.cos(phi) * np.sin(theta),
-                          np.sin(phi) * np.sin(theta),
-                          np.cos(theta)])
-            box_fraction_used += \
-              self.light_ray_solution[q]['traversal_box_fraction']
+                # Simple error check to make sure more than 100% of box depth
+                # is never required.
+                if (self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
+                    mylog.error("Warning: box fraction required to go from z = %f to %f is %f" %
+                                (self.light_ray_solution[q]['redshift'], z_next,
+                                 self.light_ray_solution[q]['traversal_box_fraction']))
+                    mylog.error("Full box delta z is %f, but it is %f to the next data dump." %
+                                (self.light_ray_solution[q]['deltazMax'],
+                                 self.light_ray_solution[q]['redshift']-z_next))
+
+                # Get dataset axis and center.
+                # If using box coherence, only get start point and vector if
+                # enough of the box has been used,
+                # or if box_fraction_used will be greater than 1 after this slice.
+                if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
+                        (box_fraction_used >
+                         self.minimum_coherent_box_fraction) or \
+                        (box_fraction_used +
+                         self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
+                    # Random start point
+                    self.light_ray_solution[q]['start'] = np.random.random(3)
+                    theta = np.pi * np.random.random()
+                    phi = 2 * np.pi * np.random.random()
+                    box_fraction_used = 0.0
+                else:
+                    # Use end point of previous segment and same theta and phi.
+                    self.light_ray_solution[q]['start'] = \
+                      self.light_ray_solution[q-1]['end'][:]
+
+                self.light_ray_solution[q]['end'] = \
+                  self.light_ray_solution[q]['start'] + \
+                    self.light_ray_solution[q]['traversal_box_fraction'] * \
+                    np.array([np.cos(phi) * np.sin(theta),
+                              np.sin(phi) * np.sin(theta),
+                              np.cos(theta)])
+                box_fraction_used += \
+                  self.light_ray_solution[q]['traversal_box_fraction']
 
         if filename is not None:
             self._write_light_ray_solution(filename,
@@ -178,7 +207,10 @@ class LightRay(CosmologySplice):
                             'far_redshift':self.far_redshift,
                             'near_redshift':self.near_redshift})
 
-    def make_light_ray(self, seed=None, fields=None,
+    def make_light_ray(self, seed=None,
+                       start_position=None, end_position=None,
+                       trajectory=None,
+                       fields=None,
                        solution_filename=None, data_filename=None,
                        get_los_velocity=False,
                        get_nearest_halo=False,
@@ -196,6 +228,19 @@ class LightRay(CosmologySplice):
         ----------
         seed : int
             Seed for the random number generator.
+            Default: None.
+        start_position : list of floats
+            Used only if creating a light ray from a single dataset.
+            The coordinates of the starting position of the ray.
+            Default: None.
+        end_position : list of floats
+            Used only if creating a light ray from a single dataset.
+            The coordinates of the ending position of the ray.
+            Default: None.
+        trajectory : list of floats
+            Used only if creating a light ray from a single dataset.
+            The (r, theta, phi) direction of the light ray.  Use either 
+        end_position or trajectory, not both.
             Default: None.
         fields : list
             A list of fields for which to get data.
@@ -313,7 +358,11 @@ class LightRay(CosmologySplice):
             nearest_halo_fields = []
 
         # Calculate solution.
-        self._calculate_light_ray_solution(seed=seed, filename=solution_filename)
+        self._calculate_light_ray_solution(seed=seed, 
+                                           start_position=start_position, 
+                                           end_position=end_position,
+                                           trajectory=trajectory,
+                                           filename=solution_filename)
 
         # Initialize data structures.
         self._data = {}
