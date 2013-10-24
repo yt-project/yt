@@ -131,6 +131,9 @@ cdef class OctreeContainer:
         cdef int i, j, k, n
         data.global_index = -1
         data.level = 0
+        # This is not something I terribly like, but it needs to be done.
+        data.oref = 1
+        data.nz = 8
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
@@ -509,6 +512,8 @@ cdef class OctreeContainer:
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
         self.setup_data(&data, -1)
+        data.oref = 1
+        data.nz = 8
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = np.zeros(self.nocts * 8, dtype="uint8") - 1
         data.array = <void *> ref_mask.data
