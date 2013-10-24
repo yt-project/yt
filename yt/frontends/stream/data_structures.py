@@ -1051,7 +1051,8 @@ class StreamOctreeHandler(OctreeGeometryHandler):
                       left_edge = self.pf.domain_left_edge,
                       right_edge = self.pf.domain_right_edge,
                       octree = self.pf.octree_mask,
-                      over_refine = self.pf.over_refine_factor)
+                      over_refine = self.pf.over_refine_factor,
+                      partial_coverage = 1)
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
@@ -1113,7 +1114,10 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.
+        This is a depth-first refinement mask for an Octree.  It should be of
+        size n_octs * 8, where each item is 1 for an oct-cell being refined and
+        0 for it not being refined.  Note that for over_refine_factors != 1,
+        the children count will still be 8, so this is always 8.
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.

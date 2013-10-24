@@ -176,15 +176,15 @@ cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
     arr[o.domain - 1] += 1
 
 cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    cdef np.uint8_t *arr
-    if data.last != o.domain_ind:
-        data.last = o.domain_ind
-        arr = <np.uint8_t *> data.array
-        if o.children == NULL:
-            arr[data.index] = 0
-        if o.children != NULL:
-            arr[data.index] = 1
-        data.index += 1
+    cdef np.uint8_t *arr, res, ii
+    ii = cind(data.ind[2], data.ind[1], data.ind[0])
+    arr = <np.uint8_t *> data.array
+    if o.children == NULL or o.children[ii] == NULL:
+        res = 0
+    else:
+        res = 1
+    arr[data.index] = res
+    data.index += 1
 
 cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef void **p = <void **> data.array
@@ -192,21 +192,22 @@ cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef Oct* octs = <Oct*> p[1]
     cdef np.int64_t *nocts = <np.int64_t*> p[2]
     cdef np.int64_t *nfinest = <np.int64_t*> p[3]
-    cdef int i
-   
-    if data.last != o.domain_ind:
-        data.last = o.domain_ind
-        if arr[data.index] == 0:
-            o.children = NULL
-            o.file_ind = nfinest[0]
-            o.domain = 1
-            nfinest[0] += 1
-        if arr[data.index] == 1:
+    cdef int i, ii
+    ii = cind(data.ind[2], data.ind[1], data.ind[0])
+    if arr[data.index] == 0:
+        o.children = NULL
+        o.file_ind = nfinest[0]
+        o.domain = 1
+        nfinest[0] += 1
+    elif arr[data.index] == 1:
+        if o.children == NULL:
             o.children = <Oct **> malloc(sizeof(Oct *) * 8)
             for i in range(8):
-                o.children[i] = &octs[nocts[0]]
-                o.children[i].domain_ind = nocts[0]
-                o.children[i].file_ind = -1
-                o.children[i].domain = -1
-                nocts[0] += 1
-        data.index += 1
+                o.children[i] = NULL
+        o.children[ii] = &octs[nocts[0]]
+        o.children[ii].domain_ind = nocts[0]
+        o.children[ii].file_ind = -1
+        o.children[ii].domain = -1
+        o.children[ii].children = NULL
+        nocts[0] += 1
+    data.index += 1
