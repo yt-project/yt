@@ -27,6 +27,8 @@ from selection_routines cimport SelectorObject, \
 cimport cython
 from collections import defaultdict
 
+from particle_deposit cimport gind
+
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
     #The starting oct index of each domain
@@ -47,7 +49,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def __dealloc__(self):
         #Call the freemem ops on every ocy
         #of the root mesh recursively
-        cdef i, j, k
+        cdef int i, j, k
         if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
             if self.root_mesh[i] == NULL: continue
@@ -72,7 +74,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         free(o)
 
     def clear_fileind(self):
-        cdef i, j, k
+        cdef int i, j, k
         for i in range(self.nn[0]):
             for j in range(self.nn[1]):
                 for k in range(self.nn[2]):
@@ -268,7 +270,7 @@ ctypedef fused anyfloat:
 
 cdef np.uint64_t ONEBIT=1
 
-cdef class ParticleRegions:
+cdef class ParticleForest:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
@@ -277,6 +279,8 @@ cdef class ParticleRegions:
     cdef public np.uint64_t nfiles
     cdef public object masks
     cdef public object counts
+    cdef public object max_count
+    cdef public object owners
 
     def __init__(self, left_edge, right_edge, dims, nfiles):
         cdef int i
@@ -292,6 +296,8 @@ cdef class ParticleRegions:
         for i in range(nfiles/64 + 1):
             self.masks.append(np.zeros(dims, dtype="uint64"))
         self.counts = np.zeros(dims, dtype="uint64")
+        self.max_count = np.zeros(dims, dtype="uint64")
+        self.owners = np.zeros(dims, dtype="int32") - 1
 
     def add_data_file(self, np.ndarray pos, int file_id, int filter = 0):
         if pos.dtype == np.float32:
@@ -306,10 +312,18 @@ cdef class ParticleRegions:
                               np.uint64_t file_id, int filter):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
+<<<<<<< local
         cdef int ind[3], i, use
         cdef np.ndarray[np.uint64_t, ndim=3] mask, counts
+=======
+        cdef int ind[3], i, j, k
+        cdef np.ndarray[np.uint64_t, ndim=3] mask, counts, my_counts, mcount
+        cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
+        mcount = self.max_count
+>>>>>>> other
         mask = self.masks[file_id/64]
         counts = self.counts
+        my_counts = np.zeros_like(self.counts)
         cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
         for p in range(no):
             # Now we locate the particle
@@ -320,18 +334,30 @@ cdef class ParticleRegions:
                     use = 0
                     break
                 ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
+<<<<<<< local
                 ind[i] = iclip(ind[i], 0, self.dims[i])
             if use == 1:
                 mask[ind[0],ind[1],ind[2]] |= val
                 mask[ind[0],ind[1],ind[2]] |= val
                 counts[ind[0],ind[1],ind[2]] += 1
         return
+=======
+            mask[ind[0],ind[1],ind[2]] |= val
+            counts[ind[0],ind[1],ind[2]] += 1
+            my_counts[ind[0],ind[1],ind[2]] += 1
+            if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
+                mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
+                owners[ind[0],ind[1],ind[2]] = file_id
+>>>>>>> other
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def identify_data_files(self, SelectorObject selector):
         # This just performs a selection of which data files touch which cells.
         # This should be used for non-spatial chunking of data.
         cdef int i, j, k, n
-        cdef np.uint64_t fmask, offset, fcheck
+        cdef np.uint64_t fmask, offset, fcheck, pcount
         cdef np.float64_t LE[3], RE[3]
         cdef np.ndarray[np.uint64_t, ndim=3] mask
         cdef np.ndarray[np.uint64_t, ndim=3] counts = self.counts
@@ -371,15 +397,18 @@ cdef class ParticleRegions:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def construct_forest(self, np.uint64_t file_id, SelectorObject selector):
+    def construct_forest(self, np.uint64_t file_id, SelectorObject selector,
+                         data_file_info = None):
         cdef np.ndarray[np.uint8_t, ndim=3] omask
-        files, pcount, omask = self.identify_data_files(selector)
+        if data_file_info is None:
+            data_file_info = self.identify_data_files(selector) 
+        files, pcount, omask = data_file_info
         cdef np.float64_t LE[3], RE[3]
         cdef np.uint64_t selected, fcheck, fmask
         cdef np.ndarray[np.uint64_t, ndim=3] counts
         cdef np.ndarray[np.uint64_t, ndim=3] mask 
         counts = self.counts
-        cdef int i0, i, j0, j, k0, k, n, nm, multiple
+        cdef int i0, i, j0, j, k0, k, n, nm, multiple, ii
         nm = len(self.masks)
         cdef np.uint64_t **masks = <np.uint64_t **> malloc(
             sizeof(np.uint64_t *) * nm)
@@ -395,32 +424,35 @@ cdef class ParticleRegions:
         for i in range(self.nfiles):
             file_ids[i] = 0
         index = -1
+        cdef int my_ind
+        cdef int dims[3]
+        for i in range(3):
+            dims[i] = self.dims[i]
+        cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
+        cdef int nroot = 0
         for i in range(self.dims[0]):
             for j in range(self.dims[1]):
                 for k in range(self.dims[2]):
                     index += 1
-                    if omask[i,j,k] == 0 or \
-                        (masks[file_mask_id][i,j,k] & file_mask) == 0:
+                    ii = gind(i, j, k, dims)
+                    if owners[i,j,k] != file_id or \
+                       omask[i,j,k] == 0 or \
+                        (masks[file_mask_id][ii] & file_mask) == 0:
                         continue
+                    nroot += 1
                     # multiple will be 0 for use this zone, 1 for skip it
-                    multiple = 0
+                    # We get this one, so we'll continue ...
                     for n in range(nm):
-                        fmask = masks[n][i,j,k]
+                        # First we count
+                        fmask = masks[n][ii]
                         for fcheck in range(64):
                             if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
                                 # First to arrive gets it
-                                if (fcheck + n * 64) < file_id:
-                                    multiple = 1
-                                    break
                                 file_ids[fcheck + n * 64] = 1
-                        if multiple == 1: break
-                    if multiple == 0:
-                        indices.append( (i,j,k) )
-        # Now, we wrap up.
         data_files = []
         for i in range(self.nfiles):
             if file_ids[i] == 1:
-                data_files.append(file_ids)
+                data_files.append(i)
         free(masks)
         free(file_ids)
         return data_files, indices

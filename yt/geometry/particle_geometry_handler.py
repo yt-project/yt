@@ -28,7 +28,7 @@ from yt.config import ytcfg
 from yt.fields.field_info_container import NullFunc
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer, ParticleRegions
+    ParticleOctreeContainer, ParticleForest
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -83,7 +83,7 @@ class ParticleIndex(Index):
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
         N = min(len(4*self.data_files), 256) 
-        self.regions = ParticleRegions(
+        self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files))
         self._initialize_indices()

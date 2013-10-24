@@ -4,7 +4,7 @@ from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, \
-    ParticleRegions
+    ParticleForest
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.utilities.lib.geometry_utils import get_morton_indices
 from yt.frontends.stream.api import load_particles
@@ -158,7 +158,7 @@ def test_particle_regions():
         # Note: we set N to nfiles here for testing purposes.  Inside the code 
         # we set it to min(N, 256)
         N = nfiles
-        reg = ParticleRegions([0.0, 0.0, 0.0, 0.0],
+        reg = ParticleForest([0.0, 0.0, 0.0, 0.0],
                               [nfiles, nfiles, nfiles],
                               [N, N, N], nfiles)
         Y, Z = np.mgrid[0.1 : nfiles - 0.1 : nfiles * 1j,
