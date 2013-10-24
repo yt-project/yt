@@ -2123,7 +2123,10 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     if iterable(normal) and not isinstance(normal,str):
         normal = np.array(normal)
         np.divide(normal, np.dot(normal,normal), normal)
-    if np.count_nonzero(normal) == 1:
+    elif isinstance(normal, str):
+        assert normal in ('x', 'y', 'z'), \
+            "The normal axis must be 'x', 'y', or 'z'"
+    elif np.count_nonzero(normal) == 1:
         normal = ("x","y","z")[np.nonzero(normal)[0][0]]
 
     # by now the normal should be properly set to get either a On/Off Axis plot
