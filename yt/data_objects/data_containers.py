@@ -642,7 +642,7 @@ class AMRRayBase(AMR1DData):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
@@ -1864,7 +1864,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
         tree = self._get_tree(len(fields))
         tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
-        coord_data, field_data, weight_data, dxs = [], [], [], []
+        coord_data, field_data, weight_data, dxs, dys = [], [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
             coord_data.append(npos)
@@ -1873,10 +1873,12 @@ class AMRQuadTreeProjBase(AMR2DData):
             weight_data.append(nwvals)
             gs = self.source.select_grids(level)
             if len(gs) > 0:
-                ds = gs[0].dds[0]
+                dx = gs[0].dds[x_dict[self.axis]]
+                dy = gs[0].dds[y_dict[self.axis]]
             else:
-                ds = 0.0
-            dxs.append(np.ones(nvals.shape[0], dtype='float64') * ds)
+                dx = dy = 0.0
+            dxs.append(np.ones(nvals.shape[0], dtype='float64') * dx)
+            dys.append(np.ones(nvals.shape[0], dtype='float64') * dy)
         coord_data = np.concatenate(coord_data, axis=0).transpose()
         field_data = np.concatenate(field_data, axis=0).transpose()
         if self._weight is None:
@@ -1884,17 +1886,19 @@ class AMRQuadTreeProjBase(AMR2DData):
             field_data *= convs[:,None]
         weight_data = np.concatenate(weight_data, axis=0).transpose()
         dxs = np.concatenate(dxs, axis=0).transpose()
+        dys = np.concatenate(dys, axis=0).transpose()
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
+        data['pdy'] = dys
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
+        data['py'] = (coord_data[1,:]+0.5) * data['pdy'] + oy
         data['weight_field'] = weight_data
         del coord_data
         data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
+        data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = np.vsplit(data.pop('fields'), len(fields))
@@ -3687,6 +3691,7 @@ class AMRCoveringGridBase(AMR3DData):
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
+        dims = np.array(dims)
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
         rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.dds = self.pf.domain_width / rdx.astype("float64")
