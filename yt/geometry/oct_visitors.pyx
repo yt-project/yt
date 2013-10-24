@@ -195,10 +195,13 @@ cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
     cdef int i, ii
     ii = cind(data.ind[0], data.ind[1], data.ind[2])
     if arr[data.index] == 0:
-        o.children = NULL
-        o.file_ind = nfinest[0]
-        o.domain = 1
-        nfinest[0] += 1
+        # We only want to do this once.  Otherwise we end up with way too many
+        # nfinest for our tastes.
+        if o.file_ind == -1:
+            o.children = NULL
+            o.file_ind = nfinest[0]
+            o.domain = 1
+            nfinest[0] += 1
     elif arr[data.index] == 1:
         if o.children == NULL:
             o.children = <Oct **> malloc(sizeof(Oct *) * 8)
