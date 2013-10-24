@@ -328,7 +328,8 @@ cdef class ParticleRegions:
         return
 
     def identify_data_files(self, SelectorObject selector):
-        # This is relatively cheap to iterate over.
+        # This just performs a selection of which data files touch which cells.
+        # This should be used for non-spatial chunking of data.
         cdef int i, j, k, n
         cdef np.uint64_t fmask, offset, fcheck
         cdef np.float64_t LE[3], RE[3]
@@ -370,46 +371,56 @@ cdef class ParticleRegions:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def split_pcount(self, np.int64_t desired_particles, SelectorObject selector):
-        cdef np.float64_t LE[3], RE[3]
-        cdef np.int64_t pcount = 0, selected, fcheck
-        cdef np.ndarray[np.uint64_t, ndim=3] counts
+    def construct_forest(self, np.uint64_t file_id, SelectorObject selector):
         cdef np.ndarray[np.uint8_t, ndim=3] omask
+        files, pcount, omask = self.identify_data_files(selector)
+        cdef np.float64_t LE[3], RE[3]
+        cdef np.uint64_t selected, fcheck, fmask
+        cdef np.ndarray[np.uint64_t, ndim=3] counts
         cdef np.ndarray[np.uint64_t, ndim=3] mask 
-        omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
-                         dtype="uint8")
         counts = self.counts
-        cdef int i0, i, j0, j, k0, k, n, nm
+        cdef int i0, i, j0, j, k0, k, n, nm, multiple
         nm = len(self.masks)
-        i0 = j0 = k0 = 0
-        LE[0] = self.left_edge[0]
-        RE[0] = LE[0] + self.dds[0]
-        filesets = []
-        cdef np.uint64_t index0 = 0
-        cdef np.uint64_t index1 = -1
-        file_collections = defaultdict(list)
+        cdef np.uint64_t **masks = <np.uint64_t **> malloc(
+            sizeof(np.uint64_t *) * nm)
+        for n in range(nm):
+            mask = self.masks[n]
+            masks[n] = <np.uint64_t *> mask.data
+        cdef int file_mask_id = <int> (file_id / 64.0)
+        cdef np.uint64_t mv, index, file_mask = (ONEBIT << (file_id % 64))
+        cdef int num_roots = 0
+        indices = []
+        cdef np.uint8_t *file_ids = <np.uint8_t*> malloc(
+            sizeof(np.uint8_t) * self.nfiles)
+        for i in range(self.nfiles):
+            file_ids[i] = 0
+        index = -1
         for i in range(self.dims[0]):
-            LE[1] = self.left_edge[1]
-            RE[1] = LE[1] + self.dds[1]
             for j in range(self.dims[1]):
-                LE[2] = self.left_edge[2]
-                RE[2] = LE[2] + self.dds[2]
                 for k in range(self.dims[2]):
-                    selected = selector.select_grid(LE, RE, 0)
-                    omask[i,j,k] = selected
-                    LE[2] += self.dds[2]
-                    RE[2] += self.dds[2]
-                    index1 += 1
-                    if selected == 0: continue
+                    index += 1
+                    if omask[i,j,k] == 0 or \
+                        (masks[file_mask_id][i,j,k] & file_mask) == 0:
+                        continue
+                    # multiple will be 0 for use this zone, 1 for skip it
+                    multiple = 0
                     for n in range(nm):
-                        mask = self.masks[n]
+                        fmask = masks[n][i,j,k]
                         for fcheck in range(64):
-                            if ((mask[i,j,k] >> fcheck) & ONEBIT) == ONEBIT:
-                                file_collections[fcheck + n*64].append(
-                                    index1)
-                LE[1] += self.dds[1]
-                RE[1] += self.dds[1]
-            LE[0] += self.dds[0]
-            RE[0] += self.dds[0]
+                            if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
+                                # First to arrive gets it
+                                if (fcheck + n * 64) < file_id:
+                                    multiple = 1
+                                    break
+                                file_ids[fcheck + n * 64] = 1
+                        if multiple == 1: break
+                    if multiple == 0:
+                        indices.append( (i,j,k) )
         # Now, we wrap up.
-        return file_collections
+        data_files = []
+        for i in range(self.nfiles):
+            if file_ids[i] == 1:
+                data_files.append(file_ids)
+        free(masks)
+        free(file_ids)
+        return data_files, indices

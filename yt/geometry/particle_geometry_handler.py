@@ -113,9 +113,10 @@ class ParticleIndex(Index):
                 self.io._initialize_index(data_file, self.regions)
             ind += npart
         pb.finish()
-        mylog.debug("Sorting and adding Morton curve.")
+        mylog.debug("Sorting Morton curve.")
         morton.sort()
         # Now we add them all at once.
+        mylog.debug("Creating Octree.")
         self.oct_handler.add(morton)
 
     def _detect_output_fields(self):
