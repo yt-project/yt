@@ -758,3 +758,10 @@ def enable_plugins():
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
         execfile(_fn, yt.__dict__)
+
+def subchunk_count(n_total, chunk_size):
+    handled = 0
+    while handled < n_total:
+        tr = min(n_total - handled, chunk_size)
+        yield tr
+        handled += tr
