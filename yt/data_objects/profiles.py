@@ -80,8 +80,8 @@ class BinnedProfile(ParallelAnalysisInterface):
         used = self._get_empty_field().astype('bool')
         chunk_fields = fields[:]
         if weight is not None: chunk_fields += [weight]
-        #pbar = get_pbar('Binning grids', len(self._data_source._grids))
-        for ds in self._data_source.chunks(chunk_fields, chunking_style = "io"):
+        for ds in parallel_objects(self._data_source.chunks(
+                        chunk_fields, chunking_style = "io")):
             try:
                 args = self._get_bins(ds, check_cut=True)
             except YTEmptyProfileData:
