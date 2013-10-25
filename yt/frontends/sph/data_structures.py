@@ -95,7 +95,8 @@ class GadgetDataset(ParticleDataset):
                  bounding_box = None,
                  header_spec = "default",
                  field_spec = "default",
-                 ptype_spec = "default"):
+                 ptype_spec = "default",
+                 long_ids = False):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -106,6 +107,7 @@ class GadgetDataset(ParticleDataset):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
+        self.long_ids = long_ids
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.

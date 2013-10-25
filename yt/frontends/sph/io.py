@@ -300,7 +300,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     def _read_field_from_file(self, f, count, name):
         if count == 0: return
         if name == "ParticleIDs":
-            dt = "uint32"
+            dt = {True:'uint64', False:'uint32'}[self.pf.long_ids]
         else:
             dt = "float32"
         if name in self._vector_fields:
@@ -308,7 +308,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         arr = np.fromfile(f, dtype=dt, count = count)
         if name in self._vector_fields:
             arr = arr.reshape((count/3, 3), order="C")
-        return arr.astype("float64")
+        return np.asarray(arr, dtype="float64")
 
     def _initialize_coarse_index(self, data_file, regions):
         count = sum(data_file.total_particles.values())
@@ -336,6 +336,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         fs = self._field_size
         offsets = {}
         for field in self._fields:
+            if field == "ParticleIDs" and self.pf.long_ids:
+                fs = 8
+            else:
+                fs = 4
             if not isinstance(field, types.StringTypes):
                 field = field[0]
             if not any( (ptype, field) in field_list
