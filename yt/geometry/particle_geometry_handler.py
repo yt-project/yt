@@ -79,10 +79,6 @@ class ParticleIndex(Index):
 
     def _initialize_coarse_index(self):
         ds = self.dataset
-        self.oct_handler = ParticleOctreeContainer(
-            [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
-            over_refine = ds.over_refine_factor)
-        self.oct_handler.n_ref = ds.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
