@@ -363,10 +363,16 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             if not any_ptypes: pos -= 8
         if file_size is not None:
             if file_size != pos:
+                diff = file_size - pos
+                possible = []
+                for ptype, psize in sorted(pcount.items()):
+                    if psize == 0: continue
+                    if float(diff) / psize == int(float(diff)/psize):
+                        possible.append(ptype)
                 mylog.warning("Your Gadget-2 file may have extra " +
-                              "columns or different precision!" +
-                              " (%s file vs %s computed)",
-                              file_size, pos)
+                              "columns or different precision! " +
+                              "(%s diff => %s?)", diff, possible
+                )
         return offsets
 
     def _identify_fields(self, domain):

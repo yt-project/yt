@@ -61,6 +61,7 @@ class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
             self.header = read_record(f, ds._header_spec)
+            f.seek(ds.header_offset, os.SEEK_CUR)
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
@@ -96,7 +97,8 @@ class GadgetDataset(ParticleDataset):
                  header_spec = "default",
                  field_spec = "default",
                  ptype_spec = "default",
-                 long_ids = False):
+                 long_ids = False,
+                 header_offset = 0):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -108,6 +110,7 @@ class GadgetDataset(ParticleDataset):
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
         self.long_ids = long_ids
+        self.header_offset = header_offset
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
