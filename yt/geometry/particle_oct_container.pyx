@@ -312,15 +312,10 @@ cdef class ParticleForest:
                               np.uint64_t file_id, int filter):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
-<<<<<<< local
-        cdef int ind[3], i, use
-        cdef np.ndarray[np.uint64_t, ndim=3] mask, counts
-=======
-        cdef int ind[3], i, j, k
+        cdef int ind[3], i, j, k, use
         cdef np.ndarray[np.uint64_t, ndim=3] mask, counts, my_counts, mcount
         cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
         mcount = self.max_count
->>>>>>> other
         mask = self.masks[file_id/64]
         counts = self.counts
         my_counts = np.zeros_like(self.counts)
@@ -334,21 +329,15 @@ cdef class ParticleForest:
                     use = 0
                     break
                 ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
-<<<<<<< local
                 ind[i] = iclip(ind[i], 0, self.dims[i])
             if use == 1:
                 mask[ind[0],ind[1],ind[2]] |= val
-                mask[ind[0],ind[1],ind[2]] |= val
                 counts[ind[0],ind[1],ind[2]] += 1
+                my_counts[ind[0],ind[1],ind[2]] += 1
+                if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
+                    mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
+                    owners[ind[0],ind[1],ind[2]] = file_id
         return
-=======
-            mask[ind[0],ind[1],ind[2]] |= val
-            counts[ind[0],ind[1],ind[2]] += 1
-            my_counts[ind[0],ind[1],ind[2]] += 1
-            if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
-                mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
-                owners[ind[0],ind[1],ind[2]] = file_id
->>>>>>> other
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

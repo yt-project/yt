@@ -139,7 +139,8 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
-            regions.add_data_file(pos, data_file.file_id)
+            regions.add_data_file(pos, data_file.file_id,
+                                  data_file.ds.filter_bbox)
         f.close()
 
     def _count_particles(self, data_file):
@@ -319,7 +320,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
-        regions.add_data_file(pp, data_file.file_id)
+        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
 
     def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
@@ -594,6 +595,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _initialize_coarse_index(self, data_file, regions):
         ds = data_file.pf
+        self.domain_left_edge = ds.domain_left_edge
+        self.domain_right_edge = ds.domain_left_edge
         with open(data_file.filename, "rb") as f:
             f.seek(ds._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
