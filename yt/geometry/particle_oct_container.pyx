@@ -14,12 +14,14 @@ Oct container tuned for Particles
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX
+from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
+    SparseOctreeContainer, OctKey
 cimport oct_visitors
 from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
 from fp_utils cimport *
+from yt.utilities.lib.geometry_utils cimport bounded_morton
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject, \
@@ -277,19 +279,25 @@ cdef class ParticleForest:
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
     cdef public np.uint64_t nfiles
+    cdef int oref
+    cdef public int n_ref
     cdef public object masks
     cdef public object counts
     cdef public object max_count
     cdef public object owners
 
-    def __init__(self, left_edge, right_edge, dims, nfiles):
+    def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
+                 n_ref = 64):
         cdef int i
+        self.oref = oref
         self.nfiles = nfiles
+        self.n_ref = n_ref
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
+            self.right_edge[i] = right_edge[i]
             self.idds[i] = 1.0/self.dds[i]
         # We use 64-bit masks
         self.masks = []
@@ -387,15 +395,19 @@ cdef class ParticleForest:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def construct_forest(self, np.uint64_t file_id, SelectorObject selector,
-                         data_file_info = None):
+                         io_handler, data_files, data_file_info = None):
         cdef np.ndarray[np.uint8_t, ndim=3] omask
         if data_file_info is None:
             data_file_info = self.identify_data_files(selector) 
         files, pcount, omask = data_file_info
         cdef np.float64_t LE[3], RE[3]
+        cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t selected, fcheck, fmask
         cdef np.ndarray[np.uint64_t, ndim=3] counts
         cdef np.ndarray[np.uint64_t, ndim=3] mask 
+        cdef np.ndarray[np.int32_t, ndim=3] forest_nodes
+        forest_nodes = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
+            dtype="int32") - 1
         counts = self.counts
         cdef int i0, i, j0, j, k0, k, n, nm, multiple, ii
         nm = len(self.masks)
@@ -428,7 +440,9 @@ cdef class ParticleForest:
                        omask[i,j,k] == 0 or \
                         (masks[file_mask_id][ii] & file_mask) == 0:
                         continue
+                    forest_nodes[i,j,k] = nroot
                     nroot += 1
+                    total_pcount += counts[i,j,k]
                     # multiple will be 0 for use this zone, 1 for skip it
                     # We get this one, so we'll continue ...
                     for n in range(nm):
@@ -438,11 +452,222 @@ cdef class ParticleForest:
                             if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
                                 # First to arrive gets it
                                 file_ids[fcheck + n * 64] = 1
-        data_files = []
-        for i in range(self.nfiles):
-            if file_ids[i] == 1:
-                data_files.append(i)
-        free(masks)
-        free(file_ids)
         # Now we can actually create a sparse octree.
-        return nroot, data_files
+        cdef ParticleForestOctreeContainer octree
+        octree = ParticleForestOctreeContainer(
+            (self.dims[0], self.dims[1], self.dims[2]),
+            (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
+            (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
+            nroot, self.oref)
+        octree.n_ref = self.n_ref
+        octree.allocate_domains()
+        cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
+        morton_ind = np.empty(total_pcount, dtype="uint64")
+        cdef np.int32_t *particle_index = <np.int32_t *> malloc(
+            sizeof(np.int32_t) * nroot)
+        cdef np.int32_t *particle_count = <np.int32_t *> malloc(
+            sizeof(np.int32_t) * nroot)
+        total_pcount = 0
+        for i in range(self.dims[0]):
+            for j in range(self.dims[1]):
+                for k in range(self.dims[2]):
+                    if forest_nodes[i,j,k] == -1: continue
+                    particle_index[forest_nodes[i,j,k]] = total_pcount
+                    particle_count[forest_nodes[i,j,k]] = counts[i,j,k]
+                    total_pcount += counts[i,j,k]
+        # Okay, now just to filter based on our mask.
+        cdef int ind[3], arri
+        cdef np.ndarray[np.float64_t, ndim=2] pos
+        cdef np.float64_t DLE[3], DRE[3]
+        for i in range(self.nfiles):
+            if file_ids[i] == 0: continue
+            # We now get our particle positions
+            for _pos in io_handler._yield_coordinates(data_files[i]):
+                pos = np.asarray(_pos, dtype="float64")
+                for j in range(pos.shape[0]):
+                    # First we get our cell index.
+                    for k in range(3):
+                        ind[k] = <int> ((pos[j,k] - self.left_edge[k])*self.idds[k])
+                    arri = forest_nodes[ind[0], ind[1], ind[2]]
+                    if arri == -1: continue
+                    # Now we have decided it's worth filtering, so let's toss
+                    # it in.
+                    for i in range(3):
+                        DLE[i] = self.left_edge[i] + self.dds[i]*ind[i]
+                        DRE[i] = DLE[i] + self.dds[i]
+                    morton_ind[particle_index[arri]] = bounded_morton(
+                        pos[j,0], pos[j,1], pos[j,2], DLE, DRE)
+                    particle_index[arri] += 1
+                    octree.next_root(1, ind)
+        cdef int start, end = 0
+        # We should really allocate a 3-by nroot array
+        for i in range(self.dims[0]):
+            for j in range(self.dims[1]):
+                for k in range(self.dims[2]):
+                    arri = forest_nodes[i,j,k]
+                    if arri == -1: continue
+                    start = end
+                    end += particle_count[arri]
+                    morton_view = morton_ind[start:end]
+                    morton_view.sort()
+                    octree.add(morton_view, i, j, k)
+        octree.finalize()
+        free(particle_index)
+        free(particle_count)
+        free(file_ids)
+        free(masks)
+        return octree
+        
+cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
+    cdef Oct** oct_list
+    cdef public int max_level
+    cdef public int n_ref
+    def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
+                 int num_root, over_refine = 1):
+        super(ParticleForestOctreeContainer, self).__init__(
+            domain_dimensions, domain_left_edge, domain_right_edge,
+            over_refine)
+        self.fill_func = oct_visitors.fill_file_indices_oind
+
+        # Now the overrides
+        self.max_root = num_root
+        self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * num_root)
+        for i in range(num_root):
+            self.root_nodes[i].key = -1
+            self.root_nodes[i].node = NULL
+
+    def allocate_domains(self):
+        OctreeContainer.allocate_domains(self, [self.max_root])
+
+    def finalize(self):
+        #This will sort the octs in the oct list
+        #so that domains appear consecutively
+        #And then find the oct index/offset for
+        #every domain
+        cdef int max_level = 0
+        self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
+        cdef Oct *o
+        cdef np.int64_t i, lpos = 0
+        cdef int cur_dom = -1
+        # Note that we now assign them in the same order they will be visited
+        # by recursive visitors.
+        for i in range(self.num_root):
+            self.visit_assign(self.root_nodes[i].node, &lpos, 0, &max_level)
+        assert(lpos == self.nocts)
+        for i in range(self.nocts):
+            self.oct_list[i].domain_ind = i
+            self.oct_list[i].domain = 0
+            self.oct_list[i].file_ind = -1
+        self.max_level = max_level
+
+    cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level):
+        cdef int i, j, k
+        self.oct_list[lpos[0]] = o
+        lpos[0] += 1
+        max_level[0] = imax(max_level[0], level)
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if o.children != NULL \
+                       and o.children[cind(i,j,k)] != NULL:
+                        self.visit_assign(o.children[cind(i,j,k)], lpos,
+                                level + 1, max_level)
+        return
+
+    cdef Oct* allocate_oct(self):
+        #Allocate the memory, set to NULL or -1
+        #We reserve space for n_ref particles, but keep
+        #track of how many are used with np initially 0
+        self.nocts += 1
+        cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
+        cdef int i, j, k
+        my_oct.domain = -1
+        my_oct.file_ind = 0
+        my_oct.domain_ind = self.nocts - 1
+        my_oct.children = NULL
+        return my_oct
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def add(self, np.ndarray[np.uint64_t, ndim=1] indices,
+             int root_i, int root_j, int root_k):
+        #Add this particle to the root oct
+        #Then if that oct has children, add it to them recursively
+        #If the child needs to be refined because of max particles, do so
+        cdef Oct *cur, *root
+        cdef np.int64_t no = indices.shape[0], p, index
+        cdef int i, level, ind[3]
+        ind[0] = root_i
+        ind[1] = root_j
+        ind[2] = root_k
+        self.get_root(ind, &root)
+        if root == NULL:
+            raise RuntimeError
+        cdef np.uint64_t *data = <np.uint64_t *> indices.data
+        # Note what we're doing here: we have decided the root will always be
+        # zero, since we're in a forest of octrees, where the root_mesh node is
+        # the level 0.  This means our morton indices should be made with
+        # respect to that, which means we need to keep a few different arrays
+        # of them.
+        for i in range(3):
+            ind[i] = 0
+        for p in range(no):
+            # We have morton indices, which means we choose left and right by
+            # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
+            level = 0
+            index = indices[p]
+            cur = root
+            while (cur.file_ind + 1) > self.n_ref:
+                if level >= ORDER_MAX: break # Just dump it here.
+                level += 1
+                for i in range(3):
+                    ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+                if cur.children == NULL or \
+                   cur.children[cind(ind[0],ind[1],ind[2])] == NULL:
+                    cur = self.refine_oct(cur, index, level)
+                    self.filter_particles(cur, data, p, level)
+                else:
+                    cur = cur.children[cind(ind[0],ind[1],ind[2])]
+            cur.file_ind += 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef Oct *refine_oct(self, Oct *o, np.uint64_t index, int level):
+        #Allocate and initialize child octs
+        #Attach particles to child octs
+        #Remove particles from this oct entirely
+        cdef int i, j, k, m, n, ind[3]
+        cdef Oct *noct
+        cdef np.uint64_t prefix1, prefix2
+        # TODO: This does not need to be changed.
+        o.children = <Oct **> malloc(sizeof(Oct *)*8)
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    noct = self.allocate_oct()
+                    noct.domain = o.domain
+                    noct.file_ind = 0
+                    o.children[cind(i,j,k)] = noct
+        o.file_ind = self.n_ref + 1
+        for i in range(3):
+            ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+        noct = o.children[cind(ind[0],ind[1],ind[2])]
+        return noct
+
+    cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p,
+                               int level):
+        # Now we look at the last nref particles to decide where they go.
+        cdef int n = imin(p, self.n_ref)
+        cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
+        # Now we figure out our prefix, which is the oct address at this level.
+        # As long as we're actually in Morton order, we do not need to worry
+        # about *any* of the other children of the oct.
+        prefix1 = data[p] >> (ORDER_MAX - level)*3
+        for i in range(n):
+            prefix2 = arr[i] >> (ORDER_MAX - level)*3
+            if (prefix1 == prefix2):
+                o.file_ind += 1
+        #print ind[0], ind[1], ind[2], o.file_ind, level
+

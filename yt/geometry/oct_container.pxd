@@ -29,6 +29,9 @@ cdef int ORDER_MAX
 cdef struct OctKey:
     np.int64_t key
     Oct *node
+    # These next two are for particle sparse octrees.
+    np.int64_t *indices
+    np.int64_t pcount
 
 cdef struct OctInfo:
     np.float64_t left_edge[3]

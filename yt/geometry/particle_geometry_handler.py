@@ -88,11 +88,13 @@ class ParticleIndex(Index):
         N = min(len(self.data_files), 256) 
         self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
-                [N, N, N], len(self.data_files))
+                [N, N, N], len(self.data_files), ds.over_refine_factor,
+                ds.n_ref)
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
-            self.io._initialize_coarse_index(data_file, self.regions)
+            for pos in self.io._yield_coordinates(data_file):
+                self.regions.add_data_file(pos, data_file.file_id)
         pb.finish()
 
     def _detect_output_fields(self):

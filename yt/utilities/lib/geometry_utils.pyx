@@ -21,6 +21,8 @@ from fp_utils cimport fclip, i64clip
 from libc.math cimport copysign
 from yt.utilities.exceptions import YTDomainOverflow
 
+DEF ORDER_MAX=20
+
 cdef extern from "math.h":
     double exp(double x) nogil
     float expf(float x) nogil
@@ -292,27 +294,6 @@ def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
             positions[i, j] = p[j]
     return positions
 
-# yt did not invent these! :)
-cdef np.uint64_t _const20 = 0x000001FFC00003FF
-cdef np.uint64_t _const10 = 0x0007E007C00F801F
-cdef np.uint64_t _const04 = 0x00786070C0E181C3
-cdef np.uint64_t _const2a = 0x0199219243248649
-cdef np.uint64_t _const2b = 0x0649249249249249
-cdef np.uint64_t _const2c = 0x1249249249249249
-
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline np.uint64_t spread_bits(np.uint64_t x):
-    # This magic comes from http://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
-    x=(x|(x<<20))&_const20
-    x=(x|(x<<10))&_const10
-    x=(x|(x<<4))&_const04
-    x=(x|(x<<2))&_const2a
-    x=(x|(x<<2))&_const2b
-    x=(x|(x<<2))&_const2c
-    return x
-
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -390,8 +371,6 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
         ind[i] = mi
     return pos_x.shape[0]
 
-DEF ORDER_MAX=20
-        
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                    domain_left_edge, domain_right_edge, filter_bbox = False):
     cdef int i

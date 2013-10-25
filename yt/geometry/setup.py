@@ -26,6 +26,7 @@ def configuration(parent_package='',top_path=None):
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/utilities/lib/geometry_utils.pxd",
                          "yt/geometry/oct_container.pxd",
                          "yt/geometry/selection_routines.pxd"])
     config.add_extension("selection_routines", 

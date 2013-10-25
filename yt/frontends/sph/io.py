@@ -25,7 +25,6 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 from yt.utilities.fortran_utils import read_record
-from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
 
@@ -129,7 +128,7 @@ class IOHandlerOWLS(BaseIOHandler):
                     yield (ptype, field), data
             f.close()
 
-    def _initialize_coarse_index(self, data_file, regions):
+    def _yield_coordinates(self, data_file):
         f = _get_h5_handle(data_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
         for key in f.keys():
@@ -139,8 +138,7 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
-            regions.add_data_file(pos, data_file.file_id,
-                                  data_file.ds.filter_bbox)
+            yield pos
         f.close()
 
     def _count_particles(self, data_file):
@@ -301,7 +299,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     def _read_field_from_file(self, f, count, name):
         if count == 0: return
         if name == "ParticleIDs":
-            dt = {True:'uint64', False:'uint32'}[self.pf.long_ids]
+            dt = {True:'uint64', False:'uint32'}[self.ds.long_ids]
         else:
             dt = "float32"
         if name in self._vector_fields:
@@ -311,7 +309,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             arr = arr.reshape((count/3, 3), order="C")
         return np.asarray(arr, dtype="float64")
 
-    def _initialize_coarse_index(self, data_file, regions):
+    def _yield_coordinates(self, data_file):
         count = sum(data_file.total_particles.values())
         pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
@@ -320,7 +318,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
-        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
+        yield pp
 
     def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
@@ -337,7 +335,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         fs = self._field_size
         offsets = {}
         for field in self._fields:
-            if field == "ParticleIDs" and self.pf.long_ids:
+            if field == "ParticleIDs" and self.ds.long_ids:
                 fs = 8
             else:
                 fs = 4
@@ -599,7 +597,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ds.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
                                  DW.units.dimensions)
 
-    def _initialize_coarse_index(self, data_file, regions):
+    def _yield_coordinates(self, data_file):
         ds = data_file.pf
         self.domain_left_edge = ds.domain_left_edge
         self.domain_right_edge = ds.domain_left_edge
@@ -625,8 +623,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     pos = np.empty((pp.size, 3), dtype="float64")
                     for i, ax in enumerate("xyz"):
                         pos[:,i] = pp["Coordinates"][ax]
-                    regions.add_data_file(pos, data_file.file_id,
-                                          data_file.ds.filter_bbox)
+                    yield pos
 
     def _count_particles(self, data_file):
         npart = {
