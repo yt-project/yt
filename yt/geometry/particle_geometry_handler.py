@@ -132,17 +132,22 @@ class ParticleIndex(Index):
         yield YTDataChunk(dobj, "all", oobjs, None)
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
-        sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        dfi, count, omask = self.regions.identify_data_files(
+                                dobj.selector)
         # We actually do not really use the data files except as input to the
         # ParticleOctreeSubset.
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.
-        for i,og in enumerate(sobjs):
+        for df in (self.data_files[i] for i in dfi):
             if ngz > 0:
-                g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
+                raise NotImplementedError
             else:
-                g = og
+                oct_handler = self.regions.construct_forest(
+                        df.file_id, dobj.selector, self.io, self.data_files,
+                        (dfi, count, omask))
+                g = ParticleOctreeSubset(dobj, oct_handler, self.pf,
+                        over_refine_factor = self.pf.over_refine_factor)
             yield YTDataChunk(dobj, "spatial", [g])
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
