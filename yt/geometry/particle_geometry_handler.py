@@ -51,9 +51,9 @@ class ParticleIndex(Index):
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
     def _setup_geometry(self):
+        self.regions = None
         mylog.debug("Initializing Particle Geometry Handler.")
         self._initialize_particle_handler()
-
 
     def get_smallest_dx(self):
         """
@@ -76,6 +76,8 @@ class ParticleIndex(Index):
                            for i in range(ndoms)]
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
+
+    def _initialize_coarse_index(self):
         ds = self.dataset
         self.oct_handler = ParticleOctreeContainer(
             [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
@@ -112,6 +114,8 @@ class ParticleIndex(Index):
         ds.particle_types_raw = ds.particle_types
 
     def _identify_base_chunk(self, dobj):
+        if self.regions is None:
+            self._initialize_coarse_index()
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
             if data_files is None:
