@@ -2121,11 +2121,12 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
     if iterable(normal) and not isinstance(normal,str):
-        normal = np.array(normal)
-        np.divide(normal, np.dot(normal,normal), normal)
-    if np.count_nonzero(normal) == 1:
-        normal = ("x","y","z")[np.nonzero(normal)[0][0]]
-
+        if np.count_nonzero(normal) == 1:
+            normal = ("x","y","z")[np.nonzero(normal)[0][0]]
+        else:
+            normal = np.array(normal)
+            np.divide(normal, np.dot(normal,normal), normal)
+        
     # by now the normal should be properly set to get either a On/Off Axis plot
     if iterable(normal) and not isinstance(normal,str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
