@@ -28,6 +28,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     only_on_root, \
     parallel_objects, \
     parallel_root_only
+from yt.utilities.physical_constants import \
+     speed_of_light_cgs, \
+     cm_per_km
 
 class LightRay(CosmologySplice):
     """
@@ -384,9 +387,18 @@ class LightRay(CosmologySplice):
         for my_storage, my_segment in parallel_objects(self.light_ray_solution,
                                                        storage=all_ray_storage,
                                                        njobs=njobs, dynamic=dynamic):
-            mylog.info("Creating ray segment at z = %f." %
-                       my_segment['redshift'])
-            if my_segment['next'] is None:
+
+            # Load dataset for segment.
+            pf = load(my_segment['filename'])
+
+            if self.near_redshift == self.far_redshift:
+                h_vel = cm_per_km * pf.units['mpc'] * \
+                  vector_length(my_segment['start'], my_segment['end']) * \
+                  self.cosmology.HubbleConstantNow * \
+                  self.cosmology.ExpansionFactor(my_segment['redshift'])
+                next_redshift = np.sqrt((1. + h_vel / speed_of_light_cgs) /
+                                         (1. - h_vel / speed_of_light_cgs)) - 1.
+            elif my_segment['next'] is None:
                 next_redshift = self.near_redshift
             else:
                 next_redshift = my_segment['next']['redshift']
@@ -394,9 +406,6 @@ class LightRay(CosmologySplice):
             mylog.info("Getting segment at z = %s: %s to %s." %
                        (my_segment['redshift'], my_segment['start'],
                         my_segment['end']))
-
-            # Load dataset for segment.
-            pf = load(my_segment['filename'])
 
             # Break periodic ray into non-periodic segments.
             sub_segments = periodic_ray(my_segment['start'], my_segment['end'])
