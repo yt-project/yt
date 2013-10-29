@@ -424,95 +424,103 @@ class ProfilePlot(object):
         return (x_title, y_title)
             
 
-class PhasePlotter(object):
-    scale = None
-    _current_field = None
+class PhasePlot(ProfilePlot):
+    r"""
+    Create a 2d profile (phase) plot from a data source or from a list of
+    profile objects.
+
+    Given a data object (all_data, region, sphere, etc.), an x field, 
+    and a y field (or fields), this will create a one-dimensional profile 
+    of the average (or total) value of the y field in bins of the x field.
+
+    This can be used to create profiles from given fields or to plot 
+    multiple profiles created from 
+    `yt.data_objects.profiles.create_profile`.
+    
+    Parameters
+    ----------
+    data_source : AMR3DData Object
+        The data object to be profiled, such as all_data, region, or 
+        sphere.
+    x_field : str
+        The binning field for the profile.
+    y_fields : str or list
+        The field or fields to be profiled.
+    weight_field : str
+        The weight field for calculating weighted averages.  If None, 
+        the profile values are the sum of the field values within the bin.
+        Otherwise, the values are a weighted average.
+        Default : "CellMass".
+    n_bins : int
+        The number of bins in the profile.
+        Default: 64.
+    accumulation : bool
+        If True, the profile values for a bin N are the cumulative sum of 
+        all the values from bin 0 to N.
+        Default: False.
+    label : str or list of strings
+        If a string, the label to be put on the line plotted.  If a list, 
+        this should be a list of labels for each profile to be overplotted.
+        Default: None.
+    plot_spec : dict or list of dicts
+        A dictionary or list of dictionaries containing plot keyword 
+        arguments.  For example, dict(color="red", linestyle=":").
+        Default: None.
+    profiles : list of profiles
+        If not None, a list of profile objects created with 
+        `yt.data_objects.profiles.create_profile`.
+        Default: None.
+
+    Examples
+    --------
+
+    This creates profiles of a single dataset.
+
+    >>> pf = load("DD0046/DD0046")
+    >>> ad = pf.h.all_data()
+    >>> plot = ProfilePlot(ad, "Density", ["Temperature", "x-velocity"], 
+                           weight_field="CellMass",
+                           plot_spec=dict(color='red', linestyle="--"))
+    >>> plot.save()
+
+    This creates profiles from a time series object.
+    
+    >>> es = simulation("AMRCosmology.enzo", "Enzo")
+    >>> es.get_time_series()
+
+    >>> profiles = []
+    >>> labels = []
+    >>> plot_specs = []
+    >>> for pf in es[-4:]:
+    ...     ad = pf.h.all_data()
+    ...     profiles.append(create_profile(ad, ["Density"],
+    ...                                    fields=["Temperature",
+    ...                                            "x-velocity"]))
+    ...     labels.append(pf.current_redshift)
+    ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
+    >>>
+    >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
+    ...                                  plot_specs=plot_specs)
+    >>> plot.save()
+
+    Use plot_line_property to change line properties of one or all profiles.
+    
+    """
+    plot_spec = None
+    x_log = None
+    y_log = None
+    z_log = None
+    x_title = None
+    y_title = None
+    z_title = None
 
     def __init__(self, data_source, field_x, field_y, field_z,
                  weight="CellMassMsun", accumulation=False,
                  x_bins=128, x_log=True, x_bounds=None,
                  y_bins=128, y_log=True, y_bounds=None,
-                 lazy_reader=True, fractional=False):
-        r"""From an existing object, create a 2D, binned profile.
-
-        This function will accept an existing `AMRData` source and from that,
-        it will generate a `Binned2DProfile`, based on the specified options.
-        This is useful if you have extracted a region, or if you wish to bin
-        some set of massages data -- or even if you wish to bin anything other
-        than a sphere.  The profile will be 2D, which means while it can have
-        an arbitrary number of fields, those fields will all be binned based on
-        two fields.
-
-        Parameters
-        ----------
-        data_source : `yt.data_objects.api.AMRData`
-            This is a data source respecting the `AMRData` protocol (i.e., it
-            has grids and so forth) that will be used as input to the profile
-            generation.
-        fields : list of strings
-            The first element of this list is the field by which we will bin
-            into the x-axis, the second is the field by which we will bin onto
-            the y-axis.  All subsequent fields will be binned and their
-            profiles added to the underlying `BinnedProfile2D`.
-        cmap : string, optional
-            An acceptable colormap.  See either yt.visualization.color_maps or
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        weight : string, default "CellMassMsun"
-            The weighting field for an average.  This defaults to mass-weighted
-            averaging.
-        accumulation : list of booleans, optional
-            If true, from the low-value to the high-value the values in all
-            binned fields will be accumulated.  This is useful for instance
-            when adding an unweighted CellMassMsun to a radial plot, as it will
-            show mass interior to that radius.  The first value is for the
-            x-axis, the second value for the y-axis.  Note that accumulation
-            will only be along each row or column.
-        x_bins : int, optional
-            How many bins should there be in the x-axis variable?
-        x_log : boolean, optional
-            Should the bin edges be log-spaced?
-        x_bounds : tuple of floats, optional
-            If specified, the boundary values for the binning.  If unspecified,
-            the min/max from the data_source will be used.  (Non-zero min/max
-            in case of log-spacing.)
-        y_bins : int, optional
-            How many bins should there be in the y-axis variable?
-        y_log : boolean, optional
-            Should the bin edges be log-spaced?
-        y_bounds : tuple of floats, optional
-            If specified, the boundary values for the binning.  If unspecified,
-            the min/max from the data_source will be used.  (Non-zero min/max
-            in case of log-spacing.)
-        lazy_reader : boolean, optional
-            If this is false, all of the data will be read into memory before
-            any processing occurs.  It defaults to true, and grids are binned
-            on a one-by-one basis.  Note that parallel computation requires
-            this to be true.
-        fractional : boolean
-            If true, the plot will be normalized to the sum of all the binned
-            values.
-
-        Returns
-        -------
-        plot : `yt.visualization.plot_types.PlotTypes.PhasePlot`
-            The plot that has been added to the PlotCollection.
-
-        See Also
-        --------
-        yt.data_objects.profiles.BinnedProfile2D : This is the object that does the
-                                   transformation of raw data into a 1D
-                                   profile.
-        
-        Examples
-        --------
-        This will show the mass-distribution in the Density-Temperature plane.
-        
-        >>> pf = load("RD0005-mine/RedshiftOutput0005")
-        >>> reg = pf.h.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
-        ...                   [0.2, 0.3, 0.4])
-        >>> pc.add_phase_object(reg, ["Density", "Temperature", "CellMassMsun"],
-        ...                     weight = None)
-        """
+                 plot_spec = None, fractional=False):
+        self.z_log = {}
+        self.z_title = {}
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
                                     field_x, non_zero = x_log,
@@ -542,7 +550,25 @@ class PhasePlotter(object):
                 data_source.pf.field_info[field_z].take_log, "log")
         self._setup_plot()
 
-    def _setup_plot(self):
+    def _get_field_log(self, field_z, profile):
+        pf = profile.data_source.pf
+        zfi = pf.field_info[field_z]
+        if self.x_log is None:
+            x_log = profile.x_log
+        else:
+            x_log = self.x_log
+        if self.y_log is None:
+            y_log = profile.y_log
+        else:
+            y_log = self.y_log
+        if field_z in self.z_log:
+            z_log = self.z_log[field_z]
+        else:
+            z_log = zfi.take_log
+        scales = {True: 'log', False: 'linear'}
+        return scales[x_log], scales[y_log], scales[z_log]
+
+    def _setup_plots(self):
         xax = AxisSpec()
         xax.title = self.profile.x_bin_field
         xax.bounds = (self.profile._x_bins[0],
@@ -576,50 +602,19 @@ class PhasePlotter(object):
         self.plot.y_spec = yax
         self.plot.cbar = cbar
 
-    def to_mpl(self, place = None):
-        import _mpl_imports as mpl
-        if isinstance(place, mpl.matplotlib.figure.Figure):
-            figure, place = place, None
-            place = None
-        else:
-            figure = mpl.matplotlib.figure.Figure((10,8))
-        if isinstance(place, mpl.matplotlib.axes.Axes):
-            axes, place = place, None
-        else:
-            axes = figure.add_subplot(1,1,1)
+    def save(self, name=None):
+        if not self._plot_valid: self._setup_plots()
         # We'll go with a mesh here, even if it's inappropriate
-        use_mesh = False
-        xmi, xma = self.x_spec.bounds
-        if self.x_spec.scale == 'log':
-            x_bins = np.logspace(np.log10(xmi), np.log10(xma),
-                                 self.image.shape[0]+1)
-            use_mesh = True
-        else:
-            x_bins = np.logspace(xmi, xma, self.image.shape[0]+1)
-
-        ymi, yma = self.y_spec.bounds
-        if self.y_spec.scale == 'log':
-            y_bins = np.logspace(np.log10(ymi), np.log10(yma),
-                                 self.image.shape[0]+1)
-            use_mesh = True
-        else:
-            y_bins = np.logspace(ymi, yma, self.image.shape[0]+1)
-
         im = self.image
         if self.cbar.scale == 'log':
             norm = mpl.matplotlib.colors.LogNorm()
         else:
             norm = mpl.matplotlib.colors.Normalize()
-        if use_mesh:
-            pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
-                                  shading='flat', cmap = self.cbar.cmap,
-                                  rasterized=True)
-            if self.x_spec.scale == 'log': axes.set_xscale("log")
-            if self.y_spec.scale == 'log': axes.set_yscale("log")
-        else:
-            axes.imshow(self.image, origin='lower', interpolation='nearest',
-                        cmap = self.cbar.cmap, extent = [xmi,xma,ymi,yma],
-                        norm = norm)
+        pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
+                              shading='flat', cmap = self.cbar.cmap,
+                              rasterized=True)
+        if self.x_spec.scale == 'log': axes.set_xscale("log")
+        if self.y_spec.scale == 'log': axes.set_yscale("log")
         if self.x_spec.title is not None:
             axes.set_xlabel(self.x_spec.title)
         if self.y_spec.title is not None:
