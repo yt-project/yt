@@ -515,7 +515,7 @@ class PhasePlot(ProfilePlot):
     z_title = None
 
     def __init__(self, data_source, x_field, y_field, z_fields,
-                 weight="CellMassMsun", x_bins=128, y_bins=128,
+                 weight_field="CellMassMsun", x_bins=128, y_bins=128,
                  plot_spec = None, profile = None):
         self.z_log = {}
         self.z_title = {}
