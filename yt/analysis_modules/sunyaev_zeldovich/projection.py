@@ -259,21 +259,21 @@ class SZProjection(object):
         self.data["TeSZ"] = ImageArray(Te)
 
     @parallel_root_only
-    def write_fits(self, filename_prefix, clobber=True):
+    def write_fits(self, filename, clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc.  
         
         Parameters
         ----------
-        filename_prefix : string
-            The prefix of the FITS filename.
+        filename : string
+            The name of the FITS file to be written. 
         clobber : boolean, optional
             If the file already exists, do we overwrite?
                     
         Examples
         --------
-        >>> szprj.write_fits("SZbullet", clobber=False)
+        >>> szprj.write_fits("SZbullet.fits", clobber=False)
         """
         coords = {}
         coords["dx"] = self.dx*self.pf.units["kpc"]
@@ -282,11 +282,12 @@ class SZProjection(object):
         coords["yctr"] = 0.0
         coords["units"] = "kpc"
         other_keys = {"Time" : self.pf.current_time}
-        write_fits(self.data, filename_prefix, clobber=clobber, coords=coords,
+        write_fits(self.data, filename, clobber=clobber, coords=coords,
                    other_keys=other_keys)
 
     @parallel_root_only
-    def write_png(self, filename_prefix):
+    def write_png(self, filename_prefix, cmap_name="algae",
+                  log_fields=None):
         r""" Export images to PNG files. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc. 
@@ -299,17 +300,65 @@ class SZProjection(object):
         Examples
         --------
         >>> szprj.write_png("SZsloshing")
-        """     
+        """
+        from IPython import embed
+        import matplotlib
+        import matplotlib.pyplot as plt
+        if log_fields is None: log_fields = {}
+        ticks_font = matplotlib.font_manager.FontProperties(family='serif')
         extent = tuple([bound*self.pf.units["kpc"] for bound in self.bounds])
         for field, image in self.items():
-            filename=filename_prefix+"_"+field+".png"
-            label = self.display_names[field]
+            data = image.copy()
+            vmin, vmax = image.min(), image.max()
+            negative = False
+            crossover = False
+            if vmin < 0 and vmax < 0:
+                data *= -1
+                negative = True                                        
+            if log_fields.has_key(field):
+                log_field = log_fields[field]
+            else:
+                log_field = True
+            if log_field:
+                formatter = matplotlib.ticker.LogFormatterMathtext()        
+                norm = matplotlib.colors.LogNorm()
+                if vmin < 0 and vmax > 0:
+                    crossover = True
+                    linthresh = min(vmax, -vmin)/100.
+                    norm=matplotlib.colors.SymLogNorm(linthresh,
+                                                      vmin=vmin, vmax=vmax)
+            else:
+                norm = None
+                formatter = None
+            filename = filename_prefix+"_"+field+".png"
+            cbar_label = self.display_names[field]
             if self.units[field] is not None:
-                label += " ("+self.units[field]+")"
-            write_projection(image, filename, colorbar_label=label, take_log=False,
-                             extent=extent, xlabel=r"$\mathrm{x\ (kpc)}$",
-                             ylabel=r"$\mathrm{y\ (kpc)}$")
-
+                cbar_label += " ("+self.units[field]+")"
+            fig = plt.figure(figsize=(8.0,6.0))
+            ax = fig.add_subplot(111)
+            cax = ax.imshow(data, norm=norm, extent=extent, cmap=cmap_name)
+            for label in ax.get_xticklabels():
+                label.set_fontproperties(ticks_font)
+            for label in ax.get_yticklabels():
+                label.set_fontproperties(ticks_font)                      
+            ax.set_xlabel(r"$\mathrm{x\ (kpc)}$")
+            ax.set_ylabel(r"$\mathrm{y\ (kpc)}$")
+            cbar = fig.colorbar(cax, format=formatter)
+            cbar.ax.set_ylabel(cbar_label)
+            if negative:
+                cbar.ax.set_yticklabels(["-"+label.get_text()
+                                         for label in cbar.ax.get_yticklabels()])
+            if crossover:
+                yticks = list(-10**np.arange(np.floor(np.log10(-vmin)),
+                                             np.rint(np.log10(linthresh))-1, -1)) + [0] + \
+                         list(10**np.arange(np.rint(np.log10(linthresh)),
+                                            np.ceil(np.log10(vmax))+1))
+                cbar.set_ticks(yticks)
+            for label in cbar.ax.get_yticklabels():
+                label.set_fontproperties(ticks_font)                 
+            fig.tight_layout()
+            plt.savefig(filename)
+            
     @parallel_root_only
     def write_hdf5(self, filename):
         r"""Export the set of S-Z fields to a set of HDF5 datasets.
