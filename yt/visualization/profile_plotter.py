@@ -236,6 +236,35 @@ class ProfilePlot(object):
             canvas.print_figure(fn)
         return self
 
+    def show(self):
+        r"""This will send any existing plots to the IPython notebook.
+        function name.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will send any existing plots to the
+        notebook for display.
+
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
+
+        Examples
+        --------
+
+        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
+        >>> slc.show()
+
+        """
+        if "__IPYTHON__" in dir(__builtin__):
+            api_version = get_ipython_api_version()
+            if api_version in ('0.10', '0.11'):
+                self._send_zmq()
+            else:
+                from IPython.display import display
+                display(self)
+        else:
+            raise YTNotInsideNotebook
+
+
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
