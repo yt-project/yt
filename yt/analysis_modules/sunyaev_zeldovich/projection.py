@@ -27,6 +27,7 @@ from yt.visualization.image_writer import write_fits, write_projection
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
+from yt.visualization.plot_window import StandardCenter
 import numpy as np
 
 I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
@@ -122,13 +123,20 @@ class SZProjection(object):
         """
         axis = fix_axis(axis)
 
+        if center == "c":
+            ctr = self.pf.domain_center
+        elif center == "max":
+            v, ctr = self.pf.h.find_max("Density")
+        else:
+            ctr = center
+
         def _beta_par(field, data):
             axis = data.get_field_parameter("axis")
             vpar = data["Density"]*data["%s-velocity" % (vlist[axis])]
             return vpar/clight
         add_field("BetaPar", function=_beta_par)    
 
-        proj = self.pf.h.proj(axis, "Density", source=source)
+        proj = self.pf.h.proj(axis, "Density", center=ctr, source=source)
         proj.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
         dens = frb["Density"]
@@ -181,7 +189,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("Density")
         else:
             ctr = center
 
@@ -304,7 +312,7 @@ class SZProjection(object):
         import matplotlib
         import matplotlib.pyplot as plt
         if log_fields is None: log_fields = {}
-        ticks_font = matplotlib.font_manager.FontProperties(family='serif')
+        ticks_font = matplotlib.font_manager.FontProperties(family='serif',size=16)
         extent = tuple([bound*self.pf.units["kpc"] for bound in self.bounds])
         for field, image in self.items():
             data = image.copy()
@@ -333,17 +341,17 @@ class SZProjection(object):
             cbar_label = self.display_names[field]
             if self.units[field] is not None:
                 cbar_label += " ("+self.units[field]+")"
-            fig = plt.figure(figsize=(8.0,6.0))
+            fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
-            cax = ax.imshow(data, norm=norm, extent=extent, cmap=cmap_name)
+            cax = ax.imshow(data, norm=norm, extent=extent, cmap=cmap_name, origin="lower")
             for label in ax.get_xticklabels():
                 label.set_fontproperties(ticks_font)
             for label in ax.get_yticklabels():
                 label.set_fontproperties(ticks_font)                      
-            ax.set_xlabel(r"$\mathrm{x\ (kpc)}$")
-            ax.set_ylabel(r"$\mathrm{y\ (kpc)}$")
+            ax.set_xlabel(r"$\mathrm{x\ (kpc)}$", fontsize=16)
+            ax.set_ylabel(r"$\mathrm{y\ (kpc)}$", fontsize=16)
             cbar = fig.colorbar(cax, format=formatter)
-            cbar.ax.set_ylabel(cbar_label)
+            cbar.ax.set_ylabel(cbar_label, fontsize=16)
             if negative:
                 cbar.ax.set_yticklabels(["-"+label.get_text()
                                          for label in cbar.ax.get_yticklabels()])
