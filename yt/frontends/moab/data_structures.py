@@ -141,9 +141,9 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
-        ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
-        coords = self.pyne_mesh.mesh.getVtxCoords(ent).astype("float64")
-        vind = self.pyne_mesh.structured_set.getAdjEntIndices(
+        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+        coords = self.pyne_mesh.mesh.getVtxCoords(ents).astype("float64")
+        vind = self.pyne_mesh.mesh.rootSet.getAdjEntIndices(
             iBase.Type.region, iMesh.Topology.hexahedron,
             iBase.Type.vertex)[1].indices.data.astype("int64")
         # Divide by float so it throws an error if it's not 8
@@ -192,8 +192,8 @@ class PyneMoabHex8StaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         from itaps import iBase
-        ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
-        coords = self.pyne_mesh.mesh.getVtxCoords(ent)
+        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+        coords = self.pyne_mesh.mesh.getVtxCoords(ents)
         self.domain_left_edge = coords[0]
         self.domain_right_edge = coords[-1]
         self.domain_dimensions = self.domain_right_edge - self.domain_left_edge

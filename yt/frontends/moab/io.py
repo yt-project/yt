@@ -59,16 +59,12 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
         mesh = pyne_mesh.mesh
         for field in fields:
             rv[field] = np.empty(size, dtype="float64")
-        from itaps import iBase
-        ve_idx_tag = mesh.getTagHandle('ve_idx')
-        ents = pyne_mesh.structured_set.getEntities(iBase.Type.region)
-        ve_idx = ve_idx_tag[ents]
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ftype, fname in fields], ngrids)
         for field in fields:
             ftype, fname = field
-            ds = np.asarray(getattr(pyne_mesh, fname)[ve_idx], 'float64')
+            ds = np.asarray(getattr(pyne_mesh, fname)[:], 'float64')
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
