@@ -195,9 +195,9 @@ class ProfilePlot(object):
 
         self.plot_spec = plot_spec
         if self.plot_spec is None:
-            self.plot_spec = [{}] * len(self.profiles)
+            self.plot_spec = [dict() for p in self.profiles]
         if not isinstance(self.plot_spec, list):
-            self.plot_spec = [self.plot_spec] * len(self.profiles)
+            self.plot_spec = [self.plot_spec.copy() for p in self.profiles]
         
         self._setup_plots()
         
@@ -514,41 +514,23 @@ class PhasePlot(ProfilePlot):
     y_title = None
     z_title = None
 
-    def __init__(self, data_source, field_x, field_y, field_z,
-                 weight="CellMassMsun", accumulation=False,
-                 x_bins=128, x_log=True, x_bounds=None,
-                 y_bins=128, y_log=True, y_bounds=None,
-                 plot_spec = None, fractional=False):
+    def __init__(self, data_source, field_x, field_y, z_fields,
+                 weight="CellMassMsun", x_bins=128, y_bins=128,
+                 plot_spec = None, profile = None):
         self.z_log = {}
         self.z_title = {}
-        if x_bounds is None:
-            x_min, x_max = data_source.quantities["Extrema"](
-                                    field_x, non_zero = x_log,
-                                    lazy_reader=lazy_reader)[0]
-        else:
-            x_min, x_max = x_bounds
-        if y_bounds is None:
-            y_min, y_max = data_source.quantities["Extrema"](
-                                    field_y, non_zero = y_log,
-                                    lazy_reader=lazy_reader)[0]
-        else:
-            y_min, y_max = y_bounds
-        profile = BinnedProfile2D(data_source,
-                                  x_bins, field_x, x_min, x_max, x_log,
-                                  y_bins, field_y, y_min, y_max, y_log,
-                                  lazy_reader)
-        # This is a fallback, in case we forget.
-        if field_z.startswith("CellMass") or \
-           field_z.startswith("CellVolume"):
-            mylog.warning("Setting weight to None")
-            weight = None
-        self._initial_weight = weight
-        profile.add_fields(field_z, weight=weight, accumulation=accumulation, fractional=fractional)
-        self._current_field = field_z
+        if profile is None:
+            # We only 
+            profile = create_profile(data_source,
+               [x_field, y_field], [x_bins, y_bins],
+               fields = ensure_list(z_fields),
+               weight_field = weight_field)
         self.profile = profile
-        self.scale = {True:'log', False:'linear'}.get(
-                data_source.pf.field_info[field_z].take_log, "log")
-        self._setup_plot()
+        # This is a fallback, in case we forget.
+        self.plot_spec = plot_spec
+        if self.plot_spec is None:
+            self.plot_spec = {}
+        self._setup_plots()
 
     def _get_field_log(self, field_z, profile):
         pf = profile.data_source.pf
