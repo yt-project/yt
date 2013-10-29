@@ -20,6 +20,7 @@ import types
 from functools import wraps
 from itertools import izip, repeat
 import numpy as np
+import cStringIO
 
 from .image_writer import \
     write_image, apply_colormap
@@ -233,6 +234,25 @@ class ProfilePlot(object):
               (prefix, self.profiles[0].x_field, uid, suffix)
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
+        return self
+
+    def _repr_html_(self):
+        """Return an html representation of the plot object. Will display as a
+        png for each WindowPlotMPL instance in self.plots"""
+        ret = ''
+        unique = set(self.figures.values())
+        if len(unique) < len(self.figures):
+            figiter = izip(xrange(len(unique)), sorted(unique))
+        else:
+            iters = self.figures.iteritems()
+        for uid, fig in iters:
+            canvas = mpl.FigureCanvasAgg(fig)
+            f = cStringIO.StringIO()
+            canvas.print_figure(f)
+            f.seek(0)
+            img = base64.b64encode(f.read())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret
 
     def _setup_plots(self):
         self.figures = FigureContainer()
@@ -335,6 +355,7 @@ class ProfilePlot(object):
             specs = [self.plot_spec[index]]
         for spec in specs:
             spec[property] = value
+        return self
             
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
