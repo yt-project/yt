@@ -301,7 +301,6 @@ class SZProjection(object):
         --------
         >>> szprj.write_png("SZsloshing")
         """
-        from IPython import embed
         import matplotlib
         import matplotlib.pyplot as plt
         if log_fields is None: log_fields = {}
