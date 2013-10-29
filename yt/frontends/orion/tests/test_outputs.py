@@ -29,6 +29,7 @@ def test_radadvect():
     pf = data_dir_load(radadvect)
     yield assert_equal, str(pf), "plt00000"
     for test in small_patch_amr(radadvect, _fields):
+        test_radadvect.__name__ = test.description
         yield test
 
 rt = "RadTube/plt00500"
@@ -37,4 +38,5 @@ def test_radtube():
     pf = data_dir_load(rt)
     yield assert_equal, str(pf), "plt00500"
     for test in small_patch_amr(rt, _fields):
+        test_radtube.__name__ = test.description
         yield test
