@@ -74,3 +74,28 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
                 for g in chunk.objs:
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        assert(len(chunks) == 1)
+        tags = {}
+        rv = {}
+        pyne_mesh = self.pf.pyne_mesh
+        mesh = pyne_mesh.mesh
+        for field in fields:
+            rv[field] = np.empty(size, dtype="float64")
+        from itaps import iBase
+        ve_idx_tag = mesh.getTagHandle('ve_idx')
+        ents = pyne_mesh.structured_set.getEntities(iBase.Type.region)
+        ve_idx = ve_idx_tag[ents]
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ftype, fname = field
+            ds = np.asarray(getattr(pyne_mesh, fname)[ve_idx], 'float64')
+            ind = 0
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv

@@ -157,11 +157,12 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
         #self.field_list = self.pyne_mesh.mesh.getAllTags(
         #    self.pyne_mesh.mesh.rootSet)
         # So we have to look at each entity.
-        tags = set([])
-        for ent in self.pyne_mesh.mesh.rootSet:
-            for tag in self.pyne_mesh.mesh.getAllTags(ent):
-                tags.add(tag.name)
-        self.field_list = list(tags)
+        #tags = set([])
+        #for ent in self.pyne_mesh.mesh.rootSet:
+        #    for tag in self.pyne_mesh.mesh.getAllTags(ent):
+        #        tags.add(tag.name)
+        #self.field_list = list(tags)
+        self.field_list = self.pyne_mesh.tags.keys()
 
     def _count_grids(self):
         self.num_grids = 1
