@@ -27,6 +27,8 @@ from .field_exceptions import \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
+from yt.utilities.units import \
+    Unit
 
 def derived_field(**kwargs):
     def inner_decorator(function):

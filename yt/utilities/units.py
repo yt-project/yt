@@ -486,7 +486,6 @@ class Unit(Expr):
         symbol_table = {}
         for ex in self.expr.free_symbols:
             symbol_table[ex] = latex_symbol_lut[str(ex)]
-        import pdb; pdb.set_trace()
         return latex(self.expr, symbol_names=symbol_table,
                      fold_frac_powers=True, fold_short_frac=True)
 #
