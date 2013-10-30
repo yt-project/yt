@@ -12,7 +12,7 @@ Particle trajectories
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import TimeSeriesData
-from yt.utilities.lib import sample_field_at_positions
+from yt.utilities.lib import CICSample_3
 from yt.funcs import *
 
 import numpy as np
@@ -86,6 +86,17 @@ class ParticleTrajectories(object):
                            "particle_position_y",
                            "particle_position_z"]
 
+        # Set up the derived field list and the particle field list
+        # so that if the requested field is a particle field, we'll
+        # just copy the field over, but if the field is a grid field,
+        # we will first interpolate the field to the particle positions
+        # and then return the field. 
+
+        pf = self.pfs[0]
+        self.derived_field_list = pf.h.derived_field_list
+        self.particle_fields = [field for field in self.derived_field_list
+                                if pf.field_info[field].particle_type]
+
         """
         The following loops through the parameter files
         and performs two tasks. The first is to isolate
@@ -112,16 +123,6 @@ class ParticleTrajectories(object):
 
         self.times = np.array(self.times)
 
-        # Set up the derived field list and the particle field list
-        # so that if the requested field is a particle field, we'll
-        # just copy the field over, but if the field is a grid field,
-        # we will first copy the field over to the particle positions
-        # and then return the field. 
-
-        self.derived_field_list = self.pfs[0].h.derived_field_list
-        self.particle_fields = [field for field in self.derived_field_list
-                                if self.pfs[0].field_info[field].particle_type]
-
         # Now instantiate the requested fields 
         for field in fields:
             self._get_data(field)
@@ -137,7 +138,9 @@ class ParticleTrajectories(object):
         Get the field associated with key,
         checking to make sure it is a particle field.
         """
-        if not self.field_data.has_key(key) :
+        if key == "particle_time":
+            return self.times
+        if not self.field_data.has_key(key):
             self._get_data(key)
         return self.field_data[key]
     
@@ -214,12 +217,15 @@ class ParticleTrajectories(object):
                     x = self["particle_position_x"][:,step]
                     y = self["particle_position_y"][:,step]
                     z = self["particle_position_z"][:,step]
-                    leaf_grids = [g for g in pf.h.grids if len(g.Children) == 0]
-                    for grid in leaf_grids:
-                        pfield += sample_field_at_positions(grid[field],
-                                                            grid.LeftEdge,
-                                                            grid.RightEdge,
-                                                            x, y, z)
+                    particle_grids, particle_grid_inds = pf.h.find_points(x,y,z)
+                    for grid in particle_grids:
+                        cube = grid.retrieve_ghost_zones(1, [field])
+                        CICSample_3(x,y,z,pfield,
+                                    self.num_indices,
+                                    cube[field],
+                                    np.array(grid.LeftEdge).astype(np.float64),
+                                    np.array(grid.ActiveDimensions).astype(np.int32),
+                                    np.float64(grid['dx']))
                     particles = np.append(particles, pfield)
                 step += 1
             self[field] = particles.reshape(self.num_steps,
