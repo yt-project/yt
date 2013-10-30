@@ -109,4 +109,4 @@ from .radmc3d_export.api import \
     RadMC3DWriter
 
 from .particle_trajectories.api import \
-    ParticleTrajectoryColleciton
+    ParticleTrajectories

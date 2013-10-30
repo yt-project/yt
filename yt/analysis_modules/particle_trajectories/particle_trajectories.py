@@ -1,6 +1,5 @@
 """
 Particle trajectories
-
 """
 
 #-----------------------------------------------------------------------------
@@ -19,11 +18,11 @@ from yt.funcs import *
 import numpy as np
 import h5py
 
-class ParticleTrajectoryCollection(object):
+class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
     parameter files. 
 
-    The ParticleTrajectoryCollection object contains a collection of
+    The ParticleTrajectories object contains a collection of
     particle trajectories for a specified set of particle indices. 
     
     Parameters
@@ -51,7 +50,7 @@ class ParticleTrajectoryCollection(object):
     >>> pf = load(my_fns[0])
     >>> init_sphere = pf.h.sphere(pf.domain_center, (.5, "unitary"))
     >>> indices = init_sphere["particle_index"].astype("int")
-    >>> trajs = ParticleTrajectoryCollection(my_fns, indices, fields=fields)
+    >>> trajs = ParticleTrajectories(my_fns, indices, fields=fields)
     >>> for t in trajs :
     >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
 
@@ -187,7 +186,7 @@ class ParticleTrajectoryCollection(object):
         Examples
         ________
         >>> from yt.mods import *
-        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.add_fields(["particle_mass", "particle_gpot"])
         """
         for field in fields:
@@ -236,7 +235,7 @@ class ParticleTrajectoryCollection(object):
         ----------
         index : int
             This defines which particle trajectory from the
-            ParticleTrajectoryCollection object will be returned.
+            ParticleTrajectories object will be returned.
 
         Returns
         -------
@@ -247,7 +246,7 @@ class ParticleTrajectoryCollection(object):
         --------
         >>> from yt.mods import *
         >>> import matplotlib.pylab as pl
-        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> traj = trajs.trajectory_from_index(indices[0])
         >>> pl.plot(traj["particle_time"], traj["particle_position_x"], "-x")
         >>> pl.savefig("orbit")
@@ -278,7 +277,7 @@ class ParticleTrajectoryCollection(object):
         Examples
         --------
         >>> from yt.mods import *
-        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.write_out("orbit_trajectory")       
         """
         fields = [field for field in sorted(self.field_data.keys())]
@@ -311,7 +310,7 @@ class ParticleTrajectoryCollection(object):
         --------
 
         >>> from yt.mods import *
-        >>> trajs = ParticleTrajectoryCollection(my_fns, indices)
+        >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.write_out_h5("orbit_trajectories")                
         """
         fid = h5py.File(filename, "w")

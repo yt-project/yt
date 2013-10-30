@@ -9,4 +9,4 @@ API for particle_trajectories
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from particle_trajectories import ParticleTrajectoryCollection
+from particle_trajectories import ParticleTrajectories
