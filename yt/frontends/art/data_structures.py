@@ -426,7 +426,7 @@ class ARTStaticOutput(StaticOutput):
             try:
                 amr_header_vals = read_attrs(fh, amr_header_struct, '>')
                 return True
-            except AssertionError:
+            except:
                 return False
         return False
 
