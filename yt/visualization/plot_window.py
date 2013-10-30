@@ -501,11 +501,7 @@ class PlotWindow(object):
             assert_valid_width_tuple(unit)
             width = (width, unit)
             
-        print width, unit
-            
         width = StandardWidth(self._frb.axis, width, None, self.pf)
-
-        import pdb; pdb.set_trace()
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.
