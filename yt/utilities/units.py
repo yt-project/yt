@@ -190,7 +190,7 @@ class UnitRegistry:
     def __getitem__(self, key):
         return self.lut[key]
 
-    def add(self, symbol, cgs_value, dimensions, tex_repr):
+    def add(self, symbol, cgs_value, dimensions, tex_repr = None):
         """
         Add a symbol to this registry.
 
@@ -203,6 +203,7 @@ class UnitRegistry:
         _validate_dimensions(dimensions)
 
         # Add to lut
+        if tex_repr is None: tex_repr = symbol
         self.lut.update( {symbol: (cgs_value, dimensions, tex_repr)} )
 
     def remove(self, symbol):
