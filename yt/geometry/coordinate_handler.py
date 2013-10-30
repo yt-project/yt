@@ -19,7 +19,7 @@ import abc
 import weakref
 
 from yt.funcs import *
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     NullFunc, FieldInfoContainer
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog

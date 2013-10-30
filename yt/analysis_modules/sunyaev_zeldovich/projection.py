@@ -20,7 +20,7 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.data_objects.image_array import ImageArray
-from yt.data_objects.field_info_container import add_field
+from yt.fields.field_info_container import add_field
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
 from yt.utilities.definitions import inv_axis_names
 from yt.visualization.image_writer import write_fits, write_projection

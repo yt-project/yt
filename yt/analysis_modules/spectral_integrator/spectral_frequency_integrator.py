@@ -21,7 +21,7 @@ import os
 
 from yt.funcs import *
 
-from yt.data_objects.field_info_container import add_field
+from yt.fields.field_info_container import add_field
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator

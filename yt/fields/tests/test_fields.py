@@ -1,6 +1,6 @@
 from yt.testing import *
 import numpy as np
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfo
 import yt.fields.universal_fields
 from yt.utilities.definitions import \

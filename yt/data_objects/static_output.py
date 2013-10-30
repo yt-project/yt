@@ -26,7 +26,7 @@ from yt.utilities.parameter_file_storage import \
     NoParameterShelf, \
     output_type_registry
 from yt.utilities.units import Unit, UnitRegistry, dimensionless
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
     filter_registry

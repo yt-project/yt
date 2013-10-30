@@ -17,22 +17,13 @@ These are common particle deposition fields.
 import numpy as np
 
 from yt.funcs import *
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, \
-    FieldInfo, \
+from yt.fields.derived_field import \
     ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    NullFunc, \
-    TranslationFunc
+    ValidateSpatial
 from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, \
     mass_sun_cgs, \
     mh
-from .universal_fields import \
-    get_radius
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -134,15 +125,11 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                        particle_type = True,
                        units = "")
 
-    registry.add_field((ptype, "ParticleMass"),
-            function = TranslationFunc((ptype, mass_name)),
-            particle_type = True,
-            units = "g")
+    registry.alias((ptype, "ParticleMass"), (ptype, mass_name),
+                    units = "g")
 
-    registry.add_field((ptype, "ParticleMassMsun"),
-            function = TranslationFunc((ptype, mass_name)),
-            particle_type = True,
-            units = "Msun")
+    registry.alias((ptype, "ParticleMassMsun"), (ptype, mass_name),
+                    units = "Msun")
 
     def particle_mesh_ids(field, data):
         pos = data[ptype, coord_name]
@@ -325,6 +312,9 @@ def standard_particle_fields(registry, ptype,
              function=_particle_angular_momentum_z,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
+
+    from .universal_fields import \
+        get_radius
 
     def _particle_radius(field, data):
         return get_radius(data, "particle_position_")

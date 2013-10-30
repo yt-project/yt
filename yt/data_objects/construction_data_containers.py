@@ -31,8 +31,6 @@ from yt.utilities.logger import ytLogger
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
     restore_field_information_state, YTFieldData
-from .field_info_container import \
-    NeedsOriginalGrid
 from yt.utilities.lib import \
     QuadTree, ghost_zone_interpolate, fill_region, \
     march_cubes_grid, march_cubes_grid_flux
@@ -45,7 +43,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, ParallelAnalysisInterface
 import yt.geometry.particle_deposit as particle_deposit
 
-from .field_info_container import\
+from yt.fields.field_exceptions import \
     NeedsGridType,\
     NeedsOriginalGrid,\
     NeedsDataField,\

@@ -35,8 +35,10 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
 from .derived_quantities import DerivedQuantityCollection
-from .field_info_container import \
-    NeedsGridType, ValidateSpatial
+from yt.fields.field_exceptions import \
+    NeedsGridType
+from yt.fields.derived_field import \
+    ValidateSpatial
 import yt.geometry.selection_routines
 
 def force_array(item, shape):

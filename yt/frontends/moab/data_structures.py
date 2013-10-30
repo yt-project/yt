@@ -62,7 +62,7 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
         self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
                                     coords, self)]
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = self._fhandle['/tstt/elements/Hex8/tags'].keys()
 
     def _count_grids(self):
@@ -151,7 +151,7 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
         self.meshes = [PyneHex8Mesh(0, self.hierarchy_filename,
                                     vind, coords, self)]
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # Currently, I don't know a better way to do this.  This code, for
         # example, does not work:
         #self.field_list = self.pyne_mesh.mesh.getAllTags(

@@ -28,7 +28,7 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     data_object_registry
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     NullFunc
 from yt.fields.particle_fields import \
     particle_deposition_functions, \

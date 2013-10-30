@@ -43,7 +43,7 @@ from .fields import \
     TipsyFieldInfo, \
     KnownTipsyFields, \
     _setup_particle_fields
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     NullFunc, \
     TranslationFunc
 from yt.fields.particle_fields import \

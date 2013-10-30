@@ -23,7 +23,8 @@ from yt.data_objects.yt_array import YTArray
 from .derived_field import \
     DerivedField, \
     NullFunc, \
-    TranslationFunc
+    TranslationFunc, \
+    ValidateSpatial
 from .field_detector import \
     FieldDetector
 from yt.utilities.exceptions import \
@@ -32,6 +33,10 @@ from .field_plugin_registry import \
     field_plugins
 from yt.utilities.units import \
     Unit
+from .particle_fields import \
+    particle_deposition_functions, \
+    particle_vector_functions, \
+    standard_particle_fields
 
 class FieldInfoContainer(dict): # Resistance has utility
     """
@@ -51,6 +56,24 @@ class FieldInfoContainer(dict): # Resistance has utility
         self.field_list = field_list
         self.slice_info = slice_info
         self.setup_fluid_aliases()
+
+    def setup_fluid_fields(self):
+        pass
+
+    def setup_particle_fields(self, ptype):
+        for f, (units, aliases) in sorted(self.known_particle_fields):
+            self.add_output_field((ptype, f),
+                units = units, particle_type = True)
+            for alias in aliases:
+                self.alias(alias, (ptype, f))
+
+        particle_vector_functions(ptype,
+                ["particle_position_%s" % ax for ax in 'xyz'],
+                ["particle_velocity_%s" % ax for ax in 'xyz'],
+                self)
+        particle_deposition_functions(ptype, "Coordinates",
+            "particle_mass", self)
+        standard_particle_fields(self, ptype)
 
     def setup_fluid_aliases(self):
         known_other_fields = dict(self.known_other_fields)
@@ -108,6 +131,7 @@ class FieldInfoContainer(dict): # Resistance has utility
             units = str(u.get_cgs_equivalent())
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
+            particle_type = self[original_name].particle_type,
             units = units)
 
     def add_grad(self, field, **kwargs):

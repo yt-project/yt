@@ -121,7 +121,7 @@ from yt.frontends.enzo.api import \
 #     PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
 
 from yt.frontends.stream.api import \
-    StreamStaticOutput, StreamFieldInfo, add_stream_field, \
+    StreamStaticOutput, \
     StreamHandler, load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree
 

@@ -16,7 +16,7 @@ ART-specific fields
 import numpy as np
 
 from yt.funcs import *
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
     NullFunc, \

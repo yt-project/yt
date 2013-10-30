@@ -25,7 +25,7 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.funcs import *
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
+from yt.fields.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
 from yt.data_objects.static_output import StaticOutput
@@ -308,7 +308,7 @@ class BoxlibHierarchy(GridGeometryHandler):
         self._data_mode = None
         self._max_locations = {}
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # This is all done in _parse_header_file
         self.field_list = self.parameter_file._field_list[:]
         self.field_indexes = dict((f, i)

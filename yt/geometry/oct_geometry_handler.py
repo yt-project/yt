@@ -25,7 +25,7 @@ from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
-from yt.data_objects.field_info_container import NullFunc
+from yt.fields.field_info_container import NullFunc
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry

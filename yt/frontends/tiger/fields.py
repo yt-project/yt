@@ -13,7 +13,7 @@ Tiger-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
     ValidateParameter, \

@@ -52,7 +52,7 @@ from yt.geometry.unstructured_mesh_handler import \
 from yt.data_objects.static_output import \
     StaticOutput
 from yt.utilities.logger import ytLogger as mylog
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.lib import \
     get_box_grids_level, \
@@ -69,10 +69,7 @@ from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
 
 from .fields import \
-    StreamFieldInfo, \
-    add_stream_field, \
-    add_field, \
-    KnownStreamFields
+    StreamFieldInfo
 
 class StreamGrid(AMRGridPatch):
     """
@@ -231,7 +228,7 @@ class StreamHierarchy(GridGeometryHandler):
         dd = self._get_data_reader_dict()
         GridGeometryHandler._setup_classes(self, dd)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
     def _populate_grid_objects(self):
@@ -278,8 +275,7 @@ class StreamHierarchy(GridGeometryHandler):
 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
-    _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
+    _field_info_class = StreamFieldInfo
     _data_style = 'stream'
 
     def __init__(self, stream_handler, storage_filename = None):
@@ -342,11 +338,13 @@ class StreamStaticOutput(StaticOutput):
 
     def set_code_units(self):
         from yt.utilities.units import length, mass, time
+        # domain_width does not yet exist
+        DW = self.domain_right_edge - self.domain_left_edge
         self._set_code_unit_attributes()
         self.unit_registry.modify("code_length", self.length_unit.value)
         self.unit_registry.modify("code_mass", self.mass_unit.value)
         self.unit_registry.modify("code_time", self.time_unit.value)
-        self.unit_registry.modify("unitary", self.domain_width.max())
+        self.unit_registry.modify("unitary", DW.max())
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -513,7 +511,7 @@ Parameters
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
     number_of_particles = data.pop("number_of_particles", 0)
-    
+    # First we fix our field names
     if all([isinstance(val, np.ndarray) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
     elif all([(len(val) == 2) for val in data.values()]):
@@ -536,7 +534,19 @@ Parameters
         raise RuntimeError("The data dict appears to be invalid. "
                            "The data dictionary must map from field "
                            "names to (numpy array, unit spec) tuples. ")
-
+    # At this point, we have arrays for all our fields
+    new_data = {}
+    for field in data:
+        if isinstance(field, tuple): 
+            new_field = field
+        elif len(data[field].shape) == 1:
+            new_field = ("io", field)
+        elif len(data[field].shape) == 3:
+            new_field = ("gas", field)
+        else:
+            raise RuntimeError
+        new_data[new_field] = data[field]
+    data = new_data
     sfh = StreamDictFieldHandler()
 
     if number_of_particles > 0 :
@@ -859,8 +869,7 @@ class StreamParticleFile(ParticleFile):
 class StreamParticlesStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamParticleGeometryHandler
     _file_class = StreamParticleFile
-    _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
+    _field_info_class = StreamFieldInfo
     _data_style = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
@@ -1016,13 +1025,12 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
         else:
             self.io = io_registry[self.data_style](self.pf)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
 class StreamHexahedralStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamHexahedralHierarchy
-    _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
+    _field_info_class = StreamFieldInfo
     _data_style = "stream_hexahedral"
 
 def load_hexahedral_mesh(data, connectivity, coordinates,
@@ -1206,13 +1214,12 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         dd = self._get_data_reader_dict()
         super(StreamOctreeHandler, self)._setup_classes(dd)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
 class StreamOctreeStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamOctreeHandler
-    _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
+    _field_info_class = StreamFieldInfo
     _data_style = "stream_octree"
 
 def load_octree(octree_mask, data, sim_unit_to_cm,
@@ -1337,13 +1344,12 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
         else:
             self.io = io_registry[self.data_style](self.pf)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
 class StreamHexahedralStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamHexahedralHierarchy
-    _fieldinfo_fallback = StreamFieldInfo
-    _fieldinfo_known = KnownStreamFields
+    _field_info_class = StreamFieldInfo
     _data_style = "stream_hexahedral"
 
 def load_hexahedral_mesh(data, connectivity, coordinates,

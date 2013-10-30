@@ -31,7 +31,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import SkeletonFieldInfo, add_flash_field, KnownSkeletonFields
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc, ValidateDataField, TranslationFunc
 
 class SkeletonGrid(AMRGridPatch):
@@ -63,7 +63,7 @@ class SkeletonHierarchy(AMRHierarchy):
     def _initialize_data_storage(self):
         pass
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
         # on-disk fields.
         pass

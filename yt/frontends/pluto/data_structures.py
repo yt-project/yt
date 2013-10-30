@@ -46,7 +46,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.io_handler import \
     io_registry
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import PlutoFieldInfo, KnownPlutoFields
 
@@ -104,7 +104,7 @@ class PlutoHierarchy(GridGeometryHandler):
         self._levels = self._handle.keys()[2:]
         GridGeometryHandler.__init__(self,pf,data_style)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
           

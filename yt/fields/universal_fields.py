@@ -26,11 +26,12 @@ from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
-from yt.data_objects.field_info_container import \
+from yt.fields.derived_field import \
     ValidateGridType, \
     ValidateParameter, \
     ValidateSpatial, \
-    NeedsParameter, \
+    NeedsParameter
+from yt.fields.field_info_container import \
     FieldInfoContainer
 
 from yt.utilities.physical_constants import \
@@ -57,7 +58,7 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
 
-UniversalFields = FieldInfoContainer()
+UniversalFields = FieldInfoContainer(None, [])
 add_field = UniversalFields.add_field
 
 # Note that, despite my newfound efforts to comply with PEP-8,

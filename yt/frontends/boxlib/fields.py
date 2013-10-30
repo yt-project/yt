@@ -17,7 +17,7 @@ import numpy as np
 
 from yt.utilities.physical_constants import \
     mh, kboltz
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
     TranslationFunc, \

@@ -34,7 +34,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
+from yt.fields.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField, TranslationFunc
 
 class FLASHGrid(AMRGridPatch):
@@ -69,7 +69,7 @@ class FLASHHierarchy(GridGeometryHandler):
     def _initialize_data_storage(self):
         pass
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle) :

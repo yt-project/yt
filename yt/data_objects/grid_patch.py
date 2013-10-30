@@ -27,7 +27,7 @@ from yt.data_objects.data_containers import \
     YTDataContainer, \
     YTSelectionContainer
 from yt.utilities.definitions import x_dict, y_dict
-from .field_info_container import \
+from yt.fields.field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \

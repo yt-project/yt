@@ -25,7 +25,7 @@ from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
-from yt.data_objects.field_info_container import NullFunc
+from yt.fields.field_info_container import NullFunc
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, ParticleRegions
@@ -114,7 +114,7 @@ class ParticleGeometryHandler(GeometryHandler):
         # Now we add them all at once.
         self.oct_handler.add(morton)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # TODO: Add additional fields
         pfl = []
         for dom in self.data_files:

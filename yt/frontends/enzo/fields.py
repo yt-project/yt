@@ -217,22 +217,10 @@ class EnzoFieldInfo(FieldInfoContainer):
                 units = "erg/g")
 
     def setup_particle_fields(self, ptype):
-        for f, (units, aliases) in sorted(self.known_particle_fields):
-            self.add_output_field((ptype, f),
-                units = units, particle_type = True)
-            for alias in aliases:
-                self.alias(alias, (ptype, f))
-
-        particle_vector_functions(ptype,
-                ["particle_position_%s" % ax for ax in 'xyz'],
-                ["particle_velocity_%s" % ax for ax in 'xyz'],
-                self)
-        particle_deposition_functions(ptype, "Coordinates",
-            "particle_mass", self)
+        super(EnzoFieldInfo, self).setup_particle_fields(ptype)
 
         def _age(field, data):
             return data.pf.current_time - data["creation_time"]
         self.add_field((ptype, "age"), function = _age,
                            particle_type = True,
                            units = "yr")
-        standard_particle_fields(self, ptype)

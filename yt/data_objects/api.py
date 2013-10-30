@@ -53,25 +53,6 @@ from derived_quantities import \
 from image_array import \
     ImageArray
 
-from field_info_container import \
-    FieldInfoContainer, \
-    FieldInfo, \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    FieldDetector, \
-    DerivedField, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    add_field, \
-    add_grad, \
-    derived_field
-
 from particle_trajectories import \
     ParticleTrajectoryCollection
 

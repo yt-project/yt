@@ -25,7 +25,7 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     StaticOutput
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 
 class GadgetDomainFile(object):

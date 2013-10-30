@@ -31,7 +31,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 
 from .fields import GDFFieldInfo, KnownGDFFields
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 import pdb
 
@@ -90,7 +90,7 @@ class GDFHierarchy(GridGeometryHandler):
     def _initialize_data_storage(self):
         pass
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = self._fhandle['field_types'].keys()
 
     def _setup_classes(self):

@@ -21,7 +21,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
            StaticOutput
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import TigerFieldInfo, KnownTigerFields
 
@@ -110,7 +110,7 @@ class TigerHierarchy(GridGeometryHandler):
         # We don't need to do anything here
         for g in self.grids: g._setup_dx()
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.file_mapping = {"Density" : "rhob",
                              "Temperature" : "temp"}
 

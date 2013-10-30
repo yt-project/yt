@@ -15,7 +15,7 @@ Fields based on species of molecules or atoms.
 
 import numpy as np
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, \
     NullFunc, \
     TranslationFunc, \

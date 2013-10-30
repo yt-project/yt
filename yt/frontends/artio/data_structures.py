@@ -44,7 +44,7 @@ from yt.data_objects.octree_subset import \
 from yt.data_objects.data_containers import \
     YTFieldData
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 
 class ARTIOOctreeSubset(OctreeSubset):
@@ -215,7 +215,7 @@ class ARTIOGeometryHandler(GeometryHandler):
         self.pf.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
         return max_val, np.array((mx, my, mz), dtype='float64')
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields()
         self.field_list = self.fluid_field_list + self.particle_field_list

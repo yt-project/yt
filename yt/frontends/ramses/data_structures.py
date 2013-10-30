@@ -35,7 +35,7 @@ from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
@@ -340,7 +340,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.max_level = max(dom.max_level for dom in self.domains)
         self.num_grids = total_octs
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # TODO: Add additional fields
         pfl = set([])
         for domain in self.domains:

@@ -34,7 +34,7 @@ from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 from yt.data_objects.static_output import \
     StaticOutput
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -588,7 +588,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
     _cached_field_list = None
     _cached_derived_field_list = None
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         if self.__class__._cached_field_list is None:
             EnzoHierarchy._detect_fields(self)
             self.__class__._cached_field_list = self.field_list

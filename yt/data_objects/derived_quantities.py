@@ -20,7 +20,7 @@ import numpy as np
 from yt.funcs import *
 
 from yt.config import ytcfg
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \

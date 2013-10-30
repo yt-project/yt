@@ -14,7 +14,7 @@ Athena-specific fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
     ValidateParameter, \
