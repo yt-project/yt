@@ -21,13 +21,19 @@ from . import fluid_fields
 from . import magnetic_field
 from . import geometric_fields
 from . import particle_fields
-from . import species_fields
+#from . import species_fields
 from . import universal_fields
 from . import vector_operations
 
 from .derived_field import \
-    DerivedField
+    DerivedField, \
+    ValidateParameter, \
+    ValidateDataField, \
+    ValidateProperty, \
+    ValidateSpatial, \
+    ValidateGridType
 from .field_detector import \
     FieldDetector
 from .field_info_container import \
     FieldInfoContainer
+

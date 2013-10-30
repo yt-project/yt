@@ -240,8 +240,6 @@ class FieldInfoContainer(dict): # Resistance has utility
             try:
                 fd = fi.get_dependencies(pf = self.pf)
             except Exception as e:
-                if "mach_number" in field:
-                    raise
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)

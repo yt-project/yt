@@ -51,14 +51,16 @@ from yt.fields.api import \
     field_plugins, \
     DerivedField, \
     FieldDetector, \
-    FieldInfoContainer
+    FieldInfoContainer, \
+    ValidateParameter, \
+    ValidateDataField, \
+    ValidateProperty, \
+    ValidateSpatial, \
+    ValidateGridType
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \
-    derived_field, add_field, add_grad, FieldInfo, \
-    ValidateParameter, ValidateDataField, ValidateProperty, \
-    ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
     ParticleTrajectoryCollection, ImageArray, \
     particle_filter

@@ -19,12 +19,8 @@ from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
-from yt.fields.field_info_container import \
-    ValidateGridType, \
-    ValidateParameter, \
-    ValidateSpatial, \
-    NeedsParameter, \
-    FieldInfoContainer
+from yt.fields.derived_field import \
+    ValidateParameter
 
 from .field_plugin_registry import \
     register_field_plugin
