@@ -488,7 +488,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     def _generate_container_field(self, field):
         rv = YTArray(np.ones(self.ActiveDimensions, dtype="float64"),
-                             "code_length")
+                             "")
         if field == "dx":
             np.multiply(rv, self.dds[0], rv)
         elif field == "dy":

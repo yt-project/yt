@@ -64,45 +64,6 @@ add_field = UniversalFields.add_field
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
 
-def _grid_level(field, data):
-    return np.ones(data.ActiveDimensions)*(data.Level)
-add_field("grid_level", function=_grid_level,
-          validators=[ValidateGridType(),
-                      ValidateSpatial(0)])
-
-def _grid_indices(field, data):
-    return np.ones(data["ones"].shape)*(data.id-data._id_offset)
-add_field("grid_indices", function=_grid_indices,
-          validators=[ValidateGridType(),
-                      ValidateSpatial(0)], take_log=False)
-
-def _ones_over_dx(field, data):
-    return np.ones(data["ones"].shape,
-                   dtype=data["density"].dtype)/data['dx']
-add_field("ones_over_dx", function=_ones_over_dx,
-          units = "1 / cm",
-          display_field=False)
-
-def _zeros(field, data):
-    arr = np.zeros(data["ones"].shape, dtype='float64')
-    return field.apply_units(arr)
-
-add_field("zeros", function=_zeros,
-          units = "",
-          projection_conversion="unitary",
-          display_field=False)
-
-def _ones(field, data):
-    arr = np.ones(data.ires.shape, dtype="float64")
-    if data._spatial:
-        return data._reshape_vals(arr)
-    return field.apply_units(arr)
-
-add_field("ones", function=_ones,
-          projection_conversion="unitary",
-          units = "",
-          display_field=False)
-
 def _dynamical_time(field, data):
     """
     sqrt(3 pi / (16 G rho))

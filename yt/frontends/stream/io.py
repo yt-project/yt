@@ -65,7 +65,7 @@ class IOHandlerStream(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    ds = self.fields[g.id][fname]
+                    ds = self.fields[g.id][ftype, fname]
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
 
