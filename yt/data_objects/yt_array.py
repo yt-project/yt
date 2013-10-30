@@ -53,7 +53,14 @@ def ensure_unitless(func):
 
 def ensure_same_units(func):
     def wrapped(unit1, unit2):
-        if unit1.dimensions != unit2.dimensions:
+        if None in (unit1, unit2):
+            if unit1 is not None and not unit1.is_dimensionless:
+                raise RuntimeError("(%s) and (%s) do not match"\
+                              % unit1, unit2)
+            if unit2 is not None and not unit2.is_dimensionless:
+                raise RuntimeError("(%s) and (%s) do not match"\
+                              % unit1, unit2)
+        elif unit1.dimensions != unit2.dimensions:
             raise RuntimeError("(%s) and (%s) must be equivalent units" \
                                % unit1, unit2)
         return func(unit1, unit2)
@@ -682,7 +689,8 @@ class YTArray(np.ndarray):
             return ret
         elif len(context[1]) == 1:
             # unary operators
-            unit = self._ufunc_registry[context[0]](context[1][0].units)
+            u = getattr(context[1][0], 'units', None)
+            unit = self._ufunc_registry[context[0]](u)
             if unit is None:
                 ret = np.array(ret)
             else:
@@ -723,3 +731,15 @@ class YTQuantity(YTArray):
     @property
     def value(self):
         return np.array(self)
+
+def uconcatenate(arrs, *args, **kwargs):
+    v = np.concatenate(arrs, *args, **kwargs)
+    if not any(isinstance(a, YTArray) for a in arrs):
+        return v
+    if not all(isinstance(a, YTArray) for a in arrs):
+        raise RuntimeError("Not all of your arrays are YTArrays.")
+    a1 = arrs[0]
+    if not all(a.units == a1.units for a in arrs[1:]):
+        raise RuntimeError("Your arrays must have identical units.")
+    v.units = a1.units
+    return v

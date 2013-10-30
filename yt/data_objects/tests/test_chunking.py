@@ -26,8 +26,8 @@ def test_chunking():
                 for chunk in obj.chunks(None, t):
                     coords['f'][t].append(chunk.fcoords[:,:])
                     coords['i'][t].append(chunk.icoords[:,:])
-                coords['f'][t] = np.concatenate(coords['f'][t])
-                coords['i'][t] = np.concatenate(coords['i'][t])
+                coords['f'][t] = uconcatenate(coords['f'][t])
+                coords['i'][t] = uconcatenate(coords['i'][t])
                 coords['f'][t].sort()
                 coords['i'][t].sort()
             yield assert_equal, coords['f']['io'], coords['f']['all']
