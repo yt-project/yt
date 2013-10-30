@@ -270,7 +270,7 @@ class StreamHierarchy(GridGeometryHandler):
                     grid.field_data.pop( ("all", fname) )
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
-        self._detect_fields()
+        self._detect_output_fields()
         self._setup_unknown_fields()
 
 class StreamStaticOutput(StaticOutput):

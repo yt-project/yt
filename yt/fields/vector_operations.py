@@ -22,6 +22,8 @@ from .derived_field import \
 from .field_plugin_registry import \
     register_field_plugin
 
+from yt.utilities.lib import obtain_rvec, obtain_rv_vec
+
 def create_vector_fields(registry, basename, field_units,
                          ftype = "gas", slice_info = None):
 

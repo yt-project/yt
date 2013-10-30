@@ -28,7 +28,8 @@ License:
 import numpy as np
 
 from yt.data_objects.yt_array import YTArray
-from yt.utilities.units import Unit, UnitOperationError
+from yt.utilities.units import Unit
+from yt.utilities.exceptions import UnitOperationError
 
 
 class Quantity(YTArray):

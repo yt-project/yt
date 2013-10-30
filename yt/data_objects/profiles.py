@@ -18,6 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 
+from yt.data_objects.yt_array import uconcatenate
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -138,7 +139,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         data = []
         for field in _field_mapping.get(this_field, (this_field,)):
             data.append(source[field].astype('float64'))
-        return np.concatenate(data, axis=0)
+        return uconcatenate(data, axis=0)
 
     def _fix_pickle(self):
         if isinstance(self._data_source, tuple):

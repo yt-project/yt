@@ -39,7 +39,7 @@ def test_cutting_plane():
             yield assert_equal, frb[cut_field].info['field'], \
                 cut_field
             yield assert_equal, frb[cut_field].info['units'], \
-                pf.field_info[cut_field].get_units()
+                pf._get_field_info("unknown", cut_field).get_units()
             yield assert_equal, frb[cut_field].info['xlim'], \
                 frb.bounds[:2]
             yield assert_equal, frb[cut_field].info['ylim'], \
