@@ -76,12 +76,6 @@ from yt.frontends.orion.api import \
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
 
-from yt.frontends.tiger.api import \
-    TigerStaticOutput, TigerFieldInfo, add_tiger_field
-
-from yt.frontends.ramses.api import \
-    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
-
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
@@ -90,9 +84,6 @@ from yt.frontends.gdf.api import \
 
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
-
-from yt.frontends.art.api import \
-    ARTStaticOutput, ARTFieldInfo, add_art_field
 
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
