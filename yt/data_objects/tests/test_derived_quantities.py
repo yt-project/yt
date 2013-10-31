@@ -18,7 +18,7 @@ def test_extrema():
         yield assert_equal, mi, np.nanmin(dd["density"])
         yield assert_equal, ma, np.nanmax(dd["density"])
         sp = pf.h.sphere("max", (0.25, '1'))
-        yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), True
+        yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), False
         (mi, ma), = dd.quantities["Extrema"]("radial_velocity")
         yield assert_equal, mi, np.nanmin(dd["radial_velocity"])
         yield assert_equal, ma, np.nanmax(dd["radial_velocity"])
