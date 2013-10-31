@@ -260,13 +260,6 @@ def get_radius(data, field_prefix):
     np.sqrt(radius, radius)
     return radius
 
-def _radius(field, data):
-    return get_radius(data, "")
-
-add_field("radius", function=_radius,
-          validators=[ValidateParameter("center")],
-          units="cm")
-
 def _baroclinic_vorticity_x(field, data):
     rho2 = data["density"].astype(np.float64)**2
     return (data["pressure_gradient_y"] * data["density_gradient_z"] -

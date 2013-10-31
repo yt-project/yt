@@ -36,11 +36,21 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
 
+from .universal_fields import get_radius
+
 from yt.utilities.lib.geometry_utils import \
     obtain_rvec
 
 @register_field_plugin
 def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
+
+    def _radius(field, data):
+        return get_radius(data, "")
+
+    registry.add_field(("index", "radius"), function=_radius,
+              validators=[ValidateParameter("center")],
+              units="cm")
+
     def _grid_level(field, data):
         return np.ones(data.ActiveDimensions)*(data.Level)
     registry.add_field(("index", "grid_level"),
