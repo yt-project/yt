@@ -127,7 +127,9 @@ class YTDataContainer(object):
 
     def _set_center(self, center):
         if center is None:
-            pass
+            self.center = None
+            self.set_field_parameter('center', self.center)
+            return
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
             center = YTArray(center, 'code_length')
         elif center in ("c", "center"):

@@ -225,7 +225,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             raise NotImplementedError(style)
         self.weight_field = weight_field
         self._set_center(center)
-        if center is not None: self.set_field_parameter('center',center)
         if data_source is None: data_source = self.pf.h.all_data()
         self.data_source = data_source
         self.weight_field = weight_field

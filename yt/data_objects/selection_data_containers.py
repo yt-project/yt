@@ -596,17 +596,16 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
                  pf=None, field_parameters = None):
-        YTSelectionContainer3D.__init__(self, np.array(center), pf,
-                                        field_parameters)
+        YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
         # make sure the magnitudes of semi-major axes are in order
         if A<B or B<C:
             raise YTEllipsoidOrdering(pf, A, B, C)
         # make sure the smallest side is not smaller than dx
-        if C < self.hierarchy.get_smallest_dx():
-            raise YTSphereTooSmall(pf, C, self.hierarchy.get_smallest_dx())
         self._A = YTArray(A, 'code_length')
         self._B = YTArray(B, 'code_length')
         self._C = YTArray(C, 'code_length')
+        if self._C < self.hierarchy.get_smallest_dx():
+            raise YTSphereTooSmall(pf, self._C, self.hierarchy.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         
