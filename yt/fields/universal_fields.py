@@ -82,11 +82,6 @@ def jeans_mass(field, data):
 
 add_field("jeans_mass", function=jeans_mass, units="g")
 
-def _cell_mass(field, data):
-    return data["density"] * data["index", "cell_volume"]
-
-add_field("cell_mass", function=_cell_mass, units="g")
-
 # This is rho_total / rho_cr(z).
 def _overdensity(field, data):
     return data["matter_density"] / (rho_crit_now * data.pf.hubble_constant**2 *

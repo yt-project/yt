@@ -54,6 +54,13 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     create_vector_fields(registry, "velocity", "cm / s", ftype, slice_info)
 
+    def _cell_mass(field, data):
+        return data[ftype, "density"] * data["index", "cell_volume"]
+
+    registry.add_field((ftype, "cell_mass"),
+        function=_cell_mass,
+        units="g")
+
     def _sound_speed(field, data):
         tr = data.pf.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
