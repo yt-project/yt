@@ -882,13 +882,7 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
 
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
-        particle_vector_functions(ptype,
-            ["particle_position_%s" % ax for ax in 'xyz'],
-            ["particle_velocity_%s" % ax for ax in 'xyz'],
-            self.field_info)
-        particle_deposition_functions(ptype,
-            "Coordinates", "particle_mass", self.field_info)
-        standard_particle_fields(self.field_info, ptype)
+        self.field_info.setup_particle_fields(ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 def load_particles(data, length_unit = None, bbox=None,

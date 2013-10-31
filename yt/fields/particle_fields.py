@@ -177,7 +177,8 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
     def _get_vec_func(_ptype, names):
         def particle_vectors(field, data):
-            return np.column_stack([data[_ptype, name] for name in names])
+            c = np.column_stack([data[_ptype, name] for name in names])
+            return field.apply_units(c)
         return particle_vectors
     registry.add_field((ptype, "Coordinates"),
                        function=_get_vec_func(ptype, coord_names),
