@@ -335,8 +335,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         ilevel = chunk.ires * self.pf.ires_factor
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
-    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
-               origin='center-window'):
+    def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -344,7 +343,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
+        pw = self._get_pw(fields, center, width, origin, 'Projection')
         return pw
 
 class YTCoveringGridBase(YTSelectionContainer3D):

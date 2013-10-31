@@ -678,20 +678,17 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _convert_field_name(self, field):
         return field
 
-    def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
+    def _get_pw(self, fields, center, width, origin, plot_type):
         axis = self.axis
         self.fields = [k for k in self.field_data.keys()
                        if k not in self._key_fields]
         from yt.visualization.plot_window import \
             GetWindowParameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
-        if axes_unit is None and units != ('1', '1'):
-            axes_unit = units
+        (bounds, center) = GetWindowParameters(axis, center, width, self.pf)
         pw = PWViewerMPL(self, bounds, fields=list(self.fields), origin=origin,
                          frb_generator=FixedResolutionBuffer, 
                          plot_type=plot_type)
-        pw.set_axes_unit(axes_unit)
         return pw
 
 

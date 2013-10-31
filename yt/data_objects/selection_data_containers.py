@@ -215,8 +215,7 @@ class YTSliceBase(YTSelectionContainer2D):
     def hub_upload(self):
         self._mrep.upload()
 
-    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
-               origin='center-window'):
+    def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -224,7 +223,7 @@ class YTSliceBase(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Slice')
+        pw = self._get_pw(fields, center, width, origin, 'Slice')
         return pw
 
 class YTCuttingPlaneBase(YTSelectionContainer2D):
