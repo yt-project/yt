@@ -341,12 +341,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         if iterable(width):
             w, u = width
-            width = w/self.pf[u]
+            width = YTArray(w, input_units = u, registry = self.pf.unit_registry)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = h/self.pf[u]
+            height = YTArray(w, input_units = u, registry = self.pf.unit_registry)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer

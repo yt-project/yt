@@ -53,13 +53,11 @@ def test_projection():
                     yield assert_equal, frb[proj_field].info['field'], \
                             proj_field
                     yield assert_equal, frb[proj_field].info['units'], \
-                            pf.field_info[proj_field].get_units()
+                            pf._get_field_info("unkown", proj_field).get_units()
                     yield assert_equal, frb[proj_field].info['xlim'], \
                             frb.bounds[:2]
                     yield assert_equal, frb[proj_field].info['ylim'], \
                             frb.bounds[2:]
-                    yield assert_equal, frb[proj_field].info['length_to_cm'], \
-                            pf['cm']
                     yield assert_equal, frb[proj_field].info['center'], \
                             proj.center
                     yield assert_equal, frb[proj_field].info['weight_field'], \
