@@ -5,8 +5,11 @@ PHOX code (http://www.mpa-garching.mpg.de/~kdolag/Phox/),
 developed by Veronica Biffi and Klaus Dolag. References for
 PHOX may be found at:
 
-Biffi et al 2012: http://adsabs.harvard.edu/abs/2012MNRAS.420.3545B
-Biffi et al 2013: http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
+Biffi, V., Dolag, K., Bohringer, H., & Lemson, G. 2012, MNRAS, 420, 3545
+http://adsabs.harvard.edu/abs/2012MNRAS.420.3545B
+
+Biffi, V., Dolag, K., Bohringer, H. 2013, MNRAS, 428, 1395
+http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 """
 
 #-----------------------------------------------------------------------------
