@@ -12,7 +12,8 @@ import numpy as np
 
 from yt.data_objects.yt_array import YTArray
 from yt.utilities.quantities import Quantity
-from yt.utilities.units import Unit, InvalidUnitOperationError
+from yt.utilities.units import Unit
+from yt.utilities.quantities import YTUnitOperationError
 
 from yt.config import ytcfg
 
@@ -67,14 +68,14 @@ def test_add_sub_float_quantity():
     for o1, o2 in operand_pairs:
         try:
             res = o1 + o2
-        except InvalidUnitOperationError:
+        except YTUnitOperationError:
             pass
         else:
             assert False
 
         try:
             res = o1 - o2
-        except InvalidUnitOperationError:
+        except YTUnitOperationError:
             pass
         else:
             assert False
