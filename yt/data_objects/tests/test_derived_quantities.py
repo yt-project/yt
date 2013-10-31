@@ -8,7 +8,7 @@ def setup():
 def test_extrema():
     for nprocs in [1, 2, 4, 8]:
         pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",
-                "x-velocity", "y-velocity", "z-velocity"))
+                "velocity_x", "velocity_y", "velocity_z"))
         sp = pf.h.sphere("c", (0.25, '1'))
         (mi, ma), = sp.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(sp["density"])

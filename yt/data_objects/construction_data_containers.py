@@ -855,7 +855,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         >>> sp = pf.h.sphere("max", (10, "kpc")
         >>> surf = pf.h.surface(sp, "Density", 5e-27)
         >>> flux = surf.calculate_flux(
-        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
+        ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)

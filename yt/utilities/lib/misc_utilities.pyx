@@ -467,9 +467,9 @@ def obtain_rvec(data):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def obtain_rv_vec(data, field_names = ("x-velocity",
-                                       "y-velocity",
-                                       "z-velocity"),
+def obtain_rv_vec(data, field_names = ("velocity_x",
+                                       "velocity_y",
+                                       "velocity_z"),
                   bulk_vector = "bulk_velocity"):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.

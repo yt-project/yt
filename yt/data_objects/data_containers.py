@@ -972,7 +972,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> rho = dd.quantities["WeightedAverageQuantity"](
         ...     "Density", weight="CellMassMsun")
         >>> flux = dd.calculate_isocontour_flux("Density", rho,
-        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
+        ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
         flux = 0.0
         for g in self._get_grid_objs():

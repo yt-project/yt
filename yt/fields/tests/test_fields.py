@@ -38,9 +38,9 @@ def get_params(pf):
     )
 
 _base_fields = (("gas", "density"),
-                ("gas", "x-velocity"),
-                ("gas", "y-velocity"),
-                ("gas", "z-velocity"))
+                ("gas", "velocity_x"),
+                ("gas", "velocity_y"),
+                ("gas", "velocity_z"))
 
 def realistic_pf(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))

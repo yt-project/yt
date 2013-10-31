@@ -1,7 +1,7 @@
 from yt.testing import *
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 
-_fields = ("density", "x-velocity", "y-velocity", "z-velocity")
+_fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 
 def test_obtain_rvec():
     pf = fake_random_pf(64, nprocs=8, fields=_fields, 
@@ -25,6 +25,6 @@ def test_obtain_rv_vec():
 
     vels = obtain_rv_vec(dd)
 
-    assert_array_equal(vels[0,:], dd['x-velocity'])
-    assert_array_equal(vels[1,:], dd['y-velocity'])
-    assert_array_equal(vels[2,:], dd['z-velocity'])
+    assert_array_equal(vels[0,:], dd['velocity_x'])
+    assert_array_equal(vels[1,:], dd['velocity_y'])
+    assert_array_equal(vels[2,:], dd['velocity_z'])

@@ -126,8 +126,8 @@ class SZProjection(object):
             axis = data.get_field_parameter("axis")
             # Load these, even though we will only use one
             for ax in 'xyz':
-                data['%s-velocity' % ax]
-            vpar = data["Density"]*data["%s-velocity" % (vlist[axis])]
+                data['velocity_%s' % ax]
+            vpar = data["Density"]*data["velocity_%s" % (vlist[axis])]
             return vpar/clight
         add_field("BetaPar", function=_beta_par)
         self.pf.h._derived_fields_add(["BetaPar"])
@@ -194,9 +194,9 @@ class SZProjection(object):
             raise NotImplementedError
 
         def _beta_par(field, data):
-            vpar = data["Density"]*(data["x-velocity"]*L[0]+
-                                    data["y-velocity"]*L[1]+
-                                    data["z-velocity"]*L[2])
+            vpar = data["Density"]*(data["velocity_x"]*L[0]+
+                                    data["velocity_y"]*L[1]+
+                                    data["velocity_z"]*L[2])
             return vpar/clight
         add_field("BetaPar", function=_beta_par)
         self.pf.h._derived_fields_add(["BetaPar"])

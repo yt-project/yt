@@ -5,7 +5,7 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
-_fields = ("density", "x-velocity", "y-velocity", "z-velocity")
+_fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 
 def test_covering_grid():
     return

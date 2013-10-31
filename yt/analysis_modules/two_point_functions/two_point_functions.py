@@ -80,7 +80,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
     
     Examples
     --------
-    >>> tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity"],
+    >>> tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z"],
     ... total_values=1e5, comm_size=10000, 
     ... length_number=10, length_range=[1./128, .5],
     ... length_type="log")
