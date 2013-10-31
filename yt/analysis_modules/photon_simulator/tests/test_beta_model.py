@@ -19,6 +19,7 @@ from yt.analysis_modules.api import PhotonList, EventList, \
      XSpecThermalModel, XSpecAbsorbModel, ThermalPhotonModel
 import os
 import xspec
+import gc
 
 def setup():
     """Test specific setup."""
@@ -27,7 +28,6 @@ def setup():
                 
 @requires_module("xspec")
 def test_beta_model():
-
     # Set up the beta model and stream dataset
     R = 1000.
     r_c = 100.
@@ -70,9 +70,14 @@ def test_beta_model():
 
     # Create the photons
 
-    ARF = os.environ["YT_DATA_DIR"]+"xray_data/chandra_ACIS-S3_onaxis_arf.fits"
-    RMF = os.environ["YT_DATA_DIR"]+"xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
-                    
+    # XSPEC is buggy so for this test we have to do it this way
+    
+    ARF = "chandra_ACIS-S3_onaxis_arf.fits"
+    RMF = "chandra_ACIS-S3_onaxis_rmf.fits"
+            
+    os.system("cp "+ os.environ["YT_DATA_DIR"]+"xray_data/"+ARF+" "+os.getcwd())
+    os.system("cp "+ os.environ["YT_DATA_DIR"]+"xray_data/"+RMF+" "+os.getcwd())
+    
     A = 6000.
     exp_time = 1.0e5
     redshift = 0.05
@@ -93,8 +98,12 @@ def test_beta_model():
                                      absorb_model=abs_model)
     events.write_spectrum("spec_chandra.fits", clobber=True)
 
-    # Now fit the resulting spectrum
+    del photons, events
+
+    gc.collect()
     
+    # Now fit the resulting spectrum
+
     spec = xspec.Spectrum("spec_chandra.fits")
     xspec.Fit.statMethod = "cstat"
     
@@ -115,3 +124,6 @@ def test_beta_model():
     assert(T > m.apec.kT.error[0] and T < m.apec.kT.error[1])
     assert(Zmet > m.apec.Abundanc.error[0] and Zmet < m.apec.Abundanc.error[1])
     assert(norm > m.apec.norm.error[0] and norm < m.apec.norm.error[1])
+
+if __name__ == "__main__":
+    test_beta_model()

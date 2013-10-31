@@ -25,6 +25,7 @@ MHD = "MHDSloshing/virgo_low_res.0054.vtk"
 @requires_module("xspec")
 @requires_pf(MHD)
 def test_cluster():
+    np.random.seed(seed=0x4d3d3d3)
     pf = data_dir_load(MHD, parameters={"TimeUnits":3.1557e13,
                                         "LengthUnits":3.0856e24,
                                         "DensityUnits":6.770424595218825e-27})
@@ -50,17 +51,15 @@ def test_cluster():
                                      absorb_model=abs_model)
     
     for k,v in photons.items():
-        if isinstance(v,np.ndarray):
-            def photons_test(v): return v
-            test = GenericArrayTest(pf, photons_test)
-            test_cluster.__name__ = test.description
-            yield test
+        def photons_test(v): return v
+        test = GenericArrayTest(pf, photons_test)
+        test_cluster.__name__ = test.description
+        yield test
 
     for k,v in events.items():
-        if isinstance(v,np.ndarray):
-            def events_test(v): return v
-            test = GenericArrayTest(pf, events_test)
-            test_cluster.__name__ = test.description
-            yield test
+        def events_test(v): return v
+        test = GenericArrayTest(pf, events_test)
+        test_cluster.__name__ = test.description
+        yield test
             
             
