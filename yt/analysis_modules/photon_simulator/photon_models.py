@@ -41,7 +41,21 @@ class PhotonModel(object):
         return photons
 
 class ThermalPhotonModel(PhotonModel):
+    r"""
+    Initialize a ThermalPhotonModel from a thermal spectrum. 
+    
+    Parameters
+    ----------
 
+    spectral_model : `SpectralModel`
+        A thermal spectral model instance, either of `XSpecThermalModel`
+        or `TableApecModel`. 
+    X_H : float, optional
+        The hydrogen mass fraction.
+    Zmet : float or string, optional
+        The metallicity. If a float, assumes a constant metallicity throughout.
+        If a string, is taken to be the name of the metallicity field.
+    """
     def __init__(self, spectral_model, X_H=0.75, Zmet=0.3):
         self.X_H = X_H
         self.Zmet = Zmet

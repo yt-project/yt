@@ -135,7 +135,7 @@ class PhotonList(object):
     def from_scratch(cls, data_source, redshift, area,
                      exp_time, photon_model, parameters=None,
                      center=None, dist=None, cosmology=None):
-        """
+        r"""
         Initialize a PhotonList from a photon model. The redshift, collecting area,
         exposure time, and cosmology are stored in the *parameters* dictionary which
         is passed to the *photon_model* function. 
@@ -170,12 +170,41 @@ class PhotonList(object):
         Examples
         --------
 
-        This is a simple example where a point source with a single line emission
+        This is the simplest possible example, where we call the built-in thermal model:
+
+        >>> thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
+        >>> redshift = 0.05
+        >>> area = 6000.0
+        >>> time = 2.0e5
+        >>> sp = pf.h.sphere("c", (500., "kpc"))
+        >>> my_photons = PhotonList.from_user_model(sp, redshift, area,
+        ...                                         time, thermal_model)
+
+        If you wish to make your own photon model function, it must take as its
+        arguments the *data_source* and the *parameters* dictionary. However you
+        determine them, the *photons* dict needs to have the following items, corresponding
+        to cells which have photons:
+
+        "x" : the x-position of the cell relative to the source center in kpc, NumPy array of floats
+        "y" : the y-position of the cell relative to the source center in kpc, NumPy array of floats
+        "z" : the z-position of the cell relative to the source center in kpc, NumPy array of floats
+        "vx" : the x-velocity of the cell in km/s, NumPy array of floats
+        "vy" : the y-velocity of the cell in km/s, NumPy array of floats
+        "vz" : the z-velocity of the cell in km/s, NumPy array of floats
+        "dx" : the width of the cell in kpc, NumPy array of floats
+        "NumberOfPhotons" : the number of photons in the cell, NumPy array of integers
+        "Energy" : the source rest-frame energies of the photons, NumPy array of floats
+
+        The last array is not the same size as the others because it contains the energies in all of
+        the cells in a single 1-D array. The first photons["NumberOfPhotons"][0] elements are
+        for the first cell, the next photons["NumberOfPhotons"][1] are for the second cell, and so on.
+
+        The following is a simple example where a point source with a single line emission
         spectrum of photons is created. More complicated examples which actually
         create photons based on the fields in the dataset could be created. 
 
         >>> from scipy.stats import powerlaw
-        >>> def line_func(source, photons, parameters):
+        >>> def line_func(source, parameters):
         ...
         ...     pf = source.pf
         ... 
@@ -247,10 +276,10 @@ class PhotonList(object):
             delta = data_source["d%s"%(ax)]
             le = np.min(pos-0.5*delta)
             re = np.max(pos+0.5*delta)
-            width = 2.*max(width, re-parameters["center"][i], parameters["center"][i]-le)
+            width = max(width, re-parameters["center"][i], parameters["center"][i]-le)
             dimension = max(dimension, int(width/delta.min()))
-        parameters["Dimension"] = dimension
-        parameters["Width"] = width*pf.units["kpc"]
+        parameters["Dimension"] = 2*dimension
+        parameters["Width"] = 2.*width*pf.units["kpc"]
                 
         photons = photon_model(data_source, parameters)
         
@@ -366,7 +395,7 @@ class PhotonList(object):
 
         comm.barrier()
 
-    def project_photons(self, L, area_new=None, texp_new=None, 
+    def project_photons(self, L, area_new=None, exp_time_new=None, 
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
                         sky_center=None, responses=None):
@@ -382,7 +411,7 @@ class PhotonList(object):
             New value for the effective area of the detector. 
             Either a single float value or a standard ARF file
             containing the effective area as a function of energy.
-        texp_new : float, optional
+        exp_time_new : float, optional
             The new value for the exposure time.
         redshift_new : float, optional
             The new value for the cosmological redshift.
@@ -443,16 +472,16 @@ class PhotonList(object):
             parameters["RMF"] = responses[1]
             area_new = parameters["ARF"]
             
-        if (texp_new is None and area_new is None and
+        if (exp_time_new is None and area_new is None and
             redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
             zobs = self.parameters["FiducialRedshift"]
             D_A = self.parameters["FiducialAngularDiameterDistance"]*1000.
         else:
-            if texp_new is None:
+            if exp_time_new is None:
                 Tratio = 1.
             else:
-                Tratio = texp_new/self.parameters["FiducialExposureTime"]
+                Tratio = exp_time_new/self.parameters["FiducialExposureTime"]
             if area_new is None:
                 Aratio = 1.
             elif isinstance(area_new, basestring):
@@ -566,10 +595,10 @@ class PhotonList(object):
             events, info = self._convolve_with_rmf(parameters["RMF"], events)
             for k, v in info.items(): parameters[k] = v
                 
-        if texp_new is None:
+        if exp_time_new is None:
             parameters["ExposureTime"] = self.parameters["FiducialExposureTime"]
         else:
-            parameters["ExposureTime"] = texp_new
+            parameters["ExposureTime"] = exp_time_new
         if area_new is None:
             parameters["Area"] = self.parameters["FiducialArea"]
         else:
