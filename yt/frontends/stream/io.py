@@ -130,19 +130,8 @@ class StreamParticleIOHandler(BaseIOHandler):
         self.fields = pf.stream_handler.fields
         super(StreamParticleIOHandler, self).__init__(pf)
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        psize = defaultdict(lambda: 0)
+    def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-        # For this type of file, we actually have something slightly different.
-        # We are given a list of ParticleDataChunks, which is composed of
-        # individual ParticleOctreeSubsets.  The data_files attribute on these
-        # may in fact overlap.  So we will iterate over a union of all the
-        # data_files.
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
@@ -151,34 +140,25 @@ class StreamParticleIOHandler(BaseIOHandler):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
-                assert(ptype == "all")
-                psize[ptype] += selector.count_points(
-                        f["particle_position_x"],
-                        f["particle_position_y"],
-                        f["particle_position_z"])
-        # Now we have all the sizes, and we can allocate
-        ind = {}
-        for field in fields:
-            mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            rv[field] = np.empty(psize[field[0]], dtype="float64")
-            ind[field] = 0
+                yield ptype, (f[ptype, "particle_position_x"],
+                              f[ptype, "particle_position_y"],
+                              f[ptype, "particle_position_z"])
+            
+    def _read_particle_fields(self, chunks, ptf, selector):
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
         for data_file in data_files:
             f = self.fields[data_file.filename]
             for ptype, field_list in sorted(ptf.items()):
-                assert(ptype == "all")
-                mask = selector.select_points(
-                        f["particle_position_x"],
-                        f["particle_position_y"],
-                        f["particle_position_z"])
+                x, y, z = (f[ptype, "particle_position_%s" % ax]
+                           for ax in 'xyz')
+                mask = selector.select_points(x, y, z)
                 if mask is None: continue
                 for field in field_list:
-                    data = f[field][mask,...]
-                    my_ind = ind[ptype, field]
-                    mylog.debug("Filling from %s to %s with %s",
-                        my_ind, my_ind+data.shape[0], field)
-                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                    ind[ptype, field] += data.shape[0]
-        return rv
+                    data = f[ptype, field][mask]
+                    yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
