@@ -36,6 +36,9 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
 
+from yt.utilities.lib.geometry_utils import \
+    obtain_rvec
+
 @register_field_plugin
 def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     def _grid_level(field, data):

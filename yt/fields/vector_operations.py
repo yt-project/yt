@@ -48,8 +48,8 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = data['spherical_theta']
-        phi   = data['spherical_phi']
+        theta = data['index', 'spherical_theta']
+        phi   = data['index', 'spherical_phi']
         return get_sph_r_component(vectors, theta, phi, normal)
     def _radial_absolute(field, data):
         return np.abs(data["radial_%s" % basename])
