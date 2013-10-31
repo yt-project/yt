@@ -587,14 +587,14 @@ def get_yt_supp():
     return supp_path
 
 def fix_length(length):
+    if isinstance(length, numeric_type):
+        return YTArray(length, 'cm')
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], types.StringTypes)
     if length_valid_tuple and unit_is_string:
         if length[1] in ('unitary', '1'):
             length = (length[0], 'code_length')
         return YTArray(*length)
-    elif isinstance(length, numeric_type):
-        return YTArray(length, 'cm')
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
 
