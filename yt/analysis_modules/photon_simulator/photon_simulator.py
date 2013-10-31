@@ -407,10 +407,9 @@ class PhotonList(object):
 
         L : array_like
             Normal vector to the plane of projection.
-        area_new : float or filename, optional
-            New value for the effective area of the detector. 
-            Either a single float value or a standard ARF file
-            containing the effective area as a function of energy.
+        area_new : float, optional
+            New value for the effective area of the detector. If *responses*
+            are specified the value of this keyword is ignored.
         exp_time_new : float, optional
             The new value for the exposure time.
         redshift_new : float, optional
@@ -426,6 +425,8 @@ class PhotonList(object):
             standard deviation *psf_sigma* in degrees. 
         sky_center : array_like, optional
             Center RA, Dec of the events in degrees.
+        responses : list of strings, optional
+            The names of the ARF and RMF files to convolve the photons with.
 
         Examples
         --------
@@ -713,7 +714,11 @@ class EventList(object) :
         self.wcs.wcs.cdelt = [-parameters["dtheta"], parameters["dtheta"]]
         self.wcs.wcs.ctype = ["RA---TAN","DEC--TAN"]
         self.wcs.wcs.cunit = ["deg"]*2                                                
-        
+        (self.events["xsky"],
+         self.events["ysky"]) = \
+         self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"],
+                                1, ra_dec_order=True)
+
     def keys(self):
         return self.events.keys()
 
@@ -726,17 +731,12 @@ class EventList(object) :
     def values(self):
         return self.events.values()
     
-    def __getitem__(self,key):
-
-        if key == "xsky" or key == "ysky":
-            if not self.has_key(key):
-                (self.events["xsky"],
-                 self.events["ysky"]) = \
-                 self.wcs.wcs_pix2world(events["xpix"], events["ypix"],
-                                        1, ra_dec_order=True)
-                        
+    def __getitem__(self,key):                        
         return self.events[key]
-        
+
+    def __repr__(self):
+        return self.events.__repr__()
+   
     @classmethod
     def from_h5_file(cls, h5file):
         """
@@ -828,93 +828,7 @@ class EventList(object) :
             events[k1] = np.concatenate([v1,v2])
         
         return cls(events, events1.parameters)
-        
-    def convolve_with_response(self, respfile):
-        """
-        Convolve the events with a RMF file *respfile*.
-        """
-        mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
-        if not "ARF" in self.parameters:
-            mylog.warning("Photons have not been processed with an"+
-                          " auxiliary response file. Spectral fitting"+
-                          " may be inaccurate.")
-
-        mylog.info("Reading response matrix file (RMF): %s" % (respfile))
-        
-        hdulist = pyfits.open(respfile)
-
-        tblhdu = hdulist["MATRIX"]
-        n_de = len(tblhdu.data["ENERG_LO"])
-        mylog.info("Number of Energy Bins: %d" % (n_de))
-        de = tblhdu.data["ENERG_HI"] - tblhdu.data["ENERG_LO"]
-
-        mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
-                                             max(tblhdu.data["ENERG_HI"])))
-
-        tblhdu2 = hdulist["EBOUNDS"]
-        n_ch = len(tblhdu2.data["CHANNEL"])
-        mylog.info("Number of Channels: %d" % (n_ch))
-        
-        eidxs = np.argsort(self.events["eobs"])
-
-        phEE = self.events["eobs"][eidxs]
-        phXX = self.events["xpix"][eidxs]
-        phYY = self.events["ypix"][eidxs]
-
-        detectedChannels = []
-        pindex = 0
-
-        # run through all photon energies and find which bin they go in
-        k = 0
-        fcurr = 0
-        last = len(phEE)-1
-
-        pbar = get_pbar("Scattering energies with RMF:", n_de)
-        
-        for low,high in zip(tblhdu.data["ENERG_LO"],tblhdu.data["ENERG_HI"]):
-            # weight function for probabilities from RMF
-            weights = np.nan_to_num(tblhdu.data[k]["MATRIX"][:])
-            weights /= weights.sum()
-            # build channel number list associated to array value,
-            # there are groups of channels in rmfs with nonzero probabilities
-            trueChannel = []
-            f_chan = np.nan_to_num(tblhdu.data["F_CHAN"][k])
-            n_chan = np.nan_to_num(tblhdu.data["N_CHAN"][k])
-            n_grp = np.nan_to_num(tblhdu.data["N_CHAN"][k])
-            if not iterable(f_chan):
-                f_chan = [f_chan]
-                n_chan = [n_chan]
-                n_grp  = [n_grp]
-            for start,nchan in zip(f_chan, n_chan):
-                end = start + nchan
-                if start == end:
-                    trueChannel.append(start)
-                else:
-                    for j in range(start,end):
-                        trueChannel.append(j)
-            if len(trueChannel) > 0:
-                for q in range(fcurr,last):
-                    if phEE[q] >= low and phEE[q] < high:
-                        channelInd = np.random.choice(len(weights), p=weights)
-                        fcurr +=1
-                        detectedChannels.append(trueChannel[channelInd])
-                    if phEE[q] >= high:
-                        break
-            pbar.update(k)
-            k+=1
-        pbar.finish()
-        
-        dchannel = np.array(detectedChannels)
-
-        self.events["xpix"] = phXX
-        self.events["ypix"] = phYY
-        self.events["eobs"] = phEE
-        self.events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
-        self.parameters["RMF"] = respfile
-        self.parameters["ChannelType"] = tblhdu.header["CHANTYPE"]
-        self.parameters["Telescope"] = tblhdu.header["TELESCOP"]
-        self.parameters["Instrument"] = tblhdu.header["INSTRUME"]
-        
+                
     @parallel_root_only
     def write_fits_file(self, fitsfile, clobber=False):
         """
@@ -1095,6 +1009,8 @@ class EventList(object) :
                             
         f.create_dataset("/xpix", data=self.events["xpix"])
         f.create_dataset("/ypix", data=self.events["ypix"])
+        f.create_dataset("/xsky", data=self.events["xsky"])
+        f.create_dataset("/ysky", data=self.events["ysky"])
         f.create_dataset("/eobs", data=self.events["eobs"])
         if "PI" in self.events:
             f.create_dataset("/pi", data=self.events["PI"])                  
