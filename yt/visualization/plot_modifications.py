@@ -186,20 +186,30 @@ class QuiverCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
+        # periodicity
+        ax = plot.data.axis
+        pf = plot.data.pf
+        period_x = pf.domain_width[x_dict[ax]]
+        period_y = pf.domain_width[y_dict[ax]]
+        periodic = int(any(pf.periodicity))
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                             (x0, x1, y0, y1), 0, # bounds, antialias
+                             (period_x, period_y), periodic,
+                           ).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                             (x0, x1, y0, y1), 0, # bounds, antialias
+                             (period_x, period_y), periodic,
+                           ).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -739,8 +749,10 @@ class ArrowCallback(PlotCallback):
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
         x, y = self.convert_to_plot(plot, pos)
-        dx, dy = self.convert_to_plot(plot, self.code_size, False)
-        arrow = Arrow(x, y, dx, dy, **self.plot_args)
+        x1, y1 = pos[0]+self.code_size[0], pos[1]+self.code_size[1]
+        x1, y1 = self.convert_to_plot(plot, (x1, y1), False)
+        dx, dy = x1 - x, y1 - y
+        arrow = Arrow(x-dx, y-dy, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
 
 class PointAnnotateCallback(PlotCallback):

@@ -1,10 +1,6 @@
 """
-API for yt.frontends.art
-
-
-
+API for particle_trajectories
 """
-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -13,14 +9,4 @@ API for yt.frontends.art
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .data_structures import \
-      ARTGrid, \
-      ARTHierarchy, \
-      ARTStaticOutput
-
-from .fields import \
-      ARTFieldInfo, \
-      add_art_field
-
-from .io import \
-      IOHandlerART
+from particle_trajectories import ParticleTrajectories

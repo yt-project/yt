@@ -1,8 +1,5 @@
 """
 API for yt.data_objects
-
-
-
 """
 
 #-----------------------------------------------------------------------------
@@ -72,5 +69,3 @@ from field_info_container import \
     add_grad, \
     derived_field
 
-from particle_trajectories import \
-    ParticleTrajectoryCollection

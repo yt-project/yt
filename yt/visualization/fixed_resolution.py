@@ -264,7 +264,7 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename_prefix, fields=None, clobber=False,
+    def export_fits(self, filename, fields=None, clobber=False,
                     other_keys=None, units="cm", sky_center=(0.0,0.0), D_A=None):
         r"""Export a set of pixelized fields to a FITS file.
 
@@ -273,8 +273,8 @@ class FixedResolutionBuffer(object):
 
         Parameters
         ----------
-        filename_prefix : string
-            This prefix will be prepended to the FITS file name.
+        filename : string
+            The name of the FITS file to be written.
         fields : list of strings
             These fields will be pixelized and output.
         clobber : boolean
@@ -344,7 +344,7 @@ class FixedResolutionBuffer(object):
         hdu_keys["Time"] = self.pf.current_time
 
         data = dict([(field,self[field]) for field in fields])
-        write_fits(data, filename_prefix, clobber=clobber, coords=coords,
+        write_fits(data, filename, clobber=clobber, coords=coords,
                    other_keys=hdu_keys)
 
     def open_in_ds9(self, field, take_log=True):

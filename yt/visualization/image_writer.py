@@ -438,7 +438,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     return filename
 
 
-def write_fits(image, filename_prefix, clobber=True, coords=None,
+def write_fits(image, filename, clobber=True, coords=None,
                other_keys=None):
     r"""Write out floating point arrays directly to a FITS file, optionally
     adding coordinates and header keywords.
@@ -448,8 +448,8 @@ def write_fits(image, filename_prefix, clobber=True, coords=None,
     image : array_like, or dict of array_like objects
         This is either an (unscaled) array of floating point values, or a dict of
         such arrays, shape (N,N,) to save in a FITS file. 
-    filename_prefix : string
-        This prefix will be prepended to every FITS file name.
+    filename : string
+        This name of the FITS file to be written.
     clobber : boolean
         If the file exists, this governs whether we will overwrite.
     coords : dictionary, optional
@@ -505,7 +505,7 @@ def write_fits(image, filename_prefix, clobber=True, coords=None,
         hdulist.append(hdu)
 
     hdulist = pyfits.HDUList(hdulist)
-    hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)                    
+    hdulist.writeto(filename, clobber=clobber)                    
 
 def display_in_notebook(image, max_val=None):
     """

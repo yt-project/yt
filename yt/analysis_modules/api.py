@@ -108,6 +108,9 @@ from .sunyaev_zeldovich.api import SZProjection
 from .radmc3d_export.api import \
     RadMC3DWriter
 
+from .particle_trajectories.api import \
+    ParticleTrajectories
+
 from .photon_simulator.api import \
      PhotonList, \
      EventList, \
