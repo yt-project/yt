@@ -15,7 +15,7 @@ Fields specific to Streaming data
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
-import yt.fields.universal_fields
+import yt.fields.api
 from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions

@@ -103,16 +103,21 @@ class FieldInfoContainer(dict): # Resistance has utility
         self[name] = DerivedField(name, function, **kwargs)
 
     def load_all_plugins(self, ftype="gas"):
+        loaded = []
         for n in sorted(field_plugins):
-            loaded, not_loaded = self.load_plugin(n, ftype)
+            loaded += self.load_plugin(n, ftype)
             mylog.info("Loaded %s (%s new fields)",
                 n, len(loaded))
+        self.find_dependencies(loaded)
 
-    def load_plugin(self, plugin_name, ftype = "gas"):
+    def load_plugin(self, plugin_name, ftype = "gas", skip_check = False):
         orig = set(self.items())
         f = field_plugins[plugin_name]
         f(self, ftype, slice_info = self.slice_info)
         loaded = [n for n, v in set(self.items()).difference(orig)]
+        return loaded
+
+    def find_dependencies(self, loaded):
         deps, unavailable = self.check_derived_fields(loaded)
         self.pf.field_dependencies.update(deps)
         # Note we may have duplicated

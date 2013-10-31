@@ -22,6 +22,18 @@ from .derived_field import \
 from .field_plugin_registry import \
     register_field_plugin
 
+from yt.utilities.math_utils import \
+    get_sph_r_component, \
+    get_sph_theta_component, \
+    get_sph_phi_component, \
+    get_cyl_r_component, \
+    get_cyl_z_component, \
+    get_cyl_theta_component, \
+    get_cyl_r, get_cyl_theta, \
+    get_cyl_z, get_sph_r, \
+    get_sph_theta, get_sph_phi, \
+    periodic_dist, euclidean_dist
+
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 
 def create_vector_fields(registry, basename, field_units,
