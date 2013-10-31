@@ -129,6 +129,7 @@ class FieldInfoContainer(dict): # Resistance has utility
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
+        if original_name not in self: return
         if units is None:
             # We default to CGS here, but in principle, this can be pluggable
             # as well.

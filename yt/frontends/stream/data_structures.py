@@ -440,6 +440,44 @@ def assign_particle_data(pf, pdata) :
         pd.pop("number_of_particles")
         pf.stream_handler.fields[gi].update(pd)
                                         
+def unitify_data(data):
+    if all([isinstance(val, np.ndarray) for val in data.values()]):
+        field_units = {field:'' for field in data.keys()}
+    elif all([(len(val) == 2) for val in data.values()]):
+        new_data, field_units = {}, {}
+        for field in data:
+            try:
+                assert isinstance(field, (basestring, tuple)), \
+                  "Field name is not a string!"
+                assert isinstance(data[field][0], np.ndarray), \
+                  "Field data is not an ndarray!"
+                assert isinstance(data[field][1], basestring), \
+                  "Unit specification is not a sring!"
+                field_units[field] = data[field][1]
+                new_data[field] = data[field][0]
+            except AssertionError, e:
+                raise RuntimeError("The data dict appears to be invalid.\n" +
+                                   str(e))
+        data = new_data
+    else:
+        raise RuntimeError("The data dict appears to be invalid. "
+                           "The data dictionary must map from field "
+                           "names to (numpy array, unit spec) tuples. ")
+    # At this point, we have arrays for all our fields
+    new_data = {}
+    for field in data:
+        if isinstance(field, tuple): 
+            new_field = field
+        elif len(data[field].shape) == 1:
+            new_field = ("io", field)
+        elif len(data[field].shape) == 3:
+            new_field = ("gas", field)
+        else:
+            raise RuntimeError
+        new_data[new_field] = data[field]
+    data = new_data
+    return field_units, data
+
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
                       periodicity=(True, True, True)):
@@ -512,41 +550,7 @@ Parameters
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
     number_of_particles = data.pop("number_of_particles", 0)
     # First we fix our field names
-    if all([isinstance(val, np.ndarray) for val in data.values()]):
-        field_units = {field:'' for field in data.keys()}
-    elif all([(len(val) == 2) for val in data.values()]):
-        new_data, field_units = {}, {}
-        for field in data:
-            try:
-                assert isinstance(field, (basestring, tuple)), \
-                  "Field name is not a string!"
-                assert isinstance(data[field][0], np.ndarray), \
-                  "Field data is not an ndarray!"
-                assert isinstance(data[field][1], basestring), \
-                  "Unit specification is not a sring!"
-                field_units[field] = data[field][1]
-                new_data[field] = data[field][0]
-            except AssertionError, e:
-                raise RuntimeError("The data dict appears to be invalid.\n" +
-                                   str(e))
-        data = new_data
-    else:
-        raise RuntimeError("The data dict appears to be invalid. "
-                           "The data dictionary must map from field "
-                           "names to (numpy array, unit spec) tuples. ")
-    # At this point, we have arrays for all our fields
-    new_data = {}
-    for field in data:
-        if isinstance(field, tuple): 
-            new_field = field
-        elif len(data[field].shape) == 1:
-            new_field = ("io", field)
-        elif len(data[field].shape) == 3:
-            new_field = ("gas", field)
-        else:
-            raise RuntimeError
-        new_data[new_field] = data[field]
-    data = new_data
+    field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
 
     if number_of_particles > 0 :
@@ -887,8 +891,9 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
         standard_particle_fields(self.field_info, ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
-def load_particles(data, sim_unit_to_cm, bbox=None,
-                      sim_time=0.0, periodicity=(True, True, True),
+def load_particles(data, length_unit = None, bbox=None,
+                      sim_time=0.0, mass_unit = None, time_unit = None,
+                      periodicity=(True, True, True),
                       n_ref = 64, over_refine_factor = 1):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -942,6 +947,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
+    field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
     
     particle_types = set_particle_types(data)
@@ -950,6 +956,13 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+
+    if length_unit is None:
+        length_unit = 'code_length'
+    if mass_unit is None:
+        mass_unit = 'code_mass'
+    if time_unit is None:
+        time_unit = 'code_time'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -961,6 +974,8 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
+        field_units,
+        (length_unit, mass_unit, time_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -977,12 +992,6 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
     spf = StreamParticlesStaticOutput(handler)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
-    spf.units["cm"] = sim_unit_to_cm
-    spf.units['1'] = 1.0
-    spf.units["unitary"] = 1.0
-    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
-    for unit in mpc_conversion.keys():
-        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
 
     return spf
 

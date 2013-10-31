@@ -182,7 +182,7 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
-        pos = np.column_stack(self.fields[data_file.filename][
+        pos = np.column_stack(self.fields[data_file.filename]["io",
                               "particle_position_%s" % ax] for ax in 'xyz')
         if np.any(pos.min(axis=0) <= data_file.pf.domain_left_edge) or \
            np.any(pos.max(axis=0) >= data_file.pf.domain_right_edge):
@@ -197,11 +197,11 @@ class StreamParticleIOHandler(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        npart = self.fields[data_file.filename]["particle_position_x"].size
+        npart = self.fields[data_file.filename]["io", "particle_position_x"].size
         return {'all': npart}
 
     def _identify_fields(self, data_file):
-        return [ ("all", k) for k in self.fields[data_file.filename].keys()]
+        return self.fields[data_file.filename].keys()
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _data_style = "stream_hexahedral"
