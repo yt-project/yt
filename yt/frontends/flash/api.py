@@ -19,8 +19,7 @@ from .data_structures import \
       FLASHStaticOutput
 
 from .fields import \
-      FLASHFieldInfo, \
-      add_flash_field
+      FLASHFieldInfo
 
 from .io import \
       IOHandlerFLASH

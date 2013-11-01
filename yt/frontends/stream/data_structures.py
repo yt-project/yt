@@ -336,16 +336,6 @@ class StreamStaticOutput(StaticOutput):
                 raise RuntimeError("%s (%s) is invalid." % (attr, unit))
             setattr(self, attr, uq)
 
-    def set_code_units(self):
-        from yt.utilities.units import length, mass, time
-        # domain_width does not yet exist
-        DW = self.domain_right_edge - self.domain_left_edge
-        self._set_code_unit_attributes()
-        self.unit_registry.modify("code_length", self.length_unit.value)
-        self.unit_registry.modify("code_mass", self.mass_unit.value)
-        self.unit_registry.modify("code_time", self.time_unit.value)
-        self.unit_registry.modify("unitary", DW.max())
-
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False

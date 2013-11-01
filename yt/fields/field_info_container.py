@@ -61,9 +61,9 @@ class FieldInfoContainer(dict): # Resistance has utility
         pass
 
     def setup_particle_fields(self, ptype):
-        for f, (units, aliases) in sorted(self.known_particle_fields):
+        for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             self.add_output_field((ptype, f),
-                units = units, particle_type = True)
+                units = units, particle_type = True, display_name = dn)
             for alias in aliases:
                 self.alias(alias, (ptype, f))
 

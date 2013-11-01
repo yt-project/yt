@@ -33,9 +33,8 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
-from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.fields.field_info_container import FieldInfoContainer, NullFunc, \
-     ValidateDataField, TranslationFunc
+from .fields import FLASHFieldInfo
+from yt.data_objects.yt_array import YTQuantity
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -175,30 +174,9 @@ class FLASHHierarchy(GridGeometryHandler):
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
-    def _setup_derived_fields(self):
-        super(FLASHHierarchy, self)._setup_derived_fields()
-        [self.parameter_file.conversion_factors[field] 
-         for field in self.field_list]
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-            if (field not in KnownFLASHFields and
-                field.startswith("particle")) :
-                self.parameter_file.field_info.add_field(
-                        field, function=NullFunc, take_log=False,
-                        validators = [ValidateDataField(field)],
-                        particle_type=True)
-
-        for field in self.derived_field_list:
-            f = self.parameter_file.field_info[field]
-            if f._function.func_name == "_TranslationFunc":
-                # Translating an already-converted field
-                self.parameter_file.conversion_factors[field] = 1.0 
-                
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
-    _fieldinfo_fallback = FLASHFieldInfo
-    _fieldinfo_known = KnownFLASHFields
+    _field_info_class = FLASHFieldInfo
     _handle = None
     
     def __init__(self, filename, data_style='flash_hdf5',
@@ -250,15 +228,21 @@ class FLASHStaticOutput(StaticOutput):
             self._setup_nounits_units()
         if self.cosmological_simulation == 1:
             self._setup_comoving_units()
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / \
-            (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
-        for p, v in self._conversion_override.items():
-            self.conversion_factors[p] = v
+    def _set_code_unit_attributes(self):
+        if self['unitsystem'].lower() == "cgs":
+             factor = 1
+        elif self['unitsystem'].lower() == "si":
+             factor = np.sqrt(4*np.pi/1e7)
+        elif self['unitsystem'].lower() == "none":
+             factor = np.sqrt(4*np.pi)
+        else:
+            raise RuntimeError("Runtime parameter unitsystem with "
+                               "value %s is unrecognized" % self['unitsystem'])
+        self.magnetic_unit = YTQuantity(factor, "gauss")
+        self.length_unit = YTQuantity(1.0, "cm")
+        self.mass_unit = YTQuantity(1.0, "g")
+        self.time_unit = YTQuantity(1.0, "s")
 
     def _setup_comoving_units(self):
         self.conversion_factors['dens'] = (1.0 + self.current_redshift)**3.0

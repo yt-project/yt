@@ -404,6 +404,16 @@ class StaticOutput(object):
         new_unit = Unit(unit_str, registry=self.unit_registry)
         return new_unit
 
+    def set_code_units(self):
+        from yt.utilities.units import length, mass, time
+        # domain_width does not yet exist
+        DW = self.domain_right_edge - self.domain_left_edge
+        self._set_code_unit_attributes()
+        self.unit_registry.modify("code_length", self.length_unit.value)
+        self.unit_registry.modify("code_mass", self.mass_unit.value)
+        self.unit_registry.modify("code_time", self.time_unit.value)
+        self.unit_registry.modify("unitary", DW.max())
+
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

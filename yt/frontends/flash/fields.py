@@ -38,6 +38,8 @@ from yt.data_objects.yt_array import \
 # vely velocity y (cm/s) --
 # velz velocity z (cm/s) --
 
+b_units = "code_magnetic"
+
 class FLASHFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("velx", ("cm/s", ["velocity_x"], None)),
@@ -84,6 +86,10 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("targ", ("", [], "Target Material Fraction")),
         ("sumy", ("", [], None)),
         ("mgdc", ("", [], "Emission Minus Absorption Diffusion Terms")),
+        ("magx", (b_units, ["magnetic_field_x"], "B_x")),
+        ("magy", (b_units, ["magnetic_field_y"], "B_y")),
+        ("magz", (b_units, ["magnetic_field_z"], "B_z")),
+        ("divb", ("%s / cm" % b_units, [], None)),
     )
 
     known_particle_fields = (
@@ -150,41 +156,15 @@ def GetMagRescalingFactor(pf):
                            "value %s is unrecognized" % pf['unitsystem'])
     return factor
 
-def _Bx(fields, data):
-    factor = GetMagRescalingFactor(data.pf)
-    return data['magx']*factor
-add_field("Bx", function=_Bx, take_log=False,
-          units="gauss", display_name=r"B_x")
-
-def _By(fields, data):
-    factor = GetMagRescalingFactor(data.pf)
-    return data['magy']*factor
-add_field("By", function=_By, take_log=False,
-          units="gauss", display_name=r"B_y")
-
-def _Bz(fields, data):
-    factor = GetMagRescalingFactor(data.pf)
-    return data['magz']*factor
-add_field("Bz", function=_Bz, take_log=False,
-          units="gauss", display_name=r"B_z")
-
-def _DivB(fields, data):
-    factor = GetMagRescalingFactor(data.pf)
-    return data['divb']*factor
-add_field("DivB", function=_DivB, take_log=False,
-          units="gauss/cm")
-
-
-
 ## Derived FLASH Fields
 def _nele(field, data):
     return data['dens'] * data['ye'] * Na
-add_field('nele', function=_nele, take_log=True, units="cm**-3")
-add_field('edens', function=_nele, take_log=True, units="cm**-3")
+#add_field('nele', function=_nele, take_log=True, units="cm**-3")
+#add_field('edens', function=_nele, take_log=True, units="cm**-3")
 
 def _nion(field, data):
     return data['dens'] * data['sumy'] * Na
-add_field('nion', function=_nion, take_log=True, units="cm**-3")
+#add_field('nion', function=_nion, take_log=True, units="cm**-3")
 
 
 def _abar(field, data):
@@ -193,7 +173,7 @@ def _abar(field, data):
     except:
         pass
     return data['dens']*Na*kboltz*data['temp']/data['pres']
-add_field('abar', function=_abar, take_log=False)
+#add_field('abar', function=_abar, take_log=False)
 	
 
 def _NumberDensity(fields,data) :
@@ -202,7 +182,7 @@ def _NumberDensity(fields,data) :
     except:
         pass
     return data['pres']/(data['temp']*kboltz)
-add_field("NumberDensity", function=_NumberDensity,
-        units=r'\rm{cm}^{-3}')
+#add_field("NumberDensity", function=_NumberDensity,
+#        units=r'\rm{cm}^{-3}')
 
 
