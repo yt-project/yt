@@ -20,12 +20,6 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.data_objects.yt_array import \
     YTArray
-from yt.fields.particle_fields import \
-    particle_deposition_functions, \
-    particle_vector_functions, \
-    standard_particle_fields
-from yt.fields.vector_operations import \
-    create_vector_fields
 
 from yt.utilities.physical_constants import \
     mh, \
@@ -57,41 +51,41 @@ known_species_masses = dict(
 
 class EnzoFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("Cooling_Time", ("code_time", ["cooling_time"])),
-        ("HI_kph", ("1/code_time", [])),
-        ("HeI_kph", ("1/code_time", [])),
-        ("HeII_kph", ("1/code_time", [])),
-        ("H2I_kdiss", ("1/code_time", [])),
-        ("Bx", (b_units, ["magnetic_field_x"])),
-        ("By", (b_units, ["magnetic_field_y"])),
-        ("Bz", (b_units, ["magnetic_field_z"])),
-        ("RadAccel1", (ra_units, ["radiation_acceleration_x"])),
-        ("RadAccel2", (ra_units, ["radiation_acceleration_y"])),
-        ("RadAccel3", (ra_units, ["radiation_acceleration_z"])),
-        ("Dark_Matter_Mass", (rho_units, ["dark_matter_mass"])),
-        ("Temperature", ("K", ["temperature"])),
-        ("Dust_Temperature", ("K", ["dust_temperature"])),
-        ("x-velocity", (vel_units, ["velocity_x"])),
-        ("y-velocity", (vel_units, ["velocity_y"])),
-        ("z-velocity", (vel_units, ["velocity_z"])),
-        ("RaySegements", ("", ["ray_segments"])),
-        ("PhotoGamma", (ra_units, ["photo_gamma"])),
-        ("Density", (rho_units, ["density"])),
+        ("Cooling_Time", ("code_time", ["cooling_time"], None)),
+        ("HI_kph", ("1/code_time", [], None)),
+        ("HeI_kph", ("1/code_time", [], None)),
+        ("HeII_kph", ("1/code_time", [], None)),
+        ("H2I_kdiss", ("1/code_time", [], None)),
+        ("Bx", (b_units, ["magnetic_field_x"], None)),
+        ("By", (b_units, ["magnetic_field_y"], None)),
+        ("Bz", (b_units, ["magnetic_field_z"], None)),
+        ("RadAccel1", (ra_units, ["radiation_acceleration_x"], None)),
+        ("RadAccel2", (ra_units, ["radiation_acceleration_y"], None)),
+        ("RadAccel3", (ra_units, ["radiation_acceleration_z"], None)),
+        ("Dark_Matter_Mass", (rho_units, ["dark_matter_mass"], None)),
+        ("Temperature", ("K", ["temperature"], None)),
+        ("Dust_Temperature", ("K", ["dust_temperature"], None)),
+        ("x-velocity", (vel_units, ["velocity_x"], None)),
+        ("y-velocity", (vel_units, ["velocity_y"], None)),
+        ("z-velocity", (vel_units, ["velocity_z"], None)),
+        ("RaySegements", ("", ["ray_segments"], None)),
+        ("PhotoGamma", (ra_units, ["photo_gamma"], None)),
+        ("Density", (rho_units, ["density"], None)),
     )
 
     known_particle_fields = (
-        ("particle_position_x", ("code_length", [])),
-        ("particle_position_y", ("code_length", [])),
-        ("particle_position_z", ("code_length", [])),
-        ("particle_velocity_x", ("code_length / code_time", [])),
-        ("particle_velocity_y", ("code_length / code_time", [])),
-        ("particle_velocity_z", ("code_length / code_time", [])),
-        ("creation_time", ("code_time", [])),
-        ("dynamical_time", ("code_time", [])),
-        ("metallicity_fraction", ("Zsun", [])),
-        ("particle_type", ("", [])),
-        ("particle_index", ("", [])),
-        ("particle_mass", ("code_mass", [])),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+        ("particle_velocity_y", ("code_length / code_time", [], None)),
+        ("particle_velocity_z", ("code_length / code_time", [], None)),
+        ("creation_time", ("code_time", [], None)),
+        ("dynamical_time", ("code_time", [], None)),
+        ("metallicity_fraction", ("Zsun", [], None)),
+        ("particle_type", ("", [], None)),
+        ("particle_index", ("", [], None)),
+        ("particle_mass", ("code_mass", [], None)),
     )
 
     def __init__(self, pf, field_list):

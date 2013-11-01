@@ -14,25 +14,12 @@ FLASH-specific fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.utilities.exceptions import *
 from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    NullFunc, \
-    TranslationFunc, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
-import yt.fields.universal_fields
+    FieldInfoContainer
 from yt.utilities.physical_constants import \
     kboltz, mh, Na
-KnownFLASHFields = FieldInfoContainer()
-add_flash_field = KnownFLASHFields.add_field
-
-FLASHFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = FLASHFieldInfo.add_field
+from yt.data_objects.yt_array import \
+    YTArray
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #
@@ -51,215 +38,74 @@ add_field = FLASHFieldInfo.add_field
 # vely velocity y (cm/s) --
 # velz velocity z (cm/s) --
 
-translation_dict = {"x-velocity": "velx",
-                    "y-velocity": "vely",
-                    "z-velocity": "velz",
-                    "Density": "dens",
-                    "Temperature": "temp",
-                    "Pressure" : "pres",
-                    "Grav_Potential" : "gpot",
-                    "particle_position_x" : "particle_posx",
-                    "particle_position_y" : "particle_posy",
-                    "particle_position_z" : "particle_posz",
-                    "particle_velocity_x" : "particle_velx",
-                    "particle_velocity_y" : "particle_vely",
-                    "particle_velocity_z" : "particle_velz",
-                    "particle_index" : "particle_tag",
-                    "Electron_Fraction" : "elec",
-                    "HI_Fraction" : "h   ",
-                    "HD_Fraction" : "hd  ",
-                    "HeI_Fraction": "hel ",
-                    "HeII_Fraction": "hep ",
-                    "HeIII_Fraction": "hepp",
-                    "HM_Fraction": "hmin",
-                    "HII_Fraction": "hp  ",
-                    "H2I_Fraction": "htwo",
-                    "H2II_Fraction": "htwp",
-                    "DI_Fraction": "deut",
-                    "DII_Fraction": "dplu",
-                    "ParticleMass": "particle_mass",
-                    "Flame_Fraction": "flam"}
+class FLASHFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+        ("velx", ("cm/s", ["velocity_x"], None)),
+        ("vely", ("cm/s", ["velocity_y"], None)),
+        ("velz", ("cm/s", ["velocity_z"], None)),
+        ("dens", ("g/cm**3", ["density"], None)),
+        ("temp", ("K", ["temperature"], None)),
+        ("pres", ("erg/cm**3", ["pressure"], None)),
+        ("gpot", ("erg/g", ["gravitational_potential"], None)),
+        ("eint", ("erg/g", ["thermal_energy"], None)),
+        ("ener", ("erg/g", ["total_energy"], None)),
+        ("tion", ("K", [], None)),
+        ("tele", ("K", [], None)),
+        ("trad", ("K", [], None)),
+        ("pres", ("erg/cm**3", [], None)),
+        ("pion", ("erg/cm**3", [], None)),
+        ("pele", ("erg/cm**3", [], "Electron Pressure, P_e")),
+        ("prad", ("erg/cm**3", [], "Radiation Pressure")),
+        ("eion", ("erg", [], "Ion Internal Energy")),
+        ("eele", ("erg", [], "Electron Internal Energy")),
+        ("erad", ("erg", [], "Radiation Internal Energy")),
+        ("pden", ("g/cm**3", [], None)),
+        ("depo", ("erg/g", [], None)),
+        ("ye", ("erg/g", [], None)),
+        ("magx", ("gauss", [], None)),
+        ("magy", ("gauss", [], None)),
+        ("magz", ("gauss", [], None)),
+        ("magp", ("erg/cm**3", [], None)),
+        ("divb", ("gauss*cm", [], None)),
+        ("game", ("", [], "\gamma_e\/\rm{(ratio\/of\/specific\/heats)}")),
+        ("gamc", ("", [], "\gamma_c\/\rm{(ratio\/of\/specific\/heats)}")),
+        ("gpot", ("erg/g", [], None)),
+        ("gpol", ("erg/g", [], None)),
+        ("flam", ("", [], None)),
+        ("absr", ("", [], "Absorption Coefficient")),
+        ("emis", ("", [], "Emissivity")),
+        ("cond", ("", [], "Conductivity")),
+        ("dfcf", ("", [], "Diffusion Equation Scalar")),
+        ("fllm", ("", [], "Flux Limit")),
+        ("pipe", ("", [], "P_i/P_e")),
+        ("tite", ("", [], "T_i/T_e")),
+        ("dbgs", ("", [], "Debug for Shocks")),
+        ("cham", ("", [], "Chamber Material Fraction")),
+        ("targ", ("", [], "Target Material Fraction")),
+        ("sumy", ("", [], None)),
+        ("mgdc", ("", [], "Emission Minus Absorption Diffusion Terms")),
+    )
 
-def _get_density(fname):
-    def _dens(field, data):
-        return data[fname] * data['Density']
-    return _dens
+    known_particle_fields = (
+        ("particle_posx", ("cm", ["particle_position_x"], None)),
+        ("particle_posy", ("cm", ["particle_position_y"], None)),
+        ("particle_posz", ("cm", ["particle_position_z"], None)),
+        ("particle_velx", ("cm/s", ["particle_velocity_x"], None)),
+        ("particle_vely", ("cm/s", ["particle_velocity_y"], None)),
+        ("particle_velz", ("cm/s", ["particle_velocity_z"], None)),
+        ("particle_tag", ("", ["particle_index"], None)),
+        ("particle_mass", ("g", ["particle_mass"], None)),
+    )
 
-for fn1, fn2 in translation_dict.items():
-    if fn1.endswith("_Fraction"):
-        add_field(fn1.split("_")[0] + "_Density",
-                  function=_get_density(fn1), take_log=True,
-                  display_name="%s\/Density" % fn1.split("_")[0],
-                  units = r"g/cm**3")
-
-def _get_convert(fname):
-    def _conv(data):
-        return data.convert(fname)
-    return _conv
-
-add_flash_field("dens", function=NullFunc, take_log=True,
-                convert_function=_get_convert("dens"),
-                units="g/cm**3")
-add_flash_field("velx", function=NullFunc, take_log=False,
-                convert_function=_get_convert("velx"),
-                units="cm/s")
-add_flash_field("vely", function=NullFunc, take_log=False,
-                convert_function=_get_convert("vely"),
-                units="cm/s")
-add_flash_field("velz", function=NullFunc, take_log=False,
-                convert_function=_get_convert("velz"),
-                units="cm/s")
-add_flash_field("ener", function=NullFunc, take_log=True,
-                convert_function=_get_convert("ener"),
-                units="erg/g")
-add_flash_field("eint", function=NullFunc, take_log=True,
-                convert_function=_get_convert("eint"),
-                units="erg/g")
-add_flash_field("particle_posx", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_posx"),
-                units="cm", particle_type=True)
-add_flash_field("particle_posy", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_posy"),
-                units="cm", particle_type=True)
-add_flash_field("particle_posz", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_posz"),
-                units="cm", particle_type=True)
-add_flash_field("particle_velx", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_velx"),
-                units="cm/s", particle_type=True)
-add_flash_field("particle_vely", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_vely"),
-                units="cm/s", particle_type=True)
-add_flash_field("particle_velz", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_velz"),
-                units="cm/s", particle_type=True)
-add_flash_field("particle_tag", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_tag"),
-                particle_type=True)
-add_flash_field("particle_mass", function=NullFunc, take_log=False,
-                convert_function=_get_convert("particle_mass"),
-                units="g", particle_type=True)
-add_flash_field("temp", function=NullFunc, take_log=True,
-                convert_function=_get_convert("temp"),
-                units="K")
-add_flash_field("tion", function=NullFunc, take_log=True,
-                units="K")
-add_flash_field("tele", function=NullFunc, take_log=True,
-                convert_function=_get_convert("tele"),
-                units = "K")
-add_flash_field("trad", function=NullFunc, take_log=True,
-                units = "K")
-add_flash_field("pres", function=NullFunc, take_log=True,
-                convert_function=_get_convert("pres"),
-                units="erg/cm**3")
-add_flash_field("pion", function=NullFunc, take_log=True,
-                display_name="Ion Pressure",
-                units="erg/cm**3")
-add_flash_field("pele", function=NullFunc, take_log=True,
-                display_name="Electron Pressure, P_e",
-                units="erg/cm**3")
-add_flash_field("prad", function=NullFunc, take_log=True,
-                display_name="Radiation Pressure",
-                units = "erg/cm**3")
-add_flash_field("eion", function=NullFunc, take_log=True,
-                display_name="Ion Internal Energy",
-                units="erg")
-add_flash_field("eele", function=NullFunc, take_log=True,
-                display_name="Electron Internal Energy",
-                units="erg")
-add_flash_field("erad", function=NullFunc, take_log=True,
-                display_name="Radiation Internal Energy",
-                units="erg")
-add_flash_field("pden", function=NullFunc, take_log=True,
-                convert_function=_get_convert("pden"),
-                units="g/cm**3")
-add_flash_field("depo", function=NullFunc, take_log=True,
-                units = "erg/g")
-add_flash_field("ye", function=NullFunc, take_log=True,
-                units = "erg/g")
-add_flash_field("magx", function=NullFunc, take_log=False,
-                convert_function=_get_convert("magx"),
-                units = "gauss")
-add_flash_field("magy", function=NullFunc, take_log=False,
-                convert_function=_get_convert("magy"),
-                units = "gauss")
-add_flash_field("magz", function=NullFunc, take_log=False,
-                convert_function=_get_convert("magz"),
-                units = "gauss")
-add_flash_field("magp", function=NullFunc, take_log=True,
-                convert_function=_get_convert("magp"),
-                units = "erg/cm**3")
-add_flash_field("divb", function=NullFunc, take_log=False,
-                convert_function=_get_convert("divb"),
-                units = "gauss*cm")
-add_flash_field("game", function=NullFunc, take_log=False,
-                convert_function=_get_convert("game"),
-                display_name="\gamma_e\/\rm{(ratio\/of\/specific\/heats)}")
-add_flash_field("gamc", function=NullFunc, take_log=False,
-                convert_function=_get_convert("gamc"),
-                display_name="\gamma_c\/\rm{(ratio\/of\/specific\/heats)}")
-add_flash_field("gpot", function=NullFunc, take_log=False,
-                convert_function=_get_convert("gpot"),
-                units="erg/g")
-add_flash_field("gpol", function=NullFunc, take_log=False,
-                convert_function=_get_convert("gpol"),
-                units = "erg/g")
-add_flash_field("flam", function=NullFunc, take_log=False,
-                convert_function=_get_convert("flam"))
-add_flash_field("absr", function=NullFunc, take_log=False,
-                display_name="Absorption Coefficient")
-add_flash_field("emis", function=NullFunc, take_log=False,
-                display_name="Emissivity")
-add_flash_field("cond", function=NullFunc, take_log=False,
-                display_name="Conductivity")
-add_flash_field("dfcf", function=NullFunc, take_log=False,
-                display_name="Diffusion Equation Scalar")
-add_flash_field("fllm", function=NullFunc, take_log=False,
-                display_name="Flux Limit")
-add_flash_field("pipe", function=NullFunc, take_log=False,
-                display_name="P_i/P_e")
-add_flash_field("tite", function=NullFunc, take_log=False,
-                display_name="T_i/T_e")
-add_flash_field("dbgs", function=NullFunc, take_log=False,
-                display_name="Debug for Shocks")
-add_flash_field("cham", function=NullFunc, take_log=False,
-                display_name="Chamber Material Fraction")
-add_flash_field("targ", function=NullFunc, take_log=False,
-                display_name="Target Material Fraction")
-add_flash_field("sumy", function=NullFunc, take_log=False)
-add_flash_field("mgdc", function=NullFunc, take_log=False,
-                display_name="Emission Minus Absorption Diffusion Terms")
-
-for i in range(1, 1000):
-    add_flash_field("r{0:03}".format(i), function=NullFunc, take_log=False,
-        display_name="Energy Group {0}".format(i))
-
-
-for f,v in translation_dict.items():
-    if v not in KnownFLASHFields:
-        pfield = v.startswith("particle")
-        add_flash_field(v, function=NullFunc, take_log=False,
-                  validators = [ValidateDataField(v)],
-                  particle_type = pfield)
-    if f.endswith("_Fraction") :
-        dname = "%s\/Fraction" % f.split("_")[0]
-    else :
-        dname = f
-    ff = KnownFLASHFields[v]
-    pfield = f.startswith("particle")
-    add_field(f, TranslationFunc(v),
-              take_log=KnownFLASHFields[v].take_log,
-              units = ff.units, display_name=dname,
-              particle_type = pfield)
-
-def _convertParticleMassMsun(data):
-    return 1.0/1.989e33
-def _ParticleMassMsun(field, data):
-    return data["ParticleMass"]
-add_field("ParticleMassMsun",
-          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun,
-          particle_convert_function=_ParticleMassMsun)
+    def setup_fluid_fields(self):
+        # Now we conditionally load a few other things.
+        #if self.pf.parameters["MultiSpecies"] > 0:
+        #    self.setup_species_fields()
+        self.setup_energy_field()
+        for i in range(1, 1000):
+            self.add_output_field(("flash", "r{0:03}".format(i)), 
+                units = "",
+                display_name="Energy Group {0}".format(i))
 
 def _ThermalEnergy(fields, data) :
     try:
@@ -276,9 +122,6 @@ def _ThermalEnergy(fields, data) :
         mu = 0.6
     return kboltz*data["Density"]*data["Temperature"]/(mu*mh) / (data.pf.gamma - 1.0)
 
-add_field("ThermalEnergy", function=_ThermalEnergy,
-          units="erg/g")
-
 def _TotalEnergy(fields, data) :
     try:
         etot = data["ener"]
@@ -292,15 +135,6 @@ def _TotalEnergy(fields, data) :
     except:
         pass
     return etot
-
-add_field("TotalEnergy", function=_TotalEnergy,
-          units="erg/g")
-
-def _GasEnergy(fields, data) :
-    return data["ThermalEnergy"]
-
-add_field("GasEnergy", function=_GasEnergy,
-          units="erg/g")
 
 # See http://flash.uchicago.edu/pipermail/flash-users/2012-October/001180.html
 # along with the attachment to that e-mail for details

@@ -81,9 +81,10 @@ class FieldInfoContainer(dict): # Resistance has utility
             if not isinstance(field, tuple):
                 raise RuntimeError
             args = known_other_fields.get(
-                field[1], ("", []))
-            units, aliases = args
-            self.add_output_field(field, units = units)
+                field[1], ("", [], None))
+            units, aliases, display_name = args
+            self.add_output_field(field, units = units,
+                                  display_name = display_name)
             for alias in aliases:
                 self.alias(("gas", alias), field)
 
@@ -138,6 +139,7 @@ class FieldInfoContainer(dict): # Resistance has utility
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
             particle_type = self[original_name].particle_type,
+            display_name = self[original_name].display_name,
             units = units)
 
     def add_grad(self, field, **kwargs):
