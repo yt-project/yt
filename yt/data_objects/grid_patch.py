@@ -76,11 +76,11 @@ class AMRGridPatch(YTSelectionContainer):
             start_index = left / self.dds
             return np.rint(start_index).astype('int64').ravel().view(np.ndarray)
 
-        pdx = self.Parent.dds
-        start_index = (self.Parent.get_global_startindex()) + \
-                       np.rint((self.LeftEdge - self.Parent.LeftEdge) / pdx)
+        pdx = self.Parent.dds.ndarray_view()
+        di = np.rint( (self.LeftEdge.ndarray_view() -
+                       self.Parent.LeftEdge.ndarray_view()) / pdx)
+        start_index = self.Parent.get_global_startindex() + di
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
-        self.start_index = self.start_index.to_ndarray()
         return self.start_index
 
     def __getitem__(self, key):
@@ -125,11 +125,11 @@ class AMRGridPatch(YTSelectionContainer):
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
-            self.dds = self.Parent.dds / self.pf.refine_by
+            self.dds = self.Parent.dds.ndarray_view() / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = np.array((RE - LE) / self.ActiveDimensions)
+            self.dds = (RE - LE) / self.ActiveDimensions
         if self.pf.dimensionality < 2:
             self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
         if self.pf.dimensionality < 3:
