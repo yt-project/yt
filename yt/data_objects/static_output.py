@@ -123,7 +123,6 @@ class StaticOutput(object):
 
         self._parse_parameter_file()
         self._setup_coordinate_handler()
-        self._set_units()
 
         # Because we need an instantiated class to check the pf's existence in
         # the cache, we move that check to here from __new__.  This avoids

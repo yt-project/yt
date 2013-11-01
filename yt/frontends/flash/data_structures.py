@@ -208,98 +208,38 @@ class FLASHStaticOutput(StaticOutput):
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
-        self._set_units()
         
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        if "EOSType" not in self.parameters:
-            self.parameters["EOSType"] = -1
-        if "pc_unitsbase" in self.parameters:
-            if self.parameters["pc_unitsbase"] == "CGS":
-                self._setup_cgs_units()
-        else:
-            self._setup_nounits_units()
-        if self.cosmological_simulation == 1:
-            self._setup_comoving_units()
-
     def _set_code_unit_attributes(self):
-        if self['unitsystem'].lower() == "cgs":
-             factor = 1
+        if "cgs" in (self.parameters.get('pc_unitsbase', "").lower(),
+                     self.parameters.get('unitsystem', "").lower()):
+             b_factor = 1
         elif self['unitsystem'].lower() == "si":
-             factor = np.sqrt(4*np.pi/1e7)
+             b_factor = np.sqrt(4*np.pi/1e7)
         elif self['unitsystem'].lower() == "none":
-             factor = np.sqrt(4*np.pi)
+             b_factor = np.sqrt(4*np.pi)
         else:
             raise RuntimeError("Runtime parameter unitsystem with "
                                "value %s is unrecognized" % self['unitsystem'])
-        self.magnetic_unit = YTQuantity(factor, "gauss")
-        self.length_unit = YTQuantity(1.0, "cm")
+        if self.cosmological_simulation == 1:
+            length_factor = 1.0 / (1.0 + self.current_redshift)
+            temperature_factor = 1.0 / (1.0 + self.current_redshift)**2
+        else:
+            length_factor = 1.0
+            temperature_factor = 1.0
+        self.magnetic_unit = YTQuantity(b_factor, "gauss")
+        self.length_unit = YTQuantity(length_factor, "cm")
         self.mass_unit = YTQuantity(1.0, "g")
         self.time_unit = YTQuantity(1.0, "s")
+        self.temperature_unit = YTQuantity(temperature_factor, "K")
+        # Still need to deal with:
+        #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
 
-    def _setup_comoving_units(self):
-        self.conversion_factors['dens'] = (1.0 + self.current_redshift)**3.0
-        self.conversion_factors['pres'] = (1.0 + self.current_redshift)**1.0
-        self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['velx'] = (1.0 + self.current_redshift)**-1.0
-        self.conversion_factors['vely'] = self.conversion_factors['velx']
-        self.conversion_factors['velz'] = self.conversion_factors['velx']
-        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)**-1.0
-        self.conversion_factors['particle_vely'] = \
-            self.conversion_factors['particle_velx']
-        self.conversion_factors['particle_velz'] = \
-            self.conversion_factors['particle_velx']
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-            self.units[unit+"cm"] = self.units[unit]
-            self.units[unit] /= (1.0+self.current_redshift)
-            
-    def _setup_cgs_units(self):
-        self.conversion_factors['dens'] = 1.0
-        self.conversion_factors['pres'] = 1.0
-        self.conversion_factors['eint'] = 1.0
-        self.conversion_factors['ener'] = 1.0
-        self.conversion_factors['temp'] = 1.0
-        self.conversion_factors['velx'] = 1.0
-        self.conversion_factors['vely'] = 1.0
-        self.conversion_factors['velz'] = 1.0
-        self.conversion_factors['particle_velx'] = 1.0
-        self.conversion_factors['particle_vely'] = 1.0
-        self.conversion_factors['particle_velz'] = 1.0
-        self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
-    def _setup_nounits_units(self):
-        self.conversion_factors['dens'] = 1.0
-        self.conversion_factors['pres'] = 1.0
-        self.conversion_factors['eint'] = 1.0
-        self.conversion_factors['ener'] = 1.0
-        self.conversion_factors['temp'] = 1.0
-        self.conversion_factors['velx'] = 1.0
-        self.conversion_factors['vely'] = 1.0
-        self.conversion_factors['velz'] = 1.0
-        self.conversion_factors['particle_velx'] = 1.0
-        self.conversion_factors['particle_vely'] = 1.0
-        self.conversion_factors['particle_velz'] = 1.0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+    def set_code_units(self):
+        super(FLASHStaticOutput, self).set_code_units()
+        from yt.utilities.units import dimensionless
+        self.unit_registry.add("code_temperature",
+            float(self.temperature_unit.value),
+            dimensionless)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
