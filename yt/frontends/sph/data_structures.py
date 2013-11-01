@@ -128,7 +128,8 @@ class ParticleStaticOutput(StaticOutput):
             function = TranslationFunc((ptype, "ParticleIDs")),
             particle_type = True)
         standard_particle_fields(self.field_info, ptype)
-        _setup_particle_fields(self.field_info, ptype)
+        _setup_particle_fields(self.field_info, ptype,
+            self._particle_mass_name)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class GadgetStaticOutput(ParticleStaticOutput):
@@ -286,6 +287,7 @@ class GadgetHDF5StaticOutput(GadgetStaticOutput):
     _file_class = ParticleFile
     _fieldinfo_fallback = GadgetHDF5FieldInfo
     _fieldinfo_known = KnownGadgetHDF5Fields
+    _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
     def __init__(self, filename, data_style="gadget_hdf5", 

@@ -150,7 +150,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if fid: fid.close()
         return rv
 
-
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
 

@@ -1051,7 +1051,8 @@ class StreamOctreeHandler(OctreeGeometryHandler):
                       left_edge = self.pf.domain_left_edge,
                       right_edge = self.pf.domain_right_edge,
                       octree = self.pf.octree_mask,
-                      over_refine = self.pf.over_refine_factor)
+                      over_refine = self.pf.over_refine_factor,
+                      partial_coverage = self.pf.partial_coverage)
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
@@ -1101,7 +1102,7 @@ class StreamOctreeStaticOutput(StreamStaticOutput):
 
 def load_octree(octree_mask, data, sim_unit_to_cm,
                 bbox=None, sim_time=0.0, periodicity=(True, True, True),
-                over_refine_factor = 1):
+                over_refine_factor = 1, partial_coverage = 1):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1113,7 +1114,10 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.
+        This is a depth-first refinement mask for an Octree.  It should be of
+        size n_octs * 8, where each item is 1 for an oct-cell being refined and
+        0 for it not being refined.  Note that for over_refine_factors != 1,
+        the children count will still be 8, so this is always 8.
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
@@ -1126,6 +1130,9 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    partial_coverage : boolean
+        Whether or not an oct can be refined cell-by-cell, or whether all 8 get
+        refined.
 
     """
 
@@ -1172,6 +1179,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
 
     spf = StreamOctreeStaticOutput(handler)
     spf.octree_mask = octree_mask
+    spf.partial_coverage = partial_coverage
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0

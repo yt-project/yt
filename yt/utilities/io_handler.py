@@ -114,7 +114,7 @@ class BaseIOHandler(object):
         return None
 
     def _read_chunk_data(self, chunk, fields):
-        return None
+        return {}
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
