@@ -265,6 +265,8 @@ class TableApecModel(SpectralModel):
         cspec_r = np.zeros((self.nchan))
         mspec_r = np.zeros((self.nchan))
         tindex = np.searchsorted(self.Tvals, kT)-1
+        if tindex >= self.Tvals.shape[0]-1 or tindex < 0:
+            return cspec_l, mspec_l
         dT = (kT-self.Tvals[tindex])/self.dTvals[tindex]
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
