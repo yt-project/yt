@@ -401,7 +401,7 @@ class YTArray(np.ndarray):
                                            right_object.units)
             ro = right_object
 
-        return YTArray(super(YTArray, self).__sub__(right_object))
+        return YTArray(super(YTArray, self).__sub__(ro))
 
     def __rsub__(self, left_object):
         """ See __sub__. """
@@ -415,6 +415,7 @@ class YTArray(np.ndarray):
                 raise YTUnitOperationError('subtraction', left_object.units,
                                            self.units)
             lo = left_object
+
         return YTArray(super(YTArray, self).__rsub__(lo))
 
     def __isub__(self, other):
