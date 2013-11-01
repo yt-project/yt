@@ -326,6 +326,16 @@ class YTArray(np.ndarray):
         """
         return self.in_units(self.units.get_cgs_equivalent())
 
+    def ndarray_view(self):
+        """
+        Returns a view into the array, but as an ndarray rather than ytarray.
+
+        Returns
+        -------
+        View of this array's data.
+        """
+        return self.view(np.ndarray)
+
     def to_ndarray(self):
         """
         Creates a copy of this array with the unit information stripped
