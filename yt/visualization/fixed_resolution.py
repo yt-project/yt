@@ -300,8 +300,6 @@ class FixedResolutionBuffer(object):
             mylog.error("You don't have AstroPy installed!")
             raise ImportError
         
-        from os import system
-
         if units == "deg" and D_A is None:
             mylog.error("Sky coordinates require an angular diameter distance. Please specify D_A.")    
             raise ValueError

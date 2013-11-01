@@ -11,6 +11,7 @@ Answer test the photon_simulator analysis module.
 #-----------------------------------------------------------------------------
 
 from yt.testing import *
+from yt.config import ytcfg
 from yt.analysis_modules.photon_simulator.api import *
 from yt.utilities.answer_testing.framework import requires_pf, \
      GenericArrayTest, data_dir_load
@@ -20,12 +21,14 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-ETC = "enzo_tiny_cosmology/DD0046/DD0046"
-APEC = os.environ["YT_DATA_DIR"]+"/xray_data/atomdb_v2.0.2"
-TBABS = os.environ["YT_DATA_DIR"]+"/xray_data/tbabs_table.h5"
-ARF = os.environ["YT_DATA_DIR"]+"/xray_data/chandra_ACIS-S3_onaxis_arf.fits"
-RMF = os.environ["YT_DATA_DIR"]+"/xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
-        
+test_dir = ytcfg.get("yt", "test_data_dir")
+
+ETC = test_dir+"/enzo_tiny_cosmology/DD0046/DD0046"
+APEC = test_dir+"/xray_data/atomdb_v2.0.2"
+TBABS = test_dir+"/xray_data/tbabs_table.h5"
+ARF = test_dir+"/xray_data/chandra_ACIS-S3_onaxis_arf.fits"
+RMF = test_dir+"/xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
+
 @requires_pf(ETC)
 @requires_file(APEC)
 @requires_file(TBABS)
