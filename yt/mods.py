@@ -88,8 +88,8 @@ from yt.frontends.enzo.api import \
 #from yt.frontends.boxlib.api import \
 #    CastroStaticOutput
 
-#from yt.frontends.flash.api import \
-#    FLASHStaticOutput, FLASHFieldInfo, add_flash_field
+from yt.frontends.flash.api import \
+    FLASHStaticOutput, FLASHFieldInfo
 
 #from yt.frontends.tiger.api import \
 #    TigerStaticOutput, TigerFieldInfo, add_tiger_field

@@ -104,7 +104,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         # Now we conditionally load a few other things.
         #if self.pf.parameters["MultiSpecies"] > 0:
         #    self.setup_species_fields()
-        self.setup_energy_field()
+        #self.setup_energy_field()
         for i in range(1, 1000):
             self.add_output_field(("flash", "r{0:03}".format(i)), 
                 units = "",

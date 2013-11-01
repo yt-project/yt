@@ -70,9 +70,9 @@ class FLASHHierarchy(GridGeometryHandler):
 
     def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [s for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle) :
-            self.field_list += ["particle_" + s[0].strip() for s
+            self.field_list += [("io", "particle_" + s[0].strip()) for s
                                 in self._particle_handle["/particle names"][:]]
     
     def _setup_classes(self):
@@ -142,10 +142,13 @@ class FLASHHierarchy(GridGeometryHandler):
         if ND < 3:
             dxs[:,ND:] = rdx[ND:]
 
+        # Because we don't care about units, we're going to operate on views.
+        gle = self.grid_left_edge.ndarray_view()
+        gre = self.grid_right_edge.ndarray_view()
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
-            self.grid_left_edge[i][:ND] = np.rint(self.grid_left_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
-            self.grid_right_edge[i][:ND] = np.rint(self.grid_right_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            gle[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
@@ -184,6 +187,7 @@ class FLASHStaticOutput(StaticOutput):
                  particle_filename = None, 
                  conversion_override = None):
 
+        self.fluid_types += ("flash",)
         if self._handle is not None: return
         self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
@@ -237,9 +241,8 @@ class FLASHStaticOutput(StaticOutput):
     def set_code_units(self):
         super(FLASHStaticOutput, self).set_code_units()
         from yt.utilities.units import dimensionless
-        self.unit_registry.add("code_temperature",
-            float(self.temperature_unit.value),
-            dimensionless)
+        self.unit_registry.modify("code_temperature",
+            self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,

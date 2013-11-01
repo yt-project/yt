@@ -90,6 +90,7 @@ default_unit_symbol_lut = {
     "code_mass" : (1.0, mass),
     "code_time" : (1.0, time),
     "code_magnetic" : (1.0, magnetic_field),
+    "code_temperature" : (1.0, temperature),
 
     # other cgs
     "dyne": (1.0, force),
@@ -143,6 +144,7 @@ latex_symbol_lut = {
     "code_length" : "code\/length",
     "code_time" : "code\/time",
     "code_mass" : "code\/mass",
+    "code_temperature" : "code\/temperature",
     "Msun" : "\\rm{Msun}",
     "msun" : "\\rm{msun}",
     "Rsun" : "\\rm{Rsun}",
