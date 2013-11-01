@@ -19,7 +19,7 @@ import shutil
 import unittest
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
-    fake_random_pf, assert_equal, assert_rel_equal
+    fake_random_pf, assert_equal, assert_rel_equal, assert_array_equal
 from yt.utilities.answer_testing.framework import \
     requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
@@ -122,19 +122,17 @@ class TestSetWidth(unittest.TestCase):
             self.pf = fake_random_pf(64)
             self.slc = SlicePlot(self.pf, 0, "density")
 
-    def _assert_15kpc(self):
-        assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
-                         [(YTQuantity(-7.5, 'kpc'), YTQuantity(7.5, 'kpc')),
-                          (YTQuantity(-7.5, 'kpc'), YTQuantity(7.5, 'kpc')),
-                          (YTQuantity(15.0, 'kpc'), YTQuantity(15., 'kpc'))],
-                         15)
+    def _assert_05cm(self):
+        assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
+                         [(YTQuantity(0.25, 'cm'), YTQuantity(0.75, 'cm')),
+                          (YTQuantity(0.25, 'cm'), YTQuantity(0.75, 'cm')),
+                          (YTQuantity(0.5,  'cm'), YTQuantity(0.5,  'cm'))])
 
-    def _assert_15_10kpc(self):
-        assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
-                         [(YTQuantity(-7.5, 'kpc'), YTQuantity(7.5, 'kpc')),
-                          (YTQuantity(-5.0, 'kpc'), YTQuantity(5.0, 'kpc')),
-                          (YTQuantity(15.0, 'kpc'), YTQuantity(10., 'kpc'))], 
-                         15)
+    def _assert_05_075cm(self):
+        assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
+                         [(YTQuantity(0.25,  'cm'), YTQuantity(0.75,  'cm')),
+                          (YTQuantity(0.125, 'cm'), YTQuantity(0.875, 'cm')),
+                          (YTQuantity(0.5,   'cm'), YTQuantity(0.75,  'cm'))])
 
     def test_set_width_one(self):
         assert_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
@@ -146,24 +144,20 @@ class TestSetWidth(unittest.TestCase):
                          [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)], 15)
 
     def test_twoargs_eq(self):
-        self.slc.set_width(15, 'kpc')
-        self._assert_15kpc()
+        self.slc.set_width(0.5, 'cm')
+        self._assert_05cm()
 
     def test_tuple_eq(self):
-        self.slc.set_width((15, 'kpc'))
-        self._assert_15kpc()
+        self.slc.set_width((0.5, 'cm'))
+        self._assert_05cm()
 
     def test_tuple_of_tuples_neq(self):
-        self.slc.set_width(((15, 'kpc'), (10, 'kpc')))
-        self._assert_15_10kpc()
+        self.slc.set_width(((0.5, 'cm'), (0.75, 'cm')))
+        self._assert_05_075cm()
 
-    def test_tuple_of_tuples_neq2(self):
-        self.slc.set_width(((15, 'kpc'), (10000, 'pc')))
-        self._assert_15_10kpc()
-
-    def test_pair_of_tuples_neq(self):
-        self.slc.set_width((15, 'kpc'), (10000, 'pc'))
-        self._assert_15_10kpc()
+    def test_tuple_of_tuples_neq(self):
+        self.slc.set_width(((0.5, 'cm'), (0.0075, 'm')))
+        self._assert_05_075cm()
 
 
 class TestPlotWindowSave(unittest.TestCase):

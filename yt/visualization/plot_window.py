@@ -497,7 +497,7 @@ class PlotWindow(object):
         else:
             set_axes_unit = False
 
-        if iterable(unit):
+        if iterable(unit) and not isinstance(unit, basestring):
             assert_valid_width_tuple(unit)
             width = (width, unit)
             
@@ -506,14 +506,15 @@ class PlotWindow(object):
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.
 
-        self.xlim = (centerx - width[0], centerx + width[0])
-        self.ylim = (centery - width[1], centery + width[1])
+        self.xlim = (centerx - width[0]/2, centerx + width[0]/2)
+        self.ylim = (centery - width[1]/2, centery + width[1]/2)
 
         if hasattr(self,'zlim'):
             centerz = (self.zlim[1] + self.zlim[0])/2.
             mw = np.max([width[0], width[1]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
+
         return self
 
     @invalidate_data
