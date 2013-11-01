@@ -17,49 +17,46 @@ from yt.utilities.answer_testing.framework import requires_pf, \
 import numpy as np
 
 def setup():
-    """Test specific setup."""
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-MHD = "MHDSloshing/virgo_low_res.0054.vtk"
-@requires_module("xspec")
-@requires_pf(MHD)
-def test_cluster():
+ETC = "enzo_tiny_cosmology/DD0046/DD0046"
+APEC = os.environ["YT_DATA_DIR"]+"/xray_data/atomdb_v2.0.2"
+TBABS = os.environ["YT_DATA_DIR"]+"/xray_data/tbabs_table.h5"
+ARF = os.environ["YT_DATA_DIR"]+"/xray_data/chandra_ACIS-S3_onaxis_arf.fits"
+RMF = os.environ["YT_DATA_DIR"]+"/xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
+        
+@requires_pf(ETC)
+@requires_file(APEC)
+@requires_file(TBABS)
+@requires_file(ARF)
+@requires_file(RMF)
+def test_etc():
+
     np.random.seed(seed=0x4d3d3d3)
-    pf = data_dir_load(MHD, parameters={"TimeUnits":3.1557e13,
-                                        "LengthUnits":3.0856e24,
-                                        "DensityUnits":6.770424595218825e-27})
 
+    pf = data_dir_load(ETC)
     A = 3000.
-    exp_time = 3.0e5
-    redshift = 0.02
+    exp_time = 1.0e5
+    redshift = 0.1
     
-    apec_model = XSpecThermalModel("apec", 0.1, 20.0, 2000)
-    tbabs_model = XSpecAbsorbModel("TBabs", 0.1)
+    apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
+    tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
-    ARF = os.environ["YT_DATA_DIR"]+"/xray_data/chandra_ACIS-S3_onaxis_arf.fits"
-    RMF = os.environ["YT_DATA_DIR"]+"/xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
-            
-    sphere = pf.h.sphere("c", (0.25, "mpc"))
+    sphere = pf.h.sphere("max", (0.5, "mpc"))
 
     thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
-                                      thermal_model, cosmology=cosmo)
+                                      thermal_model)
     
     events = photons.project_photons([0.0,0.0,1.0],
                                      responses=[ARF,RMF],
-                                     absorb_model=abs_model)
-    
-    for k,v in photons.items():
-        def photons_test(v): return v
-        test = GenericArrayTest(pf, photons_test)
-        test_cluster.__name__ = test.description
-        yield test
+                                     absorb_model=tbabs_model)
 
-    for k,v in events.items():
-        def events_test(v): return v
-        test = GenericArrayTest(pf, events_test)
-        test_cluster.__name__ = test.description
+    def photons_test(): return photons.photons
+    def events_test(): return events.events
+
+    for test in [GenericArrayTest(pf, photons_test),
+                 GenericArrayTest(pf, events_test)]:
+        test_etc.__name__ = test.description
         yield test
-            
-            
