@@ -685,14 +685,7 @@ class CastroStaticOutput(BoxlibStaticOutput):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        fparam_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
-            return False
-        if os.path.exists(fparam_filename):
             return False
         # Now we check for all the others
         lines = open(jobinfo_filename).readlines()
@@ -710,14 +703,7 @@ class MaestroStaticOutput(BoxlibStaticOutput):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        fparam_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
-            return False
-        if os.path.exists(fparam_filename):
             return False
         # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
