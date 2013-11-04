@@ -671,6 +671,7 @@ class OrionStaticOutput(BoxlibStaticOutput):
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
+        if any(("maestro" in line.lower() for line in lines)): return False
         if any(("geometry.prob_lo" in line for line in lines)): return True
         return False
 
