@@ -225,6 +225,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _count_grids(self):
+        self.num_grids = None
         test_grid = test_grid_id = None
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
@@ -235,8 +236,11 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("NumberOfStarParticles"):
                 self.num_stars = int(line.split("=")[-1])
             if line.startswith("Grid "):
-                self.num_grids = test_grid_id = int(line.split("=")[-1])
-                break
+                if self.num_grids == None:
+                    self.num_grids = int(line.split("=")[-1])
+                test_grid_id = int(line.split("=")[-1])
+                if test_grid != None:
+                    break
         self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
