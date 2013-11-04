@@ -717,12 +717,11 @@ class MaestroStaticOutput(BoxlibStaticOutput):
                             args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
             return False
-        if not os.path.exists(fparam_filename):
+        if os.path.exists(fparam_filename):
             return False
-        # Now we check for all the others
+        # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
-        # Maestro outputs have "Castro" in them
-        if any(line.startswith("Castro   ") for line in lines): return True
+        if any("maestro" in line.lower() for line in lines): return True
         return False
 
 
