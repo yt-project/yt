@@ -1831,9 +1831,9 @@ class AMRQuadTreeProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
-            dependencies = self.get_dependencies(fields, ghost_zones = False)
+            dependencies = self.get_dependencies(fields)
             mylog.debug("Preloading %s grids and getting %s",
-                            len(self.source._get_grid_objs()),
+                            len([g for g in self.source._get_grid_objs()]),
                             dependencies)
             self.comm.preload([g for g in self._get_grid_objs()],
                           dependencies, self.hierarchy.io)
