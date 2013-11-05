@@ -167,8 +167,9 @@ class PhotonList(object):
             mainly for nearby sources. This may be optionally supplied
             instead of it being determined from the *redshift* and given *cosmology*.
         cosmology : `yt.utilities.cosmology.Cosmology`, optional
-            Cosmological information. If not supplied, it assumes \LambdaCDM with
-            the default yt parameters.
+            Cosmological information. If not supplied, we try to get
+            the cosmology from the parameter file. Otherwise, \LambdaCDM with
+            the default yt parameters is assumed.
 
         Examples
         --------
@@ -246,9 +247,21 @@ class PhotonList(object):
         if parameters is None:
              parameters = {}
         if cosmology is None:
-            cosmo = Cosmology()
+            hubble = getattr(pf, "hubble_constant", None)
+            omega_m = getattr(pf, "omega_matter", None)
+            omega_l = getattr(pf, "omega_lambda", None)
+            if hubble is not None and \
+               omega_m is not None and \
+               omega_l is not None:
+                cosmo = Cosmology(HubbleConstantNow=100.*hubble,
+                                  OmegaMatterNow=omega_m,
+                                  OmegaLambdaNow=omega_l)
+            else:
+                cosmo = Cosmology()
         else:
             cosmo = cosmology
+        mylog.info("Cosmology: H0 = %g, omega_matter = %g, omega_lambda = %g" %
+                   (cosmo.HubbleConstantNow, cosmo.OmegaMatterNow, cosmo.OmegaLambdaNow))
         if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)
         else:
