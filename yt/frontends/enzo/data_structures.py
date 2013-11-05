@@ -236,10 +236,10 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("NumberOfStarParticles"):
                 self.num_stars = int(line.split("=")[-1])
             if line.startswith("Grid "):
-                if self.num_grids == None:
+                if self.num_grids is None:
                     self.num_grids = int(line.split("=")[-1])
                 test_grid_id = int(line.split("=")[-1])
-                if test_grid != None:
+                if test_grid is not None:
                     break
         self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
