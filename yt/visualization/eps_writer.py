@@ -25,6 +25,7 @@ from yt.utilities.definitions import \
 from .plot_types import \
     VMPlot, \
     ProfilePlot
+from .plot_window import PlotWindow
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -40,6 +41,7 @@ class DualEPS(object):
         self.figsize = figsize
         self.canvas = None
         self.colormaps = None
+        self.field = None
         self.axes_drawn = False
 
     def hello_world(self):
@@ -271,18 +273,28 @@ class DualEPS(object):
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
         """
-        plot._redraw_image()
-        if isinstance(plot, VMPlot):
+        if isinstance(plot, PlotWindow):
+            plot.refresh()
+            width = plot.width[0]
+        else:
+            plot._redraw_image()
+            if isinstance(plot, VMPlot):
+                width = plot.width
+        if isinstance(plot, VMPlot) or isinstance(plot, PlotWindow):
+            if isinstance(plot, PlotWindow):
+                data = plot._frb
+            else:
+                data = plot.data
             if units == None:
                 # Determine the best units
                 astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'mpc']
                 best_fit = 0
-                while plot.width*plot.pf[astro_units[best_fit]] > 1e3 and \
+                while width*plot.pf[astro_units[best_fit]] > 1e3 and \
                           best_fit < len(astro_units):
                     best_fit += 1
                 units = astro_units[best_fit]
-            _xrange = (0, plot.width * plot.pf[units])
-            _yrange = (0, plot.width * plot.pf[units])
+            _xrange = (0, width * plot.pf[units])
+            _yrange = (0, width * plot.pf[units])
             _xlog = False
             _ylog = False
             if bare_axes:
@@ -293,11 +305,17 @@ class DualEPS(object):
                 if xlabel != None:
                     _xlabel = xlabel
                 else:
-                    _xlabel = '%s (%s)' % (x_names[plot.data.axis], units)
+                    if data.axis != 4:
+                        _xlabel = '%s (%s)' % (x_names[data.axis], units)
+                    else:
+                        _xlabel = 'Image x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
-                    _ylabel = '%s (%s)' % (y_names[plot.data.axis], units)
+                    if data.axis != 4:
+                        _ylabel = '%s (%s)' % (y_names[data.axis], units)
+                    else:
+                        _ylabel = 'Image y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
         else:
@@ -362,7 +380,7 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def insert_image_yt(self, plot, pos=(0,0), scale=1.0):
+    def insert_image_yt(self, plot, field=None, pos=(0,0), scale=1.0):
         r"""Inserts a bitmap taken from a yt plot.
 
         Parameters
@@ -385,23 +403,38 @@ class DualEPS(object):
         For best results, set use_colorbar=False when creating the yt
         image.
         """
+        
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
-        if plot.colorbar != None and \
-               isinstance(plot, VMPlot):
-            print "WARNING: Image (slices, projections, etc.) plots must not"\
-                  "have a colorbar."
-            print "Removing it."
-            plot.colorbar = None
+        shift = 0.0
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        plot._redraw_image()
-        _p1 = plot._figure
-        if isinstance(plot, ProfilePlot):
+        if isinstance(plot, VMPlot):
+            if plot.colorbar != None:
+                print "WARNING: Image (slices, projections, etc.) plots must not"\
+                    "have a colorbar.  Removing it."
+                plot.colorbar = None
+            plot._redraw_image()
+            _p1 = plot._figure
+        elif isinstance(plot, PlotWindow):
+            self.field = field
+            if self.field == None:
+                self.field = plot.plots.keys()[0]
+                print "No field specified.  Choosing first field (%s)" % field
+            if self.field not in plot.plots.keys():
+                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+            plot.plots[self.field].hide_colorbar()
+            plot.refresh()
+            _p1 = plot.plots[self.field].figure
+            # hack to account for non-square display ratios (not sure why)
+            shift = 12.0 / 340
+        elif isinstance(plot, ProfilePlot):
+            plot._redraw_image()
             # Remove colorbar
+            _p1 = plot._figure
             _p1.delaxes(_p1.axes[1])
         _p1.axes[0].set_axis_off()  # remove axes
-        _p1.axes[0].set_position([0,0,1,1])  # rescale figure
+        _p1.axes[0].set_position([-shift,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
@@ -410,7 +443,7 @@ class DualEPS(object):
                                  figure_canvas.tostring_rgb())
         #figure_canvas.print_png('test.png')
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             width=scale*self.figsize[0],
+                                             width=(1.0+2*shift)*scale*self.figsize[0],
                                              height=scale*self.figsize[1]))
 
 #=============================================================================
@@ -556,21 +589,40 @@ class DualEPS(object):
         >>> d.colorbar_yt(p)
         >>> d.save_fig()
         """
-        if plot.cmap != None:
-            _cmap = plot.cmap.name
+        _cmap = None
+        if isinstance(plot, PlotWindow):
+            _cmap = plot._colormaps[self.field]
         else:
+            if plot.cmap != None:
+                _cmap = plot.cmap.name
+        if _cmap == None:
             _cmap = 'algae'
         if isinstance(plot, VMPlot):
-            # Taken from yt
             proj = "Proj" in plot._type_name and \
-                   plot.data._weight is None
+                plot.data._weight is None
             _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.log_field
+            _zrange = (plot.norm.vmin, plot.norm.vmax)
+        elif isinstance(plot, PlotWindow):
+            proj = plot._plot_type.endswith("Projection") and \
+                plot.data_source.weight_field == None
+            _zlabel = plot.pf.field_info[self.field].get_label(proj)
+            _zlabel = _zlabel.replace("_","\;")
+            _zlog = plot.get_log(self.field)[self.field]
+            if plot.plots[self.field].zmin == None:
+                zmin = plot.plots[self.field].image._A.min()
+            else:
+                zmin = plot.plots[self.field].zmin
+            if plot.plots[self.field].zmax == None:
+                zmax = plot.plots[self.field].image._A.max()
+            else:
+                zmax = plot.plots[self.field].zmax
+            _zrange = (zmin, zmax)
         else:
             _zlabel = plot._z_label.replace("_","\;")
             _zlog = plot._log_z
-        _zrange = (plot.norm.vmin, plot.norm.vmax)
+            _zrange = (plot.norm.vmin, plot.norm.vmax)
         self.colorbar(_cmap, zrange=_zrange, label=_zlabel, log=_zlog, **kwargs)
 
 #=============================================================================

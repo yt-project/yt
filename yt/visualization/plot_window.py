@@ -649,6 +649,27 @@ class PWViewer(PlotWindow):
                 self._field_transform[field] = linear_transform
         return self
 
+    def get_log(self, field):
+        """get the transform type of a field.
+        
+        Parameters
+        ----------
+        field : string
+            the field to get a transform
+
+        """
+        log = {}
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in fields:
+            if self._field_transform[field] == log_transform:
+                log[field] = True
+            else:
+                log[field] = False
+        return log
+
     @invalidate_plot
     def set_transform(self, field, name):
         if name not in field_transforms:
