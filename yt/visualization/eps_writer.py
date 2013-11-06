@@ -17,6 +17,7 @@ import numpy as np
 from matplotlib import cm
 from _mpl_imports import FigureCanvasAgg
 
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
@@ -26,6 +27,7 @@ from .plot_types import \
     VMPlot, \
     ProfilePlot
 from .plot_window import PlotWindow
+from .plot_modifications import get_smallest_appropriate_unit
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -286,13 +288,7 @@ class DualEPS(object):
             else:
                 data = plot.data
             if units == None:
-                # Determine the best units
-                astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'mpc']
-                best_fit = 0
-                while width*plot.pf[astro_units[best_fit]] > 1e3 and \
-                          best_fit < len(astro_units):
-                    best_fit += 1
-                units = astro_units[best_fit]
+                units = get_smallest_appropriate_unit(width, plot.pf)
             _xrange = (0, width * plot.pf[units])
             _yrange = (0, width * plot.pf[units])
             _xlog = False
@@ -411,8 +407,8 @@ class DualEPS(object):
             self.canvas = pyx.canvas.canvas()
         if isinstance(plot, VMPlot):
             if plot.colorbar != None:
-                print "WARNING: Image (slices, projections, etc.) plots must not"\
-                    "have a colorbar.  Removing it."
+                mylog.warning("Image (slices, projections, etc.) plots must not"\
+                              "have a colorbar.  Removing it.")
                 plot.colorbar = None
             plot._redraw_image()
             _p1 = plot._figure
@@ -420,7 +416,8 @@ class DualEPS(object):
             self.field = field
             if self.field == None:
                 self.field = plot.plots.keys()[0]
-                print "No field specified.  Choosing first field (%s)" % self.field
+                mylog.warning("No field specified.  Choosing first field (%s)" % \
+                              self.field)
             if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
             plot.plots[self.field].hide_colorbar()
@@ -501,7 +498,7 @@ class DualEPS(object):
             size = (self.figsize[0], 0.1*self.figsize[1])
             imsize = (256,1)
         else:
-            print "orientation %s unknown" % orientation
+            raise RuntimeError("orientation %s unknown" % orientation)
             return
 
         # If shrink is a scalar, then convert into tuple
@@ -780,7 +777,7 @@ class DualEPS(object):
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
         else:
-            print "format %s unknown." % (format)
+            raise RuntimeError("format %s unknown." % (format))
             
 #=============================================================================
 #=============================================================================
@@ -863,14 +860,14 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
     # Error check
     if images != None:
         if len(images) != ncol*nrow:
-            print "Number of images (%d) doesn't match nrow(%d) x ncol(%d)." %\
-                  (len(images), nrow, ncol)
+            raise RuntimeError("Number of images (%d) doesn't match nrow(%d)"\
+                               " x ncol(%d)." % (len(images), nrow, ncol))
             return
     if yt_plots is None and images is None:
-        print "Must supply either yt_plots or image filenames."
+        raise RuntimeError("Must supply either yt_plots or image filenames.")
         return
     if yt_plots != None and images != None:
-        print "Given both images and yt plots.  Ignoring images."
+        mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots != None:
         _yt = True
     else:
@@ -1044,8 +1041,9 @@ def multiplot_yt(ncol, nrow, plot_col, **kwargs):
     >>>                   yt_nocbar=False, margins=(0.5,0.5))
     """
     if len(plot_col.plots) < nrow*ncol:
-        print "Number of plots in PlotCollection is less than nrow(%d) "\
-              "x ncol(%d)." % (len(plot_col.plots), nrow, ncol)
+        raise RuntimeError("Number of plots in PlotCollection is less "\
+                           "than nrow(%d) x ncol(%d)." % \
+                           (len(plot_col.plots), nrow, ncol))
         return
     figure = multiplot(ncol, nrow, yt_plots=plot_col.plots, **kwargs)
     return figure
