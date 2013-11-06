@@ -22,6 +22,8 @@ from itertools import izip, repeat
 import numpy as np
 import cStringIO
 
+from .base_plot_types import \
+     MeshPlotMPL
 from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
@@ -424,7 +426,7 @@ class ProfilePlot(object):
         return (x_title, y_title)
             
 
-class PhasePlot(ProfilePlot):
+class PhasePlot(object):
     r"""
     Create a 2d profile (phase) plot from a data source or from a list of
     profile objects.
@@ -506,7 +508,6 @@ class PhasePlot(ProfilePlot):
     Use plot_line_property to change line properties of one or all profiles.
     
     """
-    plot_spec = None
     x_log = None
     y_log = None
     z_log = None
@@ -516,9 +517,10 @@ class PhasePlot(ProfilePlot):
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="CellMassMsun", x_bins=128, y_bins=128,
-                 plot_spec = None, profile = None):
+                 profile = None):
         self.z_log = {}
         self.z_title = {}
+        self.plots = {}
         if profile is None:
             # We only 
             profile = create_profile(data_source,
@@ -527,9 +529,6 @@ class PhasePlot(ProfilePlot):
                weight_field = weight_field)
         self.profile = profile
         # This is a fallback, in case we forget.
-        self.plot_spec = plot_spec
-        if self.plot_spec is None:
-            self.plot_spec = {}
         self._setup_plots()
 
     def _get_field_log(self, field_z, profile):
@@ -551,58 +550,76 @@ class PhasePlot(ProfilePlot):
         return scales[x_log], scales[y_log], scales[z_log]
 
     def _setup_plots(self):
-        xax = AxisSpec()
-        xax.title = self.profile.x_bin_field
-        xax.bounds = (self.profile._x_bins[0],
-                      self.profile._x_bins[-1])
-        xax.scale = {True: 'log', False: 'linear'}[self.profile._x_log]
-        xax.calculate_ticks()
+        for f, data in self.profile.field_data.items():
+            fig = None
+            axes = None
+            cax = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    fig = self.plots[f].figure
+                    axes = self.plots[f].axes
+                    cax = self.plots[f].cax
 
-        yax = AxisSpec()
-        yax.title = self.profile.y_bin_field
-        yax.bounds = (self.profile._y_bins[0],
-                      self.profile._y_bins[-1])
-        yax.scale = {True: 'log', False: 'linear'}[self.profile._y_log]
-        yax.calculate_ticks()
+            fontsize = 12
+            cmap = "algae"
+            cbname = "log10"
+            zlim = [data.min(), data.max()]
+            size = None
+            extent = [1.0, 1.0]
+            aspect =1.0
+            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, cbname, cmap, extent, aspect, 
+                                         zlim, size, fontsize, fig, axes, cax)
 
-        cbar = ColorbarSpec()
-        cbar.title = self._current_field
-        if self.scale == 'log':
-            nz = (self.profile[self._current_field] > 0)
-            mi = self.profile[self._current_field][nz].min()
-        else:
-            mi = self.profile[self._current_field].min()
-        ma = self.profile[self._current_field].max()
-        cbar.bounds = (mi, ma)
-        cbar.cmap = 'algae'
-        cbar.scale = self.scale
-        cbar.calculate_ticks()
+    # def save(self, name=None):
+    #     if not self._plot_valid: self._setup_plots()
+    #     # We'll go with a mesh here, even if it's inappropriate
+    #     im = self.image
+    #     if self.cbar.scale == 'log':
+    #         norm = mpl.matplotlib.colors.LogNorm()
+    #     else:
+    #         norm = mpl.matplotlib.colors.Normalize()
+    #     pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
+    #                           shading='flat', cmap = self.cbar.cmap,
+    #                           rasterized=True)
+    #     if self.x_spec.scale == 'log': axes.set_xscale("log")
+    #     if self.y_spec.scale == 'log': axes.set_yscale("log")
+    #     if self.x_spec.title is not None:
+    #         axes.set_xlabel(self.x_spec.title)
+    #     if self.y_spec.title is not None:
+    #         axes.set_ylabel(self.y_spec.title)
+    #     if isinstance(place, types.StringTypes):
+    #         canvas = mpl.FigureCanvasAgg(figure)
+    #         canvas.print_figure(place)
+    #     return figure, axes
 
-        self.plot = ImagePlotContainer()
-        self.plot.image = self.profile[self._current_field].transpose()
-        self.plot.x_spec = xax
-        self.plot.y_spec = yax
-        self.plot.cbar = cbar
+class PhasePlotMPL(MeshPlotMPL):
+    def __init__(self, x_data, y_data, data, cbname, cmap, extent, aspect, zlim, 
+                 size, fontsize, figure, axes, cax):
+        self._draw_colorbar = True
+        self._draw_axes = True
+        #self._cache_layout(size, fontsize)
 
-    def save(self, name=None):
-        if not self._plot_valid: self._setup_plots()
-        # We'll go with a mesh here, even if it's inappropriate
-        im = self.image
-        if self.cbar.scale == 'log':
-            norm = mpl.matplotlib.colors.LogNorm()
-        else:
-            norm = mpl.matplotlib.colors.Normalize()
-        pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
-                              shading='flat', cmap = self.cbar.cmap,
-                              rasterized=True)
-        if self.x_spec.scale == 'log': axes.set_xscale("log")
-        if self.y_spec.scale == 'log': axes.set_yscale("log")
-        if self.x_spec.title is not None:
-            axes.set_xlabel(self.x_spec.title)
-        if self.y_spec.title is not None:
-            axes.set_ylabel(self.y_spec.title)
-        if isinstance(place, types.StringTypes):
-            canvas = mpl.FigureCanvasAgg(figure)
-            canvas.print_figure(place)
-        return figure, axes
+        # Make room for a colorbar
+        self.input_size = size
+        #self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
+        self.fsize = [8., 8.]
 
+        # Compute layout
+        axrect = (0.093457943925233655, 0.06999999999999999, 0.78947368421052622, 0.84473684210526301)
+        caxrect = (0.88293162813575987, 0.06999999999999999, 0.016355140186915886, 0.84473684210526301)
+        #axrect, caxrect = self._get_best_layout(fontsize)
+        if np.any(np.array(axrect) < 0):
+            mylog.warning('The axis ratio of the requested plot is very narrow.  '
+                          'There is a good chance the plot will not look very good, '
+                          'consider making the plot manually using FixedResolutionBuffer '
+                          'and matplotlib.')
+            axrect  = (0.07, 0.10, 0.80, 0.80)
+            caxrect = (0.87, 0.10, 0.04, 0.80)
+        MeshPlotMPL.__init__(
+            self, self.fsize, axrect, caxrect, zlim, figure, axes, cax)
+        self._init_image(x_data, y_data, data, cbname, cmap)#, extent, aspect)
+        # self.image.axes.ticklabel_format(scilimits=(-2,3))
+        # if cbname == 'linear':
+        #     self.cb.formatter.set_scientific(True)
+        #     self.cb.formatter.set_powerlimits((-2,3))
+        #     self.cb.update_ticks()
