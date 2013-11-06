@@ -420,7 +420,7 @@ class DualEPS(object):
             self.field = field
             if self.field == None:
                 self.field = plot.plots.keys()[0]
-                print "No field specified.  Choosing first field (%s)" % field
+                print "No field specified.  Choosing first field (%s)" % self.field
             if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
             plot.plots[self.field].hide_colorbar()
