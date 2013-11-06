@@ -63,7 +63,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if f is None:
                     #print "Opening (count) %s" % g.filename
                     f = h5py.File(g.filename, "r")
-                if g.NumberOfParticles == 0: continue
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0:
+                    continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype != "io":
@@ -87,7 +89,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if f is None:
                     #print "Opening (read) %s" % g.filename
                     f = h5py.File(g.filename, "r")
-                if g.NumberOfParticles == 0: continue
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0:
+                    continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype != "io":

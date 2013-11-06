@@ -122,7 +122,10 @@ class EnzoGrid(AMRGridPatch):
     @property
     def NumberOfActiveParticles(self):
         if not hasattr(self.hierarchy, "grid_active_particle_count"): return 0
-        return self.hierarchy.grid_active_particle_count[self.id - self._id_offset]
+        id = self.id - self._id_offset
+        nap = dict((ptype, self.hierarchy.grid_active_particle_count[ptype][id]) \
+                   for ptype in self.hierarchy.grid_active_particle_count)
+        return nap
 
 class EnzoGridInMemory(EnzoGrid):
     __slots__ = ['proc_num']
@@ -322,11 +325,9 @@ class EnzoHierarchy(GridGeometryHandler):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
         if "AppendActiveParticleType" in self.parameters.keys() and \
                 len(self.parameters["AppendActiveParticleType"]):
-            pdtype = [(ptype, 'i4') for ptype in
-                self.parameters["AppendActiveParticleType"]]
-        else:
-            pdtype = None
-        self.grid_active_particle_count = np.zeros(self.num_grids, dtype=pdtype)
+            gac = dict((ptype, np.zeros(self.num_grids, dtype='i4')) \
+                       for ptype in self.parameters["AppendActiveParticleType"])
+            self.grid_active_particle_count = gac
 
     def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions.flat[:] = ei
