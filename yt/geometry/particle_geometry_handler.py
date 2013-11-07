@@ -81,7 +81,8 @@ class ParticleIndex(Index):
         ds = self.dataset
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
-        N = min(len(self.data_files), 256) 
+        N = min(len(4*self.data_files), 256) 
+        self.ds.domain_dimensions[:] = N
         self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files), ds.over_refine_factor,
@@ -146,7 +147,7 @@ class ParticleIndex(Index):
                 oct_handler = self.regions.construct_forest(
                         df.file_id, dobj.selector, self.io, self.data_files,
                         (dfi, count, omask))
-                g = ParticleOctreeSubset(dobj, oct_handler, self.pf,
+                g = ParticleOctreeSubset(dobj, oct_handler, df, self.pf,
                         over_refine_factor = self.pf.over_refine_factor)
             yield YTDataChunk(dobj, "spatial", [g])
 

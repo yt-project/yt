@@ -31,13 +31,13 @@ class ParticleContainer(YTSelectionContainer):
     _spatial = False
     _type_name = 'particle_container'
     _skip_add = True
-    _con_args = ('base_region', 'data_file')
+    _con_args = ('base_region', 'data_files')
 
-    def __init__(self, base_region, data_file):
+    def __init__(self, base_region, data_files):
         self.field_data = YTFieldData()
-        self.data_files = [data_file]
+        self.data_files = ensure_list(data_files)
         self.field_parameters = {}
-        self.pf = data_file.pf
+        self.pf = self.data_files[0].pf
         self.hierarchy = self.pf.hierarchy
         self._current_particle_type = 'all'
         self.base_region = base_region
