@@ -92,11 +92,11 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
             units = "")
 
     def _courant_time_step(field, data):
-        t1 = data["dx"] / (data[ftype, "sound_speed"]
+        t1 = data["index", "dx"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_x"]))
-        t2 = data["dy"] / (data[ftype, "sound_speed"]
+        t2 = data["index", "dy"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_y"]))
-        t3 = data["dz"] / (data[ftype, "sound_speed"]
+        t3 = data["index", "dz"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_z"]))
         tr = np.minimum(np.minimum(t1, t2), t3)
         return field.apply_units(tr)

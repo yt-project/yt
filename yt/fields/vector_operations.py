@@ -32,7 +32,8 @@ from yt.utilities.math_utils import \
     get_cyl_r, get_cyl_theta, \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
-    periodic_dist, euclidean_dist
+    periodic_dist, euclidean_dist, \
+    resize_vector
 
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 
