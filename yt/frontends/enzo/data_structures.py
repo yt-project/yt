@@ -828,7 +828,7 @@ class EnzoStaticOutput(StaticOutput):
         elif self.dimensionality == 2:
             self._setup_2d()
 
-    def _set_units(self):
+    def set_code_units(self):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
@@ -852,7 +852,6 @@ class EnzoStaticOutput(StaticOutput):
         self.mass_unit = YTQuantity(mass_unit, "g")
         self.time_unit = YTQuantity(time_unit, "s")
 
-    def set_code_units(self):
         self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
         self.unit_registry.modify("code_length", self.length_unit.value)
         self.unit_registry.modify("code_mass", self.mass_unit.value)
