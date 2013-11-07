@@ -18,6 +18,7 @@ from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
     get_image_suffix, mylog
+import numpy as np
 
 
 class PlotMPL(object):
@@ -83,6 +84,7 @@ class ImagePlotMPL(PlotMPL):
             norm = matplotlib.colors.LogNorm()
         elif (cbnorm == 'linear'):
             norm = matplotlib.colors.Normalize()
+        extent = [float(e) for e in extent]
         self.image = self.axes.imshow(data, origin='lower', extent=extent,
                                       norm=norm, vmin=self.zmin, aspect=aspect,
                                       vmax=self.zmax, cmap=cmap)
