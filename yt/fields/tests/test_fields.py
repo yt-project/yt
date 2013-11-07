@@ -45,7 +45,8 @@ _base_fields = (("gas", "density"),
 
 def realistic_pf(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
-    units = [StreamFieldInfo[f[1]][0] for f in fields]
+    units = [base_pf._get_field_info(*f).units for f in fields]
+    fields = [_strip_ftype(f) for f in fields]
     pf = fake_random_pf(16, fields = fields, units = units,
                         nprocs = nprocs)
     pf.parameters["HydroMethod"] = "streaming"
@@ -106,7 +107,6 @@ class TestFieldAccess(object):
                 skip_grids = True
             if hasattr(v, "ghost_zones"):
                 needs_spatial = True
-        fields = list(set((_strip_ftype(f) for f in fields)))
         pf = realistic_pf(fields, self.nproc)
         # This gives unequal sized grids as well as subgrids
         dd1 = pf.h.all_data()
@@ -117,7 +117,7 @@ class TestFieldAccess(object):
         v1 = dd1[self.field_name]
         # No more conversion checking
         if not field.particle_type:
-            assert_equal(v1, dd1["gas", self.field_name])
+            assert_equal(v1, dd1[self.field_name])
         if not needs_spatial:
             with field.unit_registry(dd2):
                 res = field._function(field, dd2)
