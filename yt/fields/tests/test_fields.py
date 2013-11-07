@@ -11,9 +11,10 @@ def setup():
     global base_pf
     # Make this super teeny tiny
     fields, units = [], []
-    for k, v in sorted(KnownStreamFields.items()):
-        fields.append(k)
-        units.append(v.units)
+
+    for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
+        fields.append(("gas", fname))
+        units.append(code_units)
     base_pf = fake_random_pf(4, fields = fields, units = units)
     base_pf.h
     from yt.config import ytcfg
@@ -93,7 +94,7 @@ class TestFieldAccess(object):
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.
             return
-        field = FieldInfo[self.field_name]
+        field = base_pf._get_field_info(*self.field_name)
         deps = field.get_dependencies(pf = base_pf)
         fields = deps.requested + list(_base_fields)
         skip_grids = False
@@ -139,27 +140,26 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
-    return # DISABLE FOR NOW
-    do = 0
-    for field in sorted(FieldInfo):
+    for field in sorted(base_pf.field_info):
+        if not isinstance(field, types.TupleType):
+            field = ("unknown", field)
+        finfo = base_pf._get_field_info(*field)
         if isinstance(field, types.TupleType):
             fname = field[0]
         else:
             fname = field
-        if fname == "vorticity_stretching_x":
-            do = 1
-        if do == 0: continue
+        if field[0] == "deposit": continue
         if fname.startswith("CuttingPlane"): continue
         if fname.startswith("particle"): continue
         if fname.startswith("CIC"): continue
-        if field.startswith("BetaPar"): continue
-        if field.startswith("TBetaPar"): continue
-        if field.startswith("BetaPerp"): continue
+        if fname.startswith("BetaPar"): continue
+        if fname.startswith("TBetaPar"): continue
+        if fname.startswith("BetaPerp"): continue
         if fname.startswith("WeakLensingConvergence"): continue
         if fname.startswith("DensityPerturbation"): continue
         if fname.startswith("Matter_Density"): continue
         if fname.startswith("Overdensity"): continue
-        if FieldInfo[field].particle_type: continue
+        if finfo.particle_type: continue
         for nproc in [1, 4, 8]:
             test_all_fields.__name__ = "%s_%s" % (field, nproc)
             yield TestFieldAccess(field, nproc)

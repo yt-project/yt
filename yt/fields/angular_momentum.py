@@ -26,13 +26,13 @@ from .derived_field import \
 from .field_plugin_registry import \
     register_field_plugin
 
-def obtain_velocities(data):
-    return obtain_rv_vec(data)
+from yt.utilities.lib.geometry_utils import \
+    obtain_rvec, obtain_rv_vec
 
 @register_field_plugin
 def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     def _specific_angular_momentum_x(field, data):
-        xv, yv, zv = obtain_velocities(data)
+        xv, yv, zv = obtain_rv_vec(data)
         center = data.get_field_parameter('center')
         v_vec = obtain_rvec(data)
         v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
@@ -40,7 +40,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         return yv * rv[...,2] - zv * rv[...,1]
 
     def _specific_angular_momentum_y(field, data):
-        xv, yv, zv = obtain_velocities(data)
+        xv, yv, zv = obtain_rv_vec(data)
         center = data.get_field_parameter('center')
         v_vec = obtain_rvec(data)
         v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
@@ -48,7 +48,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         return - (xv * rv[...,2] - zv * rv[...,0])
 
     def _specific_angular_momentum_z(field, data):
-        xv, yv, zv = obtain_velocities(data)
+        xv, yv, zv = obtain_rv_vec(data)
         center = data.get_field_parameter('center')
         v_vec = obtain_rvec(data)
         v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))

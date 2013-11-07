@@ -202,7 +202,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     def _height(field, data):
         return data["index", "cylindrical_z"]
 
-    registry.add_field("height", function=_height, 
+    registry.add_field(("index", "height"), function=_height, 
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
              units="cm",
