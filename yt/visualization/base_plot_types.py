@@ -95,45 +95,6 @@ class ImagePlotMPL(PlotMPL):
         f.seek(0)
         return f.read()
 
-class MeshPlotMPL(PlotMPL):
-    """A base class for yt plots made using pcolormesh
-
-    """
-    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
-        """Initialize MeshPlotMPL class object"""
-        PlotMPL.__init__(self, fsize, axrect, figure, axes)
-        self.zmin, self.zmax = zlim
-        if cax is None:
-            self.cax = self.figure.add_axes(caxrect)
-        else:
-            cax.cla()
-            cax.set_position(caxrect)
-            self.cax = cax
-
-    def _init_image(self, x_data, y_data, image_data, cbnorm, cmap):
-        """Store output of imshow in image variable"""
-        if (cbnorm == 'log10'):
-            norm = matplotlib.colors.LogNorm()
-        elif (cbnorm == 'linear'):
-            norm = matplotlib.colors.Normalize()
-        self.image = None
-        self.cb = None
-        #my_norm = colors.LogNorm(10.**z_range[0], 10.**z_range[1], clip=True)
-        #my_norm = colors.Normalize(z_range[0], z_range[1], clip=True)
-        self.image = self.axes.pcolormesh(x_data, y_data, image_data,
-                                          norm=norm, 
-                                          cmap=cmap)
-        self.axes.set_xscale('log')
-        self.axes.set_yscale('log')
-        self.cb = self.figure.colorbar(self.image, self.cax)
-
-    def _repr_png_(self):
-        canvas = FigureCanvasAgg(self.figure)
-        f = cStringIO.StringIO()
-        canvas.print_figure(f)
-        f.seek(0)
-        return f.read()
-
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):
     r"""Construct a multiple axes plot object, with or without a colorbar, into

@@ -19,11 +19,12 @@ import types
 
 from functools import wraps
 from itertools import izip, repeat
+import matplotlib
 import numpy as np
 import cStringIO
 
-from .base_plot_types import \
-     MeshPlotMPL
+from .plot_window import \
+     WindowPlotMPL
 from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
@@ -564,11 +565,12 @@ class PhasePlot(object):
             cmap = "algae"
             cbname = "log10"
             zlim = [data.min(), data.max()]
-            size = None
+            size = (8.0, 8.0)
             extent = [1.0, 1.0]
-            aspect =1.0
-            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, cbname, cmap, extent, aspect, 
-                                         zlim, size, fontsize, fig, axes, cax)
+            aspect = 1.0
+            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, cbname, 
+                                         cmap, extent, aspect, zlim, size, fontsize, 
+                                         fig, axes, cax)
 
     # def save(self, name=None):
     #     if not self._plot_valid: self._setup_plots()
@@ -592,22 +594,19 @@ class PhasePlot(object):
     #         canvas.print_figure(place)
     #     return figure, axes
 
-class PhasePlotMPL(MeshPlotMPL):
-    def __init__(self, x_data, y_data, data, cbname, cmap, extent, aspect, zlim, 
-                 size, fontsize, figure, axes, cax):
+class PhasePlotMPL(WindowPlotMPL):
+    def __init__(self, x_data, y_data, data, cbname, cmap, extent, 
+                 aspect, zlim, size, fontsize, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
-        #self._cache_layout(size, fontsize)
+        self._cache_layout(size, fontsize)
 
         # Make room for a colorbar
         self.input_size = size
-        #self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
-        self.fsize = [8., 8.]
+        self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
 
         # Compute layout
-        axrect = (0.093457943925233655, 0.06999999999999999, 0.78947368421052622, 0.84473684210526301)
-        caxrect = (0.88293162813575987, 0.06999999999999999, 0.016355140186915886, 0.84473684210526301)
-        #axrect, caxrect = self._get_best_layout(fontsize)
+        axrect, caxrect = self._get_best_layout(fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
@@ -615,11 +614,30 @@ class PhasePlotMPL(MeshPlotMPL):
                           'and matplotlib.')
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
-        MeshPlotMPL.__init__(
-            self, self.fsize, axrect, caxrect, zlim, figure, axes, cax)
-        self._init_image(x_data, y_data, data, cbname, cmap)#, extent, aspect)
-        # self.image.axes.ticklabel_format(scilimits=(-2,3))
-        # if cbname == 'linear':
-        #     self.cb.formatter.set_scientific(True)
-        #     self.cb.formatter.set_powerlimits((-2,3))
-        #     self.cb.update_ticks()
+        super(WindowPlotMPL, self).__init__(self.fsize, axrect, caxrect, 
+                                            zlim, figure, axes, cax)
+        self._init_image(x_data, y_data, data, cbname, cmap)
+        if cbname == 'linear':
+            self.cb.formatter.set_scientific(True)
+            self.cb.formatter.set_powerlimits((-2,3))
+            self.cb.update_ticks()
+
+    def _init_image(self, x_data, y_data, image_data, cbnorm, cmap):
+        """Store output of imshow in image variable"""
+        if (cbnorm == 'log10'):
+            norm = matplotlib.colors.LogNorm()
+        elif (cbnorm == 'linear'):
+            norm = matplotlib.colors.Normalize()
+        self.image = None
+        self.cb = None
+        #my_norm = colors.LogNorm(10.**z_range[0], 10.**z_range[1], clip=True)
+        #my_norm = colors.Normalize(z_range[0], z_range[1], clip=True)
+        self.image = self.axes.pcolormesh(x_data, y_data, image_data,
+                                          norm=norm, 
+                                          cmap=cmap)
+        self.axes.set_xscale('log')
+        self.axes.set_yscale('log')
+        self.axes.xaxis.set_label_text("Hey X")
+        self.axes.yaxis.set_label_text("Hey Y")
+        self.cb = self.figure.colorbar(self.image, self.cax)
+        self.cax.yaxis.set_label_text("HEY CAX")
