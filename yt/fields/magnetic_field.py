@@ -75,8 +75,8 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
                            data[ftype,'magnetic_field_z']],
                            d.units)
         
-        theta = data[ftype,'spherical_theta']
-        phi   = data[ftype,'spherical_phi']
+        theta = data["index", 'spherical_theta']
+        phi   = data["index", 'spherical_phi']
         
         return get_sph_theta_component(Bfields, theta, phi, normal)
 
@@ -93,7 +93,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
                            data[ftype,'magnetic_field_z']],
                            d.units)
         
-        phi = data[ftype,'spherical_phi']
+        phi = data["index", 'spherical_phi']
         return get_sph_phi_component(Bfields, phi, normal)
 
     registry.add_field((ftype, "magnetic_field_toroidal"),

@@ -35,6 +35,8 @@ from yt.utilities.math_utils import \
     periodic_dist, euclidean_dist, \
     resize_vector
 
+from yt.funcs import just_one
+
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 
 def create_vector_fields(registry, basename, field_units,

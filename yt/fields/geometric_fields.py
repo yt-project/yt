@@ -66,7 +66,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
                           ValidateSpatial(0)], take_log=False)
     def _ones_over_dx(field, data):
         return np.ones(data["ones"].shape,
-                       dtype="float64")/data['dx']
+                       dtype="float64")/data["index", 'dx']
     registry.add_field(("index", "ones_over_dx"), function=_ones_over_dx,
               units = "1 / cm",
               display_field=False)

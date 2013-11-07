@@ -25,6 +25,12 @@ from .field_plugin_registry import \
 from .vector_operations import \
     create_vector_fields
 
+from yt.utilities.physical_constants import \
+    mh
+
+from yt.data_objects.yt_array import \
+    YTArray
+
 from yt.utilities.math_utils import \
     get_sph_r_component, \
     get_sph_theta_component, \
@@ -119,7 +125,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         mw = data.get_field_parameter("mu")
         if mw is None:
             mw = 1.0
-        mw = mh
+        mw *= mh
         gammam1 = data.pf.gamma - 1.0
         tr = kboltz * data[ftype, "temperature"] / \
                ((data[ftype, "density"]/mw)**gammam1)
