@@ -188,7 +188,7 @@ class YTUnitConversionError(YTException):
         err = "Unit dimensionalities do not match. Tried to convert between " \
           "%s (dim %s) and %s (dim %s)." \
           % (self.unit1, self.dimension1, self.unit2, self.dimension2)
-
+        return err
 
 class YTHubRegisterError(YTException):
     def __str__(self):
