@@ -173,6 +173,8 @@ class Camera(ParallelAnalysisInterface):
         self.rotation_vector = north_vector
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
+        if not isinstance(width, YTArray):
+            width = YTArray(width, input_units="code_length")
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]
@@ -209,7 +211,7 @@ class Camera(ParallelAnalysisInterface):
         self.box_vectors = YTArray([unit_vectors[0]*width[0],
                                     unit_vectors[1]*width[1],
                                     unit_vectors[2]*width[2]])
-        self.origin = center - 0.5*width.dot(YTArray(unit_vectors))
+        self.origin = center - 0.5*width.dot(YTArray(unit_vectors, ""))
         self.back_center =  center - 0.5*width[2]*unit_vectors[2]
         self.front_center = center + 0.5*width[2]*unit_vectors[2]         
 
@@ -761,7 +763,7 @@ class Camera(ParallelAnalysisInterface):
         You will need to call snapshot() again to get a new image.
 
         """
-        self.width = [w / factor for w in self.width]
+        self.width /= factor
         self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
 
     def zoomin(self, final, n_steps, clip_ratio = None):
@@ -821,30 +823,36 @@ class Camera(ParallelAnalysisInterface):
         >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
-        self.center = np.array(self.center)
         dW = None
+        old_center = self.center.copy()
+        if not isinstance(final, YTArray):
+            final = YTArray(final, input_units = "code_length")
         if exponential:
             if final_width is not None:
                 if not iterable(final_width):
-                    width = np.array([final_width, final_width, final_width]) 
+                    final_width = [final_width, final_width, final_width] 
+                if not isinstance(final_width, YTArray):
+                    final_width = YTArray(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
-                    self.center += (np.array(final) - self.center) / (10. * n_steps)
-                final_zoom = final_width/np.array(self.width)
+                    self.center += (final - self.center) / (10. * n_steps)
+                final_zoom = final_width/self.width
                 dW = final_zoom**(1.0/n_steps)
             else:
-                dW = np.array([1.0,1.0,1.0])
-            position_diff = (np.array(final)/self.center)*1.0
+                dW = YTArray([1.0,1.0,1.0], "code_length")
+            position_diff = final/self.center
             dx = position_diff**(1.0/n_steps)
         else:
             if final_width is not None:
                 if not iterable(final_width):
-                    width = np.array([final_width, final_width, final_width]) 
+                    width = [final_width, final_width, final_width] 
+                if not isinstance(final_width, YTArray):
+                    final_width = YTArray(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back
-                dW = (1.0*final_width-np.array(self.width))/n_steps
+                dW = (1.0*final_width-self.width)/n_steps
             else:
-                dW = np.array([0.0,0.0,0.0])
-            dx = (np.array(final)-self.center)*1.0/n_steps
+                dW = YTArray([0.0,0.0,0.0], "code_length")
+            dx = (final-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
                 self.switch_view(center=self.center*dx, width=self.width*dW)
