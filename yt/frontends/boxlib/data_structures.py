@@ -671,6 +671,7 @@ class OrionStaticOutput(BoxlibStaticOutput):
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
+        if any(("maestro" in line.lower() for line in lines)): return False
         if any(("geometry.prob_lo" in line for line in lines)): return True
         return False
 
@@ -685,14 +686,7 @@ class CastroStaticOutput(BoxlibStaticOutput):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        fparam_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
-            return False
-        if os.path.exists(fparam_filename):
             return False
         # Now we check for all the others
         lines = open(jobinfo_filename).readlines()
@@ -710,19 +704,11 @@ class MaestroStaticOutput(BoxlibStaticOutput):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        fparam_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
             return False
-        if not os.path.exists(fparam_filename):
-            return False
-        # Now we check for all the others
+        # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
-        # Maestro outputs have "Castro" in them
-        if any(line.startswith("Castro   ") for line in lines): return True
+        if any("maestro" in line.lower() for line in lines): return True
         return False
 
 

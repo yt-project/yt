@@ -311,7 +311,9 @@ class StaticOutput(object):
 
     _last_freq = (None, None)
     _last_finfo = None
-    def _get_field_info(self, ftype, fname):
+    def _get_field_info(self, ftype, fname = None):
+        if fname is None:
+            ftype, fname = "unknown", ftype
         guessing_type = False
         if ftype == "unknown":
             guessing_type = True

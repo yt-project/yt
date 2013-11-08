@@ -91,14 +91,8 @@ from yt.frontends.enzo.api import \
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo
 
-#from yt.frontends.tiger.api import \
-#    TigerStaticOutput, TigerFieldInfo, add_tiger_field
-
 #from yt.frontends.artio.api import \
 #    ARTIOStaticOutput, ARTIOFieldInfo, add_artio_field
-
-#from yt.frontends.artio2.api import \
-#    Artio2StaticOutput
 
 #from yt.frontends.ramses.api import \
 #    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
@@ -150,7 +144,8 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
+    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
+    ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps
 
 from yt.visualization.volume_rendering.api import \

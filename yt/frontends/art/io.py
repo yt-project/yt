@@ -36,10 +36,10 @@ class IOHandlerART(BaseIOHandler):
     masks = None
     caching = True
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.cache = {}
         self.masks = {}
-        super(IOHandlerART, self).__init__()
+        super(IOHandlerART, self).__init__(*args, **kwargs)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
