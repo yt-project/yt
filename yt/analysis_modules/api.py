@@ -110,3 +110,14 @@ from .radmc3d_export.api import \
 
 from .particle_trajectories.api import \
     ParticleTrajectories
+
+from .photon_simulator.api import \
+     PhotonList, \
+     EventList, \
+     SpectralModel, \
+     XSpecThermalModel, \
+     XSpecAbsorbModel, \
+     TableApecModel, \
+     TableAbsorbModel, \
+     PhotonModel, \
+     ThermalPhotonModel

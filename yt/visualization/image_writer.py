@@ -440,15 +440,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
 def write_fits(image, filename, clobber=True, coords=None,
                other_keys=None):
-    """
-    This will export a FITS image of a floating point array. The output filename is
-    *filename_prefix*. If clobber is set to True, this will overwrite any existing
-    FITS file.
-    
-    This requires the *pyfits* module, which is a standalone module
-    provided by STSci to interface with FITS-format files, and is also part of
-    AstroPy.
-    """
     r"""Write out floating point arrays directly to a FITS file, optionally
     adding coordinates and header keywords.
         
@@ -473,14 +464,10 @@ def write_fits(image, filename, clobber=True, coords=None,
     """
 
     try:
-        import pyfits
-    except ImportError:
-        try:
-            import astropy.io.fits as pyfits
-        except:
-            raise ImportError("You don't have pyFITS or AstroPy installed.")
-    
-    from os import system
+        import astropy.io.fits as pyfits
+    except:
+        mylog.error("You don't have AstroPy installed!")
+        raise ImportError
     
     try:
         image.keys()
@@ -497,9 +484,7 @@ def write_fits(image, filename, clobber=True, coords=None,
         hdu.update_ext_name(key)
         
         if coords is not None:
-
             nx, ny = image_dict[key].shape
-
             hdu.header.update('CUNIT1', coords["units"])
             hdu.header.update('CUNIT2', coords["units"])
             hdu.header.update('CRPIX1', 0.5*(nx+1))
