@@ -125,9 +125,10 @@ def create_vector_fields(registry, basename, field_units,
         return np.abs(data[ftype, "%s_divergence" % basename])
 
     registry.add_field((ftype, "%s_divergence" % basename),
-                       function = _divergence, units = "1/s")
+                       function = _divergence, units = "1/s",
+                       validators = [ValidateSpatial(1)])
     registry.add_field((ftype, "%s_divergence_absolute" % basename),
-                       function = _divergence, units = "1/s")
+                       function = _divergence_abs, units = "1/s")
 
     def _tangential_over_magnitude(field, data):
         tr = data[ftype, "tangential_%s" % basename] / \

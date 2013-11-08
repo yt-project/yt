@@ -221,8 +221,8 @@ class FieldDetector(defaultdict):
 
     @property
     def fwidth(self):
-        fw = np.ones(self.nd**3, dtype="float64") / self.nd
+        fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
         if not self.flat:
-            fw.shape = (self.nd, self.nd, self.nd)
+            fw.shape = (self.nd, self.nd, self.nd, 3)
         return fw
 

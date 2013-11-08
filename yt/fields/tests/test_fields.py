@@ -149,16 +149,6 @@ def test_all_fields():
         else:
             fname = field
         if field[0] == "deposit": continue
-        if fname.startswith("CuttingPlane"): continue
-        if fname.startswith("particle"): continue
-        if fname.startswith("CIC"): continue
-        if fname.startswith("BetaPar"): continue
-        if fname.startswith("TBetaPar"): continue
-        if fname.startswith("BetaPerp"): continue
-        if fname.startswith("WeakLensingConvergence"): continue
-        if fname.startswith("DensityPerturbation"): continue
-        if fname.startswith("Matter_Density"): continue
-        if fname.startswith("Overdensity"): continue
         if finfo.particle_type: continue
         for nproc in [1, 4, 8]:
             test_all_fields.__name__ = "%s_%s" % (field, nproc)

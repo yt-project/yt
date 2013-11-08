@@ -15,6 +15,9 @@ Here are some fields that are specific to fluids.
 
 import numpy as np
 
+from yt.funcs import \
+    just_one
+
 from .derived_field import \
     ValidateParameter, \
     ValidateSpatial
@@ -26,7 +29,8 @@ from .vector_operations import \
     create_vector_fields
 
 from yt.utilities.physical_constants import \
-    mh
+    mh, \
+    kboltz
 
 from yt.data_objects.yt_array import \
     YTArray
@@ -145,37 +149,36 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     def _vorticity_squared(field, data):
         # We need to set up stencils
-        new_field = YTArray(np.zeros(data[ftype, "velocity_x"].shape), 'cm/s')
+        new_field = YTArray(np.zeros(data[ftype, "velocity_x"].shape), 's**-2')
         dvzdy = (data[ftype, "velocity_z"][1:-1,sl_right,1:-1] -
                  data[ftype, "velocity_z"][1:-1,sl_left,1:-1]) \
-                 / (div_fac*just_one(data["dy"]))
+                     / (div_fac*data["dy"][1:-1,1:-1,1:-1])
         dvydz = (data[ftype, "velocity_y"][1:-1,1:-1,sl_right] -
                  data[ftype, "velocity_y"][1:-1,1:-1,sl_left]) \
-                 / (div_fac*just_one(data["dz"]))
+                     / (div_fac*data["dz"][1:-1,1:-1,1:-1])
         new_field[1:-1,1:-1,1:-1] += (dvzdy - dvydz)**2.0
         del dvzdy, dvydz
         dvxdz = (data[ftype, "velocity_x"][1:-1,1:-1,sl_right] -
                  data[ftype, "velocity_x"][1:-1,1:-1,sl_left]) \
-                 / (div_fac*just_one(data["dz"]))
+                     / (div_fac*data["dz"][1:-1,1:-1,1:-1])
         dvzdx = (data[ftype, "velocity_z"][sl_right,1:-1,1:-1] -
                  data[ftype, "velocity_z"][sl_left,1:-1,1:-1]) \
-                 / (div_fac*just_one(data["dx"]))
+                     / (div_fac*data["dx"][1:-1,1:-1,1:-1])
         new_field[1:-1,1:-1,1:-1] += (dvxdz - dvzdx)**2.0
         del dvxdz, dvzdx
         dvydx = (data[ftype, "velocity_y"][sl_right,1:-1,1:-1] -
                  data[ftype, "velocity_y"][sl_left,1:-1,1:-1]) \
-                 / (div_fac*just_one(data["dx"]))
+                     / (div_fac*data["dx"][1:-1,1:-1,1:-1])
         dvxdy = (data[ftype, "velocity_x"][1:-1,sl_right,1:-1] -
                  data[ftype, "velocity_x"][1:-1,sl_left,1:-1]) \
-                 / (div_fac*just_one(data["dy"]))
+                     / (div_fac*data["dy"][1:-1,1:-1,1:-1])
         new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
         del dvydx, dvxdy
         new_field = np.abs(new_field)
         return new_field
     registry.add_field((ftype, "vorticity_squared"),
              function=_vorticity_squared,
-             validators=[ValidateSpatial(1,
-                         ["velocity_x","velocity_y","velocity_z"])],
+             validators=[ValidateSpatial(1)],
              units="s**-2")
 
     setup_gradient_fields(registry, (ftype, "pressure"), "dyne/cm**2",
@@ -206,9 +209,9 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
             # This is based on enzo parameters and should probably be changed.    
             new_field = YTArray(np.zeros(data[field].shape, dtype=np.float64),
                                 field_units)
-            ds = div_fac * just_one(data['dx'])
-            new_field[slice_3d]  = data[field][slice_3dr]/ds
-            new_field[slice_3d] -= data[field][slice_3dl]/ds
+            ds = div_fac * data['dx']
+            new_field[slice_3d]  = data[field][slice_3dr]/ds[slice_3d]
+            new_field[slice_3d] -= data[field][slice_3dl]/ds[slice_3d]
             return new_field
 
     for axi, ax in enumerate('xyz'):
