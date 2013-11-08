@@ -25,7 +25,6 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.funcs import *
-from yt.fields.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
 from yt.data_objects.static_output import StaticOutput
@@ -33,20 +32,20 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.data_objects.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.utilities.lib import \
     get_box_grids_level
 from yt.geometry.selection_routines import \
     RegionSelector
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.physical_constants import \
+    cm_per_mpc
 
-from .definitions import \
-    orion2enzoDict, \
-    parameterDict
 from .fields import \
-    OrionFieldInfo, \
-    add_orion_field, \
-    KnownOrionFields
+    BoxlibFieldInfo
 from .io import IOHandlerBoxlib
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -310,8 +309,9 @@ class BoxlibHierarchy(GridGeometryHandler):
 
     def _detect_output_fields(self):
         # This is all done in _parse_header_file
-        self.field_list = self.parameter_file._field_list[:]
-        self.field_indexes = dict((f, i)
+        self.field_list = [("boxlib", f) for f in
+                           self.parameter_file._field_list]
+        self.field_indexes = dict((f[1], i)
                                 for i, f in enumerate(self.field_list))
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
@@ -331,8 +331,7 @@ class BoxlibStaticOutput(StaticOutput):
     *filename*, without looking at the Boxlib hierarchy.
     """
     _hierarchy_class = BoxlibHierarchy
-    _fieldinfo_fallback = OrionFieldInfo
-    _fieldinfo_known = KnownOrionFields
+    _field_info_class = BoxlibFieldInfo
     _output_prefix = None
 
     # THIS SHOULD BE FIXED:
@@ -350,6 +349,7 @@ class BoxlibStaticOutput(StaticOutput):
         as per BoxLib, data_style will be Native (implemented here), IEEE (not
         yet implemented) or ASCII (not yet implemented.)
         """
+        self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
         self.cparam_filename = self._localize_check(cparam_filename)
         self.fparam_filename = self._localize_check(fparam_filename)
@@ -546,29 +546,11 @@ class BoxlibStaticOutput(StaticOutput):
         header_file.readline()
         self._header_mesh_start = header_file.tell()
 
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        self._setup_nounits_units()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+    def _set_code_unit_attributes(self):
+        self.length_unit = YTQuantity(1.0, "cm")
+        self.mass_unit = YTQuantity(1.0, "g")
+        self.time_unit = YTQuantity(1.0, "s")
 
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-            
     @parallel_root_only
     def print_key_parameters(self):
         for a in ["current_time", "domain_dimensions", "domain_left_edge",
@@ -801,24 +783,7 @@ class NyxStaticOutput(BoxlibStaticOutput):
             self.particle_types = ("io",)
             self.particle_types_raw = self.particle_types
 
-    def _set_units(self):
-        super(NyxStaticOutput, self)._set_units()
-        # Masses are always in $ M_{\odot} $
-        self.units["particle_mass"] = 1.989e33
-
-        mylog.warning("Length units: setting 1.0 = 1.0 Mpc.")
-        self.units.update(mpc_conversion)
-        self.units["density"] = self.units["particle_mass"]/(self.units["cm"])**3
-        self.units["particle_mass_density"] = self.units["density"]
-
-        mylog.warning("Time units: setting 1.0 = Mpc/km s ~ 10^12 yr .")
-        self.time_units["s"] = 1.0 / 3.08568025e19
-        self.conversion_factors["Time"] = 1.0 / 3.08568025e19
-
-        cf = 1e5 * (self.cosmological_scale_factor)
-        for ax in "xyz":
-            self.units["particle_velocity_%s" % ax] = cf
-
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self.time_units["s"] / sec_conversion[unit]
-
+    def _set_code_unit_attributes(self):
+        self.mass_unit = YTQuantity(1.0, "Msun")
+        self.time_unit = YTQuantity(1.0 / 3.08568025e19, "s")
+        self.length_unit = YTQuantity(cm_per_mpc * self.cosmological_scale_factor, "cm")

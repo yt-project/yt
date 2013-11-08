@@ -18,176 +18,74 @@ import numpy as np
 from yt.utilities.physical_constants import \
     mh, kboltz
 from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    NullFunc, \
-    TranslationFunc, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
+    FieldInfoContainer
 import yt.fields.universal_fields
 
+rho_units = "code_mass / code_length**3"
+mom_units = "code_mass * code_length / code_time"
+eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
-KnownOrionFields = FieldInfoContainer()
-add_orion_field = KnownOrionFields.add_field
 
-OrionFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = OrionFieldInfo.add_field
 
-add_orion_field("density", function=NullFunc, take_log=True,
-                validators = [ValidateDataField("density")],
-                units="g/cm**3")
+def _thermal_energy_density(field, data):
+    ke = 0.5 * ( data["momentum_x"]**2
+               + data["momentum_y"]**2
+               + data["momentum_z"]**2) / data["density"]
+    return data["eden"] - ke
 
-add_orion_field("eden", function=NullFunc, take_log=True,
-                validators = [ValidateDataField("eden")],
-                units="erg/cm**3")
+def _thermal_energy(field, data):
+    return data["thermal_energy_density"] / data["density"]
 
-add_orion_field("xmom", function=NullFunc, take_log=False,
-                validators = [ValidateDataField("xmom")],
-                units="g/cm**2/s")
+def _temperature(field,data):
+    mu = data.get_field_parameter("mu")
+    return ( (data.pf.gamma-1.0) * mu * mh *
+             data["thermal_energy"] / (kboltz * data["density"]) )
 
-add_orion_field("ymom", function=NullFunc, take_log=False,
-                validators = [ValidateDataField("ymom")],
-                units="g/cm**2/s")
 
-add_orion_field("zmom", function=NullFunc, take_log=False,
-                validators = [ValidateDataField("zmom")],
-                units="g/cm**2/s")
+class BoxlibFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+        ("density", (rho_units, ["density"], None)),
+        ("eden", (eden_units, ["energy_density"], None)),
+        ("xmom", (mom_units, ["momentum_x"], None)),
+        ("ymom", (mom_units, ["momentum_y"], None)),
+        ("zmom", (mom_units, ["momentum_z"], None)),
+        ("temperature", ("K", ["temperature"], None)),
+    )
 
-translation_dict = {
-    "x-velocity": "xvel",
-    "y-velocity": "yvel",
-    "z-velocity": "zvel",
-    "Density": "density",
-    "TotalEnergy": "eden",
-    "Temperature": "temperature",
-    "x-momentum": "xmom",
-    "y-momentum": "ymom",
-    "z-momentum": "zmom"
-}
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_momentum_x", (mom_units, [], None)),
+        ("particle_momentum_y", (mom_units, [], None)),
+        ("particle_momentum_z", (mom_units, [], None)),
+        # Note that these are *internal* agmomen
+        ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+        ("particle_id", ("", ["particle_index"], None)),
+        ("particle_mdot", ("code_mass/code_time", [], None)),
+        # "mlast",
+        # "r",
+        # "mdeut",
+        # "n",
+        # "burnstate",
+        # "luminosity",
+    )
 
-for f,v in translation_dict.items():
-    if v not in KnownOrionFields:
-        add_orion_field(v, function=NullFunc, take_log=False,
-                        validators=[ValidateDataField(v)])
-    ff = KnownOrionFields[v]
-    add_field(f, TranslationFunc(v),
-              take_log=KnownOrionFields[v].take_log,
-              units=ff.units, display_name=f)
-
-def _xVelocity(field, data):
-    """
-    generate x-velocity from x-momentum and density
-
-    """
-    return data["xmom"] / data["density"]
-
-add_orion_field("x-velocity", function=_xVelocity, take_log=False,
-                units="cm/s")
-
-def _yVelocity(field,data):
-    """
-    generate y-velocity from y-momentum and density
-
-    """
-    #try:
-    #    return data["xvel"]
-    #except KeyError:
-    return data["ymom"] / data["density"]
-
-add_orion_field("y-velocity", function=_yVelocity, take_log=False,
-                units="cm/s")
-
-def _zVelocity(field,data):
-    """
-    generate z-velocity from z-momentum and density
-
-    """
-    return data["zmom"] / data["density"]
-
-add_orion_field("z-velocity", function=_zVelocity, take_log=False,
-                units="cm/s")
-
-def _ThermalEnergy(field, data):
-    """
-    generate thermal (gas energy). Dual Energy Formalism was implemented by
-    Stella, but this isn't how it's called, so I'll leave that commented out
-    for now.
-    """
-    #if data.pf["DualEnergyFormalism"]:
-    #    return data["GasEnergy"]
-    #else:
-    return ( data["TotalEnergy"]
-             - 0.5 * data["density"] * (   data["x-velocity"]**2
-                                         + data["y-velocity"]**2
-                                         + data["z-velocity"]**2 ) )
-
-add_field("ThermalEnergy", function=_ThermalEnergy, units="erg/cm**3")
-
-def _Pressure(field,data):
-    """M{(Gamma-1.0)*e, where e is thermal energy density
-       NB: this will need to be modified for radiation
-    """
-    return (data.pf["Gamma"] - 1.0)*data["ThermalEnergy"]
-
-add_field("Pressure", function=_Pressure, units="dyne/cm**2")
-
-def _Temperature(field,data):
-    return ( (data.pf["Gamma"]-1.0) * data.pf["mu"] * mh *
-             data["ThermalEnergy"] / (kboltz * data["Density"]) )
-
-add_field("Temperature", function=_Temperature, units="K", take_log=False)
-
-# particle fields
-
-def particle_func(p_field, dtype='float64'):
-    def _Particles(field, data):
-        io = data.hierarchy.io
-        if not data.NumberOfParticles > 0:
-            return np.array([], dtype=dtype)
-        else:
-            return io._read_particles(data, p_field).astype(dtype)
-
-    return _Particles
-
-_particle_field_list = ["mass",
-                        "position_x",
-                        "position_y",
-                        "position_z",
-                        "momentum_x",
-                        "momentum_y",
-                        "momentum_z",
-                        "angmomen_x",
-                        "angmomen_y",
-                        "angmomen_z",
-                        "mlast",
-                        "r",
-                        "mdeut",
-                        "n",
-                        "mdot",
-                        "burnstate",
-                        "luminosity",
-                        "id"]
-
-for pf in _particle_field_list:
-    pfunc = particle_func("particle_%s" % (pf))
-    add_field("particle_%s" % pf, function=pfunc,
-              validators=[ValidateSpatial(0)],
-              particle_type=True)
-
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64')
-    return particles
-
-def _ParticleMassMsun(field, data):
-    particles = data["particle_mass"].astype('float64')
-    return particles/1.989e33
-
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True)
-add_field("ParticleMassMsun",
-          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
-          particle_type=True)
+    def setup_fluid_fields(self):
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["%smom" % ax]/data["density"]
+        for ax in 'xyz':
+            self.add_field("velocity_%s" % ax, function = _get_vel(ax),
+                           units = "cm/s")
+        self.add_field("thermal_energy",
+                       function = _thermal_energy,
+                       units = "erg/g")
+        self.add_field("thermal_energy_density",
+                       function = _thermal_energy_density,
+                       units = "erg/cm**3")
+        self.add_field("temperature", function=_temperature,
+                       units="K")
