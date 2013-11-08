@@ -121,7 +121,7 @@ class EnzoGrid(AMRGridPatch):
 
     @property
     def NumberOfActiveParticles(self):
-        if not hasattr(self.hierarchy, "grid_active_particle_count"): return 0
+        if not hasattr(self.hierarchy, "grid_active_particle_count"): return {}
         id = self.id - self._id_offset
         nap = dict((ptype, self.hierarchy.grid_active_particle_count[ptype][id]) \
                    for ptype in self.hierarchy.grid_active_particle_count)
