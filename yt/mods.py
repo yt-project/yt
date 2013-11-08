@@ -73,8 +73,8 @@ from yt.frontends.enzo.api import \
     EnzoSimulation, EnzoFieldInfo, add_enzo_field
 
 # Boxlib stuff
-#from yt.frontends.boxlib.api import \
-#    BoxlibStaticOutput
+from yt.frontends.boxlib.api import \
+    BoxlibStaticOutput
 
 # Orion stuff
 #from yt.frontends.boxlib.api import \

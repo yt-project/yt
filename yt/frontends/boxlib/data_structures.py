@@ -409,6 +409,7 @@ class BoxlibStaticOutput(StaticOutput):
             return
         for line in (line.split("#")[0].strip() for line in
                      open(self.cparam_filename)):
+            if "=" not in line: continue
             if len(line) == 0: continue
             param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
@@ -786,4 +787,5 @@ class NyxStaticOutput(BoxlibStaticOutput):
     def _set_code_unit_attributes(self):
         self.mass_unit = YTQuantity(1.0, "Msun")
         self.time_unit = YTQuantity(1.0 / 3.08568025e19, "s")
-        self.length_unit = YTQuantity(cm_per_mpc * self.cosmological_scale_factor, "cm")
+        self.length_unit = YTQuantity(1.0 / (1 + self.current_redshift),
+                                      "mpc")
