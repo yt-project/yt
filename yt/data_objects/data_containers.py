@@ -188,6 +188,9 @@ class YTDataContainer(object):
     def keys(self):
         return self.field_data.keys()
 
+    def _reshape_vals(self, arr):
+        return arr
+
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.

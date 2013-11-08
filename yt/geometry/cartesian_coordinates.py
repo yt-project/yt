@@ -28,9 +28,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def setup_fields(self, registry):
         def _get_coord_fields(axi, ax):
             def _dds(field, data):
-                return YTArray(data.fwidth[...,axi], 'code_length')
+                rv = YTArray(data.fwidth[...,axi], 'code_length')
+                return data._reshape_vals(rv)
             def _coords(field, data):
-                return YTArray(data.fcoords[...,axi], 'code_length')
+                rv = YTArray(data.fcoords[...,axi], 'code_length')
+                return data._reshape_vals(rv)
             return _dds, _coords
         for axi, ax in enumerate('xyz'):
             f1, f2 = _get_coord_fields(axi, ax)

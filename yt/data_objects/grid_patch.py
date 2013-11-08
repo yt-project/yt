@@ -45,7 +45,6 @@ class AMRGridPatch(YTSelectionContainer):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
-    _container_fields = ("dx", "dy", "dz")
     OverlappingSiblings = None
 
     def __init__(self, id, filename=None, hierarchy=None):
@@ -113,12 +112,13 @@ class AMRGridPatch(YTSelectionContainer):
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
-        if field == "dx":
-            return self._current_chunk.fwidth[:,0]
-        elif field == "dy":
-            return self._current_chunk.fwidth[:,1]
-        elif field == "dz":
-            return self._current_chunk.fwidth[:,2]
+        if field == ("index", "dx"):
+            tr = self._current_chunk.fwidth[:,0]
+        elif field == ("index", "dy"):
+            tr = self._current_chunk.fwidth[:,1]
+        elif field == ("index", "dz"):
+            tr = self._current_chunk.fwidth[:,2]
+        return self._reshape_vals(tr)
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
