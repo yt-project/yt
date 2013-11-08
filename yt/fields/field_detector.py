@@ -199,7 +199,7 @@ class FieldDetector(defaultdict):
             fc.shape = (self.nd*self.nd*self.nd, 3)
         else:
             fc = fc.transpose()
-        return fc
+        return YTArray(fc, input_units = "code_length")
 
     @property
     def icoords(self):
@@ -224,5 +224,5 @@ class FieldDetector(defaultdict):
         fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)
-        return fw
+        return YTArray(fw, input_units = "code_length")
 
