@@ -487,6 +487,7 @@ class PhasePlot(PWViewerMPL):
     >>> # Change plot properties.
     >>> plot.set_cmap("CellMassMsun", "jet")
     >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
+    >>> plot.set_title("CellMassMsun", "This is a phase plot")
     
     """
     x_log = None
@@ -638,6 +639,26 @@ class PhasePlot(PWViewerMPL):
                 suffix = ".png"
             self.plots[f].save(fn, mpl_kwargs)
 
+    @invalidate_plot
+    def set_title(self, field, title):
+        """Set a title for the plot.
+
+        Parameters
+        ----------
+        field : str
+            The z field of the plot to add the title.
+        title : str
+            The title to add.
+
+        Examples
+        --------
+
+        >>> plot.set_title("CellMassMsun", "This is a phase plot")
+        
+        """
+
+        self.plot_title[field] = title
+            
     def run_callbacks(self, *args):
         raise NotImplementedError
     def setup_callbacks(self, *args):
