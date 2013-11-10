@@ -112,7 +112,7 @@ class ProfilePlot(object):
         The weight field for calculating weighted averages.  If None, 
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
-        Default : "CellMass".
+        Default : "CellMassMsun".
     n_bins : int
         The number of bins in the profile.
         Default: 64.
@@ -138,10 +138,10 @@ class ProfilePlot(object):
 
     This creates profiles of a single dataset.
 
-    >>> pf = load("DD0046/DD0046")
+    >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
     >>> plot = ProfilePlot(ad, "Density", ["Temperature", "x-velocity"], 
-                           weight_field="CellMass",
+                           weight_field="CellMassMsun",
                            plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
@@ -176,7 +176,7 @@ class ProfilePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields, 
-                 weight_field="CellMass", n_bins=64, accumulation=False,
+                 weight_field="CellMassMsun", n_bins=64, accumulation=False,
                  label=None, plot_spec=None, profiles=None):
         self.y_log = {}
         self.y_title = {}
@@ -430,16 +430,14 @@ class ProfilePlot(object):
 
 class PhasePlot(PWViewerMPL):
     r"""
-    Create a 2d profile (phase) plot from a data source or from a list of
-    profile objects.
+    Create a 2d profile (phase) plot from a data source or from 
+    profile object created with 
+    `yt.data_objects.profiles.create_profile`.
 
     Given a data object (all_data, region, sphere, etc.), an x field, 
-    and a y field (or fields), this will create a one-dimensional profile 
-    of the average (or total) value of the y field in bins of the x field.
-
-    This can be used to create profiles from given fields or to plot 
-    multiple profiles created from 
-    `yt.data_objects.profiles.create_profile`.
+    y field, and z field (or fields), this will create a two-dimensional 
+    profile of the average (or total) value of the z field in bins of the 
+    x and y fields.
     
     Parameters
     ----------
@@ -447,67 +445,48 @@ class PhasePlot(PWViewerMPL):
         The data object to be profiled, such as all_data, region, or 
         sphere.
     x_field : str
-        The binning field for the profile.
-    y_fields : str or list
+        The x binning field for the profile.
+    y_field : str
+        The y binning field for the profile.
+    z_fields : str or list
         The field or fields to be profiled.
     weight_field : str
         The weight field for calculating weighted averages.  If None, 
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
-        Default : "CellMass".
-    n_bins : int
-        The number of bins in the profile.
-        Default: 64.
-    accumulation : bool
-        If True, the profile values for a bin N are the cumulative sum of 
-        all the values from bin 0 to N.
-        Default: False.
-    label : str or list of strings
-        If a string, the label to be put on the line plotted.  If a list, 
-        this should be a list of labels for each profile to be overplotted.
-        Default: None.
-    plot_spec : dict or list of dicts
-        A dictionary or list of dictionaries containing plot keyword 
-        arguments.  For example, dict(color="red", linestyle=":").
-        Default: None.
-    profiles : list of profiles
-        If not None, a list of profile objects created with 
+        Default : "CellMassMsun".
+    x_bins : int
+        The number of bins in x field for the profile.
+        Default: 128.
+    y_bins : int
+        The number of bins in y field for the profile.
+        Default: 128.
+    profile : profile object
+        If not None, a profile object created with 
         `yt.data_objects.profiles.create_profile`.
         Default: None.
+    fontsize: int
+        Font size for all text in the plot.
+        Default: 18.
+    font_color : str
+        Color for all text in the plot.
+        Default: "black"
+    window_size : int
+        Size in inches of the image.
+        Default: 10 (10x10)
 
     Examples
     --------
 
-    This creates profiles of a single dataset.
-
-    >>> pf = load("DD0046/DD0046")
+    >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
-    >>> plot = ProfilePlot(ad, "Density", ["Temperature", "x-velocity"], 
-                           weight_field="CellMass",
-                           plot_spec=dict(color='red', linestyle="--"))
+    >>> plot = PhasePlot(ad, "Density", "Temperature", ["CellMassMsun"],
+                         weight_field=None)
     >>> plot.save()
 
-    This creates profiles from a time series object.
-    
-    >>> es = simulation("AMRCosmology.enzo", "Enzo")
-    >>> es.get_time_series()
-
-    >>> profiles = []
-    >>> labels = []
-    >>> plot_specs = []
-    >>> for pf in es[-4:]:
-    ...     ad = pf.h.all_data()
-    ...     profiles.append(create_profile(ad, ["Density"],
-    ...                                    fields=["Temperature",
-    ...                                            "x-velocity"]))
-    ...     labels.append(pf.current_redshift)
-    ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
-    >>>
-    >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
-    ...                                  plot_specs=plot_specs)
-    >>> plot.save()
-
-    Use plot_line_property to change line properties of one or all profiles.
+    >>> # Change plot properties.
+    >>> plot.set_cmap("CellMassMsun", "jet")
+    >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
     
     """
     x_log = None
@@ -661,10 +640,10 @@ class PhasePlot(PWViewerMPL):
 
     def run_callbacks(self, *args):
         raise NotImplementedError
-
     def setup_callbacks(self, *args):
         raise NotImplementedError
-    
+    def set_axes_unit(self, *args):
+        raise NotImplementedError
     def zoom(self, *args):
         raise NotImplementedError
 
