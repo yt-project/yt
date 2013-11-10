@@ -17,14 +17,17 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 import base64
 import types
 
+from collections import defaultdict
 from functools import wraps
 from itertools import izip, repeat
 import matplotlib
 import numpy as np
 import cStringIO
 
+from matplotlib.font_manager import FontProperties
+
 from .plot_window import \
-     WindowPlotMPL
+     WindowPlotMPL, PWViewerMPL
 from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
@@ -34,7 +37,6 @@ from yt.utilities.lib import \
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
-from .tick_locators import LogLocator, LinearLocator
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
@@ -166,7 +168,6 @@ class ProfilePlot(object):
     Use plot_line_property to change line properties of one or all profiles.
     
     """
-    plot_spec = None
     x_log = None
     y_log = None
     x_title = None
@@ -427,7 +428,7 @@ class ProfilePlot(object):
         return (x_title, y_title)
             
 
-class PhasePlot(object):
+class PhasePlot(PWViewerMPL):
     r"""
     Create a 2d profile (phase) plot from a data source or from a list of
     profile objects.
@@ -515,15 +516,23 @@ class PhasePlot(object):
     x_title = None
     y_title = None
     z_title = None
+    plot_title = None
+    _plot_valid = False
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="CellMassMsun", x_bins=128, y_bins=128,
-                 profile = None):
+                 profile=None, fontsize=18, font_color="black", window_size=8.0):
         self.z_log = {}
         self.z_title = {}
+        self.plot_title = {}
+        self._colormaps = defaultdict(lambda: 'algae')
+        self._window_size = window_size
+        font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
+        self._font_properties = FontProperties(size=fontsize, fname=font_path)
+        self._font_color = font_color
+        
         self.plots = {}
         if profile is None:
-            # We only 
             profile = create_profile(data_source,
                [x_field, y_field], [x_bins, y_bins],
                fields = ensure_list(z_fields),
@@ -532,6 +541,32 @@ class PhasePlot(object):
         # This is a fallback, in case we forget.
         self._setup_plots()
 
+    def _get_field_title(self, field_z, profile):
+        pf = profile.data_source.pf
+        field_x = profile.x_field
+        field_y = profile.y_field
+        xfi = pf.field_info[field_x]
+        yfi = pf.field_info[field_y]
+        zfi = pf.field_info[field_z]
+        x_title = self.x_title or self._get_field_label(field_x, xfi)
+        y_title = self.y_title or self._get_field_label(field_y, yfi)
+        z_title = self.z_title.get(field_z, None) or \
+                    self._get_field_label(field_z, zfi)
+        return (x_title, y_title, z_title)
+
+    def _get_field_label(self, field, field_info):
+        units = field_info.get_units()
+        field_name = field_info.display_name
+        if field_name is None:
+            field_name = r'$\rm{'+field+r'}$'
+        elif field_name.find('$') == -1:
+            field_name = r'$\rm{'+field+r'}$'
+        if units is None or units == '':
+            label = field_name
+        else:
+            label = field_name+r'$\/\/('+units+r')$'
+        return label
+        
     def _get_field_log(self, field_z, profile):
         pf = profile.data_source.pf
         zfi = pf.field_info[field_z]
@@ -561,42 +596,82 @@ class PhasePlot(object):
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
 
-            fontsize = 12
-            cmap = "algae"
-            cbname = "log10"
-            zlim = [data.min(), data.max()]
-            size = (8.0, 8.0)
-            extent = [1.0, 1.0]
-            aspect = 1.0
-            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, cbname, 
-                                         cmap, extent, aspect, zlim, size, fontsize, 
+            size = (self._window_size, self._window_size)
+            x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
+            x_title, y_title, z_title = self._get_field_title(f, self.profile)
+            if f in self.plots:
+                zlim = [self.plots[f].zmin, self.plots[f].zmax]
+            else:
+                if z_scale == 'log':
+                    zmin = data[data > 0.0].min()
+                else:
+                    zmin = data.min()
+                zlim = [zmin, data.max()]                
+            
+            fp = self._font_properties
+            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, 
+                                         x_scale, y_scale, z_scale,
+                                         self._colormaps[f], zlim, size, fp.get_size(),
                                          fig, axes, cax)
+            self.plots[f].axes.xaxis.set_label_text(x_title)
+            self.plots[f].axes.yaxis.set_label_text(y_title)
+            self.plots[f].cax.yaxis.set_label_text(z_title)
+            if f in self.plot_title:
+                self.plots[f].axes.set_title(self.plot_title[f])
 
-    # def save(self, name=None):
-    #     if not self._plot_valid: self._setup_plots()
-    #     # We'll go with a mesh here, even if it's inappropriate
-    #     im = self.image
-    #     if self.cbar.scale == 'log':
-    #         norm = mpl.matplotlib.colors.LogNorm()
-    #     else:
-    #         norm = mpl.matplotlib.colors.Normalize()
-    #     pcm = axes.pcolormesh(x_bins, y_bins, self.image, norm=norm,
-    #                           shading='flat', cmap = self.cbar.cmap,
-    #                           rasterized=True)
-    #     if self.x_spec.scale == 'log': axes.set_xscale("log")
-    #     if self.y_spec.scale == 'log': axes.set_yscale("log")
-    #     if self.x_spec.title is not None:
-    #         axes.set_xlabel(self.x_spec.title)
-    #     if self.y_spec.title is not None:
-    #         axes.set_ylabel(self.y_spec.title)
-    #     if isinstance(place, types.StringTypes):
-    #         canvas = mpl.FigureCanvasAgg(figure)
-    #         canvas.print_figure(place)
-    #     return figure, axes
+            if self._font_color is not None:
+                ax = self.plots[f].axes
+                cbax = self.plots[f].cb.ax
+                labels = \
+                  ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() + \
+                  cbax.yaxis.get_ticklabels() + \
+                  [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
+                for label in labels:
+                    label.set_color(self._font_color)
+
+    def save(self, name=None, mpl_kwargs=None):
+        r"""
+        Saves a 2d profile plot.
+
+        Parameters
+        ----------
+        name : str
+            The output file keyword.
+        mpl_kwargs : dict
+           A dict of keyword arguments to be passed to matplotlib.
+
+        >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
+        
+        """
+
+        if not self._plot_valid: self._setup_plots()
+        if mpl_kwargs is None: mpl_kwargs = {}
+        for f in self.profile.field_data:
+            middle = "2d-Profile_%s_%s_%s" % (self.profile.x_field, 
+                                              self.profile.y_field, f)
+            if name is None:
+                prefix = self.profile.pf
+                name = "%s.png" % prefix
+            suffix = get_image_suffix(name)
+            prefix = name[:name.rfind(suffix)]
+            fn = "%s_%s%s" % (prefix, middle, suffix)
+            if not suffix:
+                suffix = ".png"
+            self.plots[f].save(fn, mpl_kwargs)
+
+    def run_callbacks(self, *args):
+        raise NotImplementedError
+
+    def setup_callbacks(self, *args):
+        raise NotImplementedError
+    
+    def zoom(self, *args):
+        raise NotImplementedError
 
 class PhasePlotMPL(WindowPlotMPL):
-    def __init__(self, x_data, y_data, data, cbname, cmap, extent, 
-                 aspect, zlim, size, fontsize, figure, axes, cax):
+    def __init__(self, x_data, y_data, data, 
+                 x_scale, y_scale, z_scale, cmap,
+                 zlim, size, fontsize, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
         self._cache_layout(size, fontsize)
@@ -606,7 +681,7 @@ class PhasePlotMPL(WindowPlotMPL):
         self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
 
         # Compute layout
-        axrect, caxrect = self._get_best_layout(fontsize)
+        axrect, caxrect = self._get_best_layout(fontsize=fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
@@ -616,28 +691,25 @@ class PhasePlotMPL(WindowPlotMPL):
             caxrect = (0.87, 0.10, 0.04, 0.80)
         super(WindowPlotMPL, self).__init__(self.fsize, axrect, caxrect, 
                                             zlim, figure, axes, cax)
-        self._init_image(x_data, y_data, data, cbname, cmap)
-        if cbname == 'linear':
-            self.cb.formatter.set_scientific(True)
-            self.cb.formatter.set_powerlimits((-2,3))
-            self.cb.update_ticks()
+        self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale, zlim, cmap)
 
-    def _init_image(self, x_data, y_data, image_data, cbnorm, cmap):
+    def _init_image(self, x_data, y_data, image_data, 
+                    x_scale, y_scale, z_scale, zlim, cmap):
         """Store output of imshow in image variable"""
-        if (cbnorm == 'log10'):
-            norm = matplotlib.colors.LogNorm()
-        elif (cbnorm == 'linear'):
-            norm = matplotlib.colors.Normalize()
+        
+        if (z_scale == 'log'):
+            norm = matplotlib.colors.LogNorm(zlim[0], zlim[1])
+        elif (z_scale == 'linear'):
+            norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
-        #my_norm = colors.LogNorm(10.**z_range[0], 10.**z_range[1], clip=True)
-        #my_norm = colors.Normalize(z_range[0], z_range[1], clip=True)
         self.image = self.axes.pcolormesh(x_data, y_data, image_data,
                                           norm=norm, 
                                           cmap=cmap)
-        self.axes.set_xscale('log')
-        self.axes.set_yscale('log')
-        self.axes.xaxis.set_label_text("Hey X")
-        self.axes.yaxis.set_label_text("Hey Y")
+        self.axes.set_xscale(x_scale)
+        self.axes.set_yscale(y_scale)
         self.cb = self.figure.colorbar(self.image, self.cax)
-        self.cax.yaxis.set_label_text("HEY CAX")
+        if z_scale == 'linear':
+            self.cb.formatter.set_scientific(True)
+            self.cb.formatter.set_powerlimits((-2,3))
+            self.cb.update_ticks()
