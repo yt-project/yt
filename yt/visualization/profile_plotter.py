@@ -308,7 +308,8 @@ class ProfilePlot(object):
         self._plot_valid = True
 
     @classmethod
-    def from_profiles(cls, profiles, labels=None, plot_specs=None):
+    def from_profiles(cls, profiles, labels=None, plot_specs=None,
+                      accumulation=False):
         r"""
         Instantiate a ProfilePlot object from a list of profiles 
         created with `yt.data_objects.profiles.create_profile`.
@@ -325,6 +326,10 @@ class ProfilePlot(object):
             A list of dictionaries containing plot keyword 
             arguments.  For example, [dict(color="red", linestyle=":")].
             Default: None.
+        accumulation : bool
+            If True, the profile values for a bin N are the cumulative sum of 
+            all the values from bin 0 to N.
+            Default: False.
 
         Examples
         --------
@@ -353,7 +358,7 @@ class ProfilePlot(object):
         if plot_specs is not None and len(plot_specs) != len(profiles):
             raise RuntimeError("Profiles list and plot_specs list must be the same size.")
         obj = cls(None, None, None, profiles=profiles, label=labels,
-                  plot_spec=plot_specs)
+                  plot_spec=plot_specs, accumulation=accumulation)
         return obj
 
     @invalidate_plot
