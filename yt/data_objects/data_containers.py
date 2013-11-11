@@ -1950,7 +1950,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
         if len(grids_to_initialize) == 0: return
-        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+        pbar = get_pbar('Initializing tree % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_initialize))
         start_index = np.empty(2, dtype="int64")
         dims = np.empty(2, dtype="int64")

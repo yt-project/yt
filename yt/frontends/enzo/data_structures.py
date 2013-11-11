@@ -297,7 +297,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
+        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
