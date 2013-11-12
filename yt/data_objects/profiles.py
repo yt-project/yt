@@ -844,6 +844,10 @@ class ProfileND(ParallelAnalysisInterface):
         return filter, [data[filter] for data in bin_fields]
         
     def _get_data(self, grid, fields):
+        # Save the values in the grid beforehand.
+        old_params = grid.field_parameters
+        old_keys = grid.field_data.keys()
+        grid.field_parameters = self.data_source.field_parameters
         # Now we ask our source which values to include
         pointI = self.data_source._get_point_indices(grid)
         bin_fields = [grid[bf] for bf in self.bin_fields]
@@ -860,6 +864,8 @@ class ProfileND(ParallelAnalysisInterface):
             weight_data = np.ones(grid.ActiveDimensions, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into 
+        grid.field_parameters = old_params
+        grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
         return arr, weight_data, bin_fields
 
     def __getitem__(self, key):
