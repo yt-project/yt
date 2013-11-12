@@ -663,6 +663,11 @@ class PhasePlot(PWViewerMPL):
         """
 
         self.plot_title[field] = title
+
+    @invalidate_plot
+    def reset_plot(self):
+        self.plots = {}
+        return self
             
     def run_callbacks(self, *args):
         raise NotImplementedError
