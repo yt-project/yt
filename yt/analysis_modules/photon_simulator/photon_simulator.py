@@ -948,9 +948,9 @@ class EventList(object) :
         col1 = pyfits.Column(name='ENERGY', format='E',
                              array=self["eobs"])
         col2 = pyfits.Column(name='DEC', format='D',
-                             array=self["xsky"])
-        col3 = pyfits.Column(name='RA', format='D',
                              array=self["ysky"])
+        col3 = pyfits.Column(name='RA', format='D',
+                             array=self["xsky"])
 
         coldefs = pyfits.ColDefs([col1, col2, col3])
 
