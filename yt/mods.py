@@ -64,9 +64,6 @@ from yt.frontends.enzo.api import \
     EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
-from yt.frontends.castro.api import \
-    CastroStaticOutput, CastroFieldInfo, add_castro_field
-
 from yt.frontends.nyx.api import \
     NyxStaticOutput, NyxFieldInfo, add_nyx_field
 
@@ -87,9 +84,6 @@ from yt.frontends.athena.api import \
 
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
-
-#from yt.frontends.maestro.api import \
-#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
 from yt.frontends.stream.api import \
     StreamStaticOutput, StreamFieldInfo, add_stream_field, \

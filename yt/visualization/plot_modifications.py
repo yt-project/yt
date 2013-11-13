@@ -749,8 +749,10 @@ class ArrowCallback(PlotCallback):
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
         x, y = self.convert_to_plot(plot, pos)
-        dx, dy = self.convert_to_plot(plot, self.code_size, False)
-        arrow = Arrow(x, y, dx, dy, **self.plot_args)
+        x1, y1 = pos[0]+self.code_size[0], pos[1]+self.code_size[1]
+        x1, y1 = self.convert_to_plot(plot, (x1, y1), False)
+        dx, dy = x1 - x, y1 - y
+        arrow = Arrow(x-dx, y-dy, dx, dy, **self.plot_args)
         plot._axes.add_patch(arrow)
 
 class PointAnnotateCallback(PlotCallback):

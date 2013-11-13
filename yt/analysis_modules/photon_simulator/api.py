@@ -1,8 +1,5 @@
 """
-API for yt.frontends.gadget
-
-
-
+API for yt.analysis_modules.photon_simulator.
 """
 
 #-----------------------------------------------------------------------------
@@ -13,14 +10,17 @@ API for yt.frontends.gadget
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .data_structures import \
-      GadgetGrid, \
-      GadgetHierarchy, \
-      GadgetStaticOutput
+from .photon_models import \
+     PhotonModel, \
+     ThermalPhotonModel
 
-from .fields import \
-      GadgetFieldInfo, \
-      add_gadget_field
+from .photon_simulator import \
+     PhotonList, \
+     EventList
 
-from .io import \
-      IOHandlerGadget
+from .spectral_models import \
+     SpectralModel, \
+     XSpecThermalModel, \
+     XSpecAbsorbModel, \
+     TableApecModel, \
+     TableAbsorbModel
