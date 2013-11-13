@@ -404,7 +404,7 @@ def _dmpdensity(field, data):
     amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
                            data["particle_position_y"][filter].astype(np.float64),
                            data["particle_position_z"][filter].astype(np.float64),
-                           data["particle_mass"][filter],
+                           data["particle_mass"][filter].astype(np.float64),
                            num,
                            blank, np.array(data.LeftEdge).astype(np.float64),
                            np.array(data.ActiveDimensions).astype(np.int32), 
