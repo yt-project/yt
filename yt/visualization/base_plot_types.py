@@ -36,6 +36,7 @@ class PlotMPL(object):
             self.axes = self.figure.add_axes(axrect)
         else:
             axes.cla()
+            axes.set_position(axrect)
             self.axes = axes
         self.canvas = FigureCanvasAgg(self.figure)
 
