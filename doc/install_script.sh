@@ -566,7 +566,7 @@ cd ${DEST_DIR}/src
 CYTHON='Cython-0.19.1'
 FORTHON='Forthon-0.8.11'
 PYX='PyX-0.12.1'
-PYTHON='Python-2.7.5'
+PYTHON='Python-2.7.6'
 BZLIB='bzip2-1.0.6'
 FREETYPE_VER='freetype-2.4.12'
 H5PY='h5py-2.1.3'
@@ -575,7 +575,7 @@ IPYTHON='ipython-1.0.0'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
 MATPLOTLIB='matplotlib-1.3.0'
-MERCURIAL='mercurial-2.7'
+MERCURIAL='mercurial-2.8'
 NOSE='nose-1.3.0'
 NUMPY='numpy-1.7.1'
 PYTHON_HGLIB='python-hglib-1.0'
@@ -592,7 +592,7 @@ ZLIB='zlib-1.2.8'
 echo '9dcdda5b2ee2e63c2d3755245b7b4ed2f4592455f40feb6f8e86503195d9474559094ed27e789ab1c086d09da0bb21c4fe844af0e32a7d47c81ff59979b18ca0  Cython-0.19.1.tar.gz' > Cython-0.19.1.tar.gz.sha512
 echo '3f53d0b474bfd79fea2536d0a9197eaef6c0927e95f2f9fd52dbd6c1d46409d0e649c21ac418d8f7767a9f10fe6114b516e06f2be4b06aec3ab5bdebc8768220  Forthon-0.8.11.tar.gz' > Forthon-0.8.11.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
-echo 'd6580eb170b36ad50f3a30023fe6ca60234156af91ccb3971b0b0983119b86f3a9f6c717a515c3c6cb72b3dcbf1d02695c6d0b92745f460b46a3defd3ff6ef2f  Python-2.7.5.tgz' > Python-2.7.5.tgz.sha512
+echo '3df0ba4b1cfef5f02fb27925de4c2ca414eca9000af6a3d475d39063720afe987287c3d51377e0a36b88015573ef699f700782e1749c7a357b8390971d858a79  Python-2.7.6.tgz' > Python-2.7.6.tgz.sha512
 echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
@@ -604,7 +604,7 @@ echo '1b309c08009583e66d1725a2d2051e6de934db246129568fa6d5ba33ad6babd3b443e7c278
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
 echo '990e3a155ca7a9d329c41a43b44a9625f717205e81157c668a8f3f2ad5459ed3fed8c9bd85e7f81c509e0628d2192a262d4aa30c8bfc348bb67ed60a0362505a  matplotlib-1.3.0.tar.gz' > matplotlib-1.3.0.tar.gz.sha512
-echo 'e425778edb0f71c34e719e04561ee3de37feaa1be4d60b94c780aebdbe6d41f8f4ab15103a8bbe8894ebeb228c42f0e2cd41b8db840f8384e1cd7cd2d5b67b97  mercurial-2.7.tar.gz' > mercurial-2.7.tar.gz.sha512
+echo 'b08dcd746728d89f1f96036f39df1608fad0ff863ae48fe12424b1645936ebbf59b9068b93fe3c7cfd2036db046df3dc814119f89a827bd5f008d32f323d45a8  mercurial-2.8.tar.gz' > mercurial-2.8.tar.gz.sha512
 echo 'a3b8060e415560a868599224449a3af636d24a060f1381990b175dcd12f30249edd181179d23aea06b0c755ff3dc821b7a15ed8840f7855530479587d4d814f4  nose-1.3.0.tar.gz' > nose-1.3.0.tar.gz.sha512
 echo 'd58177f3971b6d07baf6f81a2088ba371c7e43ea64ee7ada261da97c6d725b4bd4927122ac373c55383254e4e31691939276dab08a79a238bfa55172a3eff684  numpy-1.7.1.tar.gz' > numpy-1.7.1.tar.gz.sha512
 echo '9c0a61299779aff613131aaabbc255c8648f0fa7ab1806af53f19fbdcece0c8a68ddca7880d25b926d67ff1b9201954b207919fb09f6a290acb078e8bbed7b68  python-hglib-1.0.tar.gz' > python-hglib-1.0.tar.gz.sha512
