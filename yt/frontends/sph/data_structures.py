@@ -174,6 +174,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self._unit_base = unit_base
         if bounding_box is not None:
             bbox = np.array(bounding_box, dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
         else:
