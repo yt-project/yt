@@ -116,6 +116,12 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
+            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0),
+                                       pos.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+pos.shape[0]] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
