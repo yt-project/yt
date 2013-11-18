@@ -874,7 +874,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         pw.set_axes_unit(axes_unit)
         return pw
 
-    def to_frb(self, width, resolution, center=None, height=None):
+    def to_frb(self, width, resolution, center=None, height=None,
+               periodic = False):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -899,6 +900,9 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
+        periodic : bool
+            Should the returned Fixed Resolution Buffer be periodic?  (default:
+            False).
 
         Returns
         -------
@@ -932,7 +936,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         yax = y_dict[self.axis]
         bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
                   center[yax] - height*0.5, center[yax] + height*0.5)
-        frb = FixedResolutionBuffer(self, bounds, resolution)
+        frb = FixedResolutionBuffer(self, bounds, resolution,
+                                    periodic = periodic)
         return frb
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
@@ -1950,7 +1955,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
         if len(grids_to_initialize) == 0: return
-        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+        pbar = get_pbar('Initializing tree % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_initialize))
         start_index = np.empty(2, dtype="int64")
         dims = np.empty(2, dtype="int64")
