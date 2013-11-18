@@ -26,8 +26,9 @@ import cStringIO
 
 from matplotlib.font_manager import FontProperties
 
-from .plot_window import \
-     WindowPlotMPL, PWViewerMPL
+from .plot_window import WindowPlotMPL
+from .base_plot_types import ImagePlotMPL
+from .plot_container import ImagePlotContainer
 from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
@@ -170,6 +171,7 @@ class ProfilePlot(object):
     """
     x_log = None
     y_log = None
+    z_log = None
     x_title = None
     y_title = None
 
@@ -428,7 +430,7 @@ class ProfilePlot(object):
         return (x_title, y_title)
             
 
-class PhasePlot(PWViewerMPL):
+class PhasePlot(ImagePlotContainer):
     r"""
     Create a 2d profile (phase) plot from a data source or from 
     profile object created with 
@@ -471,7 +473,7 @@ class PhasePlot(PWViewerMPL):
     font_color : str
         Color for all text in the plot.
         Default: "black"
-    window_size : int
+    figure_size : int
         Size in inches of the image.
         Default: 10 (10x10)
 
@@ -492,32 +494,28 @@ class PhasePlot(PWViewerMPL):
     """
     x_log = None
     y_log = None
-    z_log = None
     x_title = None
     y_title = None
     z_title = None
     plot_title = None
     _plot_valid = False
+    _plot_type = 'Phase'
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="CellMassMsun", x_bins=128, y_bins=128,
-                 profile=None, fontsize=18, font_color="black", window_size=8.0):
+                 profile=None, fontsize=18, font_color="black", figure_size=8.0):
+        self.plot_title = {}
         self.z_log = {}
         self.z_title = {}
-        self.plot_title = {}
-        self._colormaps = defaultdict(lambda: 'algae')
-        self._window_size = window_size
-        font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
-        self._font_properties = FontProperties(size=fontsize, fname=font_path)
-        self._font_color = font_color
-        
-        self.plots = {}
+
         if profile is None:
             profile = create_profile(data_source,
                [x_field, y_field], [x_bins, y_bins],
                fields = ensure_list(z_fields),
                weight_field = weight_field)
         self.profile = profile
+        ImagePlotContainer.__init__(self, data_source, profile.field_data.keys(),
+                                    figure_size, fontsize)
         # This is a fallback, in case we forget.
         self._setup_plots()
 
@@ -576,7 +574,7 @@ class PhasePlot(PWViewerMPL):
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
 
-            size = (self._window_size, self._window_size)
+            size = (self.figure_size, self.figure_size)
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
             if f in self.plots:
@@ -639,6 +637,10 @@ class PhasePlot(PWViewerMPL):
                 suffix = ".png"
             self.plots[f].save(fn, mpl_kwargs)
 
+    @property
+    def fields(self):
+        return self.plots.keys()
+
     @invalidate_plot
     def set_title(self, field, title):
         """Set a title for the plot.
@@ -663,10 +665,6 @@ class PhasePlot(PWViewerMPL):
         raise NotImplementedError
     def setup_callbacks(self, *args):
         raise NotImplementedError
-    def set_axes_unit(self, *args):
-        raise NotImplementedError
-    def zoom(self, *args):
-        raise NotImplementedError
 
 class PhasePlotMPL(WindowPlotMPL):
     def __init__(self, x_data, y_data, data, 
@@ -689,9 +687,10 @@ class PhasePlotMPL(WindowPlotMPL):
                           'and matplotlib.')
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
-        super(WindowPlotMPL, self).__init__(self.fsize, axrect, caxrect, 
-                                            zlim, figure, axes, cax)
-        self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale, zlim, cmap)
+        ImagePlotMPL.__init__(self, self.fsize, axrect, caxrect, zlim,
+                              figure, axes, cax)
+        self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale,
+                         zlim, cmap)
 
     def _init_image(self, x_data, y_data, image_data, 
                     x_scale, y_scale, z_scale, zlim, cmap):
