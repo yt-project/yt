@@ -1008,10 +1008,7 @@ function print_afterword
     echo
     echo "To get started with yt, check out the orientation:"
     echo
-    echo "    http://yt-project.org/doc/orientation/"
-    echo
-    echo "or just activate your environment and run 'yt serve' to bring up the"
-    echo "yt GUI."
+    echo "    http://yt-project.org/doc/bootcamp/"
     echo
     echo "The source for yt is located at:"
     echo "    $YT_DIR"
