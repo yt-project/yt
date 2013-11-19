@@ -28,6 +28,11 @@ from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 CHUNKSIZE = 10000000
 
 def _get_h5_handle(fn):
@@ -532,3 +537,75 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             size = self._pdtypes[ptype].itemsize
             pos += data_file.total_particles[ptype] * size
         return field_offsets
+
+class IOHandlerHTTPStream(BaseIOHandler):
+    def __init__(self, pf):
+        if requests is None:
+            raise RuntimeError
+        self._url = pf.base_url 
+        # This should eventually manage the IO and cache it
+
+    def _open_stream(self, data_file, field):
+        # This does not actually stream yet!
+        ftype, fname = field
+        s = "%s/%s/%s/%s" % (self._url,
+            data_file.http_url, 
+            ftype, fname)
+        resp = requests.get(s)
+        if resp.status_code != 200:
+            raise RuntimeError
+        return resp.content
+
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            for ptype in ptf:
+                s = self._open_stream(data_file, (ptype, "Coordinates"))
+                c = np.frombuffer(s, dtype="float64")
+                c.shape = (c.shape[0]/3.0, 3)
+                yield ptype, (c[:,0], c[:,1], c[:,2])
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        # Now we have all the sizes, and we can allocate
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            for ptype, field_list in sorted(ptf.items()):
+                s = self._open_stream(data_file, (ptype, "Coordinates"))
+                c = np.frombuffer(s, dtype="float64")
+                c.shape = (c.shape[0]/3.0, 3)
+                mask = selector.select_points(
+                            c[:,0], c[:,1], c[:,2])
+                del c
+                if mask is None: continue
+                for field in field_list:
+                    s = self._open_stream(data_file, (ptype, field))
+                    c = np.frombuffer(s, dtype="float64")
+                    if field in ("Coordinates", "Velocities"):
+                        c.shape = (c.shape[0]/3.0, 3)
+                    data = c[mask, ...]
+                    yield (ptype, field), data
+
+    def _initialize_index(self, data_file, regions):
+        ptypes = self.pf.json_header["particle_types"]
+        pcount = sum(self.pf.json_header["particle_count"][ptype]
+                     for ptype in ptypes)
+        morton = np.empty(pcount, dtype='uint64')
+        ind = 0
+        for ptype in ptypes:
+            s = self._open_stream(data_file, (ptype, "Coordinates"))
+            c = np.frombuffer(s, dtype="float64")
+            c.shape = (c.shape[0]/3.0, 3)
+            regions.add_data_file(c, data_file.file_id)
+            morton[ind:ind+c.shape[0]] = compute_morton(
+                c[:,0], c[:,1], c[:,2],
+                data_file.pf.domain_left_edge,
+                data_file.pf.domain_right_edge)
+            ind += c.shape[0]
+        return morton
