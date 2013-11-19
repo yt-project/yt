@@ -15,7 +15,9 @@
 import itertools as it
 import numpy as np
 import importlib
+import os
 from yt.funcs import *
+from yt.config import ytcfg
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
@@ -273,3 +275,17 @@ def requires_module(module):
     else:
         return ftrue
     
+def requires_file(req_file):
+    path = ytcfg.get("yt", "test_data_dir")
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if os.path.exists(req_file):
+        return ftrue
+    else:
+        if os.path.exists(os.path.join(path,req_file)):
+            return ftrue
+        else:
+            return ffalse
+                                        
