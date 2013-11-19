@@ -547,6 +547,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
             raise RuntimeError
         self._url = pf.base_url 
         # This should eventually manage the IO and cache it
+        self.total_bytes = 0
         super(IOHandlerHTTPStream, self).__init__(pf)
 
     def _open_stream(self, data_file, field):
@@ -558,6 +559,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         resp = requests.get(s)
         if resp.status_code != 200:
             raise RuntimeError
+        self.total_bytes += len(resp.content)
         return resp.content
 
     def _identify_fields(self, data_file):
