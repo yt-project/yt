@@ -50,6 +50,11 @@ from yt.fields.particle_fields import \
     particle_deposition_functions, \
     standard_particle_fields
 
+try:
+    import requests
+    import json
+except ImportError:
+    requests = None
 
 class ParticleFile(object):
     def __init__(self, pf, io, filename, file_id):
@@ -549,4 +554,76 @@ class TipsyStaticOutput(ParticleStaticOutput):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         # We do not allow load() of these files.
+        return False
+
+class HTTPParticleFile(ParticleFile):
+    pass
+
+class HTTPStreamStaticOutput(ParticleStaticOutput):
+    _hierarchy_class = ParticleGeometryHandler
+    _file_class = HTTPParticleFile
+    _fieldinfo_fallback = GadgetFieldInfo
+    _fieldinfo_known = KnownGadgetFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
+    _particle_velocity_name = "Velocities"
+    
+    def __init__(self, base_url,
+                 data_style = "http_particle_stream",
+                 n_ref = 64, over_refine_factor=1):
+        if requests is None:
+            raise RuntimeError
+        self.base_url = base_url
+        self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
+        super(HTTPStreamStaticOutput, self).__init__("", data_style)
+
+    def __repr__(self):
+        return self.base_url
+
+    def _parse_parameter_file(self):
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+
+        # Here's where we're going to grab the JSON index file
+        hreq = requests.get(self.base_url + "/yt_index.json")
+        if hreq.status != 200:
+            raise RuntimeError
+        header = json.loads(hreq.content)
+        self.parameters = header
+
+        # Now we get what we need
+        self.domain_left_edge = np.array(header['domain_left_edge'], "float64")
+        self.domain_right_edge = np.array(header['domain_right_edge'], "float64")
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.periodicity = (True, True, True)
+
+        self.unique_identifier = header.get("unique_identifier", time.time())
+        self.cosmological_simulation = int(header['cosmological_simulation'])
+        for attr in ('current_redshift', 'omega_lambda', 'omega_matter',
+                     'hubble_constant'):
+            setattr(self, attr, float(header[attr]))
+
+        self.file_count = header['num_files']
+
+    def _set_units(self):
+        length_unit = float(self.parameters['units']['length'])
+        time_unit = float(self.parameters['units']['time'])
+        mass_unit = float(self.parameters['units']['mass'])
+        velocity_unit = length_unit / time_unit
+        self.conversion_factors["velocity"] = velocity_unit
+        self.conversion_factors["mass"] = mass_unit
+        self.conversion_factors["density"] = density_unit
+        self._unit_base['cm'] = length_unit
+        self._unit_base['s'] = time_unit
+        for u in sec_conversion:
+            self.time_units[u] = time_unit * sec_conversion[u]
+        super(HTTPStreamStaticOutput, self)._set_units()
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if args[0].startswith("http://"):
+            return True
         return False
