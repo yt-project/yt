@@ -66,7 +66,7 @@ from yt.frontends.enzo.api import \
 
 # Boxlib stuff
 from yt.frontends.boxlib.api import \
-    BoxlibStaticOutput, NyxStaticOutput
+    BoxlibStaticOutput
 
 # Orion stuff
 from yt.frontends.boxlib.api import \
