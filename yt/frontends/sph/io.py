@@ -597,7 +597,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
                 for field in field_list:
                     s = self._open_stream(data_file, (ptype, field))
                     c = np.frombuffer(s, dtype="float64")
-                    if field in ("Coordinates", "Velocities"):
+                    if field in self._vector_fields:
                         c.shape = (c.shape[0]/3.0, 3)
                     data = c[mask, ...]
                     yield (ptype, field), data

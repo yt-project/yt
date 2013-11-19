@@ -620,8 +620,8 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
         density_unit = mass_unit / length_unit ** 3
         velocity_unit = length_unit / time_unit
         self._unit_base = {}
-        self._unit_base['cm'] = length_unit
-        self._unit_base['s'] = time_unit
+        self._unit_base['cm'] = 1.0/length_unit
+        self._unit_base['s'] = 1.0/time_unit
         super(HTTPStreamStaticOutput, self)._set_units()
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
