@@ -539,22 +539,32 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         return field_offsets
 
 class IOHandlerHTTPStream(BaseIOHandler):
+    _data_style = "http_particle_stream"
+    _vector_fields = ("Coordinates", "Velocity", "Velocities")
+    
     def __init__(self, pf):
         if requests is None:
             raise RuntimeError
         self._url = pf.base_url 
         # This should eventually manage the IO and cache it
+        super(IOHandlerHTTPStream, self).__init__(pf)
 
     def _open_stream(self, data_file, field):
         # This does not actually stream yet!
         ftype, fname = field
         s = "%s/%s/%s/%s" % (self._url,
-            data_file.http_url, 
-            ftype, fname)
+            data_file.file_id, ftype, fname)
+        mylog.info("Loading URL %s", s)
         resp = requests.get(s)
         if resp.status_code != 200:
             raise RuntimeError
         return resp.content
+
+    def _identify_fields(self, data_file):
+        f = []
+        for ftype, fname in self.pf.parameters["field_list"]:
+            f.append((str(ftype), str(fname)))
+        return f
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
@@ -593,9 +603,9 @@ class IOHandlerHTTPStream(BaseIOHandler):
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        ptypes = self.pf.json_header["particle_types"]
-        pcount = sum(self.pf.json_header["particle_count"][ptype]
-                     for ptype in ptypes)
+        header = self.pf.parameters
+        ptypes = header["particle_count"][data_file.file_id].keys()
+        pcount = sum(header["particle_count"][data_file.file_id].values())
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
         for ptype in ptypes:
@@ -609,3 +619,6 @@ class IOHandlerHTTPStream(BaseIOHandler):
                 data_file.pf.domain_right_edge)
             ind += c.shape[0]
         return morton
+
+    def _count_particles(self, data_file):
+        return self.pf.parameters["particle_count"][data_file.file_id]

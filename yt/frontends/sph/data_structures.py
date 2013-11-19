@@ -20,6 +20,7 @@ import stat
 import weakref
 import struct
 import glob
+import time
 import os
 
 from yt.utilities.fortran_utils import read_record
@@ -567,6 +568,7 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
+    filename_template = ""
     
     def __init__(self, base_url,
                  data_style = "http_particle_stream",
@@ -588,9 +590,11 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
 
         # Here's where we're going to grab the JSON index file
         hreq = requests.get(self.base_url + "/yt_index.json")
-        if hreq.status != 200:
+        if hreq.status_code != 200:
             raise RuntimeError
         header = json.loads(hreq.content)
+        header['particle_count'] = dict((int(k), header['particle_count'][k])
+            for k in header['particle_count'])
         self.parameters = header
 
         # Now we get what we need
@@ -600,6 +604,7 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
         self.domain_dimensions = np.ones(3, "int32") * nz
         self.periodicity = (True, True, True)
 
+        self.current_time = header['current_time']
         self.unique_identifier = header.get("unique_identifier", time.time())
         self.cosmological_simulation = int(header['cosmological_simulation'])
         for attr in ('current_redshift', 'omega_lambda', 'omega_matter',
@@ -612,15 +617,15 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
         length_unit = float(self.parameters['units']['length'])
         time_unit = float(self.parameters['units']['time'])
         mass_unit = float(self.parameters['units']['mass'])
+        density_unit = mass_unit / length_unit ** 3
         velocity_unit = length_unit / time_unit
+        self._unit_base = {}
+        self._unit_base['cm'] = length_unit
+        self._unit_base['s'] = time_unit
+        super(HTTPStreamStaticOutput, self)._set_units()
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
         self.conversion_factors["density"] = density_unit
-        self._unit_base['cm'] = length_unit
-        self._unit_base['s'] = time_unit
-        for u in sec_conversion:
-            self.time_units[u] = time_unit * sec_conversion[u]
-        super(HTTPStreamStaticOutput, self)._set_units()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
