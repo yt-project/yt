@@ -2181,6 +2181,7 @@ class ProjectionCamera(Camera):
                 log_fields=self.log_fields, 
                 le=le, re=re, north_vector=north_vector,
                 no_ghost=no_ghost)
+        self.center = center
 
     def get_sampler(self, args):
         if self.interpolated:
