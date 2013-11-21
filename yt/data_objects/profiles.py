@@ -1033,8 +1033,9 @@ def create_profile(data_source, bin_fields, n = None,
     if n is None: n = 64
     if not iterable(n):
         n = [n] * len(bin_fields)
-    ex = data_source.quantities["Extrema"](bin_fields)
     logs = [data_source.pf.field_info[f].take_log for f in bin_fields]
+    ex = [data_source.quantities["Extrema"](f, non_zero=l)[0] \
+          for f, l in zip(bin_fields, logs)]
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n, ex, logs):
         args += [f, n, mi, ma, l] 
