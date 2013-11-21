@@ -351,6 +351,7 @@ def _dmpdensity(field, data):
     d = data.deposit(pos, [data['all', 'Mass'][filter]], method='sum')
     d /= data['CellVolume']
     return d
+
 add_field("dm_density", function=_dmpdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 

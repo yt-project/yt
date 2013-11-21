@@ -270,19 +270,8 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename_prefix, fields=None, clobber=False,
+    def export_fits(self, filename, fields=None, clobber=False,
                     other_keys=None, units="cm", sky_center=(0.0,0.0), D_A=None):
-
-        """
-        This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filename is
-        *filename_prefix*. If clobber is set to True, this will overwrite any
-        existing FITS file.
-
-        This requires the *pyfits* module, which is a standalone module
-        provided by STSci to interface with FITS-format files, and is also
-        part of AstroPy.
-        """
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -290,8 +279,8 @@ class FixedResolutionBuffer(object):
 
         Parameters
         ----------
-        filename_prefix : string
-            This prefix will be prepended to the FITS file name.
+        filename : string
+            The name of the FITS file to be written.
         fields : list of strings
             These fields will be pixelized and output.
         clobber : boolean
@@ -308,11 +297,19 @@ class FixedResolutionBuffer(object):
         D_A : float or tuple, optional
             Angular diameter distance, given in code units as a float or
             a tuple containing the value and the length unit. Required if
-            using sky coordinates.                                                                                            
+            using sky coordinates.
         """
 
+        try:
+            import astropy.io.fits as pyfits
+        except:
+            mylog.error("You don't have AstroPy installed!")
+            raise ImportError
+        
         if units == "deg" and D_A is None:
             mylog.error("Sky coordinates require an angular diameter distance. Please specify D_A.")    
+            raise ValueError
+    
         if iterable(D_A):
             dist = D_A[0]/self.pf.units[D_A[1]]
         else:
@@ -322,7 +319,7 @@ class FixedResolutionBuffer(object):
             hdu_keys = {}
         else:
             hdu_keys = other_keys
-            
+
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if fields is None: 
             fields = [field for field in self.data_source.fields 
@@ -351,9 +348,9 @@ class FixedResolutionBuffer(object):
         hdu_keys["Time"] = self.pf.current_time
 
         data = dict([(field,self[field]) for field in fields])
-        write_fits(data, filename_prefix, clobber=clobber, coords=coords,
+        write_fits(data, filename, clobber=clobber, coords=coords,
                    other_keys=hdu_keys)
-                
+
     def open_in_ds9(self, field, take_log=True):
         """
         This will open a given field in the DS9 viewer.

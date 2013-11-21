@@ -54,8 +54,7 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray, \
-    particle_filter
+    ImageArray, particle_filter
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -102,9 +101,6 @@ from yt.frontends.moab.api import \
 
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
-
-from yt.frontends.art.api import \
-    ARTStaticOutput, ARTFieldInfo, add_art_field
 
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field

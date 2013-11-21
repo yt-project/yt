@@ -115,7 +115,7 @@ class YTRayBase(YTSelectionContainer1D):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
@@ -299,59 +299,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     def normal(self):
         return self._norm_vec
 
-    def to_frb(self, width, resolution, height=None):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
-
-        An ObliqueFixedResolutionBuffer is an object that accepts a
-        variable-resolution 2D object and transforms it into an NxM bitmap that
-        can be plotted, examined or processed.  This is a convenience function
-        to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other AMR2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
-
-        Parameters
-        ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
-        height : height specifier, optional
-            This will be the height of the FRB, by default it is equal to width.
-        resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
-
-        Returns
-        -------
-        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
-            A fixed resolution buffer, which can be queried for fields.
-
-        Examples
-        --------
-
-        >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, (100.0, 'au'))
-        >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.h.cutting(L, c)
-        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
-        """
-        if iterable(width):
-            w, u = width
-            width = w/self.pf[u]
-        if height is None:
-            height = width
-        elif iterable(height):
-            h, u = height
-            height = h/self.pf[u]
-        if not iterable(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
-        return frb
-
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
@@ -419,7 +366,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         pw.set_axes_unit(axes_unit)
         return pw
 
-    def to_frb(self, width, resolution, height=None):
+    def to_frb(self, width, resolution, height=None,
+               periodic=False):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
 
@@ -469,7 +417,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+                    periodic = periodic)
         return frb
 
 class YTDiskBase(YTSelectionContainer3D):
