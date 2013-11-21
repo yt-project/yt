@@ -1739,6 +1739,10 @@ class AMRQuadTreeProjBase(AMR2DData):
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
+        if source.field_parameters is not None:
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.max_level
@@ -2080,6 +2084,10 @@ class AMRProjBase(AMR2DData):
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
+        if source.field_parameters is not None:
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.max_level
