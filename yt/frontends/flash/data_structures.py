@@ -53,6 +53,7 @@ class FLASHGrid(AMRGridPatch):
 class FLASHHierarchy(GridGeometryHandler):
 
     grid = FLASHGrid
+    _preload_implemented = True
     
     def __init__(self,pf,data_style='flash_hdf5'):
         self.data_style = data_style

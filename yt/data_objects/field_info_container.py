@@ -201,7 +201,7 @@ class NeedsParameter(ValidationException):
         return "(%s)" % (self.missing_parameters)
 
 class FieldDetector(defaultdict):
-    Level = 1
+    Level = level = 1
     NumberOfParticles = 1
     _read_exception = None
     _id_offset = 0
