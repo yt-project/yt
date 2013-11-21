@@ -238,12 +238,8 @@ class Camera(ParallelAnalysisInterface):
                                            log_fields = log_fields)
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
-        self.volume = volume
-        
-        if isinstance(transfer_function,ProjectionTransferFunction):
-            self.center = center
-        else:        
-            self.center = (self.re + self.le) / 2.0
+        self.volume = volume        
+        self.center = (self.re + self.le) / 2.0
         self.region = self.pf.h.region(self.center, self.le, self.re)
 
     def _setup_box_properties(self, width, center, unit_vectors):
