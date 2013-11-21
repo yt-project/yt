@@ -197,12 +197,10 @@ class BoxlibHierarchy(GridGeometryHandler):
                 if self.dimensionality > 1:
                     ylo, yhi = [float(v) for v in header_file.next().split()]
                 else:
-#                    ylo, yhi = DLE[1], DRE[1]
                     ylo, yhi = 0.0, 1.0
                 if self.dimensionality > 2:
                     zlo, zhi = [float(v) for v in header_file.next().split()]
                 else:
-#                    zlo, zhi = DLE[2], DRE[2]
                     zlo, zhi = 0.0, 1.0
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
@@ -227,9 +225,10 @@ class BoxlibHierarchy(GridGeometryHandler):
             for gi in range(ngrids):
                 # components within it
                 start, stop = _our_dim_finder.match(level_header_file.next()).groups()
-                # fix for non-3d data
+                # fix for non-3d data 
+                # note we append '0' to both ends b/c of the '+1' in dims below
                 start += ',0'*(3-self.dimensionality)
-                stop  += ',1'*(3-self.dimensionality)
+                stop  += ',0'*(3-self.dimensionality)
                 start = np.array(start.split(","), dtype="int64")
                 stop = np.array(stop.split(","), dtype="int64")
                 dims = stop - start + 1
@@ -525,8 +524,6 @@ class BoxlibStaticOutput(StaticOutput):
                            for i in range(n_fields)]
 
         self.dimensionality = int(header_file.readline())
-#        if self.dimensionality != 3:
-#            raise RunTimeError("Boxlib 1D and 2D support not currently available.")
         self.current_time = float(header_file.readline())
         # This is traditionally a hierarchy attribute, so we will set it, but
         # in a slightly hidden variable.
