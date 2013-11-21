@@ -1739,10 +1739,6 @@ class AMRQuadTreeProjBase(AMR2DData):
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
-        if source.field_parameters is not None:
-            for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
-                    self.set_field_parameter(k,v)
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.max_level
@@ -1776,6 +1772,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
@@ -2084,10 +2083,6 @@ class AMRProjBase(AMR2DData):
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
-        if source.field_parameters is not None:
-            for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
-                    self.set_field_parameter(k,v)
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.max_level
@@ -2119,6 +2114,9 @@ class AMRProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
