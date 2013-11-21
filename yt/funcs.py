@@ -337,7 +337,6 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(__builtin__) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
@@ -345,12 +344,13 @@ def get_pbar(title, maxval):
         return ExtProgressBar(title, maxval)
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+    else:
+        widgets = [ title,
+                    pb.Percentage(), ' ',
+                    pb.Bar(marker=pb.RotatingMarker()),
+                    ' ', pb.ETA(), ' ']
+        pbar = pb.ProgressBar(widgets=widgets,
+                              maxval=maxval).start()
     return pbar
 
 def only_on_root(func, *args, **kwargs):
