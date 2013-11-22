@@ -1,27 +1,18 @@
 """
 This is a library of yt-defined exceptions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 
 # We don't need to import 'exceptions'
 #import exceptions
@@ -215,3 +206,19 @@ class YTInvalidWidthError(YTException):
 
     def __str__(self):
         return str(self.error)
+
+class YTEmptyProfileData(Exception):
+    pass
+
+class YTDuplicateFieldInProfile(Exception):
+    def __init__(self, field, new_spec, old_spec):
+        self.field = field
+        self.new_spec = new_spec
+        self.old_spec = old_spec
+
+    def __str__(self):
+        r = """Field %s already exists with field spec:
+               %s
+               But being asked to add it with:
+               %s""" % (self.field, self.old_spec, self.new_spec)
+        return r

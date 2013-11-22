@@ -1,33 +1,23 @@
 """
 Simple integrators for the radiative transfer equation
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
 cimport cython
 cimport kdtree_utils
-cimport healpix_interface
+#cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
 
 cdef inline int imax(int i0, int i1):
@@ -155,8 +145,9 @@ cdef extern from "FixedInterpolator.h":
 #cdef extern int **tri_table
 
 def hp_pix2vec_nest(long nside, long ipix):
+    raise NotImplementedError
     cdef double v[3]
-    healpix_interface.pix2vec_nest(nside, ipix, v)
+    #healpix_interface.pix2vec_nest(nside, ipix, v)
     cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
     tr[0] = v[0]
     tr[1] = v[1]
@@ -165,6 +156,7 @@ def hp_pix2vec_nest(long nside, long ipix):
 
 def arr_pix2vec_nest(long nside,
                      np.ndarray[np.int64_t, ndim=1] aipix):
+    raise NotImplementedError
     cdef int n = aipix.shape[0]
     cdef int i
     cdef double v[3]
@@ -172,25 +164,27 @@ def arr_pix2vec_nest(long nside,
     cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 3), dtype='float64')
     for i in range(n):
         ipix = aipix[i]
-        healpix_interface.pix2vec_nest(nside, ipix, v)
+        #healpix_interface.pix2vec_nest(nside, ipix, v)
         tr[i,0] = v[0]
         tr[i,1] = v[1]
         tr[i,2] = v[2]
     return tr
 
 def hp_vec2pix_nest(long nside, double x, double y, double z):
+    raise NotImplementedError
     cdef double v[3]
     v[0] = x
     v[1] = y
     v[2] = z
     cdef long ipix
-    healpix_interface.vec2pix_nest(nside, v, &ipix)
+    #healpix_interface.vec2pix_nest(nside, v, &ipix)
     return ipix
 
 def arr_vec2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] x,
                      np.ndarray[np.float64_t, ndim=1] y,
                      np.ndarray[np.float64_t, ndim=1] z):
+    raise NotImplementedError
     cdef int n = x.shape[0]
     cdef int i
     cdef double v[3]
@@ -200,16 +194,18 @@ def arr_vec2pix_nest(long nside,
         v[0] = x[i]
         v[1] = y[i]
         v[2] = z[i]
-        healpix_interface.vec2pix_nest(nside, v, &ipix)
+        #healpix_interface.vec2pix_nest(nside, v, &ipix)
         tr[i] = ipix
     return tr
 
 def hp_pix2ang_nest(long nside, long ipnest):
+    raise NotImplementedError
     cdef double theta, phi
-    healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+    #healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
     return (theta, phi)
 
 def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
+    raise NotImplementedError
     cdef int n = aipnest.shape[0]
     cdef int i
     cdef long ipnest
@@ -217,19 +213,21 @@ def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
     cdef double theta, phi
     for i in range(n):
         ipnest = aipnest[i]
-        healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+        #healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
         tr[i,0] = theta
         tr[i,1] = phi
     return tr
 
 def hp_ang2pix_nest(long nside, double theta, double phi):
+    raise NotImplementedError
     cdef long ipix
-    healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+    #healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
     return ipix
 
 def arr_ang2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] atheta,
                      np.ndarray[np.float64_t, ndim=1] aphi):
+    raise NotImplementedError
     cdef int n = atheta.shape[0]
     cdef int i
     cdef long ipnest
@@ -238,7 +236,7 @@ def arr_ang2pix_nest(long nside,
     for i in range(n):
         theta = atheta[i]
         phi = aphi[i]
-        healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
+        #healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
         tr[i] = ipnest
     return tr
 
@@ -1702,7 +1700,7 @@ cdef class AdaptiveRaySource:
             ray.ipix = i
             ray.nside = initial_nside
             ray.t = 0.0 # We assume we are not on a brick boundary
-            healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
+            #healpix_interface.pix2vec_nest(initial_nside, i, v_dir)
             ray.v_dir[0] = v_dir[0] * normalization
             ray.v_dir[1] = v_dir[1] * normalization
             ray.v_dir[2] = v_dir[2] * normalization
@@ -2020,8 +2018,8 @@ cdef class AdaptiveRaySource:
             new_rays[i].nside = ray.nside * 2
             new_rays[i].ipix = ray.ipix * 4 + i
             new_rays[i].t = ray.t
-            healpix_interface.pix2vec_nest(
-                    new_rays[i].nside, new_rays[i].ipix, v_dir)
+            #healpix_interface.pix2vec_nest(
+            #        new_rays[i].nside, new_rays[i].ipix, v_dir)
             for j in range(3):
                 new_rays[i].v_dir[j] = v_dir[j] * self.normalization
                 new_rays[i].value[j] = ray.value[j]

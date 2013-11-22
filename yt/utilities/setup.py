@@ -36,7 +36,7 @@ def get_default_dirs():
     _archs = ['lib64', 'lib']
     if platform.system() == 'Linux':
         distname, version, did = platform.linux_distribution()
-        if distname in ('Ubuntu', 'Debian'):
+        if distname.lower() in ('ubuntu', 'debian'):
             _archs.extend(
                 ['lib/x86_64-linux-gnu',
                  'lib/i686-linux-gnu',
@@ -73,11 +73,12 @@ def get_location_from_cfg(cfg):
 def check_prefix(inc_dir, lib_dir):
     if platform.system() == 'Linux':
         distname, version, did = platform.linux_distribution()
-        if distname in ('Ubuntu', 'Debian'):
+        if distname.lower() in ('ubuntu', 'debian'):
             print("Since you are using multiarch distro it's hard to detect")
             print("whether library matches the header file. We will assume")
             print("it does. If you encounter any build failures please use")
             print("proper cfg files to provide path to the dependencies")
+            print("")
             return (inc_dir, lib_dir)
     prefix = os.path.commonprefix([inc_dir, lib_dir]).rstrip('/\\')
     if prefix is not '' and prefix == os.path.dirname(inc_dir):
@@ -157,7 +158,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("amr_kdtree")
     config.add_subpackage("poster")
     config.add_subpackage("answer_testing")
-    config.add_subpackage("delaunay")  # From SciPy, written by Robert Kern
     config.add_subpackage("kdtree")
     config.add_subpackage("spatial")
     config.add_subpackage("grid_data_format")
@@ -175,12 +175,6 @@ def configuration(parent_package='', top_path=None):
                          define_macros=[("H5_USE_16_API", True)],
                          libraries=["m", "hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)
-    config.add_extension("libconfig_wrapper",
-                         ["yt/utilities/libconfig_wrapper.pyx"] +
-                         glob.glob("yt/utilities/_libconfig/*.c"),
-                         include_dirs=["yt/utilities/_libconfig/"],
-                         define_macros=[("HAVE_XLOCALE_H", True)]
-                         )
     config.make_config_py()  # installs __config__.py
     # config.make_svn_version_py()
     return config

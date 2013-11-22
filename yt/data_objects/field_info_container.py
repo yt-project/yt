@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import inspect
@@ -70,21 +60,21 @@ class FieldInfoContainer(dict): # Resistance has utility
         
         def _gradx(f, data):
             grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
-            grad /= 2.0*data["dx"].flat[0]
+            grad /= 2.0*data["dx"].flat[0]*data.pf.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
             
         def _grady(f, data):
             grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
-            grad /= 2.0*data["dy"].flat[0]
+            grad /= 2.0*data["dy"].flat[0]*data.pf.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
             
         def _gradz(f, data):
             grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
-            grad /= 2.0*data["dz"].flat[0]
+            grad /= 2.0*data["dz"].flat[0]*data.pf.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
@@ -200,7 +190,7 @@ class NeedsParameter(ValidationException):
         return "(%s)" % (self.missing_parameters)
 
 class FieldDetector(defaultdict):
-    Level = 1
+    Level = level = 1
     NumberOfParticles = 1
     _read_exception = None
     _id_offset = 0

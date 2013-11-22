@@ -2,27 +2,17 @@
 Very simple convenience function for importing all the modules, setting up
 the namespace and getting the last argument on the command line.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from __future__ import absolute_import
 
@@ -64,7 +54,7 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray
+    ImageArray, create_profile
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -73,9 +63,6 @@ from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, \
     EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
-
-from yt.frontends.castro.api import \
-    CastroStaticOutput, CastroFieldInfo, add_castro_field
 
 from yt.frontends.nyx.api import \
     NyxStaticOutput, NyxFieldInfo, add_nyx_field
@@ -86,12 +73,6 @@ from yt.frontends.orion.api import \
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
 
-from yt.frontends.tiger.api import \
-    TigerStaticOutput, TigerFieldInfo, add_tiger_field
-
-from yt.frontends.ramses.api import \
-    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
-
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
@@ -101,14 +82,8 @@ from yt.frontends.gdf.api import \
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
 
-from yt.frontends.art.api import \
-    ARTStaticOutput, ARTFieldInfo, add_art_field
-
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
-
-#from yt.frontends.maestro.api import \
-#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
 from yt.frontends.stream.api import \
     StreamStaticOutput, StreamFieldInfo, add_stream_field, \
@@ -132,7 +107,7 @@ from yt.visualization.api import \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
     SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps
+    show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

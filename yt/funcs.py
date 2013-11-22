@@ -1,27 +1,17 @@
 """
 Useful functions.  If non-original, see function for citation.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os
@@ -34,7 +24,7 @@ from math import floor, ceil
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
-import yt.utilities.progressbar as pb
+import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from collections import defaultdict
 from functools import wraps
@@ -548,6 +538,16 @@ def get_script_contents():
         contents = None
     return contents
 
+def download_file(url, filename):
+    import urllib
+    class MyURLopener(urllib.FancyURLopener):
+        def http_error_default(self, url, fp, errcode, errmsg, headers):
+            raise RuntimeError, \
+              "Attempt to download file from %s failed with error %s: %s." % \
+              (url, errcode, errmsg)
+    fn, h = MyURLopener().retrieve(url, filename)
+    return fn
+
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
     import urllib, urllib2
@@ -635,3 +635,38 @@ def ensure_dir_exists(path):
         return
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
+
+@contextlib.contextmanager
+def memory_checker(interval = 15):
+    r"""This is a context manager that monitors memory usage.
+
+    Parameters
+    ----------
+    interval : int
+        The number of seconds between printing the current memory usage in
+        gigabytes of the current Python interpreter.
+
+    Examples
+    --------
+
+    >>> with memory_checker(10):
+    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     time.sleep(15)
+    ...     del arr
+    """
+    import threading
+    class MemoryChecker(threading.Thread):
+        def __init__(self, event, interval):
+            self.event = event
+            self.interval = interval
+            threading.Thread.__init__(self)
+
+        def run(self):
+            while not self.event.wait(self.interval):
+                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+
+    e = threading.Event()
+    mem_check = MemoryChecker(e, interval)
+    mem_check.start()
+    yield
+    e.set()

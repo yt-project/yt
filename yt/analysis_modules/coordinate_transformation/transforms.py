@@ -1,29 +1,17 @@
 """
 Transformations between coordinate systems
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: JS Oishi <jsoishi@astro.berkeley.edu>
-Organization: UC Berkeley
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 from yt.funcs import *
@@ -65,7 +53,7 @@ def arbitrary_regrid(new_grid, data_source, fields, smoothed=True):
     new_grid['handled'] = np.zeros(new_grid['x'].shape, dtype='bool')
     for field in fields:
         new_grid[field] = np.zeros(new_grid['x'].shape, dtype='float64')
-    grid_order = np.argsort(data_source.gridLevels)
+    grid_order = np.argsort(data_source.grid_levels[:,0])
     ng = len(data_source._grids)
 
     for i,grid in enumerate(data_source._grids[grid_order][::-1]):

@@ -8,7 +8,7 @@
 # http://physics.nist.gov/cuu/Constants/index.html
 
 # Masses
-mass_electron_cgs = 9.109382-28  # g
+mass_electron_cgs = 9.109382e-28  # g
 amu_cgs           = 1.660538921e-24  # g
 mass_hydrogen_cgs = 1.007947*amu_cgs  # g
 mass_sun_cgs = 1.98841586e33  # g
@@ -84,6 +84,7 @@ erg_per_eV = 1.602176562e-12
 erg_per_keV = erg_per_eV * 1.0e3
 K_per_keV = erg_per_keV / boltzmann_constant_cgs
 keV_per_K = 1.0 / K_per_keV
+Tcmb = 2.726 # Current CMB temperature
 
 #Short cuts
 G = gravitational_constant_cgs

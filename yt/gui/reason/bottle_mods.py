@@ -2,27 +2,17 @@
 Modifications and extensions to Bottle, to make it slightly more useful for
 yt's purposes
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import uuid
 import json
@@ -31,7 +21,7 @@ import sys
 import urllib, urllib2
 import numpy as np
 
-from yt.utilities.bottle import \
+from yt.extern.bottle import \
     server_names, debug, route, run, request, ServerAdapter, response
 from extdirect_router import DirectRouter, DirectProviderDefinition
 from yt.utilities.logger import ytLogger as mylog
@@ -169,7 +159,7 @@ class PayloadHandler(object):
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
     def run(self, handler):
-        from yt.utilities.rocket import Rocket
+        from yt.extern.rocket import Rocket
         server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
         self.server_info[id(self)] = server
         server.start()
@@ -263,7 +253,7 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
             thread.start()
         local_browse()
     try:
-        import yt.utilities.rocket as rocket
+        import yt.extern.rocket as rocket
         server_type = YTRocketServer
         log = logging.getLogger('Rocket')
         log.setLevel(logging.WARNING)

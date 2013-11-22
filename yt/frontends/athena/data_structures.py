@@ -1,35 +1,17 @@
 """
 Data structures for Athena.
 
-Author: Samuel W. Skillman <samskillman@gmail.com>
-Affiliation: University of Colorado at Boulder
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: John ZuHone <jzuhone@gmail.com>
-Affiliation: NASA/Goddard Space Flight Center
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2013 Samuel W. Skillman, Matthew Turk, J. S. Oishi.,
-  John ZuHone.
-  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -215,13 +197,18 @@ class AthenaHierarchy(AMRHierarchy):
             raise TypeError
 
         # Need to determine how many grids: self.num_grids
-        dname = self.hierarchy_filename
-        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        dataset_dir = os.path.dirname(self.hierarchy_filename)
+        dname = os.path.split(self.hierarchy_filename)[-1]
+        if dataset_dir.endswith("id0"):
+            dname = "id0/"+dname
+            dataset_dir = dataset_dir[:-3]
+                        
+        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         gridlistread.insert(0,self.hierarchy_filename)
         if 'id0' in dname :
-            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -277,7 +264,7 @@ class AthenaHierarchy(AMRHierarchy):
         # know the extent of all the grids. 
         glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=12)
         self.parameter_file.domain_width = \
                 (self.parameter_file.domain_right_edge - 
                  self.parameter_file.domain_left_edge)
@@ -305,9 +292,9 @@ class AthenaHierarchy(AMRHierarchy):
             dxs.append(dx)
         
         dx = np.array(dxs)
-        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
+        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=12)
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
+        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=12)
         if self.parameter_file.dimensionality <= 2:
             self.grid_right_edge[:,2] = self.parameter_file.domain_right_edge[2]
         if self.parameter_file.dimensionality == 1:
@@ -444,12 +431,17 @@ class AthenaStaticOutput(StaticOutput):
         else:
             self.periodicity = (True,)*self.dimensionality
 
-        dname = self.parameter_filename
-        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        dataset_dir = os.path.dirname(self.parameter_filename)
+        dname = os.path.split(self.parameter_filename)[-1]
+        if dataset_dir.endswith("id0"):
+            dname = "id0/"+dname
+            dataset_dir = dataset_dir[:-3]
+            
+        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         if 'id0' in dname :
-            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \

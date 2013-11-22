@@ -1,27 +1,17 @@
 """
 Simple utilities that don't fit anywhere else
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -30,6 +20,108 @@ cimport cython
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def new_bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=2] bsource,
+                  np.ndarray[np.float64_t, ndim=1] wresult,
+                  np.ndarray[np.float64_t, ndim=2] bresult,
+                  np.ndarray[np.float64_t, ndim=2] mresult,
+                  np.ndarray[np.float64_t, ndim=2] qresult,
+                  np.ndarray[np.uint8_t, ndim=1, cast=True] used):
+    cdef int n, fi, bin
+    cdef np.float64_t wval, bval, oldwr
+    cdef int nb = bins_x.shape[0]
+    cdef int nf = bsource.shape[1]
+    for n in range(nb):
+        bin = bins_x[n]
+        wval = wsource[n]
+        oldwr = wresult[bin]
+        wresult[bin] += wval
+        for fi in range(nf):
+            bval = bsource[n,fi]
+            # qresult has to have the previous wresult
+            qresult[bin,fi] += (oldwr * wval * (bval - mresult[bin,fi])**2) / \
+                (oldwr + wval)
+            bresult[bin,fi] += wval*bval
+            # mresult needs the new wresult
+            mresult[bin,fi] += wval * (bval - mresult[bin,fi]) / wresult[bin]
+        used[bin] = 1
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def new_bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.int64_t, ndim=1] bins_y,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=2] bsource,
+                  np.ndarray[np.float64_t, ndim=2] wresult,
+                  np.ndarray[np.float64_t, ndim=3] bresult,
+                  np.ndarray[np.float64_t, ndim=3] mresult,
+                  np.ndarray[np.float64_t, ndim=3] qresult,
+                  np.ndarray[np.uint8_t, ndim=2, cast=True] used):
+    cdef int n, fi, bin_x, bin_y
+    cdef np.float64_t wval, bval, oldwr
+    cdef int nb = bins_x.shape[0]
+    cdef int nf = bsource.shape[1]
+    for n in range(nb):
+        bin_x = bins_x[n]
+        bin_y = bins_y[n]
+        wval = wsource[n]
+        oldwr = wresult[bin_x, bin_y]
+        wresult[bin_x,bin_y] += wval
+        for fi in range(nf):
+            bval = bsource[n,fi]
+            # qresult has to have the previous wresult
+            qresult[bin_x,bin_y,fi] += (oldwr * wval * (bval - mresult[bin_x,bin_y,fi])**2) / \
+                (oldwr + wval)
+            bresult[bin_x,bin_y,fi] += wval*bval
+            # mresult needs the new wresult
+            mresult[bin_x,bin_y,fi] += wval * (bval - mresult[bin_x,bin_y,fi]) / wresult[bin_x,bin_y]
+        used[bin_x,bin_y] = 1
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def new_bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
+                  np.ndarray[np.int64_t, ndim=1] bins_y,
+                  np.ndarray[np.int64_t, ndim=1] bins_z,
+                  np.ndarray[np.float64_t, ndim=1] wsource,
+                  np.ndarray[np.float64_t, ndim=2] bsource,
+                  np.ndarray[np.float64_t, ndim=3] wresult,
+                  np.ndarray[np.float64_t, ndim=4] bresult,
+                  np.ndarray[np.float64_t, ndim=4] mresult,
+                  np.ndarray[np.float64_t, ndim=4] qresult,
+                  np.ndarray[np.uint8_t, ndim=3, cast=True] used):
+    cdef int n, fi, bin_x, bin_y, bin_z
+    cdef np.float64_t wval, bval, oldwr
+    cdef int nb = bins_x.shape[0]
+    cdef int nf = bsource.shape[1]
+    for n in range(nb):
+        bin_x = bins_x[n]
+        bin_y = bins_y[n]
+        bin_z = bins_z[n]
+        wval = wsource[n]
+        oldwr = wresult[bin_x, bin_y, bin_z]
+        wresult[bin_x,bin_y,bin_z] += wval
+        for fi in range(nf):
+            bval = bsource[n,fi]
+            # qresult has to have the previous wresult
+            qresult[bin_x,bin_y,bin_z,fi] += \
+                (oldwr * wval * (bval - mresult[bin_x,bin_y,bin_z,fi])**2) / \
+                (oldwr + wval)
+            bresult[bin_x,bin_y,bin_z,fi] += wval*bval
+            # mresult needs the new wresult
+            mresult[bin_x,bin_y,bin_z,fi] += wval * \
+                (bval - mresult[bin_x,bin_y,bin_z,fi]) / \
+                 wresult[bin_x,bin_y,bin_z]
+        used[bin_x,bin_y,bin_z] = 1
+    return
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

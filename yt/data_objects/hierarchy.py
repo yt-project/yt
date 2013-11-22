@@ -1,27 +1,17 @@
 """
 AMR hierarchy container class
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import numpy as np
@@ -404,6 +394,23 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
           [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
           [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
         ], dtype='float64')
+
+    def lock_grids_to_parents(self):
+        r"""This function locks grid edges to their parents.
+
+        This is useful in cases where the grid structure may be somewhat
+        irregular, or where setting the left and right edges is a lossy
+        process.  It is designed to correct situations where left/right edges
+        may be set slightly incorrectly, resulting in discontinuities in images
+        and the like.
+        """
+        mylog.info("Locking grids to parents.")
+        for i, g in enumerate(self.grids):
+            si = g.get_global_startindex()
+            g.LeftEdge = self.pf.domain_left_edge + g.dds * si
+            g.RightEdge = g.LeftEdge + g.ActiveDimensions * g.dds
+            self.grid_left_edge[i,:] = g.LeftEdge
+            self.grid_right_edge[i,:] = g.RightEdge
 
     def print_stats(self):
         """

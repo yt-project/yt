@@ -1,44 +1,31 @@
 """
 A plotting mechanism based on the idea of a "window" into the data.
 
-Author: J. S. Oishi <jsoishi@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Nathan Goldbaum <goldbaum@ucolick.org>
-Affiliation: UCSC Astronomy
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2013 J. S. Oishi., Nathan Goldbaum  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import base64
 import numpy as np
 import matplotlib
 import cStringIO
 import types
+import os
 import __builtin__
 
+from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
-from matplotlib.font_manager import FontProperties
 from distutils import version
-from functools import wraps
 from numbers import Number
 
 from ._mpl_imports import FigureCanvasAgg
-from .color_maps import yt_colormaps, is_colormap
 from .image_writer import apply_colormap
 from .fixed_resolution import \
     FixedResolutionBuffer, \
@@ -46,13 +33,14 @@ from .fixed_resolution import \
     OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
-from .tick_locators import LogLocator, LinearLocator
-from .base_plot_types import ImagePlotMPL
+from .base_plot_types import ImagePlotMPL, CallbackWrapper
+from .plot_container import \
+    ImagePlotContainer, log_transform, linear_transform, \
+    invalidate_data, invalidate_plot, apply_callback
 
-from yt.utilities.delaunay.triangulate import Triangulation as triang
 from yt.funcs import \
-    mylog, defaultdict, iterable, ensure_list, \
-    fix_axis, get_image_suffix, get_ipython_api_version
+    mylog, iterable, ensure_list, fix_axis, \
+    get_ipython_api_version
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -78,99 +66,13 @@ try:
 except ImportError:
     from pyparsing import ParseFatalException
 
-def invalidate_data(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._data_valid = False
-        args[0]._plot_valid = False
-        args[0]._recreate_frb()
-        if args[0]._initfinished:
-            args[0]._setup_plots()
-        return rv
-    return newfunc
-
-def invalidate_figure(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        for field in args[0].fields:
-            args[0].plots[field].figure = None
-            args[0].plots[field].axes = None
-            args[0].plots[field].cax = None
-        return rv
-    return newfunc
-
-def invalidate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._plot_valid = False
-        args[0]._setup_plots()
-        return rv
-    return newfunc
-
-def apply_callback(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args[1:], **kwargs)
-        args[0]._callbacks.append((f.__name__,(args,kwargs)))
-        return rv
-    return newfunc
-
-field_transforms = {}
-
-class CallbackWrapper(object):
-    def __init__(self, viewer, window_plot, frb, field):
-        self.frb = frb
-        self.data = frb.data_source
-        self._axes = window_plot.axes
-        self._figure = window_plot.figure
-        if len(self._axes.images) > 0:
-            self.image = self._axes.images[0]
-        if frb.axis < 3:
-            DD = frb.pf.domain_width
-            xax = x_dict[frb.axis]
-            yax = y_dict[frb.axis]
-            self._period = (DD[xax], DD[yax])
-        self.pf = frb.pf
-        self.xlim = viewer.xlim
-        self.ylim = viewer.ylim
-        if 'OffAxisSlice' in viewer._plot_type:
-            self._type_name = "CuttingPlane"
-        else:
-            self._type_name = viewer._plot_type
-
-class FieldTransform(object):
-    def __init__(self, name, func, locator):
-        self.name = name
-        self.func = func
-        self.locator = locator
-        field_transforms[name] = self
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-    def ticks(self, mi, ma):
-        try:
-            ticks = self.locator(mi, ma)
-        except:
-            ticks = []
-        return ticks
-
-log_transform = FieldTransform('log10', np.log10, LogLocator())
-linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
-
 def assert_valid_width_tuple(width):
-    try:
-        assert iterable(width) and len(width) == 2, \
-            "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], Number) and isinstance(width[1], str)
+    if not iterable(width) or len(width) != 2:
+        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+    if not isinstance(width[0], Number) and isinstance(width[1], str):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
-        assert valid, msg
-    except AssertionError, e:
-        raise YTInvalidWidthError(e)
+        raise YTInvalidWidthError(msg)
 
 def validate_iterable_width(width, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
@@ -264,7 +166,7 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
                   -width[2][0]/pf[units[2]]/2, width[2][0]/pf[units[2]]/2)
     return (bounds, center, units)
 
-class PlotWindow(object):
+class PlotWindow(ImagePlotContainer):
     r"""
     A ploting mechanism based around the concept of a window into a
     data source. It can have arbitrary fields, each of which will be
@@ -295,32 +197,42 @@ class PlotWindow(object):
         including the margins but not the colorbar.
 
     """
-    _plot_valid = False
-    _colorbar_valid = False
-    _contour_info = None
-    _vector_info = None
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, window_size=10.0):
+                 periodic=True, origin='center-window', oblique=False,
+                 window_size=10.0, fields=None, fontsize=18, setup=False):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
             self.ts = ts
         self._initfinished = False
+        self._axes_unit_names = None
         self.center = None
-        self.plots = {}
         self._periodic = periodic
         self.oblique = oblique
-        self.data_source = data_source
         self.buff_size = buff_size
-        self.window_size = window_size
         self.antialias = antialias
-        self.set_window(bounds) # this automatically updates the data and plot
+        skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
+        if fields is None:
+            fields = []
+        else:
+            fields = ensure_list(fields)
+        self.override_fields = list(np.intersect1d(fields, skip))
+        super(PlotWindow, self).__init__(data_source, fields,
+                                         window_size, fontsize)
+        self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
             center = [self.data_source.center[i] for i in range(len(self.data_source.center))
                       if i != self.data_source.axis]
             self.set_center(center)
+        if setup: self._setup_plots()
+        for field in self._frb.data.keys():
+            if self.pf.field_info[field].take_log:
+                self._field_transform[field] = log_transform
+            else:
+                self._field_transform[field] = linear_transform
+        self.setup_callbacks()
         self._initfinished = True
 
     def _initialize_dataset(self, ts):
@@ -340,20 +252,6 @@ class PlotWindow(object):
             self._switch_pf(pf)
             yield self
 
-    def _switch_pf(self, new_pf):
-        ds = self.data_source
-        name = ds._type_name
-        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
-        new_ds = getattr(new_pf.h, name)(**kwargs)
-        self.pf = new_pf
-        self.data_source = new_ds
-        self._data_valid = self._plot_valid = False
-        self._recreate_frb()
-        self._setup_plots()
-
-    def __getitem__(self, item):
-        return self.plots[item]
-
     def _recreate_frb(self):
         old_fields = None
         if self._frb is not None:
@@ -370,14 +268,9 @@ class PlotWindow(object):
             self._frb._get_data_source_fields()
         else:
             for key in old_fields: self._frb[key]
+        for key in self.override_fields:
+            self._frb[key]
         self._data_valid = True
-
-    def _setup_plots(self):
-        pass
-
-    @property
-    def fields(self):
-        return self._frb.data.keys()
 
     @property
     def width(self):
@@ -437,7 +330,7 @@ class PlotWindow(object):
         return self
 
     @invalidate_data
-    def set_window(self, bounds):
+    def _set_window(self, bounds):
         """Set the bounds of the plot window.
         This is normally only called internally, see set_width.
 
@@ -526,6 +419,7 @@ class PlotWindow(object):
             mw = max([width[0][0], width[1][0]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
+        return self
 
     @invalidate_data
     def set_center(self, new_center, unit = '1'):
@@ -534,20 +428,36 @@ class PlotWindow(object):
         parameters
         ----------
         new_center : two element sequence of floats
-            The coordinates of the new center of the image.
-            If the unit keyword is not specified, the
-            coordinates are assumed to be in code units
+            The coordinates of the new center of the image in the
+            coordinate system defined by the plot axes. If the unit
+            keyword is not specified, the coordinates are assumed to
+            be in code units.
 
         unit : string
             The name of the unit new_center is given in.
 
         """
+        error = RuntimeError(
+            "\n"
+            "new_center must be a two-element list or tuple of floats \n"
+            "corresponding to a coordinate in the plot relative to \n"
+            "the plot coordinate system.\n"
+        )
         if new_center is None:
             self.center = None
-        else:
+        elif iterable(new_center):
+            try:
+                assert all(isinstance(el, Number) for el in new_center)
+            except AssertionError:
+                raise error
+            if len(new_center) != 2:
+                raise error
             new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
-        self.set_window(self.bounds)
+        else:
+            raise error
+        self._set_window(self.bounds)
+        return self
 
     @invalidate_data
     def set_antialias(self,aa):
@@ -567,163 +477,16 @@ class PlotWindow(object):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
+        return self
 
-    @invalidate_plot
-    @invalidate_figure
     def set_window_size(self, size):
-        """Sets a new window size for the plot
+        """This calls set_figure_size to adjust the size of the plot window.
 
-        parameters
-        ----------
-        size : float
-            The size of the window on the longest axis (in units of inches),
-            including the margins but not the colorbar.
+        This is equivalent to set_figure_size but it still available to maintain
+        backwards compatibility.
         """
-        self.window_size = float(size)
-
-    @invalidate_data
-    def refresh(self):
-        # invalidate_data will take care of everything
-        pass
-
-class PWViewer(PlotWindow):
-    """A viewer for PlotWindows.
-
-    """
-    _plot_type = None
-    def __init__(self, *args,**kwargs):
-        setup = kwargs.pop("setup", True)
-        if self._plot_type is None:
-            self._plot_type = kwargs.pop("plot_type")
-        PlotWindow.__init__(self, *args,**kwargs)
-        self._axes_unit_names = None
-        self._callbacks = []
-        self._field_transform = {}
-        self._colormaps = defaultdict(lambda: 'algae')
-        self.setup_callbacks()
-        for field in self._frb.data.keys():
-            if self.pf.field_info[field].take_log:
-                self._field_transform[field] = log_transform
-            else:
-                self._field_transform[field] = linear_transform
-
-        if setup: self._setup_plots()
-
-    @invalidate_plot
-    def set_log(self, field, log):
-        """set a field to log or linear.
-
-        Parameters
-        ----------
-        field : string
-            the field to set a transform
-        log : boolean
-            Log on/off.
-
-        """
-        if field == 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-        for field in fields:
-            if log:
-                self._field_transform[field] = log_transform
-            else:
-                self._field_transform[field] = linear_transform
-
-    @invalidate_plot
-    def set_transform(self, field, name):
-        if name not in field_transforms:
-            raise KeyError(name)
-        self._field_transform[field] = field_transforms[name]
-
-    @invalidate_plot
-    def set_cmap(self, field, cmap_name):
-        """set the colormap for one of the fields
-
-        Parameters
-        ----------
-        field : string
-            the field to set the colormap
-            if field == 'all', applies to all plots.
-        cmap_name : string
-            name of the colormap
-
-        """
-
-        if field is 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-        for field in fields:
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap_name
-
-    @invalidate_plot
-    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
-        """set the scale of the colormap
-
-        Parameters
-        ----------
-        field : string
-            the field to set a colormap scale
-            if field == 'all', applies to all plots.
-        zmin : float
-            the new minimum of the colormap scale. If 'min', will
-            set to the minimum value in the current view.
-        zmax : float
-            the new maximum of the colormap scale. If 'max', will
-            set to the maximum value in the current view.
-
-        Other Parameters
-        ----------------
-        dynamic_range : float (default: None)
-            The dynamic range of the image.
-            If zmin == None, will set zmin = zmax / dynamic_range
-            If zmax == None, will set zmax = zmin * dynamic_range
-            When dynamic_range is specified, defaults to setting
-            zmin = zmax / dynamic_range.
-
-        """
-        if field is 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-        for field in fields:
-            myzmin = zmin
-            myzmax = zmax
-            if zmin == 'min':
-                myzmin = self.plots[field].image._A.min()
-            if zmax == 'max':
-                myzmax = self.plots[field].image._A.max()
-            if dynamic_range is not None:
-                if zmax is None:
-                    myzmax = myzmin * dynamic_range
-                else:
-                    myzmin = myzmax / dynamic_range
-
-            self.plots[field].zmin = myzmin
-            self.plots[field].zmax = myzmax
-
-    def setup_callbacks(self):
-        for key in callback_registry:
-            ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
-                       'UnitBoundaryCallback']
-            if self._plot_type.startswith('OffAxis'):
-                ignored += ['HopCirclesCallback','HopParticleCallback',
-                            'ParticleCallback','ClumpContourCallback',
-                            'GridBoundaryCallback']
-            if self._plot_type == 'OffAxisProjection':
-                ignored += ['VelocityCallback','MagFieldCallback',
-                            'QuiverCallback','CuttingQuiverCallback',
-                            'StreamlineCallback']
-            if key in ignored:
-                continue
-            cbname = callback_registry[key]._type_name
-            CallbackMaker = callback_registry[key]
-            callback = invalidate_plot(apply_callback(CallbackMaker))
-            callback.__doc__ = CallbackMaker.__doc__
-            self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
+        self.set_figure_size(size)
+        return self
 
     @invalidate_plot
     def set_axes_unit(self, unit_name):
@@ -736,9 +499,9 @@ class PWViewer(PlotWindow):
             image extents will be displayed in.  If set to None, any previous
             units will be reset.  If the unit is None, the default is chosen.
             If unit_name is '1', 'u', or 'unitary', it will not display the
-            units, and only show the axes name. If unit_name is a tuple, the first
-            element is assumed to be the unit for the x axis and the second element
-            the unit for the y axis.
+            units, and only show the axes name. If unit_name is a tuple, the
+            first element is assumed to be the unit for the x axis and the
+            second element the unit for the y axis.
 
         Raises
         ------
@@ -765,8 +528,9 @@ class PWViewer(PlotWindow):
                 except KeyError:
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
+        return self
 
-class PWViewerMPL(PWViewer):
+class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
     """
@@ -779,11 +543,7 @@ class PWViewerMPL(PWViewer):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
-        font_size = kwargs.pop("fontsize", 18)
-        font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
-        self._font_properties = FontProperties(size=font_size, fname=font_path)
-        self._font_color = None
-        PWViewer.__init__(self, *args, **kwargs)
+        PlotWindow.__init__(self, *args, **kwargs)
 
     def _setup_origin(self):
         origin = self.origin
@@ -872,9 +632,9 @@ class PWViewerMPL(PWViewer):
             # This should protect against giant images in the case of a very large aspect ratio.
             cbar_frac = 0.0
             if plot_aspect > 1.0:
-                size = (self.window_size*(1.+cbar_frac), self.window_size/plot_aspect)
+                size = (self.figure_size*(1.+cbar_frac), self.figure_size/plot_aspect)
             else:
-                size = (plot_aspect*self.window_size*(1.+cbar_frac), self.window_size)
+                size = (plot_aspect*self.figure_size*(1.+cbar_frac), self.figure_size)
 
             # Correct the aspect ratio in case unit_x and unit_y are different
             aspect = self.pf[unit_x]/self.pf[unit_y]
@@ -905,10 +665,23 @@ class PWViewerMPL(PWViewer):
                                           cax)
 
             axes_unit_labels = ['', '']
+            comoving = False
+            hinv = False
             for i, un in enumerate((unit_x, unit_y)):
+                if un.endswith('cm') and un != 'cm':
+                    comoving = True
+                    un = un[:-2]
+                # no length units end in h so this is safe
+                if un.endswith('h'):
+                    hinv = True
+                    un = un[:-1]
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
+                    if hinv:
+                        un = un + '\,h^{-1}'
+                    if comoving:
+                        un = un + '\,(1+z)^{-1}'
                     axes_unit_labels[i] = '\/\/('+un+')'
 
             if self.oblique:
@@ -957,197 +730,72 @@ class PWViewerMPL(PWViewer):
 
         self._plot_valid = True
 
-    def run_callbacks(self, f):
-        keys = self._frb.keys()
-        for name, (args, kwargs) in self._callbacks:
-            cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
-            CallbackMaker = callback_registry[name]
-            callback = CallbackMaker(*args[1:], **kwargs)
-            callback(cbw)
-        for key in self._frb.keys():
-            if key not in keys:
-                del self._frb[key]
-
     @invalidate_plot
-    @invalidate_figure
-    def set_font(self, font_dict=None):
-        """set the font and font properties
-
-        Parameters
-        ----------
-        font_dict : dict
-        A dict of keyword parameters to be passed to
-        :py:class:`matplotlib.font_manager.FontProperties`.
-
-        Possible keys include
-        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
-          'monospace'.
-        * style - The font style. Either normal, italic or oblique.
-        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
-          'orange'.
-        * variant: Either normal or small-caps.
-        * size: Either an relative value of xx-small, x-small, small, medium,
-          large, x-large, xx-large or an absolute font size, e.g. 12
-        * stretch: A numeric value in the range 0-1000 or one of
-          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
-          semi-expanded, expanded, extra-expanded or ultra-expanded
-        * weight: A numeric value in the range 0-1000 or one of ultralight,
-          light, normal, regular, book, medium, roman, semibold, demibold, demi,
-          bold, heavy, extra bold, or black
-
-        See the matplotlib font manager API documentation for more details.
-        http://matplotlib.org/api/font_manager_api.html
-
-        Notes
-        -----
-        Mathtext axis labels will only obey the `size` and `color` keyword.
-
-        Examples
-        --------
-        This sets the font to be 24-pt, blue, sans-serif, italic, and
-        bold-face.
-
-        >>> slc = SlicePlot(pf, 'x', 'Density')
-        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24, 'color':'blue'})
-
-        """
-        if font_dict is None:
-            font_dict = {}
-        if 'color' in font_dict:
-            self._font_color = font_dict.pop('color')
-        self._font_properties = \
-            FontProperties(**font_dict)
-
-
-    @invalidate_plot
-    def set_cmap(self, field, cmap):
-        """set the colormap for one of the fields
+    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
+        """set the scale of the colormap
 
         Parameters
         ----------
         field : string
-            the field to set a transform
+            the field to set a colormap scale
             if field == 'all', applies to all plots.
-        cmap_name : string
-            name of the colormap
+        zmin : float
+            the new minimum of the colormap scale. If 'min', will
+            set to the minimum value in the current view.
+        zmax : float
+            the new maximum of the colormap scale. If 'max', will
+            set to the maximum value in the current view.
+
+        Other Parameters
+        ----------------
+        dynamic_range : float (default: None)
+            The dynamic range of the image.
+            If zmin == None, will set zmin = zmax / dynamic_range
+            If zmax == None, will set zmax = zmin * dynamic_range
+            When dynamic_range is specified, defaults to setting
+            zmin = zmax / dynamic_range.
 
         """
-        if field == 'all':
+        if field is 'all':
             fields = self.plots.keys()
         else:
             fields = [field]
-
         for field in fields:
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap
-            if isinstance(cmap, types.StringTypes):
-                if str(cmap) in yt_colormaps:
-                    cmap = yt_colormaps[str(cmap)]
-                elif hasattr(matplotlib.cm, cmap):
-                    cmap = getattr(matplotlib.cm, cmap)
-            if not is_colormap(cmap) and cmap is not None:
-                raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
-            self.plots[field].image.set_cmap(cmap)
+            myzmin = zmin
+            myzmax = zmax
+            if zmin == 'min':
+                myzmin = self.plots[field].image._A.min()
+            if zmax == 'max':
+                myzmax = self.plots[field].image._A.max()
+            if dynamic_range is not None:
+                if zmax is None:
+                    myzmax = myzmin * dynamic_range
+                else:
+                    myzmin = myzmax / dynamic_range
 
-    def save(self, name=None, mpl_kwargs=None):
-        """saves the plot to disk.
+            self.plots[field].zmin = myzmin
+            self.plots[field].zmax = myzmax
+        return self
 
-        Parameters
-        ----------
-        name : string
-           the base of the filename.  If not set the filename of
-           the parameter file is used
-        mpl_kwargs : dict
-           A dict of keyword arguments to be passed to matplotlib.
-
-        >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
-
-        """
-        names = []
-        if mpl_kwargs is None: mpl_kwargs = {}
-        if name is None:
-            name = str(self.pf)
-        suffix = get_image_suffix(name)
-        if suffix != '':
-            for k, v in self.plots.iteritems():
-                names.append(v.save(name,mpl_kwargs))
-            return names
-        axis = axis_names[self.data_source.axis]
-        weight = None
-        type = self._plot_type
-        if type in ['Projection','OffAxisProjection']:
-            weight = self.data_source.weight_field
-        if 'Cutting' in self.data_source.__class__.__name__:
-            type = 'OffAxisSlice'
-        for k, v in self.plots.iteritems():
-            if axis:
-                n = "%s_%s_%s_%s" % (name, type, axis, k)
-            else:
-                # for cutting planes
-                n = "%s_%s_%s" % (name, type, k)
-            if weight:
-                n += "_%s" % (weight)
-            names.append(v.save(n,mpl_kwargs))
-        return names
-
-    def _send_zmq(self):
-        try:
-            # pre-IPython v1.0
-            from IPython.zmq.pylab.backend_inline import send_figure as display
-        except ImportError:
-            # IPython v1.0+
-            from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
-            # Due to a quirk in the matplotlib API, we need to create
-            # a dummy canvas variable here that is never used.
-            canvas = FigureCanvasAgg(v.figure)  # NOQA
-            display(v.figure)
-
-    def show(self):
-        r"""This will send any existing plots to the IPython notebook.
-        function name.
-
-        If yt is being run from within an IPython session, and it is able to
-        determine this, this function will send any existing plots to the
-        notebook for display.
-
-        If yt can't determine if it's inside an IPython session, it will raise
-        YTNotInsideNotebook.
-
-        Examples
-        --------
-
-        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
-        >>> slc.show()
-
-        """
-        if "__IPYTHON__" in dir(__builtin__):
-            api_version = get_ipython_api_version()
-            if api_version in ('0.10', '0.11'):
-                self._send_zmq()
-            else:
-                from IPython.display import display
-                display(self)
-        else:
-            raise YTNotInsideNotebook
-
-    def display(self, name=None, mpl_kwargs=None):
-        """Will attempt to show the plot in in an IPython notebook.  Failing that, the 
-        plot will be saved to disk."""
-        try:
-            return self.show()
-        except YTNotInsideNotebook:
-            return self.save(name=name, mpl_kwargs=mpl_kwargs)
-
-    def _repr_html_(self):
-        """Return an html representation of the plot object. Will display as a
-        png for each WindowPlotMPL instance in self.plots"""
-        ret = ''
-        for field in self.plots:
-            img = base64.b64encode(self.plots[field]._repr_png_())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
-        return ret
+    def setup_callbacks(self):
+        for key in callback_registry:
+            ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
+                       'UnitBoundaryCallback']
+            if self._plot_type.startswith('OffAxis'):
+                ignored += ['HopCirclesCallback','HopParticleCallback',
+                            'ParticleCallback','ClumpContourCallback',
+                            'GridBoundaryCallback']
+            if self._plot_type == 'OffAxisProjection':
+                ignored += ['VelocityCallback','MagFieldCallback',
+                            'QuiverCallback','CuttingQuiverCallback',
+                            'StreamlineCallback']
+            if key in ignored:
+                continue
+            cbname = callback_registry[key]._type_name
+            CallbackMaker = callback_registry[key]
+            callback = invalidate_plot(apply_callback(CallbackMaker))
+            callback.__doc__ = CallbackMaker.__doc__
+            self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
 class SlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a parameter file
@@ -1255,7 +903,8 @@ class SlicePlot(PWViewerMPL):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis], center=center, fields=fields, **field_parameters)
-        PWViewerMPL.__init__(self, slc, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, slc, bounds, origin=origin,
+                             fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1372,7 +1021,8 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
                          center=center, source=data_source, **field_parameters)
-        PWViewerMPL.__init__(self, proj, bounds, origin=origin, fontsize=fontsize)
+        PWViewerMPL.__init__(self, proj, bounds, origin=origin,
+                             fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1431,8 +1081,9 @@ class OffAxisSlicePlot(PWViewerMPL):
         cutting = pf.h.cutting(normal, center, fields=fields, north_vector=north_vector, **field_parameters)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window', periodic=False,
-                             oblique=True, fontsize=fontsize)
+        PWViewerMPL.__init__(self, cutting, bounds, origin='center-window',
+                             periodic=False, oblique=True, fontsize=fontsize,
+                             fields=fields)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
@@ -1556,7 +1207,7 @@ Central Point:  (data coords)<br>
 &nbsp;&nbsp;&nbsp;%(zc)0.14f
 """
 
-class PWViewerExtJS(PWViewer):
+class PWViewerExtJS(PlotWindow):
     """A viewer for the web interface.
 
     """
@@ -1564,6 +1215,8 @@ class PWViewerExtJS(PWViewer):
     _current_field = None
     _widget_name = "plot_window"
     _frb_generator = FixedResolutionBuffer
+    _contour_info = None
+    _vector_info = None
 
     def _setup_plots(self):
         from yt.gui.reason.bottle_mods import PayloadHandler
@@ -1783,7 +1436,16 @@ class WindowPlotMPL(ImagePlotMPL):
     def __init__(
             self, data, cbname, cmap, extent, aspect, zlim, size, fontsize,
             figure, axes, cax):
-        fsize, axrect, caxrect = self._get_best_layout(size, fontsize)
+        self._draw_colorbar = True
+        self._draw_axes = True
+        self._cache_layout(size, fontsize)
+
+        # Make room for a colorbar
+        self.input_size = size
+        self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
+
+        # Compute layout
+        axrect, caxrect = self._get_best_layout(fontsize)
         if np.any(np.array(axrect) < 0):
             mylog.warning('The axis ratio of the requested plot is very narrow.  '
                           'There is a good chance the plot will not look very good, '
@@ -1792,7 +1454,7 @@ class WindowPlotMPL(ImagePlotMPL):
             axrect  = (0.07, 0.10, 0.80, 0.80)
             caxrect = (0.87, 0.10, 0.04, 0.80)
         ImagePlotMPL.__init__(
-            self, fsize, axrect, caxrect, zlim, figure, axes, cax)
+            self, self.fsize, axrect, caxrect, zlim, figure, axes, cax)
         self._init_image(data, cbname, cmap, extent, aspect)
         self.image.axes.ticklabel_format(scilimits=(-2,3))
         if cbname == 'linear':
@@ -1800,31 +1462,74 @@ class WindowPlotMPL(ImagePlotMPL):
             self.cb.formatter.set_powerlimits((-2,3))
             self.cb.update_ticks()
 
-    def _get_best_layout(self, size, fontsize=18):
-        aspect = 1.0*size[0]/size[1]
-        fontscale = fontsize / 18.0
+    def _toggle_axes(self, choice):
+        self._draw_axes = choice
+        self.axes.get_xaxis().set_visible(choice)
+        self.axes.get_yaxis().set_visible(choice)
+        axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
 
-        # add room for a colorbar
-        cbar_inches = fontscale*0.7
-        newsize = [size[0] + cbar_inches, size[1]]
+    def _toggle_colorbar(self, choice):
+        self._draw_colorbar = choice
+        self.cax.set_visible(choice)
+        self.fsize = [self.input_size[0] + self._cbar_inches[choice], self.input_size[1]]
+        axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
+
+    def hide_axes(self):
+        self._toggle_axes(False)
+        return self
+
+    def show_axes(self):
+        self._toggle_axes(True)
+        return self
+
+    def hide_colorbar(self):
+        self._toggle_colorbar(False)
+        return self
+
+    def show_colorbar(self):
+        self._toggle_colorbar(True)
+        return self
+
+    def _cache_layout(self, size, fontsize):
+        self._cbar_inches = {}
+        self._text_buffx = {}
+        self._text_bottomy = {}
+        self._text_topy = {}
+
+        self._aspect = 1.0*size[0]/size[1]
+        self._fontscale = fontsize / 18.0
+
+        # Leave room for a colorbar, if we are drawing it.
+        self._cbar_inches[True] = self._fontscale*0.7
+        self._cbar_inches[False] = 0
 
         # add buffers for text, and a bit of whitespace on top
-        text_buffx = fontscale * 1.0/(newsize[0])
-        text_bottomy = fontscale * 0.7/size[1]
-        text_topy = fontscale * 0.3/size[1]
+        self._text_buffx[True] = self._fontscale * 1.0/(size[0] + self._cbar_inches[True])
+        self._text_bottomy[True] = self._fontscale * 0.7/size[1]
+        self._text_topy[True] = self._fontscale * 0.3/size[1]
 
+        # No buffer for text if we're not drawing axes
+        self._text_buffx[False] = 0
+        self._text_bottomy[False] = 0
+        self._text_topy[False] = 0
+
+    def _get_best_layout(self, fontsize=18):
         # calculate how much room the colorbar takes
-        cbar_frac = cbar_inches/newsize[0]
+        cbar_frac = self._cbar_inches[self._draw_colorbar]/self.fsize[0]
 
         # Calculate y fraction, then use to make x fraction.
-        yfrac = 1.0-text_bottomy-text_topy
-        ysize = yfrac*size[1]
-        xsize = aspect*ysize
-        xfrac = xsize/newsize[0]
+        yfrac = 1.0-self._text_bottomy[self._draw_axes]-self._text_topy[self._draw_axes]
+        ysize = yfrac*self.fsize[1]
+        xsize = self._aspect*ysize
+        xfrac = xsize/self.fsize[0]
 
         # Now make sure it all fits!
-        xbig = xfrac + text_buffx + 2.0*cbar_frac
-        ybig = yfrac + text_bottomy + text_topy
+        xbig = xfrac + self._text_buffx[self._draw_axes] + 2.0*cbar_frac
+        ybig = yfrac + self._text_bottomy[self._draw_axes] + self._text_topy[self._draw_axes]
 
         if xbig > 1:
             xsize /= xbig
@@ -1832,9 +1537,20 @@ class WindowPlotMPL(ImagePlotMPL):
         if ybig > 1:
             xsize /= ybig
             ysize /= ybig
-        xfrac = xsize/newsize[0]
-        yfrac = ysize/newsize[1]
+        xfrac = xsize/self.fsize[0]
+        yfrac = ysize/self.fsize[1]
 
-        axrect = (text_buffx, text_bottomy, xfrac, yfrac )
-        caxrect = (text_buffx+xfrac, text_bottomy, cbar_frac/4., yfrac )
-        return newsize, axrect, caxrect
+        axrect = (
+            self._text_buffx[self._draw_axes],
+            self._text_bottomy[self._draw_axes],
+            xfrac,
+            yfrac
+        )
+
+        caxrect = (
+            self._text_buffx[self._draw_axes]+xfrac,
+            self._text_bottomy[self._draw_axes],
+            cbar_frac/4.,
+            yfrac
+        )
+        return axrect, caxrect

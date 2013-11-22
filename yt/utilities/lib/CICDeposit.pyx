@@ -1,29 +1,17 @@
 """
 Simple integrators for the radiative transfer equation
 
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: CASA/University of Colorado
-Author: Christopher Moody <juxtaposicion@gmail.com>
-Affiliation: cemoody@ucsc.edu
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 cimport numpy as np
 cimport cython
@@ -143,12 +131,21 @@ def CICSample_3(np.ndarray[np.float64_t, ndim=1] posx,
     le2 = leftEdge[2] 
                                                     
     for n in range(npositions):
-
+        
         # Compute the position of the central cell
-        xpos = fclip((posx[n] - le0)*fact, 0.5001, edge0)
-        ypos = fclip((posy[n] - le1)*fact, 0.5001, edge1)
-        zpos = fclip((posz[n] - le2)*fact, 0.5001, edge2)
 
+        xpos = (posx[n]-le0)*fact
+        ypos = (posy[n]-le1)*fact
+        zpos = (posz[n]-le2)*fact
+        
+        if (xpos < -1 or ypos < -1 or zpos < -1 or
+            xpos >= edge0+1.5001 or ypos >= edge1+1.5001 or zpos >= edge2+1.5001):
+            continue
+
+        xpos = fclip(xpos, 0.5001, edge0)
+        ypos = fclip(ypos, 0.5001, edge1)
+        zpos = fclip(zpos, 0.5001, edge2)
+        
         i1  = <int> (xpos + 0.5)
         j1  = <int> (ypos + 0.5)
         k1  = <int> (zpos + 0.5)

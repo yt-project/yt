@@ -1,27 +1,17 @@
 """
 CosmologyTimeSeries class and member functions.
 
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: Michigan State University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2012 Britton Smith.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import numpy as np
 
@@ -123,7 +113,18 @@ class CosmologySplice(object):
         self._calculate_deltaz_min(deltaz_min=deltaz_min)
 
         cosmology_splice = []
-
+ 
+        if near_redshift == far_redshift:
+            self.simulation.get_time_series(redshifts=[near_redshift])
+            cosmology_splice.append({'time': self.simulation[0].current_time,
+                                     'redshift': self.simulation[0].current_redshift,
+                                     'filename': os.path.join(self.simulation[0].fullpath,
+                                                              self.simulation[0].basename),
+                                     'next': None})
+            mylog.info("create_cosmology_splice: Using %s for z = %f ." %
+                       (cosmology_splice[0]['filename'], near_redshift))
+            return cosmology_splice
+        
         # Use minimum number of datasets to go from z_i to z_f.
         if minimal:
 

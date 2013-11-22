@@ -1,27 +1,17 @@
 """
 Enzo-specific IO functions
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from collections import defaultdict
 
@@ -41,6 +31,10 @@ from yt.utilities.logger import ytLogger as mylog
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
     _data_style = "enzo_hdf4"
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
 
     def modify(self, field):
         return field.swapaxes(0,2)
@@ -71,6 +65,10 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
     _data_style = "enzo_hdf5"
     _particle_reader = True
 
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+
     def _read_field_names(self, grid):
         """
         Returns a list of fields associated with the filename
@@ -99,6 +97,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 
     _data_style = "enzo_packed_3d"
     _particle_reader = True
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
 
     def _read_particles(self, fields, rtype, args, grid_list, enclosed,
                         conv_factors):
@@ -154,10 +156,18 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_3d_gz"
 
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+
     def modify(self, field):
+        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        sl =  (slice(NGZ,-NGZ),
+               slice(NGZ,-NGZ),
+               slice(NGZ,-NGZ))
         if len(field.shape) < 3:
             return field
-        tr = field[3:-3,3:-3,3:-3].swapaxes(0,2)
+        tr = field[sl].swapaxes(0,2)
         return tr.copy() # To ensure contiguous
 
     def _read_raw_data_set(self, grid, field):
@@ -168,7 +178,7 @@ class IOHandlerInMemory(BaseIOHandler):
 
     _data_style = "enzo_inline"
 
-    def __init__(self, ghost_zones=3):
+    def __init__(self, pf, ghost_zones=3):
         import enzo
         self.enzo = enzo
         self.grids_in_memory = enzo.grid_data
@@ -176,6 +186,7 @@ class IOHandlerInMemory(BaseIOHandler):
         self.my_slice = (slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones))
+        self.pf = pf
         BaseIOHandler.__init__(self)
 
     def _read_data(self, grid, field):
@@ -220,6 +231,10 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _data_style = "enzo_packed_2d"
     _particle_reader = False
 
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+
     def _read_data(self, grid, field):
         return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
@@ -237,6 +252,10 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_1d"
     _particle_reader = False
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
 
     def _read_data(self, grid, field):
         return hdf5_light_reader.ReadData(grid.filename,

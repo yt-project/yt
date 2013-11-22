@@ -1,31 +1,17 @@
 """
 Various non-grid data containers.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <Britton.Smith@colorado.edu>
-Affiliation: University of Colorado at Boulder
-Author: Geoffrey So <gsiisg@gmail.com>
-Affiliation: UCSD Physics/CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 data_object_registry = {}
 
@@ -656,7 +642,7 @@ class AMRRayBase(AMR1DData):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
@@ -888,7 +874,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         pw.set_axes_unit(axes_unit)
         return pw
 
-    def to_frb(self, width, resolution, center=None, height=None):
+    def to_frb(self, width, resolution, center=None, height=None,
+               periodic = False):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -913,6 +900,9 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
+        periodic : bool
+            Should the returned Fixed Resolution Buffer be periodic?  (default:
+            False).
 
         Returns
         -------
@@ -946,7 +936,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         yax = y_dict[self.axis]
         bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
                   center[yax] - height*0.5, center[yax] + height*0.5)
-        frb = FixedResolutionBuffer(self, bounds, resolution)
+        frb = FixedResolutionBuffer(self, bounds, resolution,
+                                    periodic = periodic)
         return frb
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
@@ -955,7 +946,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         interpolated using the nearest neighbor method, with *side* points on a
         side.
         """
-        import yt.utilities.delaunay as de
+        import matplotlib.delaunay.triangulate as de
         if log_spacing:
             zz = np.log10(self[field])
         else:
@@ -1781,6 +1772,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
@@ -1845,9 +1839,9 @@ class AMRQuadTreeProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
-            dependencies = self.get_dependencies(fields, ghost_zones = False)
+            dependencies = self.get_dependencies(fields)
             mylog.debug("Preloading %s grids and getting %s",
-                            len(self.source._get_grid_objs()),
+                            len([g for g in self.source._get_grid_objs()]),
                             dependencies)
             self.comm.preload([g for g in self._get_grid_objs()],
                           dependencies, self.hierarchy.io)
@@ -1878,7 +1872,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         new_buf.append(self.comm.mpi_allreduce(buf.pop(0), op=op))
         tree = self._get_tree(len(fields))
         tree.frombuffer(new_buf[0], new_buf[1], new_buf[2], merge_style)
-        coord_data, field_data, weight_data, dxs = [], [], [], []
+        coord_data, field_data, weight_data, dxs, dys = [], [], [], [], []
         for level in range(0, self._max_level + 1):
             npos, nvals, nwvals = tree.get_all_from_level(level, False)
             coord_data.append(npos)
@@ -1887,10 +1881,12 @@ class AMRQuadTreeProjBase(AMR2DData):
             weight_data.append(nwvals)
             gs = self.source.select_grids(level)
             if len(gs) > 0:
-                ds = gs[0].dds[0]
+                dx = gs[0].dds[x_dict[self.axis]]
+                dy = gs[0].dds[y_dict[self.axis]]
             else:
-                ds = 0.0
-            dxs.append(np.ones(nvals.shape[0], dtype='float64') * ds)
+                dx = dy = 0.0
+            dxs.append(np.ones(nvals.shape[0], dtype='float64') * dx)
+            dys.append(np.ones(nvals.shape[0], dtype='float64') * dy)
         coord_data = np.concatenate(coord_data, axis=0).transpose()
         field_data = np.concatenate(field_data, axis=0).transpose()
         if self._weight is None:
@@ -1898,17 +1894,19 @@ class AMRQuadTreeProjBase(AMR2DData):
             field_data *= convs[:,None]
         weight_data = np.concatenate(weight_data, axis=0).transpose()
         dxs = np.concatenate(dxs, axis=0).transpose()
+        dys = np.concatenate(dys, axis=0).transpose()
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
+        data['pdy'] = dys
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
+        data['py'] = (coord_data[1,:]+0.5) * data['pdy'] + oy
         data['weight_field'] = weight_data
         del coord_data
         data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
+        data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = np.vsplit(data.pop('fields'), len(fields))
@@ -1960,7 +1958,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
         if len(grids_to_initialize) == 0: return
-        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+        pbar = get_pbar('Initializing tree % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_initialize))
         start_index = np.empty(2, dtype="int64")
         dims = np.empty(2, dtype="int64")
@@ -2116,6 +2114,9 @@ class AMRProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
@@ -3673,8 +3674,7 @@ class AMREllipsoidBase(AMR3DData):
 
 
 class AMRCoveringGridBase(AMR3DData):
-    """A 3D region with all data extracted to a single, specified
-    resolution.
+    """A 3D region with all data extracted to a single, specified resolution.
 
     Parameters
     ----------
@@ -3690,7 +3690,6 @@ class AMRCoveringGridBase(AMR3DData):
     Examples
     --------
     cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-                              right_edge=[1.0, 1.0, 1.0],
                               dims=[128, 128, 128])
     """
     _spatial = True
@@ -3702,6 +3701,7 @@ class AMRCoveringGridBase(AMR3DData):
                            fields=fields, pf=pf, **kwargs)
         self.left_edge = np.array(left_edge)
         self.level = level
+        dims = np.array(dims)
         rdx = self.pf.domain_dimensions*self.pf.refine_by**level
         rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.dds = self.pf.domain_width / rdx.astype("float64")

@@ -86,6 +86,9 @@ def test_all_fields():
         if field.startswith("particle"): continue
         if field.startswith("CIC"): continue
         if field.startswith("WeakLensingConvergence"): continue
+        if field.startswith("BetaPar"): continue
+        if field.startswith("TBetaPar"): continue
+        if field.startswith("BetaPerp"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
             yield TestFieldAccess(field, nproc)

@@ -1,27 +1,17 @@
 """
 Data structures for Enzo
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 import weakref
@@ -50,6 +40,7 @@ from yt.data_objects.field_info_container import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities import hdf5_light_reader
+from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
@@ -141,10 +132,11 @@ class EnzoGridGZ(EnzoGrid):
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
                              smoothed=False):
-        # We ignore smoothed in this case.
-        if n_zones > 3:
+        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        if n_zones > NGZ:
             return EnzoGrid.retrieve_ghost_zones(
                 self, n_zones, fields, all_levels, smoothed)
+
         # ----- Below is mostly the original code, except we remove the field
         # ----- access section
         # We will attempt this by creating a datacube that is exactly bigger
@@ -172,7 +164,12 @@ class EnzoGridGZ(EnzoGrid):
                 level, new_left_edge, **kwargs)
         # ----- This is EnzoGrid.get_data, duplicated here mostly for
         # ----  efficiency's sake.
-        sl = [slice(3 - n_zones, -(3 - n_zones)) for i in range(3)]
+        start_zone = NGZ - n_zones
+        if start_zone == 0:
+            end_zone = None
+        else:
+            end_zone = -(NGZ - n_zones)
+        sl = [slice(start_zone, end_zone) for i in range(3)]
         if fields is None: return cube
         for field in ensure_list(fields):
             if field in self.hierarchy.field_list:
@@ -228,6 +225,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _count_grids(self):
+        self.num_grids = None
         test_grid = test_grid_id = None
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
@@ -238,8 +236,11 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("NumberOfStarParticles"):
                 self.num_stars = int(line.split("=")[-1])
             if line.startswith("Grid "):
-                self.num_grids = test_grid_id = int(line.split("=")[-1])
-                break
+                if self.num_grids is None:
+                    self.num_grids = int(line.split("=")[-1])
+                test_grid_id = int(line.split("=")[-1])
+                if test_grid is not None:
+                    break
         self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
@@ -296,7 +297,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
+        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
         for grid_id in xrange(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
@@ -552,6 +553,9 @@ class EnzoHierarchy(AMRHierarchy):
                 for p in pfields:
                     result[p] = result[p][0:max_num]
         return result
+
+    def _setup_data_io(self):
+            self.io = io_registry[self.data_style](self.parameter_file)
 
 
 class EnzoHierarchyInMemory(EnzoHierarchy):

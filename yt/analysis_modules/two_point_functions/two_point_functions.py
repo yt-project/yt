@@ -1,27 +1,17 @@
 """
 Two Point Functions Framework.
 
-Author: Stephen Skory <s@skory.us>
-Affiliation: UCSD Physics/CASS
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2010-2011 Stephen Skory.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import h5py
 from yt.mods import *
@@ -509,7 +499,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             points[:, 2] = points[:, 2] / self.period[2]
             fKD.qv_many = points.T
             fKD.nn_tags = np.asfortranarray(np.empty((1, points.shape[0]), dtype='int64'))
-            find_many_nn_nearest_neighbors()
+            fKD.find_many_nn_nearest_neighbors()
             # The -1 is for fortran counting.
             n = fKD.nn_tags[0,:] - 1
         return n

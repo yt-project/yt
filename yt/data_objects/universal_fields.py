@@ -3,27 +3,17 @@ The basic field info container resides here.  These classes, code specific and
 universal, are the means by which we access fields across YT, both derived and
 native.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2008-2011 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 import types
 import numpy as np
@@ -1133,6 +1123,182 @@ add_field("VorticitySquared", function=_VorticitySquared,
               ["x-velocity","y-velocity","z-velocity"])],
           units=r"\rm{s}^{-2}",
           convert_function=_convertVorticitySquared)
+
+def _Shear(field, data):
+    """
+    Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
+                         (dvx/dz + dvz/dx)^2 ]^(0.5)
+    where dvx/dy = [vx(j-1) - vx(j+1)]/[2dy]
+    and is in units of s^(-1)
+    (it's just like vorticity except add the derivative pairs instead
+     of subtracting them)
+    """
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = np.zeros(data["x-velocity"].shape)
+    if data.pf.dimensionality > 1:
+        dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
+                data["y-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac*data["dx"].flat[0])
+        dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
+                data["x-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac*data["dy"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
+        del dvydx, dvxdy
+    if data.pf.dimensionality > 2:
+        dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
+                data["z-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac*data["dy"].flat[0])
+        dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
+                data["y-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac*data["dz"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
+        del dvzdy, dvydz
+        dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
+                data["x-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac*data["dz"].flat[0])
+        dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
+                data["z-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac*data["dx"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
+        del dvxdz, dvzdx
+    new_field = new_field**0.5
+    new_field = np.abs(new_field)
+    return new_field
+def _convertShear(data):
+    return data.convert("cm")**-1.0
+add_field("Shear", function=_Shear,
+          validators=[ValidateSpatial(1,
+              ["x-velocity","y-velocity","z-velocity"])],
+          units=r"\rm{s}^{-1}",
+          convert_function=_convertShear, take_log=False)
+
+def _ShearCriterion(field, data):
+    """
+    Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
+                         (dvx/dz + dvz/dx)^2 ]^(0.5)
+    where dvx/dy = [vx(j-1) - vx(j+1)]/[2dy]
+    and is in units of s^(-1)
+    (it's just like vorticity except add the derivative pairs instead
+     of subtracting them)
+
+    Divide by c_s to leave Shear in units of cm**-1, which 
+    can be compared against the inverse of the local cell size (1/dx) 
+    to determine if refinement should occur.
+    """
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = np.zeros(data["x-velocity"].shape)
+    if data.pf.dimensionality > 1:
+        dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
+                data["y-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac*data["dx"].flat[0])
+        dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
+                data["x-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac*data["dy"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
+        del dvydx, dvxdy
+    if data.pf.dimensionality > 2:
+        dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
+                data["z-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac*data["dy"].flat[0])
+        dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
+                data["y-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac*data["dz"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
+        del dvzdy, dvydz
+        dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
+                data["x-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac*data["dz"].flat[0])
+        dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
+                data["z-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac*data["dx"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
+        del dvxdz, dvzdx
+    new_field /= data["SoundSpeed"]**2.0
+    new_field = new_field**(0.5)
+    new_field = np.abs(new_field)
+    return new_field
+
+def _convertShearCriterion(data):
+    return data.convert("cm")**-1.0
+add_field("ShearCriterion", function=_ShearCriterion,
+          validators=[ValidateSpatial(1,
+              ["x-velocity","y-velocity","z-velocity", "SoundSpeed"])],
+          units=r"\rm{cm}^{-1}",
+          convert_function=_convertShearCriterion, take_log=False)
+
+def _ShearMach(field, data):
+    """
+    Dimensionless Shear (ShearMach) is defined nearly the same as shear, 
+    except that it is scaled by the local dx/dy/dz and the local sound speed.
+    So it results in a unitless quantity that is effectively measuring 
+    shear in mach number.  
+
+    In order to avoid discontinuities created by multiplying by dx/dy/dz at
+    grid refinement boundaries, we also multiply by 2**GridLevel.
+
+    Shear (Mach) = [(dvx + dvy)^2 + (dvz + dvy)^2 +
+                    (dvx + dvz)^2  ]^(0.5) / c_sound
+    """
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = np.zeros(data["x-velocity"].shape)
+    if data.pf.dimensionality > 1:
+        dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
+                data["y-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac)
+        dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
+                data["x-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac)
+        new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
+        del dvydx, dvxdy
+    if data.pf.dimensionality > 2:
+        dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
+                data["z-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac)
+        dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
+                data["y-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac)
+        new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
+        del dvzdy, dvydz
+        dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
+                data["x-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac)
+        dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
+                data["z-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac)
+        new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
+        del dvxdz, dvzdx
+    new_field *= ((2.0**data.level)/data["SoundSpeed"])**2.0
+    new_field = new_field**0.5
+    new_field = np.abs(new_field)
+    return new_field
+add_field("ShearMach", function=_ShearMach,
+          validators=[ValidateSpatial(1,
+              ["x-velocity","y-velocity","z-velocity","SoundSpeed"])],
+          units=r"\rm{Mach}",take_log=False)
 
 def _gradPressureX(field, data):
     # We need to set up stencils

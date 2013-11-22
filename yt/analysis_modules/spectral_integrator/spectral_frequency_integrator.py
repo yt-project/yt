@@ -2,36 +2,27 @@
 Integrator classes to deal with interpolation and integration of input spectral
 bins.  Currently only supports Cloudy-style data.
 
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittons@origins.colorado.edu>
-Affiliation: Michigan State University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2007-2012 Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
 
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 
 from exceptions import IOError
 import h5py
 import numpy as np
 import os
 
-from yt.funcs import *
+from yt.funcs import \
+     download_file, \
+     mylog, \
+     only_on_root
 
 from yt.data_objects.field_info_container import add_field
 from yt.utilities.exceptions import YTException
@@ -39,6 +30,23 @@ from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
 
 xray_data_version = 1
+
+def _get_data_file():
+    data_file = "xray_emissivity.h5"
+    data_url = "http://yt-project.org/data"
+    if "YT_DEST" in os.environ and \
+      os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
+        data_dir = os.path.join(os.environ["YT_DEST"], "data")
+    else:
+        data_dir = "."
+    data_path = os.path.join(data_dir, data_file)
+    if not os.path.exists(data_path):
+        mylog.info("Attempting to download supplementary data from %s to %s." % 
+                   (data_url, data_dir))
+        fn = download_file(os.path.join(data_url, data_file), data_path)
+        if fn != data_path:
+            raise RuntimeError, "Failed to download supplementary data."
+    return data_path
 
 class EnergyBoundsException(YTException):
     def __init__(self, lower, upper):
@@ -74,8 +82,7 @@ class EmissivityIntegrator(object):
 
         default_filename = False
         if filename is None:
-            filename = os.path.join(os.environ["YT_DEST"], 
-                                    "data", "xray_emissivity.h5")
+            filename = _get_data_file()
             default_filename = True
 
         if not os.path.exists(filename):

@@ -128,8 +128,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("VolumeIntegrator", 
                ["yt/utilities/lib/VolumeIntegrator.pyx",
                 "yt/utilities/lib/FixedInterpolator.c",
-                "yt/utilities/lib/kdtree.c"] +
-                 glob.glob("yt/utilities/lib/healpix_*.c"), 
+                "yt/utilities/lib/kdtree.c"],
                include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
                depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
@@ -137,20 +136,12 @@ def configuration(parent_package='',top_path=None):
                           "yt/utilities/lib/healpix_interface.pxd",
                           "yt/utilities/lib/endian_swap.h",
                           "yt/utilities/lib/FixedInterpolator.h",
-                          "yt/utilities/lib/healpix_vectors.h",
-                          "yt/utilities/lib/kdtree.h",
-                          "yt/utilities/lib/healpix_ang2pix_nest.c",
-                          "yt/utilities/lib/healpix_mk_pix2xy.c",
-                          "yt/utilities/lib/healpix_mk_xy2pix.c",
-                          "yt/utilities/lib/healpix_pix2ang_nest.c",
-                          "yt/utilities/lib/healpix_pix2vec_nest.c",
-                          "yt/utilities/lib/healpix_vec2pix_nest.c"]
+                          "yt/utilities/lib/kdtree.h"],
           )
     config.add_extension("grid_traversal", 
                ["yt/utilities/lib/grid_traversal.pyx",
                 "yt/utilities/lib/FixedInterpolator.c",
-                "yt/utilities/lib/kdtree.c"] +
-                 glob.glob("yt/utilities/lib/healpix_*.c"), 
+                "yt/utilities/lib/kdtree.c"],
                include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
                extra_compile_args=omp_args,
