@@ -33,7 +33,7 @@ from .fixed_resolution import \
     OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
-from .base_plot_types import ImagePlotMPL
+from .base_plot_types import ImagePlotMPL, CallbackWrapper
 from .plot_container import \
     ImagePlotContainer, log_transform, linear_transform, \
     invalidate_data, invalidate_plot, apply_callback
@@ -90,27 +90,6 @@ def validate_iterable_width(width, unit=None):
             return (width, unit)
         except YTInvalidWidthError:
             return (width, width)
-
-class CallbackWrapper(object):
-    def __init__(self, viewer, window_plot, frb, field):
-        self.frb = frb
-        self.data = frb.data_source
-        self._axes = window_plot.axes
-        self._figure = window_plot.figure
-        if len(self._axes.images) > 0:
-            self.image = self._axes.images[0]
-        if frb.axis < 3:
-            DD = frb.pf.domain_width
-            xax = x_dict[frb.axis]
-            yax = y_dict[frb.axis]
-            self._period = (DD[xax], DD[yax])
-        self.pf = frb.pf
-        self.xlim = viewer.xlim
-        self.ylim = viewer.ylim
-        if 'OffAxisSlice' in viewer._plot_type:
-            self._type_name = "CuttingPlane"
-        else:
-            self._type_name = viewer._plot_type
 
 def StandardWidth(axis, width, depth, pf):
     if width is None:

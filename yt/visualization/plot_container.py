@@ -13,6 +13,7 @@ from .plot_modifications import \
     callback_registry
 from .plot_window import \
     CallbackWrapper
+from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, get_ipython_api_version
