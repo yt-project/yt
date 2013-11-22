@@ -1772,6 +1772,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
@@ -2111,6 +2114,9 @@ class AMRProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
