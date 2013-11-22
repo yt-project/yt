@@ -1,3 +1,5 @@
+import __builtin__
+import base64
 import numpy as np
 import matplotlib
 import os
@@ -7,9 +9,17 @@ from matplotlib.font_manager import FontProperties
 
 from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
+from .plot_modifications import \
+    callback_registry
+from .plot_window import \
+    CallbackWrapper
 
-from yt.funcs import defaultdict, get_image_suffix
+from yt.funcs import \
+    defaultdict, get_image_suffix, get_ipython_api_version
 from yt.utilities.definitions import axis_names
+from yt.utilities.exceptions import \
+    YTNotInsideNotebook
+
 
 def invalidate_data(f):
     @wraps(f)
@@ -24,6 +34,7 @@ def invalidate_data(f):
         return rv
     return newfunc
 
+
 def invalidate_figure(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -35,6 +46,7 @@ def invalidate_figure(f):
         return rv
     return newfunc
 
+
 def invalidate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -44,15 +56,17 @@ def invalidate_plot(f):
         return rv
     return newfunc
 
+
 def apply_callback(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        rv = f(*args[1:], **kwargs)
-        args[0]._callbacks.append((f.__name__,(args,kwargs)))
+        #rv = f(*args[1:], **kwargs)
+        args[0]._callbacks.append((f.__name__, (args, kwargs)))
         return args[0]
     return newfunc
 
 field_transforms = {}
+
 
 class FieldTransform(object):
     def __init__(self, name, func, locator):
@@ -74,6 +88,7 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
+
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
 
@@ -81,6 +96,7 @@ class ImagePlotContainer(object):
     _plot_type = None
     _plot_valid = False
     _colorbar_valid = False
+
     def __init__(self, data_source, fields, figure_size, fontsize):
         self.data_source = data_source
         self.figure_size = figure_size
@@ -117,7 +133,7 @@ class ImagePlotContainer(object):
 
     def get_log(self, field):
         """get the transform type of a field.
-        
+
         Parameters
         ----------
         field : string
@@ -329,12 +345,12 @@ class ImagePlotContainer(object):
         suffix = get_image_suffix(name)
         if suffix != '':
             for k, v in self.plots.iteritems():
-                names.append(v.save(name,mpl_kwargs))
+                names.append(v.save(name, mpl_kwargs))
             return names
         axis = axis_names[self.data_source.axis]
         weight = None
         type = self._plot_type
-        if type in ['Projection','OffAxisProjection']:
+        if type in ['Projection', 'OffAxisProjection']:
             weight = self.data_source.weight_field
             if weight is not None:
                 weight = weight.replace(' ', '_')
@@ -348,7 +364,7 @@ class ImagePlotContainer(object):
                 n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
                 n += "_%s" % (weight)
-            names.append(v.save(n,mpl_kwargs))
+            names.append(v.save(n, mpl_kwargs))
         return names
 
     @invalidate_data
@@ -383,6 +399,7 @@ class ImagePlotContainer(object):
         Examples
         --------
 
+        >>> from yt.mods import SlicePlot
         >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
         >>> slc.show()
 
@@ -398,8 +415,8 @@ class ImagePlotContainer(object):
             raise YTNotInsideNotebook
 
     def display(self, name=None, mpl_kwargs=None):
-        """Will attempt to show the plot in in an IPython notebook.  Failing that, the 
-        plot will be saved to disk."""
+        """Will attempt to show the plot in in an IPython notebook.
+        Failing that, the plot will be saved to disk."""
         try:
             return self.show()
         except YTNotInsideNotebook:
