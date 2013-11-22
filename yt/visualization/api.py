@@ -54,6 +54,10 @@ from plot_window import \
     ProjectionPlot, \
     OffAxisProjectionPlot
 
+from profile_plotter import \
+     ProfilePlot, \
+     PhasePlot
+    
 from base_plot_types import \
     get_multi_plot
 

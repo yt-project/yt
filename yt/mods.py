@@ -54,7 +54,7 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ImageArray
+    ImageArray, create_profile
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -107,7 +107,7 @@ from yt.visualization.api import \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
     SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps
+    show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
