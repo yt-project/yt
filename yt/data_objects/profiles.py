@@ -1052,6 +1052,8 @@ def create_profile(data_source, bin_fields, n = 64,
     for f, n, (mi, ma), l in zip(bin_fields, n, ex, logs):
         args += [f, n, mi, ma, l] 
     obj = cls(*args, weight_field = weight_field)
+    setattr(obj, "accumulation", accumulation)
+    setattr(obj, "fractional", fractional)
     if fields is not None:
         obj.add_fields(fields)
     for field in fields:
