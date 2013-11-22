@@ -121,6 +121,9 @@ class ProfilePlot(object):
         If True, the profile values for a bin N are the cumulative sum of 
         all the values from bin 0 to N.
         Default: False.
+    fractional : If True the profile values are divided by the sum of all 
+        the profile data such that the profile represents a probability 
+        distribution function.
     label : str or list of strings
         If a string, the label to be put on the line plotted.  If a list, 
         this should be a list of labels for each profile to be overplotted.
@@ -178,22 +181,19 @@ class ProfilePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields, 
-                 weight_field="CellMassMsun", n_bins=64, accumulation=False,
+                 weight_field="CellMassMsun", n_bins=64, 
+                 accumulation=False, fractional=False,
                  label=None, plot_spec=None, profiles=None):
         self.y_log = {}
         self.y_title = {}
         if profiles is None:
             self.profiles = [create_profile(data_source, [x_field], n_bins,
                                             fields=ensure_list(y_fields),
-                                            weight_field=weight_field)]
+                                            weight_field=weight_field,
+                                            accumulation=accumulation,
+                                            fractional=fractional)]
         else:
             self.profiles = ensure_list(profiles)
-
-        if accumulation:
-            for profile in self.profiles:
-                for field in profile.field_data:
-                    profile.field_data[field] = \
-                      profile.field_data[field].cumsum()
         
         self.label = label
         if not isinstance(self.label, list):
@@ -310,8 +310,7 @@ class ProfilePlot(object):
         self._plot_valid = True
 
     @classmethod
-    def from_profiles(cls, profiles, labels=None, plot_specs=None,
-                      accumulation=False):
+    def from_profiles(cls, profiles, labels=None, plot_specs=None):
         r"""
         Instantiate a ProfilePlot object from a list of profiles 
         created with `yt.data_objects.profiles.create_profile`.
@@ -328,10 +327,6 @@ class ProfilePlot(object):
             A list of dictionaries containing plot keyword 
             arguments.  For example, [dict(color="red", linestyle=":")].
             Default: None.
-        accumulation : bool
-            If True, the profile values for a bin N are the cumulative sum of 
-            all the values from bin 0 to N.
-            Default: False.
 
         Examples
         --------
@@ -360,7 +355,7 @@ class ProfilePlot(object):
         if plot_specs is not None and len(plot_specs) != len(profiles):
             raise RuntimeError("Profiles list and plot_specs list must be the same size.")
         obj = cls(None, None, None, profiles=profiles, label=labels,
-                  plot_spec=plot_specs, accumulation=accumulation)
+                  plot_spec=plot_specs)
         return obj
 
     @invalidate_plot
@@ -468,6 +463,16 @@ class PhasePlot(ImagePlotContainer):
     y_bins : int
         The number of bins in y field for the profile.
         Default: 128.
+    accumulation : bool or list of bools
+        If True, the profile values for a bin n are the cumulative sum of 
+        all the values from bin 0 to n.  If -True, the sum is reversed so 
+        that the value for bin n is the cumulative sum from bin N (total bins) 
+        to n.  A list of values can be given to control the summation in each
+        dimension independently.
+        Default: False.
+    fractional : If True the profile values are divided by the sum of all 
+        the profile data such that the profile represents a probability 
+        distribution function.
     profile : profile object
         If not None, a profile object created with 
         `yt.data_objects.profiles.create_profile`.
@@ -508,6 +513,7 @@ class PhasePlot(ImagePlotContainer):
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="CellMassMsun", x_bins=128, y_bins=128,
+                 accumulation=False, fractional=False,
                  profile=None, fontsize=18, font_color="black", figure_size=8.0):
         self.plot_title = {}
         self.z_log = {}
@@ -517,7 +523,9 @@ class PhasePlot(ImagePlotContainer):
             profile = create_profile(data_source,
                [x_field, y_field], [x_bins, y_bins],
                fields = ensure_list(z_fields),
-               weight_field = weight_field)
+               weight_field = weight_field,
+               accumulation=accumulation,
+               fractional=fractional)
         self.profile = profile
         ImagePlotContainer.__init__(self, data_source, profile.field_data.keys(),
                                     figure_size, fontsize)

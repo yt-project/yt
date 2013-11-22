@@ -983,8 +983,9 @@ class Profile3D(ProfileND):
                       storage.used)
         # We've binned it!
 
-def create_profile(data_source, bin_fields, n = None, 
-                   weight_field = "CellMass", fields = None):
+def create_profile(data_source, bin_fields, n = 64, 
+                   weight_field = "CellMass", fields = None,
+                   accumulation = False, fractional = False):
     r"""
     Create a 1, 2, or 3D profile object.
 
@@ -1000,13 +1001,23 @@ def create_profile(data_source, bin_fields, n = None,
     n : int or list of ints
         The number of bins in each dimension.  If None, 64 bins for 
         each bin are used for each bin field.
-        Default: None
+        Default: 64.
     weight_field : str
         The weight field for computing weighted average for the profile 
         values.  If None, the profile values are sums of the data in 
         each bin.
     fields : list of strings
         The fields to be profiled.
+    accumulation : bool or list of bools
+        If True, the profile values for a bin n are the cumulative sum of 
+        all the values from bin 0 to n.  If -True, the sum is reversed so 
+        that the value for bin n is the cumulative sum from bin N (total bins) 
+        to n.  If the profile is 2D or 3D, a list of values can be given to 
+        control the summation in each dimension independently.
+        Default: False.
+    fractional : If True the profile values are divided by the sum of all 
+        the profile data such that the profile represents a probability 
+        distribution function.
 
     Examples
     --------
@@ -1030,9 +1041,10 @@ def create_profile(data_source, bin_fields, n = None,
         cls = Profile3D
     else:
         raise NotImplementedError
-    if n is None: n = 64
     if not iterable(n):
         n = [n] * len(bin_fields)
+    if not iterable(accumulation):
+        accumulation = [accumulation] * len(bin_fields)
     logs = [data_source.pf.field_info[f].take_log for f in bin_fields]
     ex = [data_source.quantities["Extrema"](f, non_zero=l)[0] \
           for f, l in zip(bin_fields, logs)]
@@ -1042,5 +1054,20 @@ def create_profile(data_source, bin_fields, n = None,
     obj = cls(*args, weight_field = weight_field)
     if fields is not None:
         obj.add_fields(fields)
+    for field in fields:
+        if fractional:
+            obj.field_data[field] /= obj.field_data[field].sum()
+        for axis, acc in enumerate(accumulation):
+            if not acc: continue
+            temp = obj.field_data[field]
+            temp = np.rollaxis(temp, axis)
+            if acc < 0:
+                temp = temp[::-1]
+            temp = temp.cumsum(axis=0)
+            if acc < 0:
+                temp = temp[::-1]
+            temp = np.rollaxis(temp, axis)
+            obj.field_data[field] = temp
+            
     return obj
 
