@@ -604,7 +604,7 @@ SCIPY='scipy-0.12.0'
 SQLITE='sqlite-autoconf-3071700'
 SYMPY='sympy-0.7.3'
 TORNADO='tornado-3.1'
-ZEROMQ='zeromq-3.2.3'
+ZEROMQ='zeromq-3.2.4'
 ZLIB='zlib-1.2.8'
 
 # Now we dump all our SHA512 files out.
@@ -633,7 +633,7 @@ echo '80c8e137c3ccba86575d4263e144ba2c4684b94b5cd620e200f094c92d4e118ea6a631d27b
 echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
 echo '2992baa3edfb4e1842fb642abf0bf0fc0bf56fc183aab8fed6b3c42fbea928fa110ede7fdddea2d63fc5953e8d304b04da433dc811134fadefb1eecc326121b8  sympy-0.7.3.tar.gz' > sympy-0.7.3.tar.gz.sha512
 echo '101544db6c97beeadc5a02b2ef79edefa0a07e129840ace2e4aa451f3976002a273606bcdc12d6cef5c22ff4c1c9dcf60abccfdee4cbef8e3f957cd25c0430cf  tornado-3.1.tar.gz' > tornado-3.1.tar.gz.sha512
-echo '34ffb6aa645f62bd1158a8f2888bf92929ccf90917a6c50ed51ed1240732f498522e164d1536f26480c87ad5457fe614a93bf0e15f2f89b0b168e64a30de68ca  zeromq-3.2.3.tar.gz' > zeromq-3.2.3.tar.gz.sha512
+echo 'd8eef84860bc5314b42a2cc210340572a9148e008ea65f7650844d0edbe457d6758785047c2770399607f69ba3b3a544db9775a5cdf961223f7e278ef7e0f5c6  zeromq-3.2.4.tar.gz' > zeromq-3.2.4.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
