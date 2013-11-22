@@ -661,13 +661,14 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='lower')
+        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper')
         return ax
 
     def draw(self):
         self._pylab.draw()
     
     def save_annotated(self, fn, image, enhance=True, dpi=100):
+        image = image.swapaxes(0,1) 
         ax = self.show_mpl(image, enhance=enhance)
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
