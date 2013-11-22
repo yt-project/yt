@@ -286,6 +286,25 @@ function host_specific
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
         fi
     fi
+    if [ -f /etc/redhat-release ]
+    then
+        echo "Looks like you're on an Redhat-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * openssl-devel"
+        echo "  * uuid-devel"
+        echo "  * readline-devel"
+        echo "  * ncurses-devel"
+        echo "  * zip"
+        echo "  * gcc-{,c++,gfortran}"
+        echo "  * make"
+        echo "  * patch"
+        echo 
+        echo "You can accomplish this by executing:"
+        echo "$ sudo yum install gcc gcc-g++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
+    fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
     then
         echo "Looks like you're on an OpenSUSE-compatible machine."
