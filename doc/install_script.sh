@@ -264,23 +264,21 @@ function host_specific
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.2: download Xcode 4.6.1 from the mac app store."
+	echo "OS X 10.8.4 and 10.9: download Xcode 5.02 from the mac app store."
 	echo "(search for Xcode)."
+    echo
 	echo "Additionally, you will have to manually install the Xcode"
-	echo "command line tools, see:"
-	echo "http://stackoverflow.com/questions/9353444"
-	echo "Alternatively, download the Xcode command line tools from"
-	echo "the Apple developer tools website."
+	echo "command line tools."
+    echo
+    echo "For OS X 10.8, see:"
+   	echo "http://stackoverflow.com/questions/9353444"
 	echo
-        echo "NOTE: It's possible that the installation will fail, if so,"
-	echo "please set the following environment variables, remove any"
-	echo "broken installation tree, and re-run this script verbatim."
-        echo
-        echo "$ export CC=gcc"
-        echo "$ export CXX=g++"
-	echo
-        OSX_VERSION=`sw_vers -productVersion`
-        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+    echo "For OS X 10.9, the command line tools can be installed"
+    echo "with the following command:"
+    echo "    xcode-select --install"
+    echo
+    OSX_VERSION=`sw_vers -productVersion`
+    if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
             MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
