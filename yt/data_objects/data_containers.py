@@ -3674,8 +3674,7 @@ class AMREllipsoidBase(AMR3DData):
 
 
 class AMRCoveringGridBase(AMR3DData):
-    """A 3D region with all data extracted to a single, specified
-    resolution.
+    """A 3D region with all data extracted to a single, specified resolution.
 
     Parameters
     ----------
