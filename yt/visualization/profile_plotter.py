@@ -87,6 +87,21 @@ class AxesContainer(dict):
         self[key] = figure.add_subplot(111)
         return self[key]
 
+def sanitize_label(label, nprofiles):
+    label = ensure_list(label)
+    
+    if len(label) == 1:
+        label = label * nprofiles
+    
+    if len(label) != nprofiles:
+        raise RuntimeError("Number of labels must match number of profiles")
+
+    for l in label:
+        if l is not None and not isinstance(l, basestring):
+            raise RuntimeError("All labels must be None or a string")
+
+    return label
+
 class ProfilePlot(object):
     r"""
     Create a 1d profile plot from a data source or from a list 
@@ -195,9 +210,7 @@ class ProfilePlot(object):
         else:
             self.profiles = ensure_list(profiles)
         
-        self.label = label
-        if not isinstance(self.label, list):
-            self.label = [self.label] * len(self.profiles)
+        self.label = sanitize_label(label, len(self.profiles))
 
         self.plot_spec = plot_spec
         if self.plot_spec is None:
@@ -306,7 +319,8 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
-            axes.legend(loc="best")
+            if any(self.label):
+                axes.legend(loc="best")
         self._plot_valid = True
 
     @classmethod
