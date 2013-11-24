@@ -200,7 +200,7 @@ class ProfilePlot(object):
             raise RuntimeError(
                 "Number of labels must match number of profiles")
 
-        if any((not isinstance(l, basestring) for l in label)):
+        if any((not isinstance(l, basestring) for l in label)
             raise RuntimeError(
                 "All labels must be strings")
 
