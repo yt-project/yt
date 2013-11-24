@@ -25,7 +25,7 @@ import yt.utilities.lib as amr_utils
 from yt.utilities.physical_constants import \
     kpc_per_cm, \
     sec_per_year
-from yt.data_objects.universal_fields import add_field
+from yt.fields.universal_fields import add_field
 from yt.mods import *
 
 def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,

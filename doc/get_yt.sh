@@ -263,8 +263,6 @@ declare -a YT_DEPS
 YT_DEPS+=('python')
 YT_DEPS+=('distribute')
 YT_DEPS+=('libpng')
-YT_DEPS+=('freetype')
-YT_DEPS+=('hdf5')
 YT_DEPS+=('numpy')
 YT_DEPS+=('pygments')
 YT_DEPS+=('jinja2')
@@ -275,6 +273,7 @@ YT_DEPS+=('sphinx')
 YT_DEPS+=('h5py')
 YT_DEPS+=('matplotlib')
 YT_DEPS+=('cython')
+YT_DEPS+=('nose')
 
 # Here is our dependency list for yt
 log_cmd conda config --system --add channels http://repo.continuum.io/pkgs/free
@@ -301,7 +300,6 @@ else
   export HDF5_DIR=${DEST_DIR}
   log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
   pushd ${YT_DIR}
-  echo $DEST_DIR > hdf5.cfg
   log_cmd python setup.py develop
   popd
   log_cmd cp ${YT_DIR}/doc/activate ${DEST_DIR}/bin/activate 

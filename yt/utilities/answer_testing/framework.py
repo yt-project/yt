@@ -24,6 +24,7 @@ import cPickle
 import shelve
 import zlib
 import tempfile
+import glob
 
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
@@ -252,26 +253,34 @@ def temp_cwd(cwd):
     yield
     os.chdir(oldcwd)
 
-def can_run_pf(pf_fn):
+def can_run_pf(pf_fn, file_check = False):
     if isinstance(pf_fn, StaticOutput):
         return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
+        if file_check:
+            return os.path.isfile(pf_fn) and \
+                AnswerTestingTest.result_storage is not None
         try:
             load(pf_fn)
         except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
-def data_dir_load(pf_fn):
+def data_dir_load(pf_fn, cls = None, args = None, kwargs = None):
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(pf_fn, StaticOutput): return pf_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
-        pf = load(pf_fn)
+        if cls is None:
+            pf = load(pf_fn)
+        else:
+            args = args or ()
+            kwargs = kwargs or {}
+            pf = cls(pf_fn, *args, **kwargs)
         pf.h
         return pf
 
@@ -312,15 +321,6 @@ class AnswerTestingTest(object):
 
     def compare(self, new_result, old_result):
         raise RuntimeError
-
-    def create_obj(self, pf, obj_type):
-        # obj_type should be tuple of
-        #  ( obj_name, ( args ) )
-        if obj_type is None:
-            return pf.h.all_data()
-        cls = getattr(pf.h, obj_type[0])
-        obj = cls(*obj_type[1])
-        return obj
 
     def create_plot(self, pf, plot_type, plot_field, plot_axis, plot_kwargs = None):
         # plot_type should be a string
@@ -370,14 +370,14 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field", )
 
     def __init__(self, pf_fn, field, obj_type = None,
-                 decimals = None):
+                 decimals = 10):
         super(FieldValuesTest, self).__init__(pf_fn)
         self.obj_type = obj_type
         self.field = field
         self.decimals = decimals
 
     def run(self):
-        obj = self.create_obj(self.pf, self.obj_type)
+        obj = create_obj(self.pf, self.obj_type)
         avg = obj.quantities["WeightedAverageQuantity"](self.field,
                              weight="Ones")
         (mi, ma), = obj.quantities["Extrema"](self.field)
@@ -404,7 +404,7 @@ class AllFieldValuesTest(AnswerTestingTest):
         self.decimals = decimals
 
     def run(self):
-        obj = self.create_obj(self.pf, self.obj_type)
+        obj = create_obj(self.pf, self.obj_type)
         return obj[self.field]
 
     def compare(self, new_result, old_result):
@@ -431,7 +431,7 @@ class ProjectionValuesTest(AnswerTestingTest):
 
     def run(self):
         if self.obj_type is not None:
-            obj = self.create_obj(self.pf, self.obj_type)
+            obj = create_obj(self.pf, self.obj_type)
         else:
             obj = None
         if self.pf.domain_dimensions[self.axis] == 1: return None
@@ -472,7 +472,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
 
     def run(self):
         if self.obj_type is not None:
-            obj = self.create_obj(self.pf, self.obj_type)
+            obj = create_obj(self.pf, self.obj_type)
         else:
             obj = None
         proj = self.pf.h.proj(self.field, self.axis, 
@@ -577,6 +577,16 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+def compare_image_lists(new_result, old_result, decimals):
+    fns = ['old.png', 'new.png']
+    num_images = len(old_result)
+    assert(num_images > 0)
+    for i in xrange(num_images):
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        for fn in fns: os.remove(fn)
+            
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
@@ -604,20 +614,80 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         return [zlib.compress(image.dumps())]
 
     def compare(self, new_result, old_result):
-        fns = ['old.png', 'new.png']
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[0])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[0])))
-        assert compare_images(fns[0], fns[1], 10**(-self.decimals)) == None
-        for fn in fns: os.remove(fn)
+        compare_image_lists(new_result, old_result, self.decimals)
 
-def requires_pf(pf_fn, big_data = False):
+class GenericArrayTest(AnswerTestingTest):
+    _type_name = "GenericArray"
+    _attrs = ('array_func_name','args','kwargs')
+    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
+        super(GenericArrayTest, self).__init__(pf_fn)
+        self.array_func = array_func
+        self.array_func_name = array_func.func_name
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        return self.array_func(*args, **kwargs)
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result),
+                                          err_msg="Number of outputs not equal.",
+                                          verbose=True)
+        for k in new_result:
+            if self.decimals is None:
+                assert_equal(new_result[k], old_result[k])
+            else:
+                assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
+
+class GenericImageTest(AnswerTestingTest):
+    _type_name = "GenericImage"
+    _attrs = ('image_func_name','args','kwargs')
+    def __init__(self, pf_fn, image_func, decimals, args=None, kwargs=None):
+        super(GenericImageTest, self).__init__(pf_fn)
+        self.image_func = image_func
+        self.image_func_name = image_func.func_name
+        self.args = args
+        self.kwargs = kwargs
+        self.decimals = decimals
+    def run(self):
+        if self.args is None:
+            args = []
+        else:
+            args = self.args
+        if self.kwargs is None:
+            kwargs = {}
+        else:
+            kwargs = self.kwargs
+        comp_imgs = []
+        tmpdir = tempfile.mkdtemp()
+        image_prefix = os.path.join(tmpdir,"test_img")
+        self.image_func(image_prefix, *args, **kwargs)
+        imgs = glob.glob(image_prefix+"*")
+        assert(len(imgs) > 0)
+        for img in imgs:
+            img_data = mpimg.imread(img)
+            os.remove(img)
+            comp_imgs.append(zlib.compress(img_data.dumps()))
+        return comp_imgs
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
+
+def requires_pf(pf_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
     if run_big_data == False and big_data == True:
         return ffalse
-    elif not can_run_pf(pf_fn):
+    elif not can_run_pf(pf_fn, file_check):
         return ffalse
     else:
         return ftrue
@@ -651,6 +721,15 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+def create_obj(pf, obj_type):
+    # obj_type should be tuple of
+    #  ( obj_name, ( args ) )
+    if obj_type is None:
+        return pf.h.all_data()
+    cls = getattr(pf.h, obj_type[0])
+    obj = cls(*obj_type[1])
+    return obj
 
 class AssertWrapper(object):
     """

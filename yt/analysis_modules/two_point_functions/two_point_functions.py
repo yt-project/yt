@@ -498,7 +498,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             points[:, 2] = points[:, 2] / self.period[2]
             fKD.qv_many = points.T
             fKD.nn_tags = np.asfortranarray(np.empty((1, points.shape[0]), dtype='int64'))
-            find_many_nn_nearest_neighbors()
+            fKD.find_many_nn_nearest_neighbors()
             # The -1 is for fortran counting.
             n = fKD.nn_tags[0,:] - 1
         return n

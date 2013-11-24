@@ -10,12 +10,6 @@ def check_for_png():
     return check_for_dependencies("PNG_DIR", "png.cfg", "png.h", "png")
 
 
-def check_for_freetype():
-    return check_for_dependencies(
-        "FTYPE_DIR", "freetype.cfg", "ft2build.h", "freetype"
-    )
-
-
 def check_for_openmp():
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
@@ -56,7 +50,6 @@ def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
     png_inc, png_lib = check_for_png()
-    freetype_inc, freetype_lib = check_for_freetype()
     if check_for_openmp() == True:
         omp_args = ['-fopenmp']
     else:
@@ -80,12 +73,6 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/fortran_reader.pyx"],
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("freetype_writer", 
-                ["yt/utilities/lib/freetype_writer.pyx"],
-                include_dirs = [freetype_inc,os.path.join(freetype_inc, "freetype2"),
-                                "yt/utilities/lib"],
-                library_dirs = [freetype_lib], libraries=["freetype"],
-                depends=["yt/utilities/lib/freetype_includes.h"])
     config.add_extension("geometry_utils", 
                 ["yt/utilities/lib/geometry_utils.pyx"],
                extra_compile_args=omp_args,

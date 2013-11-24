@@ -26,12 +26,12 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 import yt.utilities.lib as amr_utils
 from yt.utilities.physical_constants import mass_sun_cgs
 from yt.frontends.art.definitions import *
 
-from yt.data_objects.particle_fields import \
+from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions
 

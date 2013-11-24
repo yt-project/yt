@@ -47,9 +47,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Call the freemem ops on every ocy
         #of the root mesh recursively
         cdef i, j, k
+        if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
+            if self.root_mesh[i] == NULL: continue
             for j in range(self.nn[1]):
+                if self.root_mesh[i][j] == NULL: continue
                 for k in range(self.nn[2]):
+                    if self.root_mesh[i][j][k] == NULL: continue
                     self.visit_free(self.root_mesh[i][j][k])
         free(self.oct_list)
         free(self.dom_offsets)

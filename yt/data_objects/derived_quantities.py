@@ -88,8 +88,12 @@ def add_quantity(name, **kwargs):
 
 class DerivedQuantityCollection(object):
     functions = quantity_info
-    def __init__(self, data_source):
-        self.data_source = data_source
+    def __new__(cls, data_source, *args, **kwargs):
+        inst = object.__new__(cls)
+        inst.data_source = data_source
+        for f in inst.keys():
+            setattr(inst, camelcase_to_underscore(f), inst[f])
+        return inst
 
     def __getitem__(self, key):
         if key not in self.functions:

@@ -24,7 +24,7 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.data_objects.universal_fields
+import yt.fields.universal_fields
 
 GadgetFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_gadget_field = GadgetFieldInfo.add_field

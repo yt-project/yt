@@ -29,6 +29,7 @@ def test_moving7():
     pf = data_dir_load(m7)
     yield assert_equal, str(pf), "moving7_0010"
     for test in small_patch_amr(m7, _fields):
+        test_moving7.__name__ = test.description
         yield test
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
@@ -37,4 +38,5 @@ def test_galaxy0030():
     pf = data_dir_load(g30)
     yield assert_equal, str(pf), "galaxy0030"
     for test in big_patch_amr(g30, _fields):
+        test_galaxy0030.__name__ = test.description
         yield test

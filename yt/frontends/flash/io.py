@@ -25,11 +25,9 @@ class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _data_style = "flash_hdf5"
 
-    def __init__(self, pf, *args, **kwargs):
-        self._num_per_stride = kwargs.pop("num_per_stride", 1000000)
-        BaseIOHandler.__init__(self, *args, **kwargs)
+    def __init__(self, pf):
+        super(IOHandlerFLASH, self).__init__(pf)
         # Now we cache the particle fields
-        self.pf = pf
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         
@@ -89,3 +87,18 @@ class IOHandlerFLASH(BaseIOHandler):
                     data = ds[g.id - g._id_offset,:,:,:].transpose()
                     ind += g.select(selector, data, rv[field], ind) # caches
         return rv
+
+    def _read_chunk_data(self, chunk, fields):
+        f = self._handle
+        rv = {}
+        for g in chunk.objs:
+            rv[g.id] = {}
+        for field in fields:
+            ftype, fname = field
+            ds = f["/%s" % fname]
+            ind = 0
+            for g in chunk.objs:
+                data = ds[g.id - g._id_offset,:,:,:].transpose()
+                rv[g.id][field] = data
+        return rv
+

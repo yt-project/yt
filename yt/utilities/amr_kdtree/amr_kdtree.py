@@ -83,6 +83,7 @@ class Tree(object):
             grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
             gids = np.array([g.id for g in grids if g.Level == lvl],
                             dtype="int64")
+            if len(grids) == 0: continue
             self.add_grids(grids)
 
     def check_tree(self):

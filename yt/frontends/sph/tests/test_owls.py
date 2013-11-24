@@ -21,7 +21,8 @@ from yt.utilities.answer_testing.framework import \
     big_patch_amr, \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
-    FieldValuesTest
+    FieldValuesTest, \
+    create_obj
 from yt.frontends.sph.api import OWLSStaticOutput
 
 _fields = (("deposit", "all_density"), ("deposit", "all_count"),
@@ -40,13 +41,15 @@ def test_snapshot_033():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in pf.particle_types if ptype != "all")
     yield assert_equal, tot, (2*128*128*128)
-    for field in _fields:
-        for axis in [0, 1, 2]:
-            for ds in dso:
+    for ds in dso:
+        for field in _fields:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield PixelizedProjectionValuesTest(
                         os33, axis, field, weight_field,
                         ds)
-                yield FieldValuesTest(
-                        os33, field, ds)
-
+            yield FieldValuesTest(os33, field, ds)
+        dobj = create_obj(pf, ds)
+        s1 = dobj["Ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        yield assert_equal, s1, s2

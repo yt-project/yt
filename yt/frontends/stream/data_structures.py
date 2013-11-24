@@ -37,6 +37,10 @@ from yt.geometry.oct_geometry_handler import \
     OctreeGeometryHandler
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
+from yt.fields.particle_fields import \
+    particle_vector_functions, \
+    particle_deposition_functions, \
+    standard_particle_fields
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
@@ -231,7 +235,7 @@ class StreamHierarchy(GridGeometryHandler):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.stream_handler)
+            self.io = io_registry[self.data_style](self.pf)
 
     def update_data(self, data) :
 
@@ -731,7 +735,7 @@ class StreamParticleGeometryHandler(ParticleGeometryHandler):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.stream_handler)
+            self.io = io_registry[self.data_style](self.pf)
 
 class StreamParticleFile(ParticleFile):
     pass
@@ -746,6 +750,17 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
+
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
+        particle_vector_functions(ptype,
+            ["particle_position_%s" % ax for ax in 'xyz'],
+            ["particle_velocity_%s" % ax for ax in 'xyz'],
+            self.field_info)
+        particle_deposition_functions(ptype,
+            "Coordinates", "particle_mass", self.field_info)
+        standard_particle_fields(self.field_info, ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 def load_particles(data, sim_unit_to_cm, bbox=None,
                       sim_time=0.0, periodicity=(True, True, True),
@@ -883,7 +898,7 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.stream_handler)
+            self.io = io_registry[self.data_style](self.pf)
 
     def _detect_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
@@ -988,9 +1003,9 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
 class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
-    _num_zones = 2
 
-    def __init__(self, base_region, pf, oct_handler):
+    def __init__(self, base_region, pf, oct_handler, over_refine_factor = 1):
+        self._num_zones = 1 << (over_refine_factor)
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
@@ -1029,20 +1044,23 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.stream_handler)
+            self.io = io_registry[self.data_style](self.pf)
 
     def _initialize_oct_handler(self):
-        header = dict(dims = self.pf.domain_dimensions/2,
+        header = dict(dims = [1, 1, 1],
                       left_edge = self.pf.domain_left_edge,
                       right_edge = self.pf.domain_right_edge,
-                      octree = self.pf.octree_mask)
+                      octree = self.pf.octree_mask,
+                      over_refine = self.pf.over_refine_factor,
+                      partial_coverage = self.pf.partial_coverage)
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             base_region = getattr(dobj, "base_region", dobj)
             subset = [StreamOctreeSubset(base_region, self.parameter_file,
-                                         self.oct_handler)]
+                                         self.oct_handler,
+                                         self.pf.over_refine_factor)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -1082,8 +1100,9 @@ class StreamOctreeStaticOutput(StreamStaticOutput):
     _fieldinfo_known = KnownStreamFields
     _data_style = "stream_octree"
 
-def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
-                bbox=None, sim_time=0.0, periodicity=(True, True, True)):
+def load_octree(octree_mask, data, sim_unit_to_cm,
+                bbox=None, sim_time=0.0, periodicity=(True, True, True),
+                over_refine_factor = 1, partial_coverage = 1):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1095,9 +1114,10 @@ def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.
-    domain_dimensions : array_like
-        This is the domain dimensions of the grid
+        This is a depth-first refinement mask for an Octree.  It should be of
+        size n_octs * 8, where each item is 1 for an oct-cell being refined and
+        0 for it not being refined.  Note that for over_refine_factors != 1,
+        the children count will still be 8, so this is always 8.
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
@@ -1110,10 +1130,14 @@ def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    partial_coverage : boolean
+        Whether or not an oct can be refined cell-by-cell, or whether all 8 get
+        refined.
 
     """
 
-    domain_dimensions = np.array(domain_dimensions)
+    nz = (1 << (over_refine_factor))
+    domain_dimensions = np.array([nz, nz, nz])
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
@@ -1155,10 +1179,12 @@ def load_octree(octree_mask, domain_dimensions, data, sim_unit_to_cm,
 
     spf = StreamOctreeStaticOutput(handler)
     spf.octree_mask = octree_mask
+    spf.partial_coverage = partial_coverage
     spf.units["cm"] = sim_unit_to_cm
     spf.units['1'] = 1.0
     spf.units["unitary"] = 1.0
     box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
+    spf.over_refine_factor = over_refine_factor
     for unit in mpc_conversion.keys():
         spf.units[unit] = mpc_conversion[unit] * box_in_mpc
 
@@ -1201,7 +1227,7 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.stream_handler)
+            self.io = io_registry[self.data_style](self.pf)
 
     def _detect_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))

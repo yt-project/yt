@@ -49,7 +49,6 @@ def test_cantor_5():
             ray = pf.h.ray(p1, p2)
             yield assert_almost_equal, ray["dts"].sum(dtype="float64"), 1.0, 8
     for field in _fields:
-        for axis in [0, 1, 2]:
-            for ds in dso:
-                yield FieldValuesTest(c5, field, ds)
+        for ds in dso:
+            yield FieldValuesTest(c5, field, ds)
 

@@ -16,6 +16,7 @@ Gadget-specific data-file handling function
 
 import h5py
 import numpy as np
+from .definitions import gadget_ptypes, ghdf5_ptypes
 from yt.funcs import *
 from yt.utilities.exceptions import *
 
@@ -28,8 +29,6 @@ from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.oct_container import _ORDER_MAX
 
 CHUNKSIZE = 10000000
-
-_vector_fields = ("Coordinates", "Velocity", "Velocities")
 
 def _get_h5_handle(fn):
     try:
@@ -45,23 +44,26 @@ def _get_h5_handle(fn):
 
 class IOHandlerOWLS(BaseIOHandler):
     _data_style = "OWLS"
+    _vector_fields = ("Coordinates", "Velocity", "Velocities")
+    _known_ptypes = ghdf5_ptypes
+    _var_mass = None
+
+    @property
+    def var_mass(self):
+        if self._var_mass is None:
+            vm = []
+            for i, v in enumerate(self.pf["Massarr"]):
+                if v == 0:
+                    vm.append(self._known_ptypes[i])
+            self._var_mass = tuple(vm)
+        return self._var_mass
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        psize = defaultdict(lambda: 0)
+    def _read_particle_coords(self, chunks, ptf):
+        # This will read chunks and yield the results.
         chunks = list(chunks)
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-        # For this type of file, we actually have something slightly different.
-        # We are given a list of ParticleDataChunks, which is composed of
-        # individual ParticleOctreeSubsets.  The data_files attribute on these
-        # may in fact overlap.  So we will iterate over a union of all the
-        # data_files.
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
@@ -70,21 +72,18 @@ class IOHandlerOWLS(BaseIOHandler):
             f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
-                coords = f["/%s/Coordinates" % ptype][:].astype("float64")
-                psize[ptype] += selector.count_points(
-                    coords[:,0], coords[:,1], coords[:,2])
-                del coords
+                x = f["/%s/Coordinates" % ptype][:,0].astype("float64")
+                y = f["/%s/Coordinates" % ptype][:,1].astype("float64")
+                z = f["/%s/Coordinates" % ptype][:,2].astype("float64")
+                yield ptype, (x, y, z)
             f.close()
+
+    def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        ind = {}
-        for field in fields:
-            mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            if field[1] in _vector_fields:
-                shape = (psize[field[0]], 3)
-            else:
-                shape = psize[field[0]]
-            rv[field] = np.empty(shape, dtype="float64")
-            ind[field] = 0
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
         for data_file in data_files:
             f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
@@ -95,14 +94,15 @@ class IOHandlerOWLS(BaseIOHandler):
                 del coords
                 if mask is None: continue
                 for field in field_list:
-                    data = g[field][:][mask,...]
-                    my_ind = ind[ptype, field]
-                    mylog.debug("Filling from %s to %s with %s",
-                        my_ind, my_ind+data.shape[0], field)
-                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                    ind[ptype, field] += data.shape[0]
+                    if field in ("Mass", "Masses") and \
+                        ptype not in self.var_mass:
+                        data = np.empty(mask.sum(), dtype="float64")
+                        ind = self._known_ptypes.index(ptype) 
+                        data[:] = self.pf["Massarr"][ind]
+                    else:
+                        data = g[field][:][mask,...]
+                    yield (ptype, field), data
             f.close()
-        return rv
 
     def _initialize_index(self, data_file, regions):
         f = _get_h5_handle(data_file.filename)
@@ -116,6 +116,12 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
+            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0),
+                                       pos.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+pos.shape[0]] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
@@ -135,16 +141,21 @@ class IOHandlerOWLS(BaseIOHandler):
     def _identify_fields(self, data_file):
         f = _get_h5_handle(data_file.filename)
         fields = []
+        cname = self.pf._particle_coordinates_name
+        mname = self.pf._particle_mass_name
         for key in f.keys():
             if not key.startswith("PartType"): continue
             g = f[key]
-            if "Coordinates" not in g: continue
+            if cname not in g: continue
             #ptype = int(key[8:])
             ptype = str(key)
             for k in g.keys():
                 if not hasattr(g[k], "shape"): continue
                 # str => not unicode!
                 fields.append((ptype, str(k)))
+            if mname not in g.keys():
+                # We'll append it anyway.
+                fields.append((ptype, mname))
         f.close()
         return fields
 
@@ -155,6 +166,7 @@ ZeroMass = object()
 
 class IOHandlerGadgetBinary(BaseIOHandler):
     _data_style = "gadget_binary"
+    _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
     # Particle types (Table 3 in GADGET-2 user guide)
     _ptypes = ( "Gas",
@@ -181,28 +193,28 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     _fields = ( "Coordinates",
                 "Velocities",
                 "ParticleIDs",
-                ("Masses", ZeroMass),
+                "Mass",
                 ("InternalEnergy", "Gas"),
                 ("Density", "Gas"),
                 ("SmoothingLength", "Gas"),
     )
 
+    _var_mass = None
+
+    @property
+    def var_mass(self):
+        if self._var_mass is None:
+            vm = []
+            for i, v in enumerate(self.pf["Massarr"]):
+                if v == 0:
+                    vm.append(self._ptypes[i])
+            self._var_mass = tuple(vm)
+        return self._var_mass
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        ptall = []
-        psize = defaultdict(lambda: 0)
-        chunks = list(chunks)
-        ptypes = set()
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-            ptypes.add(ftype)
-        ptypes = list(ptypes)
-        ptypes.sort(key = lambda a: self._ptypes.index(a))
+    def _read_particle_coords(self, chunks, ptf):
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
@@ -211,23 +223,19 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype in ptypes:
+            for ptype in ptf:
+                # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(f,
                             tp[ptype], "Coordinates")
-                psize[ptype] += selector.count_points(
-                    pos[:,0], pos[:,1], pos[:,2])
-                del pos
+                yield ptype, (pos[:,0], pos[:,1], pos[:,2])
             f.close()
-        ind = {}
-        for field in fields:
-            mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            if field[1] in _vector_fields:
-                shape = (psize[field[0]], 3)
-            else:
-                shape = psize[field[0]]
-            rv[field] = np.empty(shape, dtype="float64")
-            ind[field] = 0
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
         for data_file in data_files:
             poff = data_file.field_offsets
             tp = data_file.total_particles
@@ -241,16 +249,18 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 del pos
                 if mask is None: continue
                 for field in field_list:
+                    if field == "Mass" and ptype not in self.var_mass:
+                        data = np.empty(mask.sum(), dtype="float64")
+                        m = self.pf.parameters["Massarr"][
+                            self._ptypes.index(ptype)]
+                        data[:] = m
+                        yield (ptype, field), data
+                        continue
                     f.seek(poff[ptype, field], os.SEEK_SET)
                     data = self._read_field_from_file(f, tp[ptype], field)
-                    data = data[mask]
-                    my_ind = ind[ptype, field]
-                    mylog.debug("Filling (%s, %s) from %s to %s",
-                        ptype, field, my_ind, my_ind+data.shape[0])
-                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                    ind[ptype, field] += data.shape[0]
+                    data = data[mask,...]
+                    yield (ptype, field), data
             f.close()
-        return rv
 
     def _read_field_from_file(self, f, count, name):
         if count == 0: return
@@ -258,10 +268,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             dt = "uint32"
         else:
             dt = "float32"
-        if name in _vector_fields:
+        if name in self._vector_fields:
             count *= 3
         arr = np.fromfile(f, dtype=dt, count = count)
-        if name in _vector_fields:
+        if name in self._vector_fields:
             arr = arr.reshape((count/3, 3), order="C")
         return arr.astype("float64")
 
@@ -270,13 +280,18 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         DLE = data_file.pf.domain_left_edge
         DRE = data_file.pf.domain_right_edge
         dx = (DRE - DLE) / 2**_ORDER_MAX
-        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
+            if np.any(pp.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pp.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pp.min(axis=0),
+                                       pp.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
         regions.add_data_file(pp, data_file.file_id)
         morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
         return morton
@@ -303,10 +318,12 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 continue
             pos += 4
             for ptype in self._ptypes:
+                if field == "Mass" and ptype not in self.var_mass:
+                    continue
                 if (ptype, field) not in field_list:
                     continue
                 offsets[(ptype, field)] = pos
-                if field in _vector_fields:
+                if field in self._vector_fields:
                     pos += 3 * pcount[ptype] * fs
                 else:
                     pos += pcount[ptype] * fs
@@ -337,6 +354,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
 
 class IOHandlerTipsyBinary(BaseIOHandler):
     _data_style = "tipsy"
+    _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
     _pdtypes = None # dtypes, to be filled in later
 
@@ -377,7 +395,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         rv = {}
         for field in fields:
             mylog.debug("Allocating %s values for %s", size, field)
-            if field in _vector_fields:
+            if field in self._vector_fields:
                 rv[field] = np.empty((size, 3), dtype="float64")
                 if size == 0: continue
                 rv[field][:,0] = vals[field]['x'][mask]
@@ -395,16 +413,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                       self.domain_right_edge[i] - eps)
         return rv
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        ptypes = set()
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-            ptypes.add(ftype)
-        ptypes = list(ptypes)
-        ptypes.sort(key = lambda a: self._ptypes.index(a))
+    def _read_particle_coords(self, chunks, ptf):
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
@@ -413,19 +422,36 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype in ptypes:
+            for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
+                if tp[ptype] == 0: continue
+                f.seek(poff[ptype], os.SEEK_SET)
+                p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
+                d = [p['Coordinates'][ax].astype("float64") for ax in 'xyz']
+                del p
+                yield ptype, d
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            poff = data_file.field_offsets
+            tp = data_file.total_particles
+            f = open(data_file.filename, "rb")
+            for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
                 f.seek(poff[ptype], os.SEEK_SET)
                 p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
                 mask = selector.select_points(
                     p['Coordinates']['x'].astype("float64"),
                     p['Coordinates']['y'].astype("float64"),
                     p['Coordinates']['z'].astype("float64"))
-                tf = self._fill_fields(ptf[ptype], p, mask)
-                for field in tf:
-                    rv[ptype, field] = tf[field]
-                del p, tf
+                if mask is None: continue
+                tf = self._fill_fields(field_list, p, mask)
+                for field in field_list:
+                    yield (ptype, field), tf.pop(field)
             f.close()
-        return rv
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf
@@ -494,7 +520,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             if tp[ptype] == 0: continue
             dtbase = data_file.pf._field_dtypes.get(field, 'f')
             ff = "%s%s" % (data_file.pf.endian, dtbase)
-            if field in _vector_fields:
+            if field in self._vector_fields:
                 dt = (field, [('x', ff), ('y', ff), ('z', ff)])
             else:
                 dt = (field, ff)
