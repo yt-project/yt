@@ -197,7 +197,7 @@ class ProfilePlot(object):
         
         self.label = label
         if not isinstance(self.label, list):
-            self.label = dict((p, label) for p in self.profiles)
+            self.label = [self.label] * len(self.profiles)
 
         self.plot_spec = plot_spec
         if self.plot_spec is None:
@@ -295,7 +295,7 @@ class ProfilePlot(object):
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.field_data.items():
                 self.axes[field].plot(profile.x[:-1], field_data, 
-                                      label=self.label[profile],
+                                      label=self.label[i],
                                       **self.plot_spec[i])
         
         # This relies on 'profile' leaking
@@ -306,8 +306,7 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
-            if self.label[profile] is not None:
-                axes.legend(loc="best")
+            axes.legend(loc="best")
         self._plot_valid = True
 
     @classmethod
