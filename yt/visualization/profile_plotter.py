@@ -195,16 +195,9 @@ class ProfilePlot(object):
         else:
             self.profiles = ensure_list(profiles)
         
-        label = ensure_list(label)
-        if len(label) != len(self.profiles):
-            raise RuntimeError(
-                "Number of labels must match number of profiles")
-
-        if any((not isinstance(l, basestring) for l in label)
-            raise RuntimeError(
-                "All labels must be strings")
-
-        self.label = dict((p, l) for p,l in zip(self.profiles, label))
+        self.label = label
+        if not isinstance(self.label, list):
+            self.label = dict((p, label) for p in self.profiles)
 
         self.plot_spec = plot_spec
         if self.plot_spec is None:
