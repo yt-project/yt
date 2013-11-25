@@ -45,3 +45,18 @@ def ramses_header(hvals):
                     ('numbl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
                   )
     yield tree_header
+
+field_aliases = {
+    'standard_five':     ('Density',
+                          'x-velocity',
+                          'y-velocity',
+                          'z-velocity',
+                          'Pressure'),
+    'standard_six':      ('Density',
+                          'x-velocity',
+                          'y-velocity',
+                          'z-velocity',
+                          'Pressure',
+                          'Metallicity'),
+
+}

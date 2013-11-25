@@ -28,7 +28,7 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
-from .definitions import ramses_header
+from .definitions import ramses_header, field_aliases
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib import \
@@ -404,12 +404,11 @@ class RAMSESStaticOutput(StaticOutput):
     _particle_coordinates_name = "Coordinates"
     
     def __init__(self, filename, data_style='ramses',
-                 fields = None,
+                 fields = "standard_six",
                  storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if fields is None:
-            fields = ["Density", "x-velocity", "y-velocity",
-	                  "z-velocity", "Pressure", "Metallicity"]
+        if isinstance(fields, types.StringTypes):
+            fields = field_aliases[fields]
         self._fields_in_file = fields
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
