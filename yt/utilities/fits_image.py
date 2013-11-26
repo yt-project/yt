@@ -13,6 +13,8 @@ FITSImageBuffer Class
 import numpy as np
 from yt.funcs import mylog, iterable
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.data_objects.construction_data_containers import YTCoveringGridBase
+
 try:
     from astropy.io.fits import HDUList, ImageHDU
     from astropy import wcs as pywcs
@@ -21,8 +23,7 @@ except ImportError:
 
 class FITSImageBuffer(HDUList):
 
-    def __init__(self, data, fields=None, center=None, proj_type=["x","y"],
-                 units="cm", wcs=None, D_A=None):
+    def __init__(self, data, fields=None, center=None, units="cm", wcs=None, D_A=None):
         r""" Initialize a FITSImageBuffer object.
 
         FITSImageBuffer contains a list of FITS ImageHDU instances, and optionally includes
@@ -42,9 +43,6 @@ class FITSImageBuffer(HDUList):
         center : array_like, optional
             The coordinates [xctr,yctr] of the images in units *units*. If *wcs* is set
             this is ignored.
-        proj_type : list of strings, optional
-            The tangent projection type of the image, used for constructing WCS
-            information. If *wcs* is set this is ignored.
         units : string, optional
             The units of the WCS coordinates. If *wcs* is set this is ignored.
         wcs : astropy.wcs object, optional
@@ -69,15 +67,11 @@ class FITSImageBuffer(HDUList):
         HDUList.__init__(self)
 
         if isinstance(fields, basestring): fields = [fields]
-        if units == "deg" and proj_type == ["x","y"]:
-            proj_type = ["RA---TAN","DEC--TAN"]
             
         exclude_fields = ['x','y','z','px','py','pz',
                           'pdx','pdy','pdz','weight_field']
 
         if center is not None: center = np.array(center)
-
-        self.axes = [None,None]
         
         if hasattr(data, 'keys'):
             img_data = data
@@ -96,12 +90,21 @@ class FITSImageBuffer(HDUList):
         for key in fields:
             if key not in exclude_fields:
                 mylog.info("Making a FITS image of field %s" % (key))
-                hdu = ImageHDU(np.array(img_data[key]), name=key)
+                hdu = ImageHDU(np.array(img_data[key]).transpose(), name=key)
                 self.append(hdu)
 
-        self.nx, self.ny = self[0].data.shape
+        self.dimensionality = len(self[0].data.shape)
         
-        if isinstance(img_data, FixedResolutionBuffer):
+        if self.dimensionality == 2:
+            self.nx, self.ny = self[0].data.shape
+        elif self.dimensionality == 3:
+            self.nx, self.ny, self.nz = self[0].data.shape
+
+        self.axes = [None]*self.dimensionality
+
+        if wcs is not None:
+            w = wcs
+        elif isinstance(img_data, FixedResolutionBuffer):
             # FRBs are a special case where we have coordinate
             # information, so we take advantage of this and
             # construct the WCS object
@@ -118,8 +121,11 @@ class FITSImageBuffer(HDUList):
                     D_A = D_A[0]/img_data.pf.units[D_A[1]]
                 dx /= -D_A
                 dy /= D_A
+                dx = np.rad2deg(dx)
+                dy = np.rad2deg(dy)
                 xctr = center[0]
                 yctr = center[1]
+                proj_type = ["RA---TAN","DEC--TAN"]
             else:
                 dx *= img_data.pf.units[units]
                 dy *= img_data.pf.units[units]
@@ -127,16 +133,32 @@ class FITSImageBuffer(HDUList):
                 yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2])
                 xctr *= img_data.pf.units[units]
                 yctr *= img_data.pf.units[units]
+                proj_type = ["linear"]*2
             w = pywcs.WCS(header=self[0].header, naxis=2)
             w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1)]
             w.wcs.cdelt = [dx,dy]
             w.wcs.crval = [xctr,yctr]
             w.wcs.ctype = proj_type
             w.wcs.cunit = [units]*2
+        elif isinstance(img_data, YTCoveringGridBase):
+            dx, dy, dz = img_data.dds
+            dx *= img_data.pf.units[units]
+            dy *= img_data.pf.units[units]
+            dz *= img_data.pf.units[units]
+            center = 0.5*(img_data.left_edge+img_data.right_edge)
+            center *= img_data.pf.units[units]
+            w = pywcs.WCS(header=self[0].header, naxis=3)
+            w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.ny+1)]
+            w.wcs.cdelt = [dx,dy,dz]
+            w.wcs.crval = center
+            w.wcs.ctype = ["linear"]*3
+            w.wcs.cunit = [units]*3
         else:
-            w = wcs
+            w = None
 
-        if w is not None:
+        if w is None:
+            self.wcs = None
+        else:
             self.set_wcs(w)
             
     def set_wcs(self, wcs):
@@ -145,13 +167,6 @@ class FITSImageBuffer(HDUList):
         with a WCS object *wcs*.
         """
         self.wcs = wcs
-        xpix, ypix = np.mgrid[1:self.nx:(self.nx-1)*1j,
-                              1:self.ny:(self.ny-1)*1j]
-        xworld, yworld = self.wcs.wcs_pix2world(xpix, ypix, 1,
-                                                ra_dec_order=True)
-        self.xworld = xworld.T
-        self.yworld = yworld.T
-        self.axes = self.wcs.wcs.ctype
         h = self.wcs.to_header()
         for img in self:
             for k, v in h.items():
@@ -189,15 +204,10 @@ class FITSImageBuffer(HDUList):
         return FITSImageBuffer(new_buffer, wcs=new_wcs)
     
     @property
-    def xwcs(self):
-        return self.xworld
-
-    @property
-    def ywcs(self):
-        return self.yworld
-            
-    @property
     def shape(self):
-        return self.nx, self.ny
+        if self.dimensionality == 2:
+            return self.nx, self.ny
+        elif self.dimensionality == 3:
+            return self.nx, self.ny, self.nz
 
     
