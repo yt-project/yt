@@ -22,7 +22,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("ramses")
     config.add_subpackage("sph")
     config.add_subpackage("stream")
-    config.add_subpackage("tiger")
     config.add_subpackage("boxlib/tests")
     config.add_subpackage("flash/tests")
     config.add_subpackage("enzo/tests")

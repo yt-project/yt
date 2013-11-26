@@ -83,6 +83,9 @@ class GeometryHandler(ParallelAnalysisInterface):
         mylog.debug("Setting up particle fields")
         self._setup_particle_types()
 
+        mylog.debug("Checking derived fields again")
+        self._derived_fields_add(self._check_later)
+
     def __del__(self):
         if self._data_file is not None:
             self._data_file.close()
@@ -110,6 +113,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         self._data_mode = None
         self._max_locations = {}
         self.num_grids = None
+        self._check_later = []
 
     def _setup_classes(self, dd):
         # Called by subclass
@@ -248,7 +252,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         fi = self.parameter_file.field_info
         # First we construct our list of fields to check
         fields_to_check = []
-        for field in fi.keys():
+        for field in fi:
             finfo = fi[field]
             # Explicitly defined
             if isinstance(field, tuple):
@@ -273,10 +277,12 @@ class GeometryHandler(ParallelAnalysisInterface):
         if fields_to_check is None:
             fields_to_check = []
         fi = self.parameter_file.field_info
+        self._check_later = []
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self.parameter_file)
             except Exception as e:
+                self._check_later.append(field)
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
@@ -458,6 +464,18 @@ class GeometryHandler(ParallelAnalysisInterface):
             self._data_file.close()
             del self._data_file
             self._data_file = None
+
+    def find_max(self, field):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        mylog.debug("Searching for maximum value of %s", field)
+        source = self.all_data()
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        return max_val, np.array([mx, my, mz], dtype="float64")
 
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
@@ -674,3 +692,4 @@ class ChunkDataCache(object):
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
+

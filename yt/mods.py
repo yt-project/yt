@@ -54,8 +54,7 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray, \
-    particle_filter
+    ImageArray, particle_filter
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -84,14 +83,8 @@ from yt.frontends.boxlib.api import \
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
 
-from yt.frontends.tiger.api import \
-    TigerStaticOutput, TigerFieldInfo, add_tiger_field
-
 from yt.frontends.artio.api import \
     ARTIOStaticOutput, ARTIOFieldInfo, add_artio_field
-
-#from yt.frontends.artio2.api import \
-#    Artio2StaticOutput
 
 from yt.frontends.ramses.api import \
     RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
@@ -108,9 +101,6 @@ from yt.frontends.moab.api import \
 
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
-
-from yt.frontends.art.api import \
-    ARTStaticOutput, ARTFieldInfo, add_art_field
 
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
@@ -143,7 +133,8 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
+    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
+    ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps
 
 from yt.visualization.volume_rendering.api import \

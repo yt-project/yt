@@ -120,15 +120,20 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = header['octree']
         cdef OctreeContainer obj = cls(header['dims'], header['left_edge'],
-                header['right_edge'], over_refine = header['over_refine'])
+                header['right_edge'], over_refine = header['over_refine'],
+                partial_coverage = header['partial_coverage'])
         # NOTE: We do not allow domain/file indices to be specified.
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         cdef OctVisitorData data
         obj.setup_data(&data, -1)
-        obj.allocate_domains([ref_mask.shape[0]])
+        assert(ref_mask.shape[0] / 8.0 == <int>(ref_mask.shape[0]/8.0))
+        obj.allocate_domains([ref_mask.shape[0] / 8.0])
         cdef int i, j, k, n
         data.global_index = -1
         data.level = 0
+        # This is not something I terribly like, but it needs to be done.
+        data.oref = 1
+        data.nz = 8
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
@@ -159,6 +164,7 @@ cdef class OctreeContainer:
                     data.pos[0] = i
                     data.pos[1] = j
                     data.pos[2] = k
+                    # Always visit covered
                     selector.recursively_visit_octs(
                         obj.root_mesh[i][j][k],
                         pos, dds, 0, oct_visitors.load_octree,
@@ -167,9 +173,10 @@ cdef class OctreeContainer:
                 pos[1] += dds[1]
             pos[0] += dds[0]
         obj.nocts = cur.n_assigned
-        if obj.nocts != ref_mask.size:
+        if obj.nocts * 8 != ref_mask.size:
             print "SOMETHING WRONG", ref_mask.size, obj.nocts, obj.oref
-            raise RuntimeError
+            raise KeyError(ref_mask.size, obj.nocts, obj.oref,
+                obj.partial_coverage)
         return obj
 
     cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
@@ -191,6 +198,7 @@ cdef class OctreeContainer:
         free_octs(self.cont)
         if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
+            if self.root_mesh[i] == NULL: continue
             for j in range(self.nn[1]):
                 if self.root_mesh[i][j] == NULL: continue
                 free(self.root_mesh[i][j])
@@ -301,8 +309,9 @@ cdef class OctreeContainer:
             else:
                 next = NULL
         if oinfo == NULL: return cur
+        cdef int ncells = (1 << self.oref)
         cdef np.float64_t factor = 1.0 / (1 << (self.oref-1))
-        if self.oref == 0: factor = 1.0
+        if self.oref == 0: factor = 2.0
         for i in range(3):
             # This will happen *after* we quit out, so we need to back out the
             # last change to cp
@@ -312,13 +321,11 @@ cdef class OctreeContainer:
                 cp[i] += dds[i]/2.0
             # We don't normally need to change dds[i] as it has been halved
             # from the oct width, thus making it already the cell width.
-            # But, for some cases where the oref != 1, this needs to be
-            # changed.
+            # But, since not everything has the cell width equal to have the
+            # width of the oct, we need to apply "factor".
             oinfo.dds[i] = dds[i] * factor # Cell width
-            oinfo.left_edge[i] = cp[i] - dds[i] # Center minus dds
             oinfo.ipos[i] = ipos[i]
-        if self.oref == 0:
-            oinfo.dds[i] = dds[i] # Same here as elsewhere
+            oinfo.left_edge[i] = oinfo.ipos[i] * (oinfo.dds[i] * ncells) + self.DLE[i]
         oinfo.level = level
         return cur
 
@@ -499,16 +506,18 @@ cdef class OctreeContainer:
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
                       right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
-                      over_refine = self.oref)
-        if self.partial_coverage == 1:
-            raise NotImplementedError
+                      over_refine = self.oref,
+                      partial_coverage = self.partial_coverage)
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
         self.setup_data(&data, -1)
+        data.oref = 1
+        data.nz = 8
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
-        ref_mask = np.zeros(self.nocts, dtype="uint8") - 1
+        ref_mask = np.zeros(self.nocts * 8, dtype="uint8") - 1
         data.array = <void *> ref_mask.data
+        # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
         header['octree'] = ref_mask
         return header

@@ -55,20 +55,16 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
         assert(len(chunks) == 1)
         tags = {}
         rv = {}
-        mesh = self.pf.pyne_mesh.mesh
+        pyne_mesh = self.pf.pyne_mesh
+        mesh = pyne_mesh.mesh
         for field in fields:
-            ftype, fname = field
             rv[field] = np.empty(size, dtype="float64")
-            tags[field] = mesh.getTagHandle(fname)
-        from itaps import iBase
-        ents = self.pf.pyne_mesh.structured_set.getEntities(
-            iBase.Type.region)
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ftype, fname in fields], ngrids)
         for field in fields:
             ftype, fname = field
-            ds = tags[field][ents]
+            ds = np.asarray(getattr(pyne_mesh, fname)[:], 'float64')
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:

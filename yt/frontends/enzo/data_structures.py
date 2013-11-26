@@ -121,8 +121,11 @@ class EnzoGrid(AMRGridPatch):
 
     @property
     def NumberOfActiveParticles(self):
-        if not hasattr(self.hierarchy, "grid_active_particle_count"): return 0
-        return self.hierarchy.grid_active_particle_count[self.id - self._id_offset]
+        if not hasattr(self.hierarchy, "grid_active_particle_count"): return {}
+        id = self.id - self._id_offset
+        nap = dict((ptype, self.hierarchy.grid_active_particle_count[ptype][id]) \
+                   for ptype in self.hierarchy.grid_active_particle_count)
+        return nap
 
 class EnzoGridInMemory(EnzoGrid):
     __slots__ = ['proc_num']
@@ -221,6 +224,7 @@ class EnzoHierarchy(GridGeometryHandler):
         self.object_types.sort()
 
     def _count_grids(self):
+        self.num_grids = None
         test_grid = test_grid_id = None
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
@@ -231,8 +235,11 @@ class EnzoHierarchy(GridGeometryHandler):
             if line.startswith("NumberOfStarParticles"):
                 self.num_stars = int(line.split("=")[-1])
             if line.startswith("Grid "):
-                self.num_grids = test_grid_id = int(line.split("=")[-1])
-                break
+                if self.num_grids is None:
+                    self.num_grids = int(line.split("=")[-1])
+                test_grid_id = int(line.split("=")[-1])
+                if test_grid is not None:
+                    break
         self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
@@ -274,7 +281,7 @@ class EnzoHierarchy(GridGeometryHandler):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
+        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
         if self.parameter_file.parameters["VersionNumber"] > 2.0:
             active_particles = True
             nap = {}
@@ -322,11 +329,9 @@ class EnzoHierarchy(GridGeometryHandler):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
         if "AppendActiveParticleType" in self.parameters.keys() and \
                 len(self.parameters["AppendActiveParticleType"]):
-            pdtype = [(ptype, 'i4') for ptype in
-                self.parameters["AppendActiveParticleType"]]
-        else:
-            pdtype = None
-        self.grid_active_particle_count = np.zeros(self.num_grids, dtype=pdtype)
+            gac = dict((ptype, np.zeros(self.num_grids, dtype='i4')) \
+                       for ptype in self.parameters["AppendActiveParticleType"])
+            self.grid_active_particle_count = gac
 
     def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions.flat[:] = ei
@@ -838,14 +843,14 @@ class EnzoStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self.particle_types = ["io"]
-        for ptype in self.parameters.get("AppendActiveParticleType", []):
-            self.particle_types.append(ptype)
         if self.parameters["NumberOfParticles"] > 0 and \
             "AppendActiveParticleType" in self.parameters.keys():
             # If this is the case, then we know we should have a DarkMatter
             # particle type, and we don't need the "io" type.
             self.particle_types = ["DarkMatter"]
             self.parameters["AppendActiveParticleType"].append("DarkMatter")
+        for ptype in self.parameters.get("AppendActiveParticleType", []):
+            self.particle_types.append(ptype)
         self.particle_types = tuple(self.particle_types)
 
         if self.dimensionality == 1:

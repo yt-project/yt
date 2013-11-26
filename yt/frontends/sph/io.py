@@ -94,7 +94,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 del coords
                 if mask is None: continue
                 for field in field_list:
-                    if field in ("Mass", "Mass") and \
+                    if field in ("Mass", "Masses") and \
                         ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype) 
@@ -116,6 +116,12 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
+            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0),
+                                       pos.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+pos.shape[0]] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
@@ -274,13 +280,18 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         DLE = data_file.pf.domain_left_edge
         DRE = data_file.pf.domain_right_edge
         dx = (DRE - DLE) / 2**_ORDER_MAX
-        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
+            if np.any(pp.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pp.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pp.min(axis=0),
+                                       pp.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
         regions.add_data_file(pp, data_file.file_id)
         morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
         return morton

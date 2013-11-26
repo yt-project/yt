@@ -1,10 +1,6 @@
 """
-API for yt.frontends.tiger
-
-
-
+API for particle_trajectories
 """
-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -13,14 +9,4 @@ API for yt.frontends.tiger
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .data_structures import \
-      TigerGrid, \
-      TigerHierarchy, \
-      TigerStaticOutput
-
-from .fields import \
-      TigerFieldInfo, \
-      add_tiger_field
-
-from .io import \
-      IOHandlerTiger
+from particle_trajectories import ParticleTrajectories
