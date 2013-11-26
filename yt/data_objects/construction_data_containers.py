@@ -167,12 +167,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     Parameters
     ----------
-    axis : int
-        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     field : string
         This is the field which will be "projected" along the axis.  If
         multiple are specified (in a list) they will all be projected in
         the first pass.
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     weight_field : string
         If supplied, the field being projected will be multiplied by this
         weight value before being integrated, and at the conclusion of the
