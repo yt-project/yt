@@ -26,3 +26,17 @@ def test_cut_region():
         t2 = (r["Temperature"] < 0.75)
         yield assert_equal, np.sort(r2["Temperature"]), np.sort(r["Temperature"][t2])
         yield assert_equal, np.all(r2["Temperature"] < 0.75), True
+
+        # Now we can test some projections
+        dd = pf.h.all_data()
+        cr = dd.cut_region(["obj['Ones'] > 0"])
+        for weight in [None, "Density"]:
+            p1 = pf.h.proj("Density", 0, data_source=dd, weight_field=weight)
+            p2 = pf.h.proj("Density", 0, data_source=cr, weight_field=weight)
+            for f in p1.field_data:
+                yield assert_almost_equal, p1[f], p2[f]
+        cr = dd.cut_region(["obj['Density'] > 0.25"])
+        p2 = pf.h.proj("Density", 2, data_source=cr)
+        yield assert_equal, p2["Density"].max() > 0.25, True
+        p2 = pf.h.proj("Density", 2, data_source=cr, weight_field = "Density")
+        yield assert_equal, p2["Density"].max() > 0.25, True
