@@ -634,3 +634,60 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self.set_field_parameter('e0', e0)
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
+
+class YTCutRegionBase(YTSelectionContainer3D):
+    def __init__(self, conditionals, base_object):
+        self.pf = base_object.pf
+        self.conditionals = ensure_list(conditionals)
+        self.base_object = base_object
+        self._selector = None
+        # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
+        # ires and get_data
+        super(YTSelectionContainer3D, self).__init__(self.pf, {})
+
+    @property
+    def selector(self):
+        raise NotImplementedError
+
+    def chunks(self, fields, chunking_style, **kwargs):
+        # We actually want to chunk the sub-chunk, not ourselves.  We have no
+        # chunks to speak of, as we do not data IO.
+        for chunk in self.hierarchy._chunk(self.base_object, chunking_style,
+                                           **kwargs):
+            with self.base_object._chunked_read(chunk):
+                self.get_data(fields)
+                yield self
+
+    def get_data(self, fields = None):
+        fields = ensure_list(fields)
+        self.base_object.get_data(fields)
+        ind = self._cond_ind
+        for field in fields:
+            self.field_data[field] = self.base_object[field][ind]
+
+    @property
+    def _cond_ind(self):
+        ind = None
+        obj = self.base_object
+        for cond in self.conditionals:
+            res = eval(cond)
+            if ind is None: ind = res
+            np.logical_and(res, ind, ind)
+        return ind
+
+    @property
+    def icoords(self):
+        return self.base_object.icoords[self._cond_ind,:]
+
+    @property
+    def fcoords(self):
+        return self.base_object.fcoords[self._cond_ind,:]
+
+    @property
+    def ires(self):
+        return self.base_object.ires[self._cond_ind]
+
+    @property
+    def fwidth(self):
+        return self.base_object.fwidth[self._cond_ind,:]
+
