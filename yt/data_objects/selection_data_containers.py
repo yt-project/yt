@@ -675,7 +675,8 @@ class YTCutRegionBase(YTSelectionContainer3D):
     def chunks(self, fields, chunking_style, **kwargs):
         # We actually want to chunk the sub-chunk, not ourselves.  We have no
         # chunks to speak of, as we do not data IO.
-        for chunk in self.hierarchy._chunk(self.base_object, chunking_style,
+        for chunk in self.hierarchy._chunk(self.base_object,
+                                           chunking_style,
                                            **kwargs):
             with self.base_object._chunked_read(chunk):
                 self.get_data(fields)
@@ -692,10 +693,11 @@ class YTCutRegionBase(YTSelectionContainer3D):
     def _cond_ind(self):
         ind = None
         obj = self.base_object
-        for cond in self.conditionals:
-            res = eval(cond)
-            if ind is None: ind = res
-            np.logical_and(res, ind, ind)
+        with obj._field_parameter_state(self.field_parameters):
+            for cond in self.conditionals:
+                res = eval(cond)
+                if ind is None: ind = res
+                np.logical_and(res, ind, ind)
         return ind
 
     @property

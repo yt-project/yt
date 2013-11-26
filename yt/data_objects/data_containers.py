@@ -763,7 +763,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._grids = None
         self.quantities = DerivedQuantityCollection(self)
 
-    def cut_region(self, field_cuts):
+    def cut_region(self, field_cuts, field_parameters = None):
         """
         Return an InLineExtractedRegion, where the object cells are cut on the
         fly with a set of field_cuts.  It is very useful for applying
@@ -780,7 +780,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['Temperature'] > 1e6"])
         >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
         """
-        cr = self.pf.h.cut_region(self, field_cuts)
+        cr = self.pf.h.cut_region(self, field_cuts,
+                                  field_parameters = field_parameters)
         return cr
 
     def extract_isocontours(self, field, value, filename = None,
@@ -972,12 +973,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     ff, mask, grid.LeftEdge, grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
-                                log_space=True, cumulative=True, cache=False):
+                               log_space=True, cumulative=True):
         """
         This function will create a set of contour objects, defined
         by having connected cell structures, which can then be
         studied and used to 'paint' their source grids, thus enabling
         them to be plotted.
+
+        Note that this function *can* return a connected set object that has no
+        member values.
         """
         if log_space:
             cons = np.logspace(np.log10(min_val),np.log10(max_val),
@@ -985,8 +989,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         else:
             cons = np.linspace(min_val, max_val, num_levels+1)
         contours = {}
-        if cache: cached_fields = defaultdict(lambda: dict())
-        else: cached_fields = None
         for level in range(num_levels):
             contours[level] = {}
             if cumulative:
@@ -994,10 +996,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
             else:
                 mv = cons[level+1]
             from yt.analysis_modules.level_sets.api import identify_contours
-            cids = identify_contours(self, field, cons[level], mv,
-                                     cached_fields)
-            for cid, cid_ind in cids.items():
-                contours[level][cid] = self.extract_region(cid_ind)
+            nj, cids = identify_contours(self, field, cons[level], mv)
+            for cid in range(nj):
+                contours[level][cid] = self.cut_region(
+                    ["obj['Contours'] == %s" % (cid + 1)],
+                    {'contour_slices': cids})
         return cons, contours
 
     def paint_grids(self, field, value, default_value=None):

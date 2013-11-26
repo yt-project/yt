@@ -64,4 +64,8 @@ def identify_contours(data_source, field, min_val, max_val,
     pbar.finish()
     rv = dict()
     rv.update(contour_ids)
-    return rv
+    # NOTE: Because joins can appear in both a "final join" and a subsequent
+    # "join", we can't know for sure how many unique joins there are without
+    # checking if no cells match or doing an expensive operation checking for
+    # the unique set of final join values.
+    return final_joins.size, rv
