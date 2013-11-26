@@ -642,32 +642,31 @@ class YTCutRegionBase(YTSelectionContainer3D):
 
     Parameters
     ----------
+    base_object : YTSelectionContainer3D
+        The object to which cuts will be applied.
     conditionals : list of strings
         A list of conditionals that will be evaluated.  In the namespace
         available, these conditionals will have access to 'obj' which is a data
         object of unknown shape, and they must generate a boolean array.  For
         instance, conditionals = ["obj['temperature'] < 1e3"]
-    base_object : YTSelectionContainer3D
-        The object to which cuts will be applied.
 
     Examples
     --------
 
     >>> pf = load("DD0010/moving7_0010")
     >>> sp = pf.h.sphere("max", (1.0, 'mpc'))
-    >>> cr = pf.h.cut_region( ["obj['temperature'] < 1e3"], sp)
+    >>> cr = pf.h.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
-    _con_args = ('conditionals', 'base_object')
-    def __init__(self, conditionals, base_object, pf = None,
+    _con_args = ("base_object", "conditionals")
+    def __init__(self, base_object, conditionals, pf = None,
                  field_parameters = None):
-        self.pf = base_object.pf
+        super(YTCutRegionBase, self).__init__(base_object.center, pf, field_parameters)
         self.conditionals = ensure_list(conditionals)
         self.base_object = base_object
         self._selector = None
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
-        super(YTSelectionContainer3D, self).__init__(self.pf, {})
 
     @property
     def selector(self):
