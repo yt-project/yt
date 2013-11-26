@@ -765,9 +765,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def cut_region(self, field_cuts):
         """
-        Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.  It is very useful for applying 
-        conditions to the fields in your data object.
+        Return an InLineExtractedRegion, where the object cells are cut on the
+        fly with a set of field_cuts.  It is very useful for applying
+        conditions to the fields in your data object.  Note that in previous
+        versions of yt, this accepted 'grid' as a variable, but presently it
+        requires 'obj'.
         
         Examples
         --------
@@ -775,19 +777,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> pf = load("RedshiftOutput0005")
         >>> ad = pf.h.all_data()
-        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> cr = ad.cut_region(["obj['Temperature'] > 1e6"])
         >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
-
         """
-        return YTValueCutExtractionBase(self, field_cuts)
-
-    def extract_region(self, indices):
-        """
-        Return an ExtractedRegion where the points contained in it are defined
-        as the points in `this` data object with the given *indices*.
-        """
-        fp = self.field_parameters.copy()
-        return YTSelectedIndicesBase(self, indices, field_parameters = fp)
+        cr = self.pf.h.cut_region(self, field_cuts)
+        return cr
 
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):

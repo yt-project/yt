@@ -636,7 +636,31 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self.set_field_parameter('e2', e2)
 
 class YTCutRegionBase(YTSelectionContainer3D):
-    def __init__(self, conditionals, base_object):
+    """
+    This is a data object designed to allow individuals to apply logical
+    operations to fields or particles and filter as a result of those cuts.
+
+    Parameters
+    ----------
+    conditionals : list of strings
+        A list of conditionals that will be evaluated.  In the namespace
+        available, these conditionals will have access to 'obj' which is a data
+        object of unknown shape, and they must generate a boolean array.  For
+        instance, conditionals = ["obj['temperature'] < 1e3"]
+    base_object : YTSelectionContainer3D
+        The object to which cuts will be applied.
+
+    Examples
+    --------
+
+    >>> pf = load("DD0010/moving7_0010")
+    >>> sp = pf.h.sphere("max", (1.0, 'mpc'))
+    >>> cr = pf.h.cut_region( ["obj['temperature'] < 1e3"], sp)
+    """
+    _type_name = "cut_region"
+    _con_args = ('conditionals', 'base_object')
+    def __init__(self, conditionals, base_object, pf = None,
+                 field_parameters = None):
         self.pf = base_object.pf
         self.conditionals = ensure_list(conditionals)
         self.base_object = base_object
