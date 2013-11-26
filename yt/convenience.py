@@ -53,6 +53,8 @@ def load(*args ,**kwargs):
         if isinstance(arg, types.StringTypes):
             if os.path.exists(arg):
                 valid_file.append(True)
+            elif arg.startswith("http"):
+                valid_file.append(True)
             else:
                 if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
                     valid_file.append(True)
