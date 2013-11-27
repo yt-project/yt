@@ -309,7 +309,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             nvals *= convs[None,:]
         # We now convert to half-widths and center-points
         data = {}
-        non_nan = ~np.any(np.isnan(nvals), axis=-1)
+        #non_nan = ~np.any(np.isnan(nvals), axis=-1)
         data['px'] = px
         data['py'] = py
         data['weight_field'] = nwvals
@@ -321,9 +321,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             mylog.debug("Setting field %s", field)
-            self[field] = field_data[fi].ravel()[non_nan]
+            self[field] = field_data[fi].ravel()#[non_nan]
         for i in data.keys():
-            self[i] = data.pop(i)[non_nan]
+            self[i] = data.pop(i)#[non_nan]
         mylog.info("Projection completed")
 
     def _initialize_chunk(self, chunk, tree):
