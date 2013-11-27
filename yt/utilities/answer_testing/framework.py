@@ -447,9 +447,11 @@ class ProjectionValuesTest(AnswerTestingTest):
         nind, oind = None, None
         for k in new_result:
             assert (k in old_result)
-            if oind is None: oind = np.isnan(old_result[k])
+            if oind is None:
+                oind = np.array(np.isnan(old_result[k]))
             np.logical_or(oind, np.isnan(old_result[k]), oind)
-            if nind is None: nind = np.isnan(new_result[k])
+            if nind is None:
+                nind = np.array(np.isnan(new_result[k]))
             np.logical_or(nind, np.isnan(new_result[k]), nind)
         oind = ~oind
         nind = ~nind
