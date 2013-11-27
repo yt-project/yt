@@ -309,7 +309,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             nvals *= convs[None,:]
         # We now convert to half-widths and center-points
         data = {}
-        non_nan = (nwvals != 0)
+        non_nan = ~np.any(np.isnan(nvals), axis=-1)
         data['px'] = px
         data['py'] = py
         data['weight_field'] = nwvals
