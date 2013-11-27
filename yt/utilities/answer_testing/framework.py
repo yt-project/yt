@@ -444,19 +444,26 @@ class ProjectionValuesTest(AnswerTestingTest):
         if new_result is None:
             return
         assert(len(new_result) == len(old_result))
+        nind, oind = None, None
         for k in new_result:
             assert (k in old_result)
+            if oind is None: oind = np.isnan(old_result[k])
+            np.logical_or(oind, np.isnan(old_result[k]), oind)
+            if nind is None: nind = np.isnan(new_result[k])
+            np.logical_or(nind, np.isnan(new_result[k]), nind)
+        oind = ~oind
+        nind = ~nind
         for k in new_result:
             err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
               (k, self.field, self.weight_field, self.axis)
             if k == 'weight_field' and self.weight_field is None:
                 continue
+            nres, ores = new_result[k][nind], old_result[k][oind]
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k],
-                             err_msg=err_msg)
+                assert_equal(nres, ores, err_msg=err_msg)
             else:
-                assert_allclose(new_result[k], old_result[k],
-                                 10.**-(self.decimals), err_msg=err_msg)
+                assert_allclose(nres, ores, 10.**-(self.decimals),
+                                err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"
