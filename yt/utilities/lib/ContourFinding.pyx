@@ -105,6 +105,22 @@ cdef CandidateContour *candidate_add(CandidateContour *first,
     return node
 
 cdef class ContourTree:
+    # This class is essentially a Union-Find algorithm.  What we want to do is
+    # to, given a connection between two objects, identify the unique ID for
+    # those two objects.  So what we have is a collection of contours, and they
+    # eventually all get joined and contain lots of individual IDs.  But it's
+    # easy to find the *first* contour, i.e., the primary ID, for each of the
+    # subsequent IDs.
+    #
+    # This means that we can connect id 202483 to id 2472, and if id 2472 is
+    # connected to id 143, the connection will *actually* be from 202483 to
+    # 143.  In this way we can speed up joining things and knowing their
+    # "canonical" id.
+    #
+    # This is a multi-step process, since we first want to connect all of the
+    # contours, then we end up wanting to coalesce them, and ultimately we join
+    # them at the end.  The join produces a table that maps the initial to the
+    # final, and we can go through and just update all of those.
     cdef ContourID *first
     cdef ContourID *last
 
@@ -124,6 +140,9 @@ cdef class ContourTree:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def add_contours(self, np.ndarray[np.int64_t, ndim=1] contour_ids):
+        # This adds new contours, from the given contour IDs, to the tree.
+        # Each one can be connected to a parent, as well as to next/prev in the
+        # set of contours belonging to this tree.
         cdef int i, n
         n = contour_ids.shape[0]
         cdef ContourID *cur = self.last
@@ -137,7 +156,9 @@ cdef class ContourTree:
         self.last = contour_create(contour_id, self.last)
 
     def cull_candidates(self, np.ndarray[np.int64_t, ndim=3] candidates):
-        # This is a helper function.
+        # This function looks at each preliminary contour ID belonging to a
+        # given collection of values, and then if need be it creates a new
+        # contour for it.
         cdef int i, j, k, ni, nj, nk, nc
         cdef CandidateContour *first = NULL
         cdef CandidateContour *temp
@@ -157,6 +178,8 @@ cdef class ContourTree:
         cdef np.ndarray[np.int64_t, ndim=1] contours
         contours = np.empty(nc, dtype="int64")
         i = 0
+        # This removes all the temporary contours for this set of contours and
+        # instead constructs a final list of them.
         while first != NULL:
             contours[i] = first.contour_id
             i += 1
@@ -166,6 +189,9 @@ cdef class ContourTree:
         return contours
 
     def cull_joins(self, np.ndarray[np.int64_t, ndim=2] cjoins):
+        # This coalesces contour IDs, so that we have only the final name
+        # resolutions -- the .join_id from a candidate.  So many items will map
+        # to a single join_id.
         cdef int i, j, k, ni, nj, nk, nc
         cdef CandidateContour *first = NULL
         cdef CandidateContour *temp
@@ -266,6 +292,8 @@ cdef class TileContourTree:
     def identify_contours(self, np.ndarray[np.float64_t, ndim=3] values,
                                 np.ndarray[np.int64_t, ndim=3] contour_ids,
                                 np.int64_t start):
+        # This just looks at neighbor values and tries to identify which zones
+        # are touching by face within a given brick.
         cdef int i, j, k, ni, nj, nk, offset
         cdef int off_i, off_j, off_k, oi, ok, oj
         cdef ContourID *cur = NULL
