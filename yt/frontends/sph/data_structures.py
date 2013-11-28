@@ -174,6 +174,8 @@ class GadgetStaticOutput(ParticleStaticOutput):
         self._unit_base = unit_base
         if bounding_box is not None:
             bbox = np.array(bounding_box, dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
         else:
@@ -501,7 +503,19 @@ class TipsyStaticOutput(ParticleStaticOutput):
             self.periodicity = (True, True, True)
         else:
             self.periodicity = (False, False, False)
-
+        tot = sum(self.parameters[ptype] for ptype
+                  in ('nsph', 'ndark', 'nstar'))
+        if tot != self.parameters['nbodies']:
+            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
+            print "%s != (%s == %s + %s + %s)" % (
+                self.parameters['nbodies'],
+                tot,
+                self.parameters['nsph'],
+                self.parameters['ndark'],
+                self.parameters['nstar'])
+            print "Often this can be fixed by changing the 'endian' parameter."
+            print "This defaults to '>' but may in fact be '<'."
+            raise RuntimeError
         if self.parameters.get('bComove', True):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}

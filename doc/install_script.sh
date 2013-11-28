@@ -555,6 +555,11 @@ cd ${DEST_DIR}/data
 echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  xray_emissivity.h5' > xray_emissivity.h5.sha512
 get_ytdata xray_emissivity.h5
 
+# Set paths to what they should be when yt is activated.
+export PATH=${DEST_DIR}/bin:$PATH
+export LD_LIBRARY_PATH=${DEST_DIR}/lib:$LD_LIBRARY_PATH
+export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages
+
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
 
@@ -917,6 +922,8 @@ do_setup_py $NOSE
 do_setup_py $PYTHON_HGLIB
 do_setup_py $SYMPY
 [ $INST_PYX -eq 1 ] && do_setup_py $PYX
+
+( ${DEST_DIR}/bin/pip install jinja2 2>&1 ) 1>> ${LOG_FILE}
 
 # Now we build Rockstar and set its environment variable.
 if [ $INST_ROCKSTAR -eq 1 ]

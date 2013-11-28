@@ -63,7 +63,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if f is None:
                     #print "Opening (count) %s" % g.filename
                     f = h5py.File(g.filename, "r")
-                if g.NumberOfParticles == 0: continue
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0:
+                    continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype != "io":
@@ -87,7 +89,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if f is None:
                     #print "Opening (read) %s" % g.filename
                     f = h5py.File(g.filename, "r")
-                if g.NumberOfParticles == 0: continue
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0:
+                    continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype != "io":
@@ -148,6 +152,29 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
             if fid: fid.close()
+        return rv
+
+    def _read_chunk_data(self, chunk, fields):
+        fid = fn = None
+        rv = {}
+        mylog.debug("Preloading fields %s", fields)
+        for g in chunk.objs:
+            rv[g.id] = gf = {}
+            if g.filename is None: continue
+            elif g.filename != fn:
+                if fid is not None: fid.close()
+                fid = None
+            if fid is None:
+                fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
+                fn = g.filename
+            data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+            data_view = data.swapaxes(0,2)
+            for field in fields:
+                ftype, fname = field
+                dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+                gf[field] = data_view.copy()
+        if fid: fid.close()
         return rv
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
