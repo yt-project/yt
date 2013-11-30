@@ -410,7 +410,9 @@ class ProgressBar(object):
             from IPython.display import Javascript, display
             # First delete the node that held the progress bar from the page
             js = """var element = document.getElementById('%s');
-                    element.parentNode.removeChild(element);""" % self.uuid
+                  var parent = element.parentNode
+                  parent.removeChild(element);
+                  parent.parentElement.remove();""" % self.uuid
             display(Javascript(js))
 
             # Then also remove its trace from the cell output (so it doesn't get
