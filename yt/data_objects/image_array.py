@@ -14,8 +14,9 @@ ImageArray Class
 import numpy as np
 import h5py as h5
 from yt.visualization.image_writer import write_bitmap, write_image
+from yt.data_objects.yt_array import YTArray
 
-class ImageArray(np.ndarray):
+class ImageArray(YTArray):
     r"""A custom Numpy ndarray used for images.
 
     This differs from ndarray in that you can optionally specify an
@@ -71,20 +72,16 @@ class ImageArray(np.ndarray):
     Numpy ndarray documentation appended:
 
     """
-    def __new__(cls, input_array, info=None):
-        # Input array is an already formed ndarray instance
-        # We first cast to be our class type
-        obj = np.asarray(input_array).view(cls)
-        # add the new attribute to the created instance
+    def __new__(cls, input_array, input_units=None, registry=None, info=None):
+        obj = super(ImageArray, cls).__new__(cls, input_array, input_units, registry)
         if info is None:
             info = {}
         obj.info = info
-        # Finally, we must return the newly created object:
         return obj
 
     def __array_finalize__(self, obj):
         # see InfoArray.__array_finalize__ for comments
-        if obj is None: return
+        super(ImageArray, self).__array_finalize__(obj)
         self.info = getattr(obj, 'info', None)
 
     def write_hdf5(self, filename):
@@ -351,11 +348,12 @@ class ImageArray(np.ndarray):
             filename += '.png'
 
         if channel is None:
-            return write_image(self.swapaxes(0,1), filename, 
-                               color_bounds=color_bounds, cmap_name=cmap_name, 
+            return write_image(self.swapaxes(0,1).to_ndarray(), filename,
+                               color_bounds=color_bounds, cmap_name=cmap_name,
                                func=func)
         else:
-            return write_image(self.swapaxes(0,1)[:,:,channel], filename, 
+            return write_image(self.swapaxes(0,1)[:,:,channel].to_ndarray(),
+                               filename,
                                color_bounds=color_bounds, cmap_name=cmap_name, 
                                func=func)
 
@@ -384,3 +382,4 @@ class ImageArray(np.ndarray):
             self.write_hdf5("%s.h5" % filename)
 
     __doc__ += np.ndarray.__doc__
+

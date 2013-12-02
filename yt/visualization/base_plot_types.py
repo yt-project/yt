@@ -85,9 +85,9 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'linear'):
             norm = matplotlib.colors.Normalize()
         extent = [float(e) for e in extent]
-        self.image = self.axes.imshow(data, origin='lower', extent=extent,
-                                      norm=norm, vmin=self.zmin, aspect=aspect,
-                                      vmax=self.zmax, cmap=cmap)
+        self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
+                                      extent=extent, norm=norm, vmin=self.zmin,
+                                      aspect=aspect, vmax=self.zmax, cmap=cmap)
         self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
