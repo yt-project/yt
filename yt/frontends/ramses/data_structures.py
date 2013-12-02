@@ -13,6 +13,7 @@ RAMSES-specific data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import os
 import numpy as np
 import stat
 import weakref
@@ -52,10 +53,10 @@ class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
 
-    def __init__(self, pf, domain_id, nvar):
-        self.nvar = nvar
+    def __init__(self, pf, domain_id):
         self.pf = pf
         self.domain_id = domain_id
+        self.nvar = 0 # Set this later!
         num = os.path.basename(pf.parameter_filename).split("."
                 )[0].split("_")[1]
         basename = "%s/%%s_%s.out%05i" % (
@@ -65,6 +66,7 @@ class RAMSESDomainFile(object):
         for t in ['grav', 'hydro', 'part', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._read_amr_header()
+        self._read_hydro_header()
         self._read_particle_header()
         self._read_amr()
 
@@ -102,9 +104,9 @@ class RAMSESDomainFile(object):
                     hvals = fpu.read_attrs(f, header, "=")
                 except AssertionError:
                     print "You are running with the wrong number of fields."
-                    print "Please specify these in the load command."
-                    print "We are looking for %s fields." % self.nvar
-                    print "The last set of field sizes was: %s" % skipped
+                    print "If you specified these in the load command, check the array length."
+                    print "In this file there are %s hydro fields." % skipped
+                    #print "The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
@@ -115,6 +117,13 @@ class RAMSESDomainFile(object):
         self._hydro_offset = hydro_offset
         self._level_count = level_count
         return self._hydro_offset
+
+    def _read_hydro_header(self):
+        if self.nvar > 0: return self.nvar
+        # Read the number of hydro  variables
+        f = open(self.hydro_fn, "rb")
+        fpu.skip(f, 1)
+        self.nvar = fpu.read_vector(f, "i")[0]
 
     def _read_particle_header(self):
         if not os.path.exists(self.part_fn):
@@ -320,6 +329,7 @@ class RAMSESDomainSubset(OctreeSubset):
 class RAMSESGeometryHandler(OctreeGeometryHandler):
 
     def __init__(self, pf, data_style='ramses'):
+        self._pf = pf # TODO: Figure out the class composition better!
         self.fluid_field_list = pf._fields_in_file
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
@@ -332,8 +342,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         super(RAMSESGeometryHandler, self).__init__(pf, data_style)
 
     def _initialize_oct_handler(self):
-        nv = len(self.fluid_field_list)
-        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1, nv)
+        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
                         for i in range(self.parameter_file['ncpu'])]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
@@ -341,13 +350,68 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
         self.num_grids = total_octs
 
     def _detect_fields(self):
-        # TODO: Add additional fields
+        # Do we want to attempt to figure out what the fields are in the file?
         pfl = set([])
+        if len(self.fluid_field_list) <= 0:
+            self._setup_auto_fields()
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
         self.field_list = [("gas", f) for f in self.fluid_field_list] \
                         + self.particle_field_list
+
+    def _setup_auto_fields(self):
+        '''
+        If no fluid fields are set, the code tries to set up a fluids array by hand
+        '''
+        # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
+        # Find nvar
+        # TODO: copy/pasted from DomainFile; needs refactoring!
+        num = os.path.basename(self._pf.parameter_filename).split("."
+                )[0].split("_")[1]
+        testdomain = 1 # Just pick the first domain file to read
+        basename = "%s/%%s_%s.out%05i" % (
+            os.path.abspath(
+              os.path.dirname(self._pf.parameter_filename)),
+            num, testdomain)
+        hydro_fn = basename % "hydro"
+        # Do we have a hydro file?
+        if hydro_fn:
+            # Read the number of hydro  variables
+            f = open(hydro_fn, "rb")
+            fpu.skip(f, 1)
+            nvar = fpu.read_vector(f, "i")[0]
+        # OK, we got NVAR, now set up the arrays depending on what NVAR is
+        # Allow some wiggle room for users to add too many variables
+        if nvar < 5:
+            mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
+            raise ValueError
+        # Basic hydro runs
+        if nvar == 5:
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
+                      "Pressure"]
+        if nvar > 5 and nvar < 11:
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
+                      "Pressure", "Metallicity"]
+        # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+        if nvar == 11:
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
+                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                      "Pressure"]
+        if nvar > 11:
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
+                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                      "Pressure","Metallicity"]
+        while len(fields) < nvar:
+            fields.append("var"+str(len(fields)))
+        mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
+        self.fluid_field_list = fields
 
     def _setup_derived_fields(self):
         self._parse_cooling()
@@ -404,11 +468,14 @@ class RAMSESStaticOutput(StaticOutput):
     _particle_coordinates_name = "Coordinates"
     
     def __init__(self, filename, data_style='ramses',
-                 fields = "standard_six",
-                 storage_filename = None):
+                 fields = None, storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, types.StringTypes):
             fields = field_aliases[fields]
+        '''
+        fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
+                If set to None, will try a default set of fields
+        '''
         self._fields_in_file = fields
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
@@ -521,4 +588,3 @@ class RAMSESStaticOutput(StaticOutput):
         if not os.path.basename(args[0]).startswith("info_"): return False
         fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
         return os.path.exists(fn)
-
