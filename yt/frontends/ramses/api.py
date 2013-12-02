@@ -17,8 +17,7 @@ from .data_structures import \
       RAMSESStaticOutput
 
 from .fields import \
-      RAMSESFieldInfo, \
-      add_ramses_field
+      RAMSESFieldInfo
 
 from .io import \
       IOHandlerRAMSES

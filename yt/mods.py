@@ -94,8 +94,8 @@ from yt.frontends.flash.api import \
 #from yt.frontends.artio.api import \
 #    ARTIOStaticOutput, ARTIOFieldInfo, add_artio_field
 
-#from yt.frontends.ramses.api import \
-#    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
+from yt.frontends.ramses.api import \
+    RAMSESStaticOutput, RAMSESFieldInfo
 
 #from yt.frontends.chombo.api import \
 #    ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
