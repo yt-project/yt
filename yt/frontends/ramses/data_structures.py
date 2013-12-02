@@ -352,7 +352,7 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
     def _detect_fields(self):
         # Do we want to attempt to figure out what the fields are in the file?
         pfl = set([])
-        if len(self.fluid_field_list) <= 0:
+        if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
             self._setup_auto_fields()
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
