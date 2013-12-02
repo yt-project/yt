@@ -43,6 +43,7 @@ from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
     fix_axis, get_image_suffix, assert_valid_width_tuple, \
     get_ipython_api_version
+from yt.utilities.units import Unit
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -578,6 +579,20 @@ class PlotWindow(object):
         # invalidate_data will take care of everything
         return self
 
+    @invalidate_plot
+    def set_unit(self, field_name, unit_name):
+        """Sets the unit of the plotted field
+
+        Parameters
+        ----------
+        field_name : string
+            The name of the field that needs to have its units adjusted.
+
+        unit_name : string
+            The name of the new unit
+        """
+        self._frb[field_name].convert_to_units(unit_name)
+
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
 
@@ -758,7 +773,6 @@ class PWViewer(PlotWindow):
             if isinstance(unit_name, str):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
-                import pdb; pdb.set_trace()
                 if un not in self.pf.unit_registry:
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
@@ -954,6 +968,15 @@ class PWViewerMPL(PWViewer):
                 label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
+
+            # Try to determine the units of the data
+            units = Unit(self._frb[f].units).latex_representation()
+
+            if units is None or units == '':
+                pass
+            else:
+                colorbar_label += r'$\/\/('+units+r')$'
+
 
             parser = MathTextParser('Agg')
             try:
