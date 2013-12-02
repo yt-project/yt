@@ -264,6 +264,18 @@ class StaticOutput(object):
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
 
+    def setup_deprecated_fields(self):
+        from yt.fields.field_aliases import _field_name_aliases
+        added = []
+        for old_name, new_name in _field_name_aliases:
+            try:
+                fi = self._get_field_info(new_name)
+            except YTFieldNotFound:
+                continue
+            self.field_info.alias(("gas", old_name), fi.name)
+            added.append(("gas", old_name))
+        self.field_info.find_dependencies(added)
+
     def _setup_coordinate_handler(self):
         if self.geometry == "cartesian":
             self.coordinates = CartesianCoordinateHandler(self)
