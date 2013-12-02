@@ -118,13 +118,16 @@ class FixedResolutionBuffer(object):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
+        bounds = self.bounds
+        if hasattr(self.bounds, "in_units"):
+            bounds = bounds.in_units("code_length").ndarray_view()
         buff = _MPL.Pixelize(self.data_source['px'],
                              self.data_source['py'],
                              self.data_source['pdx'],
                              self.data_source['pdy'],
                              self.data_source[item],
                              self.buff_size[0], self.buff_size[1],
-                             self.bounds, int(self.antialias),
+                             bounds, int(self.antialias),
                              self._period, int(self.periodic),
                              ).transpose()
         ia = ImageArray(buff, info=self._get_info(item))

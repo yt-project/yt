@@ -30,8 +30,6 @@ from yt.data_objects.octree_subset import \
 
 from yt.data_objects.yt_array import YTQuantity
 from .definitions import ramses_header
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
 from yt.utilities.lib import \
     get_box_grids_level
 from yt.utilities.io_handler import \

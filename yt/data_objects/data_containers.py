@@ -131,7 +131,8 @@ class YTDataContainer(object):
             self.set_field_parameter('center', self.center)
             return
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
-            center = YTArray(center, 'code_length')
+            center = YTArray(center, 'code_length',
+                             registry = self.pf.unit_registry)
         elif center in ("c", "center"):
             center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
@@ -140,7 +141,8 @@ class YTDataContainer(object):
             center = self.pf.h.find_max(center[4:])[1]
         else:
             center = np.array(center, dtype='float64')
-        self.center = YTArray(center, 'code_length')
+        self.center = YTArray(center, 'code_length',
+                             registry = self.pf.unit_registry)
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):
