@@ -727,14 +727,13 @@ class PhasePlotMPL(WindowPlotMPL):
     def _init_image(self, x_data, y_data, image_data, 
                     x_scale, y_scale, z_scale, zlim, cmap):
         """Store output of imshow in image variable"""
-        
         if (z_scale == 'log'):
             norm = matplotlib.colors.LogNorm(zlim[0], zlim[1])
         elif (z_scale == 'linear'):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
-        self.image = self.axes.pcolormesh(x_data, y_data, image_data,
+        self.image = self.axes.pcolormesh(x_data, y_data, image_data.T,
                                           norm=norm, 
                                           cmap=cmap)
         self.axes.set_xscale(x_scale)
