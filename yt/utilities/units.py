@@ -125,6 +125,8 @@ default_unit_symbol_lut = {
     "au": (1.49598e13, length),
     "ly": (9.46053e17, length),
     "pc": (3.08568e18, length),
+    # This is hard-coded, so milliparsecs won't work.
+    "mpc": (3.08568e24, length),
 
     # electric stuff
     "gauss": (1.0, magnetic_field),
