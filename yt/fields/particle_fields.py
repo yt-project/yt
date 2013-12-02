@@ -467,10 +467,12 @@ def add_particle_average(registry, ptype, field_name,
         pos = data[ptype, "Coordinates"]
         f = data[ptype, field_name]
         wf = data[ptype, weight]
+        f *= wf
         v = data.deposit(pos, [f], method = "sum")
         w = data.deposit(pos, [wf], method = "sum")
         v /= w
         if density: v /= data["CellVolume"]
+        v[np.isnan(v)] = 0.0
         return v
     fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
     registry.add_field(fn, function=_pfunc_avg,
