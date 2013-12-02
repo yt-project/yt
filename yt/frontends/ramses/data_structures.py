@@ -398,7 +398,7 @@ class RAMSESStaticOutput(StaticOutput):
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
 
-    def set_code_units(self):
+    def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
