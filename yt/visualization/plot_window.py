@@ -608,6 +608,7 @@ class PlotWindow(object):
         unit_name : string
             The name of the new unit
         """
+        field_name = self.data_source._determine_fields(field_name)[0]
         self._frb[field_name].convert_to_units(unit_name)
 
 class PWViewer(PlotWindow):
