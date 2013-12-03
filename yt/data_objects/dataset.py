@@ -689,7 +689,7 @@ class Dataset(object):
         if len(fields) == 0: return {}, []
         selector = dobj.selector
         if chunk is None:
-            self.index._identify_base_chunk(dobj)
+            self._identify_base_chunk(dobj)
             chunk_size = dobj.size
         else:
             chunk_size = chunk.data_size
@@ -704,7 +704,8 @@ class Dataset(object):
             chunk_size)
         for field in fields_to_read:
             ftype, fname = field
-            conv_factor = self.field_info[fname]._convert_function(self)
+            finfo = self._get_field_info(*field)
+            conv_factor = finfo._convert_function(self)
             np.multiply(fields_to_return[field], conv_factor,
                         fields_to_return[field])
         #mylog.debug("Don't know how to read %s", fields_to_generate)
