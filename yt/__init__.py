@@ -105,7 +105,6 @@ from yt.data_objects.api import \
     ValidateSpatial, \
     ValidateGridType, \
     DatasetSeries, \
-    ParticleTrajectoryCollection, \
     ImageArray, \
     particle_filter
 
@@ -121,7 +120,7 @@ from yt.analysis_modules.list_modules import \
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    write_bitmap, write_image, annotate_image, \
+    write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \

@@ -571,7 +571,7 @@ class TipsyDataset(ParticleDataset):
 class HTTPParticleFile(ParticleFile):
     pass
 
-class HTTPStreamStaticOutput(ParticleStaticOutput):
+class HTTPStreamDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = HTTPParticleFile
     _fieldinfo_fallback = GadgetFieldInfo
@@ -589,7 +589,7 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
         self.base_url = base_url
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(HTTPStreamStaticOutput, self).__init__("", data_style)
+        super(HTTPStreamDataset, self).__init__("", data_style)
 
     def __repr__(self):
         return self.base_url
@@ -633,7 +633,7 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
         self._unit_base = {}
         self._unit_base['cm'] = 1.0/length_unit
         self._unit_base['s'] = 1.0/time_unit
-        super(HTTPStreamStaticOutput, self)._set_units()
+        super(HTTPStreamDataset, self)._set_units()
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
         self.conversion_factors["density"] = density_unit

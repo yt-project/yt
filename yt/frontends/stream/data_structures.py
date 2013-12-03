@@ -951,7 +951,7 @@ class StreamOctreeHandler(OctreeIndex):
     def _detect_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
-class StreamOctreeStaticOutput(StreamStaticOutput):
+class StreamOctreeDataset(StreamDataset):
     _index_class = StreamOctreeHandler
     _fieldinfo_fallback = StreamFieldInfo
     _fieldinfo_known = KnownStreamFields

@@ -235,7 +235,7 @@ class EnzoHierarchy(GridIndex):
                 test_grid_id = int(line.split("=")[-1])
                 if test_grid is not None:
                     break
-        self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
+        self._guess_dataset_type(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_dataset_type(self, rank, test_grid, test_grid_id):
         if test_grid[0] != os.path.sep:
@@ -248,7 +248,7 @@ class EnzoHierarchy(GridIndex):
         if self.dataset_type is not None: return
         if rank == 3:
             mylog.debug("Detected packed HDF5")
-            if self.parameters.get("WriteGhostZones", 0) == 1:
+            if self.pf.parameters.get("WriteGhostZones", 0) == 1:
                 self.dataset_type= "enzo_packed_3d_gz"
                 self.grid = EnzoGridGZ
             else:
