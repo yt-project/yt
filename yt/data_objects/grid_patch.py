@@ -56,6 +56,7 @@ class AMRGridPatch(YTSelectionContainer):
         self.pf = self.hierarchy.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
+        self.filename = filename
         self._last_mask = None
         self._last_count = -1
         self._last_selector_id = None
@@ -258,7 +259,8 @@ class AMRGridPatch(YTSelectionContainer):
             new_field[1:,1:,:-1] += of
             new_field[1:,1:,1:] += of
             np.multiply(new_field, 0.125, new_field)
-            if self.pf.field_info[field].take_log:
+            finfo = self.pf._get_field_info(field)
+            if finfo.take_log:
                 new_field = np.log10(new_field)
 
             new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
@@ -268,7 +270,7 @@ class AMRGridPatch(YTSelectionContainer):
             new_field[-1,:,:] = 2.0*new_field[-2,:,:] - new_field[-3,:,:]
             new_field[0,:,:]  = 2.0*new_field[1,:,:] - new_field[2,:,:]
 
-            if self.pf.field_info[field].take_log:
+            if finfo.take_log:
                 np.power(10.0, new_field, new_field)
         else:
             cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)

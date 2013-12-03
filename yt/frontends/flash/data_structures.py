@@ -50,13 +50,10 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-    @property
-    def filename(self):
-        return None
-
 class FLASHHierarchy(GridIndex):
 
     grid = FLASHGrid
+    _preload_implemented = True
     
     def __init__(self,pf,dataset_type='flash_hdf5'):
         self.dataset_type = dataset_type
@@ -194,9 +191,6 @@ class FLASHHierarchy(GridIndex):
                 # Translating an already-converted field
                 self.parameter_file.conversion_factors[field] = 1.0 
                 
-    def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.parameter_file)
-
 class FLASHDataset(Dataset):
     _index_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo

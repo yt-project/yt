@@ -107,10 +107,11 @@ class Clump(object):
             print "Wiping out existing children clumps."
         self.children = []
         if max_val is None: max_val = self.max_val
-        contour_info = identify_contours(self.data, self.field, min_val, max_val,
-                                         self.cached_fields)
-        for cid in contour_info:
-            new_clump = self.data.extract_region(contour_info[cid])
+        nj, cids = identify_contours(self.data, self.field, min_val, max_val)
+        for cid in range(nj):
+            new_clump = self.data.cut_region(
+                    ["obj['Contours'] == %s" % (cid + 1)],
+                    {'contour_slices': cids})
             self.children.append(Clump(new_clump, self, self.field,
                                        self.cached_fields,function=self.function,
                                        clump_info=self.clump_info))

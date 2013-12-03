@@ -14,7 +14,10 @@
 
 import itertools as it
 import numpy as np
+import importlib
+import os
 from yt.funcs import *
+from yt.config import ytcfg
 from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
@@ -253,25 +256,36 @@ def expand_keywords(keywords, full=False):
 
     return list_of_kwarg_dicts
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
-    import nose, os, sys, yt
-    from yt.funcs import mylog
-    orig_level = mylog.getEffectiveLevel()
-    mylog.setLevel(50)
-    nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors']
-    if verbose:
-        nose_argv.append('-v')
-    if run_answer_tests:
-        nose_argv.append('--with-answer-testing')
-    if answer_big_data:
-        nose_argv.append('--answer-big-data')
-    initial_dir = os.getcwd()
-    yt_file = os.path.abspath(yt.__file__)
-    yt_dir = os.path.dirname(yt_file)
-    os.chdir(yt_dir)
+def requires_module(module):
+    """
+    Decorator that takes a module name as an argument and tries to import it.
+    If the module imports without issue, the function is returned, but if not, 
+    a null function is returned. This is so tests that depend on certain modules
+    being imported will not fail if the module is not installed on the testing
+    platform.
+    """
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
     try:
-        nose.run(argv=nose_argv)
-    finally:
-        os.chdir(initial_dir)
-        mylog.setLevel(orig_level)
+        importlib.import_module(module)
+    except ImportError:
+        return ffalse
+    else:
+        return ftrue
+    
+def requires_file(req_file):
+    path = ytcfg.get("yt", "test_data_dir")
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if os.path.exists(req_file):
+        return ftrue
+    else:
+        if os.path.exists(os.path.join(path,req_file)):
+            return ftrue
+        else:
+            return ffalse
+                                        

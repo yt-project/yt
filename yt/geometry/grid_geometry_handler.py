@@ -117,6 +117,23 @@ class GridIndex(Index):
           [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
         ], dtype='float64')
 
+    def lock_grids_to_parents(self):
+        r"""This function locks grid edges to their parents.
+
+        This is useful in cases where the grid structure may be somewhat
+        irregular, or where setting the left and right edges is a lossy
+        process.  It is designed to correct situations where left/right edges
+        may be set slightly incorrectly, resulting in discontinuities in images
+        and the like.
+        """
+        mylog.info("Locking grids to parents.")
+        for i, g in enumerate(self.grids):
+            si = g.get_global_startindex()
+            g.LeftEdge = self.pf.domain_left_edge + g.dds * si
+            g.RightEdge = g.LeftEdge + g.ActiveDimensions * g.dds
+            self.grid_left_edge[i,:] = g.LeftEdge
+            self.grid_right_edge[i,:] = g.RightEdge
+
     def print_stats(self):
         """
         Prints out (stdout) relevant information about the simulation
@@ -249,7 +266,9 @@ class GridIndex(Index):
             giter = sorted(gobjs, key = -g.Level)
         elif sort is None:
             giter = gobjs
-        if self._preload_implemented and preload_fields is not None and ngz == 0:
+        if preload_fields is None: preload_fields = []
+        preload_fields, _ = self._split_fields(preload_fields)
+        if self._preload_implemented and len(preload_fields) > 0 and ngz == 0:
             giter = ChunkDataCache(list(giter), preload_fields, self)
         for i, og in enumerate(giter):
             if ngz > 0:

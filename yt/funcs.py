@@ -14,7 +14,7 @@ Useful functions.  If non-original, see function for citation.
 #-----------------------------------------------------------------------------
 
 import __builtin__
-import time, types, signal, inspect, traceback, sys, pdb, os
+import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
@@ -337,7 +337,6 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(__builtin__) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
@@ -345,12 +344,13 @@ def get_pbar(title, maxval):
         return ExtProgressBar(title, maxval)
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+    else:
+        widgets = [ title,
+                    pb.Percentage(), ' ',
+                    pb.Bar(marker=pb.RotatingMarker()),
+                    ' ', pb.ETA(), ' ']
+        pbar = pb.ProgressBar(widgets=widgets,
+                              maxval=maxval).start()
     return pbar
 
 def only_on_root(func, *args, **kwargs):
@@ -625,6 +625,53 @@ def ensure_dir_exists(path):
         return
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
+
+def camelcase_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+def set_intersection(some_list):
+    if len(some_list) == 0: return set([])
+    # This accepts a list of iterables, which we get the intersection of.
+    s = set(some_list[0])
+    for l in some_list[1:]:
+        s.intersection_update(l)
+    return s
+
+@contextlib.contextmanager
+def memory_checker(interval = 15):
+    r"""This is a context manager that monitors memory usage.
+
+    Parameters
+    ----------
+    interval : int
+        The number of seconds between printing the current memory usage in
+        gigabytes of the current Python interpreter.
+
+    Examples
+    --------
+
+    >>> with memory_checker(10):
+    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     time.sleep(15)
+    ...     del arr
+    """
+    import threading
+    class MemoryChecker(threading.Thread):
+        def __init__(self, event, interval):
+            self.event = event
+            self.interval = interval
+            threading.Thread.__init__(self)
+
+        def run(self):
+            while not self.event.wait(self.interval):
+                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+
+    e = threading.Event()
+    mem_check = MemoryChecker(e, interval)
+    mem_check.start()
+    yield
+    e.set()
 
 def enable_plugins():
     from yt.config import ytcfg

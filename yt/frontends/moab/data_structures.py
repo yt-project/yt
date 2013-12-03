@@ -68,9 +68,6 @@ class MoabHex8Hierarchy(UnstructuredMeshIndex):
     def _count_grids(self):
         self.num_grids = 1 #self._fhandle['/grid_parent_id'].shape[0]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.parameter_file)
-
 class MoabHex8Dataset(Dataset):
     _index_class = MoabHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
@@ -144,9 +141,9 @@ class PyneMeshHex8Hierarchy(UnstructuredMeshIndex):
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
-        ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
-        coords = self.pyne_mesh.mesh.getVtxCoords(ent).astype("float64")
-        vind = self.pyne_mesh.structured_set.getAdjEntIndices(
+        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+        coords = self.pyne_mesh.mesh.getVtxCoords(ents).astype("float64")
+        vind = self.pyne_mesh.mesh.rootSet.getAdjEntIndices(
             iBase.Type.region, iMesh.Topology.hexahedron,
             iBase.Type.vertex)[1].indices.data.astype("int64")
         # Divide by float so it throws an error if it's not 8
@@ -155,16 +152,7 @@ class PyneMeshHex8Hierarchy(UnstructuredMeshIndex):
                                     vind, coords, self)]
 
     def _detect_fields(self):
-        # Currently, I don't know a better way to do this.  This code, for
-        # example, does not work:
-        #self.field_list = self.pyne_mesh.mesh.getAllTags(
-        #    self.pyne_mesh.mesh.rootSet)
-        # So we have to look at each entity.
-        tags = set([])
-        for ent in self.pyne_mesh.mesh.rootSet:
-            for tag in self.pyne_mesh.mesh.getAllTags(ent):
-                tags.add(tag.name)
-        self.field_list = list(tags)
+        self.field_list = self.pyne_mesh.tags.keys()
 
     def _count_grids(self):
         self.num_grids = 1
@@ -204,8 +192,8 @@ class PyneMoabHex8Dataset(Dataset):
 
     def _parse_parameter_file(self):
         from itaps import iBase
-        ent = self.pyne_mesh.structured_set.getEntities(iBase.Type.vertex)
-        coords = self.pyne_mesh.mesh.getVtxCoords(ent)
+        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+        coords = self.pyne_mesh.mesh.getVtxCoords(ents)
         self.domain_left_edge = coords[0]
         self.domain_right_edge = coords[-1]
         self.domain_dimensions = self.domain_right_edge - self.domain_left_edge

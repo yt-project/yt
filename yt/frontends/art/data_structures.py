@@ -118,9 +118,11 @@ class ARTIndex(OctreeIndex):
         if "wspecies" in self.parameter_file.parameters.keys():
             wspecies = self.parameter_file.parameters['wspecies']
             nspecies = len(wspecies)
-            self.parameter_file.particle_types = ["all", "darkmatter", "stars"]
+            self.parameter_file.particle_types = ["darkmatter", "stars"]
             for specie in range(nspecies):
                 self.parameter_file.particle_types.append("specie%i" % specie)
+            self.parameter_file.particle_types_raw = tuple(
+                self.parameter_file.particle_types)
         else:
             self.parameter_file.particle_types = []
         for ptype in self.parameter_file.particle_types:
@@ -419,7 +421,7 @@ class ARTDataset(Dataset):
             try:
                 amr_header_vals = read_attrs(fh, amr_header_struct, '>')
                 return True
-            except AssertionError:
+            except:
                 return False
         return False
 
@@ -454,8 +456,9 @@ class ARTDomainSubset(OctreeSubset):
                 for j in range(2):
                     for k in range(2):
                         ii = ((k*2)+j)*2+i
+                        # Note: C order because our index converts C to F.
                         source[field][:,ii] = \
-                            dt[i::2,j::2,k::2].ravel(order="F")
+                            dt[i::2,j::2,k::2].ravel(order="C")
         oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
         del source
         # Now we continue with the additional levels.

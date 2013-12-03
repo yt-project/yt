@@ -31,6 +31,8 @@ from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
     filter_registry
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 from yt.utilities.minimal_representation import \
     MinimalDataset
 from yt.utilities.io_handler import io_registry
@@ -51,7 +53,8 @@ class Dataset(object):
 
     default_fluid_type = "gas"
     fluid_types = ("gas","deposit")
-    particle_types = ("all",)
+    particle_types = ("io",) # By default we have an 'all'
+    particle_types_raw = ("io",)
     geometry = "cartesian"
     coordinates = None
     max_level = 99
@@ -59,6 +62,9 @@ class Dataset(object):
     _particle_mass_name = None
     _particle_coordinates_name = None
     _unsupported_objects = ()
+    _particle_velocity_name = None
+    particle_unions = None
+    known_filters = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -95,7 +101,8 @@ class Dataset(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
-        self.known_filters = {}
+        self.known_filters = self.known_filters or {}
+        self.particle_unions = self.particle_unions or {}
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -241,6 +248,16 @@ class Dataset(object):
         mylog.debug("Setting up derived fields")
         self._setup_derived_fields()
 
+        mylog.debug("Setting up particle fields")
+        self._setup_particle_types()
+
+        mylog.debug("Checking derived fields again")
+        self._derived_fields_add(self._check_later)
+
+        if "all" not in self.particle_types:
+            mylog.debug("Creating Particle Union 'all'")
+            pu = ParticleUnion("all", list(self.particle_types_raw))
+            self.add_particle_union(pu)
 
     @property
     def hierarchy(self):
@@ -313,8 +330,10 @@ class Dataset(object):
 
     _last_freq = (None, None)
     _last_finfo = None
-    def _get_field_info(self, ftype, fname):
+    def _get_field_info(self, ftype, fname = None):
         self.index # This requires an index creation.
+        if fname is None:
+            ftype, fname = "unknown", ftype
         guessing_type = False
         if ftype == "unknown" and self._last_freq[0] != None:
             ftype = self._last_freq[0]
@@ -343,11 +362,40 @@ class Dataset(object):
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
-        if guessing_type and ("all", fname) in self.field_info:
-            self._last_freq = ("all", fname)
-            self._last_finfo = self.field_info["all", fname]
-            return self._last_finfo
+        if guessing_type:
+            for ftype in ("all", self.default_fluid_type):
+                if (ftype, fname) in self.field_info:
+                    self._last_freq = (ftype, fname)
+                    self._last_finfo = self.field_info[(ftype, fname)]
+                    return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
+
+    def add_particle_union(self, union):
+        # No string lookups here, we need an actual union.
+        f = self.particle_fields_by_type
+        fields = set_intersection([f[s] for s in union
+                                   if s in self.particle_types_raw])
+        self.particle_types += (union.name,)
+        self.particle_unions[union.name] = union
+        fields = [ (union.name, field) for field in fields]
+        self.field_list.extend(fields)
+        # Give ourselves a chance to add them here, first, then...
+        # ...if we can't find them, we set them up as defaults.
+        self._setup_particle_types([union.name])
+        self._setup_unknown_fields(fields, self.field_info,
+                                     skip_removal = True)
+
+    def _setup_particle_type(self, ptype):
+        mylog.debug("Don't know what to do with %s", ptype)
+        return []
+
+    @property
+    def particle_fields_by_type(self):
+        fields = defaultdict(list)
+        for field in self.field_list:
+            if field[0] in self.particle_types_raw:
+                fields[field[0]].append(field[1])
+        return fields
 
     @property
     def ires_factor(self):
@@ -355,6 +403,21 @@ class Dataset(object):
         if o2 != int(o2):
             raise RuntimeError
         return int(o2)
+
+    def relative_refinement(self, l0, l1):
+        return self.refine_by**(l1-l0)
+
+    def find_max(self, field):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        mylog.debug("Searching for maximum value of %s", field)
+        source = self.all_data()
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        return max_val, np.array([mx, my, mz], dtype="float64")
 
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
@@ -408,20 +471,29 @@ class Dataset(object):
         except IOError:
             return
 
-    def _setup_unknown_fields(self):
-        known_fields = self._fieldinfo_known
-        mylog.debug("Checking %s", self.field_list)
-        for field in self.field_list:
+    def _setup_unknown_fields(self, list_of_fields = None, field_info = None,
+                              skip_removal = False):
+        field_info = field_info or self._fieldinfo_known
+        field_list = list_of_fields or self.field_list
+        dftype = self.default_fluid_type
+        mylog.debug("Checking %s", field_list)
+        for field in field_list:
             # By allowing a backup, we don't mandate that it's found in our
             # current field info.  This means we'll instead simply override
             # it.
-            ff = self.field_info.pop(field, None)
-            if field not in known_fields:
-                if isinstance(field, types.TupleType) and \
-                   field[0] in self.particle_types:
+            if not skip_removal:
+                ff = self.field_info.pop(field, None)
+            if field not in field_info:
+                # Now we check if it's a gas field or what ...
+                if isinstance(field, tuple) and field[0] in self.particle_types:
                     particle_type = True
                 else:
                     particle_type = False
+                if isinstance(field, tuple) and not particle_type and \
+                   field[1] in field_info:
+                    mylog.debug("Adding known field %s to list of fields", field)
+                    self.field_info[field] = field_info[field[1]]
+                    continue
                 rootloginfo("Adding unknown field %s to list of fields", field)
                 cf = None
                 if self.has_key(field):
@@ -438,13 +510,13 @@ class Dataset(object):
                         convert_function=cf, take_log=False, units=r"Unknown")
             else:
                 mylog.debug("Adding known field %s to list of fields", field)
-                self.field_info[field] = known_fields[field]
+                self.field_info[field] = field_info[field]
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
         self.filtered_particle_types = []
-        fc, fac = self._derived_fields_to_check()
-        self._derived_fields_add(fc, fac)
+        fc = self._derived_fields_to_check()
+        self._derived_fields_add(fc)
 
     def _setup_filtered_type(self, filter):
         if not filter.available(self.derived_field_list):
@@ -464,24 +536,14 @@ class Dataset(object):
         if available:
             self.particle_types += (filter.name,)
             self.filtered_particle_types.append(filter.name)
-            self._setup_particle_fields(filter.name, True)
+            self._setup_particle_types([filter.name])
         return available
-
-    def _setup_particle_fields(self, ptype, filtered = False):
-        pf = self
-        pmass = self._particle_mass_name
-        pcoord = self._particle_coordinates_name
-        if pmass is None or pcoord is None: return
-        df = particle_deposition_functions(ptype,
-            pcoord, pmass, self.field_info)
-        self._derived_fields_add(df)
 
     def _derived_fields_to_check(self):
         fi = self.field_info
         # First we construct our list of fields to check
         fields_to_check = []
-        fields_to_allcheck = []
-        for field in fi.keys():
+        for field in fi:
             finfo = fi[field]
             # Explicitly defined
             if isinstance(field, tuple):
@@ -500,20 +562,18 @@ class Dataset(object):
                 fi[new_fi.name] = new_fi
                 new_fields.append(new_fi.name)
             fields_to_check += new_fields
-            fields_to_allcheck.append(field)
-        return fields_to_check, fields_to_allcheck
+        return fields_to_check
 
-    def _derived_fields_add(self, fields_to_check = None,
-                            fields_to_allcheck = None):
+    def _derived_fields_add(self, fields_to_check = None):
         if fields_to_check is None:
             fields_to_check = []
-        if fields_to_allcheck is None:
-            fields_to_allcheck = []
         fi = self.field_info
+        self._check_later = []
         for field in fields_to_check:
             try:
                 fd = fi[field].get_dependencies(pf = self)
             except Exception as e:
+                self._check_later.append(field)
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
@@ -538,13 +598,6 @@ class Dataset(object):
             if not fi[field].particle_type and not isinstance(field, tuple):
                 # Manually hardcode to 'gas'
                 self.field_dependencies["gas", field] = fd
-        for base_field in fields_to_allcheck:
-            # Now we expand our field_info with the new fields
-            all_available = all(((pt, field) in self.derived_field_list
-                                 for pt in self.particle_types))
-            if all_available:
-                self.derived_field_list.append( ("all", field) )
-                fi["all", base_field] = fi[base_field]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
@@ -585,6 +638,7 @@ class Dataset(object):
             fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
+            finfo = self._get_field_info(*field)
             finfo = self._get_field_info(*field)
             conv_factor = finfo._convert_function(self)
             np.multiply(fields_to_return[field], conv_factor,

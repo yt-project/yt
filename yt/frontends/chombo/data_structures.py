@@ -193,9 +193,6 @@ class ChomboHierarchy(GridIndex):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.parameter_file)
-
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo

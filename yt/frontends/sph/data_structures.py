@@ -36,15 +36,25 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    OWLSFieldInfo, \
-    KnownOWLSFields, \
     GadgetFieldInfo, \
     KnownGadgetFields, \
     GadgetHDF5FieldInfo, \
     KnownGadgetHDF5Fields, \
     TipsyFieldInfo, \
-    KnownTipsyFields
+    KnownTipsyFields, \
+    _setup_particle_fields
+from yt.data_objects.field_info_container import \
+    NullFunc, \
+    TranslationFunc
+from yt.fields.particle_fields import \
+    particle_deposition_functions, \
+    standard_particle_fields
 
+try:
+    import requests
+    import json
+except ImportError:
+    requests = None
 
 class ParticleFile(object):
     def __init__(self, pf, io, filename, file_id):
@@ -117,6 +127,15 @@ class ParticleDataset(Dataset):
             for unit in ur:
                 ud[unit] = ur[unit] / base
 
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
+        self.field_info.add_field((ptype, "particle_index"),
+            function = TranslationFunc((ptype, "ParticleIDs")),
+            particle_type = True)
+        standard_particle_fields(self.field_info, ptype)
+        _setup_particle_fields(self.field_info, ptype,
+            self._particle_mass_name)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class GadgetDataset(ParticleDataset):
     _index_class = ParticleIndex
@@ -125,6 +144,7 @@ class GadgetDataset(ParticleDataset):
     _fieldinfo_known = KnownGadgetFields
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
+    _particle_velocity_name = "Velocities"
     _suffix = ""
     _header_spec = (('Npart', 6, 'i'),
                     ('Massarr', 6, 'd'),
@@ -159,6 +179,8 @@ class GadgetDataset(ParticleDataset):
         self._unit_base = unit_base
         if bounding_box is not None:
             bbox = np.array(bounding_box, dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
         else:
@@ -268,30 +290,55 @@ class GadgetDataset(ParticleDataset):
         return False
 
 
-class OWLSDataset(GadgetDataset):
-    _index_class = ParticleIndex
+class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
-    _fieldinfo_fallback = OWLSFieldInfo  # For now we have separate from Gadget
-    _fieldinfo_known = KnownOWLSFields
-    _particle_mass_name = "Mass"
-    _particle_coordinates_name = "Coordinates"
-    _header_spec = None  # Override so that there's no confusion
+    _fieldinfo_fallback = GadgetHDF5FieldInfo
+    _fieldinfo_known = KnownGadgetHDF5Fields
+    _particle_mass_name = "Masses"
+    _suffix = ".hdf5"
 
-    def __init__(self, filename, dataset_type="OWLS", n_ref=64,
-                 over_refine_factor=1):
+    def __init__(self, filename, dataset_type="gadget_hdf5", 
+                 unit_base = None, n_ref=64,
+                 over_refine_factor=1,
+                 bounding_box = None):
         self.storage_filename = None
         filename = os.path.abspath(filename)
-        super(OWLSDataset, self).__init__(
-            filename, dataset_type, unit_base=None, n_ref=n_ref,
-            over_refine_factor=over_refine_factor)
+        super(GadgetHDF5Dataset, self).__init__(
+            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
+            over_refine_factor=over_refine_factor,
+            bounding_box = bounding_box)
 
-    def __repr__(self):
-        return os.path.basename(self.parameter_filename).split(".")[0]
+    def _get_hvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        hvals = {}
+        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        # Compat reasons.
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
+        return hvals
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            if "Constants" not in fileh["/"].keys() and \
+               "Header" in fileh["/"].keys():
+                fileh.close()
+                return True
+            fileh.close()
+        except:
+            pass
+        return False
+
+class OWLSDataset(GadgetDataset):
+    _particle_mass_name = "Mass"
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
         hvals = {}
         hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
 
         self.dimensionality = 3
         self.refine_by = 2
@@ -332,45 +379,6 @@ class OWLSDataset(GadgetDataset):
         try:
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
-        except:
-            pass
-        return False
-
-class GadgetHDF5Dataset(GadgetDataset):
-    _file_class = ParticleFile
-    _fieldinfo_fallback = GadgetHDF5FieldInfo
-    _fieldinfo_known = KnownGadgetHDF5Fields
-    _suffix = ".hdf5"
-
-    def __init__(self, filename, dataset_type="gadget_hdf5", 
-                 unit_base = None, n_ref=64,
-                 over_refine_factor=1,
-                 bounding_box = None):
-        self.storage_filename = None
-        filename = os.path.abspath(filename)
-        super(GadgetHDF5Dataset, self).__init__(
-            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor,
-            bounding_box = bounding_box)
-
-    def _get_hvals(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        # Compat reasons.
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
-        return hvals
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        try:
-            fileh = h5py.File(args[0], mode='r')
-            if "Constants" not in fileh["/"].keys() and \
                "Header" in fileh["/"].keys():
                 fileh.close()
                 return True
@@ -436,7 +444,10 @@ class TipsyDataset(ParticleDataset):
 
         self._unit_base = unit_base or {}
         self._cosmology_parameters = cosmology_parameters
+        if parameter_file is not None:
+            parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
+        filename = os.path.abspath(filename)
         super(TipsyDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
@@ -497,7 +508,19 @@ class TipsyDataset(ParticleDataset):
             self.periodicity = (True, True, True)
         else:
             self.periodicity = (False, False, False)
-
+        tot = sum(self.parameters[ptype] for ptype
+                  in ('nsph', 'ndark', 'nstar'))
+        if tot != self.parameters['nbodies']:
+            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
+            print "%s != (%s == %s + %s + %s)" % (
+                self.parameters['nbodies'],
+                tot,
+                self.parameters['nsph'],
+                self.parameters['ndark'],
+                self.parameters['nstar'])
+            print "Often this can be fixed by changing the 'endian' parameter."
+            print "This defaults to '>' but may in fact be '<'."
+            raise RuntimeError
         if self.parameters.get('bComove', True):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}
@@ -543,4 +566,80 @@ class TipsyDataset(ParticleDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         # We do not allow load() of these files.
+        return False
+
+class HTTPParticleFile(ParticleFile):
+    pass
+
+class HTTPStreamStaticOutput(ParticleStaticOutput):
+    _index_class = ParticleIndex
+    _file_class = HTTPParticleFile
+    _fieldinfo_fallback = GadgetFieldInfo
+    _fieldinfo_known = KnownGadgetFields
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
+    _particle_velocity_name = "Velocities"
+    filename_template = ""
+    
+    def __init__(self, base_url,
+                 data_style = "http_particle_stream",
+                 n_ref = 64, over_refine_factor=1):
+        if requests is None:
+            raise RuntimeError
+        self.base_url = base_url
+        self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
+        super(HTTPStreamStaticOutput, self).__init__("", data_style)
+
+    def __repr__(self):
+        return self.base_url
+
+    def _parse_parameter_file(self):
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+
+        # Here's where we're going to grab the JSON index file
+        hreq = requests.get(self.base_url + "/yt_index.json")
+        if hreq.status_code != 200:
+            raise RuntimeError
+        header = json.loads(hreq.content)
+        header['particle_count'] = dict((int(k), header['particle_count'][k])
+            for k in header['particle_count'])
+        self.parameters = header
+
+        # Now we get what we need
+        self.domain_left_edge = np.array(header['domain_left_edge'], "float64")
+        self.domain_right_edge = np.array(header['domain_right_edge'], "float64")
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.periodicity = (True, True, True)
+
+        self.current_time = header['current_time']
+        self.unique_identifier = header.get("unique_identifier", time.time())
+        self.cosmological_simulation = int(header['cosmological_simulation'])
+        for attr in ('current_redshift', 'omega_lambda', 'omega_matter',
+                     'hubble_constant'):
+            setattr(self, attr, float(header[attr]))
+
+        self.file_count = header['num_files']
+
+    def _set_units(self):
+        length_unit = float(self.parameters['units']['length'])
+        time_unit = float(self.parameters['units']['time'])
+        mass_unit = float(self.parameters['units']['mass'])
+        density_unit = mass_unit / length_unit ** 3
+        velocity_unit = length_unit / time_unit
+        self._unit_base = {}
+        self._unit_base['cm'] = 1.0/length_unit
+        self._unit_base['s'] = 1.0/time_unit
+        super(HTTPStreamStaticOutput, self)._set_units()
+        self.conversion_factors["velocity"] = velocity_unit
+        self.conversion_factors["mass"] = mass_unit
+        self.conversion_factors["density"] = density_unit
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if args[0].startswith("http://"):
+            return True
         return False

@@ -34,33 +34,39 @@ class IOHandlerARTIO(BaseIOHandler):
                 cp += artchunk.data_size
         return tr
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        fd = dict((ftuple, []) for ftuple in fields)
-        ftypes = set(ftype for (ftype, fname) in fields)
-        for ftype in ftypes:
+    def _read_particle_coords(self, chunks, ptf):
+        pn = "particle_position_%s"
+        chunks = list(chunks)
+        fields = [(ptype, "particle_position_%s" % ax)
+                  for ptype, field_list in ptf.items()
+                  for ax in 'xyz']
+        for chunk in chunks: # These should be organized by grid filename
+            for subset in chunk.objs:
+                rv = dict(**subset.fill_particles(fields))
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z = (np.asarray(rv[ptype][pn % ax], dtype="=f8")
+                               for ax in 'xyz')
+                    yield ptype, (x, y, z)
+                    rv.pop(ptype)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        pn = "particle_position_%s"
+        chunks = list(chunks)
+        fields = [(ptype, fname) for ptype, field_list in ptf.items()
+                                 for fname in field_list]
+        for ptype, field_list in sorted(ptf.items()):
             for ax in 'xyz':
-                ftuple = (ftype, "particle_position_%s" % ax)
-                if ftuple not in fd:
-                    fd[ftuple] = []
-        for onechunk in chunks:
-            # We're going to read here
-            for artchunk in onechunk.objs:
-                rv = artchunk.fill_particles(fd.keys())
-                # Now we count and also cut
-                for ftype in rv:
-                    mask = selector.select_points(
-                        rv[ftype]["particle_position_x"],
-                        rv[ftype]["particle_position_y"],
-                        rv[ftype]["particle_position_z"])
+                if pn % ax not in field_list:
+                    fields.append((ptype, pn % ax))
+        for chunk in chunks: # These should be organized by grid filename
+            for subset in chunk.objs:
+                rv = dict(**subset.fill_particles(fields))
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z = (np.asarray(rv[ptype][pn % ax], dtype="=f8")
+                               for ax in 'xyz')
+                    mask = selector.select_points(x, y, z)
                     if mask is None: continue
-                    for fname in rv[ftype]:
-                        if (ftype, fname) not in fields: continue
-                        fd[ftype, fname].append(rv[ftype][fname][mask])
-        # This needs to be pre-initialized in case we are later concatenated.
-        tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)
-        for f in fd.keys():
-            v = fd.pop(f)
-            if f not in fields: continue
-            if len(v) == 0: continue
-            tr[f] = np.concatenate(v)
-        return tr
+                    for field in field_list:
+                        data = np.asarray(rv[ptype][field], "=f8")
+                        yield (ptype, field), data[mask]
+                    rv.pop(ptype)

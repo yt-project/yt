@@ -123,7 +123,8 @@ from yt.visualization.api import \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
-    SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
+    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
+    ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps
 
 from yt.visualization.volume_rendering.api import \

@@ -38,7 +38,6 @@ cdef struct OctVisitorData:
                    # To calculate nzones, 1 << (oref * 3)
     np.int32_t nz
                             
-
 ctypedef void oct_visitor_function(Oct *, OctVisitorData *visitor,
                                    np.uint8_t selected)
 
@@ -58,6 +57,8 @@ cdef oct_visitor_function assign_domain_ind
 cdef oct_visitor_function fill_file_indices_oind
 cdef oct_visitor_function fill_file_indices_rind
 cdef oct_visitor_function count_by_domain
+cdef oct_visitor_function store_octree
+cdef oct_visitor_function load_octree
 
 cdef inline int cind(int i, int j, int k):
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
