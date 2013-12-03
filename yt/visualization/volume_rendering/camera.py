@@ -1063,6 +1063,7 @@ class PerspectiveCamera(Camera):
         inv_mat = self.orienter.inv_mat
         positions = np.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
+        positions = YTArray(positions, "code_length")
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
         positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
         positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
@@ -1070,6 +1071,7 @@ class PerspectiveCamera(Camera):
 
         # We are likely adding on an odd cutting condition here
         vectors = self.front_center - positions
+        vectors = vectors / (vectors**2).sum()**0.5
         positions = self.front_center - 1.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
         vectors = (self.front_center - positions)
 
