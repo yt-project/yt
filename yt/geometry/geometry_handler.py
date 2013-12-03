@@ -28,6 +28,8 @@ from yt.funcs import *
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     data_object_registry
+from yt.data_objects.yt_array import \
+    uconcatenate
 from yt.fields.field_info_container import \
     NullFunc
 from yt.fields.particle_fields import \
@@ -443,14 +445,15 @@ class YTDataChunk(object):
         for obj in self.objs:
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
-        arrs = np.concatenate(arrs)
+        arrs = uconcatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs
 
     @cached_property
     def fcoords(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
-        ci = YTArray(ci, input_units = "code_length")
+        ci = YTArray(ci, input_units = "code_length",
+                     registry = self.dobj.pf.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -475,7 +478,8 @@ class YTDataChunk(object):
     @cached_property
     def fwidth(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
-        ci = YTArray(ci, input_units = "code_length")
+        ci = YTArray(ci, input_units = "code_length",
+                     registry = self.dobj.pf.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:

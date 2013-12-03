@@ -302,9 +302,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         fd = data['fields']
         field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
+            finfo = self.pf._get_field_info(*field)
             mylog.debug("Setting field %s", field)
+            units = finfo.units
+            if self.weight_field is None:
+                # See _handle_chunk where we mandate cm
+                units = "(%s) * cm" % units
             self[field] = YTArray(field_data[fi].ravel(),
-                                  input_units=self.pf.field_info[field].units,
+                                  input_units=units,
                                   registry=self.pf.unit_registry)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
@@ -320,8 +325,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if self.proj_style == "mip":
             dl = 1.0
         else:
+            # This gets explicitly converted to cm
             dl = chunk.fwidth[:, self.axis]
-        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
+            dl.convert_to_units("cm")
+        v = p.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i in range(len(fields)):
             v[:,i] = chunk[fields[i]] * dl
         if self.weight_field is not None:
