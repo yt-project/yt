@@ -730,53 +730,6 @@ class PWViewerMPL(PlotWindow):
 
         self._plot_valid = True
 
-    @invalidate_plot
-    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
-        """set the scale of the colormap
-
-        Parameters
-        ----------
-        field : string
-            the field to set a colormap scale
-            if field == 'all', applies to all plots.
-        zmin : float
-            the new minimum of the colormap scale. If 'min', will
-            set to the minimum value in the current view.
-        zmax : float
-            the new maximum of the colormap scale. If 'max', will
-            set to the maximum value in the current view.
-
-        Other Parameters
-        ----------------
-        dynamic_range : float (default: None)
-            The dynamic range of the image.
-            If zmin == None, will set zmin = zmax / dynamic_range
-            If zmax == None, will set zmax = zmin * dynamic_range
-            When dynamic_range is specified, defaults to setting
-            zmin = zmax / dynamic_range.
-
-        """
-        if field is 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-        for field in fields:
-            myzmin = zmin
-            myzmax = zmax
-            if zmin == 'min':
-                myzmin = self.plots[field].image._A.min()
-            if zmax == 'max':
-                myzmax = self.plots[field].image._A.max()
-            if dynamic_range is not None:
-                if zmax is None:
-                    myzmax = myzmin * dynamic_range
-                else:
-                    myzmin = myzmax / dynamic_range
-
-            self.plots[field].zmin = myzmin
-            self.plots[field].zmax = myzmax
-        return self
-
     def setup_callbacks(self):
         for key in callback_registry:
             ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
@@ -1194,6 +1147,11 @@ class OffAxisProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(self, OffAxisProj, bounds, origin='center-window', periodic=False,
                              oblique=True, fontsize=fontsize)
         self.set_axes_unit(axes_unit)
+
+    def _recreate_frb(self):
+        if self._frb is not None:
+            raise NotImplementedError
+        super(OffAxisProjectionPlot, self)._recreate_frb()
 
 _metadata_template = """
 %(pf)s<br>
