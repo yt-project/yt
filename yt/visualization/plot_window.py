@@ -610,6 +610,7 @@ class PlotWindow(object):
         """
         field_name = self.data_source._determine_fields(field_name)[0]
         self._frb[field_name].convert_to_units(unit_name)
+        return self
 
 class PWViewer(PlotWindow):
     """A viewer for PlotWindows.
@@ -920,8 +921,8 @@ class PWViewerMPL(PWViewer):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            extentx = [(self.xlim[i] - xc) for i in (0,1)]
-            extenty = [(self.ylim[i] - yc) for i in (0,1)]
+            extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0,1)]
+            extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0,1)]
 
             extent = extentx + extenty
 
@@ -1008,14 +1009,13 @@ class PWViewerMPL(PWViewer):
 
             colorbar_label = image.info['label']
 
-            # Try to determine the units of the data
+            # Determine the units of the data
             units = Unit(self._frb[f].units).latex_representation()
 
             if units is None or units == '':
                 pass
             else:
                 colorbar_label += r'$\/\/('+units+r')$'
-
 
             parser = MathTextParser('Agg')
             try:

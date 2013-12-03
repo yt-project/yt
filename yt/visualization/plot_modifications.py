@@ -500,7 +500,7 @@ class LabelCallback(PlotCallback):
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
     good_u = None
-    for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
+    for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
         uq = YTQuantity(1.0, unit)
         if uq < v:
             good_u = unit
