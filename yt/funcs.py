@@ -586,15 +586,19 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length):
-    if isinstance(length, numeric_type):
-        return YTArray(length, 'cm')
+def fix_length(length, pf=None):
+    if pf is not None:
+        registry = pf.unit_registry
+    else:
+        registry = None
+    if isinstance(length, (numeric_type, YTArray)):
+        return YTArray(length, 'cm', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], types.StringTypes)
     if length_valid_tuple and unit_is_string:
         if length[1] in ('unitary', '1'):
             length = (length[0], 'code_length')
-        return YTArray(*length)
+        return YTArray(*length, registry=registry)
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
 

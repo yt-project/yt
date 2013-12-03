@@ -489,8 +489,8 @@ class YTDiskBase(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
-        self._height = fix_length(height)
-        self._radius = fix_length(radius)
+        self._height = fix_length(height, self.pf)
+        self._radius = fix_length(radius, self.pf)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
 
@@ -561,7 +561,7 @@ class YTSphereBase(YTSelectionContainer3D):
     def __init__(self, center, radius, pf = None, field_parameters = None):
         super(YTSphereBase, self).__init__(center, pf, field_parameters)
         # Unpack the radius, if necessary
-        radius = fix_length(radius)
+        radius = fix_length(radius, self.pf)
         if radius < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
