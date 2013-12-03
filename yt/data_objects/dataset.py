@@ -471,6 +471,46 @@ class Dataset(object):
         except IOError:
             return
 
+    def _setup_particle_types(self, ptypes = None):
+        mname = self._particle_mass_name
+        cname = self._particle_coordinates_name
+        vname = self._particle_velocity_name
+        # We require overriding if any of this is true
+        df = []
+        if ptypes is None: ptypes = self.particle_types_raw
+        if None in (mname, cname, vname): 
+            # If we don't know what to do, then let's not.
+            for ptype in set(ptypes):
+                df += self._setup_particle_type(ptype)
+            # Now we have a bunch of new fields to add!
+            # This is where the dependencies get calculated.
+            self._derived_fields_add(df)
+            return
+        fi = self.field_info
+        def _get_conv(cf):
+            def _convert(data):
+                return data.convert(cf)
+            return _convert
+        for ptype in ptypes:
+            fi.add_field((ptype, vname), function=NullFunc,
+                particle_type = True,
+                convert_function=_get_conv("velocity"),
+                units = r"\mathrm{cm}/\mathrm{s}")
+            df.append((ptype, vname))
+            fi.add_field((ptype, mname), function=NullFunc,
+                particle_type = True,
+                convert_function=_get_conv("mass"),
+                units = r"\mathrm{g}")
+            df.append((ptype, mname))
+            df += particle_deposition_functions(ptype, cname, mname, fi)
+            df += particle_scalar_functions(ptype, cname, vname, fi)
+            fi.add_field((ptype, cname), function=NullFunc,
+                         particle_type = True)
+            df.append((ptype, cname))
+            # Now we add some translations.
+            df += self._setup_particle_type(ptype)
+        self._derived_fields_add(df)
+
     def _setup_unknown_fields(self, list_of_fields = None, field_info = None,
                               skip_removal = False):
         field_info = field_info or self._fieldinfo_known

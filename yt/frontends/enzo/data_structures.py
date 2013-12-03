@@ -203,16 +203,7 @@ class EnzoHierarchy(GridIndex):
             self._bn = "%s.cpu%%04i"
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
-        if os.path.getsize(self.hierarchy_filename) == 0:
-            raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
-
-        # For some reason, r8 seems to want Float64
-        if pf.has_key("CompilerPrecision") \
-            and pf["CompilerPrecision"] == "r4":
-            self.float_type = 'float32'
-        else:
-            self.float_type = 'float64'
 
         GridIndex.__init__(self, pf, dataset_type)
         # sync it back
@@ -444,6 +435,30 @@ class EnzoHierarchy(GridIndex):
                 for p in pfields:
                     result[p] = result[p][0:max_num]
         return result
+
+    def _identify_fields(self):
+        field_list = []
+        # Do this only on the root processor to save disk work.
+        if self.comm.rank in (0, None):
+            mylog.info("Gathering a field list (this may take a moment.)")
+            field_list = set()
+            random_sample = self._generate_random_grids()
+            for grid in random_sample:
+                if not hasattr(grid, 'filename'): continue
+                try:
+                    gf = self.pf.io._read_field_names(grid)
+                except self.pf.io._read_exception:
+                    mylog.debug("Grid %s is a bit funky?", grid.id)
+                    continue
+                mylog.debug("Grid %s has: %s", grid.id, gf)
+                field_list = field_list.union(gf)
+            if "AppendActiveParticleType" in self.parameter_file.parameters:
+                ap_fields = self._detect_active_particle_fields()
+                field_list = list(set(field_list).union(ap_fields))
+        else:
+            field_list = None
+        field_list = list(self.comm.mpi_bcast(field_list))
+        return field_list
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
@@ -932,27 +947,7 @@ class EnzoDataset(Dataset):
                 add_field((apt, fname), **dd)
 
     def _detect_fields(self):
-        self.field_list = []
-        # Do this only on the root processor to save disk work.
-        if self.comm.rank in (0, None):
-            mylog.info("Gathering a field list (this may take a moment.)")
-            field_list = set()
-            random_sample = self._generate_random_grids()
-            for grid in random_sample:
-                if not hasattr(grid, 'filename'): continue
-                try:
-                    gf = self.io._read_field_names(grid)
-                except self.io._read_exception:
-                    mylog.debug("Grid %s is a bit funky?", grid.id)
-                    continue
-                mylog.debug("Grid %s has: %s", grid.id, gf)
-                field_list = field_list.union(gf)
-            if "AppendActiveParticleType" in self.parameter_file.parameters:
-                ap_fields = self._detect_active_particle_fields()
-                field_list = list(set(field_list).union(ap_fields))
-        else:
-            field_list = None
-        self.field_list = list(self.comm.mpi_bcast(field_list))
+        self.field_list = self.index._identify_fields()
 
 class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory
