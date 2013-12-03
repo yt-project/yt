@@ -1,4 +1,5 @@
 from yt.testing import *
+from yt.utilities.units import Unit
 import os
 import tempfile
 
