@@ -285,11 +285,11 @@ class DualEPS(object):
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
         """
-        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
             plot.refresh()
         else:
             plot._redraw_image()
-        if isinstance(plot, VMPlot) or isinstance(plot, PlotWindow):
+        if isinstance(plot, (VMPlot, PlotWindow)):
             if isinstance(plot, PlotWindow):
                 data = plot._frb
                 width = plot.width[0]
@@ -441,7 +441,7 @@ class DualEPS(object):
                 plot.colorbar = None
             plot._redraw_image()
             _p1 = plot._figure
-        elif isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+        elif isinstance(plot, (PlotWindow, PhasePlot)):
             self.field = field
             if self.field == None:
                 self.field = plot.plots.keys()[0]
@@ -622,7 +622,7 @@ class DualEPS(object):
         _cmap = None
         if field != None:
             self.field = field
-        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
             _cmap = plot._colormaps[self.field]
         else:
             if plot.cmap != None:
@@ -636,7 +636,7 @@ class DualEPS(object):
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.log_field
             _zrange = (plot.norm.vmin, plot.norm.vmax)
-        elif isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+        elif isinstance(plot, (PlotWindow, PhasePlot)):
             proj = plot._plot_type.endswith("Projection") and \
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
