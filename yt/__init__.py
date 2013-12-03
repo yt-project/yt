@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "2.5.5"
+__version__ = "2.6.1"
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     import nose, os, sys
