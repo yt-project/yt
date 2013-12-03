@@ -116,7 +116,7 @@ class YTRayBase(YTSelectionContainer1D):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
@@ -301,7 +301,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     def normal(self):
         return self._norm_vec
 
-    def to_frb(self, width, resolution, height=None):
+    def to_frb(self, width, resolution, height=None,
+               periodic=False):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
 
@@ -351,7 +352,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+                    periodic = periodic)
         return frb
 
     def _generate_container_field(self, field):
@@ -361,7 +363,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = np.zeros(self.size, dtype='float64')
+            tr = YTArray(x.size, dtype='float64', "code_length",
+                         registry = self.pf.unit_registry)
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
@@ -370,7 +373,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = np.zeros(self.size, dtype='float64')
+            tr = YTArray(x.size, dtype='float64', "code_length",
+                         registry = self.pf.unit_registry)
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
@@ -379,7 +383,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = np.zeros(self.size, dtype='float64')
+            tr = YTArray(x.size, dtype='float64', "code_length",
+                         registry = self.pf.unit_registry)
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
             tr += z * self._norm_vec[2]

@@ -222,6 +222,7 @@ class EnzoHierarchy(GridGeometryHandler):
         self.object_types.sort()
 
     def _count_grids(self):
+        self.num_grids = None
         test_grid = test_grid_id = None
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
@@ -232,8 +233,11 @@ class EnzoHierarchy(GridGeometryHandler):
             if line.startswith("NumberOfStarParticles"):
                 self.num_stars = int(line.split("=")[-1])
             if line.startswith("Grid "):
-                self.num_grids = test_grid_id = int(line.split("=")[-1])
-                break
+                if self.num_grids is None:
+                    self.num_grids = int(line.split("=")[-1])
+                test_grid_id = int(line.split("=")[-1])
+                if test_grid is not None:
+                    break
         self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
@@ -275,7 +279,7 @@ class EnzoHierarchy(GridGeometryHandler):
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
-        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
+        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
         if self.parameter_file.parameters["VersionNumber"] > 2.0:
             active_particles = True
             nap = {}

@@ -339,7 +339,6 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(__builtin__) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
@@ -347,12 +346,13 @@ def get_pbar(title, maxval):
         return ExtProgressBar(title, maxval)
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+    else:
+        widgets = [ title,
+                    pb.Percentage(), ' ',
+                    pb.Bar(marker=pb.RotatingMarker()),
+                    ' ', pb.ETA(), ' ']
+        pbar = pb.ProgressBar(widgets=widgets,
+                              maxval=maxval).start()
     return pbar
 
 def only_on_root(func, *args, **kwargs):
@@ -659,6 +659,22 @@ def set_intersection(some_list):
 
 @contextlib.contextmanager
 def memory_checker(interval = 15):
+    r"""This is a context manager that monitors memory usage.
+
+    Parameters
+    ----------
+    interval : int
+        The number of seconds between printing the current memory usage in
+        gigabytes of the current Python interpreter.
+
+    Examples
+    --------
+
+    >>> with memory_checker(10):
+    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     time.sleep(15)
+    ...     del arr
+    """
     import threading
     class MemoryChecker(threading.Thread):
         def __init__(self, event, interval):

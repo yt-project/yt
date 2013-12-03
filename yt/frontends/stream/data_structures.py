@@ -975,20 +975,22 @@ def load_particles(data, length_unit = None, bbox=None,
 
     return spf
 
+_cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
+                dtype=np.int64, count = 8*3)
+_cis.shape = (8, 3)
+
 def hexahedral_connectivity(xgrid, ygrid, zgrid):
     nx = len(xgrid)
     ny = len(ygrid)
     nz = len(zgrid)
-    coords = np.fromiter(chain.from_iterable(product(xgrid, ygrid, zgrid)),
-                    dtype=np.float64, count = nx*ny*nz*3)
-    coords.shape = (nx*ny*nz, 3)
-    cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
-                    dtype=np.int64, count = 8*3)
-    cis.shape = (8, 3)
-    cycle = np.fromiter(chain.from_iterable(product(*map(range, (nx-1, ny-1, nz-1)))),
-                    dtype=np.int64, count = (nx-1)*(ny-1)*(nz-1)*3)
+    coords = np.zeros((nx, ny, nz, 3), dtype="float64", order="C")
+    coords[:,:,:,0] = xgrid[:,None,None]
+    coords[:,:,:,1] = ygrid[None,:,None]
+    coords[:,:,:,2] = zgrid[None,None,:]
+    coords.shape = (nx * ny * nz, 3)
+    cycle = np.rollaxis(np.indices((nx-1,ny-1,nz-1)), 0, 4)
     cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
-    off = cis + cycle[:, np.newaxis]
+    off = _cis + cycle[:, np.newaxis]
     connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
     return coords, connectivity
 

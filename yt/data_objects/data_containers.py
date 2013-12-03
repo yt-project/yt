@@ -699,7 +699,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         return pw
 
 
-    def to_frb(self, width, resolution, center=None, height=None):
+    def to_frb(self, width, resolution, center=None, height=None,
+               periodic = False):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -724,6 +725,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
+        periodic : bool
+            Should the returned Fixed Resolution Buffer be periodic?  (default:
+            False).
 
         Returns
         -------
@@ -764,7 +768,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         yax = y_dict[self.axis]
         bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
                   center[yax] - height*0.5, center[yax] + height*0.5)
-        frb = FixedResolutionBuffer(self, bounds, resolution)
+        frb = FixedResolutionBuffer(self, bounds, resolution,
+                                    periodic = periodic)
         return frb
 
 class YTSelectionContainer3D(YTSelectionContainer):

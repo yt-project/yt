@@ -85,3 +85,18 @@ class IOHandlerFLASH(BaseIOHandler):
                     data = ds[g.id - g._id_offset,:,:,:].transpose()
                     ind += g.select(selector, data, rv[field], ind) # caches
         return rv
+
+    def _read_chunk_data(self, chunk, fields):
+        f = self._handle
+        rv = {}
+        for g in chunk.objs:
+            rv[g.id] = {}
+        for field in fields:
+            ftype, fname = field
+            ds = f["/%s" % fname]
+            ind = 0
+            for g in chunk.objs:
+                data = ds[g.id - g._id_offset,:,:,:].transpose()
+                rv[g.id][field] = data
+        return rv
+

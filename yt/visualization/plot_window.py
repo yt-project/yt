@@ -525,18 +525,34 @@ class PlotWindow(object):
         parameters
         ----------
         new_center : two element sequence of floats
-            The coordinates of the new center of the image.
-            If the unit keyword is not specified, the
-            coordinates are assumed to be in code units
+            The coordinates of the new center of the image in the
+            coordinate system defined by the plot axes. If the unit
+            keyword is not specified, the coordinates are assumed to
+            be in code units.
 
         unit : string
             The name of the unit new_center is given in.
 
         """
+        error = RuntimeError(
+            "\n"
+            "new_center must be a two-element list or tuple of floats \n"
+            "corresponding to a coordinate in the plot relative to \n"
+            "the plot coordinate system.\n"
+        )
         if new_center is None:
             self.center = None
-        else:
+        elif iterable(new_center):
+            try:
+                assert all(isinstance(el, Number) for el in new_center)
+            except AssertionError:
+                raise error
+            if len(new_center) != 2:
+                raise error
+            new_center = [c / self.pf[unit] for c in new_center]
             self.center = new_center
+        else:
+            raise error
         self.set_window(self.bounds)
         return self
 
@@ -639,6 +655,27 @@ class PWViewer(PlotWindow):
             else:
                 self._field_transform[field] = linear_transform
         return self
+
+    def get_log(self, field):
+        """get the transform type of a field.
+        
+        Parameters
+        ----------
+        field : string
+            the field to get a transform
+
+        """
+        log = {}
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in fields:
+            if self._field_transform[field] == log_transform:
+                log[field] = True
+            else:
+                log[field] = False
+        return log
 
     @invalidate_plot
     def set_transform(self, field, name):
@@ -1078,7 +1115,7 @@ class PWViewerMPL(PWViewer):
         field : string
             the field to set a transform
             if field == 'all', applies to all plots.
-        cmap_name : string
+        cmap : string
             name of the colormap
 
         """

@@ -198,6 +198,7 @@ cdef class OctreeContainer:
         free_octs(self.cont)
         if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
+            if self.root_mesh[i] == NULL: continue
             for j in range(self.nn[1]):
                 if self.root_mesh[i][j] == NULL: continue
                 free(self.root_mesh[i][j])
