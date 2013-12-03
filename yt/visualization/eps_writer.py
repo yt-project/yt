@@ -28,6 +28,7 @@ from .plot_types import \
     ProfilePlot
 from .plot_collection import PlotCollection
 from .plot_window import PlotWindow
+from .profile_plotter import PhasePlot
 from .plot_modifications import get_smallest_appropriate_unit
 
 class DualEPS(object):
@@ -55,6 +56,14 @@ class DualEPS(object):
         p = pyx.path.line(0,0,1,1)
         self.canvas.stroke(p)
         self.canvas.text(0,0, "Hello world.")
+
+#=============================================================================
+
+    def return_field(self, plot):
+        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+            return plot.plots.keys()[0]
+        else:
+            return None
 
 #=============================================================================
 
@@ -276,18 +285,17 @@ class DualEPS(object):
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
         """
-        if isinstance(plot, PlotWindow):
+        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
             plot.refresh()
-            width = plot.width[0]
         else:
             plot._redraw_image()
-            if isinstance(plot, VMPlot):
-                width = plot.width
         if isinstance(plot, VMPlot) or isinstance(plot, PlotWindow):
             if isinstance(plot, PlotWindow):
                 data = plot._frb
+                width = plot.width[0]
             else:
                 data = plot.data
+                width = plot.width
             if units == None:
                 units = get_smallest_appropriate_unit(width, plot.pf)
             _xrange = (0, width * plot.pf[units])
@@ -315,6 +323,26 @@ class DualEPS(object):
                         _ylabel = 'Image y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
+        elif isinstance(plot, PhasePlot):
+            k = plot.plots.keys()[0]
+            _xrange = plot[k].axes.get_xlim()
+            _yrange = plot[k].axes.get_ylim()
+            _xlog = plot.profile.x_log
+            _ylog = plot.profile.y_log
+            if bare_axes:
+                _xlabel = ""
+                _ylabel = ""
+            else:
+                if xlabel != None:
+                    _xlabel = xlabel
+                else:
+                    _xlabel = plot[k].axes.get_xlabel()
+                if ylabel != None:
+                    _ylabel = ylabel
+                else:
+                    _xlabel = plot[k].axes.get_ylabel()
+            if tickcolor == None:
+                _tickcolor = None
         else:
             _xrange = plot._axes.get_xlim()
             _yrange = plot._axes.get_ylim()
@@ -413,7 +441,7 @@ class DualEPS(object):
                 plot.colorbar = None
             plot._redraw_image()
             _p1 = plot._figure
-        elif isinstance(plot, PlotWindow):
+        elif isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
             self.field = field
             if self.field == None:
                 self.field = plot.plots.keys()[0]
@@ -431,6 +459,9 @@ class DualEPS(object):
             # Remove colorbar
             _p1 = plot._figure
             _p1.delaxes(_p1.axes[1])
+        else:
+            raise RuntimeError("Unknown plot type")
+
         _p1.axes[0].set_axis_off()  # remove axes
         _p1.axes[0].set_position([-shift,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
@@ -590,7 +621,7 @@ class DualEPS(object):
         _cmap = None
         if field != None:
             self.field = field
-        if isinstance(plot, PlotWindow):
+        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
             _cmap = plot._colormaps[self.field]
         else:
             if plot.cmap != None:
@@ -604,10 +635,13 @@ class DualEPS(object):
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.log_field
             _zrange = (plot.norm.vmin, plot.norm.vmax)
-        elif isinstance(plot, PlotWindow):
+        elif isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
             proj = plot._plot_type.endswith("Projection") and \
                 plot.data_source.weight_field == None
-            _zlabel = plot.pf.field_info[self.field].get_label(proj)
+            if isinstance(plot, PlotWindow):
+                _zlabel = plot.pf.field_info[self.field].get_label(proj)
+            else:
+                _zlabel = plot.data_source.pf.field_info[self.field].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -881,6 +915,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         _yt = True
     else:
         _yt = False
+    if fields == None:
+        fields = [None] * npanels
 
     # If no ranges or labels given and given only images, fill them in.
     if not _yt:
@@ -939,21 +975,13 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     ylabel = ylabels[j]
                 else:
                     ylabel = None
-                if plot_collection:
-                    d.insert_image_yt(yt_plots[index], pos=(xpos, ypos))
-                    d.axis_box_yt(yt_plots[index], pos=(xpos, ypos),
-                                  bare_axes=bare_axes, xaxis_side=xaxis,
-                                  yaxis_side=yaxis,
-                                  xlabel=xlabel, ylabel=ylabel,
-                                  xdata=_xdata, ydata=_ydata)
-                else:
-                    d.insert_image_yt(yt_plots, pos=(xpos, ypos), 
-                                      field=fields[index])
-                    d.axis_box_yt(yt_plots, pos=(xpos, ypos),
-                                  bare_axes=bare_axes, xaxis_side=xaxis,
-                                  yaxis_side=yaxis,
-                                  xlabel=xlabel, ylabel=ylabel,
-                                  xdata=_xdata, ydata=_ydata)
+                d.insert_image_yt(yt_plots[index], pos=(xpos, ypos),
+                                  field=fields[index])
+                d.axis_box_yt(yt_plots[index], pos=(xpos, ypos),
+                              bare_axes=bare_axes, xaxis_side=xaxis,
+                              yaxis_side=yaxis,
+                              xlabel=xlabel, ylabel=ylabel,
+                              xdata=_xdata, ydata=_ydata)
             else:
                 d.insert_image(images[index], pos=(xpos,ypos))
                 d.axis_box(pos = (xpos, ypos),
@@ -1020,16 +1048,14 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
 
                 if orientation != None:
                     if _yt:
-                        if plot_collection:
-                            d.colorbar_yt(yt_plots[index],
-                                          pos=[xpos,ypos],
-                                          shrink=shrink_cb,
-                                          orientation=orientation)
-                        else:
-                            d.colorbar_yt(yt_plots, field=fields[index],
-                                          pos=[xpos,ypos],
-                                          shrink=shrink_cb,
-                                          orientation=orientation)
+                        # Set field if undefined
+                        if fields[index] == None:
+                            fields[index] = d.return_field(yt_plots[index])
+                        d.colorbar_yt(yt_plots[index],
+                                      field=fields[index],
+                                      pos=[xpos,ypos],
+                                      shrink=shrink_cb,
+                                      orientation=orientation)
                     else:
                         d.colorbar(colorbars[index]["cmap"],
                                    zrange=colorbars[index]["range"],
@@ -1077,13 +1103,16 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
     >>>                   yt_nocbar=False, margins=(0.5,0.5))
     """
+    # Determine whether the plots are organized in a PlotCollection,
+    # PlotWindow, or list of PlotWindows
     if isinstance(plots, PlotCollection):
         if len(plots.plots) < nrow*ncol:
             raise RuntimeError("Number of plots in PlotCollection is less "\
                                "than nrow(%d) x ncol(%d)." % \
                                (len(plots.plots), nrow, ncol))
             return
-        figure = multiplot(ncol, nrow, yt_plots=plots.plots, **kwargs)
+        figure = multiplot(ncol, nrow, yt_plots=plots.plots, 
+                           plot_collection=True, **kwargs)
     elif isinstance(plots, PlotWindow):
         if fields == None:
             fields = plots.fields
@@ -1093,6 +1122,16 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                                (len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
+    elif isinstance(plots, list) and isinstance(plots[0], PlotWindow):
+        if len(plots) < nrow*ncol:
+            raise RuntimeError("Number of plots is less "\
+                               "than nrow(%d) x ncol(%d)." % \
+                               (len(fields), nrow, ncol))
+            return
+        figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
+    else:
+        raise RuntimeError("Unknown plot type in multiplot_yt")
+        return
     return figure
 
 #=============================================================================
