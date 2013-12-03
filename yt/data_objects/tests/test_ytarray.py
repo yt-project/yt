@@ -18,6 +18,7 @@ from numpy.testing import assert_approx_equal, assert_array_equal
 from numpy import array
 from yt.data_objects.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
+from yt.funcs import fix_length
 import operator
 
 def operate_and_compare(a, b, op, answer):
@@ -218,3 +219,11 @@ def test_selecting():
     a = YTArray(range(10), 'cm')
     assert_array_equal, a[:3], YTArray([0, 1, 2], 'cm')
     assert isinstance(a[0], YTQuantity)
+
+def test_fix_length():
+    """
+    Test fixing the length of an array. Used in spheres and other data objects
+    """
+    length = YTQuantity(1.0,'code_length')
+    new_length = fix_length(length)
+    assert length == new_length
