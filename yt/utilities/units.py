@@ -141,17 +141,17 @@ default_unit_symbol_lut = {
 # Add LaTeX representations for units with trivial representations.
 latex_symbol_lut = {
     "unitary" : "",
-    "code_length" : "code\/length",
-    "code_time" : "code\/time",
-    "code_mass" : "code\/mass",
-    "code_temperature" : "code\/temperature",
-    "Msun" : "\\rm{Msun}",
-    "msun" : "\\rm{msun}",
-    "Rsun" : "\\rm{Rsun}",
-    "rsun" : "\\rm{rsun}",
-    "Lsun" : "\\rm{Lsun}",
-    "Tsun" : "\\rm{Tsun}",
-    "Zsun" : "\\rm{Zsun}",
+    "code_length" : "\\rm{code}\/\\rm{length}",
+    "code_time" : "\\rm{code}\/\\rm{time}",
+    "code_mass" : "\\rm{code}\/\\rm{mass}",
+    "code_temperature" : "\\rm{code}\/\\rm{temperature}",
+    "Msun" : "\\rm{M}_\\odot",
+    "msun" : "\\rm{M}_\\odot",
+    "Rsun" : "\\rm{R}_\\odot",
+    "rsun" : "\\rm{R}_\\odot",
+    "Lsun" : "\\rm{L}_\\odot",
+    "Tsun" : "\\rm{T}_\\odot",
+    "Zsun" : "\\rm{Z}_\\odot",
 }
 for key in default_unit_symbol_lut:
     if key not in latex_symbol_lut:
