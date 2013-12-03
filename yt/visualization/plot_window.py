@@ -531,7 +531,8 @@ class PlotWindow(object):
             be in code units.
 
         unit : string
-            The name of the unit new_center is given in.
+            The name of the unit new_center is given in.  If new_center is a
+            YTArray or tuple of YTQuantities, this keyword is ignored.
 
         """
         error = RuntimeError(
@@ -543,13 +544,13 @@ class PlotWindow(object):
         if new_center is None:
             self.center = None
         elif iterable(new_center):
-            try:
-                assert all(isinstance(el, Number) for el in new_center)
-            except AssertionError:
-                raise error
             if len(new_center) != 2:
                 raise error
-            new_center = [c / self.pf[unit] for c in new_center]
+            for el in new_center:
+                if not isinstance(el, Number) and not isinstance(el, YTQuantity):
+                    raise error
+            if isinstance(new_center[0], Number):
+                new_center = [YTQuantity(c, unit) for c in new_center]
             self.center = new_center
         else:
             raise error

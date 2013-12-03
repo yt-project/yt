@@ -52,8 +52,8 @@ def test_projection():
                             ax
                     yield assert_equal, frb[proj_field].info['field'], \
                             proj_field
-                    yield assert_equal, frb[proj_field].info['units'], \
-                            pf._get_field_info("unkown", proj_field).get_units()
+                    yield assert_equal, frb[proj_field].units, \
+                            Unit(pf._get_field_info("unkown", proj_field).units)
                     yield assert_equal, frb[proj_field].info['xlim'], \
                             frb.bounds[:2]
                     yield assert_equal, frb[proj_field].info['ylim'], \

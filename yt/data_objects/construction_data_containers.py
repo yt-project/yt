@@ -303,7 +303,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             mylog.debug("Setting field %s", field)
-            self[field] = field_data[fi].ravel()
+            self[field] = YTArray(field_data[fi].ravel(),
+                                  input_units=self.pf.field_info[field].units,
+                                  registry=self.pf.unit_registry)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
 

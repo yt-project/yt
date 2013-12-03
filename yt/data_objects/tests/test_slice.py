@@ -21,6 +21,7 @@ from yt.utilities.definitions import \
     x_dict, y_dict
 from yt.utilities.exceptions import \
     YTNoDataInObjectError
+from yt.utilities.units import Unit
 
 def setup():
     from yt.config import ytcfg
@@ -73,8 +74,8 @@ def test_slice():
                         ax
                     yield assert_equal, frb[slc_field].info['field'], \
                         slc_field
-                    yield assert_equal, frb[slc_field].info['units'], \
-                        pf._get_field_info("unknown", slc_field).get_units()
+                    yield assert_equal, frb[slc_field].units, \
+                        Unit(pf._get_field_info("unknown", slc_field).units)
                     yield assert_equal, frb[slc_field].info['xlim'], \
                         frb.bounds[:2]
                     yield assert_equal, frb[slc_field].info['ylim'], \

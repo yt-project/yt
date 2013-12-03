@@ -1,4 +1,5 @@
 from yt.testing import *
+from yt.utilities.units import Unit
 import os
 import tempfile
 
@@ -38,8 +39,8 @@ def test_cutting_plane():
                 4
             yield assert_equal, frb[cut_field].info['field'], \
                 cut_field
-            yield assert_equal, frb[cut_field].info['units'], \
-                pf._get_field_info("unknown", cut_field).get_units()
+            yield assert_equal, frb[cut_field].units, \
+                Unit(pf._get_field_info("unknown", cut_field).units)
             yield assert_equal, frb[cut_field].info['xlim'], \
                 frb.bounds[:2]
             yield assert_equal, frb[cut_field].info['ylim'], \
