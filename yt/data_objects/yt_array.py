@@ -693,6 +693,10 @@ class YTArray(np.ndarray):
         ret = super(YTArray, self).dot(b)
         return YTArray(ret, self.units*b.units)
 
+    def std(self, axis=None, dtype=None, out=None, ddof=0):
+        ret = super(YTArray, self).std(axis, dtype, out, ddof)
+        return YTArray(ret, self.units)
+
     def __getitem__(self, item):
         ret = super(YTArray, self).__getitem__(item)
         if ret.shape == ():
