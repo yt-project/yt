@@ -170,7 +170,12 @@ class TimeSeriesData(object):
         
         This demonstrates how one might store results:
 
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy")
+        >>> def print_time(pf):
+        ...     print pf.current_time
+        ...
+        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy",
+        ...             setup_function = print_time )
+        ...
         >>> my_storage = {}
         >>> for sto, pf in ts.piter(storage=my_storage):
         ...     v, c = pf.h.find_max("Density")
@@ -253,8 +258,13 @@ class TimeSeriesData(object):
         Examples
         --------
 
+        >>> def print_time(pf):
+        ...     print pf.current_time
+        ...
         >>> ts = TimeSeriesData.from_filenames(
-                "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+        ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
+        ...      setup_function = print_time)
+        ...
         >>> for pf in ts:
         ...     SlicePlot(pf, "x", "Density").save()
 
