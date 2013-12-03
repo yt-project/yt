@@ -90,9 +90,13 @@ class TimeSeriesData(object):
     ...     SlicePlot(pf, "x", "Density").save()
 
     """
-    def __init__(self, outputs, parallel = True ,**kwargs):
+    def __init__(self, outputs, parallel = True, setup_function = None,
+                 **kwargs):
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
+        if setup_function is None:
+            setup_function = lambda a: None
+        self._setup_function = setup_function
         self._pre_outputs = outputs[:]
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
@@ -104,7 +108,9 @@ class TimeSeriesData(object):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
             if isinstance(o, types.StringTypes):
-                yield load(o,**self.kwargs)
+                pf = load(o, **self.kwargs)
+                self._setup_function(pf)
+                yield pf
             else:
                 yield o
 
@@ -116,7 +122,8 @@ class TimeSeriesData(object):
             return TimeSeriesData(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
         if isinstance(o, types.StringTypes):
-            o = load(o,**self.kwargs)
+            o = load(o, **self.kwargs)
+            self._setup_function(o)
         return o
 
     def __len__(self):
@@ -215,7 +222,8 @@ class TimeSeriesData(object):
         return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filenames, parallel = True, **kwargs):
+    def from_filenames(cls, filenames, parallel = True, setup_function = None,
+                       **kwargs):
         r"""Create a time series from either a filename pattern or a list of
         filenames.
 
@@ -239,6 +247,8 @@ class TimeSeriesData(object):
             this is set to either True or an integer, it will be iterated with
             1 or that integer number of processors assigned to each parameter
             file provided to the loop.
+        setup_function : callable, accepts a pf
+            This function will be called whenever a parameter file is loaded.
 
         Examples
         --------
@@ -262,7 +272,8 @@ class TimeSeriesData(object):
             else:
                 filenames = glob.glob(filenames)
             filenames.sort()
-        obj = cls(filenames[:], parallel = parallel, **kwargs)
+        obj = cls(filenames[:], parallel = parallel,
+                  setup_function = setup_function, **kwargs)
         return obj
 
     @classmethod
