@@ -20,6 +20,7 @@ import numpy as np
 from yt.funcs import *
 
 from yt.config import ytcfg
+from yt.data_objects.yt_array import YTArray
 from yt.fields.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
@@ -65,14 +66,13 @@ class DerivedQuantity(ParallelAnalysisInterface):
             rv = self.func(ds, *args, **kwargs)
             if not iterable(rv): rv = (rv,)
             for i in range(self.n_ret): retvals[i].append(rv[i])
-        retvals = [np.array(retvals[i]) for i in range(self.n_ret)]
         # Note that we do some fancy footwork here.
         # _par_combine_object and its affiliated alltoall function
         # assume that the *long* axis is the last one.  However,
         # our long axis is the first one!
         rv = []
         for my_list in retvals:
-            data = np.array(my_list).transpose()
+            data = YTArray(my_list).transpose()
             rv.append(self.comm.par_combine_object(data,
                         datatype="array", op="cat").transpose())
         retvals = rv
