@@ -340,7 +340,7 @@ class DualEPS(object):
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
-                    _xlabel = plot[k].axes.get_ylabel()
+                    _ylabel = plot[k].axes.get_ylabel()
             if tickcolor == None:
                 _tickcolor = None
         else:
@@ -453,7 +453,8 @@ class DualEPS(object):
             plot.refresh()
             _p1 = plot.plots[self.field].figure
             # hack to account for non-square display ratios (not sure why)
-            shift = 12.0 / 340
+            if isinstance(plot, PlotWindow):
+                shift = 12.0 / 340
         elif isinstance(plot, ProfilePlot):
             plot._redraw_image()
             # Remove colorbar
