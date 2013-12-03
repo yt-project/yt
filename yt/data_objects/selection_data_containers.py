@@ -363,8 +363,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = YTArray(x.size, "code_length",
-                         registry = self.pf.unit_registry)
+            tr = np.zeros(x.size, dtype='float64')
+            tr = YTArray(tr, "code_length", registry = self.pf.unit_registry)
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
@@ -373,8 +373,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = YTArray(x.size, "code_length",
-                         registry = self.pf.unit_registry)
+            tr = np.zeros(x.size, dtype='float64')
+            tr = YTArray(tr, "code_length", registry = self.pf.unit_registry)
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
@@ -383,8 +383,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
-            tr = YTArray(x.size, "code_length",
-                         registry = self.pf.unit_registry)
+            tr = np.zeros(x.size, dtype='float64')
+            tr = YTArray(tr, "code_length", registry = self.pf.unit_registry)
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
             tr += z * self._norm_vec[2]
