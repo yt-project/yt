@@ -190,7 +190,7 @@ class YTArray(np.ndarray):
 
     __array_priority__ = 2.0
 
-    def __new__(cls, input_array, input_units=None, registry=None):
+    def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
         if isinstance(input_array, YTArray):
             if input_units is None:
                 pass
@@ -203,12 +203,13 @@ class YTArray(np.ndarray):
             pass
         elif iterable(input_array):
             if isinstance(input_array[0], YTQuantity):
-                return YTArray(np.array(input_array), input_array[0].units)
+                return YTArray(np.array(input_array, dtype=dtype),
+                               input_array[0].units)
 
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
 
-        obj = np.asarray(input_array).view(cls)
+        obj = np.asarray(input_array, dtype=dtype).view(cls)
 
         # Check units type
         if input_units is None:
@@ -746,10 +747,10 @@ class YTArray(np.ndarray):
         return ret
 
 class YTQuantity(YTArray):
-    def __new__(cls, input, input_units=None, registry=None):
+    def __new__(cls, input, input_units=None, registry=None, dtype=None):
         if not isinstance(input, numeric_type):
             raise RuntimeError('Quantity values must be numeric')
-        ret = YTArray.__new__(cls, input, input_units, registry)
+        ret = YTArray.__new__(cls, input, input_units, registry, dtype=dtype)
         if ret.size > 1:
             raise RuntimeError
         return ret
