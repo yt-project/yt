@@ -328,7 +328,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             # This gets explicitly converted to cm
             dl = chunk.fwidth[:, self.axis]
             dl.convert_to_units("cm")
-        v = p.empty((chunk.ires.size, len(fields)), dtype="float64")
+        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i in range(len(fields)):
             v[:,i] = chunk[fields[i]] * dl
         if self.weight_field is not None:
