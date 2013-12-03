@@ -468,7 +468,7 @@ class DualEPS(object):
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
-        size = _p1.get_size_inches() * _p1.dpi
+        size = (_p1.get_size_inches() * _p1.dpi).astype('int')
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
         #figure_canvas.print_png('test.png')
