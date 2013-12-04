@@ -28,6 +28,12 @@ def particle_sequences(grids):
         seq = list(v[1] for v in g)
         yield seq[0], seq[-1]
 
+def grid_sequences(grids):
+    g_iter = sorted(grids, key = lambda g: g.id)
+    for k, g in groupby(enumerate(g_iter), lambda (i,x):i-x.id):
+        seq = list(v[1] for v in g)
+        yield seq
+
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _data_style = "flash_hdf5"
@@ -132,9 +138,12 @@ class IOHandlerFLASH(BaseIOHandler):
             ds = f["/%s" % fname]
             ind = 0
             for chunk in chunks:
-                for g in chunk.objs:
-                    data = ds[g.id - g._id_offset,:,:,:].transpose()
-                    ind += g.select(selector, data, rv[field], ind) # caches
+                for gs in grid_sequences(chunk.objs):
+                    start = gs[0].id - gs[0]._id_offset
+                    end = gs[-1].id - gs[-1]._id_offset + 1
+                    data = ds[start:end,:,:,:].transpose()
+                    for i, g in enumerate(gs):
+                        ind += g.select(selector, data[...,i], rv[field], ind)
         return rv
 
     def _read_chunk_data(self, chunk, fields):
@@ -146,8 +155,11 @@ class IOHandlerFLASH(BaseIOHandler):
             ftype, fname = field
             ds = f["/%s" % fname]
             ind = 0
-            for g in chunk.objs:
-                data = ds[g.id - g._id_offset,:,:,:].transpose()
-                rv[g.id][field] = data
+            for gs in grid_sequences(chunk.objs):
+                start = gs[0].id - gs[0]._id_offset
+                end = gs[-1].id - gs[-1]._id_offset + 1
+                data = ds[start:end,:,:,:].transpose()
+                for i, g in enumerate(gs):
+                    rv[g.id][field] = data[...,i]
         return rv
 
