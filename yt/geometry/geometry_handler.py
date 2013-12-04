@@ -252,6 +252,7 @@ class GeometryHandler(ParallelAnalysisInterface):
         fi = self.parameter_file.field_info
         # First we construct our list of fields to check
         fields_to_check = []
+        fi_update = {}
         for field in fi:
             finfo = fi[field]
             # Explicitly defined
@@ -268,9 +269,11 @@ class GeometryHandler(ParallelAnalysisInterface):
             for pt in self.parameter_file.particle_types:
                 new_fi = copy.copy(finfo)
                 new_fi.name = (pt, new_fi.name)
-                fi[new_fi.name] = new_fi
+                fi_update[new_fi.name] = new_fi
                 new_fields.append(new_fi.name)
             fields_to_check += new_fields
+        for field in fi_update:
+            fi[field] = fi_update[field]
         return fields_to_check
 
     def _derived_fields_add(self, fields_to_check = None):
