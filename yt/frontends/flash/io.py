@@ -42,6 +42,52 @@ class IOHandlerFLASH(BaseIOHandler):
             count_list, conv_factors):
         pass
 
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        f_part = self._particle_handle
+        p_ind = self.pf.h._particle_indices
+        px, py, pz = (self._particle_fields["particle_pos%s" % ax]
+                      for ax in 'xyz')
+        p_fields = f_part["/tracer particles"]
+        assert(len(ptf) == 1)
+        ptype = ptf.keys()[0]
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.NumberOfParticles == 0:
+                    continue
+                start = p_ind[g.id - g._id_offset]
+                end = p_ind[g.id - g._id_offset + 1]
+                x = p_fields[start:end, px]
+                y = p_fields[start:end, py]
+                z = p_fields[start:end, pz]
+                yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        f_part = self._particle_handle
+        p_ind = self.pf.h._particle_indices
+        px, py, pz = (self._particle_fields["particle_pos%s" % ax]
+                      for ax in 'xyz')
+        p_fields = f_part["/tracer particles"]
+        assert(len(ptf) == 1)
+        ptype = ptf.keys()[0]
+        field_list = ptf[ptype]
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.NumberOfParticles == 0:
+                    continue
+                start = p_ind[g.id - g._id_offset]
+                end = p_ind[g.id - g._id_offset + 1]
+                x = p_fields[start:end, px]
+                y = p_fields[start:end, py]
+                z = p_fields[start:end, pz]
+                mask = selector.select_points(x, y, z)
+                if mask is None: continue
+                for field in field_list:
+                    fi = self._particle_fields[field]
+                    data = p_fields[start:end, fi]
+                    yield (ptype, field), data[mask]
+
     def _read_data_set(self, grid, field):
         f = self._handle
         f_part = self._particle_handle
