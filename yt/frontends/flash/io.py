@@ -15,10 +15,18 @@ FLASH-specific IO functions
 
 import numpy as np
 import h5py
+from itertools import groupby
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+
+# http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
+def particle_sequences(grids):
+    g_iter = sorted(grids, key = lambda g: g.id)
+    for k, g in groupby(enumerate(g_iter), lambda (i,x):i-x.id):
+        seq = list(v[1] for v in g)
+        yield seq[0], seq[-1]
 
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
@@ -52,11 +60,10 @@ class IOHandlerFLASH(BaseIOHandler):
         assert(len(ptf) == 1)
         ptype = ptf.keys()[0]
         for chunk in chunks:
-            for g in chunk.objs:
-                if g.NumberOfParticles == 0:
-                    continue
-                start = p_ind[g.id - g._id_offset]
-                end = p_ind[g.id - g._id_offset + 1]
+            start = end = None
+            for g1, g2 in particle_sequences(chunk.objs):
+                start = p_ind[g1.id - g1._id_offset]
+                end = p_ind[g2.id - g2._id_offset + 1]
                 x = p_fields[start:end, px]
                 y = p_fields[start:end, py]
                 z = p_fields[start:end, pz]
@@ -73,11 +80,9 @@ class IOHandlerFLASH(BaseIOHandler):
         ptype = ptf.keys()[0]
         field_list = ptf[ptype]
         for chunk in chunks:
-            for g in chunk.objs:
-                if g.NumberOfParticles == 0:
-                    continue
-                start = p_ind[g.id - g._id_offset]
-                end = p_ind[g.id - g._id_offset + 1]
+            for g1, g2 in particle_sequences(chunk.objs):
+                start = p_ind[g1.id - g1._id_offset]
+                end = p_ind[g2.id - g2._id_offset + 1]
                 x = p_fields[start:end, px]
                 y = p_fields[start:end, py]
                 z = p_fields[start:end, pz]
