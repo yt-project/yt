@@ -35,6 +35,8 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
+from yt.utilities.exceptions import \
+    YTFITSHeaderNotUnderstood
 from .fields import FITSFieldInfo, add_fits_field, KnownFITSFields
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField, TranslationFunc
@@ -129,11 +131,14 @@ class FITSStaticOutput(StaticOutput):
     _handle = None
     
     def __init__(self, filename, data_style='fits',
+                 ignore_unit_names = False,
                  primary_header = None,
                  sky_conversion = None,
                  storage_filename = None,
-                 conversion_override = None):
+                 conversion_override = None,
+                 mask_nans = True):
 
+        self.mask_nans = mask_nans
         if isinstance(filename, pyfits.HDUList):
             self._handle = filename
             fname = filename.filename()
@@ -155,7 +160,10 @@ class FITSStaticOutput(StaticOutput):
 
         self.wcs = pywcs.WCS(self.primary_header)
 
-        if self.wcs.wcs.cunit[0].name in ["deg","arcsec","arcmin","mas"]:
+        name = getattr(self.wcs.wcs.cunit[0], "name", None)
+        if name is None and ignore_unit_names == False:
+            raise YTFITSHeaderNotUnderstood
+        if name in ["deg","arcsec","arcmin","mas"]:
             self.sky_wcs = self.wcs.deepcopy()
             if sky_conversion is None:
                 self._set_minimalist_wcs()
@@ -186,7 +194,7 @@ class FITSStaticOutput(StaticOutput):
         dims = np.array(self.shape)
         ndims = len(dims)
         self.wcs.wcs.crpix = 0.5*(dims+1)
-        self.wcs.wcs.cdelt = [1.,1.]
+        self.wcs.wcs.cdelt = [1.0]*ndims
         self.wcs.wcs.crval = 0.5*(dims+1)
         self.wcs.wcs.cunit = ["pixel"]*ndims
         self.wcs.wcs.ctype = ["LINEAR"]*ndims
@@ -239,7 +247,8 @@ class FITSStaticOutput(StaticOutput):
         self.dimensionality = self.primary_header["naxis"]
         self.geometry = "cartesian"
 
-        self.domain_dimensions = np.array(self._handle[self.first_image].shape)
+        dims = self._handle[self.first_image].shape[::-1]
+        self.domain_dimensions = np.array(dims)
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])

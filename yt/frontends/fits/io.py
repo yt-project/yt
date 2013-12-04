@@ -35,26 +35,6 @@ class IOHandlerFITS(BaseIOHandler):
             count_list, conv_factors):
         pass
 
-    def _read_data_set(self, grid, field):
-        f = self._handle
-        if self.pf.dimensionality == 2:
-            nx,ny = f[field].data.tranpose().shape
-            tr = f[field].data.transpose().reshape(nx,ny,1)
-        elif self.pf.dimensionality == 3:
-            tr = f[field].data.transpose()
-        return tr.astype("float64")
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        f = self._handle
-        if self.pf.dimensionality == 2:
-            nx,ny = f[field].data.transpose().shape
-            tr = f[field].data.transpose().reshape(nx,ny,1)[sl]
-        elif self.pf.dimensionality == 3:
-            tr = f[field].data.transpose()[sl]
-        return tr.astype("float64")
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         if any((ftype != "gas" for ftype, fname in fields)):
@@ -69,14 +49,13 @@ class IOHandlerFITS(BaseIOHandler):
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
-            ds = f[fname].data.astype("float64")
+            ds = f[fname].data.astype("float64").transpose()
+            if self.pf.mask_nans:
+                ds[np.isnan(ds)] = 0.0
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
                     if self.pf.dimensionality == 2:
-                        nx,ny = ds.transpose().shape
-                        data = ds.transpose().reshape(nx,ny,1)
-                    elif self.pf.dimensionality == 3:
-                        data = ds.transpose()
-                    ind += g.select(selector, data, rv[field], ind) # caches
+                        ds.shape = ds.shape + (1,)
+                    ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
