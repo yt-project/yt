@@ -250,6 +250,7 @@ class PhotonList(object):
             hubble = getattr(pf, "hubble_constant", None)
             omega_m = getattr(pf, "omega_matter", None)
             omega_l = getattr(pf, "omega_lambda", None)
+            if hubble == 0: hubble = None
             if hubble is not None and \
                omega_m is not None and \
                omega_l is not None:
@@ -948,9 +949,9 @@ class EventList(object) :
         col1 = pyfits.Column(name='ENERGY', format='E',
                              array=self["eobs"])
         col2 = pyfits.Column(name='DEC', format='D',
-                             array=self["xsky"])
-        col3 = pyfits.Column(name='RA', format='D',
                              array=self["ysky"])
+        col3 = pyfits.Column(name='RA', format='D',
+                             array=self["xsky"])
 
         coldefs = pyfits.ColDefs([col1, col2, col3])
 
