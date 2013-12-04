@@ -116,6 +116,9 @@ from yt.frontends.sph.api import \
     GadgetFieldInfo, add_gadget_field, \
     TipsyStaticOutput, TipsyFieldInfo, add_tipsy_field
 
+#from yt.frontends.fits.api import \
+#    FITSStaticOutput, FITSFieldInfo, add_fits_field
+
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
 available_analysis_modules = get_available_modules()
@@ -132,7 +135,7 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, \
-    apply_colormap, scale_image, write_projection, write_fits, \
+    apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps

@@ -15,6 +15,7 @@ FLASH-specific IO functions
 
 import numpy as np
 import h5py
+from yt.utilities.math_utils import prec_accum
 from itertools import groupby
 
 from yt.utilities.io_handler import \
