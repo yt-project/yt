@@ -20,11 +20,7 @@ from yt.data_objects.field_info_container import \
     NullFunc, \
     TranslationFunc, \
     FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
+    ValidateSpatial
 import yt.fields.universal_fields
 from yt.utilities.physical_constants import \
     kboltz, mh, Na
@@ -241,7 +237,6 @@ for f,v in translation_dict.items():
     if v not in KnownFLASHFields:
         pfield = v.startswith("particle")
         add_flash_field(v, function=NullFunc, take_log=False,
-                  validators = [ValidateDataField(v)],
                   particle_type = pfield)
     if f.endswith("_Fraction") :
         dname = "%s\/Fraction" % f.split("_")[0]
