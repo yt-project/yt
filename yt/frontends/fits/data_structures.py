@@ -186,7 +186,7 @@ class FITSStaticOutput(StaticOutput):
         dims = np.array(self.shape)
         ndims = len(dims)
         self.wcs.wcs.crpix = 0.5*(dims+1)
-        self.wcs.wcs.cdelt = [1.,1.]
+        self.wcs.wcs.cdelt = [1.]*ndims
         self.wcs.wcs.crval = 0.5*(dims+1)
         self.wcs.wcs.cunit = ["pixel"]*ndims
         self.wcs.wcs.ctype = ["LINEAR"]*ndims
