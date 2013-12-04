@@ -353,19 +353,19 @@ class YTDataContainer(object):
         else:
             self.hierarchy.save_object(self, name)
 
-    def to_glue(self, label="yt", fields=None):
-        from glue.core import DataCollection, Data, Component
+    def to_glue(self, fields, label="yt"):
+        """
+        Takes specific *fields* in the container and exports them to
+        Glue (http://www.glueviz.org) for interactive
+        analysis. Optionally add a *label*.  
+        """
+        from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
         from glue.qt.glue_application import GlueApplication
-
-        if fields is None: fields=sorted(self.field_data.keys())
-
-        print fields
         
         gdata = Data(label=label)
         for component_name in fields:
-            comp = Component(self[component_name])
-            gdata.add_component(comp, component_name)
+            gdata.add_component(self[component_name], component_name)
         dc = DataCollection([gdata])
 
         app = GlueApplication(dc)

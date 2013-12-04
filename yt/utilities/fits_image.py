@@ -221,7 +221,12 @@ class FITSImageBuffer(HDUList):
             return self.nx, self.ny, self.nz
 
     def to_glue(self, label="yt"):
-        from glue.core import DataCollection, Data, Component
+        """
+        Takes the data in the FITSImageBuffer and exports it to
+        Glue (http://www.glueviz.org) for interactive
+        analysis. Optionally add a *label*. 
+        """
+        from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
         from glue.qt.glue_application import GlueApplication
 
@@ -229,9 +234,8 @@ class FITSImageBuffer(HDUList):
         
         image = Data(label=label)
         image.coords = coordinates_from_header(self.wcs.to_header())
-        for component_name in field_dict:
-            comp = Component(field_dict[component_name])
-            image.add_component(comp, component_name)
+        for k,v in field_dict.items():
+            image.add_component(v, k)
         dc = DataCollection([image])
 
         app = GlueApplication(dc)
