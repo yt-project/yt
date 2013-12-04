@@ -51,3 +51,12 @@ def center_of_mass(halo_catalog, halo):
                                halo['particle_mass'].sum()
 
 add_quantity('center_of_mass', center_of_mass)
+
+def bulk_velocity(halo_catalog, halo):
+    return (halo['particle_mass'] * 
+            np.array([halo['particle_velocity_x'],
+                      halo['particle_velocity_y'],
+                      halo['particle_velocity_z']])).sum(axis=1) / \
+                               halo['particle_mass'].sum()
+
+add_quantity('bulk_velocity', bulk_velocity)
