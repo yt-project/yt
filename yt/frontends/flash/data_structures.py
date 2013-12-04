@@ -149,7 +149,7 @@ class FLASHHierarchy(GridGeometryHandler):
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
-            gle[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
