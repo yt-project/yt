@@ -113,6 +113,33 @@ def comparison_unit(unit1, unit2):
 def bitwise_comparison_unit(unit1, unit2):
     return unit1
 
+def sanitize_units_mul(this_object, other_object):
+    ret = other_object
+    # If the other object is a YTArray and has the same dimensions as the object
+    # under consideration, convert so we don't mix units with the same
+    # dimensions.
+    if isinstance(other_object, YTArray):
+        if this_object.units.same_dimensions_as(other_object.units):
+            ret = other_object.in_units(this_object.units)
+    return ret
+
+def sanitize_units_add(this_object, other_object, op_string):
+    # Make sure the other object is a YTArray before we use the `units`
+    # attribute.
+    if isinstance(other_object, YTArray):
+        if not this_object.units.same_dimensions_as(other_object.units):
+            raise YTUnitOperationError(op_string, this_object.units,
+                                       other_object.units)
+        ret = other_object.in_units(this_object.units)
+    # If the other object is not a YTArray, the only valid case is adding
+    # dimensionless things.
+    else:
+        if not this_object.units.is_dimensionless:
+            raise YTUnitOperationError(op_string, this_object.units,
+                                       dimensionless)
+        ret = other_object
+    return ret
+
 class YTArray(np.ndarray):
     """
 
@@ -357,39 +384,18 @@ class YTArray(np.ndarray):
         check for the correct (same dimension) units.
 
         """
-        # Make sure the other object is a YTArray before we use the `units`
-        # attribute.
-        if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise YTUnitOperationError('addition', self.units,
-                                           right_object.units)
-            ro = right_object.in_units(self.units)
-        # If the other object is not a YTArray, the only valid case is adding
-        # dimensionless things.
-        else:
-            if not self.units.is_dimensionless:
-                raise YTUnitOperationError('addition', self.units,
-                                           dimensionless)
-            ro = right_object
+        ro = sanitize_units_add(self, right_object, "addition")
         return YTArray(super(YTArray, self).__add__(ro))
 
     def __radd__(self, left_object):
         """ See __add__. """
-        if isinstance(left_object, YTArray):
-            if not self.units.same_dimensions_as(left_object.units):
-                raise YTUnitOperationError('addition', left_object.units,
-                                           self.units)
-            lo = left_object.in_units(self.units)
-        else:
-            if not self.units.is_dimensionless:
-                raise YTUnitOperationError('addition', left_object.units,
-                                           dimensionless)
-            lo = left_object
+        lo = sanitize_units_add(self, left_object, "addition")
         return YTArray(super(YTArray, self).__radd__(lo))
 
     def __iadd__(self, other):
         """ See __add__. """
-        return np.add(self, other, out=self)
+        oth = sanitize_units_add(self, other, "addition")
+        return np.add(self, oth, out=self)
 
     def __sub__(self, right_object):
         """
@@ -397,40 +403,17 @@ class YTArray(np.ndarray):
         check for the correct (same dimension) units.
 
         """
-        # Make sure the other object is a YTArray before we use the `units`
-        # attribute.
-        if isinstance(right_object, YTArray):
-            if not self.units.same_dimensions_as(right_object.units):
-                raise YTUnitOperationError('subtraction', self.units,
-                                           right_object.units)
-            ro = right_object.in_units(self.units)
-        # If the other object is not a YTArray, the only valid case is adding
-        # dimensionless things.
-        else:
-            if not self.units.is_dimensionless:
-                raise YTUnitOperationError('subtraction', self.units,
-                                           dimensionless)
-            ro = right_object
-
+        ro = sanitize_units_add(self, right_object, "subtraction")
         return YTArray(super(YTArray, self).__sub__(ro))
 
     def __rsub__(self, left_object):
         """ See __sub__. """
-        if isinstance(left_object, YTArray):
-            if not self.units.same_dimensions_as(left_object.units):
-                raise YTUnitOperationError('subtraction', left_object.units,
-                                           self.units)
-            lo = left_object.in_units(self.units)
-        else:
-            if not self.units.is_dimensionless:
-                raise YTUnitOperationError('subtraction', left_object.units,
-                                           dimensionless)
-            lo = left_object
-
+        lo = sanitize_units_add(self, left_object, "subtraction")
         return YTArray(super(YTArray, self).__rsub__(lo))
 
     def __isub__(self, other):
         """ See __sub__. """
+        oth = sanitize_units_add(self, other, "subtraction")
         return np.subtract(self, other, out=self)
 
     def __neg__(self):
@@ -443,92 +426,64 @@ class YTArray(np.ndarray):
         The unit objects handle being multiplied.
 
         """
-        if isinstance(right_object, YTArray) and \
-                self.units.same_dimensions_as(right_object.units):
-            ro = right_object.in_units(self.units)
-        else:
-            ro = right_object
+        ro = sanitize_units_mul(self, right_object)
         return YTArray(super(YTArray, self).__mul__(ro))
 
     def __rmul__(self, left_object):
         """ See __mul__. """
-        if isinstance(left_object, YTArray) and \
-                self.units.same_dimensions_as(left_object.units):
-            lo = left_object.in_units(self.units)
-        else:
-            lo = left_object
+        lo = sanitize_units_mul(self, left_object)
         return YTArray(super(YTArray, self).__rmul__(lo))
 
     def __imul__(self, other):
         """ See __mul__. """
-        return np.multiply(self, other, out=self)
+        oth = sanitize_units_mul(self, other)
+        return np.multiply(self, oth, out=self)
 
     def __div__(self, right_object):
         """
         Divide this YTArray by the object on the right of the `/` operator.
 
         """
-        if isinstance(right_object, YTArray) and \
-                self.units.same_dimensions_as(right_object.units):
-            ro = right_object.in_units(self.units)
-        else:
-            ro = right_object
+        ro = sanitize_units_mul(self, right_object)
         return YTArray(super(YTArray, self).__div__(ro))
 
     def __rdiv__(self, left_object):
         """ See __div__. """
-        if isinstance(left_object, YTArray) and \
-                self.units.same_dimensions_as(left_object.units):
-            lo = left_object.in_units(self.units)
-        else:
-            lo = left_object
+        lo = sanitize_units_mul(self, left_object)
         return YTArray(super(YTArray, self).__rdiv__(lo))
 
     def __idiv__(self, other):
         """ See __div__. """
-        return np.divide(self, other, out=self)
+        oth = sanitize_units_mul(self, right_object)
+        return np.divide(self, oth, out=self)
 
     def __truediv__(self, right_object):
-        if isinstance(right_object, YTArray) and \
-                self.units.same_dimensions_as(right_object.units):
-            ro = right_object.in_units(self.units)
-        else:
-            ro = right_object
+        ro = sanitize_units_mul(self, right_object)
         return YTArray(super(YTArray, self).__truediv__(ro))
 
     def __rtruediv__(self, left_object):
         """ See __div__. """
-        if isinstance(left_object, YTArray) and \
-                self.units.same_dimensions_as(left_object.units):
-            lo = left_object.in_units(self.units)
-        else:
-            lo = left_object
+        lo = sanitize_units_mul(self, left_object)
         return YTArray(super(YTArray, self).__rtruediv__(lo))
 
     def __itruediv__(self, other):
         """ See __div__. """
-        return np.true_divide(self, other, out=self)
+        oth = sanitize_units_mul(self, other)
+        return np.true_divide(self, oth, out=self)
 
     def __floordiv__(self, right_object):
-        if isinstance(right_object, YTArray) and \
-                self.units.same_dimensions_as(right_object.units):
-            ro = right_object.in_units(self.units)
-        else:
-            ro = right_object
+        ro = sanitize_units_mul(self, right_object)
         return YTArray(super(YTArray, self).__floordiv__(ro))
 
     def __rfloordiv__(self, left_object):
         """ See __div__. """
-        if isinstance(left_object, YTArray) and \
-                self.units.same_dimensions_as(left_object.units):
-            lo = left_object.in_units(self.units)
-        else:
-            lo = left_object
+        lo = sanitize_units_mul(self, left_object)
         return YTArray(super(YTArray, self).__rfloordiv__(lo))
 
     def __ifloordiv__(self, other):
         """ See __div__. """
-        return np.floor_divide(self, other, out=self)
+        oth = sanitize_units_mul(self, other)
+        return np.floor_divide(self, oth, out=self)
     
     #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):

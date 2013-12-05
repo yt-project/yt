@@ -18,6 +18,7 @@ from numpy.testing import assert_approx_equal, assert_array_equal
 from numpy import array
 from yt.data_objects.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
+from yt.testing import fake_random_pf
 from yt.funcs import fix_length
 import operator
 
@@ -44,7 +45,7 @@ def test_addition():
     a2 = YTArray([4, 5, 6], 'm')
     answer1 = YTArray([401, 502, 603], 'cm')
     answer2 = YTArray([4.01, 5.02, 6.03], 'm')
-    
+
     yield operate_and_compare, a1, a2, operator.add, answer1
     yield operate_and_compare, a2, a1, operator.add, answer2
 
@@ -63,10 +64,22 @@ def test_addition():
     try:
         a1+a2
     except YTUnitOperationError as e:
-        assert(isinstance(e, YTUnitOperationError))
-        assert str(e) == \
-            'The addition operator for YTArrays with units ' \
-            '(m) and (kg) is not well defined.'
+        pass
+
+    assert(isinstance(e, YTUnitOperationError))
+    assert str(e) == \
+        'The addition operator for YTArrays with units ' \
+        '(m) and (kg) is not well defined.'
+
+    try:
+        a1 += a2
+    except YTUnitOperationError as e:
+        pass
+
+    assert(isinstance(e, YTUnitOperationError))
+    assert str(e) == \
+        'The addition operator for YTArrays with units ' \
+        '(m) and (kg) is not well defined.'
 
 def test_subtraction():
     """
@@ -108,10 +121,22 @@ def test_subtraction():
     try:
         a1-a2
     except YTUnitOperationError as e:
-        assert isinstance(e, YTUnitOperationError)
-        assert str(e) == \
-            'The subtraction operator for YTArrays with units ' \
-            '(m) and (kg) is not well defined.'
+        pass
+
+    assert isinstance(e, YTUnitOperationError)
+    assert str(e) == \
+        'The subtraction operator for YTArrays with units ' \
+        '(m) and (kg) is not well defined.'
+
+    try:
+        a1 -= a2
+    except YTUnitOperationError as e:
+        pass
+
+    assert(isinstance(e, YTUnitOperationError))
+    assert str(e) == \
+        'The subtraction operator for YTArrays with units ' \
+        '(m) and (kg) is not well defined.'
 
 def test_multiplication():
     """
@@ -132,7 +157,7 @@ def test_multiplication():
     a2 = YTArray([4, 5, 6], 'm')
     answer1 = YTArray([400, 1000, 1800], 'cm**2')
     answer2 = YTArray([.04, .10, .18], 'm**2')
-    
+
     yield operate_and_compare, a1, a2, operator.mul, answer1
     yield operate_and_compare, a2, a1, operator.mul, answer2
 
@@ -140,7 +165,7 @@ def test_multiplication():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'g')
     answer = YTArray([4, 10, 18], 'cm*g')
-        
+
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
 
@@ -180,7 +205,7 @@ def test_division():
     a2 = YTArray([4., 5., 6.], 'm')
     answer1 = YTArray([.0025, .004, .005])
     answer2 = YTArray([400, 250, 200])
-    
+
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
 
@@ -224,6 +249,7 @@ def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
-    length = YTQuantity(1.0,'code_length')
-    new_length = fix_length(length)
+    pf = fake_random_pf(64, nprocs=1)
+    length = YTQuantity(1.0,'code_length',pf.unit_registry)
+    new_length = fix_length(length, pf=pf)
     assert length == new_length
