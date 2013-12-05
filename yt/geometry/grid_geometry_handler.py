@@ -180,17 +180,14 @@ class GridGeometryHandler(GeometryHandler):
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
         except:
             pass
-        t_s = self.pf.current_time * self.pf["Time"]
         print "t = %0.8e = %0.8e s = %0.8e years" % \
-            (self.pf.current_time, \
-             t_s, t_s / sec_per_year )
+            (self.pf.current_time.in_units("code_time"),
+             self.pf.current_time.in_units("s"),
+             self.pf.current_time.in_units("yr"))
         print "\nSmallest Cell:"
         u=[]
-        for item in self.parameter_file.units.items():
-            u.append((item[1],item[0]))
-        u.sort()
-        for unit in u:
-            print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
+        for item in ("Mpc", "pc", "AU", "cm"):
+            print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
 
     def find_max(self, field, finest_levels = 3):
         """
