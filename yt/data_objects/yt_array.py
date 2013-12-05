@@ -31,7 +31,7 @@ from numpy import \
      ldexp, frexp, fmod, floor, ceil, trunc
 
 
-from yt.utilities.units import Unit
+from yt.utilities.units import Unit, dimensionless
 from yt.utilities.exceptions import YTUnitOperationError, YTUnitConversionError
 from numbers import Number as numeric_type
 
@@ -369,7 +369,7 @@ class YTArray(np.ndarray):
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('addition', self.units,
-                                           right_object.units)
+                                           dimensionless)
             ro = right_object
         return YTArray(super(YTArray, self).__add__(ro))
 
@@ -383,7 +383,7 @@ class YTArray(np.ndarray):
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('addition', left_object.units,
-                                           self.units)
+                                           dimensionless)
             lo = left_object
         return YTArray(super(YTArray, self).__radd__(lo))
 
@@ -409,7 +409,7 @@ class YTArray(np.ndarray):
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('subtraction', self.units,
-                                           right_object.units)
+                                           dimensionless)
             ro = right_object
 
         return YTArray(super(YTArray, self).__sub__(ro))
@@ -424,7 +424,7 @@ class YTArray(np.ndarray):
         else:
             if not self.units.is_dimensionless:
                 raise YTUnitOperationError('subtraction', left_object.units,
-                                           self.units)
+                                           dimensionless)
             lo = left_object
 
         return YTArray(super(YTArray, self).__rsub__(lo))
