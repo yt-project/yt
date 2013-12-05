@@ -454,7 +454,7 @@ class YTArray(np.ndarray):
 
     def __idiv__(self, other):
         """ See __div__. """
-        oth = sanitize_units_mul(self, right_object)
+        oth = sanitize_units_mul(self, other)
         return np.divide(self, oth, out=self)
 
     def __truediv__(self, right_object):
