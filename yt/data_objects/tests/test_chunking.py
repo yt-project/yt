@@ -16,7 +16,7 @@ def test_chunking():
     for nprocs in [1, 2, 4, 8]:
         pf = fake_random_pf(64, nprocs = nprocs)
         c = (pf.domain_right_edge + pf.domain_left_edge)/2.0 
-        c += 0.5/pf.domain_dimensions
+        c += pf.arr(0.5/pf.domain_dimensions, "code_length")
         for dobj in _get_dobjs(c):
             obj = getattr(pf.h, dobj[0])(*dobj[1])
             coords = {'f':{}, 'i':{}}
