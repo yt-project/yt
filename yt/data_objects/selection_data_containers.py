@@ -124,10 +124,10 @@ class YTRayBase(YTSelectionContainer1D):
     _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, pf=None, field_parameters=None):
         super(YTRayBase, self).__init__(pf, field_parameters)
-        self.start_point = \
-          YTArray(np.array(start_point, dtype='float64'), 'code_length')
-        self.end_point = \
-          YTArray(np.array(end_point, dtype='float64'), 'code_length')
+        self.start_point = self.pf.arr(start_point,
+                            'code_length', dtype='float64')
+        self.end_point = self.pf.arr(end_point,
+                            'code_length', dtype='float64')
         self.vec = self.end_point - self.start_point
         #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
@@ -342,12 +342,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         if iterable(width):
             w, u = width
-            width = YTArray(w, input_units = u, registry = self.pf.unit_registry)
+            width = self.pf.arr(w, input_units = u)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = YTArray(w, input_units = u, registry = self.pf.unit_registry)
+            height = self.pf.arr(w, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
@@ -364,7 +364,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(x.size, dtype='float64')
-            tr = YTArray(tr, "code_length", registry = self.pf.unit_registry)
+            tr = self.pf.arr(tr, "code_length")
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
@@ -374,7 +374,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(x.size, dtype='float64')
-            tr = YTArray(tr, "code_length", registry = self.pf.unit_registry)
+            tr = self.pf.arr(tr, "code_length")
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
@@ -384,7 +384,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(x.size, dtype='float64')
-            tr = YTArray(tr, "code_length", registry = self.pf.unit_registry)
+            tr = self.pf.arr(tr, "code_length")
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
             tr += z * self._norm_vec[2]
@@ -518,11 +518,11 @@ class YTRegionBase(YTSelectionContainer3D):
                  pf = None, **kwargs):
         YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
         if not isinstance(left_edge, YTArray):
-            self.left_edge = YTArray(left_edge, 'code_length')
+            self.left_edge = self.pf.arr(left_edge, 'code_length')
         else:
             self.left_edge = left_edge
         if not isinstance(right_edge, YTArray):
-            self.right_edge = YTArray(right_edge, 'code_length')
+            self.right_edge = self.pf.arr(right_edge, 'code_length')
         else:
             self.right_edge = right_edge
 
@@ -606,9 +606,9 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         if A<B or B<C:
             raise YTEllipsoidOrdering(pf, A, B, C)
         # make sure the smallest side is not smaller than dx
-        self._A = YTArray(A, 'code_length')
-        self._B = YTArray(B, 'code_length')
-        self._C = YTArray(C, 'code_length')
+        self._A = self.pf.arr(A, 'code_length')
+        self._B = self.pf.arr(B, 'code_length')
+        self._C = self.pf.arr(C, 'code_length')
         if self._C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, self._C, self.hierarchy.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5

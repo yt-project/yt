@@ -14,10 +14,10 @@ def test_ray():
         pp2[:,1] = [0.8, 0.1, 0.4]
         pp1[:,2] = [0.9, 0.2, 0.9]
         pp2[:,2] = [0.8, 0.1, 0.4]
-        unitary = YTArray(1.0, '')
+        unitary = pf.arr(1.0, '')
         for i in range(pp1.shape[1]):
-            p1 = YTArray(pp1[:,i] + 1e-8 * np.random.random(3), 'code_length')
-            p2 = YTArray(pp2[:,i] + 1e-8 * np.random.random(3), 'code_length')
+            p1 = pf.arr(pp1[:,i] + 1e-8 * np.random.random(3), 'code_length')
+            p2 = pf.arr(pp2[:,i] + 1e-8 * np.random.random(3), 'code_length')
 
             my_ray = pf.h.ray(p1, p2)
             yield assert_rel_equal, my_ray['dts'].sum(), unitary, 14

@@ -127,8 +127,8 @@ class StreamHandler(object):
                  fields, field_units, code_units, io = None,
                  particle_types = None, periodicity = (True, True, True)):
         if particle_types is None: particle_types = {}
-        self.left_edges = YTArray(left_edges, 'code_length')
-        self.right_edges = YTArray(right_edges, 'code_length')
+        self.left_edges = np.array(left_edges)
+        self.right_edges = np.array(right_edges)
         self.dimensions = dimensions
         self.levels = levels
         self.parent_ids = parent_ids
@@ -294,9 +294,9 @@ class StreamStaticOutput(StaticOutput):
         self.basename = self.stream_handler.name
         self.parameters['CurrentTimeIdentifier'] = time.time()
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
-        self.domain_left_edge = YTArray(self.stream_handler.domain_left_edge,
+        self.domain_left_edge = self.arr(self.stream_handler.domain_left_edge,
                                         'code_length')
-        self.domain_right_edge = YTArray(self.stream_handler.domain_right_edge,
+        self.domain_right_edge = self.arr(self.stream_handler.domain_right_edge,
                                          'code_length')
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality

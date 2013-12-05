@@ -19,7 +19,7 @@ def test_covering_grid():
             xmi = cg["x"].min()
             xma = cg["x"].max()
             dx = cg["dx"].flat[0:1]
-            edges = YTArray([[0,1],[0,1],[0,1]], 'code_length')
+            edges = pf.arr([[0,1],[0,1],[0,1]], 'code_length')
             yield assert_equal, xmi, edges[0,0] + dx/2.0
             yield assert_equal, xmi, cg["x"][0,0,0]
             yield assert_equal, xmi, cg["x"][0,1,1]

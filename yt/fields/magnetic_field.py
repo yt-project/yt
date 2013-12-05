@@ -70,10 +70,11 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _magnetic_field_poloidal(field,data):
         normal = data.get_field_parameter("normal")
         d = data[ftype,'magnetic_field_x']
-        Bfields = YTArray([data[ftype,'magnetic_field_x'],
-                           data[ftype,'magnetic_field_y'],
-                           data[ftype,'magnetic_field_z']],
-                           d.units)
+        Bfields = data.pf.arr(
+                    [data[ftype,'magnetic_field_x'],
+                     data[ftype,'magnetic_field_y'],
+                     data[ftype,'magnetic_field_z']],
+                     d.units)
         
         theta = data["index", 'spherical_theta']
         phi   = data["index", 'spherical_phi']
@@ -88,10 +89,11 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _magnetic_field_toroidal(field,data):
         normal = data.get_field_parameter("normal")
         d = data[ftype,'magnetic_field_x']
-        Bfields = YTArray([data[ftype,'magnetic_field_x'],
-                           data[ftype,'magnetic_field_y'],
-                           data[ftype,'magnetic_field_z']],
-                           d.units)
+        Bfields = data.pf.arr(
+                    [data[ftype,'magnetic_field_x'],
+                     data[ftype,'magnetic_field_y'],
+                     data[ftype,'magnetic_field_z']],
+                     d.units)
         
         phi = data["index", 'spherical_phi']
         return get_sph_phi_component(Bfields, phi, normal)

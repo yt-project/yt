@@ -172,8 +172,7 @@ class DerivedField(object):
 
     def apply_units(self, arr, units = None):
         if units is None: units = self.units
-        return YTArray(arr, input_units = units,
-                       registry = self._unit_registry)
+        return self.pf.arr(arr, input_units = units)
 
     def __call__(self, data):
         """ Return the value of the field in a given *data* object. """

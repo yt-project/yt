@@ -117,7 +117,7 @@ def create_vector_fields(registry, basename, field_units,
         ds = div_fac * just_one(data["dz"])
         f += data[zn][1:-1,1:-1,sl_right]/ds
         f -= data[zn][1:-1,1:-1,sl_left ]/ds
-        new_field = YTArray(np.zeros(data[xn].shape, dtype=np.float64),
+        new_field = data.pf.arr(np.zeros(data[xn].shape, dtype=np.float64),
                             '1/s')
         new_field[1:-1,1:-1,1:-1] = f
         return new_field

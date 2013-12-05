@@ -1649,9 +1649,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
         (bounds, center_rot) = \
           GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
         fields = ensure_list(fields)[:]
-        width = YTArray((bounds[1] - bounds[0],
-                         bounds[3] - bounds[2],
-                         bounds[5] - bounds[4]))
+        width = pf.arr((bounds[1] - bounds[0],
+                        bounds[3] - bounds[2],
+                        bounds[5] - bounds[4]))
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot, pf, normal, width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,

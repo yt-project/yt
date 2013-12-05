@@ -221,7 +221,7 @@ def _averaged_density(field, data):
         weight_field += data["cell_mass"][sl]
 
     # Now some fancy footwork
-    new_field2 = YTArray(np.zeros((nx, ny, nz)), 'g/cm**3')
+    new_field2 = data.pf.arr(np.zeros((nx, ny, nz)), 'g/cm**3')
     new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
     return new_field2
 
@@ -229,7 +229,7 @@ add_field("averaged_density", function=_averaged_density,
           validators=[ValidateSpatial(1, ["density"])])
 
 def _contours(field, data):
-    return -YTArray(np.ones_like(data["ones"]))
+    return -data.pf.arr(np.ones_like(data["ones"]))
 
 add_field("contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_contours)
@@ -240,14 +240,14 @@ add_field("temp_contours", function=_contours,
 def get_radius(data, field_prefix):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = YTArray(np.zeros(data[field_prefix+"x"].shape, dtype='float64'),
-                     'cm')
+    radius = data.pf.arr(np.zeros(data[field_prefix+"x"].shape,
+                         dtype='float64'), 'cm')
     r = radius.copy()
     if any(data.pf.periodicity):
         rdw = radius.copy()
     for i, ax in enumerate('xyz'):
         np.subtract(data["%s%s" % (field_prefix, ax)],
-                    YTArray(center[i], center.units), r)
+                    data.pf.arr(center[i], center.units), r)
         if data.pf.periodicity[i] == True:
             np.abs(r, r)
             np.subtract(r, DW[i], rdw)
@@ -298,7 +298,8 @@ def _vorticity_x(field, data):
         sl_right = slice(2,None,None)
         div_fac = 2.0
     new_field = \
-      YTArray(np.zeros(data["velocity_z"].shape, dtype=np.float64), '1/s')
+      data.pf.arr(np.zeros(data["velocity_z"].shape, dtype=np.float64),
+                  '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["velocity_z"][1:-1,sl_right,1:-1] -
                                  data["velocity_z"][1:-1,sl_left,1:-1]) \
                                  / (div_fac*just_one(data["dy"]))
@@ -317,7 +318,8 @@ def _vorticity_y(field, data):
         sl_right = slice(2,None,None)
         div_fac = 2.0
     new_field = \
-      YTArray(np.zeros(data["velocity_z"].shape, dtype=np.float64), '1/s')
+      data.pf.arr(np.zeros(data["velocity_z"].shape, dtype=np.float64),
+                  '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["velocity_x"][1:-1,1:-1,sl_right] -
                                  data["velocity_x"][1:-1,1:-1,sl_left]) \
                                  / (div_fac*just_one(data["dz"]))
@@ -336,7 +338,8 @@ def _vorticity_z(field, data):
         sl_right = slice(2,None,None)
         div_fac = 2.0
     new_field = \
-      YTArray(np.zeros(data["velocity_z"].shape, dtype=np.float64), '1/s')
+      data.pf.arr(np.zeros(data["velocity_z"].shape, dtype=np.float64),
+                  '1/s')
     new_field[1:-1,1:-1,1:-1] = (data["velocity_y"][sl_right,1:-1,1:-1] -
                                  data["velocity_y"][sl_left,1:-1,1:-1]) \
                                  / (div_fac*just_one(data["dx"]))
@@ -398,7 +401,7 @@ def _vorticity_growth_magnitude(field, data):
     result = np.sqrt(data["vorticity_growth_x"]**2 +
                      data["vorticity_growth_y"]**2 +
                      data["vorticity_growth_z"]**2)
-    dot = YTArray(np.zeros(result.shape), '1/s')
+    dot = data.pf.arr(np.zeros(result.shape), '1/s')
     for ax in "xyz":
         dot += data["vorticity_%s" % ax] * data["vorticity_growth_%s" % ax]
     result = np.sign(dot) * result
@@ -489,7 +492,7 @@ def _vorticity_radiation_pressure_growth_magnitude(field, data):
     result = np.sqrt(data["vorticity_radiation_pressure_growth_x"]**2 +
                      data["vorticity_radiation_pressure_growth_y"]**2 +
                      data["vorticity_radiation_pressure_growth_z"]**2)
-    dot = YTArray(np.zeros(result.shape), '1/s')
+    dot = data.pf.arr(np.zeros(result.shape), '1/s')
     for ax in "xyz":
         dot += data["Vorticity%s" % ax] * data["vorticity_growth_%s" % ax]
     result = np.sign(dot) * result

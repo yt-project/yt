@@ -42,7 +42,7 @@ def test_slice():
         pf = fake_random_pf(64, nprocs=nprocs)
         dims = pf.domain_dimensions
         xn, yn, zn = pf.domain_dimensions
-        dx = YTArray(1.0 / (pf.domain_dimensions * 2), 'code_length')
+        dx = pf.arr(1.0 / (pf.domain_dimensions * 2), 'code_length')
         xi, yi, zi = pf.domain_left_edge + dx
         xf, yf, zf = pf.domain_right_edge - dx
         coords = np.mgrid[xi:xf:xn * 1j, yi:yf:yn * 1j, zi:zf:zn * 1j]

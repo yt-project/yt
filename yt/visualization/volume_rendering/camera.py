@@ -174,7 +174,7 @@ class Camera(ParallelAnalysisInterface):
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         if not isinstance(width, YTArray):
-            width = YTArray(width, input_units="code_length")
+            width = self.pf.arr(width, input_units="code_length")
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]
@@ -826,20 +826,20 @@ class Camera(ParallelAnalysisInterface):
         dW = None
         old_center = self.center.copy()
         if not isinstance(final, YTArray):
-            final = YTArray(final, input_units = "code_length")
+            final = self.pf.arr(final, input_units = "code_length")
         if exponential:
             if final_width is not None:
                 if not iterable(final_width):
                     final_width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
-                    final_width = YTArray(final_width, input_units="code_length")
+                    final_width = self.pf.arr(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
                     self.center += (final - self.center) / (10. * n_steps)
                 final_zoom = final_width/self.width
                 dW = final_zoom**(1.0/n_steps)
             else:
-                dW = YTArray([1.0,1.0,1.0], "code_length")
+                dW = self.pf.arr([1.0,1.0,1.0], "code_length")
             position_diff = final/self.center
             dx = position_diff**(1.0/n_steps)
         else:
@@ -847,11 +847,11 @@ class Camera(ParallelAnalysisInterface):
                 if not iterable(final_width):
                     width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
-                    final_width = YTArray(final_width, input_units="code_length")
+                    final_width = self.pf.arr(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back
                 dW = (1.0*final_width-self.width)/n_steps
             else:
-                dW = YTArray([0.0,0.0,0.0], "code_length")
+                dW = self.pf.arr([0.0,0.0,0.0], "code_length")
             dx = (final-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
@@ -1063,7 +1063,7 @@ class PerspectiveCamera(Camera):
         inv_mat = self.orienter.inv_mat
         positions = np.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
-        positions = YTArray(positions, "code_length")
+        positions = self.pf.arr(positions, "code_length")
         positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
         positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
         positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]

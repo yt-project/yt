@@ -147,7 +147,7 @@ class StaticOutput(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            v = YTArray(v, "code_length", registry = self.unit_registry)
+            v = self.arr(v, "code_length")
             setattr(self, n, v)
 
     def __reduce__(self):

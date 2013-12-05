@@ -53,7 +53,7 @@ class IOHandlerStream(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            rv[field] = YTArray(np.empty(size, dtype="float64"),
+            rv[field] = self.pf.arr(np.empty(size, dtype="float64"),
                                 self.field_units[fname])
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",

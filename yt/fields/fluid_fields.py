@@ -149,7 +149,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     def _vorticity_squared(field, data):
         # We need to set up stencils
-        new_field = YTArray(np.zeros(data[ftype, "velocity_x"].shape), 's**-2')
+        new_field = data.pf.arr(np.zeros(data[ftype, "velocity_x"].shape),
+                                's**-2')
         dvzdy = (data[ftype, "velocity_z"][1:-1,sl_right,1:-1] -
                  data[ftype, "velocity_z"][1:-1,sl_left,1:-1]) \
                      / (div_fac*data["dy"][1:-1,1:-1,1:-1])
@@ -207,7 +208,7 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
         def func(field, data):
             # We need to set up stencils
             # This is based on enzo parameters and should probably be changed.    
-            new_field = YTArray(np.zeros(data[field].shape, dtype=np.float64),
+            new_field = data.pf.arr(np.zeros(data[field].shape, dtype=np.float64),
                                 field_units)
             ds = div_fac * data['dx']
             new_field[slice_3d]  = data[field][slice_3dr]/ds[slice_3d]

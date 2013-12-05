@@ -393,7 +393,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self,
             center, pf, field_parameters)
-        self.left_edge = YTArray(left_edge, 'code_length')
+        self.left_edge = self.pf.arr(left_edge, 'code_length')
         self.level = level
 
         rdx = self.pf.domain_dimensions*self.pf.relative_refinement(0, level)
@@ -496,10 +496,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                         domain_dims, self.pf.refine_by)
         for name, v in zip(fields, output_fields):
             fi = self.pf._get_field_info(*name)
-            self[name] = YTArray(v, fi.units)
+            self[name] = self.pf.arr(v, fi.units)
 
     def _generate_container_field(self, field):
-        rv = YTArray(np.ones(self.ActiveDimensions, dtype="float64"),
+        rv = self.pf.arr(np.ones(self.ActiveDimensions, dtype="float64"),
                              "")
         if field == ("index", "dx"):
             np.multiply(rv, self.dds[0], rv)
@@ -662,7 +662,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
             fi = self.pf._get_field_info(*name)
-            self[name] = YTArray(v, fi.units)
+            self[name] = self.pf.arr(v, fi.units)
 
     def _initialize_level_state(self, fields):
         ls = LevelState()

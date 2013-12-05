@@ -26,7 +26,6 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.data_objects.yt_array import YTArray
 from yt.utilities.lib import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.definitions import  x_dict, y_dict
@@ -115,15 +114,14 @@ class YTDataContainer(object):
     def _set_default_field_parameters(self):
         self.field_parameters = {}
         self.set_field_parameter(
-            "center",YTArray(np.zeros(3,dtype='float64'),'cm'))
+            "center",self.pf.arr(np.zeros(3,dtype='float64'),'cm'))
         self.set_field_parameter(
-            "bulk_velocity",YTArray(np.zeros(3,dtype='float64'),'cm/s'))
+            "bulk_velocity",self.pf.arr(np.zeros(3,dtype='float64'),'cm/s'))
         self.set_field_parameter(
             "normal",np.array([0,0,1],dtype='float64'))
 
     def apply_units(self, arr, units):
-        return YTArray(arr, input_units = units,
-                       unit_registry = self.pf.unit_registry)
+        return self.pf.arr(arr, input_units = units)
 
     def _set_center(self, center):
         if center is None:
@@ -131,8 +129,7 @@ class YTDataContainer(object):
             self.set_field_parameter('center', self.center)
             return
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
-            center = YTArray(center, 'code_length',
-                             registry = self.pf.unit_registry)
+            center = self.pf.arr(center, 'code_length')
         elif center in ("c", "center"):
             center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
@@ -141,8 +138,7 @@ class YTDataContainer(object):
             center = self.pf.h.find_max(center[4:])[1]
         else:
             center = np.array(center, dtype='float64')
-        self.center = YTArray(center, 'code_length',
-                             registry = self.pf.unit_registry)
+        self.center = self.pf.arr(center, 'code_length')
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):
@@ -201,7 +197,7 @@ class YTDataContainer(object):
         if f not in self.field_data and key not in self.field_data:
             if f in self._container_fields:
                 self.field_data[f] = \
-                    YTArray(self._generate_container_field(f))
+                    self.pf.arr(self._generate_container_field(f))
                 return self.field_data[f]
             else:
                 self.get_data(f)
@@ -215,8 +211,7 @@ class YTDataContainer(object):
                 fi = self.pf._get_field_info(*f)
             elif isinstance(f, types.StringType):
                 fi = self.pf._get_field_info("unknown", f)
-            rv = YTArray(self.field_data[key], fi.units,
-                         self.pf.unit_registry)
+            rv = self.pf.arr(self.field_data[key], fi.units)
         return rv
 
     def __setitem__(self, key, val):
@@ -559,14 +554,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         read_fluids, gen_fluids = self.hierarchy._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = YTArray(v, input_units = finfos[f].units,
-                                         registry = self.pf.unit_registry)
+            self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
 
         read_particles, gen_particles = self.hierarchy._read_particle_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
-            self.field_data[f] = YTArray(v, input_units = finfos[f].units,
-                                         registry = self.pf.unit_registry)
+            self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -588,7 +581,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 try:
                     fd = self._generate_field(field)
                     if type(fd) == np.ndarray:
-                        fd = YTArray(fd, fi.units, self.pf.unit_registry)
+                        fd = self.pf.arr(fd, fi.units)
                     if fd is None:
                         raise RuntimeError
                     self.field_data[field] = fd
@@ -755,12 +748,12 @@ class YTSelectionContainer2D(YTSelectionContainer):
                         + self.pf.domain_left_edge)/2.0
         if iterable(width):
             w, u = width
-            width = YTArray(w, input_units = u, registry = self.pf.unit_registry)
+            width = self.pf.arr(w, input_units = u)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = YTArray(w, input_units = u, registry = self.pf.unit_registry)
+            height = self.pf.arr(w, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
