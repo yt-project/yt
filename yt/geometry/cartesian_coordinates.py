@@ -15,7 +15,6 @@ Cartesian fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.data_objects.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord
@@ -28,10 +27,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def setup_fields(self, registry):
         def _get_coord_fields(axi, ax):
             def _dds(field, data):
-                rv = YTArray(data.fwidth[...,axi], 'code_length')
+                rv = data.pf.arr(data.fwidth[...,axi], 'code_length')
                 return data._reshape_vals(rv)
             def _coords(field, data):
-                rv = YTArray(data.fcoords[...,axi], 'code_length')
+                rv = data.pf.arr(data.fcoords[...,axi], 'code_length')
                 return data._reshape_vals(rv)
             return _dds, _coords
         for axi, ax in enumerate('xyz'):
