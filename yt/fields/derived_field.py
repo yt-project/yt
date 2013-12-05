@@ -12,6 +12,7 @@ Derived field base class.
 #-----------------------------------------------------------------------------
 
 import contextlib
+import inspect
 
 from yt.funcs import \
     ensure_list
