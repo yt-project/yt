@@ -41,6 +41,9 @@ from .fields import FITSFieldInfo, add_fits_field, KnownFITSFields
 from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
      ValidateDataField, TranslationFunc
 
+angle_units = ["deg","arcsec","arcmin","mas"]
+all_units = angle_units + mpc_conversion.keys()
+
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, hierarchy, level):
@@ -131,12 +134,12 @@ class FITSStaticOutput(StaticOutput):
     _handle = None
     
     def __init__(self, filename, data_style='fits',
-                 ignore_unit_names = False,
                  primary_header = None,
                  sky_conversion = None,
                  storage_filename = None,
                  conversion_override = None,
-                 mask_nans = True):
+                 mask_nans = True,
+                 nprocs=1):
 
         self.mask_nans = mask_nans
         if isinstance(filename, pyfits.HDUList):
@@ -149,7 +152,7 @@ class FITSStaticOutput(StaticOutput):
             if h.is_image and h.data is not None:
                 self.first_image = i
                 break
-            
+        
         if primary_header is None:
             self.primary_header = self._handle[self.first_image].header
         else:
@@ -158,46 +161,28 @@ class FITSStaticOutput(StaticOutput):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
 
-        self.wcs = pywcs.WCS(self.primary_header)
-
-        name = getattr(self.wcs.wcs.cunit[0], "name", None)
-        if name is None and ignore_unit_names == False:
-            raise YTFITSHeaderNotUnderstood
-        if name in ["deg","arcsec","arcmin","mas"]:
-            self.sky_wcs = self.wcs.deepcopy()
-            if sky_conversion is None:
-                self._set_minimalist_wcs()
-            else:
-                dims = np.array(self.shape)
-                ndims = len(self.shape)
-                new_unit = sky_conversion[1]
-                new_deltx = np.abs(self.wcs.wcs.cdelt[0])*sky_conversion[0]
-                new_delty = np.abs(self.wcs.wcs.cdelt[1])*sky_conversion[0]
-                self.wcs.wcs.cdelt = [new_deltx, new_delty]
-                self.wcs.wcs.crpix = 0.5*(dims+1)
-                self.wcs.wcs.crval = [0.0]*2
-                self.wcs.wcs.cunit = [new_unit]*2
-                self.wcs.wcs.ctype = ["LINEAR"]*2
-
-        if not all(key in self.primary_header for key in
-                   ["CRPIX1","CRVAL1","CDELT1","CUNIT1"]):
-            self._set_minimalist_wcs()
+        self.wcs = pywcs.WCS(header=self.primary_header)
+        
+        for i, unit in enumerate(self.wcs.wcs.cunit):
+            if unit in all_units:
+                self.file_unit = unit.name
+                idx = i
+                break
+        self.new_unit = None
+        self.pixel_scale = 1.0
+        if self.file_unit in angle_units:
+            if sky_conversion is not None:
+                self.new_unit = sky_conversion[1]
+                self.pixel_scale = np.abs(self.wcs.wcs.cdelt[idx])*sky_conversion[0]
+        elif self.file_unit in mpc_conversion:
+            self.new_unit = self.file_unit
+            self.pixel_scale = self.wcs.wcs.cdelt[idx]
 
         StaticOutput.__init__(self, fname, data_style)
         self.storage_filename = storage_filename
             
         self.refine_by = 2
         self._set_units()
-
-    def _set_minimalist_wcs(self):
-        mylog.warning("Could not determine WCS information. Using pixel units.")
-        dims = np.array(self.shape)
-        ndims = len(dims)
-        self.wcs.wcs.crpix = 0.5*(dims+1)
-        self.wcs.wcs.cdelt = [1.0]*ndims
-        self.wcs.wcs.crval = 0.5*(dims+1)
-        self.wcs.wcs.cunit = ["pixel"]*ndims
-        self.wcs.wcs.ctype = ["LINEAR"]*ndims
 
     def _set_units(self):
         """
@@ -208,8 +193,7 @@ class FITSStaticOutput(StaticOutput):
         if len(self.parameters) == 0:
             self._parse_parameter_file()
         self.conversion_factors = defaultdict(lambda: 1.0)
-        file_unit = self.wcs.wcs.cunit[0].name.lower()
-        if file_unit in mpc_conversion:
+        if self.new_unit in mpc_conversion:
             self._setup_getunits_units()
         else:
             self._setup_nounits_units()
@@ -226,9 +210,8 @@ class FITSStaticOutput(StaticOutput):
         pass
 
     def _setup_getunits_units(self):
-        file_unit = self.wcs.wcs.cunit[0].name.lower()
         for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit]/mpc_conversion[file_unit]
+            self.units[unit] = self.pixel_scale*mpc_conversion[unit]/mpc_conversion[self.new_unit]
         self.conversion_factors["Time"] = 1.0
                                             
     def _setup_nounits_units(self):
@@ -252,22 +235,14 @@ class FITSStaticOutput(StaticOutput):
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
-        ND = self.dimensionality
-        
-        le = [0.5]*ND
-        re = [float(dim)+0.5 for dim in self.domain_dimensions]
-        if ND == 2:
-            xe, ye = self.wcs.wcs_pix2world([le[0],re[0]],
-                                            [le[1],re[1]], 1)
-            self.domain_left_edge = np.array([xe[0], ye[0], 0.0])
-            self.domain_right_edge = np.array([xe[1], ye[1], 1.0]) 
-        elif ND == 3:
-            xe, ye, ze = world_edges = self.wcs.wcs_pix2world([le[0],re[0]],
-                                                              [le[1],re[1]],
-                                                              [le[2],re[2]], 1)
-            self.domain_left_edge = np.array([xe[0], ye[0], ze[0]])
-            self.domain_right_edge = np.array([xe[1], ye[1], ze[1]])
+            
+        self.domain_left_edge = np.array([0.5]*3)
+        self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
 
+        if self.dimensionality == 2:
+            self.domain_left_edge[-1] = 0.0
+            self.domain_right_edge[-1] = 1.0
+            
         # Get the simulation time
         try:
             self.current_time = self.parameters["time"]
