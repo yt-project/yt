@@ -118,9 +118,11 @@ class FixedResolutionBuffer(object):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
-        bounds = self.bounds
-        if hasattr(self.bounds, "in_units"):
-            bounds = bounds.in_units("code_length").ndarray_view()
+        bounds = []
+        for b in self.bounds:
+            if hasattr(b, "in_units"):
+                b = float(b.in_units("code_length"))
+            bounds.append(b)
         buff = _MPL.Pixelize(self.data_source['px'],
                              self.data_source['py'],
                              self.data_source['pdx'],

@@ -587,6 +587,7 @@ def get_yt_supp():
     return supp_path
 
 def fix_length(length, pf=None):
+    assert pf is not None
     if pf is not None:
         registry = pf.unit_registry
     else:

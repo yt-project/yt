@@ -160,26 +160,26 @@ def fix_unitary(u):
     else:
         return u
 
-def validate_iterable_width(width, unit=None):
+def validate_iterable_width(width, pf, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
         assert_valid_width_tuple(width[0])
         assert_valid_width_tuple(width[1])
-        return (YTQuantity(width[0][0], fix_unitary(width[0][1])),
-                YTQuantity(width[1][0], fix_unitary(width[1][1])))
+        return (pf.quan(width[0][0], fix_unitary(width[0][1])),
+                pf.quan(width[1][0], fix_unitary(width[1][1])))
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return (YTQuantity(width[0], 'code_length'),
-                YTQuantity(width[1], 'code_length'))
+        return (pf.quan(width[0], 'code_length'),
+                pf.quan(width[1], 'code_length'))
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
         # assume width controls x and unit controls y
         try:
             assert_valid_width_tuple(unit)
-            return (YTQuantity(width[0], fix_unitary(width[1])),
-                    YTQuantity(unit[0], fix_unitary(unit[1])))
+            return (pf.quan(width[0], fix_unitary(width[1])),
+                    pf.quan(unit[0], fix_unitary(unit[1])))
         except YTInvalidWidthError:
-            return (YTQuantity(width[0], fix_unitary(width[1])),
-                    YTQuantity(width[0], fix_unitary(width[1])))
+            return (pf.quan(width[0], fix_unitary(width[1])),
+                    pf.quan(width[0], fix_unitary(width[1])))
 
 def StandardWidth(axis, width, depth, pf):
     if width is None:
@@ -193,26 +193,27 @@ def StandardWidth(axis, width, depth, pf):
             w = pf.domain_width[[mi,mi]]
         width = (w[0], w[1])
     elif iterable(width):
-        width = validate_iterable_width(width)
+        width = validate_iterable_width(width, pf)
     else:
         try:
             assert isinstance(width, Number), \
               "width (%s) is invalid" % str(width)
         except AssertionError, e:
             raise YTInvalidWidthError(e)
-        width = (YTQuantity(width, 'code_length'), 
-                 YTQuantity(width, 'code_length'))
+        width = (pf.arr(width, 'code_length'),
+                 pf.arr(width, 'code_length'))
     if depth is not None:
         if iterable(depth):
             assert_valid_width_tuple(depth)
-            depth = (YTQuantity(depth[0], fix_unitary(depth[1])),)
+            depth = (pf.quan(depth[0], fix_unitary(depth[1])),)
         else:
             try:
                 assert isinstance(depth, Number), \
                   "width (%s) is invalid" % str(depth)
             except AssertionError, e:
                 raise YTInvalidWidthError(e)
-            depth = (YTQuantity(depth, 'code_length'),)
+            depth = (pf.quan(depth, 'code_length',
+                     registry = pf.unit_registry),)
         return width + depth
     return width
 
@@ -550,7 +551,7 @@ class PlotWindow(object):
                 if not isinstance(el, Number) and not isinstance(el, YTQuantity):
                     raise error
             if isinstance(new_center[0], Number):
-                new_center = [YTQuantity(c, unit) for c in new_center]
+                new_center = [self.pf.quan(c, unit) for c in new_center]
             self.center = new_center
         else:
             raise error

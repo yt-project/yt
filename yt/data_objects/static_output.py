@@ -15,6 +15,7 @@ Presumably at some point EnzoRun will be absorbed into here.
 #-----------------------------------------------------------------------------
 
 import string, re, gc, time, os, os.path, weakref
+import functools
 
 from yt.funcs import *
 
@@ -34,6 +35,9 @@ from yt.data_objects.particle_unions import \
     ParticleUnion
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
+from yt.data_objects.yt_array import \
+    YTArray, \
+    YTQuantity
 
 from yt.geometry.cartesian_coordinates import \
     CartesianCoordinateHandler
@@ -121,6 +125,7 @@ class StaticOutput(object):
 
         self.min_level = 0
 
+        self._create_unit_registry()
         self._parse_parameter_file()
         self._setup_coordinate_handler()
 
@@ -387,13 +392,20 @@ class StaticOutput(object):
     def relative_refinement(self, l0, l1):
         return self.refine_by**(l1-l0)
 
+    def _create_unit_registry(self):
+        self.unit_registry = UnitRegistry()
+        import yt.utilities.units as units
+        self.unit_registry.add("code_length", 1.0, units.length)
+        self.unit_registry.add("code_mass", 1.0, units.mass)
+        self.unit_registry.add("code_time", 1.0, units.time)
+        self.unit_registry.add("code_magnetic", 1.0, units.magnetic_field)
+        self.unit_registry.add("code_temperature", 1.0, units.temperature)
+
     def set_units(self):
         """
         Creates the unit registry for this dataset.
 
         """
-        self.unit_registry = UnitRegistry()
-
         self.set_code_units()
 
         if hasattr(self, "cosmological_simulation") \
@@ -427,6 +439,22 @@ class StaticOutput(object):
         self.unit_registry.modify("code_time", self.time_unit.value)
         self.unit_registry.modify("unitary", DW.max())
 
+    _arr = None
+    @property
+    def arr(self):
+        if self._arr is not None:
+            return self._arr
+        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        return self._arr
+
+    _quan = None
+    @property
+    def quan(self):
+        if self._quan is not None:
+            return self._quan
+        self._quan = functools.partial(YTQuantity,
+                registry = self.unit_registry)
+        return self._quan
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()

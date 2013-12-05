@@ -134,7 +134,8 @@ class FieldInfoContainer(dict): # Resistance has utility
         if units is None:
             # We default to CGS here, but in principle, this can be pluggable
             # as well.
-            u = Unit(self[original_name].units)
+            u = Unit(self[original_name].units,
+                      registry = self.pf.unit_registry)
             units = str(u.get_cgs_equivalent())
         self.add_field(alias_name,
             function = TranslationFunc(original_name),

@@ -260,7 +260,7 @@ class YTArray(np.ndarray):
         """
         # let Unit() handle units arg if it's not already a Unit obj.
         if not isinstance(units, Unit):
-            units = Unit(units)
+            units = Unit(units, registry = self.units.registry)
 
         if not self.units.same_dimensions_as(units):
             raise YTUnitConversionError(
