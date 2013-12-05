@@ -240,8 +240,8 @@ class FITSStaticOutput(StaticOutput):
         self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
 
         if self.dimensionality == 2:
-            self.domain_left_edge[-1] = 0.0
-            self.domain_right_edge[-1] = 1.0
+            self.domain_left_edge[-1] = 0.5
+            self.domain_right_edge[-1] = 1.5
             
         # Get the simulation time
         try:
