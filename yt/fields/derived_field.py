@@ -170,10 +170,6 @@ class DerivedField(object):
         yield
         self._unit_registry = old_registry
 
-    def apply_units(self, arr, units = None):
-        if units is None: units = self.units
-        return self.pf.arr(arr, input_units = units)
-
     def __call__(self, data):
         """ Return the value of the field in a given *data* object. """
         ii = self.check_available(data)

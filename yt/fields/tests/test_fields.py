@@ -121,7 +121,7 @@ class TestFieldAccess(object):
         if not needs_spatial:
             with field.unit_registry(dd2):
                 res = field._function(field, dd2)
-                res = field.apply_units(res)
+                res = dd2.apply_units(res, field.units)
             assert_array_almost_equal_nulp(v1, res, 4)
         if not skip_grids:
             for g in pf.h.grids:
@@ -136,7 +136,7 @@ class TestFieldAccess(object):
                 with field.unit_registry(g):
                     res = field._function(field, g)
                     assert_array_equal(v1.shape, res.shape)
-                    res = field.apply_units(res)
+                    res = g.apply_units(res, field.units)
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():

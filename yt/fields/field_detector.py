@@ -187,6 +187,9 @@ class FieldDetector(defaultdict):
     _num_ghost_zones = 0
     id = 1
 
+    def apply_units(self, arr, units):
+        return YTArray(arr, input_units = units)
+
     def has_field_parameter(self, param):
         return True
 

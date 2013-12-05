@@ -109,7 +109,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         t3 = data["index", "dz"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_z"]))
         tr = np.minimum(np.minimum(t1, t2), t3)
-        return field.apply_units(tr)
+        return data.apply_units(tr, field.units)
 
     registry.add_field((ftype, "courant_time_step"),
              function=_courant_time_step,
@@ -135,7 +135,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                ((data[ftype, "density"]/mw)**gammam1)
         # Gamma here needs some fancy units.
         # TODO: Add fancy units for Gamma!
-        return field.apply_units(tr)
+        return data.apply_units(tr, field.units)
     registry.add_field((ftype, "entropy"),
              units="erg/K",
              function=_entropy)

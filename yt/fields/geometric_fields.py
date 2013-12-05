@@ -73,7 +73,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     def _zeros(field, data):
         arr = np.zeros(data["ones"].shape, dtype='float64')
-        return field.apply_units(arr)
+        return data.apply_units(arr, field.units)
 
     registry.add_field(("index", "zeros"), function=_zeros,
               units = "",
@@ -84,7 +84,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         arr = np.ones(data.ires.shape, dtype="float64")
         if data._spatial:
             return data._reshape_vals(arr)
-        return field.apply_units(arr)
+        return data.apply_units(arr, field.units)
 
     registry.add_field(("index", "ones"), function=_ones,
               projection_conversion="unitary",
