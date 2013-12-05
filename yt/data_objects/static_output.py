@@ -395,11 +395,11 @@ class StaticOutput(object):
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
         import yt.utilities.units as units
-        self.unit_registry.add("code_length", 1.0, units.length)
-        self.unit_registry.add("code_mass", 1.0, units.mass)
-        self.unit_registry.add("code_time", 1.0, units.time)
-        self.unit_registry.add("code_magnetic", 1.0, units.magnetic_field)
-        self.unit_registry.add("code_temperature", 1.0, units.temperature)
+        self.unit_registry.lut["code_length"] = (1.0, units.length)
+        self.unit_registry.lut["code_mass"] = (1.0, units.mass)
+        self.unit_registry.lut["code_time"] = (1.0, units.time)
+        self.unit_registry.lut["code_magnetic"] = (1.0, units.magnetic_field)
+        self.unit_registry.lut["code_temperature"] = (1.0, units.temperature)
 
     def set_units(self):
         """

@@ -816,7 +816,7 @@ class EnzoStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self.particle_types = ["io"]
-        self.current_time = self.quan(self.parameters["InitialTime"], 'code_time')
+        self.current_time = self.quan(self.parameters["InitialTime"], "code_time")
         if self.parameters["NumberOfParticles"] > 0 and \
             "AppendActiveParticleType" in self.parameters.keys():
             # If this is the case, then we know we should have a DarkMatter
