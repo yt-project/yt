@@ -40,7 +40,6 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
-from yt.data_objects.yt_array import YTQuantity
 
 from .fields import \
     EnzoFieldInfo
@@ -857,15 +856,15 @@ class EnzoStaticOutput(StaticOutput):
 
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
-        self.magnetic_unit = YTQuantity(magnetic_unit, "gauss")
-        self.length_unit = YTQuantity(length_unit, "cm")
-        self.mass_unit = YTQuantity(mass_unit, "g")
-        self.time_unit = YTQuantity(time_unit, "s")
+        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        self.length_unit = self.quan(length_unit, "cm")
+        self.mass_unit = self.quan(mass_unit, "g")
+        self.time_unit = self.quan(time_unit, "s")
 
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
-        self.unit_registry.modify("code_length", self.length_unit.value)
-        self.unit_registry.modify("code_mass", self.mass_unit.value)
-        self.unit_registry.modify("code_time", self.time_unit.value)
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        self.unit_registry.modify("code_length", self.length_unit)
+        self.unit_registry.modify("code_mass", self.mass_unit)
+        self.unit_registry.modify("code_time", self.time_unit)
 
     def cosmology_get_units(self):
         """
