@@ -124,6 +124,7 @@ def test_particle_overrefine():
 class FakePF:
     domain_left_edge = None
     domain_right_edge = None
+    domain_width = None
     periodicity = (False, False, False)
 
 class FakeRegion:
@@ -131,6 +132,8 @@ class FakeRegion:
         self.pf = FakePF()
         self.pf.domain_left_edge = YTArray([0.0, 0.0, 0.0], "code_length")
         self.pf.domain_right_edge = YTArray([nfiles, nfiles, nfiles], "code_length")
+        self.pf.domain_width = self.pf.domain_right_edge - \
+                               self.pf.domain_left_edge
         self.nfiles = nfiles
 
     def set_edges(self, file_id):
