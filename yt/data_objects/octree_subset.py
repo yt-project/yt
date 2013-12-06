@@ -46,7 +46,12 @@ class OctreeSubset(YTSelectionContainer):
     _type_name = 'octree_subset'
     _skip_add = True
     _con_args = ('base_region', 'domain', 'pf')
-    _container_fields = ("dx", "dy", "dz")
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
     _domain_offset = 0
     _cell_count = -1
 
@@ -69,6 +74,7 @@ class OctreeSubset(YTSelectionContainer):
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
+        if isinstance(field, tuple): field = field[1]
         if field == "dx":
             return self._current_chunk.fwidth[:,0]
         elif field == "dy":

@@ -45,6 +45,12 @@ class AMRGridPatch(YTSelectionContainer):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
     OverlappingSiblings = None
 
     def __init__(self, id, filename=None, hierarchy=None):

@@ -571,7 +571,12 @@ class YTArbitraryGridBase(YTCoveringGridBase):
     _spatial = True
     _type_name = "arbitrary_grid"
     _con_args = ('left_edge', 'right_edge', 'ActiveDimensions')
-    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
     def __init__(self, left_edge, right_edge, dims,
                  pf = None, field_parameters = None):
         if field_parameters is None:
@@ -759,7 +764,12 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     """
     _type_name = "surface"
     _con_args = ("data_source", "surface_field", "field_value")
-    _container_fields = ("dx", "dy", "dz", "x", "y", "z")
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
         ParallelAnalysisInterface.__init__(self)
