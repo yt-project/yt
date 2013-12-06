@@ -91,7 +91,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d /= data["gas", "index", "cell_volume"]
+        d /= data["index", "cell_volume"]
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_density" % ptype),
