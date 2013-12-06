@@ -42,8 +42,9 @@ mass = Symbol("(mass)", positive=True)
 length = Symbol("(length)", positive=True)
 time = Symbol("(time)", positive=True)
 temperature = Symbol("(temperature)", positive=True)
+metallicity = Symbol("(metallicity)", positive=True)
 
-base_dimensions = [mass, length, time, temperature]
+base_dimensions = [mass, length, time, temperature, metallicity]
 
 #
 # Derived dimensions
@@ -91,6 +92,7 @@ default_unit_symbol_lut = {
     "code_time" : (1.0, time),
     "code_magnetic" : (1.0, magnetic_field),
     "code_temperature" : (1.0, temperature),
+    "code_metallicity" : (1.0, metallicity),
 
     # other cgs
     "dyne": (1.0, force),
@@ -118,7 +120,7 @@ default_unit_symbol_lut = {
     "rsun": (6.96e10, length),
     "Lsun": (3.9e33, power),
     "Tsun": (5870.0, temperature),
-    "Zsun": (1.0, dimensionless),
+    "Zsun": (0.02041, metallicity),
 
     # astro distances
     "AU": (1.49598e13, length),
