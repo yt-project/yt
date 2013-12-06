@@ -71,6 +71,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("RaySegements", ("", ["ray_segments"], None)),
         ("PhotoGamma", (ra_units, ["photo_gamma"], None)),
         ("Density", (rho_units, ["density"], None)),
+        ("Metal_Density", (rho_units, ["metal_density"], None)),
     )
 
     known_particle_fields = (
@@ -82,7 +83,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("particle_velocity_z", ("code_length / code_time", [], None)),
         ("creation_time", ("code_time", [], None)),
         ("dynamical_time", ("code_time", [], None)),
-        ("metallicity_fraction", ("Zsun", [], None)),
+        ("metallicity_fraction", ("code_metallicity", [], None)),
         ("particle_type", ("", [], None)),
         ("particle_index", ("", [], None)),
         ("particle_mass", ("code_mass", [], None)),

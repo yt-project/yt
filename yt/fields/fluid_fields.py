@@ -140,6 +140,13 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units="erg/K",
              function=_entropy)
 
+    def _metallicity(field, data):
+        tr = data[ftype, "metal_density"] / data[ftype, "density"]
+        return data.apply_units(tr, "code_metallicity")
+    registry.add_field((ftype, "metallicity"),
+             function=_metallicity,
+             units="Zsun")
+    
     # This may not be appropriate to have an 'ftype' for.
     def _mean_molecular_weight(field,data):
         return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
