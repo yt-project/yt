@@ -1,0 +1,146 @@
+/home/mturk/yt-conda/lib/python2.7/site-packages/matplotlib/__init__.py:727: UserWarning: Found matplotlib configuration in ~/.matplotlib/. To conform with the XDG base directory standard, this configuration location has been deprecated on Linux, and the new location is now '/home/mturk/.config'/matplotlib/. Please move your configuration there to ensure that matplotlib will continue to find it in the future.
+  _get_xdg_config_dir())
+yt : [DEBUG    ] 2013-12-06 18:45:17,831 Set log level to 1
+yt : [DEBUG    ] 2013-12-06 18:45:17,877 Registering: StaticOutput as <class 'yt.data_objects.static_output.StaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,879 SIGUSR1 registered for traceback printing
+yt : [DEBUG    ] 2013-12-06 18:45:17,879 SIGUSR2 registered for IPython Insertion
+yt : [DEBUG    ] 2013-12-06 18:45:17,909 Registering: EnzoStaticOutput as <class 'yt.frontends.enzo.data_structures.EnzoStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,909 Registering: EnzoStaticOutputInMemory as <class 'yt.frontends.enzo.data_structures.EnzoStaticOutputInMemory'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,909 Registering simulation: Enzo as <class 'yt.frontends.enzo.simulation_handling.EnzoSimulation'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,916 Registering: BoxlibStaticOutput as <class 'yt.frontends.boxlib.data_structures.BoxlibStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,916 Registering: OrionStaticOutput as <class 'yt.frontends.boxlib.data_structures.OrionStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,916 Registering: CastroStaticOutput as <class 'yt.frontends.boxlib.data_structures.CastroStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,916 Registering: MaestroStaticOutput as <class 'yt.frontends.boxlib.data_structures.MaestroStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,916 Registering: NyxStaticOutput as <class 'yt.frontends.boxlib.data_structures.NyxStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,926 Registering: FLASHStaticOutput as <class 'yt.frontends.flash.data_structures.FLASHStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,930 Registering: ARTStaticOutput as <class 'yt.frontends.art.data_structures.ARTStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,932 Registering: ARTIOStaticOutput as <class 'yt.frontends.artio.data_structures.ARTIOStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,933 Registering: RAMSESStaticOutput as <class 'yt.frontends.ramses.data_structures.RAMSESStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,935 Registering: ChomboStaticOutput as <class 'yt.frontends.chombo.data_structures.ChomboStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,936 Registering: GDFStaticOutput as <class 'yt.frontends.gdf.data_structures.GDFStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,937 Registering: MoabHex8StaticOutput as <class 'yt.frontends.moab.data_structures.MoabHex8StaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,937 Registering: PyneMoabHex8StaticOutput as <class 'yt.frontends.moab.data_structures.PyneMoabHex8StaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,939 Registering: AthenaStaticOutput as <class 'yt.frontends.athena.data_structures.AthenaStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,940 Registering: PlutoStaticOutput as <class 'yt.frontends.pluto.data_structures.PlutoStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,969 Registering: ParticleStaticOutput as <class 'yt.frontends.sph.data_structures.ParticleStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,969 Registering: GadgetStaticOutput as <class 'yt.frontends.sph.data_structures.GadgetStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,970 Registering: GadgetHDF5StaticOutput as <class 'yt.frontends.sph.data_structures.GadgetHDF5StaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,970 Registering: OWLSStaticOutput as <class 'yt.frontends.sph.data_structures.OWLSStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,970 Registering: TipsyStaticOutput as <class 'yt.frontends.sph.data_structures.TipsyStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,970 Registering: HTTPStreamStaticOutput as <class 'yt.frontends.sph.data_structures.HTTPStreamStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,971 Registering: StreamStaticOutput as <class 'yt.frontends.stream.data_structures.StreamStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,971 Registering: StreamParticlesStaticOutput as <class 'yt.frontends.stream.data_structures.StreamParticlesStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,971 Registering: StreamOctreeStaticOutput as <class 'yt.frontends.stream.data_structures.StreamOctreeStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,971 Registering: StreamHexahedralStaticOutput as <class 'yt.frontends.stream.data_structures.StreamHexahedralStaticOutput'>
+yt : [DEBUG    ] 2013-12-06 18:45:17,976 The Fortran kD-Tree did not import correctly.
+yt : [INFO     ] 2013-12-06 18:45:18,144 Loading plugins from /home/mturk/.yt/my_plugins.py
+......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................E............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................../home/mturk/yt-conda/lib/python2.7/site-packages/matplotlib/tight_layout.py:225: UserWarning: tight_layout : falling back to Agg renderer
+  warnings.warn("tight_layout : falling back to Agg renderer")
+......................................................
+======================================================================
+ERROR: Failure: TypeError ('NoneType' object is not iterable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/mturk/yt-conda/lib/python2.7/site-packages/nose/loader.py", line 253, in generate
+    for test in g():
+  File "/home/mturk/yt/yt-3.0/yt/data_objects/tests/test_profiles.py", line 92, in test_profiles
+    p1d.add_fields(["Ones", "Temperature"])
+  File "/home/mturk/yt/yt-3.0/yt/data_objects/profiles.py", line 760, in add_fields
+    for g in parallel_objects(self.data_source._grids):
+  File "/home/mturk/yt/yt-3.0/yt/utilities/parallel_tools/parallel_analysis_interface.py", line 433, in parallel_objects
+    oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
+TypeError: 'NoneType' object is not iterable
+-------------------- >> begin captured logging << --------------------
+yt: INFO: Parameters: current_time              = 0.0
+yt: INFO: Parameters: domain_dimensions         = [64 64 64]
+yt: INFO: Parameters: domain_left_edge          = [ 0.  0.  0.]
+yt: INFO: Parameters: domain_right_edge         = [ 1.  1.  1.]
+yt: INFO: Parameters: cosmological_simulation   = 0.0
+yt: DEBUG: Initializing data storage.
+yt: DEBUG: Setting up classes.
+yt: DEBUG: Setting up domain geometry.
+yt: DEBUG: Counting grids.
+yt: DEBUG: Initializing grid arrays.
+yt: DEBUG: Allocating arrays for 8 grids
+yt: DEBUG: Parsing hierarchy.
+yt: DEBUG: Copying reverse tree
+yt: DEBUG: Preparing grids
+yt: DEBUG: Prepared       0 /       8 grids
+yt: DEBUG: Prepared
+yt: DEBUG: Constructing grid objects.
+yt: DEBUG: Re-examining hierarchy
+yt: DEBUG: Initializing data grid data IO
+yt: DEBUG: Detecting fields.
+yt: DEBUG: Detecting fields in backup.
+yt: DEBUG: Adding unknown detected fields
+yt: DEBUG: Checking ['Dinosaurs', 'Density', 'Temperature', 'Tribbles']
+yt: INFO: Adding unknown field Dinosaurs to list of fields
+yt: INFO: Adding unknown field Density to list of fields
+yt: INFO: Adding unknown field Temperature to list of fields
+yt: INFO: Adding unknown field Tribbles to list of fields
+yt: DEBUG: Setting up derived fields
+yt: DEBUG: Raises <type 'exceptions.RuntimeError'> during field ('all', 'ParticleMass') detection.
+yt: DEBUG: Raises <type 'exceptions.RuntimeError'> during field ('all', 'particle_ones') detection.
+yt: DEBUG: Raises <type 'exceptions.RuntimeError'> during field ('all', 'ParticleMassMsun') detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityRPGrowthMagnitude detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field BaroclinicVorticityMagnitude detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityGrowthTimescale detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityStretchingY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityGrowthMagnitude detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityGrowthX detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityGrowthY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityGrowthZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityStretchingX detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityStretchingZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityMagnitude detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityRPGrowthMagnitudeABS detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradDensityMagnitude detection.
+yt: DEBUG: Generating vorticity on defaultdict(<function <lambda> at 0xc6fcf50>, {'dz': array([ 1.]), 'dx': array([ 1.]), 'dy': array([ 1.])})
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticitySquared detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field AbsDivV detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field DivV detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field Shear detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradDensityZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityRPGrowthX detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityRPGrowthY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityRPGrowthZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradDensityX detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradDensityY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityGrowthMagnitudeABS detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field ShearCriterion detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field ShearMach detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradPressureZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradPressureX detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradPressureY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field BaroclinicVorticityY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field BaroclinicVorticityX detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field BaroclinicVorticityZ detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field gradPressureMagnitude detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityStretchingMagnitude detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityRPGrowthTimescale detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityY detection.
+yt: DEBUG: Raises <type 'exceptions.KeyError'> during field VorticityX detection.
+yt: DEBUG: Setting up particle fields
+yt: DEBUG: Don't know what to do with io
+yt: DEBUG: Checking derived fields again
+yt: DEBUG: Creating Particle Union 'all'
+yt: DEBUG: Don't know what to do with all
+yt: DEBUG: Checking ['Dinosaurs', 'Density', 'Temperature', 'Tribbles']
+yt: DEBUG: Adding known field Dinosaurs to list of fields
+yt: DEBUG: Adding known field Density to list of fields
+yt: DEBUG: Adding known field Temperature to list of fields
+yt: DEBUG: Adding known field Tribbles to list of fields
+yt: DEBUG: Appending object to UniformGridData (type: <class 'yt.geometry.geometry_handler.YTRegion'>)
+yt: DEBUG: Reading 262144 cells of ['Density'] fields in 8 blocks
+yt: DEBUG: Reading 262144 cells of ['Temperature'] fields in 8 blocks
+yt: DEBUG: Reading 262144 cells of ['Dinosaurs'] fields in 8 blocks
+yt: DEBUG: Reading 262144 cells of ['Density'] fields in 8 blocks
+yt: DEBUG: Reading 262144 cells of ['Temperature'] fields in 8 blocks
+yt: DEBUG: Reading 262144 cells of ['Dinosaurs'] fields in 8 blocks
+--------------------- >> end captured logging << ---------------------
+
+----------------------------------------------------------------------
+Ran 3787 tests in 263.236s
+
+FAILED (errors=1)

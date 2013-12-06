@@ -60,21 +60,21 @@ class FieldInfoContainer(dict): # Resistance has utility
         
         def _gradx(f, data):
             grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
-            grad /= 2.0*data["dx"].flat[0]
+            grad /= 2.0*data["dx"].flat[0]*data.pf.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
             
         def _grady(f, data):
             grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
-            grad /= 2.0*data["dy"].flat[0]
+            grad /= 2.0*data["dy"].flat[0]*data.pf.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
             
         def _gradz(f, data):
             grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
-            grad /= 2.0*data["dz"].flat[0]
+            grad /= 2.0*data["dz"].flat[0]*data.pf.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
