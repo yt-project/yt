@@ -25,6 +25,9 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs, \
     mh
 
+from yt.data_objects.yt_array import \
+    uconcatenate
+
 from yt.utilities.math_utils import \
     get_sph_r_component, \
     get_sph_theta_component, \
@@ -46,7 +49,7 @@ def _field_concat(fname):
                 ptype in data.pf.known_filters:
                   continue
             v.append(data[ptype, fname].copy())
-        rv = np.concatenate(v, axis=0)
+        rv = uconcatenate(v, axis=0)
         return rv
     return _AllFields
 
@@ -59,7 +62,7 @@ def _field_concat_slice(fname, axi):
                 ptype in data.pf.known_filters:
                   continue
             v.append(data[ptype, fname][:,axi])
-        rv = np.concatenate(v, axis=0)
+        rv = uconcatenate(v, axis=0)
         return rv
     return _AllFields
 
@@ -90,9 +93,13 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              
     def particle_density(field, data):
         pos = data[ptype, coord_name]
+        mass = data[ptype, mass_name]
+        pos.convert_to_units("code_length")
+        mass.convert_to_units("code_mass")
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+        d = data.pf.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
-        return data.apply_units(d, field.units)
+        return d
 
     registry.add_field(("deposit", "%s_density" % ptype),
              function = particle_density,
@@ -176,14 +183,18 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
     def _get_vec_func(_ptype, names):
         def particle_vectors(field, data):
-            c = np.column_stack([data[_ptype, name] for name in names])
+            v = [data[_ptype, name].in_units(field.units)
+                  for name in names]
+            c = np.column_stack(v)
             return data.apply_units(c, field.units)
         return particle_vectors
     registry.add_field((ptype, "Coordinates"),
                        function=_get_vec_func(ptype, coord_names),
+                       units = "code_length",
                        particle_type=True)
     registry.add_field((ptype, "Velocities"),
                        function=_get_vec_func(ptype, vel_names),
+                       units = "cm / s",
                        particle_type=True)
     return list(set(registry.keys()).difference(orig))
 

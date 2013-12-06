@@ -55,7 +55,7 @@ class RockstarStaticOutput(StaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
-    _particle_mass_name = "virial_mass"
+    _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"
     _suffix = ".bin"
 
