@@ -68,7 +68,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
-        ("RaySegements", ("", ["ray_segments"], None)),
+        ("RaySegments", ("", ["ray_segments"], None)),
         ("PhotoGamma", (ra_units, ["photo_gamma"], None)),
         ("Density", (rho_units, ["density"], None)),
         ("Metal_Density", (rho_units, ["metal_density"], None)),

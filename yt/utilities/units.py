@@ -147,6 +147,7 @@ latex_symbol_lut = {
     "code_time" : "\\rm{code}\/\\rm{time}",
     "code_mass" : "\\rm{code}\/\\rm{mass}",
     "code_temperature" : "\\rm{code}\/\\rm{temperature}",
+    "code_metallicity" : "\\rm{code}\/\\rm{metallicity}",
     "Msun" : "\\rm{M}_\\odot",
     "msun" : "\\rm{M}_\\odot",
     "Rsun" : "\\rm{R}_\\odot",
