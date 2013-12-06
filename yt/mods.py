@@ -83,6 +83,9 @@ from yt.frontends.boxlib.api import \
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
 
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo, add_art_field
+
 from yt.frontends.artio.api import \
     ARTIOStaticOutput, ARTIOFieldInfo, add_artio_field
 
