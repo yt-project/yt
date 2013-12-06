@@ -96,6 +96,9 @@ from yt.frontends.flash.api import \
 from yt.frontends.ramses.api import \
     RAMSESStaticOutput, RAMSESFieldInfo
 
+from yt.frontends.halo_catalogs.api import \
+    RockstarStaticOutput, RockstarFieldInfo
+
 #from yt.frontends.chombo.api import \
 #    ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
