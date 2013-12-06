@@ -96,6 +96,7 @@ class RockstarStaticOutput(StaticOutput):
 
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
+        self.parameters.update(hvals)
 
     def _set_code_unit_attributes(self):
         z = self.current_redshift

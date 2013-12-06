@@ -91,9 +91,16 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             pos = np.empty((halos.size, 3), dtype="float64")
             # These positions are in Mpc, *not* "code" units
             pos = data_file.pf.arr(pos, "code_length")
+            dx = np.finfo(halos['particle_position_x'].dtype).eps
+            dx = 2.0*self.pf.quan(dx, "code_length")
             pos[:,0] = halos["particle_position_x"]
             pos[:,1] = halos["particle_position_y"]
             pos[:,2] = halos["particle_position_z"]
+            # These are 32 bit numbers, so we give a little lee-way.
+            # Otherwise, for big sets of particles, we often will bump into the
+            # domain edges.  This helps alleviate that.
+            np.clip(pos, self.pf.domain_left_edge + dx,
+                         self.pf.domain_right_edge - dx, pos)
             #del halos
             if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
                np.any(pos.max(axis=0) > self.pf.domain_right_edge):
