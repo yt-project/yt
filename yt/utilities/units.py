@@ -234,6 +234,8 @@ class UnitRegistry:
                 "Tried to remove the symbol '%s', but it does not exist" \
                 "in this registry." % symbol)
 
+        if hasattr(cgs_value, "in_cgs"):
+            cgs_value = float(cgs_value.in_cgs().value)
         self.lut[symbol] = (cgs_value, self.lut[symbol][1])
 
     def keys(self):
@@ -244,16 +246,6 @@ class UnitRegistry:
         return self.lut.keys()
 
 default_unit_registry = UnitRegistry()
-
-def cache_op(ufunc):
-    def _cfunc(self, other):
-        s = id(other)
-        if s in self.cached_ops:
-            return self.cached_ops[s]
-        rv = ufunc(self, other)
-        self.cached_ops[s] = rv
-        return rv
-    return _cfunc
 
 class Unit(Expr):
     """
@@ -268,8 +260,7 @@ class Unit(Expr):
     is_number = False
 
     # Extra attributes
-    __slots__ = ["expr", "is_atomic", "cgs_value", "dimensions", "registry",
-                 "cached_ops"]
+    __slots__ = ["expr", "is_atomic", "cgs_value", "dimensions", "registry"]
 
     def __new__(cls, unit_expr=sympify(1), cgs_value=None, dimensions=None,
                 registry=None, **assumptions):
@@ -359,7 +350,6 @@ class Unit(Expr):
         obj.cgs_value = cgs_value
         obj.dimensions = dimensions
         obj.registry = registry
-        obj.cached_ops = defaultdict(dict)
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -401,7 +391,6 @@ class Unit(Expr):
     # Start unit operations
     #
 
-    #@cache_op
     def __mul__(self, u):
         """ Multiply Unit with u (Unit object). """
         if not isinstance(u, Unit):
@@ -414,7 +403,6 @@ class Unit(Expr):
                     dimensions=(self.dimensions * u.dimensions),
                     registry=self.registry)
 
-    #@cache_op
     def __div__(self, u):
         """ Divide Unit by u (Unit object). """
         if not isinstance(u, Unit):
@@ -427,7 +415,6 @@ class Unit(Expr):
                     dimensions=(self.dimensions / u.dimensions),
                     registry=self.registry)
 
-    #@cache_op
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
@@ -440,7 +427,6 @@ class Unit(Expr):
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
                     dimensions=(self.dimensions**p), registry=self.registry)
 
-    #@cache_op
     def __eq__(self, u):
         """ Test unit equality. """
         if not isinstance(u, Unit):
@@ -448,7 +434,6 @@ class Unit(Expr):
         return \
           (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
 
-    #@cache_op
     def __ne__(self, u):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
