@@ -16,6 +16,7 @@ Halo catalog data-file handling function
 
 import numpy as np
 from yt.utilities.exceptions import *
+from yt.funcs import mylog
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -81,6 +82,8 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         pcount = data_file.header["num_halos"]
         morton = np.empty(pcount, dtype='uint64')
+        mylog.debug("Initializing index % 5i (% 7i particles)",
+                    data_file.file_id, pcount)
         ind = 0
         with open(data_file.filename, "rb") as f:
             f.seek(data_file._position_offset, os.SEEK_SET)
