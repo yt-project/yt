@@ -69,7 +69,6 @@ class RockstarStaticOutput(StaticOutput):
         with open(self.parameter_filename, "rb") as f:
             hvals = fpu.read_cattrs(f, header_dt)
             hvals.pop("unused")
-        import pprint; pprint.pprint(hvals)
         self.dimensionality = 3
         self.refine_by = 2
         self.unique_identifier = \
@@ -92,7 +91,6 @@ class RockstarStaticOutput(StaticOutput):
         self.particle_types = ("halos")
         self.particle_types_raw = ("halos")
 
-        print self.unit_registry
         self.domain_left_edge = np.array([0.0,0.0,0.0])
         self.domain_right_edge = np.array([hvals['box_size']] * 3)
 
