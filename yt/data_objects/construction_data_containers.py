@@ -165,12 +165,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     Parameters
     ----------
-    axis : int
-        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     field : string
         This is the field which will be "projected" along the axis.  If
         multiple are specified (in a list) they will all be projected in
         the first pass.
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     weight_field : string
         If supplied, the field being projected will be multiplied by this
         weight value before being integrated, and at the conclusion of the
@@ -261,11 +261,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for chunk in self.data_source.chunks([], "io"):
             self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
-        for chunk in parallel_objects(self.data_source.chunks(
-                chunk_fields, "io")): 
-            mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
-                get_memory_usage()/1024.)
-            self._handle_chunk(chunk, fields, tree)
+        with self.data_source._field_parameter_state(self.field_parameters):
+            for chunk in parallel_objects(self.data_source.chunks(
+                                          chunk_fields, "io")): 
+                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
+                    get_memory_usage()/1024.)
+                self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.proj_style == "mip":
             merge_style = -1
@@ -292,6 +293,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
+        #non_nan = ~np.any(np.isnan(nvals), axis=-1)
         data['px'] = px
         data['py'] = py
         data['weight_field'] = nwvals
@@ -308,6 +310,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             if self.weight_field is None:
                 # See _handle_chunk where we mandate cm
                 units = "(%s) * cm" % units
+            # Don't forget [non_nan] somewhere here.
             self[field] = YTArray(field_data[fi].ravel(),
                                   input_units=units,
                                   registry=self.pf.unit_registry)
@@ -343,7 +346,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         ilevel = chunk.ires * self.pf.ires_factor
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
-    def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
+    def to_pw(self, fields=None, center='c', width=None, axes_unit=None, 
+               origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -351,7 +355,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, 'Projection')
+        pw = self._get_pw(fields, center, width, origin, axes_unit, 'Projection')
         return pw
 
 class YTCoveringGridBase(YTSelectionContainer3D):

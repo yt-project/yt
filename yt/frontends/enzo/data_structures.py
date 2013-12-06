@@ -815,17 +815,23 @@ class EnzoStaticOutput(StaticOutput):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
-        self.particle_types = ["io"]
+        self.particle_types = []
         self.current_time = self.quan(self.parameters["InitialTime"], "code_time")
         if self.parameters["NumberOfParticles"] > 0 and \
             "AppendActiveParticleType" in self.parameters.keys():
             # If this is the case, then we know we should have a DarkMatter
             # particle type, and we don't need the "io" type.
-            self.particle_types = ["DarkMatter"]
             self.parameters["AppendActiveParticleType"].append("DarkMatter")
+        else:
+            # We do not have an "io" type for Enzo particles if the
+            # ActiveParticle machinery is on, as we simply will ignore any of
+            # the non-DarkMatter particles in that case.  However, for older
+            # datasets, we call this particle type "io".
+            self.particle_types = ["io"]
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
         self.particle_types = tuple(self.particle_types)
+        self.particle_types_raw = self.particle_types
 
         if self.dimensionality == 1:
             self._setup_1d()

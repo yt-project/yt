@@ -229,13 +229,18 @@ add_field("averaged_density", function=_averaged_density,
           validators=[ValidateSpatial(1, ["density"])])
 
 def _contours(field, data):
-    return -data.pf.arr(np.ones_like(data["ones"]))
-
-add_field("contours", validators=[ValidateSpatial(0)], take_log=False,
-          display_field=False, function=_contours)
-add_field("temp_contours", function=_contours,
-          validators=[ValidateSpatial(0), ValidateGridType()],
-          take_log=False, display_field=False)
+    fd = data.get_field_parameter("contour_slices")
+    vals = data["ones"] * -1
+    if fd is None or fd == 0.0:
+        return vals
+    for sl, v in fd.get(data.id, []):
+        vals[sl] = v
+    return vals
+add_field("contours",
+          validators=[ValidateSpatial(0)],
+          take_log=False,
+          display_field=False,
+          function=_contours)
 
 def get_radius(data, field_prefix):
     center = data.get_field_parameter("center")

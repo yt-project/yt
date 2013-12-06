@@ -291,7 +291,9 @@ class GridGeometryHandler(GeometryHandler):
             giter = sorted(gobjs, key = -g.Level)
         elif sort is None:
             giter = gobjs
-        if self._preload_implemented and preload_fields is not None and ngz == 0:
+        if preload_fields is None: preload_fields = []
+        preload_fields, _ = self._split_fields(preload_fields)
+        if self._preload_implemented and len(preload_fields) > 0 and ngz == 0:
             giter = ChunkDataCache(list(giter), preload_fields, self)
         for i, og in enumerate(giter):
             if ngz > 0:

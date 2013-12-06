@@ -643,3 +643,85 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self.set_field_parameter('e0', e0)
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
+
+class YTCutRegionBase(YTSelectionContainer3D):
+    """
+    This is a data object designed to allow individuals to apply logical
+    operations to fields or particles and filter as a result of those cuts.
+
+    Parameters
+    ----------
+    base_object : YTSelectionContainer3D
+        The object to which cuts will be applied.
+    conditionals : list of strings
+        A list of conditionals that will be evaluated.  In the namespace
+        available, these conditionals will have access to 'obj' which is a data
+        object of unknown shape, and they must generate a boolean array.  For
+        instance, conditionals = ["obj['temperature'] < 1e3"]
+
+    Examples
+    --------
+
+    >>> pf = load("DD0010/moving7_0010")
+    >>> sp = pf.h.sphere("max", (1.0, 'mpc'))
+    >>> cr = pf.h.cut_region(sp, ["obj['temperature'] < 1e3"])
+    """
+    _type_name = "cut_region"
+    _con_args = ("base_object", "conditionals")
+    def __init__(self, base_object, conditionals, pf = None,
+                 field_parameters = None):
+        super(YTCutRegionBase, self).__init__(base_object.center, pf, field_parameters)
+        self.conditionals = ensure_list(conditionals)
+        self.base_object = base_object
+        self._selector = None
+        # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
+        # ires and get_data
+
+    @property
+    def selector(self):
+        raise NotImplementedError
+
+    def chunks(self, fields, chunking_style, **kwargs):
+        # We actually want to chunk the sub-chunk, not ourselves.  We have no
+        # chunks to speak of, as we do not data IO.
+        for chunk in self.hierarchy._chunk(self.base_object,
+                                           chunking_style,
+                                           **kwargs):
+            with self.base_object._chunked_read(chunk):
+                self.get_data(fields)
+                yield self
+
+    def get_data(self, fields = None):
+        fields = ensure_list(fields)
+        self.base_object.get_data(fields)
+        ind = self._cond_ind
+        for field in fields:
+            self.field_data[field] = self.base_object[field][ind]
+
+    @property
+    def _cond_ind(self):
+        ind = None
+        obj = self.base_object
+        with obj._field_parameter_state(self.field_parameters):
+            for cond in self.conditionals:
+                res = eval(cond)
+                if ind is None: ind = res
+                np.logical_and(res, ind, ind)
+        return ind
+
+    @property
+    def icoords(self):
+        return self.base_object.icoords[self._cond_ind,:]
+
+    @property
+    def fcoords(self):
+        return self.base_object.fcoords[self._cond_ind,:]
+
+    @property
+    def ires(self):
+        return self.base_object.ires[self._cond_ind]
+
+    @property
+    def fwidth(self):
+        return self.base_object.fwidth[self._cond_ind,:]
+

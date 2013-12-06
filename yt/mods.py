@@ -62,8 +62,7 @@ from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray, \
-    particle_filter
+    ImageArray, particle_filter
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -131,6 +130,9 @@ from yt.frontends.stream.api import \
 #    get_available_modules, amods
 #available_analysis_modules = get_available_modules()
 
+#from yt.frontends.fits.api import \
+#    FITSStaticOutput, FITSFieldInfo, add_fits_field
+
 # Import our analysis modules
 from yt.analysis_modules.halo_finding.api import \
     HaloFinder
@@ -143,7 +145,7 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry, write_bitmap, write_image, \
-    apply_colormap, scale_image, write_projection, write_fits, \
+    apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps

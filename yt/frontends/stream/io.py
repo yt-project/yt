@@ -164,8 +164,8 @@ class StreamParticleIOHandler(BaseIOHandler):
         # self.fields[g.id][fname] is the pattern here
         pos = np.column_stack(self.fields[data_file.filename]["io",
                               "particle_position_%s" % ax] for ax in 'xyz')
-        if np.any(pos.min(axis=0) <= data_file.pf.domain_left_edge) or \
-           np.any(pos.max(axis=0) >= data_file.pf.domain_right_edge):
+        if np.any(pos.min(axis=0) < data_file.pf.domain_left_edge) or \
+           np.any(pos.max(axis=0) > data_file.pf.domain_right_edge):
             raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
                                    data_file.pf.domain_left_edge,
                                    data_file.pf.domain_right_edge)

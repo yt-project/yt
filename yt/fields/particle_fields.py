@@ -464,3 +464,23 @@ def standard_particle_fields(registry, ptype,
             function=_get_cic_field(svel % ax, "cm/s"),
             units = "cm/s", take_log=False,
             validators=[ValidateSpatial(0)])
+
+def add_particle_average(registry, ptype, field_name, 
+                         weight = "particle_mass",
+                         density = True):
+    def _pfunc_avg(field, data):
+        pos = data[ptype, "Coordinates"]
+        f = data[ptype, field_name]
+        wf = data[ptype, weight]
+        f *= wf
+        v = data.deposit(pos, [f], method = "sum")
+        w = data.deposit(pos, [wf], method = "sum")
+        v /= w
+        if density: v /= data["cell_volume"]
+        v[np.isnan(v)] = 0.0
+        return v
+    fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
+    registry.add_field(fn, function=_pfunc_avg,
+                       validators = [ValidateSpatial(0)],
+                       particle_type = False)
+    return fn

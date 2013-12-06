@@ -19,11 +19,11 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
+from yt.utilities.fits_image import FITSImageBuffer
 from yt.data_objects.image_array import ImageArray
 from yt.fields.field_info_container import add_field
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
 from yt.utilities.definitions import inv_axis_names
-from yt.visualization.image_writer import write_fits, write_projection
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
@@ -272,32 +272,52 @@ class SZProjection(object):
         self.data["TeSZ"] = ImageArray(Te)
 
     @parallel_root_only
-    def write_fits(self, filename, clobber=True):
+    def write_fits(self, filename, sky_center=None, sky_scale=None, clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
-        optical depth. Distance units are in kpc.
+        optical depth. Distance units are in kpc, unless *sky_center*
+        and *scale* are specified. 
 
         Parameters
         ----------
         filename : string
             The name of the FITS file to be written. 
+        sky_center : tuple of floats, optional
+            The center of the observation in (RA, Dec) in degrees. Only used if
+            converting to sky coordinates.          
+        sky_scale : float, optional
+            Scale between degrees and kpc. Only used if
+            converting to sky coordinates.
         clobber : boolean, optional
             If the file already exists, do we overwrite?
 
         Examples
         --------
+        >>> # This example just writes out a FITS file with kpc coords
         >>> szprj.write_fits("SZbullet.fits", clobber=False)
+        >>> # This example uses sky coords
+        >>> sky_scale = 1./3600. # One arcsec per kpc
+        >>> sky_center = (30., 45.) # In degrees
+        >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        coords = {}
-        coords["dx"] = self.dx*self.pf.units["kpc"]
-        coords["dy"] = self.dy*self.pf.units["kpc"]
-        coords["xctr"] = 0.0
-        coords["yctr"] = 0.0
-        coords["units"] = "kpc"
-        other_keys = {"Time" : self.pf.current_time}
-        write_fits(self.data, filename, clobber=clobber, coords=coords,
-                   other_keys=other_keys)
 
+        deltas = np.array([self.dx*self.pf.units["kpc"],
+                           self.dy*self.pf.units["kpc"]])
+
+        if sky_center is None:
+            center = [0.0]*2
+            units = "kpc"
+        else:
+            center = sky_center
+            units = "deg"
+            deltas *= sky_scale
+            
+        fib = FITSImageBuffer(self.data, fields=self.data.keys(),
+                              center=center, units=units,
+                              scale=deltas)
+        fib.update_all_headers("Time", self.pf.current_time)
+        fib.writeto(filename, clobber=clobber)
+        
     @parallel_root_only
     def write_png(self, filename_prefix, cmap_name="algae",
                   log_fields=None):

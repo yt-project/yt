@@ -142,7 +142,7 @@ add_field("Temperature", function=_temperature, take_log=False,
           units="K")
 
 def _convertBfield(data):
-        return np.sqrt(4*np.pi*data.convert("Density")*data.convert("x-velocity")**2)
+    return np.sqrt(4*np.pi*data.convert("Density")*data.convert("x-velocity")**2)
 def _Bx(field, data):
     return data['cell_centered_B_x']
 add_field("Bx", function=_Bx, take_log=False,

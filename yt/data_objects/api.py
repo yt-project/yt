@@ -53,8 +53,5 @@ from derived_quantities import \
 from image_array import \
     ImageArray
 
-from particle_trajectories import \
-    ParticleTrajectoryCollection
-
 from particle_filters import \
     particle_filter

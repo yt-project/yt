@@ -120,7 +120,7 @@ add_cmap("cubehelix", _cubehelix_data)
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0,1,255)
 for k,v in _cm.color_map_luts.iteritems():
-    if k not in yt_colormaps:
+    if k not in yt_colormaps and k not in mcm.cmap_d:
         cdict = { 'red': zip(_vs,v[0],v[0]),
                   'green': zip(_vs,v[1],v[1]),
                   'blue': zip(_vs,v[2],v[2]) }
@@ -140,7 +140,7 @@ def show_colormaps(subset = "all", filename=None):
     Displays the colormaps available to yt.  Note, most functions can use
     both the matplotlib and the native yt colormaps; however, there are 
     some special functions existing within image_writer.py (e.g. write_image()
-    write_fits(), write_bitmap(), etc.), which cannot access the matplotlib
+    write_bitmap(), etc.), which cannot access the matplotlib
     colormaps.
 
     In addition to the colormaps listed, one can access the reverse of each 
