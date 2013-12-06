@@ -810,8 +810,7 @@ class DualEPS(object):
         if label != "":
             self.canvas.text(self.figsize[0]*(loc[0]+0.5*size),
                              self.figsize[1]*(loc[1]+yoff), label,
-                             [color, valign, pyx.text.halign.center,
-                              pyx.text.size.large])
+                             [color, valign, pyx.text.halign.center])
 
 #=============================================================================
 
