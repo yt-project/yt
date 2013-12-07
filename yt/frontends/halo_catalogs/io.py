@@ -119,6 +119,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         return {'halos': data_file.header['num_halos']}
 
     def _identify_fields(self, data_file):
-        fields = [("halos", f) for f in halo_dt.fields]
+        fields = [("halos", f) for f in halo_dt.fields if
+                  "padding" not in f]
         return fields
 
