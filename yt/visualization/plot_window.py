@@ -902,7 +902,7 @@ class ProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string
         The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center',
+    center : two or three-element vector of sequence floats, 'c', 
          'center', 'max' or 'm'. The coordinate of the center of the image. 
          If set to 'c', 'center' or left blank, the plot is centered on the
          middle of the domain. If set to 'max' or 'm', the center will be at 
