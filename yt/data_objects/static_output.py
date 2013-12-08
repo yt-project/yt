@@ -26,7 +26,8 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.utilities.units import Unit, UnitRegistry, dimensionless
+from yt.utilities.units import \
+     Unit, UnitRegistry, dimensionless, length
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
@@ -411,9 +412,13 @@ class StaticOutput(object):
         if hasattr(self, "cosmological_simulation") \
            and getattr(self, "cosmological_simulation"):
             # this dataset is cosmological, so add cosmological units.
-            self.unit_registry.add("h", self.hubble_constant, dimensionless)
-            # Comoving lengths: pc, AU, m... anything else?
-            #self.unit_registry.add("pccm", ...)
+            self.unit_registry.modify("h", self.hubble_constant)
+            # Comoving lengths
+            for my_unit in ["m", "pc", "AU", "au"]:
+                new_unit = "%scm" % my_unit
+                self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
+                                       (1 + self.current_redshift),
+                                       length, "\\rm{%s comoving}" % my_unit)
 
     def get_unit_from_registry(self, unit_str):
         """
