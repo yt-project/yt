@@ -105,7 +105,7 @@ default_unit_symbol_lut = {
     "Hz": (1.0, rate),
 
     # dimensionless stuff
-    "h": (1.0, dimensionless),
+    "h": (1.0, dimensionless), # needs to be added for rho_crit_now
 
     # times
     "min": (60.0, time),
@@ -206,6 +206,12 @@ class UnitRegistry:
                                  % type(cgs_value))
 
         _validate_dimensions(dimensions)
+
+        # Add to symbol lut
+        if tex_repr is None:
+            latex_symbol_lut[symbol] = "\\rm{" + symbol + "}"
+        else:
+            latex_symbol_lut[symbol] = tex_repr
 
         # Add to lut
         if tex_repr is None: tex_repr = symbol
@@ -648,7 +654,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
     """
     if symbol_str in unit_symbol_lut:
         # lookup successful, return the tuple directly
-        return unit_symbol_lut[symbol_str]
+        return unit_symbol_lut[symbol_str][0:2]
 
     # could still be a known symbol with a prefix
     possible_prefix = symbol_str[0]
