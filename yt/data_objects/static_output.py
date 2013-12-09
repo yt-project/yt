@@ -418,7 +418,7 @@ class StaticOutput(object):
                 new_unit = "%scm" % my_unit
                 self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
                                        (1 + self.current_redshift),
-                                       length, "\\rm{%s comoving}" % my_unit)
+                                       length, "\\rm{%s (1+z)^{-1}}" % my_unit)
 
     def get_unit_from_registry(self, unit_str):
         """
