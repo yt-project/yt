@@ -202,7 +202,7 @@ class UnitRegistry:
     def __getitem__(self, key):
         return self.lut[key]
 
-    def add(self, symbol, cgs_value, dimensions, tex_repr = None):
+    def add(self, symbol, cgs_value, dimensions, tex_repr=None):
         """
         Add a symbol to this registry.
 
@@ -222,7 +222,7 @@ class UnitRegistry:
 
         # Add to lut
         if tex_repr is None: tex_repr = symbol
-        self.lut.update( {symbol: (cgs_value, dimensions, tex_repr)} )
+        self.lut.update( {symbol: (cgs_value, dimensions)} )
 
     def remove(self, symbol):
         """
@@ -639,7 +639,6 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
             unit_data = _get_unit_data_from_expr(expr, unit_symbol_lut)
             cgs_value *= unit_data[0]
             dimensions *= unit_data[1]
-
         return (float(cgs_value), dimensions)
 
     raise UnitParseError("Cannot parse for unit data from '%s'. Please supply" \
@@ -661,7 +660,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
     """
     if symbol_str in unit_symbol_lut:
         # lookup successful, return the tuple directly
-        return unit_symbol_lut[symbol_str][0:2]
+        return unit_symbol_lut[symbol_str]
 
     # could still be a known symbol with a prefix
     possible_prefix = symbol_str[0]
