@@ -218,6 +218,8 @@ class YTArray(np.ndarray):
     __array_priority__ = 2.0
 
     def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
+        if input_array == NotImplemented:
+            return input_array
         if isinstance(input_array, YTArray):
             if input_units is None:
                 pass
