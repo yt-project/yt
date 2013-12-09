@@ -639,6 +639,7 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
             unit_data = _get_unit_data_from_expr(expr, unit_symbol_lut)
             cgs_value *= unit_data[0]
             dimensions *= unit_data[1]
+
         return (float(cgs_value), dimensions)
 
     raise UnitParseError("Cannot parse for unit data from '%s'. Please supply" \
