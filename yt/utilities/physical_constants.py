@@ -8,13 +8,14 @@
 # http://physics.nist.gov/cuu/Constants/index.html
 
 # Elementary masses
-mass_electron_grams = 9.109382e-28
+mass_electron_grams = 9.10938291e-28
 amu_grams         = 1.660538921e-24
 
-# Solar values
+# Solar values (see Mamajek 2012)
+# https://sites.google.com/site/mamajeksstarnotes/bc-scale
 mass_sun_grams = 1.98841586e33
 temp_sun_kelvin = 5870.0
-luminosity_sun_ergs_per_sec = 3.839e33
+luminosity_sun_ergs_per_sec = 3.8270e33
 metallicity_sun = 0.02041
 
 # Conversion Factors:  X au * mpc_per_au = Y mpc
