@@ -23,6 +23,7 @@ from libc.math cimport sqrt
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
+from ContourFinding cimport ContourID, contour_create, contour_find
 
 cdef int Neighbor_compare(void *on1, void *on2) nogil:
     cdef NeighborList *n1, *n2
@@ -185,7 +186,7 @@ cdef class ParticleSmoothOperation:
             free(neighbors)
             self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
-                         pinds, pcounts, offset)
+                         pinds, pcounts, offset, doff[i])
         if nind != NULL:
             free(nind)
         
@@ -282,7 +283,7 @@ cdef class ParticleSmoothOperation:
                                np.float64_t **fields, np.int64_t nneighbors,
                                np.int64_t *nind, np.int64_t *doffs,
                                np.int64_t *pinds, np.int64_t *pcounts,
-                               np.int64_t offset):
+                               np.int64_t offset, np.int64_t doff):
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
@@ -353,3 +354,70 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
         return
 
 simple_neighbor_smooth = SimpleNeighborSmooth
+
+cdef class FOFCreator(ParticleSmoothOperation):
+    cdef ContourID **container
+    cdef np.int64_t *contour_ids
+    cdef object ocontour_ids
+    def initialize(self):
+        cdef np.int64_t i
+        self.container = <ContourID**> malloc(
+            sizeof(ContourID*)*self.nvals)
+        for i in range(self.nvals):
+            self.container[i] = NULL
+        cdef np.ndarray[np.int64_t, ndim=1] arr
+        self.ocontour_ids = arr = -1*np.ones(self.nvals, "int64")
+        self.contour_ids = <np.int64_t*> arr.data
+
+    def finalize(self):
+        cdef np.int64_t i
+        cdef ContourID *c1
+        for i in range(self.nvals):
+            c1 = self.container[i]
+            if c1 == NULL:
+                continue
+            c1 = contour_find(c1)
+            self.contour_ids[i] = c1.contour_id
+        for i in range(self.nvals):
+            c1 = self.container[i]
+            if c1 == NULL:
+                continue
+            free(self.container[i])
+        free(self.container)
+        return self.ocontour_ids
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields):
+        # Our only field is ID.
+        cdef int n, fi
+        cdef np.int64_t pn, pid
+        cdef ContourID *c1
+        cdef np.int64_t *icast = <np.int64_t*> fields[0]
+        for n in range(self.curn):
+            pn = self.neighbors[n].pn
+            pid = icast[pn]
+            c1 = contour_create(pn)
+
+    cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
+                               np.float64_t dds[3], np.float64_t *ppos,
+                               np.float64_t **fields, np.int64_t nneighbors,
+                               np.int64_t *nind, np.int64_t *doffs,
+                               np.int64_t *pinds, np.int64_t *pcounts,
+                               np.int64_t offset, np.int64_t doff):
+        cdef int i, j, k
+        cdef np.int64_t pid # The particle we're looking at.
+        # Note the poff is the "domain offset", so it tells us the first index
+        # of the particles in the oct we're examining.
+        cdef np.float64_t cpos[3]
+        for i in range(pcounts[doff]):
+            pid = pinds[doff + i]
+            for j in range(3):
+                cpos[j] = ppos[pid*3 + j]
+            # Now we have cpos
+            self.neighbor_find(nneighbors, nind, doffs, pcounts,
+                pinds, ppos, cpos)
+            #...and now we've found the neighbors of the particle.
+            self.process(offset, -1, -1, -1, dim, cpos, fields)
