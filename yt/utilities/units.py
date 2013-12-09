@@ -16,6 +16,12 @@ from sympy import Expr, Mul, Number, Pow, Rational, Symbol
 from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
+from yt.utilities.physical_constants import \
+    cm_per_pc, cm_per_ly, cm_per_au, rsun_per_cm, \
+    mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
+    sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
+    metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
+    hubble_constant_hertz
 import string
 
 # Define a sympy one object.
@@ -108,35 +114,36 @@ default_unit_symbol_lut = {
     "h": (1.0, dimensionless), # needs to be added for rho_crit_now
 
     # times
-    "min": (60.0, time),
-    "hr":  (3600.0, time),
-    "day": (86400.0, time),
-    "yr":  (31536000.0, time),
+    "min": (sec_per_min, time),
+    "hr":  (sec_per_hr, time),
+    "day": (sec_per_day, time),
+    "yr":  (sec_per_year, time),
 
     # Solar units
-    "Msun": (1.98892e33, mass),
-    "msun": (1.98892e33, mass),
-    "Rsun": (6.96e10, length),
-    "rsun": (6.96e10, length),
-    "Lsun": (3.9e33, power),
-    "Tsun": (5870.0, temperature),
-    "Zsun": (0.02041, metallicity),
+    "Msun": (mass_sun_grams, mass),
+    "msun": (mass_sun_grams, mass),
+    "Rsun": (rsun_per_cm, length),
+    "rsun": (rsun_per_cm, length),
+    "Lsun": (luminosity_sun_ergs_per_sec, power),
+    "Tsun": (temp_sun_kelvin, temperature),
+    "Zsun": (metallicity_sun, metallicity),
 
     # astro distances
-    "AU": (1.49598e13, length),
-    "au": (1.49598e13, length),
-    "ly": (9.46053e17, length),
-    "pc": (3.08568e18, length),
+    "AU": (cm_per_au, length),
+    "au": (cm_per_au, length),
+    "ly": (cm_per_ly, length),
+    "pc": (cm_per_pc, length),
 
     # electric stuff
     "gauss": (1.0, magnetic_field),
 
     # other astro
-    "H_0": (2.3e-18, rate),  # check cf
+    "H_0": (hubble_constant_hertz, rate),  # check cf
 
     # misc
-    "eV": (1.6021766e-12, energy),
-    "amu": (1.6605402e-24, mass),
+    "eV": (erg_per_eV, energy),
+    "amu": (amu_grams, mass),
+    "me": (mass_electron_grams, mass),
 
 }
 
