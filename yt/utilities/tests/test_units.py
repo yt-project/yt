@@ -15,7 +15,7 @@ Test symbolic unit handling.
 #-----------------------------------------------------------------------------
 
 import nose
-from numpy.testing import assert_approx_equal
+from numpy.testing import assert_approx_equal, assert_allclose
 from sympy import Symbol
 
 # base dimensions
@@ -26,7 +26,10 @@ from yt.utilities.units import get_conversion_factor
 from yt.utilities.units import Unit, UnitParseError
 # objects
 from yt.utilities.units import default_unit_symbol_lut, unit_prefixes
-
+# unit definitions
+from yt.utilities.physical_constants import \
+    cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
+    mass_sun_grams
 
 def test_no_conflicting_symbols():
     """
@@ -96,8 +99,8 @@ def test_create_from_expr():
     Create units from sympy Exprs and check attributes.
 
     """
-    pc_cgs = 3.08568e18
-    yr_cgs = 31536000
+    pc_cgs = cm_per_pc
+    yr_cgs = sec_per_year
 
     # Symbol expr
     s1 = Symbol("pc", positive=True)
@@ -117,10 +120,10 @@ def test_create_from_expr():
     assert u3.expr == s3
     assert u4.expr == s4
 
-    assert u1.cgs_value == pc_cgs
-    assert u2.cgs_value == yr_cgs
-    assert u3.cgs_value == pc_cgs * yr_cgs
-    assert u4.cgs_value == pc_cgs**2 / yr_cgs
+    assert_allclose(u1.cgs_value, pc_cgs, 1e-12)
+    assert_allclose(u2.cgs_value, yr_cgs, 1e-12)
+    assert_allclose(u3.cgs_value, pc_cgs * yr_cgs, 1e-12)
+    assert_allclose(u4.cgs_value, pc_cgs**2 / yr_cgs, 1e-12)
 
     assert u1.dimensions == length
     assert u2.dimensions == time
@@ -137,17 +140,13 @@ def test_create_with_duplicate_dimensions():
 
     u1 = Unit("erg * s**-1")
     u2 = Unit("km/s/Mpc")
-    km_cgs = 1e5
-    Mpc_cgs = 3.08568e24
-
-    print u2.expr
-    print u2.dimensions
-    print u2.cgs_value
+    km_cgs = cm_per_km
+    Mpc_cgs = cm_per_mpc
 
     assert u1.cgs_value == 1
     assert u1.dimensions == power
 
-    assert u2.cgs_value == km_cgs / Mpc_cgs
+    assert_allclose(u2.cgs_value, km_cgs / Mpc_cgs, 1e-12)
     assert u2.dimensions == rate
 
 
@@ -258,8 +257,8 @@ def test_multiplication():
     Multiply two units.
 
     """
-    msun_cgs = 1.98892e33
-    pc_cgs = 3.08568e18
+    msun_cgs = mass_sun_grams
+    pc_cgs = cm_per_pc
 
     # Create symbols
     msun_sym = Symbol("Msun", positive=True)
@@ -274,7 +273,7 @@ def test_multiplication():
     u3 = u1 * u2
 
     assert u3.expr == msun_sym * pc_sym
-    assert u3.cgs_value == msun_cgs * pc_cgs
+    assert_allclose(u3.cgs_value, msun_cgs * pc_cgs, 1e-12)
     assert u3.dimensions == mass * length
 
     # Pow and Mul operations
@@ -284,7 +283,7 @@ def test_multiplication():
     u6 = u4 * u5
 
     assert u6.expr == pc_sym**2 * msun_sym * s_sym
-    assert u6.cgs_value == pc_cgs**2 * msun_cgs
+    assert_allclose(u6.cgs_value, pc_cgs**2 * msun_cgs, 1e-12)
     assert u6.dimensions == length**2 * mass * time
 
 
@@ -293,8 +292,8 @@ def test_division():
     Divide two units.
 
     """
-    pc_cgs = 3.08568e18
-    km_cgs = 1e5
+    pc_cgs = cm_per_pc
+    km_cgs = cm_per_km
 
     # Create symbols
     pc_sym = Symbol("pc", positive=True)
@@ -308,7 +307,7 @@ def test_division():
     u3 = u1 / u2
 
     assert u3.expr == pc_sym / (km_sym * s_sym)
-    assert u3.cgs_value == pc_cgs / km_cgs
+    assert_allclose(u3.cgs_value, pc_cgs / km_cgs, 1e-12)
     assert u3.dimensions == 1 / time
 
 
@@ -319,7 +318,7 @@ def test_power():
     """
     from sympy import nsimplify
 
-    pc_cgs = 3.08568e18
+    pc_cgs = cm_per_pc
     mK_cgs = 1e-3
     u1_dims = mass * length**2 * time**-3 * temperature**4
     u1 = Unit("g * pc**2 * s**-3 * mK**4")
@@ -327,12 +326,12 @@ def test_power():
     u2 = u1**2
 
     assert u2.dimensions == u1_dims**2
-    assert u2.cgs_value == (pc_cgs**2 * mK_cgs**4)**2
+    assert_allclose(u2.cgs_value, (pc_cgs**2 * mK_cgs**4)**2, 1e-12)
 
     u3 = u1**(-1.0/3)
 
     assert u3.dimensions == nsimplify(u1_dims**(-1.0/3))
-    assert u3.cgs_value == (pc_cgs**2 * mK_cgs**4)**(-1.0/3)
+    assert_allclose(u3.cgs_value, (pc_cgs**2 * mK_cgs**4)**(-1.0/3), 1e-12)
 
 
 def test_equality():
@@ -354,8 +353,8 @@ def test_cgs_equivalent():
     Check cgs equivalent of a unit.
 
     """
-    Msun_cgs = 1.98892e33
-    Mpc_cgs = 3.08568e24
+    Msun_cgs = mass_sun_grams
+    Mpc_cgs = cm_per_mpc
 
     u1 = Unit("Msun * Mpc**-3")
     u2 = Unit("g * cm**-3")
@@ -364,7 +363,7 @@ def test_cgs_equivalent():
     assert u2.expr == u3.expr
     assert u2 == u3
 
-    assert_approx_equal( u1.cgs_value, Msun_cgs / Mpc_cgs**3, significant=16)
+    assert_allclose(u1.cgs_value, Msun_cgs / Mpc_cgs**3, 1e-12)
     assert u2.cgs_value == 1
     assert u3.cgs_value == 1
 
@@ -374,5 +373,4 @@ def test_cgs_equivalent():
     assert u2.dimensions == mass_density
     assert u3.dimensions == mass_density
 
-    assert_approx_equal( get_conversion_factor(u1, u3), Msun_cgs / Mpc_cgs**3,
-                         significant=16 )
+    assert_allclose(get_conversion_factor(u1, u3), Msun_cgs / Mpc_cgs**3, 1e-12)
