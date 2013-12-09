@@ -407,8 +407,6 @@ class StaticOutput(object):
         Creates the unit registry for this dataset.
 
         """
-        self.set_code_units()
-
         if hasattr(self, "cosmological_simulation") \
            and getattr(self, "cosmological_simulation"):
             # this dataset is cosmological, so add cosmological units.
@@ -419,6 +417,9 @@ class StaticOutput(object):
                 self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
                                        (1 + self.current_redshift),
                                        length, "\\rm{%s comoving}" % my_unit)
+
+        self.set_code_units()
+
 
     def get_unit_from_registry(self, unit_str):
         """

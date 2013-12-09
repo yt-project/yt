@@ -38,6 +38,8 @@ from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.physical_constants import \
+    rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
@@ -841,25 +843,30 @@ class EnzoStaticOutput(StaticOutput):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
-            length_unit = k['uxyz']
-            mass_unit = k['urho'] * length_unit**3
-            time_unit = k['utim']
-        elif "LengthUnits" in self.parameters:
-            length_unit = self.parameters["LengthUnits"]
-            mass_unit = self.parameters["MassUnits"]
-            time_unit = self.parameters["TimeUnits"]
+            self.length_unit = \
+                self.quan(self.parameters["CosmologyComovingBoxSize"], "Mpccm/h")
+            self.mass_unit = \
+                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
+            self.time_unit = self.quan(k['utim'], 's')
         else:
-            mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-            mylog.warning("Setting 1.0 in code units to be 1.0 s")
-            mylog.warning("Setting 1.0 in code units to be 1.0 g")
-            length_unit = mass_unit = time_unit = 1.0
+            if "LengthUnits" in self.parameters:
+                length_unit = self.parameters["LengthUnits"]
+                mass_unit = self.parameters["MassUnits"]
+                time_unit = self.parameters["TimeUnits"]
+            else:
+                mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+                mylog.warning("Setting 1.0 in code units to be 1.0 s")
+                mylog.warning("Setting 1.0 in code units to be 1.0 g")
+                length_unit = mass_unit = time_unit = 1.0
 
-        magnetic_unit = np.sqrt(4*np.pi * mass_unit /
-                                (time_unit**2 * length_unit))
-        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.length_unit = self.quan(length_unit, "cm")
-        self.mass_unit = self.quan(mass_unit, "g")
-        self.time_unit = self.quan(time_unit, "s")
+            self.length_unit = self.quan(length_unit, "cm")
+            self.mass_unit = self.quan(mass_unit, "g")
+            self.time_unit = self.quan(time_unit, "s")
+
+        magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                        (self.time_unit**2 * self.length_unit))
+        import pdb; pdb.set_trace()
+        self.magnetic_unit = self.quan(np.float64(magnetic_unit.in_cgs()), "gauss")
 
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         self.unit_registry.modify("code_length", self.length_unit)
@@ -876,10 +883,10 @@ class EnzoStaticOutput(StaticOutput):
         k["utim"] = 2.52e17/np.sqrt(self.omega_matter)\
                        / self.hubble_constant \
                        / (1+self.parameters["CosmologyInitialRedshift"])**1.5
-        k["urho"] = 1.88e-29 * self.omega_matter \
+        k["urho"] = rho_crit_g_cm3_h2 * self.omega_matter \
                         * self.hubble_constant**2 \
                         * (1.0 + self.current_redshift)**3
-        k["uxyz"] = 3.086e24 * \
+        k["uxyz"] = cm_per_mpc * \
                self.parameters["CosmologyComovingBoxSize"] / \
                self.hubble_constant / \
                (1.0 + self.current_redshift)
