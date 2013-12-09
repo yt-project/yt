@@ -864,9 +864,9 @@ class EnzoStaticOutput(StaticOutput):
             self.time_unit = self.quan(time_unit, "s")
 
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                        (self.time_unit**2 * self.length_unit))
-        import pdb; pdb.set_trace()
-        self.magnetic_unit = self.quan(np.float64(magnetic_unit.in_cgs()), "gauss")
+                                (self.time_unit**2 * self.length_unit))
+        magnetic_unit = np.float64(magnetic_unit.in_cgs()
+        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
 
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         self.unit_registry.modify("code_length", self.length_unit)
