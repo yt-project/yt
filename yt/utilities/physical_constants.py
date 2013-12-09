@@ -106,11 +106,7 @@ gravitational_constant_cgs  = YTQuantity(6.67384e-8, 'cm**3/g/s**2')
 planck_constant_cgs   = YTQuantity(6.62606957e-27, 'erg*s')
 stefan_boltzmann_constant_cgs = YTQuantity(5.670373e-5, 'erg/cm**2/s**1/K**4')
 Tcmb = YTQuantity(2.726, 'K') # Current CMB temperature
-# The following value was calcualted assuming H = 100 km/s/Mpc.
-# To get the correct value for your cosmological parameters, 
-# you'll need to multiply through by h^2
-# [where h = H / (100 km/s/Mpc)].  See the Overdensity field in
-rho_crit_now = YTQuantity(rho_crit_g_cm3_h2, 'g/cm**3/h**2') # (cosmology critical density)
+rho_crit_now = YTQuantity(rho_crit_g_cm3_h2, 'g/cm**3/h**2') # (Cosmological critical density)
 
 mass_sun_cgs = YTQuantity(mass_sun_grams, 'g')
 
