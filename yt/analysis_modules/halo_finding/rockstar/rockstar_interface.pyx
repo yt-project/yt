@@ -301,7 +301,7 @@ cdef class RockstarInterface:
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
         BOX_SIZE = (tpf.domain_right_edge[0] -
-                    tpf.domain_left_edge[0]) * tpf.length_unit.in_units('Mpccm/h')
+                    tpf.domain_left_edge[0]).in_units("Mpccm/h")
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles
