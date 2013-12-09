@@ -23,7 +23,9 @@ from libc.math cimport sqrt
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
-from ContourFinding cimport ContourID, contour_create, contour_find
+from yt.utilities.lib.ContourFinding cimport \
+    ContourID, contour_create, contour_find, \
+    contour_union
 
 cdef int Neighbor_compare(void *on1, void *on2) nogil:
     cdef NeighborList *n1, *n2
@@ -393,13 +395,23 @@ cdef class FOFCreator(ParticleSmoothOperation):
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields):
         # Our only field is ID.
         cdef int n, fi
-        cdef np.int64_t pn, pid
+        cdef np.int64_t pn, pid, pn2, pid2
         cdef ContourID *c1
         cdef np.int64_t *icast = <np.int64_t*> fields[0]
-        for n in range(self.curn):
-            pn = self.neighbors[n].pn
-            pid = icast[pn]
-            c1 = contour_create(pn)
+        # First we create, then we look at all the neighbors
+        pn = self.neighbors[0].pn
+        assert(offset == pn) # Not the same as the ID
+        pid = icast[pn]
+        c1 = contour_create(pid)
+        self.container[pn] = c1
+        for n in range(1, self.curn):
+            pn2 = self.neighbors[n].pn
+            pid2 = icast[pn]
+            c2 = self.container[pn2]
+            if c2 == NULL: continue
+            c2 = contour_find(c2)
+            contour_union(c1, c2)
+            c1 = contour_find(c1)
 
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
@@ -420,4 +432,6 @@ cdef class FOFCreator(ParticleSmoothOperation):
             self.neighbor_find(nneighbors, nind, doffs, pcounts,
                 pinds, ppos, cpos)
             #...and now we've found the neighbors of the particle.
-            self.process(offset, -1, -1, -1, dim, cpos, fields)
+            self.process(pid, -1, -1, -1, dim, cpos, fields)
+
+fof_smooth = FOFCreator
