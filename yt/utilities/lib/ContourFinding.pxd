@@ -16,11 +16,6 @@ Contour finding exports
 
 cimport numpy as np
 cimport cython
-from yt.geometry.selection_routines cimport SelectorObject
-from oct_container cimport \
-    OctreeContainer, OctInfo
-from oct_visitors cimport \
-    Oct
 
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0

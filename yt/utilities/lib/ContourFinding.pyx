@@ -17,12 +17,17 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, realloc
-
-from amr_kdtools cimport _find_node, Node
-from grid_traversal cimport VolumeContainer, PartitionedGrid, \
+from yt.geometry.selection_routines cimport \
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector
+from yt.utilities.lib.fp_utils cimport imax
+from yt.geometry.oct_container cimport \
+    OctreeContainer, OctInfo
+from yt.geometry.oct_visitors cimport \
+    Oct
+from yt.geometry.particle_smooth cimport r2dist
+from .amr_kdtools cimport _find_node, Node
+from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
     vc_index, vc_pos_index
-
-from particle_smooth cimport r2dist
 
 cdef ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):

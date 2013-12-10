@@ -14,18 +14,11 @@ Oct container
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from libc.stdlib cimport malloc, free, qsort, realloc
-from libc.math cimport floor
+cimport cython
 cimport numpy as np
 import numpy as np
-from oct_container cimport Oct, OctAllocationContainer, \
-    OctreeContainer, ORDER_MAX
-from selection_routines cimport SelectorObject, \
-    OctVisitorData, oct_visitor_function
-import selection_routines
-cimport oct_visitors
-from oct_visitors cimport cind
-cimport cython
+from selection_routines cimport SelectorObject
+cimport selection_routines
 
 ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX
