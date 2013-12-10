@@ -22,7 +22,6 @@ import os.path
 from yt.funcs import *
 from yt.utilities.io_handler import \
     BaseIOHandler
-import yt.utilities.lib.api as au
 from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *

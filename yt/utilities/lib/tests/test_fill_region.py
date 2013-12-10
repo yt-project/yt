@@ -1,5 +1,5 @@
 from yt.testing import *
-from yt.utilities.lib.api import fill_region
+from yt.utilities.lib.misc_utilities import fill_region
 
 NDIM = 32
 

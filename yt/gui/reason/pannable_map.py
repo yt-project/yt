@@ -19,7 +19,7 @@ import sys
 
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.utilities.lib.api import write_png_to_string, get_color_bounds
+from yt.utilities.lib.png_writer import write_png_to_string, get_color_bounds
 
 import yt.extern.bottle as bottle
 

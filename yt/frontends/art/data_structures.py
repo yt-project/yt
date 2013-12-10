@@ -40,9 +40,8 @@ from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
-from yt.utilities.lib.api import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
-import yt.utilities.lib.api as amr_utils
 
 from yt.frontends.art.definitions import *
 from yt.utilities.fortran_utils import *

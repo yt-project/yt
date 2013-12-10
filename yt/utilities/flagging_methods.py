@@ -14,7 +14,7 @@ Utilities for flagging zones for refinement in a dataset
 #-----------------------------------------------------------------------------
 
 import numpy as np # For modern purposes
-from yt.utilities.lib.api import grow_flagging_field
+from yt.utilities.lib.misc_utilities import grow_flagging_field
 
 flagging_method_registry = {}
 

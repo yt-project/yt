@@ -18,7 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 import _colormap_data as cmd
-import yt.utilities.lib.api as au
+import yt.utilities.lib.png_writer as au
 import __builtin__
 
 def scale_image(image, mi=None, ma=None):

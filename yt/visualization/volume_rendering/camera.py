@@ -24,13 +24,15 @@ from copy import deepcopy
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.lib.api import \
+from yt.utilities.lib.grid_traversal import \
     arr_vec2pix_nest, arr_pix2vec_nest, \
-    arr_ang2pix_nest, arr_fisheye_vectors, lines, \
+    arr_ang2pix_nest, arr_fisheye_vectors, \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, InterpolatedProjectionSampler, \
     arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
-    pixelize_healpix, arr_fisheye_vectors, rotate_vectors
+    pixelize_healpix, arr_fisheye_vectors
+from yt.utilities.lib.misc_utilities import \
+    lines, rotate_vectors
 
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation

@@ -19,9 +19,6 @@ import numpy as np
 from exceptions import ValueError, SyntaxError
 
 from yt.funcs import *
-from yt.utilities.lib.api import \
-    VoxelTraversal, planar_points_in_volume, find_grids_in_inclined_box, \
-    grid_points_in_volume
 from yt.utilities.lib.alt_ray_tracers import clyindrical_ray_trace
 from yt.utilities.orientation import Orientation
 from .data_containers import \
