@@ -25,9 +25,6 @@ from .io import \
       IOHandlerGadgetBinary
 
 from .fields import \
-      add_owls_field, \
       OWLSFieldInfo, \
-      add_gadget_field, \
       GadgetFieldInfo, \
-      add_tipsy_field, \
       TipsyFieldInfo

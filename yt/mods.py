@@ -123,11 +123,11 @@ from yt.frontends.stream.api import \
     StreamHandler, load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree
 
-#from yt.frontends.sph.api import \
-#    OWLSStaticOutput, OWLSFieldInfo, add_owls_field, \
-#    GadgetStaticOutput, GadgetHDF5StaticOutput, \
-#    GadgetFieldInfo, add_gadget_field, \
-#    TipsyStaticOutput, TipsyFieldInfo, add_tipsy_field
+from yt.frontends.sph.api import \
+    OWLSStaticOutput, OWLSFieldInfo, \
+    GadgetStaticOutput, GadgetHDF5StaticOutput, \
+    GadgetFieldInfo, \
+    TipsyStaticOutput, TipsyFieldInfo
 
 #from yt.analysis_modules.list_modules import \
 #    get_available_modules, amods
