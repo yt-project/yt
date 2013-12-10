@@ -17,8 +17,6 @@ Contour finding exports
 cimport numpy as np
 cimport cython
 
-from fp_utils cimport i64max, i64min
-
 cdef extern from "math.h":
     double fabs(double x)
 
