@@ -595,6 +595,8 @@ cdef class ParticleContourTree(ContourTree):
         self.linking_length = linking_length
         self.linking_length2 = linking_length * linking_length
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
                                 np.ndarray[np.int64_t, ndim=1] dom_ind,
                                 np.ndarray[np.float64_t, ndim=2] positions,
@@ -639,7 +641,12 @@ cdef class ParticleContourTree(ContourTree):
                 doff[offset] = i
         nsize = 27
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
+        cdef int counter = 0
         for i in range(doff.shape[0]):
+            counter += 1
+            if counter == 10000:
+                counter = 0
+                #print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             # Any particles found for this oct?
             if doff[i] < 0: continue
             offset = pind[doff[i]]
@@ -666,16 +673,17 @@ cdef class ParticleContourTree(ContourTree):
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
             # Now we look at each particle.
-            for j in range(pcount[doff[i]]):
+            for j in range(pcount[i]):
                 poffset = pind[doff[i] + j]
                 # Look at each neighboring oct
                 for k in range(nneighbors):
+                    if nind[k] == -1: continue
                     offset = doff[nind[k]]
-                    self.link_particles(container, pcount[offset], poffset, offset,
-                                        ipind, fpos, ipids)
-        print "Finalizing contours"
+                    if offset < 0: continue
+                    self.link_particles(container, pcount[nind[k]], poffset,
+                                        offset, ipind, fpos, ipids)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
-        contour_ids = -1 * np.ones(positions.shape[0])
+        contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
         # Sort on our particle IDs.
         cdef ContourID *c1
         pind = np.argsort(particle_ids)
@@ -690,6 +698,8 @@ cdef class ParticleContourTree(ContourTree):
         free(container)
         return contour_ids
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container, 
                                    np.int64_t pcount, np.int64_t poffset,
                                    np.int64_t offset, np.int64_t *pind,
@@ -712,7 +722,7 @@ cdef class ParticleContourTree(ContourTree):
         for i in range(pcount):
             pind1 = pind[offset + i]
             for j in range(3):
-                pos1[j] = positions[pind1, j]
+                pos1[j] = positions[pind1*3 + j]
             d = r2dist(pos0, pos1, self.DW, self.periodicity)
             if d > self.linking_length2:
                 continue

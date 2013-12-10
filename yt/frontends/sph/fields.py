@@ -28,6 +28,7 @@ class GadgetHDF5FieldInfo(FieldInfoContainer):
         ("Velocities", ("code_length / code_time", [], None)),
         ("Velocity", ("code_length / code_time", [], None)),
         ("Mass", ("code_mass", [], None)),
+        ("ParticleIDs", ("", ["particle_ids", "particle_identifiers"], None)),
     )
 
 class GadgetFieldInfo(FieldInfoContainer):
