@@ -31,6 +31,7 @@ class FieldDetector(defaultdict):
     NumberOfParticles = 1
     _read_exception = None
     _id_offset = 0
+    domain_id = 0
 
     def __init__(self, nd = 16, pf = None, flat = False):
         self.nd = nd
@@ -181,6 +182,8 @@ class FieldDetector(defaultdict):
             rv = YTArray((0.0, 0.0, 0.0), self.fp_units[param])
             rv['xyz'.index(ax)] = 1.0
             return rv
+        elif param == "fof_groups":
+            return None
         else:
             return 0.0
 

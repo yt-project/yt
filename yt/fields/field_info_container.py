@@ -36,6 +36,7 @@ from yt.utilities.units import \
 from .particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
+    particle_scalar_functions, \
     standard_particle_fields
 
 class FieldInfoContainer(dict): # Resistance has utility
@@ -72,6 +73,11 @@ class FieldInfoContainer(dict): # Resistance has utility
                     ["particle_position_%s" % ax for ax in 'xyz'],
                     ["particle_velocity_%s" % ax for ax in 'xyz'],
                     self)
+        else:
+            particle_scalar_functions(ptype,
+                   self.pf._particle_coordinates_name,
+                   self.pf._particle_velocity_name,
+                   self)
         particle_deposition_functions(ptype, "Coordinates",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
