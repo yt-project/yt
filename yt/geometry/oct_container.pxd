@@ -23,7 +23,6 @@ from libc.stdlib cimport bsearch, qsort
 
 cdef int ORDER_MAX
 
-
 cdef struct OctKey:
     np.int64_t key
     Oct *node

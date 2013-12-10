@@ -68,6 +68,7 @@ def configuration(parent_package='',top_path=None):
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/amr_kdtools.pxd",
+                         "yt/utilities/lib/ContourFinding.pxd",
                          "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],

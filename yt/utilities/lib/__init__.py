@@ -13,8 +13,8 @@ Compatibility module
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from .grid_traversal import *
 from .CICDeposit import *
-from .ContourFinding import *
 from .DepthFirstOctree import *
 from .fortran_reader import *
 from .Interpolators import *
@@ -24,8 +24,8 @@ from .png_writer import *
 from .PointsInVolume import *
 from .QuadTree import *
 from .RayIntegrators import *
-from .grid_traversal import *
 from .marching_cubes import *
 from .GridTree import *
 from .write_array import *
 from .mesh_utilities import *
+from .ContourFinding import *

@@ -23,10 +23,6 @@ from grid_traversal cimport VolumeContainer, PartitionedGrid, \
     vc_index, vc_pos_index
 
 from particle_smooth cimport r2dist
-from yt.geometry.oct_container cimport \
-    Oct, OctAllocationContainer, OctreeContainer, OctInfo, \
-    i64min, i64max
-
 
 cdef ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
@@ -675,11 +671,14 @@ cdef class ParticleContourTree(ContourTree):
         print "Finalizing contours"
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = -1 * np.ones(positions.shape[0])
+        # Sort on our particle IDs.
+        cdef ContourID *c1
+        pind = np.argsort(particle_ids)
         for i in range(positions.shape[0]):
-            c1 = container[i]
+            c1 = container[pind[i]]
             if c1 == NULL: continue
             c1 = contour_find(c1)
-            contour_ids[i] = c1.contour_id
+            contour_ids[pind[i]] = c1.contour_id
         for i in range(positions.shape[0]):
             if container[i] == NULL: continue
             free(container[i])
