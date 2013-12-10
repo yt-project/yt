@@ -608,7 +608,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef Oct *oct = NULL, **neighbors = NULL
         cdef OctInfo oi
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
-        cdef np.int64_t i, j, k, nneighbors, poffset
+        cdef np.int64_t i, j, k, nneighbors, poffset, offset
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
@@ -639,14 +639,14 @@ cdef class ParticleContourTree(ContourTree):
             offset = pdoms[pind[i]]
             if doff[offset] < 0:
                 doff[offset] = i
-        nsize = 27
+        cdef int nsize = 27
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         cdef int counter = 0
         for i in range(doff.shape[0]):
             counter += 1
             if counter == 10000:
                 counter = 0
-                #print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+                print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             # Any particles found for this oct?
             if doff[i] < 0: continue
             offset = pind[doff[i]]
@@ -706,7 +706,7 @@ cdef class ParticleContourTree(ContourTree):
                                    np.float64_t *positions,
                                    np.int64_t *particle_ids):
         # Now we look at each particle and evaluate it
-        cdef np.float64_t pos0[3], pos1[3]
+        cdef np.float64_t pos0[3], pos1[3], d
         cdef np.int64_t pid0, pid1, pind0, pind1
         cdef ContourID *c0, *c1
         cdef int i, j, k
