@@ -21,7 +21,7 @@ except ImportError:
 import time
 import numpy as np
 from yt.funcs import *
-import yt.utilities.lib as amr_utils
+import yt.utilities.lib.api as amr_utils
 from yt.utilities.physical_constants import \
     kpc_per_cm, \
     sec_per_year

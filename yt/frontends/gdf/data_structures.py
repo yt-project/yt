@@ -25,7 +25,7 @@ from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 from yt.data_objects.static_output import \
     StaticOutput
-from yt.utilities.lib import \
+from yt.utilities.lib.api import \
     get_box_grids_level
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion

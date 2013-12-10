@@ -18,7 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 import yt.utilities.data_point_utilities as data_point_utilities
-import yt.utilities.lib as amr_utils
+from yt.utilities.lib.api as amr_utils
 
 def identify_contours(data_source, field, min_val, max_val,
                           cached_fields=None):

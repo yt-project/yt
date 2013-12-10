@@ -1,5 +1,5 @@
 from yt.testing import *
-from yt.utilities.lib import obtain_rvec, obtain_rv_vec
+from yt.utilities.lib.api import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 

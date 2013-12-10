@@ -26,7 +26,7 @@ from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from yt.utilities.lib import \
+from yt.utilities.lib.api import \
     get_box_grids_level
 
 from .fields import AthenaFieldInfo, KnownAthenaFields

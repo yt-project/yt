@@ -26,7 +26,7 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.lib import \
+from yt.utilities.lib.api import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.definitions import  x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \

@@ -24,7 +24,7 @@ from copy import deepcopy
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.lib import \
+from yt.utilities.lib.api import \
     arr_vec2pix_nest, arr_pix2vec_nest, \
     arr_ang2pix_nest, arr_fisheye_vectors, lines, \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \

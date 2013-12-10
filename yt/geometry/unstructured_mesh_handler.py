@@ -19,7 +19,7 @@ import weakref
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
-from yt.utilities.lib import smallest_fwidth
+from yt.utilities.lib.api import smallest_fwidth
 
 class UnstructuredGeometryHandler(GeometryHandler):
     _global_mesh = False

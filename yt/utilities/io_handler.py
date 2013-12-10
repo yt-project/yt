@@ -15,7 +15,7 @@ The data-file handling functions
 
 from collections import defaultdict
 
-import yt.utilities.lib as au
+import yt.utilities.lib.api as au
 from yt.funcs import mylog
 import exceptions
 import cPickle

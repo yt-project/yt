@@ -31,7 +31,7 @@ from yt.utilities.logger import ytLogger
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
     restore_field_information_state, YTFieldData
-from yt.utilities.lib import \
+from yt.utilities.lib.api import \
     QuadTree, ghost_zone_interpolate, fill_region, \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids,\

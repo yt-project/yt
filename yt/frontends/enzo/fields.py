@@ -25,7 +25,7 @@ from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs
 
-import yt.utilities.lib as amr_utils
+import yt.utilities.lib.api as amr_utils
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"

@@ -37,7 +37,7 @@ from yt.utilities.math_utils import \
 
 from yt.funcs import just_one
 
-from yt.utilities.lib import obtain_rvec, obtain_rv_vec
+from yt.utilities.lib.api import obtain_rvec, obtain_rv_vec
 
 def create_vector_fields(registry, basename, field_units,
                          ftype = "gas", slice_info = None):
