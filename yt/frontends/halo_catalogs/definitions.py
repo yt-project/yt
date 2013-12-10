@@ -48,7 +48,7 @@ halo_dt = np.dtype([
     ('particle_bvelocity_y', np.float32),
     ('particle_bvelocity_z', np.float32),
     ('particle_mass', np.float32),
-    ('particle_radius', np.float32),
+    ('virial_radius', np.float32),
     ('child_r', np.float32),
     ('vmax_r', np.float32),
     ('mgrav', np.float32),
