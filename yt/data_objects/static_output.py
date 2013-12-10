@@ -372,8 +372,9 @@ class StaticOutput(object):
         raise YTFieldNotFound((ftype, fname), self)
 
     def _setup_particle_type(self, ptype):
-        mylog.debug("Don't know what to do with %s", ptype)
-        return []
+        orig = set(self.field_info.items())
+        self.field_info.setup_particle_fields(ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @property
     def particle_fields_by_type(self):
