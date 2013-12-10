@@ -312,7 +312,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             finfo = self.pf._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             units = finfo.units
-            if self.weight_field is None:
+            if self.weight_field is None and str(units) != "":
                 # See _handle_chunk where we mandate cm
                 units = "(%s) * cm" % units
             # Don't forget [non_nan] somewhere here.
