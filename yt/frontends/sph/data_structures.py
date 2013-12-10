@@ -64,7 +64,6 @@ class GadgetBinaryFile(ParticleFile):
             field_list, self.total_particles,
             self._position_offset, self._file_size)
 
-
 class ParticleStaticOutput(StaticOutput):
     _unit_base = None
     over_refine_factor = 1

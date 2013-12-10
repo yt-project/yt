@@ -25,7 +25,9 @@ class GadgetHDF5FieldInfo(FieldInfoContainer):
 
     known_particle_fields = (
         ("Coordinates", ("code_length", [], None)),
-        ("Velocities", ("code_length", [], None)),
+        ("Velocities", ("code_length / code_time", [], None)),
+        ("Velocity", ("code_length / code_time", [], None)),
+        ("Mass", ("code_mass", [], None)),
     )
 
 class GadgetFieldInfo(FieldInfoContainer):
