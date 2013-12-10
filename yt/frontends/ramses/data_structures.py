@@ -472,11 +472,6 @@ class RAMSESStaticOutput(StaticOutput):
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level
 
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        self.field_info.setup_particle_fields(ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not os.path.basename(args[0]).startswith("info_"): return False
