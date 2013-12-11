@@ -185,9 +185,9 @@ cdef class ParticleSmoothOperation:
             for j in range(3):
                 pos[j] = positions[i, j]
             oct = mesh_octree.get(pos, &moi)
-            offset = mdom_ind[oct.domain_ind - moff_p] * nz
+            offset = mdom_ind[oct.domain_ind - moff_m] * nz
+            if visited[oct.domain_ind - moff_m] == 1: continue
             if offset < 0: continue
-            if visited[oct.domain_ind - moff_p] == 1: continue
             # These will be PARTICLE octree neighbors.
             oct = particle_octree.get(pos, &poi)
             neighbors = particle_octree.neighbors(&poi, &nneighbors)
@@ -328,7 +328,7 @@ cdef class ParticleSmoothOperation:
                             if nind[m] < 0: continue
                             nntot += 1
                             ntot += pcounts[nind[m]]
-                        #print "SOMETHING WRONG", self.curn, nneighbors, ntot, nntot
+                        print "SOMETHING WRONG", self.curn, nneighbors, ntot, nntot
                     self.process(offset, i, j, k, dim, cpos, fields,
                                  index_fields)
                     cpos[2] += dds[2]
@@ -434,3 +434,99 @@ cdef class ConservedMassSmooth(ParticleSmoothOperation):
         return
 
 conserved_mass_smooth = ConservedMassSmooth
+
+cdef class MaximumNeighborRadius(ParticleSmoothOperation):
+    cdef public object vals
+    cdef np.float64_t *hsmooth
+    def initialize(self):
+        cdef int i
+        if self.nfields > 0:
+            # We need third fields -- the mass should be the first, then the
+            # smoothing length for particles, and then third is the array into
+            # which we will be placing the total deposited mass.
+            raise RuntimeError
+        self.vals = np.zeros(self.nvals, dtype="float64", order="F")
+        cdef np.ndarray[np.float64_t, ndim=4] arr = self.vals
+        self.hsmooth = <np.float64_t *> arr.data
+
+    def finalize(self):
+        return self.vals
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields):
+        # We have our i, j, k for our cell, as well as the cell position.
+        # We also have a list of neighboring particles with particle numbers.
+        cdef int n, fi
+        cdef np.float64_t r2, hsml2
+        cdef np.int64_t pn
+        hsml2 = 0.0
+        # We get back our mass 
+        # rho_i = sum(j = 1 .. n) m_j * W_ij
+        for n in range(self.curn):
+            # No normalization for the moment.
+            r2 = self.neighbors[n].r2
+            if r2 > hsml2:
+                hsml2 = r2
+        self.hsmooth[gind(i,j,k,dim) + offset] = sqrt(hsml2)
+        return
+
+max_neighbor_radius_smooth = MaximumNeighborRadius
+
+cdef class LocalSmoothingLength(ParticleSmoothOperation):
+    cdef np.float64_t **fp
+    cdef public object vals
+    def initialize(self):
+        cdef int i
+        if self.nfields < 2:
+            # We need four fields -- the mass should be the first, then the
+            # smoothing length for particles, the normalization factor to
+            # ensure mass conservation, then the field we're smoothing.
+            raise RuntimeError
+        cdef np.ndarray tarr
+        self.fp = <np.float64_t **> malloc(
+            sizeof(np.float64_t *) * (self.nfields - 2))
+        self.vals = []
+        for i in range(self.nfields - 2):
+            tarr = np.zeros(self.nvals, dtype="float64", order="F")
+            self.vals.append(tarr)
+            self.fp[i] = <np.float64_t *> tarr.data
+
+    def finalize(self):
+        free(self.fp)
+        return self.vals
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields):
+        # We have our i, j, k for our cell, as well as the cell position.
+        # We also have a list of neighboring particles with particle numbers.
+        cdef int n, fi
+        cdef np.float64_t weight, r2, val, hsml, dens, mass
+        cdef np.int64_t pn
+        # We get back our mass 
+        # rho_i = sum(j = 1 .. n) m_j * W_ij
+        for n in range(self.curn):
+            # No normalization for the moment.
+            # fields[0] is the smoothing length.
+            r2 = self.neighbors[n].r2
+            pn = self.neighbors[n].pn
+            # Smoothing kernel weight function
+            mass = fields[0][pn]
+            hsml = index_fields[0][gind(i,j,k,dim) + offset]
+            # Usually this density has been computed
+            dens = fields[1][pn]
+            weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
+            # Mass of the particle times the value 
+            for fi in range(self.nfields - 2):
+                val = fields[fi + 2][pn]
+                self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
+        return
+
+local_smoothing_smooth = LocalSmoothingLength
