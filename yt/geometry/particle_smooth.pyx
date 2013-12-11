@@ -89,8 +89,7 @@ cdef class ParticleSmoothOperation:
         # This is not terribly efficient -- for starters, the neighbor function
         # is not the most efficient yet.  We will also need to handle some
         # mechanism of an expandable array for holding pointers to Octs, so
-        # that we can deal with >27 neighbors.  As I write this comment,
-        # neighbors() only returns 27 neighbors.
+        # that we can deal with >27 neighbors.  
         if particle_octree is None:
             particle_octree = mesh_octree
             pdom_ind = mdom_ind
@@ -181,6 +180,7 @@ cdef class ParticleSmoothOperation:
         nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         cdef np.ndarray[np.uint8_t, ndim=1] visited
         visited = np.zeros(mdom_ind.shape[0], dtype="uint8")
+        cdef int maxnei = 0
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
@@ -190,7 +190,9 @@ cdef class ParticleSmoothOperation:
             if offset < 0: continue
             # These will be PARTICLE octree neighbors.
             oct = particle_octree.get(pos, &poi)
-            neighbors = particle_octree.neighbors(&poi, &nneighbors)
+            neighbors = particle_octree.neighbors(&poi, &nneighbors, oct)
+            if nneighbors > maxnei:
+                maxnei = nneighbors
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:
@@ -209,6 +211,7 @@ cdef class ParticleSmoothOperation:
             self.neighbor_process(dims, moi.left_edge, moi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset, index_field_pointers)
+        print "MAX NEIGHBORS", maxnei
         if nind != NULL:
             free(nind)
         
@@ -322,7 +325,7 @@ cdef class ParticleSmoothOperation:
                     self.neighbor_find(nneighbors, nind, doffs, pcounts,
                         pinds, ppos, cpos)
                     # Now we have all our neighbors in our neighbor list.
-                    if self.curn < -1*self.maxn:
+                    if self.curn <-1*self.maxn:
                         ntot = nntot = 0
                         for m in range(nneighbors):
                             if nind[m] < 0: continue
@@ -522,7 +525,9 @@ cdef class LocalSmoothingLength(ParticleSmoothOperation):
             hsml = index_fields[0][gind(i,j,k,dim) + offset]
             # Usually this density has been computed
             dens = fields[1][pn]
-            weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
+            #weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
+            weight = sph_kernel(sqrt(r2) / hsml) + sph_kernel(sqrt(r2) / 0.02)
+            weight = mass * 0.5 * weight / dens
             # Mass of the particle times the value 
             for fi in range(self.nfields - 2):
                 val = fields[fi + 2][pn]
