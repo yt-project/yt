@@ -142,6 +142,7 @@ class FITSImageBuffer(HDUList):
                 xctr *= img_data.pf.units[units]
                 yctr *= img_data.pf.units[units]
                 center = [xctr, yctr]
+                w.wcs.cname = ["x","y"] 
             elif isinstance(img_data, YTCoveringGridBase):
                 dx, dy, dz = img_data.dds
                 dx *= img_data.pf.units[units]
@@ -149,6 +150,7 @@ class FITSImageBuffer(HDUList):
                 dz *= img_data.pf.units[units]
                 center = 0.5*(img_data.left_edge+img_data.right_edge)
                 center *= img_data.pf.units[units]
+                w.wcs.cname = ["x","y","z"] 
             elif units == "deg" and self.dimensionality == 2:
                 dx = -scale[0]
                 dy = scale[1]
@@ -156,7 +158,11 @@ class FITSImageBuffer(HDUList):
             else:
                 dx = scale[0]
                 dy = scale[1]
-                if self.dimensionality == 3: dz = scale[2]
+                if self.dimensionality == 3:
+                    dz = scale[2]
+                    w.wcs.cname = ["x","y","z"] 
+                else:
+                    w.wcs.cname = ["x","y"]
             w.wcs.crval = center
             w.wcs.cunit = [units]*self.dimensionality
             w.wcs.ctype = proj_type
@@ -245,6 +251,14 @@ class FITSImageBuffer(HDUList):
         else:
             data_collection.append(image)
 
+    def to_aplpy(self, **kwargs):
+        """
+        Use APLpy (http://aplpy.github.io) for plotting. Returns an `aplpy.FITSFigure`
+        instance. All keyword arguments are passed to the
+        `aplpy.FITSFigure` constructor.
+        """
+        import aplpy
+        return aplpy.FITSFigure(self, **kwargs)
         
 
     
