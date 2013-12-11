@@ -403,6 +403,7 @@ class StaticOutput(object):
         self.unit_registry.lut["code_time"] = (1.0, units.time)
         self.unit_registry.lut["code_magnetic"] = (1.0, units.magnetic_field)
         self.unit_registry.lut["code_temperature"] = (1.0, units.temperature)
+        self.unit_registry.lut["code_velocity"] = (1.0, units.velocity)
 
     def set_units(self):
         """
@@ -445,6 +446,7 @@ class StaticOutput(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
+        self.unit_registry.modify("code_velocity", self.velocity_unit)
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None
