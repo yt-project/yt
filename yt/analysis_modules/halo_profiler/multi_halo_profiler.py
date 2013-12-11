@@ -25,7 +25,7 @@ from yt.utilities.math_utils import periodic_dist
 from yt.convenience import \
     load
 from yt.data_objects.profiles import \
-    BinnedProfile1D, EmptyProfileData
+    BinnedProfile1D, YTEmptyProfileData
 from yt.analysis_modules.halo_finding.api import *
 from .halo_filters import \
     VirialFilter
@@ -588,7 +588,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                                 r_min, halo['r_max'],
                                                 log_space=True, end_collect=True)
-            except EmptyProfileData:
+            except YTEmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
             # Figure out which fields to add simultaneously
