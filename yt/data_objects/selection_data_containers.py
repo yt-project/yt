@@ -563,7 +563,8 @@ class YTSphereBase(YTSelectionContainer3D):
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.pf)
         if radius < self.hierarchy.get_smallest_dx():
-            raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
+            raise YTSphereTooSmall(pf, radius.in_units("code_length"),
+                                   self.hierarchy.get_smallest_dx().in_units("code_length"))
         self.set_field_parameter('radius',radius)
         self.radius = radius
 
