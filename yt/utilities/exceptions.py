@@ -13,6 +13,7 @@ This is a library of yt-defined exceptions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+
 # We don't need to import 'exceptions'
 #import exceptions
 import os.path
@@ -311,3 +312,19 @@ class YTRockstarMultiMassNotSupported(YTException):
         v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
             self.ma)
         return v
+
+class YTEmptyProfileData(Exception):
+    pass
+
+class YTDuplicateFieldInProfile(Exception):
+    def __init__(self, field, new_spec, old_spec):
+        self.field = field
+        self.new_spec = new_spec
+        self.old_spec = old_spec
+
+    def __str__(self):
+        r = """Field %s already exists with field spec:
+               %s
+               But being asked to add it with:
+               %s""" % (self.field, self.old_spec, self.new_spec)
+        return r

@@ -78,7 +78,7 @@ add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
 def _convertDensity(data) :
     return data.convert("Density")
 def _density(field, data) :
-    return data["density"]
+    return data["density"].copy()
 add_field("Density", function=_density, take_log=False,
           units=r"\rm{g}/\rm{cm}^3", projected_units=r"\rm{g}/\rm{cm}^2",
           convert_function=_convertDensity)
@@ -87,21 +87,21 @@ def _convertVelocity(data):
     return data.convert("x-velocity")
 def _xvelocity(field, data):
     if "velocity_x" in data.pf.field_info:
-        return data["velocity_x"]
+        return data["velocity_x"].copy()
     else:
         return data["momentum_x"]/data["density"]           
 add_field("x-velocity", function=_xvelocity, take_log=False,
           units=r"\rm{cm}/\rm{s}", convert_function=_convertVelocity)
 def _yvelocity(field, data):
     if "velocity_y" in data.pf.field_info:
-        return data["velocity_y"]
+        return data["velocity_y"].copy()
     else:
         return data["momentum_y"]/data["density"]
 add_field("y-velocity", function=_yvelocity, take_log=False,
           units=r"\rm{cm}/\rm{s}", convert_function=_convertVelocity)
 def _zvelocity(field, data):
     if "velocity_z" in data.pf.field_info:
-        return data["velocity_z"]
+        return data["velocity_z"].copy()
     else:
         return data["momentum_z"]/data["density"]
 add_field("z-velocity", function=_zvelocity, take_log=False,
@@ -128,7 +128,7 @@ def _convertPressure(data) :
     return data.convert("Density")*data.convert("x-velocity")**2
 def _pressure(field, data) :
     if "pressure" in data.pf.field_info:
-        return data["pressure"]
+        return data["pressure"].copy()
     else:
         eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
                                            data["momentum_y"]**2 +
@@ -154,17 +154,17 @@ add_field("Temperature", function=_temperature, take_log=False,
 def _convertBfield(data):
     return np.sqrt(4*np.pi*data.convert("Density")*data.convert("x-velocity")**2)
 def _Bx(field, data):
-    return data['cell_centered_B_x']
+    return data['cell_centered_B_x'].copy()
 add_field("Bx", function=_Bx, take_log=False,
           units=r"\rm{Gauss}", display_name=r"B_x",
           convert_function=_convertBfield)
 def _By(field, data):
-    return data['cell_centered_B_y']
+    return data['cell_centered_B_y'].copy()
 add_field("By", function=_By, take_log=False,
           units=r"\rm{Gauss}", display_name=r"B_y",
           convert_function=_convertBfield)
 def _Bz(field, data):
-    return data['cell_centered_B_z']
+    return data['cell_centered_B_z'].copy()
 add_field("Bz", function=_Bz, take_log=False,
           units=r"\rm{Gauss}", display_name=r"B_z",
           convert_function=_convertBfield)
