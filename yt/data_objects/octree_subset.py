@@ -29,6 +29,9 @@ from .field_info_container import \
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 from yt.funcs import *
+from yt.utilities.lib.geometry_utils import compute_morton
+from yt.geometry.particle_oct_container import \
+    ParticleOctreeContainer
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
@@ -52,6 +55,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def __init__(self, base_region, domain, pf, over_refine_factor = 1):
         self._num_zones = 1 << (over_refine_factor)
+        self._oref = over_refine_factor
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.domain = domain
@@ -148,22 +152,41 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
-    def smooth(self, positions, fields = None, index_fields = None, method = None):
+    def smooth(self, positions, fields = None, index_fields = None,
+               method = None, create_octree = False):
         # Here we perform our particle deposition.
+        if create_octree:
+            morton = compute_morton(
+                positions[:,0], positions[:,1], positions[:,2],
+                self.pf.domain_left_edge,
+                self.pf.domain_right_edge)
+            morton.sort()
+            particle_octree = ParticleOctreeContainer([1, 1, 1],
+                self.pf.domain_left_edge,
+                self.pf.domain_right_edge,
+                over_refine = self._oref)
+            particle_octree.n_ref = 8 * 64
+            particle_octree.add(morton)
+            particle_octree.finalize()
+            pdom_ind = particle_octree.domain_ind(self.selector)
+        else:
+            particle_octree = self.oct_handler
+            pdom_ind = self.domain_ind
         if fields is None: fields = []
         if index_fields is None: index_fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
-        nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
+        mdom_ind = self.domain_ind
+        nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), 64)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
-        op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
+        op.process_octree(self.oct_handler, mdom_ind, positions, fields,
             self.domain_id, self._domain_offset, self.pf.periodicity,
-            index_fields)
+            index_fields, particle_octree, pdom_ind)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):
@@ -221,6 +244,7 @@ class ParticleOctreeSubset(OctreeSubset):
                  over_refine_factor = 1):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
+        self._oref = over_refine_factor
         self.data_files = data_files
         self.field_data = YTFieldData()
         self.field_parameters = {}

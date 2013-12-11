@@ -57,13 +57,15 @@ cdef class ParticleSmoothOperation:
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def process_octree(self, OctreeContainer octree,
-                     np.ndarray[np.int64_t, ndim=1] dom_ind,
+    def process_octree(self, OctreeContainer mesh_octree,
+                     np.ndarray[np.int64_t, ndim=1] mdom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None, int domain_id = -1,
                      int domain_offset = 0,
                      periodicity = (True, True, True),
-                     index_fields = None):
+                     index_fields = None,
+                     OctreeContainer particle_octree = None,
+                     np.ndarray[np.int64_t, ndim=1] pdom_ind = None):
         # This will be a several-step operation.
         #
         # We first take all of our particles and assign them to Octs.  If they
@@ -89,26 +91,33 @@ cdef class ParticleSmoothOperation:
         # mechanism of an expandable array for holding pointers to Octs, so
         # that we can deal with >27 neighbors.  As I write this comment,
         # neighbors() only returns 27 neighbors.
+        if particle_octree is None:
+            particle_octree = mesh_octree
+            pdom_ind = mdom_ind
         cdef int nf, i, j, dims[3], n
         cdef np.float64_t **field_pointers, *field_vals, pos[3], *ppos, dds[3]
         cdef np.float64_t **octree_field_pointers
         cdef int nsize = 0
         cdef np.int64_t *nind = NULL
-        cdef OctInfo oi
+        cdef OctInfo moi, poi
         cdef Oct *oct, **neighbors = NULL
-        cdef np.int64_t nneighbors, numpart, offset, moff, local_ind
+        cdef np.int64_t nneighbors, numpart, offset, local_ind
+        cdef np.int64_t moff_p, moff_m
         cdef np.int64_t *doffs, *pinds, *pcounts, poff
         cdef np.ndarray[np.int64_t, ndim=1] pind, doff, pdoms, pcount
+        cdef np.ndarray[np.int64_t, ndim=2] doff_m
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         cdef np.ndarray[np.float64_t, ndim=4] iarr
-        dims[0] = dims[1] = dims[2] = (1 << octree.oref)
+        dims[0] = dims[1] = dims[2] = (1 << mesh_octree.oref)
         cdef int nz = dims[0] * dims[1] * dims[2]
         numpart = positions.shape[0]
         # pcount is the number of particles per oct.
-        pcount = np.zeros_like(dom_ind)
+        pcount = np.zeros_like(pdom_ind)
         # doff is the offset to a given oct in the sorted particles.
-        doff = np.zeros_like(dom_ind) - 1
-        moff = octree.get_domain_offset(domain_id + domain_offset)
+        doff = np.zeros_like(pdom_ind) - 1
+        doff_m = np.zeros((mdom_ind.shape[0], 2), dtype="int64")
+        moff_p = particle_octree.get_domain_offset(domain_id + domain_offset)
+        moff_m = mesh_octree.get_domain_offset(domain_id + domain_offset)
         # pdoms points particles at their octs.  So the value in this array, for
         # a given index, is the local oct index.
         pdoms = np.zeros(positions.shape[0], dtype="int64") - 1
@@ -127,20 +136,22 @@ cdef class ParticleSmoothOperation:
             iarr = index_fields[i]
             index_field_pointers[i] = <np.float64_t *> iarr.data
         for i in range(3):
-            self.DW[i] = (octree.DRE[i] - octree.DLE[i])
+            self.DW[i] = (mesh_octree.DRE[i] - mesh_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
-            oct = octree.get(pos)
+            oct = particle_octree.get(pos)
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Note that this has to be our local index, not our in-file index.
             # This is the particle count, which we'll use once we have sorted
             # the particles to calculate the offsets into each oct's particles.
-            offset = oct.domain_ind - moff
+            offset = oct.domain_ind - moff_p
             pcount[offset] += 1
             pdoms[i] = offset # We store the *actual* offset.
+            oct = mesh_octree.get(pos)
+            offset = oct.domain_ind - moff_m
         # Now we have oct assignments.  Let's sort them.
         # Note that what we will be providing to our processing functions will
         # actually be indirectly-sorted fields.  This preserves memory at the
@@ -158,6 +169,8 @@ cdef class ParticleSmoothOperation:
             # If we have yet to assign the starting index to this oct, we do so
             # now.
             if doff[offset] < 0: doff[offset] = i
+        #print domain_id, domain_offset, moff_p, moff_m
+        #raise RuntimeError
         # Now doff is full of offsets to the first entry in the pind that
         # refers to that oct's particles.
         ppos = <np.float64_t *> positions.data
@@ -166,19 +179,18 @@ cdef class ParticleSmoothOperation:
         pcounts = <np.int64_t*> pcount.data
         nsize = 27
         nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
-        for i in range(doff.shape[0]):
-            # Nothing assigned.
-            if doff[i] < 0: continue
-            # The first particle assigned to this oct should be the one we
-            # want.
-            poff = pind[doff[i]]
+        cdef np.ndarray[np.uint8_t, ndim=1] visited
+        visited = np.zeros(mdom_ind.shape[0], dtype="uint8")
+        for i in range(positions.shape[0]):
             for j in range(3):
-                pos[j] = positions[poff, j]
-            oct = octree.get(pos, &oi)
-            if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
-                continue
-            offset = dom_ind[oct.domain_ind - moff] * nz
-            neighbors = octree.neighbors(&oi, &nneighbors)
+                pos[j] = positions[i, j]
+            oct = mesh_octree.get(pos, &moi)
+            offset = mdom_ind[oct.domain_ind - moff_p] * nz
+            if offset < 0: continue
+            if visited[oct.domain_ind - moff_p] == 1: continue
+            # These will be PARTICLE octree neighbors.
+            oct = particle_octree.get(pos, &poi)
+            neighbors = particle_octree.neighbors(&poi, &nneighbors)
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:
@@ -186,14 +198,15 @@ cdef class ParticleSmoothOperation:
                     nind, sizeof(np.int64_t)*nneighbors)
                 nsize = nneighbors
             for j in range(nneighbors):
-                nind[j] = neighbors[j].domain_ind - moff
+                # Particle octree neighbor indices
+                nind[j] = neighbors[j].domain_ind - moff_p
                 for n in range(j):
                     if nind[j] == nind[n]:
                         nind[j] = -1
                     break
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
-            self.neighbor_process(dims, oi.left_edge, oi.dds,
+            self.neighbor_process(dims, moi.left_edge, moi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset, index_field_pointers)
         if nind != NULL:
@@ -298,7 +311,7 @@ cdef class ParticleSmoothOperation:
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
-        cdef int i, j, k
+        cdef int i, j, k, ntot, nntot, m
         cdef np.float64_t cpos[3]
         cpos[0] = left_edge[0] + 0.5*dds[0]
         for i in range(dim[0]):
@@ -309,6 +322,13 @@ cdef class ParticleSmoothOperation:
                     self.neighbor_find(nneighbors, nind, doffs, pcounts,
                         pinds, ppos, cpos)
                     # Now we have all our neighbors in our neighbor list.
+                    if self.curn < -1*self.maxn:
+                        ntot = nntot = 0
+                        for m in range(nneighbors):
+                            if nind[m] < 0: continue
+                            nntot += 1
+                            ntot += pcounts[nind[m]]
+                        #print "SOMETHING WRONG", self.curn, nneighbors, ntot, nntot
                     self.process(offset, i, j, k, dim, cpos, fields,
                                  index_fields)
                     cpos[2] += dds[2]
@@ -337,21 +357,24 @@ cdef class MassDepositionCoeffSmooth(ParticleSmoothOperation):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
-        cdef np.float64_t weight, r2, val, hsml, dmass = 0.0
+        cdef np.float64_t weight, r2, val, hsml, vol, mass
         cdef np.int64_t pn
         vol = index_fields[0][gind(i,j,k,dim) + offset]
         # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
         for n in range(self.curn):
             # No normalization for the moment.
-            # fields[0] is the smoothing length.
             r2 = self.neighbors[n].r2
             pn = self.neighbors[n].pn
             # Smoothing kernel weight function
+            mass = fields[0][pn]
             hsml = fields[1][pn]
             weight = sph_kernel(sqrt(r2) / hsml)
-            #vol = index_fields[0][gind(i,j,k,dim) + offset)
-            fields[2][pn] += fields[0][pn] * weight * vol
+            # The total mass deposited is the computed density for a given
+            # particle times the volume of the oct cell.  This allows us to
+            # track, of the total mass being smoothed, what the contribution
+            # from each particle is.
+            fields[2][pn] += mass * weight * vol
         return
 
 mass_deposition_coeff_smooth = MassDepositionCoeffSmooth
@@ -368,9 +391,9 @@ cdef class ConservedMassSmooth(ParticleSmoothOperation):
             raise RuntimeError
         cdef np.ndarray tarr
         self.fp = <np.float64_t **> malloc(
-            sizeof(np.float64_t *) * (self.nfields - 2))
+            sizeof(np.float64_t *) * (self.nfields - 3))
         self.vals = []
-        for i in range(self.nfields - 2):
+        for i in range(self.nfields - 3):
             tarr = np.zeros(self.nvals, dtype="float64", order="F")
             self.vals.append(tarr)
             self.fp[i] = <np.float64_t *> tarr.data
@@ -388,7 +411,7 @@ cdef class ConservedMassSmooth(ParticleSmoothOperation):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
-        cdef np.float64_t weight, r2, val, hsml, dmass = 0.0
+        cdef np.float64_t weight, r2, val, hsml, dens, mass
         cdef np.int64_t pn
         # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
@@ -398,11 +421,15 @@ cdef class ConservedMassSmooth(ParticleSmoothOperation):
             r2 = self.neighbors[n].r2
             pn = self.neighbors[n].pn
             # Smoothing kernel weight function
+            mass = fields[0][pn]
             hsml = fields[1][pn]
-            weight = sph_kernel(sqrt(r2) / hsml)
+            # Usually this density has been computed
+            dens = fields[2][pn]
+            if dens == 0.0: continue
+            weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
             # Mass of the particle times the value 
-            for fi in range(self.nfields - 2):
-                val = fields[0][pn] * fields[fi + 2][pn]
+            for fi in range(self.nfields - 3):
+                val = fields[fi + 3][pn]
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
         return
 
