@@ -846,6 +846,7 @@ class EnzoStaticOutput(StaticOutput):
             self.mass_unit = \
                 self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
             self.time_unit = self.quan(k['utim'], 's')
+            self.velocity_unit = self.quan(k['uvel'], 'cm/s')
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
@@ -860,6 +861,7 @@ class EnzoStaticOutput(StaticOutput):
             self.length_unit = self.quan(length_unit, "cm")
             self.mass_unit = self.quan(mass_unit, "g")
             self.time_unit = self.quan(time_unit, "s")
+            self.velocity_unit = self.length_unit / self.time_unit
 
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
@@ -870,6 +872,7 @@ class EnzoStaticOutput(StaticOutput):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
+        self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def cosmology_get_units(self):
         """
