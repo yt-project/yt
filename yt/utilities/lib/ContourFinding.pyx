@@ -47,9 +47,13 @@ cdef void contour_delete(ContourID *node):
 cdef ContourID *contour_find(ContourID *node):
     cdef ContourID *temp, *root
     root = node
+    # First we find the root
     while root.parent != NULL and root.parent != root:
         root = root.parent
     if root == root.parent: root.parent = NULL
+    # Now, we update everything along the tree.
+    # So now everything along the line to the root has the parent set to the
+    # root.
     while node.parent != NULL:
         temp = node.parent
         node.parent = root
@@ -565,6 +569,28 @@ def extract_identified_contours(int max_ind, joins):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def update_flat_joins(np.ndarray[np.int64_t, ndim=2] joins,
+                 np.ndarray[np.int64_t, ndim=1] contour_ids,
+                 np.ndarray[np.int64_t, ndim=1] final_joins):
+    cdef np.int64_t new, old
+    cdef int i, j, nj, nf, counter
+    cdef int ci, cj, ck
+    nj = joins.shape[0]
+    nf = final_joins.shape[0]
+    for ci in range(contour_ids.shape[0]):
+        if contour_ids[ci] == -1: continue
+        for j in range(nj):
+            if contour_ids[ci] == joins[j,0]:
+                contour_ids[ci] = joins[j,1]
+                break
+        for j in range(nf):
+            if contour_ids[ci] == final_joins[j]:
+                contour_ids[ci] = j + 1
+                break
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                  np.ndarray[np.int64_t, ndim=3] contour_ids,
                  np.ndarray[np.int64_t, ndim=1] final_joins):
@@ -594,6 +620,7 @@ cdef class ParticleContourTree(ContourTree):
     def __init__(self, linking_length):
         self.linking_length = linking_length
         self.linking_length2 = linking_length * linking_length
+        self.first = self.last = NULL
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -607,6 +634,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.float64_t pos[3]
         cdef Oct *oct = NULL, **neighbors = NULL
         cdef OctInfo oi
+        cdef ContourID *c0, *c1
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
         cdef np.int64_t i, j, k, nneighbors, poffset, offset
         pcount = np.zeros_like(dom_ind)
@@ -632,7 +660,6 @@ cdef class ParticleContourTree(ContourTree):
             pdoms[i] = offset
         pind = np.argsort(pdoms)
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
-        cdef np.int64_t *ipids = <np.int64_t*> particle_ids.data
         cdef np.float64_t *fpos = <np.float64_t*> positions.data
         # pind is now the pointer into the position and particle_ids array.
         for i in range(positions.shape[0]):
@@ -680,55 +707,62 @@ cdef class ParticleContourTree(ContourTree):
                     if nind[k] == -1: continue
                     offset = doff[nind[k]]
                     if offset < 0: continue
-                    self.link_particles(container, pcount[nind[k]], poffset,
-                                        offset, ipind, fpos, ipids)
+                    self.link_particles(container,
+                                        fpos, ipind,
+                                        pcount[nind[k]], 
+                                        offset, poffset,
+                                        doff[i] + j)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
         # Sort on our particle IDs.
-        cdef ContourID *c1
-        pind = np.argsort(particle_ids)
-        for i in range(positions.shape[0]):
-            c1 = container[pind[i]]
-            if c1 == NULL: continue
-            c1 = contour_find(c1)
-            contour_ids[pind[i]] = c1.contour_id
-        for i in range(positions.shape[0]):
-            if container[i] == NULL: continue
-            free(container[i])
+        for i in range(doff.shape[0]):
+            if doff[i] < 0: continue
+            for j in range(pcount[i]):
+                poffset = doff[i] + j
+                c1 = container[poffset]
+                c0 = contour_find(c1)
+                contour_ids[pind[poffset]] = c0.contour_id
         free(container)
         return contour_ids
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container, 
-                                   np.int64_t pcount, np.int64_t poffset,
-                                   np.int64_t offset, np.int64_t *pind,
                                    np.float64_t *positions,
-                                   np.int64_t *particle_ids):
+                                   np.int64_t *pind,
+                                   np.int64_t pcount, 
+                                   np.int64_t noffset,
+                                   np.int64_t poffset,
+                                   np.int64_t pid):
         # Now we look at each particle and evaluate it
         cdef np.float64_t pos0[3], pos1[3], d
-        cdef np.int64_t pid0, pid1, pind0, pind1
         cdef ContourID *c0, *c1
+        cdef np.int64_t pind1
         cdef int i, j, k
-        # poffset is the particle offset; offset is the starting index into the
-        # pind array for this neighbor oct.
-        c0 = container[poffset]
-        pid0 = particle_ids[poffset]
+        # We use pid here so that we strictly take new ones.
+        c0 = container[pid]
         if c0 == NULL:
-            c0 = container[poffset] = contour_create(pid0)
+            c0 = container[pid] = contour_create(pid, self.last)
+            self.last = c0
+            if self.first == NULL:
+                self.first = c0
         c0 = contour_find(c0)
         for i in range(3):
             pos0[i] = positions[poffset*3 + i]
         for i in range(pcount):
-            pind1 = pind[offset + i]
+            pind1 = pind[noffset + i]
+            if pind1 == poffset: continue
             for j in range(3):
                 pos1[j] = positions[pind1*3 + j]
             d = r2dist(pos0, pos1, self.DW, self.periodicity)
             if d > self.linking_length2:
                 continue
-            pid1 = particle_ids[pind1]
-            c1 = container[pind1]
+            c1 = container[noffset + i]
             if c1 == NULL:
-                c1 = container[pind1] = contour_create(pid1)
-            c1 = contour_find(c1)
-            contour_union(c0, c1)
+                container[noffset + i] = c0
+            else:
+                c1 = contour_find(c1)
+                contour_union(c0, c1)
+                # Now we update them.
+                c0 = contour_find(c0)
+
