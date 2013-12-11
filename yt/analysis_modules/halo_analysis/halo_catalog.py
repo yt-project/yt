@@ -32,12 +32,13 @@ from .operator_registry import \
     hf_registry
 
 class HaloCatalog(object):
-    def __init__(self, pf, finding_method, data_source = None):
-        self.pf = pf
-        self.finding_method = hf_registry.find(finding_method)
-        if data_source is None:
-            data_source = pf.h.all_data()
-        self.data_source = data_source
+    def __init__(self, data_pf, halos_pf):#, finding_method, data_source = None):
+        self.data_pf = data_pf
+        self.halos_pf = halos_pf
+        # self.finding_method = hf_registry.find(finding_method)
+        # if data_source is None:
+        #     data_source = pf.h.all_data()
+        # self.data_source = data_source
         self.values = []
         self.callbacks = []
 
@@ -59,7 +60,7 @@ class HaloCatalog(object):
         # the data source, but we assume it already has all its arguments
         # necessary for the finding operation.
         # halo_list here will be a generator.
-        halo_list = self.finding_method(self)
+        # halo_list = self.finding_method(self)
         self.run_callbacks(halo_list)
 
     def run_callbacks(self, halo_list):

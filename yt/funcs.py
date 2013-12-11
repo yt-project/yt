@@ -592,8 +592,10 @@ def fix_length(length, pf=None):
         registry = pf.unit_registry
     else:
         registry = None
-    if isinstance(length, (numeric_type, YTArray)):
-        return YTArray(length, 'cm', registry=registry)
+    if isinstance(length, YTArray):
+        return length.in_units("code_length")
+    if isinstance(length, numeric_type):
+        return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], types.StringTypes)
     if length_valid_tuple and unit_is_string:
