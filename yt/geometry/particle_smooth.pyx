@@ -315,15 +315,56 @@ cdef class ParticleSmoothOperation:
                 cpos[1] += dds[1]
             cpos[0] += dds[0]
 
+cdef class MassDepositionCoeffSmooth(ParticleSmoothOperation):
+    cdef public object vals
+    def initialize(self):
+        cdef int i
+        if self.nfields < 3:
+            # We need third fields -- the mass should be the first, then the
+            # smoothing length for particles, and then third is the array into
+            # which we will be placing the total deposited mass.
+            raise RuntimeError
 
-cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
+    def finalize(self):
+        return
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields):
+        # We have our i, j, k for our cell, as well as the cell position.
+        # We also have a list of neighboring particles with particle numbers.
+        cdef int n, fi
+        cdef np.float64_t weight, r2, val, hsml, dmass = 0.0
+        cdef np.int64_t pn
+        vol = index_fields[0][gind(i,j,k,dim) + offset]
+        # We get back our mass 
+        # rho_i = sum(j = 1 .. n) m_j * W_ij
+        for n in range(self.curn):
+            # No normalization for the moment.
+            # fields[0] is the smoothing length.
+            r2 = self.neighbors[n].r2
+            pn = self.neighbors[n].pn
+            # Smoothing kernel weight function
+            hsml = fields[1][pn]
+            weight = sph_kernel(sqrt(r2) / hsml)
+            #vol = index_fields[0][gind(i,j,k,dim) + offset)
+            fields[2][pn] += fields[0][pn] * weight * vol
+        return
+
+mass_deposition_coeff_smooth = MassDepositionCoeffSmooth
+
+cdef class ConservedMassSmooth(ParticleSmoothOperation):
     cdef np.float64_t **fp
     cdef public object vals
     def initialize(self):
         cdef int i
         if self.nfields < 3:
-            # We need at least two fields, the density, particle mass, and the
-            # field to smooth.
+            # We need four fields -- the mass should be the first, then the
+            # smoothing length for particles, the normalization factor to
+            # ensure mass conservation, then the field we're smoothing.
             raise RuntimeError
         cdef np.ndarray tarr
         self.fp = <np.float64_t **> malloc(
@@ -347,9 +388,9 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
-        cdef np.float64_t weight, r2, val, hsml, norm = 0.0
+        cdef np.float64_t weight, r2, val, hsml, dmass = 0.0
         cdef np.int64_t pn
-        hsml = index_fields[0][gind(i,j,k,dim) + offset]
+        # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
         for n in range(self.curn):
             # No normalization for the moment.
@@ -357,70 +398,12 @@ cdef class SimpleNeighborSmooth(ParticleSmoothOperation):
             r2 = self.neighbors[n].r2
             pn = self.neighbors[n].pn
             # Smoothing kernel weight function
+            hsml = fields[1][pn]
             weight = sph_kernel(sqrt(r2) / hsml)
-            # Mass of the particle times the value divided by the Density
+            # Mass of the particle times the value 
             for fi in range(self.nfields - 2):
-                val = fields[0][pn] * fields[fi + 2][pn]/fields[1][pn]
+                val = fields[0][pn] * fields[fi + 2][pn]
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
         return
 
-simple_neighbor_smooth = SimpleNeighborSmooth
-
-cdef class GadgetSmoothingLength(ParticleSmoothOperation):
-    cdef np.float64_t *fp
-    cdef public object vals
-    def initialize(self):
-        cdef int i
-        if self.nfields != 2:
-            raise RuntimeError
-        cdef np.ndarray tarr
-        self.vals = tarr = np.zeros(self.nvals, dtype="float64", order="F")
-        self.fp = <np.float64_t *> tarr.data
-
-    def finalize(self):
-        return self.vals
-
-    @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
-        # We have our i, j, k for our cell, as well as the cell position.
-        # We also have a list of neighboring particles with particle numbers.
-        cdef int n, fi
-        cdef np.float64_t weight, r2, prev_hsml, val = 0.0, hsml = 0.0
-        cdef np.float64_t hsml2, hcoeff
-        cdef np.int64_t pn
-        cdef np.float64_t mass = 0.0
-        cdef np.float64_t vcoef = (4.0 / 3.0) * 3.1415926 
-        for n in range(self.curn):
-            pn = self.neighbors[n].pn
-            r2 = self.neighbors[n].r2
-            hsml = fmax(r2, hsml)
-            mass += fields[1][pn]
-        hsml = sqrt(hsml)
-        prev_hsml = hsml * 10.0 # Always do one pass
-        cdef np.int64_t niter = 0
-        # 0.1% convergence
-        while (fabs(prev_hsml - hsml) / (prev_hsml + hsml)) > 1e-3:
-            prev_hsml = hsml
-            val = 0.0
-            hsml2 = hsml * hsml
-            for n in range(self.curn):
-                # No normalization for the moment.
-                # fields[0] is the smoothing length.
-                r2 = self.neighbors[n].r2
-                if r2 > hsml2: continue
-                pn = self.neighbors[n].pn
-                # Smoothing kernel weight function
-                weight = sph_kernel(sqrt(r2) / hsml)
-                # Mass of the particle times the weight field
-                val += fields[1][pn] * weight
-            # val is now the density estimate.
-            hsml = (mass/(vcoef * val))**(1.0/3.0)
-            niter += 1
-            if niter > 1000: break
-        self.fp[gind(i,j,k,dim) + offset] = hsml
-
-gadget_smoothing_length_smooth = GadgetSmoothingLength
+conserved_mass_smooth = ConservedMassSmooth
