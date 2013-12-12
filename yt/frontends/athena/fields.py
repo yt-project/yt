@@ -119,4 +119,3 @@ class AthenaFieldInfo(FieldInfoContainer):
             return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
         self.add_field(("gas","temperature"), function=_temperature,
                        units="K")
-

@@ -13,6 +13,7 @@ This is a library of yt-defined exceptions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+
 # We don't need to import 'exceptions'
 #import exceptions
 import os.path
@@ -345,3 +346,19 @@ class YTFITSHeaderNotUnderstood(YTException):
         return "This FITS header is not recognizable in its current form.\n" + \
                 "If you would like to force loading, specify: \n" + \
                 "ignore_unit_names = True"
+
+class YTEmptyProfileData(Exception):
+    pass
+
+class YTDuplicateFieldInProfile(Exception):
+    def __init__(self, field, new_spec, old_spec):
+        self.field = field
+        self.new_spec = new_spec
+        self.old_spec = old_spec
+
+    def __str__(self):
+        r = """Field %s already exists with field spec:
+               %s
+               But being asked to add it with:
+               %s""" % (self.field, self.old_spec, self.new_spec)
+        return r

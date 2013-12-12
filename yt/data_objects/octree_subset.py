@@ -118,6 +118,10 @@ class OctreeSubset(YTSelectionContainer):
 
     _domain_ind = None
 
+    def mask_refinement(self, selector):
+        mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
+        return mask
+
     def select_blocks(self, selector):
         mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
         mask = self._reshape_vals(mask)

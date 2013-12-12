@@ -264,27 +264,44 @@ function host_specific
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.2: download Xcode 4.6.1 from the mac app store."
+	echo "OS X 10.8.4 and 10.9: download Xcode 5.02 from the mac app store."
 	echo "(search for Xcode)."
+    echo
 	echo "Additionally, you will have to manually install the Xcode"
-	echo "command line tools, see:"
-	echo "http://stackoverflow.com/questions/9353444"
-	echo "Alternatively, download the Xcode command line tools from"
-	echo "the Apple developer tools website."
+	echo "command line tools."
+    echo
+    echo "For OS X 10.8, see:"
+   	echo "http://stackoverflow.com/questions/9353444"
 	echo
-        echo "NOTE: It's possible that the installation will fail, if so,"
-	echo "please set the following environment variables, remove any"
-	echo "broken installation tree, and re-run this script verbatim."
-        echo
-        echo "$ export CC=gcc"
-        echo "$ export CXX=g++"
-	echo
-        OSX_VERSION=`sw_vers -productVersion`
-        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+    echo "For OS X 10.9, the command line tools can be installed"
+    echo "with the following command:"
+    echo "    xcode-select --install"
+    echo
+    OSX_VERSION=`sw_vers -productVersion`
+    if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
             MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
         fi
+    fi
+    if [ -f /etc/redhat-release ]
+    then
+        echo "Looks like you're on an Redhat-compatible machine."
+        echo
+        echo "You need to have these packages installed:"
+        echo
+        echo "  * openssl-devel"
+        echo "  * uuid-devel"
+        echo "  * readline-devel"
+        echo "  * ncurses-devel"
+        echo "  * zip"
+        echo "  * gcc-{,c++,gfortran}"
+        echo "  * make"
+        echo "  * patch"
+        echo 
+        echo "You can accomplish this by executing:"
+        echo "$ sudo yum install gcc gcc-g++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
     then
@@ -566,16 +583,16 @@ cd ${DEST_DIR}/src
 CYTHON='Cython-0.19.1'
 FORTHON='Forthon-0.8.11'
 PYX='PyX-0.12.1'
-PYTHON='Python-2.7.5'
+PYTHON='Python-2.7.6'
 BZLIB='bzip2-1.0.6'
 FREETYPE_VER='freetype-2.4.12'
 H5PY='h5py-2.1.3'
 HDF5='hdf5-1.8.11'
-IPYTHON='ipython-1.0.0'
+IPYTHON='ipython-1.1.0'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
 MATPLOTLIB='matplotlib-1.3.0'
-MERCURIAL='mercurial-2.7'
+MERCURIAL='mercurial-2.8'
 NOSE='nose-1.3.0'
 NUMPY='numpy-1.7.1'
 PYTHON_HGLIB='python-hglib-1.0'
@@ -585,14 +602,14 @@ SCIPY='scipy-0.12.0'
 SQLITE='sqlite-autoconf-3071700'
 SYMPY='sympy-0.7.3'
 TORNADO='tornado-3.1'
-ZEROMQ='zeromq-3.2.3'
+ZEROMQ='zeromq-3.2.4'
 ZLIB='zlib-1.2.8'
 
 # Now we dump all our SHA512 files out.
 echo '9dcdda5b2ee2e63c2d3755245b7b4ed2f4592455f40feb6f8e86503195d9474559094ed27e789ab1c086d09da0bb21c4fe844af0e32a7d47c81ff59979b18ca0  Cython-0.19.1.tar.gz' > Cython-0.19.1.tar.gz.sha512
 echo '3f53d0b474bfd79fea2536d0a9197eaef6c0927e95f2f9fd52dbd6c1d46409d0e649c21ac418d8f7767a9f10fe6114b516e06f2be4b06aec3ab5bdebc8768220  Forthon-0.8.11.tar.gz' > Forthon-0.8.11.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
-echo 'd6580eb170b36ad50f3a30023fe6ca60234156af91ccb3971b0b0983119b86f3a9f6c717a515c3c6cb72b3dcbf1d02695c6d0b92745f460b46a3defd3ff6ef2f  Python-2.7.5.tgz' > Python-2.7.5.tgz.sha512
+echo '3df0ba4b1cfef5f02fb27925de4c2ca414eca9000af6a3d475d39063720afe987287c3d51377e0a36b88015573ef699f700782e1749c7a357b8390971d858a79  Python-2.7.6.tgz' > Python-2.7.6.tgz.sha512
 echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
@@ -600,11 +617,11 @@ echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
 echo '2eb7030f8559ff5cb06333223d98fda5b3a663b6f4a026949d1c423aa9a869d824e612ed5e1851f3bf830d645eea1a768414f73731c23ab4d406da26014fe202  h5py-2.1.3.tar.gz' > h5py-2.1.3.tar.gz.sha512
 echo 'e9db26baa297c8ed10f1ca4a3fcb12d6985c6542e34c18d48b2022db73014f054c8b8434f3df70dcf44631f38b016e8050701d52744953d0fced3272d7b6b3c1  hdf5-1.8.11.tar.gz' > hdf5-1.8.11.tar.gz.sha512
-echo '1b309c08009583e66d1725a2d2051e6de934db246129568fa6d5ba33ad6babd3b443e7c2782d817128d2b112e21bcdd71e66be34fbd528badd900f1d0ed3db56  ipython-1.0.0.tar.gz' > ipython-1.0.0.tar.gz.sha512
+echo '46b8ae25df2ced674b3b3629070aafac955ba3aa2a5e749f8e63ef1f459126e1c4a9a03661406151622590a90c73b527716ad71bc626f57f52b51abfae0f43ca  ipython-1.1.0.tar.gz' > ipython-1.1.0.tar.gz.sha512
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
 echo '990e3a155ca7a9d329c41a43b44a9625f717205e81157c668a8f3f2ad5459ed3fed8c9bd85e7f81c509e0628d2192a262d4aa30c8bfc348bb67ed60a0362505a  matplotlib-1.3.0.tar.gz' > matplotlib-1.3.0.tar.gz.sha512
-echo 'e425778edb0f71c34e719e04561ee3de37feaa1be4d60b94c780aebdbe6d41f8f4ab15103a8bbe8894ebeb228c42f0e2cd41b8db840f8384e1cd7cd2d5b67b97  mercurial-2.7.tar.gz' > mercurial-2.7.tar.gz.sha512
+echo 'b08dcd746728d89f1f96036f39df1608fad0ff863ae48fe12424b1645936ebbf59b9068b93fe3c7cfd2036db046df3dc814119f89a827bd5f008d32f323d45a8  mercurial-2.8.tar.gz' > mercurial-2.8.tar.gz.sha512
 echo 'a3b8060e415560a868599224449a3af636d24a060f1381990b175dcd12f30249edd181179d23aea06b0c755ff3dc821b7a15ed8840f7855530479587d4d814f4  nose-1.3.0.tar.gz' > nose-1.3.0.tar.gz.sha512
 echo 'd58177f3971b6d07baf6f81a2088ba371c7e43ea64ee7ada261da97c6d725b4bd4927122ac373c55383254e4e31691939276dab08a79a238bfa55172a3eff684  numpy-1.7.1.tar.gz' > numpy-1.7.1.tar.gz.sha512
 echo '9c0a61299779aff613131aaabbc255c8648f0fa7ab1806af53f19fbdcece0c8a68ddca7880d25b926d67ff1b9201954b207919fb09f6a290acb078e8bbed7b68  python-hglib-1.0.tar.gz' > python-hglib-1.0.tar.gz.sha512
@@ -614,7 +631,7 @@ echo '80c8e137c3ccba86575d4263e144ba2c4684b94b5cd620e200f094c92d4e118ea6a631d27b
 echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
 echo '2992baa3edfb4e1842fb642abf0bf0fc0bf56fc183aab8fed6b3c42fbea928fa110ede7fdddea2d63fc5953e8d304b04da433dc811134fadefb1eecc326121b8  sympy-0.7.3.tar.gz' > sympy-0.7.3.tar.gz.sha512
 echo '101544db6c97beeadc5a02b2ef79edefa0a07e129840ace2e4aa451f3976002a273606bcdc12d6cef5c22ff4c1c9dcf60abccfdee4cbef8e3f957cd25c0430cf  tornado-3.1.tar.gz' > tornado-3.1.tar.gz.sha512
-echo '34ffb6aa645f62bd1158a8f2888bf92929ccf90917a6c50ed51ed1240732f498522e164d1536f26480c87ad5457fe614a93bf0e15f2f89b0b168e64a30de68ca  zeromq-3.2.3.tar.gz' > zeromq-3.2.3.tar.gz.sha512
+echo 'd8eef84860bc5314b42a2cc210340572a9148e008ea65f7650844d0edbe457d6758785047c2770399607f69ba3b3a544db9775a5cdf961223f7e278ef7e0f5c6  zeromq-3.2.4.tar.gz' > zeromq-3.2.4.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
@@ -1006,10 +1023,7 @@ function print_afterword
     echo
     echo "To get started with yt, check out the orientation:"
     echo
-    echo "    http://yt-project.org/doc/orientation/"
-    echo
-    echo "or just activate your environment and run 'yt serve' to bring up the"
-    echo "yt GUI."
+    echo "    http://yt-project.org/doc/bootcamp/"
     echo
     echo "The source for yt is located at:"
     echo "    $YT_DIR"
