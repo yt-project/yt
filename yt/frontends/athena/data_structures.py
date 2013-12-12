@@ -386,10 +386,8 @@ class AthenaStaticOutput(StaticOutput):
         self.magnetic_unit = self.quan(magnetic_factor, "gauss")
         self.velocity_unit = self.quan(length_factor/time_factor, "cm/s")
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        self.unit_registry.modify("code_length", self.length_unit)
-        self.unit_registry.modify("code_mass", self.mass_unit)
-        self.unit_registry.modify("code_time", self.time_unit)
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
+        DW = self.domain_right_edge-self.domain_left_edge
+        self.unit_registry.modify("unitary", DW.max())
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
