@@ -13,15 +13,19 @@ HaloCatalog object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .halo_object import \
-     Halo
+import h5py
+import numpy as np
 
+from yt.funcs import \
+     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call, \
     parallel_root_only, \
     parallel_objects
      
+from .halo_object import \
+     Halo
 from .operator_registry import \
     callback_registry, \
     quantity_registry, \
@@ -49,6 +53,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     """
     
     def __init__(self, halos_pf=None, data_pf=None, data_source=None, finder_method=None):
+        ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
         self.data_pf = data_pf
         self.finder_method = finder_method
@@ -98,20 +103,28 @@ class HaloCatalog(ParallelAnalysisInterface):
                     new_halo.quantities[key] = self.data_source[quantity][i]
                 elif callable(quantity):
                     new_halo.quantities[key] = quantity(new_halo)
-            self.halo_list.append(new_halo)
+            self.halo_list.append(new_halo.quantities)
+            del new_halo
 
+        self.halo_list = self.comm.par_combine_object(self.halo_list,
+                                                      datatype="list",
+                                                      op="cat")
+        self.halo_list.sort(key=lambda a:a['particle_identifier'].to_ndarray())
+            
         if filename is not None:
             self.save_catalog(filename)
 
+    @parallel_root_only
     def save_catalog(self, filename):
         "Write out hdf5 file with all halo quantities."
 
         mylog.info("Saving halo catalog to %s." % filename)
-        out_file = h5py.File(filename):
+        out_file = h5py.File(filename)
         field_data = np.empty(self.n_halos)
-        for key in self.quantities:
+        for key, quantity in self.quantities:
             for i in xrange(self.n_halos):
-                field_data[i] = self.halo_list[i].quantities[key]
+                field_data[i] = self.halo_list[i][key]
+            out_file.create_dataset(key, data=field_data)
         out_file.close()
 
     def add_default_quantities(self):
