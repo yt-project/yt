@@ -185,7 +185,7 @@ cdef class ParticleSmoothOperation:
             free(neighbors)
             self.neighbor_process(dims, oi.left_edge, oi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
-                         pinds, pcounts, offset, pdoms[i])
+                         pinds, pcounts, offset)
         if nind != NULL:
             free(nind)
         
@@ -282,7 +282,7 @@ cdef class ParticleSmoothOperation:
                                np.float64_t **fields, np.int64_t nneighbors,
                                np.int64_t *nind, np.int64_t *doffs,
                                np.int64_t *pinds, np.int64_t *pcounts,
-                               np.int64_t offset, np.int64_t doff):
+                               np.int64_t offset):
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
