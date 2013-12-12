@@ -323,8 +323,8 @@ class StreamStaticOutput(StaticOutput):
 
     def _set_code_unit_attributes(self):
         base_units = self.stream_handler.code_units
-        attrs = ('length_unit', 'mass_unit', 'time_unit')
-        cgs_units = ('cm', 'g', 's')
+        attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, basestring):
                 uq = YTQuantity(1.0, unit)
@@ -470,7 +470,7 @@ def unitify_data(data):
 
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
-                      periodicity=(True, True, True)):
+                      velocity_unit=None, periodicity=(True, True, True)):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -580,6 +580,8 @@ Parameters
         mass_unit = 'code_mass'
     if time_unit is None:
         time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
 
     handler = StreamHandler(
         grid_left_edges,
@@ -591,7 +593,7 @@ Parameters
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -872,9 +874,9 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 def load_particles(data, length_unit = None, bbox=None,
-                      sim_time=0.0, mass_unit = None, time_unit = None,
-                      periodicity=(True, True, True),
-                      n_ref = 64, over_refine_factor = 1):
+                   sim_time=0.0, mass_unit = None, time_unit = None,
+                   velocity_unit=None, periodicity=(True, True, True),
+                   n_ref = 64, over_refine_factor = 1):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -943,6 +945,8 @@ def load_particles(data, length_unit = None, bbox=None,
         mass_unit = 'code_mass'
     if time_unit is None:
         time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -955,7 +959,7 @@ def load_particles(data, length_unit = None, bbox=None,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -1027,7 +1031,7 @@ class StreamHexahedralStaticOutput(StreamStaticOutput):
 def load_hexahedral_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
                          mass_unit = None, time_unit = None,
-                         periodicity=(True, True, True)):
+                         velocity_unit = None, periodicity=(True, True, True)):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1090,6 +1094,8 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         mass_unit = 'code_mass'
     if time_unit is None:
         time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1102,7 +1108,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )

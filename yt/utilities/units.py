@@ -16,7 +16,7 @@ from sympy import Expr, Mul, Number, Pow, Rational, Symbol
 from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     cm_per_pc, cm_per_ly, cm_per_au, rsun_per_cm, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
