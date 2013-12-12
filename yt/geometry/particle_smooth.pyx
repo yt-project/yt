@@ -438,48 +438,7 @@ cdef class ConservedMassSmooth(ParticleSmoothOperation):
 
 conserved_mass_smooth = ConservedMassSmooth
 
-cdef class MaximumNeighborRadius(ParticleSmoothOperation):
-    cdef public object vals
-    cdef np.float64_t *hsmooth
-    def initialize(self):
-        cdef int i
-        if self.nfields > 0:
-            # We need third fields -- the mass should be the first, then the
-            # smoothing length for particles, and then third is the array into
-            # which we will be placing the total deposited mass.
-            raise RuntimeError
-        self.vals = np.zeros(self.nvals, dtype="float64", order="F")
-        cdef np.ndarray[np.float64_t, ndim=4] arr = self.vals
-        self.hsmooth = <np.float64_t *> arr.data
-
-    def finalize(self):
-        return self.vals
-
-    @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
-        # We have our i, j, k for our cell, as well as the cell position.
-        # We also have a list of neighboring particles with particle numbers.
-        cdef int n, fi
-        cdef np.float64_t r2, hsml2
-        cdef np.int64_t pn
-        hsml2 = 0.0
-        # We get back our mass 
-        # rho_i = sum(j = 1 .. n) m_j * W_ij
-        for n in range(self.curn):
-            # No normalization for the moment.
-            r2 = self.neighbors[n].r2
-            if r2 > hsml2:
-                hsml2 = r2
-        self.hsmooth[gind(i,j,k,dim) + offset] = sqrt(hsml2)
-        return
-
-max_neighbor_radius_smooth = MaximumNeighborRadius
-
-cdef class LocalSmoothingLength(ParticleSmoothOperation):
+cdef class NeighborSmoothing(ParticleSmoothOperation):
     cdef np.float64_t **fp
     cdef public object vals
     def initialize(self):
@@ -515,6 +474,7 @@ cdef class LocalSmoothingLength(ParticleSmoothOperation):
         cdef np.int64_t pn
         # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
+        hsml = sqrt(self.neighbors[self.curn - 1].r2)
         for n in range(self.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
@@ -534,4 +494,4 @@ cdef class LocalSmoothingLength(ParticleSmoothOperation):
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
         return
 
-local_smoothing_smooth = LocalSmoothingLength
+neighbor_smoothing_smooth = NeighborSmoothing
