@@ -461,12 +461,15 @@ def standard_particle_fields(registry, ptype,
 
 def add_smoothed_field(ptype, coord_name, mass_name, smoothed_field, registry,
                        smoothing_type = "neighbor_smoothing", nneighbors = 64):
+    field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
     def _smoothed_quantity(field, data):
         pos = data[ptype, coord_name]
         mass = data[ptype, mass_name]
-        dens = data[ptype, smoothed_field]
+        dens = data[ptype, "Density"]
+        quan = data[ptype, smoothed_field]
         rv = data.smooth(pos, [mass, quan, dens], method="neighbor_smoothing",
-                         create_octree = True, nneighbors = nneighbors)[0]
+                          nneighbors = nneighbors)[0]
         return rv/data["CellVolume"]
-    registry.add_field(("deposit", "%s_smoothed_%s" % (ptype, smoothed_field)),
+    registry.add_field(field_name, function = _smoothed_quantity,
                        validators = [ValidateSpatial(0)])
+    return [field_name]

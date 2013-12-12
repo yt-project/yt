@@ -211,7 +211,7 @@ cdef class ParticleSmoothOperation:
             self.neighbor_process(dims, moi.left_edge, moi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset, index_field_pointers)
-        print "MAX NEIGHBORS", maxnei
+        #print "MAX NEIGHBORS", maxnei
         if nind != NULL:
             free(nind)
         
@@ -474,7 +474,7 @@ cdef class NeighborSmoothing(ParticleSmoothOperation):
         cdef np.int64_t pn
         # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
-        hsml = sqrt(self.neighbors[self.curn - 1].r2)
+        hsml = sqrt(self.neighbors[self.curn - 1].r2) / 2.0
         for n in range(self.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
@@ -482,7 +482,6 @@ cdef class NeighborSmoothing(ParticleSmoothOperation):
             pn = self.neighbors[n].pn
             # Smoothing kernel weight function
             mass = fields[0][pn]
-            hsml = index_fields[0][gind(i,j,k,dim) + offset]
             # Usually this density has been computed
             dens = fields[1][pn]
             #weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
