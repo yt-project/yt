@@ -27,9 +27,9 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 
 m_units = "Msun / h"                # Msun / h
-p_units = "code_length"             # Mpc / h, defined elsewhere
+p_units = "Mpccm / h"               # Mpc / h comoving
 v_units = "km / s"                  # km /s phys, peculiar
-r_units = "1000.0 * code_length"    # kpc / h (comoving)
+r_units = "kpccm / h"               # kpc / h comoving
 
 class RockstarFieldInfo(FieldInfoContainer):
     known_other_fields = (
@@ -50,7 +50,7 @@ class RockstarFieldInfo(FieldInfoContainer):
         ("particle_bvelocity_y", (v_units, [], None)),
         ("particle_bvelocity_z", (v_units, [], None)),
         ("particle_mass", (m_units, [], "Virial Mass")),
-        ("particle_radius", (r_units, [], "Virial Radius")),
+        ("virial_radius", (r_units, [], "Virial Radius")),
         ("child_r", (r_units, [], None)),
         ("vmax_r", (v_units, [], None)),
     # These fields I don't have good definitions for yet.

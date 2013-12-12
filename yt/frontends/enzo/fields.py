@@ -28,7 +28,7 @@ from yt.utilities.physical_constants import \
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
 rho_units = "code_mass / code_length**3"
-vel_units = "code_length / code_time"
+vel_units = "code_velocity"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -76,9 +76,9 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
-        ("particle_velocity_x", ("code_length / code_time", [], None)),
-        ("particle_velocity_y", ("code_length / code_time", [], None)),
-        ("particle_velocity_z", ("code_length / code_time", [], None)),
+        ("particle_velocity_x", (vel_units, [], None)),
+        ("particle_velocity_y", (vel_units, [], None)),
+        ("particle_velocity_z", (vel_units, [], None)),
         ("creation_time", ("code_time", [], None)),
         ("dynamical_time", ("code_time", [], None)),
         ("metallicity_fraction", ("code_metallicity", [], None)),

@@ -100,12 +100,12 @@ class RockstarStaticOutput(StaticOutput):
 
     def _set_code_unit_attributes(self):
         z = self.current_redshift
-        self.length_unit = self.quan(1.0 / (1.0+z), "Mpc")
+        self.length_unit = self.quan(1.0 / (1.0+z), "Mpc / h")
         self.mass_unit = self.quan(1.0, "Msun / h")
         # velocity_unit = length_unit / time_unit
         # time_unit = length_unit / velocity_unit
-        velocity_unit = self.quan(1.0, "km / s")
-        self.time_unit = self.length_unit / velocity_unit
+        self.velocity_unit = self.quan(1.0, "km / s")
+        self.time_unit = self.length_unit / self.velocity_unit
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

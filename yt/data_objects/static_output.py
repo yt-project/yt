@@ -145,6 +145,8 @@ class StaticOutput(object):
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
         self.domain_width = self.domain_right_edge - self.domain_left_edge
+        if not isinstance(self.current_time, YTQuantity):
+            self.current_time = self.quan(self.current_time, "code_time")
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
@@ -402,6 +404,7 @@ class StaticOutput(object):
         self.unit_registry.lut["code_time"] = (1.0, units.time)
         self.unit_registry.lut["code_magnetic"] = (1.0, units.magnetic_field)
         self.unit_registry.lut["code_temperature"] = (1.0, units.temperature)
+        self.unit_registry.lut["code_velocity"] = (1.0, units.velocity)
 
     def set_units(self):
         """
@@ -444,6 +447,7 @@ class StaticOutput(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
+        self.unit_registry.modify("code_velocity", self.velocity_unit)
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None

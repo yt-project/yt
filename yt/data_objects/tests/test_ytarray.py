@@ -236,6 +236,25 @@ def test_division():
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
 
+def test_yt_array_yt_quantity_ops():
+    """
+    Test operations that combine YTArray and YTQuantity
+    """
+    a = YTArray(range(10), 'cm')
+    b = YTQuantity(5, 'g')
+
+    assert isinstance(a*b, YTArray)
+    assert isinstance(b*a, YTArray)
+
+    assert isinstance(a/b, YTArray)
+    assert isinstance(b/a, YTArray)
+
+    assert isinstance(a*a, YTArray)
+    assert isinstance(a/a, YTArray)
+
+    assert isinstance(b*b, YTQuantity)
+    assert isinstance(b/b, YTQuantity)
+
 def test_selecting():
     """
     Test slicing of two YTArrays

@@ -103,7 +103,6 @@ class FLASHHierarchy(GridGeometryHandler):
         # We only go up to ND for 2D datasets
         self.grid_left_edge[:,:ND] = f["/bounding box"][:,:ND,0]
         self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
-        
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']
@@ -235,6 +234,7 @@ class FLASHStaticOutput(StaticOutput):
         self.length_unit = YTQuantity(length_factor, "cm")
         self.mass_unit = YTQuantity(1.0, "g")
         self.time_unit = YTQuantity(1.0, "s")
+        self.velocity_unit = YTQuantity(1.0, "cm/s")
         self.temperature_unit = YTQuantity(temperature_factor, "K")
         # Still need to deal with:
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0

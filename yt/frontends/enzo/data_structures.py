@@ -681,8 +681,6 @@ class EnzoStaticOutput(StaticOutput):
         self.storage_filename = storage_filename
 
         StaticOutput.__init__(self, filename, data_style, file_style=file_style)
-        if "InitialTime" not in self.parameters:
-            self.current_time = 0.0
 
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
@@ -817,7 +815,7 @@ class EnzoStaticOutput(StaticOutput):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
         self.particle_types = []
-        self.current_time = self.quan(self.parameters["InitialTime"], "code_time")
+        self.current_time = self.parameters["InitialTime"]
         if self.parameters["NumberOfParticles"] > 0 and \
             "AppendActiveParticleType" in self.parameters.keys():
             # If this is the case, then we know we should have a DarkMatter
@@ -848,6 +846,7 @@ class EnzoStaticOutput(StaticOutput):
             self.mass_unit = \
                 self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
             self.time_unit = self.quan(k['utim'], 's')
+            self.velocity_unit = self.quan(k['uvel'], 'cm/s')
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
@@ -862,6 +861,7 @@ class EnzoStaticOutput(StaticOutput):
             self.length_unit = self.quan(length_unit, "cm")
             self.mass_unit = self.quan(mass_unit, "g")
             self.time_unit = self.quan(time_unit, "s")
+            self.velocity_unit = self.length_unit / self.time_unit
 
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
@@ -872,6 +872,7 @@ class EnzoStaticOutput(StaticOutput):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
+        self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def cosmology_get_units(self):
         """

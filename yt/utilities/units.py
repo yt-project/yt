@@ -16,7 +16,7 @@ from sympy import Expr, Mul, Number, Pow, Rational, Symbol
 from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     cm_per_pc, cm_per_ly, cm_per_au, rsun_per_cm, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
@@ -96,6 +96,7 @@ default_unit_symbol_lut = {
     "unitary"   : (1.0, length),
     "code_mass" : (1.0, mass),
     "code_time" : (1.0, time),
+    "code_velocity" : (1.0, velocity),
     "code_magnetic" : (1.0, magnetic_field),
     "code_temperature" : (1.0, temperature),
     "code_metallicity" : (1.0, metallicity),
@@ -155,6 +156,7 @@ latex_symbol_lut = {
     "code_mass" : "\\rm{code}\/\\rm{mass}",
     "code_temperature" : "\\rm{code}\/\\rm{temperature}",
     "code_metallicity" : "\\rm{code}\/\\rm{metallicity}",
+    "code_velocity" : "\\rm{code}\/\\rm{velocity}",
     "Msun" : "\\rm{M}_\\odot",
     "msun" : "\\rm{M}_\\odot",
     "Rsun" : "\\rm{R}_\\odot",
