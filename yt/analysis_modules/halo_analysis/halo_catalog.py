@@ -1,5 +1,5 @@
 """
-Halo Catalog object
+HaloCatalog object
 
 
 
@@ -12,12 +12,22 @@ Halo Catalog object
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
+from .halo_object import \
+     Halo
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface, \
+    parallel_blocking_call, \
+    parallel_root_only, \
+    parallel_objects
+     
 from .operator_registry import \
     callback_registry, \
     quantity_registry, \
     hf_registry
 
-class HaloCatalog(object):
+class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
     of data with a set of halo objects.
 
@@ -55,36 +65,61 @@ class HaloCatalog(object):
                 data_source = data_pf.h.all_data()
         self.data_source = data_source
 
-        self.values = []
+        self.add_default_quantities()
         self.callbacks = []
 
     def add_callback(self, callback, *args, **kwargs):
         callback = callback_registry.find(callback, *args, **kwargs)
         self.callbacks.append(callback)
 
-    def add_quantity(self, quantity, *args, **kwargs):
-        quantity = quantity_registry.find(quantity, *args, **kwargs)
-        self.callbacks.append(quantity)
+    def add_quantity(self, key, quantity, *args, **kwargs):
+        if self.halos_pf is None or \
+          quantity not in self.halos_pf.field_info:
+            quantity = quantity_registry.find(quantity, *args, **kwargs)
+        self.quantities.append((key, quantity))
 
     def add_filter(self, filter, *args, **kwargs):
         filter = callback_registry.find(filter, *args, **kwargs)
         self.callbacks.append(filter)
 
-    def run(self):
+    def run(self, njobs=-1, filename=None):
+        self.halo_list = []
 
-        if halos_pf is None:
+        if self.halos_pf is None:
             # this is where we would do halo finding and assign halos_pf to 
             # the dataset that we have just created.
             raise NotImplementedError
+
+        self.n_halos = self.data_source["particle_identifier"].size
+        for i in parallel_objects(xrange(self.n_halos), njobs=njobs):
+            new_halo = Halo(self)
+            for key, quantity in self.quantities:
+                if quantity in self.halos_pf.field_info:
+                    new_halo.quantities[key] = self.data_source[quantity][i]
+                elif callable(quantity):
+                    new_halo.quantities[key] = quantity(new_halo)
+            self.halo_list.append(new_halo)
+
+        if filename is not None:
+            self.save_catalog(filename)
+
+    def save_catalog(self, filename):
+        "Write out hdf5 file with all halo quantities."
+
+        mylog.info("Saving halo catalog to %s." % filename)
+        out_file = h5py.File(filename):
+        field_data = np.empty(self.n_halos)
+        for key in self.quantities:
+            for i in xrange(self.n_halos):
+                field_data[i] = self.halo_list[i].quantities[key]
+        out_file.close()
+
+    def add_default_quantities(self):
+        self.quantities = []
+        self.add_quantity("particle_identifier", ("halos", "particle_identifier"))
+        self.add_quantity("particle_mass", ("halos", "particle_mass"))
+        self.add_quantity("particle_position_x", ("halos", "particle_position_x"))
+        self.add_quantity("particle_position_y", ("halos", "particle_position_y"))
+        self.add_quantity("particle_position_z", ("halos", "particle_position_z"))
+        self.add_quantity("virial_radius", ("halos", "virial_radius"))            
         
-        self.run_callbacks(halo_list)
-
-    def run_callbacks(self, halo_list):
-        for cb in self.callbacks:
-            cb.initialize(self)
-        for halo in halo_list:
-            if all(cb(self, halo) for cb in self.callbacks):
-                self.values.append(halo.quantities)
-        for cb in self.callbacks:
-            cb.finalize(self)
-
