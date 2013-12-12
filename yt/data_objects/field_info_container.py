@@ -318,6 +318,9 @@ class FieldDetector(defaultdict):
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def smooth(self, *args, **kwargs):
+        return np.random.random((self.nd, self.nd, self.nd))
+
     def _read_data(self, field_name):
         self.requested.append(field_name)
         FI = getattr(self.pf, "field_info", FieldInfo)
