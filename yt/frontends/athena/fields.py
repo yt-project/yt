@@ -15,148 +15,108 @@ Athena-specific fields
 
 import numpy as np
 from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    NullFunc, \
-    TranslationFunc
+    FieldInfoContainer
 from yt.utilities.physical_constants import \
     kboltz,mh
-import yt.fields.universal_fields
+from yt.data_objects.yt_array import YTArray
 
-AthenaFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = AthenaFieldInfo.add_field
+b_units = "code_magnetic"
+pres_units = "code_mass/(code_length*code_time**2)"
+erg_units = "code_mass * (code_length/code_time)**2"
+rho_units = "code_mass / code_length**3"
 
-KnownAthenaFields = FieldInfoContainer()
-add_athena_field = KnownAthenaFields.add_field
-
-add_athena_field("density", function=NullFunc, take_log=False)
-
-add_athena_field("pressure", function=NullFunc, take_log=False)
-
-add_athena_field("velocity_x", function=NullFunc, take_log=False)
-
-add_athena_field("velocity_y", function=NullFunc, take_log=False)
-
-add_athena_field("velocity_z", function=NullFunc, take_log=False)
-
-add_athena_field("momentum_x", function=NullFunc, take_log=False,
-                 units=r"")
-
-add_athena_field("momentum_y", function=NullFunc, take_log=False,
-                 units=r"")
-
-add_athena_field("momentum_z", function=NullFunc, take_log=False,
-                 units=r"")
-
-add_athena_field("cell_centered_B_x", function=NullFunc, take_log=False,
-                 display_name=r"$\rm{cell\/centered\/B_x}$")
-
-add_athena_field("cell_centered_B_y", function=NullFunc, take_log=False,
-                 display_name=r"$\rm{cell\/centered\/B_y}$")
-
-add_athena_field("cell_centered_B_z", function=NullFunc, take_log=False,
-                 display_name=r"$\rm{cell\/centered\/B_z}$")
+class AthenaFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+        ("density", ("code_mass/code_length**3", ["density"], None)),
+        ("cell_centered_B_x", (b_units, ["magnetic_field_x"], None)),
+        ("cell_centered_B_y", (b_units, ["magnetic_field_y"], None)),
+        ("cell_centered_B_z", (b_units, ["magnetic_field_z"], None)),
+    )
 
 # In Athena, conservative or primitive variables may be written out.
 # By default, yt concerns itself with primitive variables. The following
 # field definitions allow for conversions to primitive variables in the
 # case that the file contains the conservative ones.
 
-def _convertDensity(data) :
-    return data.convert("Density")
-def _density(field, data) :
-    return data["density"]
-add_field("Density", function=_density, take_log=False,
-          units=r"g/cm**3", convert_function=_convertDensity)
+    def setup_fluid_fields(self):
+        # Add velocity fields
+        for comp in "xyz":
+            vel_field = ("athena", "velocity_%s" % (comp))
+            mom_field = ("athena", "momentum_%s" % (comp))
+            if vel_field in self.field_list:
+                self.add_output_field(vel_field, units="code_length/code_time")
+                self.alias(("gas","velocity_%s" % (comp)), vel_field,
+                           units="cm/s")
+            elif mom_field in self.field_list:
+                self.add_output_field(mom_field,
+                                      units="code_mass*code_length/code_time")
+                f = lambda data: data["athena","momentum_%s" % (comp)] / \
+                                 data["athena","density"]
+                self.add_field(("gas","velocity_%s" % (comp)),
+                               function=f, units = "cm/s")
+        # Add pressure, energy, and temperature fields
+        def ekin1(data):
+            return 0.5*(data["athena","momentum_x"]**2 +
+                        data["athena","momentum_y"]**2 +
+                        data["athena","momentum_z"]**2)/data["athena","density"]
+        def ekin2(data):
+            return 0.5*(data["athena","velocity_x"]**2 +
+                        data["athena","velocity_y"]**2 +
+                        data["athena","velocity_z"]**2)*data["athena","density"]
+        def emag(data):
+            return 0.5*(data["cell_centered_B_x"]**2 +
+                        data["cell_centered_B_y"]**2 +
+                        data["cell_centered_B_z"]**2)
+        def eint_from_etot(data):
+            eint = data["athena","total_energy"]
+            eint -= ekin1(data)
+            if ("athena","cell_centered_B_x") in self.field_list:
+                eint -= emag(data)
+            return eint
+        def etot_from_pres(data):
+            etot = data["athena","pressure"]/(data.pf.gamma-1.)
+            etot += ekin2(data)
+            if ("athena","cell_centered_B_x") in self.field_list:
+                etot += emag(data)
+            return etot
+        if ("athena","pressure") in self.field_list:
+            self.add_output_field(("athena","pressure"),
+                                  units=pres_units)
+            self.alias(("gas","pressure"),("athena","pressure"),
+                       units="dyne/cm**2")
+            def _thermal_energy(field, data):
+                return data["athena","pressure"] / \
+                       (data.pf.gamma-1.)/data["athena","density"]
+            self.add_field(("gas","thermal_energy"),
+                           function=_thermal_energy,
+                           units="erg/g")
+            def _total_energy(field, data):
+                return etot_from_pres(data)/data["athena","density"]
+            self.add_field(("gas","total_energy"),
+                           function=_total_energy,
+                           units="erg/g")
+        elif ("athena","total_energy") in self.field_list:
+            def _pressure(field, data):
+                return eint_from_etot(data)*(data.pf.gamma-1.0)
+            self.add_field(("gas","pressure"), function=_pressure,
+                           units="dyne/cm**2")
+            def _thermal_energy(field, data):
+                return eint_from_etot(data)/data["athena","density"]
+            self.add_field(("gas","thermal_energy"),
+                           function=_thermal_energy,
+                           units="erg/g")
+            def _total_energy(field, data):
+                return data["athena","total_energy"]/data["athena","density"]
+            self.add_field(("gas","total_energy"),
+                           function=_total_energy,
+                           units="erg/g")
 
-def _convertVelocity(data):
-    return data.convert("x-velocity")
-def _xvelocity(field, data):
-    if "velocity_x" in data.pf.field_info:
-        return data["velocity_x"]
-    else:
-        return data["momentum_x"]/data["density"]           
-add_field("x-velocity", function=_xvelocity, take_log=False,
-          units="cm/s", convert_function=_convertVelocity)
-def _yvelocity(field, data):
-    if "velocity_y" in data.pf.field_info:
-        return data["velocity_y"]
-    else:
-        return data["momentum_y"]/data["density"]
-add_field("y-velocity", function=_yvelocity, take_log=False,
-          units="cm/s", convert_function=_convertVelocity)
-def _zvelocity(field, data):
-    if "velocity_z" in data.pf.field_info:
-        return data["velocity_z"]
-    else:
-        return data["momentum_z"]/data["density"]
-add_field("z-velocity", function=_zvelocity, take_log=False,
-          units=r"cm/s", convert_function=_convertVelocity)
-
-def _convertEnergy(data) :
-    return data.convert("x-velocity")**2
-def _gasenergy(field, data) :
-    if "pressure" in data.pf.field_info:
-        return data["pressure"]/(data.pf["Gamma"]-1.0)/data["density"]
-    else:
-        eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
-                                           data["momentum_y"]**2 +
-                                           data["momentum_z"]**2)/data["density"]
-        if "cell_centered_B_x" in data.pf.field_info:
-            eint -= 0.5*(data["cell_centered_B_x"]**2 +
-                         data["cell_centered_B_y"]**2 +
-                         data["cell_centered_B_z"]**2)
-        return eint/data["density"]
-add_field("Gas_Energy", function=_gasenergy, take_log=False,
-          units=r"erg/g")
-
-def _convertPressure(data) :
-    return data.convert("Density")*data.convert("x-velocity")**2
-def _pressure(field, data) :
-    if "pressure" in data.pf.field_info:
-        return data["pressure"]
-    else:
-        eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
-                                           data["momentum_y"]**2 +
-                                           data["momentum_z"]**2)/data["density"]
-        if "cell_centered_B_x" in data.pf.field_info:
-            eint -= 0.5*(data["cell_centered_B_x"]**2 +
-                         data["cell_centered_B_y"]**2 +
-                         data["cell_centered_B_z"]**2)
-        return eint*(data.pf["Gamma"]-1.0)
-add_field("Pressure", function=_pressure, take_log=False, 
-          convert_function=_convertPressure, units=r"erg/cm**3")
-
-def _temperature(field, data):
-    if data.has_field_parameter("mu"):
-        mu = data.get_field_parameter("mu")
-    else:
-        mu = 0.6
-    return mu*mh*data["Pressure"]/data["Density"]/kboltz
-add_field("Temperature", function=_temperature, take_log=False,
-          units="K")
-
-def _convertBfield(data):
-    return np.sqrt(4*np.pi*data.convert("Density")*data.convert("x-velocity")**2)
-def _Bx(field, data):
-    return data['cell_centered_B_x']
-add_field("Bx", function=_Bx, take_log=False,
-          units="gauss", display_name=r"B_x",
-          convert_function=_convertBfield)
-def _By(field, data):
-    return data['cell_centered_B_y']
-add_field("By", function=_By, take_log=False,
-          units="gauss", display_name=r"B_y",
-          convert_function=_convertBfield)
-def _Bz(field, data):
-    return data['cell_centered_B_z']
-add_field("Bz", function=_Bz, take_log=False,
-          units="gauss", display_name=r"B_z",
-          convert_function=_convertBfield)
-
+        def _temperature(field, data):
+            if data.has_field_parameter("mu"):
+                mu = data.get_field_parameter("mu")
+            else:
+                mu = 0.6
+            return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
+        self.add_field(("gas","temperature"), function=_temperature,
+                       units="K")
 

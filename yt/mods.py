@@ -109,8 +109,8 @@ from yt.frontends.halo_catalogs.api import \
 #    MoabHex8StaticOutput, MoabFieldInfo, add_moab_field, \
 #    PyneMoabHex8StaticOutput
 
-#from yt.frontends.athena.api import \
-#    AthenaStaticOutput, AthenaFieldInfo, add_athena_field
+from yt.frontends.athena.api import \
+    AthenaStaticOutput, AthenaFieldInfo
 
 #from yt.frontends.art.api import \
 #    ARTStaticOutput, ARTFieldInfo, add_art_field
