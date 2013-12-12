@@ -103,7 +103,6 @@ class FLASHHierarchy(GridGeometryHandler):
         # We only go up to ND for 2D datasets
         self.grid_left_edge[:,:ND] = f["/bounding box"][:,:ND,0]
         self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
-        print self.grid_left_edge
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']
