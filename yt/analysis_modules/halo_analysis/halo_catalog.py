@@ -1,44 +1,60 @@
 """
 Halo Catalog object
 
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
-Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: Columbia University
-Homepage: http://yt-project.org/
-License:
-  Copyright (C) 2013 Britton Smith, Matthew Turk.  All Rights Reserved.
 
-  This file is part of yt.
-
-  yt is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 from .operator_registry import \
     callback_registry, \
     quantity_registry, \
     hf_registry
 
 class HaloCatalog(object):
-    def __init__(self, data_pf, halos_pf):#, finding_method, data_source = None):
-        self.data_pf = data_pf
+    r"""Create a HaloCatalog: an object that allows for the creation and association
+    of data with a set of halo objects.
+
+    Parameters
+    ----------
+    halos_pf : str
+        Dataset created by a halo finder.  If None, a halo finder should be 
+        provided with the finder_method keyword.
+    data_pf : str
+        Dataset created by a simulation.
+    data_source : data container
+        Data container associated with either the halos_pf or the data_pf.
+    finder_method : str
+        Halo finder to be used if no halos_pf is given.
+
+    Examples
+    --------
+    
+    """
+    
+    def __init__(self, halos_pf=None, data_pf=None, data_source=None, finder_method=None):
         self.halos_pf = halos_pf
-        # self.finding_method = hf_registry.find(finding_method)
-        # if data_source is None:
-        #     data_source = pf.h.all_data()
-        # self.data_source = data_source
+        self.data_pf = data_pf
+        self.finder_method = finder_method
+
+        if halos_pf is None:
+            if data_pf is None:
+                raise RuntimeError("Must specify a halos_pf, data_pf, or both.")
+            if finder_method is None:
+                raise RuntimeError("Must specify a halos_pf or a finder_method.")
+        if data_source is None:
+            if halos_pf is not None:
+                data_source = halos_pf.h.all_data()
+            else:
+                data_source = data_pf.h.all_data()
+        self.data_source = data_source
+
         self.values = []
         self.callbacks = []
 
@@ -55,12 +71,12 @@ class HaloCatalog(object):
         self.callbacks.append(filter)
 
     def run(self):
-        # Here's the basic rundown.
-        # First we call the halo finding operation.  This is going to be handed
-        # the data source, but we assume it already has all its arguments
-        # necessary for the finding operation.
-        # halo_list here will be a generator.
-        # halo_list = self.finding_method(self)
+
+        if halos_pf is None:
+            # this is where we would do halo finding and assign halos_pf to 
+            # the dataset that we have just created.
+            raise NotImplementedError
+        
         self.run_callbacks(halo_list)
 
     def run_callbacks(self, halo_list):
