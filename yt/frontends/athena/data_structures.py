@@ -26,6 +26,8 @@ from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.lib import \
+    get_box_grids_level
 
 from .fields import AthenaFieldInfo, KnownAthenaFields
 from yt.data_objects.field_info_container import \
@@ -109,7 +111,7 @@ class AthenaHierarchy(GridGeometryHandler):
         self.hierarchy_filename = self.parameter_file.filename
         #self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = file(self.hierarchy_filename,'rb')
-        AMRHierarchy.__init__(self, pf, data_style)
+        GridGeometryHandler.__init__(self, pf, data_style)
 
         self._fhandle.close()
 
@@ -161,7 +163,7 @@ class AthenaHierarchy(GridGeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        GridGeometryHandler._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):
@@ -197,13 +199,18 @@ class AthenaHierarchy(GridGeometryHandler):
             raise TypeError
 
         # Need to determine how many grids: self.num_grids
-        dname = self.hierarchy_filename
-        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        dataset_dir = os.path.dirname(self.hierarchy_filename)
+        dname = os.path.split(self.hierarchy_filename)[-1]
+        if dataset_dir.endswith("id0"):
+            dname = "id0/"+dname
+            dataset_dir = dataset_dir[:-3]
+                        
+        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         gridlistread.insert(0,self.hierarchy_filename)
         if 'id0' in dname :
-            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -259,7 +266,7 @@ class AthenaHierarchy(GridGeometryHandler):
         # know the extent of all the grids. 
         glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=12)
         self.parameter_file.domain_width = \
                 (self.parameter_file.domain_right_edge - 
                  self.parameter_file.domain_left_edge)
@@ -287,9 +294,9 @@ class AthenaHierarchy(GridGeometryHandler):
             dxs.append(dx)
         
         dx = np.array(dxs)
-        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
+        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=12)
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
+        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=12)
         if self.parameter_file.dimensionality <= 2:
             self.grid_right_edge[:,2] = self.parameter_file.domain_right_edge[2]
         if self.parameter_file.dimensionality == 1:
@@ -300,12 +307,32 @@ class AthenaHierarchy(GridGeometryHandler):
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
+        self._reconstruct_parent_child()
 
+        """
         for g in self.grids:
             g.Children = self._get_grid_children(g)
             for g1 in g.Children:
                 g1.Parent.append(g)
+        """
         self.max_level = self.grid_levels.max()
+
+    def _reconstruct_parent_child(self):
+        mask = np.empty(len(self.grids), dtype='int32')
+        mylog.debug("First pass; identifying child grids")
+        for i, grid in enumerate(self.grids):
+            get_box_grids_level(self.grid_left_edge[i,:],
+                                self.grid_right_edge[i,:],
+                                self.grid_levels[i] + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+                #ids = np.where(mask.astype("bool")) # where is a tuple
+                #mask[ids] = True
+            grid.Children = [g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1]
+        mylog.debug("Second pass; identifying parents")
+        for i, grid in enumerate(self.grids): # Second pass
+            for child in grid.Children:
+                child.Parent.append(grid)
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
@@ -426,12 +453,17 @@ class AthenaStaticOutput(StaticOutput):
         else:
             self.periodicity = (True,)*self.dimensionality
 
-        dname = self.parameter_filename
-        gridlistread = glob.glob('id*/%s-id*%s' % (dname[4:-9],dname[-9:] ))
+        dataset_dir = os.path.dirname(self.parameter_filename)
+        dname = os.path.split(self.parameter_filename)[-1]
+        if dataset_dir.endswith("id0"):
+            dname = "id0/"+dname
+            dataset_dir = dataset_dir[:-3]
+            
+        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         if 'id0' in dname :
-            gridlistread += glob.glob('id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob('lev*/%s*-lev*%s' % (dname[:-9],dname[-9:]))
+            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \

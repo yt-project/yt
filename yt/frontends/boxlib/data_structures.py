@@ -52,11 +52,21 @@ from .io import IOHandlerBoxlib
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
-_dim_finder = re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")
+# It is different for different dimensionalities, so we make a list
+_dim_finder = [ \
+    re.compile(r"\(\((\d+)\) \((\d+)\) \(\d+\)\)$"),
+    re.compile(r"\(\((\d+,\d+)\) \((\d+,\d+)\) \(\d+,\d+\)\)$"),
+    re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")]
 # This is the line that prefixes each set of data for a FAB in the FAB file
-_header_pattern = re.compile(r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), " +
-                             r"\(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) " +
-                             "\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n")
+# It is different for different dimensionalities, so we make a list
+_endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
+_header_pattern = [ \
+    re.compile(_endian_regex + 
+               r"\(\((\d+)\) \((\d+)\) \((\d+)\)\) (\d+)\n"),
+    re.compile(_endian_regex + 
+               r"\(\((\d+,\d+)\) \((\d+,\d+)\) \((\d+,\d+)\)\) (\d+)\n"),
+    re.compile(_endian_regex + 
+               r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n")]
 
 
 
@@ -141,6 +151,7 @@ class BoxlibHierarchy(GridGeometryHandler):
 
         GridGeometryHandler.__init__(self, pf, data_style)
         self._cache_endianness(self.grids[-1])
+
         #self._read_particles()
 
     def _parse_hierarchy(self):
@@ -149,31 +160,48 @@ class BoxlibHierarchy(GridGeometryHandler):
         """
         self.max_level = self.parameter_file._max_level
         header_file = open(self.header_filename,'r')
-        # We can now skip to the point in the file we want to start parsing at.
+
+        self.dimensionality = self.parameter_file.dimensionality
+        _our_dim_finder = _dim_finder[self.dimensionality-1]
+        DRE = self.parameter_file.domain_right_edge # shortcut
+        DLE = self.parameter_file.domain_left_edge # shortcut
+
+        # We can now skip to the point in the file we want to start parsing.
         header_file.seek(self.parameter_file._header_mesh_start)
 
         dx = []
         for i in range(self.max_level + 1):
             dx.append([float(v) for v in header_file.next().split()])
+            # account for non-3d data sets
+            if self.dimensionality < 2:
+                dx[i].append(DRE[1] - DLE[1])
+            if self.dimensionality < 3:
+                dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
         if int(header_file.next()) != 0:
             raise RunTimeError("yt only supports cartesian coordinates.")
         if int(header_file.next()) != 0:
             raise RunTimeError("INTERNAL ERROR! This should be a zero.")
 
-        # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
+        # each level is one group with ngrids on it. 
+        # each grid has self.dimensionality number of lines of 2 reals 
         self.grids = []
         grid_counter = 0
         for level in range(self.max_level + 1):
             vals = header_file.next().split()
-            # should this be grid_time or level_time??
-            lev, ngrids, grid_time = int(vals[0]),int(vals[1]),float(vals[2])
+            lev, ngrids, cur_time = int(vals[0]),int(vals[1]),float(vals[2])
             assert(lev == level)
             nsteps = int(header_file.next())
             for gi in range(ngrids):
                 xlo, xhi = [float(v) for v in header_file.next().split()]
-                ylo, yhi = [float(v) for v in header_file.next().split()]
-                zlo, zhi = [float(v) for v in header_file.next().split()]
+                if self.dimensionality > 1:
+                    ylo, yhi = [float(v) for v in header_file.next().split()]
+                else:
+                    ylo, yhi = 0.0, 1.0
+                if self.dimensionality > 2:
+                    zlo, zhi = [float(v) for v in header_file.next().split()]
+                else:
+                    zlo, zhi = 0.0, 1.0
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
@@ -181,14 +209,13 @@ class BoxlibHierarchy(GridGeometryHandler):
                               header_file.next().strip())
             level_header_file = open(fn + "_H")
             level_dir = os.path.dirname(fn)
-            # We skip the first two lines, although they probably contain
-            # useful information I don't know how to decipher.
+            # We skip the first two lines, which contain BoxLib header file
+            # version and 'how' the data was written
             level_header_file.next()
             level_header_file.next()
-            # Now we get the number of data files
+            # Now we get the number of components
             ncomp_this_file = int(level_header_file.next())
-            # Skip the next line, and we should get the number of grids / FABs
-            # in this file
+            # Skip the next line, which contains the number of ghost zones
             level_header_file.next()
             # To decipher this next line, we expect something like:
             # (8 0
@@ -197,7 +224,11 @@ class BoxlibHierarchy(GridGeometryHandler):
             # Now we can iterate over each and get the indices.
             for gi in range(ngrids):
                 # components within it
-                start, stop = _dim_finder.match(level_header_file.next()).groups()
+                start, stop = _our_dim_finder.match(level_header_file.next()).groups()
+                # fix for non-3d data 
+                # note we append '0' to both ends b/c of the '+1' in dims below
+                start += ',0'*(3-self.dimensionality)
+                stop  += ',0'*(3-self.dimensionality)
                 start = np.array(start.split(","), dtype="int64")
                 stop = np.array(stop.split(","), dtype="int64")
                 dims = stop - start + 1
@@ -206,8 +237,7 @@ class BoxlibHierarchy(GridGeometryHandler):
             # Now we read two more lines.  The first of these is a close
             # parenthesis.
             level_header_file.next()
-            # This line I'm not 100% sure of, but it's either number of grids
-            # or number of FABfiles.
+            # The next is again the number of grids
             level_header_file.next()
             # Now we iterate over grids to find their offsets in each file.
             for gi in range(ngrids):
@@ -235,7 +265,7 @@ class BoxlibHierarchy(GridGeometryHandler):
             header = f.readline()
         
         bpr, endian, start, stop, centering, nc = \
-            _header_pattern.search(header).groups()
+            _header_pattern[self.dimensionality-1].search(header).groups()
         # Note that previously we were using a different value for BPR than we
         # use now.  Here is an example set of information directly from BoxLib:
         #  * DOUBLE data
@@ -494,8 +524,6 @@ class BoxlibStaticOutput(StaticOutput):
                            for i in range(n_fields)]
 
         self.dimensionality = int(header_file.readline())
-        if self.dimensionality != 3:
-            raise RunTimeError("Boxlib 1D and 2D support not currently available.")
         self.current_time = float(header_file.readline())
         # This is traditionally a hierarchy attribute, so we will set it, but
         # in a slightly hidden variable.
@@ -545,6 +573,40 @@ class BoxlibStaticOutput(StaticOutput):
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
+
+        # overrides for 1/2-dimensional data
+        if self.dimensionality == 1: 
+            self._setup1d()
+        elif self.dimensionality == 2: 
+            self._setup2d()
+
+    def _setup1d(self):
+#        self._hierarchy_class = BoxlibHierarchy1D
+#        self._fieldinfo_fallback = Orion1DFieldInfo
+        self.domain_left_edge = \
+            np.concatenate([self.domain_left_edge, [0.0, 0.0]])
+        self.domain_right_edge = \
+            np.concatenate([self.domain_right_edge, [1.0, 1.0]])
+        tmp = self.domain_dimensions.tolist()
+        tmp.extend((1,1))
+        self.domain_dimensions = np.array(tmp)
+        tmp = list(self.periodicity)
+        tmp[1:] = False
+        self.periodicity = ensure_tuple(tmp)
+        
+    def _setup2d(self):
+#        self._hierarchy_class = BoxlibHierarchy2D
+#        self._fieldinfo_fallback = Orion2DFieldInfo
+        self.domain_left_edge = \
+            np.concatenate([self.domain_left_edge, [0.0]])
+        self.domain_right_edge = \
+            np.concatenate([self.domain_right_edge, [1.0]])
+        tmp = self.domain_dimensions.tolist()
+        tmp.append(1)
+        self.domain_dimensions = np.array(tmp)
+        tmp = list(self.periodicity)
+        tmp[2] = False
+        self.periodicity = ensure_tuple(tmp)
 
     def _set_units(self):
         """
@@ -671,6 +733,7 @@ class OrionStaticOutput(BoxlibStaticOutput):
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
+        if any(("maestro" in line.lower() for line in lines)): return False
         if any(("geometry.prob_lo" in line for line in lines)): return True
         return False
 
@@ -685,14 +748,7 @@ class CastroStaticOutput(BoxlibStaticOutput):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        fparam_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
-            return False
-        if os.path.exists(fparam_filename):
             return False
         # Now we check for all the others
         lines = open(jobinfo_filename).readlines()
@@ -710,19 +766,11 @@ class MaestroStaticOutput(BoxlibStaticOutput):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow
-        fparam_filename = os.path.join(
-                            os.path.dirname(os.path.abspath(output_dir)),
-                            args['fparam_filename'])
         if not os.path.exists(jobinfo_filename):
             return False
-        if not os.path.exists(fparam_filename):
-            return False
-        # Now we check for all the others
+        # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
-        # Maestro outputs have "Castro" in them
-        if any(line.startswith("Castro   ") for line in lines): return True
+        if any("maestro" in line.lower() for line in lines): return True
         return False
 
 

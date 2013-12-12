@@ -83,6 +83,7 @@ class Tree(object):
             grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
             gids = np.array([g.id for g in grids if g.Level == lvl],
                             dtype="int64")
+            if len(grids) == 0: continue
             self.add_grids(grids)
 
     def check_tree(self):
@@ -182,6 +183,24 @@ class AMRKDTree(ParallelAnalysisInterface):
     def traverse(self, viewpoint=None):
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
             yield self.get_brick_data(node)
+
+    def slice_traverse(self, viewpoint = None):
+        if not hasattr(self.pf.h, "grid"):
+            raise NotImplementedError
+        for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
+            grid = self.pf.h.grids[node.grid - self._id_offset]
+            dds = grid.dds
+            gle = grid.LeftEdge
+            nle = get_left_edge(node)
+            nre = get_right_edge(node)
+            li = np.rint((nle-gle)/dds).astype('int32')
+            ri = np.rint((nre-gle)/dds).astype('int32')
+            dims = (ri - li).astype('int32')
+            sl = (slice(li[0], ri[0]),
+                  slice(li[1], ri[1]),
+                  slice(li[2], ri[2]))
+            gi = grid.get_global_startindex() + li
+            yield grid, node, (sl, dims, gi)
 
     def get_node(self, nodeid):
         path = np.binary_repr(nodeid)

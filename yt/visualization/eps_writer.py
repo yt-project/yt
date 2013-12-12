@@ -17,6 +17,7 @@ import numpy as np
 from matplotlib import cm
 from _mpl_imports import FigureCanvasAgg
 
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import \
     x_dict, x_names, \
     y_dict, y_names, \
@@ -25,6 +26,10 @@ from yt.utilities.definitions import \
 from .plot_types import \
     VMPlot, \
     ProfilePlot
+from .plot_collection import PlotCollection
+from .plot_window import PlotWindow
+from .profile_plotter import PhasePlot
+from .plot_modifications import get_smallest_appropriate_unit
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -40,6 +45,7 @@ class DualEPS(object):
         self.figsize = figsize
         self.canvas = None
         self.colormaps = None
+        self.field = None
         self.axes_drawn = False
 
     def hello_world(self):
@@ -50,6 +56,14 @@ class DualEPS(object):
         p = pyx.path.line(0,0,1,1)
         self.canvas.stroke(p)
         self.canvas.text(0,0, "Hello world.")
+
+#=============================================================================
+
+    def return_field(self, plot):
+        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+            return plot.plots.keys()[0]
+        else:
+            return None
 
 #=============================================================================
 
@@ -271,18 +285,21 @@ class DualEPS(object):
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
         """
-        plot._redraw_image()
-        if isinstance(plot, VMPlot):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
+            plot.refresh()
+        else:
+            plot._redraw_image()
+        if isinstance(plot, (VMPlot, PlotWindow)):
+            if isinstance(plot, PlotWindow):
+                data = plot._frb
+                width = plot.width[0]
+            else:
+                data = plot.data
+                width = plot.width
             if units == None:
-                # Determine the best units
-                astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'mpc']
-                best_fit = 0
-                while plot.width*plot.pf[astro_units[best_fit]] > 1e3 and \
-                          best_fit < len(astro_units):
-                    best_fit += 1
-                units = astro_units[best_fit]
-            _xrange = (0, plot.width * plot.pf[units])
-            _yrange = (0, plot.width * plot.pf[units])
+                units = get_smallest_appropriate_unit(width, plot.pf)
+            _xrange = (0, width * plot.pf[units])
+            _yrange = (0, width * plot.pf[units])
             _xlog = False
             _ylog = False
             if bare_axes:
@@ -293,13 +310,39 @@ class DualEPS(object):
                 if xlabel != None:
                     _xlabel = xlabel
                 else:
-                    _xlabel = '%s (%s)' % (x_names[plot.data.axis], units)
+                    if data.axis != 4:
+                        _xlabel = '%s (%s)' % (x_names[data.axis], units)
+                    else:
+                        _xlabel = 'Image x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
-                    _ylabel = '%s (%s)' % (y_names[plot.data.axis], units)
+                    if data.axis != 4:
+                        _ylabel = '%s (%s)' % (y_names[data.axis], units)
+                    else:
+                        _ylabel = 'Image y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
+        elif isinstance(plot, PhasePlot):
+            k = plot.plots.keys()[0]
+            _xrange = plot[k].axes.get_xlim()
+            _yrange = plot[k].axes.get_ylim()
+            _xlog = plot.profile.x_log
+            _ylog = plot.profile.y_log
+            if bare_axes:
+                _xlabel = ""
+                _ylabel = ""
+            else:
+                if xlabel != None:
+                    _xlabel = xlabel
+                else:
+                    _xlabel = plot[k].axes.get_xlabel()
+                if ylabel != None:
+                    _ylabel = ylabel
+                else:
+                    _ylabel = plot[k].axes.get_ylabel()
+            if tickcolor == None:
+                _tickcolor = None
         else:
             _xrange = plot._axes.get_xlim()
             _yrange = plot._axes.get_ylim()
@@ -362,7 +405,7 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def insert_image_yt(self, plot, pos=(0,0), scale=1.0):
+    def insert_image_yt(self, plot, field=None, pos=(0,0), scale=1.0):
         r"""Inserts a bitmap taken from a yt plot.
 
         Parameters
@@ -385,32 +428,52 @@ class DualEPS(object):
         For best results, set use_colorbar=False when creating the yt
         image.
         """
+        
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
-        if plot.colorbar != None and \
-               isinstance(plot, VMPlot):
-            print "WARNING: Image (slices, projections, etc.) plots must not"\
-                  "have a colorbar."
-            print "Removing it."
-            plot.colorbar = None
+        shift = 0.0
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        plot._redraw_image()
-        _p1 = plot._figure
-        if isinstance(plot, ProfilePlot):
+        if isinstance(plot, VMPlot):
+            if plot.colorbar != None:
+                mylog.warning("Image (slices, projections, etc.) plots must not"\
+                              "have a colorbar.  Removing it.")
+                plot.colorbar = None
+            plot._redraw_image()
+            _p1 = plot._figure
+        elif isinstance(plot, (PlotWindow, PhasePlot)):
+            self.field = field
+            if self.field == None:
+                self.field = plot.plots.keys()[0]
+                mylog.warning("No field specified.  Choosing first field (%s)" % \
+                              self.field)
+            if self.field not in plot.plots.keys():
+                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+            plot.plots[self.field].hide_colorbar()
+            plot.refresh()
+            _p1 = plot.plots[self.field].figure
+            # hack to account for non-square display ratios (not sure why)
+            if isinstance(plot, PlotWindow):
+                shift = 12.0 / 340
+        elif isinstance(plot, ProfilePlot):
+            plot._redraw_image()
             # Remove colorbar
+            _p1 = plot._figure
             _p1.delaxes(_p1.axes[1])
+        else:
+            raise RuntimeError("Unknown plot type")
+
         _p1.axes[0].set_axis_off()  # remove axes
-        _p1.axes[0].set_position([0,0,1,1])  # rescale figure
+        _p1.axes[0].set_position([-shift,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
-        size = _p1.get_size_inches() * _p1.dpi
+        size = (_p1.get_size_inches() * _p1.dpi).astype('int')
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
         #figure_canvas.print_png('test.png')
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             width=scale*self.figsize[0],
+                                             width=(1.0+2*shift)*scale*self.figsize[0],
                                              height=scale*self.figsize[1]))
 
 #=============================================================================
@@ -468,7 +531,7 @@ class DualEPS(object):
             size = (self.figsize[0], 0.1*self.figsize[1])
             imsize = (256,1)
         else:
-            print "orientation %s unknown" % orientation
+            raise RuntimeError("orientation %s unknown" % orientation)
             return
 
         # If shrink is a scalar, then convert into tuple
@@ -537,7 +600,7 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def colorbar_yt(self, plot, **kwargs):
+    def colorbar_yt(self, plot, field=None, **kwargs):
         r"""Wrapper around DualEPS.colorbar to take information from a yt plot.
 
         Accepts all parameters that DualEPS.colorbar takes.
@@ -556,21 +619,45 @@ class DualEPS(object):
         >>> d.colorbar_yt(p)
         >>> d.save_fig()
         """
-        if plot.cmap != None:
-            _cmap = plot.cmap.name
+        _cmap = None
+        if field != None:
+            self.field = field
+        if isinstance(plot, (PlotWindow, PhasePlot)):
+            _cmap = plot._colormaps[self.field]
         else:
+            if plot.cmap != None:
+                _cmap = plot.cmap.name
+        if _cmap == None:
             _cmap = 'algae'
         if isinstance(plot, VMPlot):
-            # Taken from yt
             proj = "Proj" in plot._type_name and \
-                   plot.data._weight is None
+                plot.data._weight is None
             _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.log_field
+            _zrange = (plot.norm.vmin, plot.norm.vmax)
+        elif isinstance(plot, (PlotWindow, PhasePlot)):
+            proj = plot._plot_type.endswith("Projection") and \
+                plot.data_source.weight_field == None
+            if isinstance(plot, PlotWindow):
+                _zlabel = plot.pf.field_info[self.field].get_label(proj)
+            else:
+                _zlabel = plot.data_source.pf.field_info[self.field].get_label(proj)
+            _zlabel = _zlabel.replace("_","\;")
+            _zlog = plot.get_log(self.field)[self.field]
+            if plot.plots[self.field].zmin == None:
+                zmin = plot.plots[self.field].image._A.min()
+            else:
+                zmin = plot.plots[self.field].zmin
+            if plot.plots[self.field].zmax == None:
+                zmax = plot.plots[self.field].image._A.max()
+            else:
+                zmax = plot.plots[self.field].zmax
+            _zrange = (zmin, zmax)
         else:
             _zlabel = plot._z_label.replace("_","\;")
             _zlog = plot._log_z
-        _zrange = (plot.norm.vmin, plot.norm.vmax)
+            _zrange = (plot.norm.vmin, plot.norm.vmax)
         self.colorbar(_cmap, zrange=_zrange, label=_zlabel, log=_zlog, **kwargs)
 
 #=============================================================================
@@ -728,19 +815,19 @@ class DualEPS(object):
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
         else:
-            print "format %s unknown." % (format)
+            raise RuntimeError("format %s unknown." % (format))
             
 #=============================================================================
 #=============================================================================
 #=============================================================================
 
-def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
-              yranges=None, xlabels=None, ylabels=None,
+def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None, 
+              xranges=None, yranges=None, xlabels=None, ylabels=None,
               xdata=None, ydata=None, colorbars=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
               savefig=None, format="eps", yt_nocbar=False, bare_axes=False,
               xaxis_flags=None, yaxis_flags=None,
-              cb_flags=None):
+              cb_flags=None, cb_location=None, plot_collection=False):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
     bottom-to-top and left-to-right.
@@ -785,6 +872,11 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
         axes.
     cb_flags : list of booleans
         Flags for each plot to have a colorbar or not.
+    cb_location : list of strings
+        Strings to control the location of the colorbar (left, right, 
+        top, bottom)
+    plot_collection : boolean
+        Set to true to yt_plots is a PlotCollection
 
     Examples
     --------
@@ -809,35 +901,38 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
     yt plots.
     """
     # Error check
+    npanels = ncol*nrow
     if images != None:
-        if len(images) != ncol*nrow:
-            print "Number of images (%d) doesn't match nrow(%d) x ncol(%d)." %\
-                  (len(images), nrow, ncol)
+        if len(images) != npanels:
+            raise RuntimeError("Number of images (%d) doesn't match nrow(%d)"\
+                               " x ncol(%d)." % (len(images), nrow, ncol))
             return
     if yt_plots is None and images is None:
-        print "Must supply either yt_plots or image filenames."
+        raise RuntimeError("Must supply either yt_plots or image filenames.")
         return
     if yt_plots != None and images != None:
-        print "Given both images and yt plots.  Ignoring images."
+        mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots != None:
         _yt = True
     else:
         _yt = False
+    if fields == None:
+        fields = [None] * npanels
 
     # If no ranges or labels given and given only images, fill them in.
     if not _yt:
         if xranges is None:
             xranges = []
-            for i in range(nrow*ncol): xranges.append((0,1))
+            for i in range(npanels): xranges.append((0,1))
         if yranges is None:
             yranges = []
-            for i in range(nrow*ncol): yranges.append((0,1))
+            for i in range(npanels): yranges.append((0,1))
         if xlabels is None:
             xlabels = []
-            for i in range(nrow*ncol): xlabels.append("")
+            for i in range(npanels): xlabels.append("")
         if ylabels is None:
             ylabels = []
-            for i in range(nrow*ncol): ylabels.append("")
+            for i in range(npanels): ylabels.append("")
 
     d = DualEPS(figsize=figsize)
     count = 0
@@ -881,7 +976,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
                     ylabel = ylabels[j]
                 else:
                     ylabel = None
-                d.insert_image_yt(yt_plots[index], pos=(xpos, ypos))
+                d.insert_image_yt(yt_plots[index], pos=(xpos, ypos),
+                                  field=fields[index])
                 d.axis_box_yt(yt_plots[index], pos=(xpos, ypos),
                               bare_axes=bare_axes, xaxis_side=xaxis,
                               yaxis_side=yaxis,
@@ -915,32 +1011,49 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
                 if cb_flags != None:
                     if cb_flags[index] == False:
                         continue
-                if ncol == 1:
-                    orientation = "right"
+                if cb_location == None:
+                    if ncol == 1:
+                        orientation = "right"
+                    elif i == 0:
+                        orientation = "left"
+                    elif i+1 == ncol:
+                        orientation = "right"
+                    elif j == 0:
+                        orientation = "bottom"
+                    elif j+1 == nrow:
+                        orientation = "top"
+                    else:
+                        orientation = None  # Marker for interior plot
+                else:
+                    if fields[index] not in cb_location.keys():
+                        raise RuntimeError("%s not found in cb_location dict" %
+                                           fields[index])
+                        return
+                    orientation = cb_location[fields[index]]
+                if orientation == "right":
                     xpos = bbox[1]
                     ypos = ypos0
-                elif j == 0:
-                    orientation = "bottom"
-                    ypos = bbox[2]
-                    xpos = xpos0
-                elif i == 0:
-                    orientation = "left"
+                elif orientation == "left":
                     xpos = bbox[0]
                     ypos = ypos0
-                elif i+1 == ncol:
-                    orientation = "right"
-                    xpos = bbox[1]
-                    ypos = ypos0
-                elif j+1 == nrow:
-                    orientation = "top"
+                elif orientation == "bottom":
+                    ypos = bbox[2]
+                    xpos = xpos0
+                elif orientation == "top":
                     ypos = bbox[3]
                     xpos = xpos0
                 else:
+                    mylog.warning("Unknown colorbar location %s. "
+                                  "No colorbar displayed." % orientation)
                     orientation = None  # Marker for interior plot
 
                 if orientation != None:
                     if _yt:
+                        # Set field if undefined
+                        if fields[index] == None:
+                            fields[index] = d.return_field(yt_plots[index])
                         d.colorbar_yt(yt_plots[index],
+                                      field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,
                                       orientation=orientation)
@@ -960,8 +1073,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
 
 #=============================================================================
 
-def multiplot_yt(ncol, nrow, plot_col, **kwargs):
-    r"""Wrapper for multiplot that takes a yt PlotCollection.
+def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
+    r"""Wrapper for multiplot that takes a yt PlotWindow or PlotCollection.
 
     Accepts all parameters used in multiplot.
 
@@ -971,8 +1084,8 @@ def multiplot_yt(ncol, nrow, plot_col, **kwargs):
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    plot_col : `PlotCollection`
-        yt PlotCollection that has the plots to be used.
+    plots : `PlotCollection` or `PlotWindow`
+        yt PlotCollection or PlotWindow that has the plots to be used.
 
     Examples
     --------
@@ -991,17 +1104,42 @@ def multiplot_yt(ncol, nrow, plot_col, **kwargs):
     >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
     >>>                   yt_nocbar=False, margins=(0.5,0.5))
     """
-    if len(plot_col.plots) < nrow*ncol:
-        print "Number of plots in PlotCollection is less than nrow(%d) "\
-              "x ncol(%d)." % (len(plot_col.plots), nrow, ncol)
+    # Determine whether the plots are organized in a PlotCollection,
+    # PlotWindow, or list of PlotWindows
+    if isinstance(plots, PlotCollection):
+        if len(plots.plots) < nrow*ncol:
+            raise RuntimeError("Number of plots in PlotCollection is less "\
+                               "than nrow(%d) x ncol(%d)." % \
+                               (len(plots.plots), nrow, ncol))
+            return
+        figure = multiplot(ncol, nrow, yt_plots=plots.plots, 
+                           plot_collection=True, **kwargs)
+    elif isinstance(plots, PlotWindow):
+        if fields == None:
+            fields = plots.fields
+        if len(fields) < nrow*ncol:
+            raise RuntimeError("Number of plots is less "\
+                               "than nrow(%d) x ncol(%d)." % \
+                               (len(fields), nrow, ncol))
+            return
+        figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
+    elif isinstance(plots, list) and isinstance(plots[0], PlotWindow):
+        if len(plots) < nrow*ncol:
+            raise RuntimeError("Number of plots is less "\
+                               "than nrow(%d) x ncol(%d)." % \
+                               (len(fields), nrow, ncol))
+            return
+        figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
+    else:
+        raise RuntimeError("Unknown plot type in multiplot_yt")
         return
-    figure = multiplot(ncol, nrow, yt_plots=plot_col.plots, **kwargs)
     return figure
 
 #=============================================================================
 
-def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
-                savefig=None, colorbar=True, file_format='eps', **kwargs):
+def single_plot(plot, field=None, figsize=(12,12), cb_orient="right", 
+                bare_axes=False, savefig=None, colorbar=True, 
+                file_format='eps', **kwargs):
     r"""Wrapper for DualEPS routines to create a figure directy from a yt
     plot.  Calls insert_image_yt, axis_box_yt, and colorbar_yt.
 
@@ -1030,7 +1168,7 @@ def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
     >>> single_plot(p, savefig="figure1")
     """
     d = DualEPS(figsize=figsize)
-    d.insert_image_yt(plot)
+    d.insert_image_yt(plot, field=field)
     d.axis_box_yt(plot, bare_axes=bare_axes, **kwargs)
     if colorbar:
         d.colorbar_yt(plot, orientation=cb_orient)

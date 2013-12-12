@@ -53,6 +53,7 @@ class FLASHGrid(AMRGridPatch):
 class FLASHHierarchy(GridGeometryHandler):
 
     grid = FLASHGrid
+    _preload_implemented = True
     
     def __init__(self,pf,data_style='flash_hdf5'):
         self.data_style = data_style
@@ -71,9 +72,9 @@ class FLASHHierarchy(GridGeometryHandler):
 
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [s for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [("gas", s) for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle) :
-            self.field_list += ["particle_" + s[0].strip() for s
+            self.field_list += [("io", "particle_" + s[0].strip()) for s
                                 in self._particle_handle["/particle names"][:]]
     
     def _setup_classes(self):
@@ -175,26 +176,6 @@ class FLASHHierarchy(GridGeometryHandler):
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
-    def _setup_derived_fields(self):
-        super(FLASHHierarchy, self)._setup_derived_fields()
-        [self.parameter_file.conversion_factors[field] 
-         for field in self.field_list]
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-            if (field not in KnownFLASHFields and
-                field.startswith("particle")) :
-                self.parameter_file.field_info.add_field(
-                        field, function=NullFunc, take_log=False,
-                        validators = [ValidateDataField(field)],
-                        particle_type=True)
-
-        for field in self.derived_field_list:
-            f = self.parameter_file.field_info[field]
-            if f._function.func_name == "_TranslationFunc":
-                # Translating an already-converted field
-                self.parameter_file.conversion_factors[field] = 1.0 
-                
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy
     _fieldinfo_fallback = FLASHFieldInfo

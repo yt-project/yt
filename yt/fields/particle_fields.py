@@ -459,6 +459,27 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
+
+def add_particle_average(registry, ptype, field_name, 
+                         weight = "particle_mass",
+                         density = True):
+    def _pfunc_avg(field, data):
+        pos = data[ptype, "Coordinates"]
+        f = data[ptype, field_name]
+        wf = data[ptype, weight]
+        f *= wf
+        v = data.deposit(pos, [f], method = "sum")
+        w = data.deposit(pos, [wf], method = "sum")
+        v /= w
+        if density: v /= data["CellVolume"]
+        v[np.isnan(v)] = 0.0
+        return v
+    fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
+    registry.add_field(fn, function=_pfunc_avg,
+                       validators = [ValidateSpatial(0)],
+                       particle_type = False)
+    return fn
+
 def add_smoothed_field(ptype, coord_name, mass_name, smoothed_field, registry,
                        smoothing_type = "neighbor_smoothing", nneighbors = 64):
     field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))

@@ -79,7 +79,7 @@ class StaticOutput(object):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
-        if not os.path.exists(apath): raise IOError(filename)
+        #if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
@@ -291,7 +291,9 @@ class StaticOutput(object):
 
     _last_freq = (None, None)
     _last_finfo = None
-    def _get_field_info(self, ftype, fname):
+    def _get_field_info(self, ftype, fname = None):
+        if fname is None:
+            ftype, fname = "unknown", ftype
         guessing_type = False
         if ftype == "unknown" and self._last_freq[0] != None:
             ftype = self._last_freq[0]

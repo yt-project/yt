@@ -53,6 +53,8 @@ def load(*args ,**kwargs):
         if isinstance(arg, types.StringTypes):
             if os.path.exists(arg):
                 valid_file.append(True)
+            elif arg.startswith("http"):
+                valid_file.append(True)
             else:
                 if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
                     valid_file.append(True)
@@ -128,6 +130,20 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
     if simulation_type not in simulation_time_series_registry:
         raise YTSimulationNotIdentified(simulation_type)
 
+    if os.path.exists(parameter_filename):
+        valid_file = True
+    elif os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"),
+                                     parameter_filename)):
+        parameter_filename = os.path.join(ytcfg.get("yt", "test_data_dir"),
+                                          parameter_filename)
+        valid_file = True
+    else:
+        valid_file = False
+        
+    if not valid_file:
+        raise YTOutputNotIdentified((parameter_filename, simulation_type), 
+                                    dict(find_outputs=find_outputs))
+    
     return simulation_time_series_registry[simulation_type](parameter_filename, 
                                                             find_outputs=find_outputs)
 

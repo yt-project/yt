@@ -33,6 +33,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore
+from yt.utilities.amr_kdtree.api import \
+    AMRKDTree
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
     NeedsGridType, ValidateSpatial
@@ -351,6 +353,24 @@ class YTDataContainer(object):
         else:
             self.hierarchy.save_object(self, name)
 
+    def to_glue(self, fields, label="yt"):
+        """
+        Takes specific *fields* in the container and exports them to
+        Glue (http://www.glueviz.org) for interactive
+        analysis. Optionally add a *label*.  
+        """
+        from glue.core import DataCollection, Data
+        from glue.core.coordinates import coordinates_from_header
+        from glue.qt.glue_application import GlueApplication
+        
+        gdata = Data(label=label)
+        for component_name in fields:
+            gdata.add_component(self[component_name], component_name)
+        dc = DataCollection([gdata])
+
+        app = GlueApplication(dc)
+        app.start()
+
     def __reduce__(self):
         args = tuple([self.pf._hash(), self._type_name] +
                      [getattr(self, n) for n in self._con_args] +
@@ -363,6 +383,13 @@ class YTDataContainer(object):
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._con_args])
         return s
+
+    @contextmanager
+    def _field_parameter_state(self, field_parameters):
+        old_field_parameters = self.field_parameters
+        self.field_parameters = field_parameters
+        yield
+        self.field_parameters = old_field_parameters
 
     @contextmanager
     def _field_type_state(self, ftype, finfo, obj = None):
@@ -406,6 +433,14 @@ class YTDataContainer(object):
                 raise YTFieldTypeNotFound(ftype)
             explicit_fields.append((ftype, fname))
         return explicit_fields
+
+    _tree = None
+
+    @property
+    def tiles(self):
+        if self._tree is not None: return self._tree
+        self._tree = AMRKDTree(self.pf, data_source=self)
+        return self._tree
 
     @property
     def blocks(self):
@@ -661,7 +696,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         return pw
 
 
-    def to_frb(self, width, resolution, center=None, height=None):
+    def to_frb(self, width, resolution, center=None, height=None,
+               periodic = False):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -686,6 +722,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
+        periodic : bool
+            Should the returned Fixed Resolution Buffer be periodic?  (default:
+            False).
 
         Returns
         -------
@@ -726,7 +765,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         yax = y_dict[self.axis]
         bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
                   center[yax] - height*0.5, center[yax] + height*0.5)
-        frb = FixedResolutionBuffer(self, bounds, resolution)
+        frb = FixedResolutionBuffer(self, bounds, resolution,
+                                    periodic = periodic)
         return frb
 
 class YTSelectionContainer3D(YTSelectionContainer):
@@ -746,11 +786,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._grids = None
         self.quantities = DerivedQuantityCollection(self)
 
-    def cut_region(self, field_cuts):
+    def cut_region(self, field_cuts, field_parameters = None):
         """
-        Return an InLineExtractedRegion, where the grid cells are cut on the
-        fly with a set of field_cuts.  It is very useful for applying 
-        conditions to the fields in your data object.
+        Return an InLineExtractedRegion, where the object cells are cut on the
+        fly with a set of field_cuts.  It is very useful for applying
+        conditions to the fields in your data object.  Note that in previous
+        versions of yt, this accepted 'grid' as a variable, but presently it
+        requires 'obj'.
         
         Examples
         --------
@@ -758,19 +800,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> pf = load("RedshiftOutput0005")
         >>> ad = pf.h.all_data()
-        >>> cr = ad.cut_region(["grid['Temperature'] > 1e6"])
+        >>> cr = ad.cut_region(["obj['Temperature'] > 1e6"])
         >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
-
         """
-        return YTValueCutExtractionBase(self, field_cuts)
-
-    def extract_region(self, indices):
-        """
-        Return an ExtractedRegion where the points contained in it are defined
-        as the points in `this` data object with the given *indices*.
-        """
-        fp = self.field_parameters.copy()
-        return YTSelectedIndicesBase(self, indices, field_parameters = fp)
+        cr = self.pf.h.cut_region(self, field_cuts,
+                                  field_parameters = field_parameters)
+        return cr
 
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):
@@ -961,12 +996,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     ff, mask, grid.LeftEdge, grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
-                                log_space=True, cumulative=True, cache=False):
+                               log_space=True, cumulative=True):
         """
         This function will create a set of contour objects, defined
         by having connected cell structures, which can then be
         studied and used to 'paint' their source grids, thus enabling
         them to be plotted.
+
+        Note that this function *can* return a connected set object that has no
+        member values.
         """
         if log_space:
             cons = np.logspace(np.log10(min_val),np.log10(max_val),
@@ -974,8 +1012,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         else:
             cons = np.linspace(min_val, max_val, num_levels+1)
         contours = {}
-        if cache: cached_fields = defaultdict(lambda: dict())
-        else: cached_fields = None
         for level in range(num_levels):
             contours[level] = {}
             if cumulative:
@@ -983,10 +1019,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
             else:
                 mv = cons[level+1]
             from yt.analysis_modules.level_sets.api import identify_contours
-            cids = identify_contours(self, field, cons[level], mv,
-                                     cached_fields)
-            for cid, cid_ind in cids.items():
-                contours[level][cid] = self.extract_region(cid_ind)
+            nj, cids = identify_contours(self, field, cons[level], mv)
+            for cid in range(nj):
+                contours[level][cid] = self.cut_region(
+                    ["obj['Contours'] == %s" % (cid + 1)],
+                    {'contour_slices': cids})
         return cons, contours
 
     def paint_grids(self, field, value, default_value=None):

@@ -19,7 +19,6 @@ from yt.utilities.definitions import \
     y_dict, \
     axis_names
 from .volume_rendering.api import off_axis_projection
-from image_writer import write_fits
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
@@ -270,19 +269,8 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename_prefix, fields=None, clobber=False,
-                    other_keys=None, units="cm", sky_center=(0.0,0.0), D_A=None):
-
-        """
-        This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.  The output filename is
-        *filename_prefix*. If clobber is set to True, this will overwrite any
-        existing FITS file.
-
-        This requires the *pyfits* module, which is a standalone module
-        provided by STSci to interface with FITS-format files, and is also
-        part of AstroPy.
-        """
+    def export_fits(self, filename, fields=None, clobber=False,
+                    other_keys=None, units="cm"):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -290,8 +278,8 @@ class FixedResolutionBuffer(object):
 
         Parameters
         ----------
-        filename_prefix : string
-            This prefix will be prepended to the FITS file name.
+        filename : string
+            The name of the FITS file to be written.
         fields : list of strings
             These fields will be pixelized and output.
         clobber : boolean
@@ -302,83 +290,26 @@ class FixedResolutionBuffer(object):
             the length units that the coordinates are written in, default 'cm'
             If units are set to "deg" then assume that sky coordinates are
             requested.
-        sky_center : array_like, optional
-            Center of the image in (ra,dec) in degrees if sky coordinates
-            (units="deg") are requested.
-        D_A : float or tuple, optional
-            Angular diameter distance, given in code units as a float or
-            a tuple containing the value and the length unit. Required if
-            using sky coordinates.                                                                                            
         """
 
-        if units == "deg" and D_A is None:
-            mylog.error("Sky coordinates require an angular diameter distance. Please specify D_A.")    
-        if iterable(D_A):
-            dist = D_A[0]/self.pf.units[D_A[1]]
-        else:
-            dist = D_A
+        try:
+            import astropy.io.fits as pyfits
+        except:
+            mylog.error("You don't have AstroPy installed!")
+            raise ImportError
+        from yt.utilities.fits_image import FITSImageBuffer
 
-        if other_keys is None:
-            hdu_keys = {}
-        else:
-            hdu_keys = other_keys
-            
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if fields is None: 
             fields = [field for field in self.data_source.fields 
                       if field not in extra_fields]
 
-        coords = {}
-        nx, ny = self.buff_size
-        dx = (self.bounds[1]-self.bounds[0])/nx
-        dy = (self.bounds[3]-self.bounds[2])/ny
-        if units == "deg":  
-            coords["dx"] = -np.rad2deg(dx/dist)
-            coords["dy"] = np.rad2deg(dy/dist)
-            coords["xctr"] = sky_center[0]
-            coords["yctr"] = sky_center[1]
-            hdu_keys["MTYPE1"] = "EQPOS"
-            hdu_keys["MFORM1"] = "RA,DEC"
-            hdu_keys["CTYPE1"] = "RA---TAN"
-            hdu_keys["CTYPE2"] = "DEC--TAN"
-        else:
-            coords["dx"] = dx*self.pf.units[units]
-            coords["dy"] = dy*self.pf.units[units]
-            coords["xctr"] = 0.5*(self.bounds[0]+self.bounds[1])*self.pf.units[units]
-            coords["yctr"] = 0.5*(self.bounds[2]+self.bounds[3])*self.pf.units[units]
-        coords["units"] = units
+        fib = FITSImageBuffer(self, fields=fields, units=units)
+        if other_keys is not None:
+            for k,v in other_keys.items():
+                fib.update_all_headers(k,v)
+        fib.writeto(filename, clobber=clobber)
         
-        hdu_keys["Time"] = self.pf.current_time
-
-        data = dict([(field,self[field]) for field in fields])
-        write_fits(data, filename_prefix, clobber=clobber, coords=coords,
-                   other_keys=hdu_keys)
-                
-    def open_in_ds9(self, field, take_log=True):
-        """
-        This will open a given field in the DS9 viewer.
-
-        Displaying fields can often be much easier in an interactive viewer,
-        particularly one as versatile as DS9.  This function will pixelize a
-        field and export it to an interactive DS9 package.  This requires the
-        *numdisplay* package, which is a simple download from STSci.
-        Furthermore, it presupposed that it can connect to DS9 -- that is, that
-        DS9 is already open.
-
-        Parameters
-        ----------
-        field : strings
-            This field will be pixelized and displayed.
-        take_log : boolean
-            DS9 seems to have issues with logging fields in-memory.  This will
-            pre-log the field before sending it to DS9.
-        """
-        import numdisplay
-        numdisplay.open()
-        if take_log: data=np.log10(self[field])
-        else: data=self[field]
-        numdisplay.display(data)    
-
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
