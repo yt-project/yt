@@ -168,7 +168,7 @@ cdef class ParticleSmoothOperation:
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             offset = dom_ind[oct.domain_ind - moff] * nz
-            neighbors = octree.neighbors(&oi, &nneighbors)
+            neighbors = octree.neighbors(&oi, &nneighbors, oct)
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:

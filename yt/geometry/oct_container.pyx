@@ -339,7 +339,7 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct** neighbors(self, OctInfo *oi, np.int64_t *nneighbors):
+    cdef Oct** neighbors(self, OctInfo *oi, np.int64_t *nneighbors, Oct *o):
         cdef Oct* candidate
         nn = 0
         # We are going to do a brute-force search here.
@@ -359,6 +359,7 @@ cdef class OctreeContainer:
         for i in range(3):
             ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i]) / oi.dds[i])
             ndim[i] = (ndim[i] >> self.oref)
+        my_list = olist = OctList_append(NULL, o)
         for i in range(3):
             npos[0] = (oi.ipos[0] + (1 - i))
             if npos[0] < 0: npos[0] += ndim[0]
@@ -387,11 +388,11 @@ cdef class OctreeContainer:
                         ii = cind(ind[0],ind[1],ind[2])
                         if cand.children[ii] == NULL: break
                         cand = cand.children[ii]
-                    if cand != NULL:
-                        nfound += 1
+                    if cand.children != NULL:
+                        olist = OctList_subneighbor_find(
+                            olist, cand, i, j, k)
+                    else:
                         olist = OctList_append(olist, cand)
-                        if my_list == NULL: my_list = olist
-
         olist = my_list
         cdef int noct = OctList_count(olist)
         cdef Oct **neighbors
@@ -907,6 +908,44 @@ cdef class ARTOctreeContainer(OctreeContainer):
                 domain_left_edge, domain_right_edge, partial_coverage,
                  over_refine)
         self.fill_func = oct_visitors.fill_file_indices_rind
+cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
+                                       int i, int j, int k):
+    if top.children == NULL: return olist
+    # The i, j, k here are the offsets of "top" with respect to
+    # the oct for whose neighbors we are searching.
+    # Note that this will be recursively called.  We will evaluate either 1, 2,
+    # or 4 octs for children and potentially adding them.  In fact, this will
+    # be 2**(num_zero) where num_zero is the number of indices that are equal
+    # to zero; i.e., the number of dimensions along which we are aligned.
+    # For now, we assume we will not be doing this along all three zeros,
+    # because that would be pretty tricky.
+    if i == j == k == 0: return olist
+    cdef int n[3], ind[3], off[3][2], ii, ij, ik, ci
+    ind[0] = 1 - i
+    ind[1] = 1 - j
+    ind[2] = 1 - k
+    for ii in range(3):
+        if ind[ii] == 0:
+            n[ii] = 2
+            off[ii][0] = 0
+            off[ii][1] = 1
+        elif ind[ii] == -1:
+            n[ii] = 1
+            off[ii][0] = 1
+        elif ind[ii] == 1:
+            n[ii] = 1
+            off[ii][0] = 0
+    for ii in range(n[0]):
+        for ij in range(n[1]):
+            for ik in range(n[2]):
+                ci = cind(off[0][ii], off[1][ij], off[2][ik])
+                cand = top.children[ci]
+                if cand.children != NULL:
+                    olist = OctList_subneighbor_find(olist,
+                        cand, i, j, k)
+                else:
+                    olist = OctList_append(olist, cand)
+    return olist
 
 cdef OctList *OctList_append(OctList *olist, Oct *o):
     cdef OctList *this = olist
