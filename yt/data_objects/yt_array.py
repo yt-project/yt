@@ -664,6 +664,8 @@ class YTArray(np.ndarray):
 
     def __array_wrap__(self, out_arr, context=None):
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
+        if isinstance(ret, YTQuantity) and ret.shape != ():
+            ret = ret.view(YTArray)
         if context is None:
             if ret.shape == ():
                 return ret[()]
