@@ -153,7 +153,7 @@ class OctreeSubset(YTSelectionContainer):
         return np.asfortranarray(vals)
 
     def smooth(self, positions, fields = None, index_fields = None,
-               method = None, create_octree = False):
+               method = None, create_octree = False, nneighbors = 64):
         # Here we perform our particle deposition.
         if create_octree:
             morton = compute_morton(
@@ -165,7 +165,7 @@ class OctreeSubset(YTSelectionContainer):
                 self.pf.domain_left_edge,
                 self.pf.domain_right_edge,
                 over_refine = self._oref)
-            particle_octree.n_ref = 8 * 64
+            particle_octree.n_ref = nneighbors
             particle_octree.add(morton)
             particle_octree.finalize()
             pdom_ind = particle_octree.domain_ind(self.selector)
@@ -180,7 +180,7 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         mdom_ind = self.domain_ind
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
-        op = cls(nvals, len(fields), 64)
+        op = cls(nvals, len(fields), nneighbors)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
