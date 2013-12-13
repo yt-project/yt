@@ -187,6 +187,7 @@ cdef class ParticleSmoothOperation:
             oct = mesh_octree.get(pos, &moi)
             offset = mdom_ind[oct.domain_ind - moff_m] * nz
             if visited[oct.domain_ind - moff_m] == 1: continue
+            visited[oct.domain_ind - moff_m] = 1
             if offset < 0: continue
             # These will be PARTICLE octree neighbors.
             oct = particle_octree.get(pos, &poi)
