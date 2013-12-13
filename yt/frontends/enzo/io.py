@@ -280,8 +280,6 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
-        if any((ftype != "gas" for ftype, fname in fields)):
-            raise NotImplementedError
         for field in fields:
             ftype, fname = field
             fsize = size
