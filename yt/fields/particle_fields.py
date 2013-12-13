@@ -500,7 +500,8 @@ def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
     field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
     def _mass_cons(field, data):
         pos = data[ptype, coord_name]
-        hsml = data[ptype, smoothing_length_name]
+        hsml = np.maximum(data[ptype, smoothing_length_name], 0.1)
+        hsml /= data.pf["unitary"]
         mass = data[ptype, mass_name]
         dep_mass = np.zeros_like(mass)
         quan = data[ptype, smoothed_field]
