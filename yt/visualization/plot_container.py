@@ -146,7 +146,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields)
+        for field in self._field_check(fields):
             if self._field_transform[field] == log_transform:
                 log[field] = True
             else:
