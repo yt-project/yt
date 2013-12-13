@@ -184,7 +184,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_energy"),
                 ("enzo", ge_name),
                 units = "erg/g")
-        elif self.pf.paramters["HydroMethod"] in (4, 6):
+        elif self.pf.parameters["HydroMethod"] in (4, 6):
             self.add_output_field(
                 ("enzo", te_name),
                 units="code_length**2/code_time**2")
