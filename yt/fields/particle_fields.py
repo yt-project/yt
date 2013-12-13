@@ -501,12 +501,11 @@ def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
     def _mass_cons(field, data):
         pos = data[ptype, coord_name]
         hsml = np.maximum(data[ptype, smoothing_length_name], 0.1)
-        hsml /= data.pf["unitary"]
         mass = data[ptype, mass_name]
         dep_mass = np.zeros_like(mass)
         quan = data[ptype, smoothed_field]
         data.smooth(pos, [mass, hsml, dep_mass], method="mass_deposition_coeff",
-                index_fields = [data["CellVolume"]], create_octree = True)
+                index_fields = [data["CellVolumeCode"]], create_octree = True)
         rv = data.smooth(pos, [mass, hsml, dep_mass, quan],
                          method="conserved_mass",
                          create_octree = True)[0]
