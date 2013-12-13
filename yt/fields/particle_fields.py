@@ -490,12 +490,20 @@ def add_smoothed_field(ptype, coord_name, mass_name, smoothed_field, registry,
         quan = data[ptype, smoothed_field]
         data.smooth(pos, [mass, dep_mass], method="neighbor_mass_dep",
                           index_fields = [data["CellVolumeCode"]],
-                          nneighbors = nneighbors)
+                          nneighbors = nneighbors, create_octree = True)
+        # Now, what dep_mass is is a total mass deposited, but in units of the
+        # code -- not in the units of either the quantity or the mass.  So we
+        # need to convert it back to cm^3 eventually.
         rv = data.smooth(pos, [mass, dep_mass, quan], method="neighbor_smoothing",
-                          nneighbors = nneighbors)[0]
+                          nneighbors = nneighbors, create_octree = True)[0]
+
         return rv
+    def _conv_vol(data):
+        return 1.0/data.convert("cm")**3.0
     registry.add_field(field_name, function = _smoothed_quantity,
-                       validators = [ValidateSpatial(0)])
+                       validators = [ValidateSpatial(0)],
+                       convert_function = _conv_vol,
+                       projection_conversion = "cm")
     return [field_name]
 
 def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
@@ -503,17 +511,22 @@ def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
     field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
     def _mass_cons(field, data):
         pos = data[ptype, coord_name]
-        hsml = np.maximum(data[ptype, smoothing_length_name], 0.1)
+        hsml = data[ptype, smoothing_length_name]
         mass = data[ptype, mass_name]
         dep_mass = np.zeros_like(mass)
         quan = data[ptype, smoothed_field]
         data.smooth(pos, [mass, hsml, dep_mass], method="mass_deposition_coeff",
-                index_fields = [data["CellVolumeCode"]], create_octree = True)
+                index_fields = [data["CellVolumeCode"]],
+                create_octree = True)
         rv = data.smooth(pos, [mass, hsml, dep_mass, quan],
                          method="conserved_mass",
                          create_octree = True)[0]
         return rv
+    def _conv_vol(data):
+        return 1.0/data.convert("cm")**3.0
     registry.add_field(field_name, function = _mass_cons,
-                       validators = [ValidateSpatial(0)])
+                       validators = [ValidateSpatial(0)],
+                       projection_conversion = "cm",
+                       convert_function = _conv_vol)
     return [field_name]
 
