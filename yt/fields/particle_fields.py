@@ -486,11 +486,14 @@ def add_smoothed_field(ptype, coord_name, mass_name, smoothed_field, registry,
     def _smoothed_quantity(field, data):
         pos = data[ptype, coord_name]
         mass = data[ptype, mass_name]
-        dens = data[ptype, "Density"]
+        dep_mass = np.zeros_like(mass)
         quan = data[ptype, smoothed_field]
-        rv = data.smooth(pos, [mass, quan, dens], method="neighbor_smoothing",
+        data.smooth(pos, [mass, dep_mass], method="neighbor_mass_dep",
+                          index_fields = [data["CellVolumeCode"]],
+                          nneighbors = nneighbors)
+        rv = data.smooth(pos, [mass, dep_mass, quan], method="neighbor_smoothing",
                           nneighbors = nneighbors)[0]
-        return rv/data["CellVolume"]
+        return rv
     registry.add_field(field_name, function = _smoothed_quantity,
                        validators = [ValidateSpatial(0)])
     return [field_name]

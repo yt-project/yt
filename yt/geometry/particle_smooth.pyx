@@ -181,6 +181,7 @@ cdef class ParticleSmoothOperation:
         cdef np.ndarray[np.uint8_t, ndim=1] visited
         visited = np.zeros(mdom_ind.shape[0], dtype="uint8")
         cdef int maxnei = 0
+        cdef int nproc = 0
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
@@ -209,9 +210,11 @@ cdef class ParticleSmoothOperation:
                     break
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
+            nproc += 1
             self.neighbor_process(dims, moi.left_edge, moi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset, index_field_pointers)
+        #print "NPROC", nproc, positions.shape[0]
         #print "MAX NEIGHBORS", maxnei
         if nind != NULL:
             free(nind)
@@ -373,6 +376,7 @@ cdef class MassDepositionCoeffSmooth(ParticleSmoothOperation):
             # Smoothing kernel weight function
             mass = fields[0][pn]
             hsml = fields[1][pn]
+            if hsml == 0: continue
             weight = sph_kernel(sqrt(r2) / hsml)
             # The total mass deposited is the computed density for a given
             # particle times the volume of the oct cell.  This allows us to
@@ -427,6 +431,7 @@ cdef class ConservedMassSmooth(ParticleSmoothOperation):
             # Smoothing kernel weight function
             mass = fields[0][pn]
             hsml = fields[1][pn]
+            if hsml == 0: continue
             # Usually this density has been computed
             dens = fields[2][pn]
             if dens == 0.0: continue
@@ -475,7 +480,7 @@ cdef class NeighborSmoothing(ParticleSmoothOperation):
         cdef np.int64_t pn
         # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
-        hsml = sqrt(self.neighbors[self.curn - 1].r2) / 2.0
+        hsml = sqrt(self.neighbors[self.curn - 1].r2)
         for n in range(self.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
@@ -485,6 +490,7 @@ cdef class NeighborSmoothing(ParticleSmoothOperation):
             mass = fields[0][pn]
             # Usually this density has been computed
             dens = fields[1][pn]
+            if mass == 0.0 or dens == 0.0: continue
             #weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
             weight = sph_kernel(sqrt(r2) / hsml) + sph_kernel(sqrt(r2) / 0.02)
             weight = mass * 0.5 * weight / dens
@@ -495,3 +501,47 @@ cdef class NeighborSmoothing(ParticleSmoothOperation):
         return
 
 neighbor_smoothing_smooth = NeighborSmoothing
+
+cdef class NeighborSmoothingLength(ParticleSmoothOperation):
+    cdef public object vals
+    def initialize(self):
+        cdef int i
+        if self.nfields < 2:
+            # We need third fields -- the mass should be the first, then the
+            # smoothing length for particles, and then third is the array into
+            # which we will be placing the total deposited mass.
+            raise RuntimeError
+
+    def finalize(self):
+        return
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields):
+        # We have our i, j, k for our cell, as well as the cell position.
+        # We also have a list of neighboring particles with particle numbers.
+        cdef int n, fi
+        cdef np.float64_t weight, r2, val, hsml, vol, mass
+        cdef np.int64_t pn
+        vol = index_fields[0][gind(i,j,k,dim) + offset]
+        # We get back our mass 
+        # rho_i = sum(j = 1 .. n) m_j * W_ij
+        hsml = sqrt(self.neighbors[self.curn - 1].r2)
+        for n in range(self.curn):
+            # No normalization for the moment.
+            r2 = self.neighbors[n].r2
+            pn = self.neighbors[n].pn
+            # Smoothing kernel weight function
+            mass = fields[0][pn]
+            weight = sph_kernel(sqrt(r2) / hsml)
+            # The total mass deposited is the computed density for a given
+            # particle times the volume of the oct cell.  This allows us to
+            # track, of the total mass being smoothed, what the contribution
+            # from each particle is.
+            fields[1][pn] += mass * weight * vol
+        return
+
+neighbor_mass_dep_smooth = NeighborSmoothingLength
