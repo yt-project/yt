@@ -299,7 +299,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                 gds = f.get("/Grid%08i" % g.id)
                 for field in fields:
                     ftype, fname = field
-                    ds = np.atleast_3d(gds.get(fname).value)
+                    ds = np.atleast_3d(gds.get(fname).value.transpose())
                     nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
             f.close()
