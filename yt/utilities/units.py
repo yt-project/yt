@@ -91,7 +91,7 @@ default_unit_symbol_lut = {
     "K":  (1.0, temperature),
 
     # "code" units, default to CGS conversion.
-    # These default values are  overriden in the code frontends
+    # These default values are overridden in the code frontends
     "code_length" : (1.0, length),
     "unitary"   : (1.0, length),
     "code_mass" : (1.0, mass),
@@ -121,13 +121,13 @@ default_unit_symbol_lut = {
     "yr":  (sec_per_year, time),
 
     # Solar units
-    "Msun": (mass_sun_grams, mass),
-    "msun": (mass_sun_grams, mass),
-    "Rsun": (rsun_per_cm, length),
-    "rsun": (rsun_per_cm, length),
-    "Lsun": (luminosity_sun_ergs_per_sec, power),
-    "Tsun": (temp_sun_kelvin, temperature),
-    "Zsun": (metallicity_sun, metallicity),
+    "Msun": (1 / mass_sun_grams, mass),
+    "msun": (1 / mass_sun_grams, mass),
+    "Rsun": (1 / rsun_per_cm, length),
+    "rsun": (1 / rsun_per_cm, length),
+    "Lsun": (1 / luminosity_sun_ergs_per_sec, power),
+    "Tsun": (1 / temp_sun_kelvin, temperature),
+    "Zsun": (1 / metallicity_sun, metallicity),
 
     # astro distances
     "AU": (cm_per_au, length),
