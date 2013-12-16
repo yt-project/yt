@@ -17,7 +17,7 @@ from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
 from yt.utilities.physical_ratios import \
-    cm_per_pc, cm_per_ly, cm_per_au, rsun_per_cm, \
+    cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
@@ -121,13 +121,13 @@ default_unit_symbol_lut = {
     "yr":  (sec_per_year, time),
 
     # Solar units
-    "Msun": (1 / mass_sun_grams, mass),
-    "msun": (1 / mass_sun_grams, mass),
-    "Rsun": (1 / rsun_per_cm, length),
-    "rsun": (1 / rsun_per_cm, length),
-    "Lsun": (1 / luminosity_sun_ergs_per_sec, power),
-    "Tsun": (1 / temp_sun_kelvin, temperature),
-    "Zsun": (1 / metallicity_sun, metallicity),
+    "Msun": ( mass_sun_grams, mass),
+    "msun": ( mass_sun_grams, mass),
+    "Rsun": ( cm_per_rsun, length),
+    "rsun": ( cm_per_rsun, length),
+    "Lsun": ( luminosity_sun_ergs_per_sec, power),
+    "Tsun": ( temp_sun_kelvin, temperature),
+    "Zsun": ( metallicity_sun, metallicity),
 
     # astro distances
     "AU": (cm_per_au, length),
