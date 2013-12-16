@@ -19,7 +19,10 @@ import h5py
 import numpy as np
 import os
 
-from yt.funcs import *
+from yt.funcs import \
+     download_file, \
+     mylog, \
+     only_on_root
 
 from yt.fields.field_info_container import add_field
 from yt.utilities.exceptions import YTException
@@ -30,6 +33,23 @@ from yt.utilities.physical_constants import \
     keV_per_Hz
 
 xray_data_version = 1
+
+def _get_data_file():
+    data_file = "xray_emissivity.h5"
+    data_url = "http://yt-project.org/data"
+    if "YT_DEST" in os.environ and \
+      os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
+        data_dir = os.path.join(os.environ["YT_DEST"], "data")
+    else:
+        data_dir = "."
+    data_path = os.path.join(data_dir, data_file)
+    if not os.path.exists(data_path):
+        mylog.info("Attempting to download supplementary data from %s to %s." % 
+                   (data_url, data_dir))
+        fn = download_file(os.path.join(data_url, data_file), data_path)
+        if fn != data_path:
+            raise RuntimeError, "Failed to download supplementary data."
+    return data_path
 
 class EnergyBoundsException(YTException):
     def __init__(self, lower, upper):
@@ -65,8 +85,7 @@ class EmissivityIntegrator(object):
 
         default_filename = False
         if filename is None:
-            filename = os.path.join(os.environ["YT_DEST"], 
-                                    "data", "xray_emissivity.h5")
+            filename = _get_data_file()
             default_filename = True
 
         if not os.path.exists(filename):
