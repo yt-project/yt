@@ -17,7 +17,7 @@ from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
 from yt.utilities.physical_ratios import \
-    cm_per_pc, cm_per_ly, cm_per_au, rsun_per_cm, \
+    cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
@@ -91,7 +91,7 @@ default_unit_symbol_lut = {
     "K":  (1.0, temperature),
 
     # "code" units, default to CGS conversion.
-    # These default values are  overriden in the code frontends
+    # These default values are overridden in the code frontends
     "code_length" : (1.0, length),
     "unitary"   : (1.0, length),
     "code_mass" : (1.0, mass),
@@ -121,13 +121,13 @@ default_unit_symbol_lut = {
     "yr":  (sec_per_year, time),
 
     # Solar units
-    "Msun": (mass_sun_grams, mass),
-    "msun": (mass_sun_grams, mass),
-    "Rsun": (rsun_per_cm, length),
-    "rsun": (rsun_per_cm, length),
-    "Lsun": (luminosity_sun_ergs_per_sec, power),
-    "Tsun": (temp_sun_kelvin, temperature),
-    "Zsun": (metallicity_sun, metallicity),
+    "Msun": ( mass_sun_grams, mass),
+    "msun": ( mass_sun_grams, mass),
+    "Rsun": ( cm_per_rsun, length),
+    "rsun": ( cm_per_rsun, length),
+    "Lsun": ( luminosity_sun_ergs_per_sec, power),
+    "Tsun": ( temp_sun_kelvin, temperature),
+    "Zsun": ( metallicity_sun, metallicity),
 
     # astro distances
     "AU": (cm_per_au, length),
