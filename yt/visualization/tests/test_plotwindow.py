@@ -24,7 +24,7 @@ from yt.utilities.answer_testing.framework import \
     requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
-from yt.data_objects.yt_array import YTQuantity
+from yt.data_objects.yt_array import YTArray, YTQuantity
 
 def setup():
     """Test specific setup."""
@@ -83,6 +83,18 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
                           (('density', 1e-25, None), {'dynamic_range': 4})],
              "zoom": [((10, ), {})]}
 
+
+CENTER_SPECS = ("m",
+                "M",
+                "max",
+                "Max",
+                "c",
+                "C",
+                "center",
+                "Center",
+                [0.5, 0.5, 0.5],
+                [[0.2, 0.3, 0.4], "cm"],
+                YTArray([0.3, 0.4, 0.7], "cm"))
 
 @requires_pf(M7)
 def test_attributes():
@@ -169,14 +181,19 @@ class TestPlotWindowSave(unittest.TestCase):
         ds_region = test_pf.h.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         projections = []
         projections_ds = []
+        projections_c = []
         for dim in range(3):
             projections.append(ProjectionPlot(test_pf, dim, "density"))
             projections_ds.append(ProjectionPlot(test_pf, dim, "density",
                                                  data_source=ds_region))
+        for center in CENTER_SPECS:
+            projections_c.append(ProjectionPlot(test_pf, dim, "density",
+                                                center=center))
 
         cls.slices = [SlicePlot(test_pf, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
+        cls.projections_c = projections_c
         cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, "density")
         cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, "density")
 
@@ -204,6 +221,10 @@ class TestPlotWindowSave(unittest.TestCase):
     @parameterized.expand([(0, ), (1, ), (2, )])
     def test_projection_plot_ds(self, dim):
         self.projections_ds[dim].save()
+
+    @parameterized.expand([(i, ) for i in range(len(CENTER_SPECS))])
+    def test_projection_plot_c(self, dim):
+        self.projections_c[dim].save()
 
     @parameterized.expand(
         param.explicit((fname, ))
