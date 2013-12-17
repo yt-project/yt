@@ -469,6 +469,15 @@ class Unit(Expr):
     def is_dimensionless(self):
         return self.dimensions == sympy_one
 
+    @property
+    def is_code_unit(self):
+        for atom in self.expr.atoms():
+            if str(atom).startswith("code") or atom.is_Number:
+                pass
+            else:
+                return False
+        return True
+
     # @todo: might be a simpler/smarter sympy way to do this...
     def get_cgs_equivalent(self):
         """
