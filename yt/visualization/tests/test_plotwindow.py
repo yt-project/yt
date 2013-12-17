@@ -73,21 +73,21 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_buff_size": [((1600, ), {}),
                                (((600, 800), ), {})],
              "set_center": [(((0.4, 0.3), ), {})],
-             "set_cmap": [(('Density', 'RdBu'), {}),
-                          (('Density', 'kamae'), {})],
+             "set_cmap": [(('density', 'RdBu'), {}),
+                          (('density', 'kamae'), {})],
              "set_font": [(({'family': 'sans-serif', 'style': 'italic',
                              'weight': 'bold', 'size': 24}, ), {})],
-             "set_log": [(('Density', False), {})],
+             "set_log": [(('density', False), {})],
              "set_window_size": [((7.0, ), {})],
-             "set_zlim": [(('Density', 1e-25, 1e-23), {}),
-                          (('Density', 1e-25, None), {'dynamic_range': 4})],
+             "set_zlim": [(('density', 1e-25, 1e-23), {}),
+                          (('density', 1e-25, None), {'dynamic_range': 4})],
              "zoom": [((10, ), {})]}
 
 
 @requires_pf(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
-    plot_field = 'Density'
+    plot_field = 'density'
     decimals = 3
 
     pf = data_dir_load(M7)
@@ -102,7 +102,7 @@ def test_attributes():
 
 @requires_pf(WT)
 def test_attributes_wt():
-    plot_field = 'Density'
+    plot_field = 'density'
     decimals = 3
 
     pf = data_dir_load(WT)
