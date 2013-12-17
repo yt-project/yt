@@ -41,6 +41,7 @@ from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, ParallelAnalysisInterface
+from yt.utilities.units import Unit
 import yt.geometry.particle_deposit as particle_deposit
 
 from yt.fields.field_exceptions import \
@@ -309,11 +310,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             units = finfo.units
             if self.weight_field is None:
                 # See _handle_chunk where we mandate cm
-                units = "(%s) * cm" % units
+                    input_units = "(%s) * cm" % units
             # Don't forget [non_nan] somewhere here.
             self[field] = YTArray(field_data[fi].ravel(),
-                                  input_units=units,
+                                  input_units=input_units,
                                   registry=self.pf.unit_registry)
+            if Unit(units).is_code_unit:
+                self[field].convert_to_units("(%s) * code_length" % units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
