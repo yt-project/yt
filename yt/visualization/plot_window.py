@@ -799,11 +799,13 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center',
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be at the point of highest gas density.
+         Units can be specified by passing in center as a tuple of a coordinate
+         and string unit name or by passing in a YTArray.  If a list or unitless
+         array is supplied, code units are assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -910,12 +912,15 @@ class ProjectionPlot(PWViewerMPL):
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
-        The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', 
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+         The name of the field(s) to be plotted.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be at the point of highest gas density.
+         Units can be specified by passing in center as a tuple of a coordinate
+         and string unit name or by passing in a YTArray.  If a list or unitless
+         array is supplied, code units are assumed.
+    width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
 
@@ -1028,16 +1033,34 @@ class OffAxisSlicePlot(PWViewerMPL):
     normal : a sequence of floats
         The vector normal to the slicing plane.
     fields : string
-        The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, or one of 'c', 
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
-    width : A tuple or a float
-        A tuple containing the width of image and the string key of
-        the unit: (width, 'unit').  If set to a float, code units
-        are assumed
+         The name of the field(s) to be plotted.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be at the point of highest gas density.
+         Units can be specified by passing in center as a tuple of a coordinate
+         and string unit name or by passing in a YTArray.  If a list or unitless
+         array is supplied, code units are assumed.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
     axes_unit : A string
         The name of the unit for the tick labels on the x and y axes.
         Defaults to None, which automatically picks an appropriate unit.
@@ -1119,11 +1142,13 @@ class OffAxisProjectionPlot(PWViewerMPL):
         The vector normal to the slicing plane.
     fields : string
         The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, or one of 'c', 
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be at the point of highest gas density.
+         Units can be specified by passing in center as a tuple of a coordinate
+         and string unit name or by passing in a YTArray.  If a list or unitless
+         array is supplied, code units are assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1591,11 +1616,13 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     The following are nominally keyword arguments passed onto the respective
     slice plot objects generated by this function.
 
-    center : two or three-element vector of sequence floats, 'c', or 'center',
-             or 'max'
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be at the point of highest gas density.
+         Units can be specified by passing in center as a tuple of a coordinate
+         and string unit name or by passing in a YTArray.  If a list or unitless
+         array is supplied, code units are assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
