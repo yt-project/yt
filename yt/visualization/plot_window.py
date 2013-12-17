@@ -144,11 +144,21 @@ def StandardWidth(axis, width, depth, pf):
 def StandardCenter(center, pf):
     if isinstance(center, basestring):
         if center.lower() == "m" or center.lower() == "max":
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
+            center = pf.arr(center, 'code_length')
         elif center.lower() == "c" or center.lower() == "center":
             center = (pf.domain_left_edge + pf.domain_right_edge) / 2
         else:
-            raise RuntimeError('center keyword \"%s\" not recognized'%center)
+            raise RuntimeError('center keyword \"%s\" not recognized' % center)
+    elif isinstance(center, YTArray):
+        pass
+    elif iterable(center):
+        if iterable(center[0]) and isinstance(center[1], basestring):
+            center = pf.arr(center[0], center[1])
+        else:
+            center = pf.arr(center, 'code_length')
+    else:
+        raise RuntimeError("center keyword \"%s\" not recognized" % center)
     return center
 
 def GetWindowParameters(axis, center, width, pf):
