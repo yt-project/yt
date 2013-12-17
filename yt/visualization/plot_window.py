@@ -1028,10 +1028,10 @@ class OffAxisSlicePlot(PWViewerMPL):
     Parameters
     ----------
     pf : :class:`yt.data_objects.api.StaticOutput`
-        This is the parameter file object corresponding to the
-        simulation output to be plotted.
+         This is the parameter file object corresponding to the
+         simulation output to be plotted.
     normal : a sequence of floats
-        The vector normal to the slicing plane.
+         The vector normal to the slicing plane.
     fields : string
          The name of the field(s) to be plotted.
     center : A sequence floats, a string, or a tuple.
@@ -1062,14 +1062,14 @@ class OffAxisSlicePlot(PWViewerMPL):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     axes_unit : A string
-        The name of the unit for the tick labels on the x and y axes.
-        Defaults to None, which automatically picks an appropriate unit.
-        If axes_unit is '1', 'u', or 'unitary', it will not display the
-        units, and only show the axes name.
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
     north-vector : a sequence of floats
-        A vector defining the 'up' direction in the plot.  This
-        option sets the orientation of the slicing plane.  If not
-        set, an arbitrary grid-aligned north-vector is chosen.
+         A vector defining the 'up' direction in the plot.  This
+         option sets the orientation of the slicing plane.  If not
+         set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1170,22 +1170,22 @@ class OffAxisProjectionPlot(PWViewerMPL):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
-        A tuple containing the depth to project thourhg and the string
-        key of the unit: (width, 'unit').  If set to a float, code units
-        are assumed
+         A tuple containing the depth to project thourhg and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed
     weight_field : string
-        The name of the weighting field.  Set to None for no weight.
+         The name of the weighting field.  Set to None for no weight.
     max_level: int
-        The maximum level to project to.
+         The maximum level to project to.
     axes_unit : A string
-        The name of the unit for the tick labels on the x and y axes.
-        Defaults to None, which automatically picks an appropriate unit.
-        If axes_unit is '1', 'u', or 'unitary', it will not display the
-        units, and only show the axes name.
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
     north-vector : a sequence of floats
-        A vector defining the 'up' direction in the plot.  This
-        option sets the orientation of the slicing plane.  If not
-        set, an arbitrary grid-aligned north-vector is chosen.
+         A vector defining the 'up' direction in the plot.  This
+         option sets the orientation of the slicing plane.  If not
+         set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
 
