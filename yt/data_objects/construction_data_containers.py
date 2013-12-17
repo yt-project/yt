@@ -310,7 +310,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             units = finfo.units
             if self.weight_field is None:
                 # See _handle_chunk where we mandate cm
-                    input_units = "(%s) * cm" % units
+                input_units = "(%s) * cm" % units
             # Don't forget [non_nan] somewhere here.
             self[field] = YTArray(field_data[fi].ravel(),
                                   input_units=input_units,
