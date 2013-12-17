@@ -1,5 +1,5 @@
 """
-Data structures for Chombo.
+Data structures for Charm.
 
 
 
@@ -28,8 +28,8 @@ from stat import \
      ST_CTIME
 
 from .definitions import \
-     chombo2enzoDict, \
-     yt2chomboFieldsDict, \
+     charm2enzoDict, \
+     yt2charmFieldsDict, \
      parameterDict \
 
 from yt.funcs import *
@@ -48,9 +48,9 @@ from yt.utilities.io_handler import \
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-from .fields import ChomboFieldInfo, KnownChomboFields
+from .fields import CharmFieldInfo, KnownCharmFields
 
-class ChomboGrid(AMRGridPatch):
+class CharmGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
     def __init__(self, id, hierarchy, level, start, stop):
@@ -84,11 +84,11 @@ class ChomboGrid(AMRGridPatch):
         self.dds = self.hierarchy.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class ChomboHierarchy(AMRHierarchy):
+class CharmHierarchy(AMRHierarchy):
 
-    grid = ChomboGrid
+    grid = CharmGrid
 
-    def __init__(self,pf,data_style='chombo_hdf5'):
+    def __init__(self,pf,data_style='charm_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
         self.data_style = data_style
@@ -101,7 +101,7 @@ class ChomboHierarchy(AMRHierarchy):
         self._handle = pf._handle
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._handle.keys()[1:]
+        self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         AMRHierarchy.__init__(self,pf,data_style)
         self._read_particles()
 
@@ -150,13 +150,10 @@ class ChomboHierarchy(AMRHierarchy):
     def _parse_hierarchy(self):
         f = self._handle # shortcut
 
-        # this relies on the first Group in the H5 file being
-        # 'Chombo_global'
-        levels = f.keys()[1:]
         grids = []
         self.dds_list = []
         i = 0
-        for lev in levels:
+        for lev in self._levels:
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
@@ -175,7 +172,6 @@ class ChomboHierarchy(AMRHierarchy):
                 i += 1
         self.grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
-#        self.grids = np.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -200,12 +196,12 @@ class ChomboHierarchy(AMRHierarchy):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class ChomboStaticOutput(StaticOutput):
-    _hierarchy_class = ChomboHierarchy
-    _fieldinfo_fallback = ChomboFieldInfo
-    _fieldinfo_known = KnownChomboFields
+class CharmStaticOutput(StaticOutput):
+    _hierarchy_class = CharmHierarchy
+    _fieldinfo_fallback = CharmFieldInfo
+    _fieldinfo_known = KnownCharmFields
 
-    def __init__(self, filename, data_style='chombo_hdf5',
+    def __init__(self, filename, data_style='charm_hdf5',
                  storage_filename = None, ini_filename = None):
         self._handle = h5py.File(filename,'r')
         self.current_time = self._handle.attrs['time']
@@ -216,7 +212,7 @@ class ChomboStaticOutput(StaticOutput):
         self.cosmological_simulation = False
 
         # These are parameters that I very much wish to get rid of.
-        self.parameters["HydroMethod"] = 'chombo' # always PPM DE
+        self.parameters["HydroMethod"] = 'charm' # always PPM DE
         self.parameters["DualEnergyFormalism"] = 0 
         self.parameters["EOSType"] = -1 # default
 
@@ -239,7 +235,7 @@ class ChomboStaticOutput(StaticOutput):
         seconds = 1 #self["Time"]
         for unit in sec_conversion.keys():
             self.time_units[unit] = seconds / sec_conversion[unit]
-        for key in yt2chomboFieldsDict:
+        for key in yt2charmFieldsDict:
             self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
@@ -287,8 +283,8 @@ class ChomboStaticOutput(StaticOutput):
                 param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
-            if chombo2enzoDict.has_key(param):
-                paramName = chombo2enzoDict[param]
+            if charm2enzoDict.has_key(param):
+                paramName = charm2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
                     self.parameters[paramName] = t[0]
@@ -318,14 +314,13 @@ class ChomboStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.isfile('pluto.ini'):
-            try:
-                fileh = h5py.File(args[0],'r')
-                valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
-                fileh.close()
-                return valid
-            except:
-                pass
+        try:
+            fileh = h5py.File(args[0],'r')
+            valid = "Charm_global" in fileh["/"]
+            fileh.close()
+            return valid
+        except:
+            pass
         return False
 
     @parallel_root_only

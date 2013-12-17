@@ -76,6 +76,9 @@ from yt.frontends.flash.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
+from yt.frontends.charm.api import \
+    CharmStaticOutput, CharmFieldInfo, add_charm_field
+
 from yt.frontends.gdf.api import \
     GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
