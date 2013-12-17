@@ -79,7 +79,7 @@ def fix_unitary(u):
 def assert_valid_width_tuple(width):
     if not iterable(width) or len(width) != 2:
         raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], Number) and isinstance(width[1], str):
+    if not isinstance(width[0], Number) and isinstance(width[1], basestring):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
@@ -142,13 +142,23 @@ def StandardWidth(axis, width, depth, pf):
     return width
 
 def StandardCenter(center, pf):
-    if isinstance(center,str):
+    if isinstance(center, basestring):
         if center.lower() == "m" or center.lower() == "max":
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
+            center = pf.arr(center, 'code_length')
         elif center.lower() == "c" or center.lower() == "center":
             center = (pf.domain_left_edge + pf.domain_right_edge) / 2
         else:
-            raise RuntimeError('center keyword \"%s\" not recognized'%center)
+            raise RuntimeError('center keyword \"%s\" not recognized' % center)
+    elif isinstance(center, YTArray):
+        pass
+    elif iterable(center):
+        if iterable(center[0]) and isinstance(center[1], basestring):
+            center = pf.arr(center[0], center[1])
+        else:
+            center = pf.arr(center, 'code_length')
+    else:
+        raise RuntimeError("center keyword \"%s\" not recognized" % center)
     return center
 
 def GetWindowParameters(axis, center, width, pf):
@@ -525,7 +535,7 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, str):
+            if isinstance(unit_name, basestring):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 if un not in self.pf.unit_registry:
@@ -789,11 +799,14 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', or 'center',
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -900,12 +913,16 @@ class ProjectionPlot(PWViewerMPL):
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
-        The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, 'c', 
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+         The name of the field(s) to be plotted.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
+    width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
 
@@ -1013,30 +1030,49 @@ class OffAxisSlicePlot(PWViewerMPL):
     Parameters
     ----------
     pf : :class:`yt.data_objects.api.StaticOutput`
-        This is the parameter file object corresponding to the
-        simulation output to be plotted.
+         This is the parameter file object corresponding to the
+         simulation output to be plotted.
     normal : a sequence of floats
-        The vector normal to the slicing plane.
+         The vector normal to the slicing plane.
     fields : string
-        The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, or one of 'c', 
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
-    width : A tuple or a float
-        A tuple containing the width of image and the string key of
-        the unit: (width, 'unit').  If set to a float, code units
-        are assumed
+         The name of the field(s) to be plotted.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
     axes_unit : A string
-        The name of the unit for the tick labels on the x and y axes.
-        Defaults to None, which automatically picks an appropriate unit.
-        If axes_unit is '1', 'u', or 'unitary', it will not display the
-        units, and only show the axes name.
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
     north-vector : a sequence of floats
-        A vector defining the 'up' direction in the plot.  This
-        option sets the orientation of the slicing plane.  If not
-        set, an arbitrary grid-aligned north-vector is chosen.
+         A vector defining the 'up' direction in the plot.  This
+         option sets the orientation of the slicing plane.  If not
+         set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1109,11 +1145,14 @@ class OffAxisProjectionPlot(PWViewerMPL):
         The vector normal to the slicing plane.
     fields : string
         The name of the field(s) to be plotted.
-    center : two or three-element vector of sequence floats, or one of 'c', 
-         'center', 'max' or 'm'. The coordinate of the center of the image. 
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1135,22 +1174,22 @@ class OffAxisProjectionPlot(PWViewerMPL):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
-        A tuple containing the depth to project thourhg and the string
-        key of the unit: (width, 'unit').  If set to a float, code units
-        are assumed
+         A tuple containing the depth to project thourhg and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed
     weight_field : string
-        The name of the weighting field.  Set to None for no weight.
+         The name of the weighting field.  Set to None for no weight.
     max_level: int
-        The maximum level to project to.
+         The maximum level to project to.
     axes_unit : A string
-        The name of the unit for the tick labels on the x and y axes.
-        Defaults to None, which automatically picks an appropriate unit.
-        If axes_unit is '1', 'u', or 'unitary', it will not display the
-        units, and only show the axes name.
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
     north-vector : a sequence of floats
-        A vector defining the 'up' direction in the plot.  This
-        option sets the orientation of the slicing plane.  If not
-        set, an arbitrary grid-aligned north-vector is chosen.
+         A vector defining the 'up' direction in the plot.  This
+         option sets the orientation of the slicing plane.  If not
+         set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
 
@@ -1581,11 +1620,14 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
     The following are nominally keyword arguments passed onto the respective
     slice plot objects generated by this function.
 
-    center : two or three-element vector of sequence floats, 'c', or 'center',
-             or 'max'
-         If set to 'c', 'center' or left blank, the plot is centered on the
-         middle of the domain. If set to 'max' or 'm', the center will be at 
-         the point of highest density.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -1679,7 +1721,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal,str):
+    if iterable(normal) and not isinstance(normal, basestring):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -1687,7 +1729,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
         
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal,str):
+    if iterable(normal) and not isinstance(normal, basestring):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs: 
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \
