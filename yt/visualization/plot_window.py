@@ -79,7 +79,7 @@ def fix_unitary(u):
 def assert_valid_width_tuple(width):
     if not iterable(width) or len(width) != 2:
         raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], Number) and isinstance(width[1], str):
+    if not isinstance(width[0], Number) and isinstance(width[1], basestring):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
@@ -142,7 +142,7 @@ def StandardWidth(axis, width, depth, pf):
     return width
 
 def StandardCenter(center, pf):
-    if isinstance(center,str):
+    if isinstance(center, basestring):
         if center.lower() == "m" or center.lower() == "max":
             v, center = pf.h.find_max("Density")
         elif center.lower() == "c" or center.lower() == "center":
@@ -525,7 +525,7 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, str):
+            if isinstance(unit_name, basestring):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 if un not in self.pf.unit_registry:
@@ -1679,7 +1679,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal,str):
+    if iterable(normal) and not isinstance(normal, basestring):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -1687,7 +1687,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
         
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal,str):
+    if iterable(normal) and not isinstance(normal, basestring):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs: 
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \
