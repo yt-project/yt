@@ -828,8 +828,18 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
 
     sfh = StreamDictFieldHandler()
     
+    pdata = {}
+    for key in data.keys() :
+        if not isinstance(key, tuple):
+            field = ("io", key)
+            mylog.debug("Reassigning '%s' to '%s'", key, field)
+        else:
+            field = key
+        pdata[field] = data[key]
+        sfh._additional_fields += field
+    data = pdata # Drop reference count
     particle_types = set_particle_types(data)
-    
+
     sfh.update({'stream_file':data})
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
