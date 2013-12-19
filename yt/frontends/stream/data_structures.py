@@ -225,7 +225,12 @@ class StreamHierarchy(GridGeometryHandler):
         GridGeometryHandler._setup_classes(self, dd)
 
     def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
+        # NOTE: Because particle unions add to the actual field list, without
+        # having the keys in the field list itself, we need to double check
+        # here.
+        fl = set(self.stream_handler.get_fields())
+        fl.update(set(getattr(self, "field_list", [])))
+        self.field_list = list(fl)
 
     def _populate_grid_objects(self):
         for g in self.grids:

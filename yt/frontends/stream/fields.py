@@ -40,14 +40,14 @@ add_stream_field("y-velocity", function = NullFunc)
 add_stream_field("z-velocity", function = NullFunc)
 
 def _setup_particle_fields(registry, ptype):
+    for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
+              ["particle_type", "particle_index", "particle_mass"] + \
+              ["particle_position_%s" % ax for ax in 'xyz'] + \
+              ["particle_velocity_%s" % ax for ax in 'xyz']:
+        registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
     particle_vector_functions(ptype,
         ["particle_position_%s" % ax for ax in 'xyz'],
         ["particle_velocity_%s" % ax for ax in 'xyz'],
         registry)
     particle_deposition_functions(ptype,
         "Coordinates", "particle_mass", registry)
-    for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
-              ["particle_type", "particle_index", "ParticleMass"] + \
-              ["particle_mass"] + \
-              ["particle_position_%s" % ax for ax in 'xyz']:
-        registry.add_field((ptype, fn), function=NullFunc, particle_type=True)
