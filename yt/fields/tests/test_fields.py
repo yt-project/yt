@@ -21,17 +21,24 @@ _sample_parameters = dict(
     cp_z_vec = np.array((0.0, 0.0, 1.0)),
 )
 
-_base_fields = ["Density", "x-velocity", "y-velocity", "z-velocity"]
+_base_fields = (("gas", "Density"),
+                ("gas", "x-velocity"),
+                ("gas", "y-velocity"),
+                ("gas", "z-velocity"))
+_base_field_names = [f[1] for f in _base_fields]
 
 def realistic_pf(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
-    pf = fake_random_pf(16, fields = fields, nprocs = nprocs)
+    fields = list(set([_strip_ftype(f) for f in fields]))
+    pf = fake_random_pf(16, fields = fields, nprocs = nprocs,
+                        particles = 16**3)
     pf.parameters["HydroMethod"] = "streaming"
     pf.parameters["Gamma"] = 5.0/3.0
     pf.parameters["EOSType"] = 1.0
     pf.parameters["EOSSoundSpeed"] = 1.0
     pf.conversion_factors["Time"] = 1.0
     pf.conversion_factors.update( dict((f, 1.0) for f in fields) )
+    pf.gamma = 5.0/3.0
     pf.current_redshift = 0.0001
     pf.hubble_constant = 0.7
     pf.omega_matter = 0.27
@@ -40,6 +47,20 @@ def realistic_pf(fields, nprocs):
         pf.units[unit+'cm'] = pf.units[unit]
         pf.units[unit+'hcm'] = pf.units[unit]
     return pf
+
+def _strip_ftype(field):
+    if not isinstance(field, tuple):
+        return field
+    elif field[0] == "all":
+        return field
+    return field[1]
+
+def _expand_field(field):
+    if isinstance(field, tuple):
+        return field
+    if "particle" in field:
+        return ("all", field)
+    return ("gas", field)
 
 class TestFieldAccess(object):
     description = None
@@ -52,8 +73,13 @@ class TestFieldAccess(object):
 
     def __call__(self):
         field = FieldInfo[self.field_name]
+        # Don't test the base fields
+        if field in _base_fields or field in _base_field_names: return
         deps = field.get_dependencies()
-        fields = list(set(deps.requested + _base_fields))
+        fields = set([])
+        for f in deps.requested + list(_base_fields):
+            fields.add(_expand_field(f))
+        fields = list(fields)
         skip_grids = False
         needs_spatial = False
         for v in field.validators:
@@ -85,7 +111,7 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, conv*field._function(field, g), 4)
 
 def test_all_fields():
-    for field in FieldInfo:
+    for field in sorted(FieldInfo):
         if isinstance(field, types.TupleType):
             fname = field[0]
         else:
