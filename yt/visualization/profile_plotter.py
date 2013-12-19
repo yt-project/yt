@@ -16,6 +16,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 import base64
 import types
+import os
 
 from collections import defaultdict
 from functools import wraps
@@ -35,8 +36,9 @@ from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
      create_profile
-from yt.utilities.lib import \
-    write_png_to_string
+if os.name == "posix":
+    from yt.utilities.lib import \
+        write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
