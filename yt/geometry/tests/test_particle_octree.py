@@ -88,7 +88,7 @@ def test_particle_octree_counts():
     for n_ref in [16, 32, 64, 512, 1024]:
         pf = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
         dd = pf.h.all_data()
-        bi = dd["all","mesh_id"]
+        bi = dd["io","mesh_id"]
         v = np.bincount(bi.astype("int64"))
         yield assert_equal, v.max() <= n_ref, True
 
