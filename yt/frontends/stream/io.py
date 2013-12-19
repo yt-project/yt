@@ -46,7 +46,7 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype not in ("gas", "deposit") for ftype, fname in fields)):
+        if any((ftype not in ("gas",) for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         for field in fields:
@@ -57,8 +57,6 @@ class IOHandlerStream(BaseIOHandler):
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
-            if ftype == 'deposit':
-                fname = field
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
