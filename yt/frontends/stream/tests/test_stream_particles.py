@@ -74,16 +74,18 @@ def test_stream_particles() :
 
     # Check to make sure the fields have been defined correctly
     
-    assert ug1._get_field_info("all", "particle_position_x").particle_type
-    assert ug1._get_field_info("all", "particle_position_y").particle_type
-    assert ug1._get_field_info("all", "particle_position_z").particle_type
-    assert ug1._get_field_info("all", "particle_mass").particle_type
+    for ptype in ("all", "io"):
+        assert ug1._get_field_info(ptype, "particle_position_x").particle_type
+        assert ug1._get_field_info(ptype, "particle_position_y").particle_type
+        assert ug1._get_field_info(ptype, "particle_position_z").particle_type
+        assert ug1._get_field_info(ptype, "particle_mass").particle_type
     assert not ug1._get_field_info("gas", "Density").particle_type
 
-    assert ug2._get_field_info("all", "particle_position_x").particle_type
-    assert ug2._get_field_info("all", "particle_position_y").particle_type
-    assert ug2._get_field_info("all", "particle_position_z").particle_type
-    assert ug2._get_field_info("all", "particle_mass").particle_type
+    for ptype in ("all", "io"):
+        assert ug2._get_field_info(ptype, "particle_position_x").particle_type
+        assert ug2._get_field_info(ptype, "particle_position_y").particle_type
+        assert ug2._get_field_info(ptype, "particle_position_z").particle_type
+        assert ug2._get_field_info(ptype, "particle_mass").particle_type
     assert not ug2._get_field_info("gas", "Density").particle_type
     
     # Now refine this
