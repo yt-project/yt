@@ -31,7 +31,7 @@ def realistic_pf(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
     fields = list(set([_strip_ftype(f) for f in fields]))
     pf = fake_random_pf(16, fields = fields, nprocs = nprocs,
-                        particles = 16**3)
+                        particles = 4**3)
     pf.parameters["HydroMethod"] = "streaming"
     pf.parameters["Gamma"] = 5.0/3.0
     pf.parameters["EOSType"] = 1.0
@@ -119,13 +119,16 @@ def test_all_fields():
         if fname.startswith("CuttingPlane"): continue
         if fname.startswith("particle"): continue
         if fname.startswith("CIC"): continue
-        if field.startswith("BetaPar"): continue
-        if field.startswith("TBetaPar"): continue
-        if field.startswith("BetaPerp"): continue
+        if fname.startswith("BetaPar"): continue
+        if fname.startswith("TBetaPar"): continue
+        if fname.startswith("BetaPerp"): continue
         if fname.startswith("WeakLensingConvergence"): continue
         if fname.startswith("DensityPerturbation"): continue
         if fname.startswith("Matter_Density"): continue
         if fname.startswith("Overdensity"): continue
+        # TotalMass is disabled because of issues with mixed particle/fluid
+        # field detection in current field system.
+        if fname.startswith("TotalMass"): continue
         if FieldInfo[field].particle_type: continue
         for nproc in [1, 4, 8]:
             test_all_fields.__name__ = "%s_%s" % (field, nproc)
