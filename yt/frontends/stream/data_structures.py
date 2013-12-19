@@ -25,6 +25,8 @@ from yt.data_objects.data_containers import \
     YTFieldData, \
     YTDataContainer, \
     YTSelectionContainer
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.geometry_handler import \
@@ -251,7 +253,6 @@ class StreamHierarchy(GridGeometryHandler):
         already in the stream but not part of the data dict will be left
         alone. 
         """
-        
         [update_field_names(d) for d in data]
         particle_types = set_particle_types(data[0])
         ftype = "io"
@@ -259,9 +260,7 @@ class StreamHierarchy(GridGeometryHandler):
         for key in data[0].keys() :
             if key is "number_of_particles": continue
             self.stream_handler.particle_types[key] = particle_types[key]
-            if key not in self.field_list:
-                self.field_list.append(key)
-                
+
         for i, grid in enumerate(self.grids) :
             if data[i].has_key("number_of_particles") :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
@@ -272,7 +271,13 @@ class StreamHierarchy(GridGeometryHandler):
                     grid.field_data.pop( ("io", fname) )
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
+
+        # We only want to create a superset of fields here.
         self._detect_fields()
+        mylog.debug("Creating Particle Union 'all'")
+        pu = ParticleUnion("all", list(self.pf.particle_types_raw))
+        self.pf.add_particle_union(pu)
+        self.pf.particle_types = tuple(set(self.pf.particle_types))
         self._setup_unknown_fields()
                 
 class StreamStaticOutput(StaticOutput):
