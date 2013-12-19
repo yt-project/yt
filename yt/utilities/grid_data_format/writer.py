@@ -60,7 +60,7 @@ def save_field(pf, field_name, field_parameters=None):
     """
 
     if isinstance(field_name, tuple):
-        field_name = field_name[0]
+        field_name = field_name[1]
     field_obj = pf._get_field_info(field_name)
     if field_obj.particle_type:
         print( "Saving particle fields currently not supported." )
@@ -87,7 +87,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
     g = fhandle["field_types"]
     # create the subgroup with the field's name
     if isinstance(field_name, tuple):
-        field_name = field_name[0]
+        field_name = field_name[1]
     fi = pf._get_field_info(field_name)
     try:
         sg = g.create_group(field_name)
