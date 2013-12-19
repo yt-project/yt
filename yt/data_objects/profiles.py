@@ -757,8 +757,10 @@ class ProfileND(ParallelAnalysisInterface):
     def add_fields(self, fields):
         fields = ensure_list(fields)
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
-        for g in parallel_objects(self.data_source._grids):
-            self._bin_grid(g, fields, temp_storage)
+        cfields = fields + list(self.bin_fields)
+        citer = self.data_source.chunks(cfields, "io")
+        for chunk in parallel_objects(citer):
+            self._bin_chunk(chunk, fields, temp_storage)
         self._finalize_storage(fields, temp_storage)
 
     def _finalize_storage(self, fields, temp_storage):
@@ -772,42 +774,35 @@ class ProfileND(ParallelAnalysisInterface):
             self.field_data[field] = temp_storage.values[...,i]
             self.field_data[field][blank] = 0.0
         
-    def _bin_grid(self, grid, fields, storage):
+    def _bin_chunk(self, chunk, fields, storage):
         raise NotImplementedError
 
-    def _filter(self, bin_fields, cut_points):
-        # cut_points is initially just the points inside our region
+    def _filter(self, bin_fields):
+        # cut_points is set to be everything initially, but
         # we also want to apply a filtering based on min/max
-        filter = np.zeros(bin_fields[0].shape, dtype='bool')
-        filter[cut_points] = True
+        filter = np.ones(bin_fields[0].shape, dtype='bool')
         for (mi, ma), data in zip(self.bounds, bin_fields):
             filter &= (data > mi)
             filter &= (data < ma)
         return filter, [data[filter] for data in bin_fields]
         
-    def _get_data(self, grid, fields):
-        # Save the values in the grid beforehand.
-        old_params = grid.field_parameters
-        old_keys = grid.field_data.keys()
-        grid.field_parameters = self.data_source.field_parameters
-        # Now we ask our source which values to include
-        pointI = self.data_source._get_point_indices(grid)
-        bin_fields = [grid[bf] for bf in self.bin_fields]
+    def _get_data(self, chunk, fields):
+        # We are using chunks now, which will manage the field parameters and
+        # the like.
+        bin_fields = [chunk[bf] for bf in self.bin_fields]
         # We want to make sure that our fields are within the bounds of the
         # binning
-        filter, bin_fields = self._filter(bin_fields, pointI)
+        filter, bin_fields = self._filter(bin_fields)
         if not np.any(filter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
-            arr[:,i] = grid[field][filter]
+            arr[:,i] = chunk[field][filter]
         if self.weight_field is not None:
-            weight_data = grid[self.weight_field]
+            weight_data = chunk[self.weight_field]
         else:
-            weight_data = np.ones(grid.ActiveDimensions, dtype="float64")
+            weight_data = np.ones(chunk.ires.size, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into 
-        grid.field_parameters = old_params
-        grid.field_data = YTFieldData( [(k, grid.field_data[k]) for k in old_keys] )
         return arr, weight_data, bin_fields
 
     def __getitem__(self, key):
@@ -835,10 +830,10 @@ class Profile1D(ProfileND):
         self.bounds = ((self.x_bins[0], self.x_bins[-1]),)
         self.x = self.x_bins
 
-    def _bin_grid(self, grid, fields, storage):
-        gd = self._get_data(grid, fields)
-        if gd is None: return
-        fdata, wdata, (bf_x,) = gd
+    def _bin_chunk(self, chunk, fields, storage):
+        rv = self._get_data(chunk, fields)
+        if rv is None: return
+        fdata, wdata, (bf_x,) = rv
         bin_ind = np.digitize(bf_x, self.x_bins) - 1
         new_bin_profile1d(bin_ind, wdata, fdata,
                       storage.weight_values, storage.values,
@@ -867,8 +862,8 @@ class Profile2D(ProfileND):
         self.x = self.x_bins
         self.y = self.y_bins
 
-    def _bin_grid(self, grid, fields, storage):
-        rv = self._get_data(grid, fields)
+    def _bin_chunk(self, chunk, fields, storage):
+        rv = self._get_data(chunk, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y) = rv
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
@@ -912,8 +907,8 @@ class Profile3D(ProfileND):
         self.y = self.y_bins
         self.z = self.z_bins
 
-    def _bin_grid(self, grid, fields, storage):
-        rv = self._get_data(grid, fields)
+    def _bin_chunk(self, chunk, fields, storage):
+        rv = self._get_data(chunk, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y, bf_z) = rv
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
