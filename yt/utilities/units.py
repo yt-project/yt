@@ -194,8 +194,11 @@ unit_prefixes = {
 
 class UnitRegistry:
 
-    def __init__(self, add_default_symbols=True):
-        self.lut = {}
+    def __init__(self, add_default_symbols=True, lut=None):
+        if lut:
+            self.lut = lut
+        else:
+            self.lut = {}
         self.unit_objs = {}
 
         if add_default_symbols:
