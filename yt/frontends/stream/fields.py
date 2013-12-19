@@ -48,5 +48,6 @@ def _setup_particle_fields(registry, ptype):
         "Coordinates", "particle_mass", registry)
     for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
               ["particle_type", "particle_index", "ParticleMass"] + \
+              ["particle_mass"] + \
               ["particle_position_%s" % ax for ax in 'xyz']:
         registry.add_field((ptype, fn), function=NullFunc, particle_type=True)

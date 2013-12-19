@@ -247,6 +247,7 @@ class StreamHierarchy(GridGeometryHandler):
         alone. 
         """
         
+        [update_field_names(d) for d in data]
         particle_types = set_particle_types(data[0])
         ftype = "io"
 
@@ -347,6 +348,8 @@ def update_field_names(data):
             field = ("io", k)
         elif len(s) == 3:
             field = ("gas", k)
+        elif len(s) == 0:
+            continue
         else:
             raise NotImplementedError
         data[field] = data.pop(k)
