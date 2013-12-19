@@ -96,14 +96,50 @@ class IOHandlerStream(BaseIOHandler):
     def _read_exception(self):
         return KeyError
 
-class StreamParticleIOHandler(IOHandlerStream):
+class StreamParticleIOHandler(BaseIOHandler):
 
     _data_style = "stream_particles"
+
+    def __init__(self, pf):
+        self.fields = pf.stream_handler.fields
+        super(StreamParticleIOHandler, self).__init__(pf)
+
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            f = self.fields[data_file.filename]
+            # This double-reads
+            for ptype, field_list in sorted(ptf.items()):
+                yield ptype, (f[ptype, "particle_position_x"],
+                              f[ptype, "particle_position_y"],
+                              f[ptype, "particle_position_z"])
+            
+    def _read_particle_fields(self, chunks, ptf, selector):
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in data_files:
+            f = self.fields[data_file.filename]
+            for ptype, field_list in sorted(ptf.items()):
+                x, y, z = (f[ptype, "particle_position_%s" % ax]
+                           for ax in 'xyz')
+                mask = selector.select_points(x, y, z)
+                if mask is None: continue
+                for field in field_list:
+                    data = f[ptype, field][mask]
+                    yield (ptype, field), data
+
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
         pos = np.column_stack(self.fields[data_file.filename][
-                              "particle_position_%s" % ax] for ax in 'xyz')
+                              ("io", "particle_position_%s" % ax)]
+                              for ax in 'xyz')
         if np.any(pos.min(axis=0) < data_file.pf.domain_left_edge) or \
            np.any(pos.max(axis=0) > data_file.pf.domain_right_edge):
             raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
@@ -117,11 +153,11 @@ class StreamParticleIOHandler(IOHandlerStream):
         return morton
 
     def _count_particles(self, data_file):
-        npart = self.fields[data_file.filename]["particle_position_x"].size
-        return {'all': npart}
+        npart = self.fields[data_file.filename]["io", "particle_position_x"].size
+        return {'io': npart}
 
     def _identify_fields(self, data_file):
-        return [ ("all", k) for k in self.fields[data_file.filename].keys()]
+        return self.fields[data_file.filename].keys()
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _data_style = "stream_hexahedral"
