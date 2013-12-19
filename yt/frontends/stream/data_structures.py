@@ -470,7 +470,7 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
                 else:
                     field = key
-                sfh._additional_fields += field
+                sfh._additional_fields += (field,)
                 pdata[field] = data.pop(key)
     else :
         particle_types = {}
@@ -708,7 +708,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
             for field in pf.h.field_list:
-                if not pf.field_info[field].particle_type :
+                if not pf._get_field_info(field).particle_type :
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < pf.h.max_level: continue
@@ -836,7 +836,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
         else:
             field = key
         pdata[field] = data[key]
-        sfh._additional_fields += field
+        sfh._additional_fields += (field,)
     data = pdata # Drop reference count
     particle_types = set_particle_types(data)
 
