@@ -41,30 +41,14 @@ add_stream_field("z-velocity", function = NullFunc)
 
 add_field("Density", function = TranslationFunc("density"))
 
-add_stream_field("particle_position_x", function = NullFunc, particle_type=True)
-add_stream_field("particle_position_y", function = NullFunc, particle_type=True)
-add_stream_field("particle_position_z", function = NullFunc, particle_type=True)
-add_stream_field("particle_index", function = NullFunc, particle_type=True)
-add_stream_field("particle_gas_density", function = NullFunc, particle_type=True)
-add_stream_field("particle_gas_temperature", function = NullFunc, particle_type=True)
-add_stream_field("particle_mass", function = NullFunc, particle_type=True)
-
-add_field("ParticleMass", function = TranslationFunc("particle_mass"),
-          particle_type=True)
-
-add_stream_field(("all", "particle_position_x"), function = NullFunc, particle_type=True)
-add_stream_field(("all", "particle_position_y"), function = NullFunc, particle_type=True)
-add_stream_field(("all", "particle_position_z"), function = NullFunc, particle_type=True)
-add_stream_field(("all", "particle_index"), function = NullFunc, particle_type=True)
-add_stream_field(("all", "particle_gas_density"), function = NullFunc, particle_type=True)
-add_stream_field(("all", "particle_gas_temperature"), function = NullFunc, particle_type=True)
-add_stream_field(("all", "particle_mass"), function = NullFunc, particle_type=True)
-
-add_field(("all", "ParticleMass"), function = TranslationFunc("particle_mass"),
-          particle_type=True)
-
-particle_vector_functions("all", ["particle_position_%s" % ax for ax in 'xyz'],
-                                 ["particle_velocity_%s" % ax for ax in 'xyz'],
-                          StreamFieldInfo)
-particle_deposition_functions("all", "Coordinates", "ParticleMass",
-                               StreamFieldInfo)
+def _setup_particle_fields(registry, ptype):
+    particle_vector_functions(ptype,
+        ["particle_position_%s" % ax for ax in 'xyz'],
+        ["particle_velocity_%s" % ax for ax in 'xyz'],
+        registry)
+    particle_deposition_functions(ptype,
+        "Coordinates", "particle_mass", registry)
+    for fn in ["creation_time", "dynamical_time", "metallicity_fraction"] + \
+              ["particle_type", "particle_index", "ParticleMass"] + \
+              ["particle_position_%s" % ax for ax in 'xyz']:
+        registry.add_field((ptype, fn), function=NullFunc, particle_type=True)

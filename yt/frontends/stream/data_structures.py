@@ -66,7 +66,8 @@ from yt.data_objects.unstructured_mesh import \
 from .fields import \
     StreamFieldInfo, \
     add_stream_field, \
-    KnownStreamFields
+    KnownStreamFields, \
+    _setup_particle_fields
 
 class StreamGrid(AMRGridPatch):
     """
@@ -325,13 +326,7 @@ class StreamStaticOutput(StaticOutput):
 
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
-        particle_vector_functions(ptype,
-            ["particle_position_%s" % ax for ax in 'xyz'],
-            ["particle_velocity_%s" % ax for ax in 'xyz'],
-            self.field_info)
-        particle_deposition_functions(ptype,
-            "Coordinates", "particle_mass", self.field_info)
-        standard_particle_fields(self.field_info, ptype)
+        _setup_particle_fields(self.field_info, ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class StreamDictFieldHandler(dict):
@@ -342,6 +337,19 @@ class StreamDictFieldHandler(dict):
         fields = list(self._additional_fields) + self[0].keys()
         fields = list(set(fields))
         return fields
+
+def update_field_names(data):
+    orig_names = data.keys()
+    for k in orig_names:
+        if isinstance(k, tuple): continue
+        s = getattr(data[k], "shape", ())
+        if len(s) == 1:
+            field = ("io", k)
+        elif len(s) == 3:
+            field = ("gas", k)
+        else:
+            raise NotImplementedError
+        data[field] = data.pop(k)
 
 def set_particle_types(data) :
 
@@ -613,6 +621,7 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
         grid_levels[i,:] = g.pop("level")
         if g.has_key("number_of_particles") :
             number_of_particles[i,:] = g.pop("number_of_particles")  
+        update_field_names(g)
         sfh[i] = g
             
     handler = StreamHandler(
@@ -685,7 +694,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     if number_of_particles > 0 :
         pdata = {}
         for field in base_pf.h.field_list :
-            if base_pf.field_info[field].particle_type :
+            if not isinstance(field, tuple):
+                field = ("unknown", field)
+            fi = base_pf._get_field_info(*field)
+            if fi.particle_type :
                 pdata[field] = np.concatenate([grid[field]
                                                for grid in base_pf.h.grids])
         pdata["number_of_particles"] = number_of_particles
@@ -708,7 +720,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
             for field in pf.h.field_list:
-                if not pf._get_field_info(field).particle_type :
+                if not isinstance(field, tuple):
+                    field = ("unknown", field)
+                fi = pf._get_field_info(*field)
+                if fi.particle_type :
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < pf.h.max_level: continue
@@ -721,7 +736,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
                 for field in pf.h.field_list:
-                    if not pf.field_info[field].particle_type :
+                    if not isinstance(field, tuple):
+                        field = ("unknown", field)
+                    fi = pf._get_field_info(*field)
+                    if fi.particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
         
@@ -838,6 +856,7 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
         pdata[field] = data[key]
         sfh._additional_fields += (field,)
     data = pdata # Drop reference count
+    update_field_names(data)
     particle_types = set_particle_types(data)
 
     sfh.update({'stream_file':data})
@@ -1024,6 +1043,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+    update_field_names(data)
 
     sfh = StreamDictFieldHandler()
     
