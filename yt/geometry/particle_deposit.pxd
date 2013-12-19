@@ -23,7 +23,7 @@ from libc.math cimport sqrt
 from fp_utils cimport *
 from .oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 
-cdef extern from "alloca.h":
+cdef extern from "malloc.h":
     void *alloca(int)
 
 cdef inline int gind(int i, int j, int k, int dims[3]):

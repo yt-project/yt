@@ -24,7 +24,7 @@ from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 from .particle_deposit cimport sph_kernel, gind
 
-cdef extern from "alloca.h":
+cdef extern from "malloc.h":
     void *alloca(int)
 
 cdef struct NeighborList

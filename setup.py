@@ -82,12 +82,13 @@ REASON_DIRS = [
     "app/templates",
 ]
 
-for subdir in REASON_DIRS:
-    dir_name = "yt/gui/reason/html/%s/" % (subdir)
-    files = []
-    for ext in ["js", "html", "css", "png", "ico", "gif"]:
-        files += glob.glob("%s/*.%s" % (dir_name, ext))
-    REASON_FILES.append((dir_name, files))
+if os.name == "posix":
+    for subdir in REASON_DIRS:
+        dir_name = "yt/gui/reason/html/%s/" % (subdir)
+        files = []
+        for ext in ["js", "html", "css", "png", "ico", "gif"]:
+            files += glob.glob("%s/*.%s" % (dir_name, ext))
+        REASON_FILES.append((dir_name, files))
 
 # Verify that we have Cython installed
 try:

@@ -42,7 +42,8 @@ from .base_plot_types import ImagePlotMPL
 from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
     fix_axis, get_image_suffix, get_ipython_api_version
-from yt.utilities.lib import write_png_to_string
+if os.name == "posix":
+    from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
     axis_names, axis_labels, \

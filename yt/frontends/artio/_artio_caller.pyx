@@ -18,7 +18,7 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures  
 
-cdef extern from "alloca.h":
+cdef extern from "malloc.h":
     void *alloca(int)
 
 cdef extern from "artio.h":

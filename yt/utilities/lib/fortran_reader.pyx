@@ -29,7 +29,7 @@ cdef extern from "endian_swap.h":
     void FIX_LONG( unsigned )
     void FIX_FLOAT( float )
 
-cdef extern from "alloca.h":
+cdef extern from "malloc.h":
     void *alloca(int)
 
 cdef extern from "stdio.h":
