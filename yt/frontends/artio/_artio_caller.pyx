@@ -18,8 +18,12 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures  
 
-cdef extern from "malloc.h":
-    void *alloca(int)
+IF UNAME_SYSNAME == "Windows":
+    cdef extern from "malloc.h":
+        void *alloca(int)
+ELSE:
+    cdef extern from "alloca.h":
+        void *alloca(int)
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
