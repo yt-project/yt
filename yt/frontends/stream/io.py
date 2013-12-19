@@ -66,116 +66,39 @@ class IOHandlerStream(BaseIOHandler):
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
 
-    def _read_particle_selection(self, chunks, selector, fields):
+    def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        if any((ftype != "all" for ftype, fname in fields)):
-            raise NotImplementedError
-        rv = {}
-        # Now we have to do something unpleasant
-        mylog.debug("First pass: counting particles.")
-        size = 0
-        pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
         for chunk in chunks:
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 gf = self.fields[g.id]
-                # Sometimes the stream operator won't have the 
-                # ("all", "Something") fields, but instead just "Something".
-                pns = []
-                for pn in pfields:
-                    if pn in gf: pns.append(pn)
-                    else: pns.append(pn[1])
-                size += g.count_particles(selector, 
-                    gf[pns[0]], gf[pns[1]], gf[pns[2]])
-        for field in fields:
-            # TODO: figure out dataset types
-            rv[field] = np.empty(size, dtype='float64')
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s points of %s fields in %s grids",
-                   size, [f2 for f1, f2 in fields], ng)
-        ind = 0
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z  = (gf[ptype, "particle_position_%s" % ax]
+                                for ax in 'xyz')
+                    yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
         for chunk in chunks:
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 gf = self.fields[g.id]
-                pns = []
-                for pn in pfields:
-                    if pn in gf: pns.append(pn)
-                    else: pns.append(pn[1])
-                mask = g.select_particles(selector,
-                    gf[pns[0]], gf[pns[1]], gf[pns[2]])
-                if mask is None: continue
-                for field in set(fields):
-                    if field in gf:
-                        fn = field
-                    else:
-                        fn = field[1]
-                    gdata = gf[fn][mask]
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
-        return rv
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z  = (gf[ptype, "particle_position_%s" % ax]
+                                for ax in 'xyz')
+                    mask = selector.select_points(x, y, z)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = np.asarray(gf[ptype, field])
+                        yield (ptype, field), data[mask]
 
     @property
     def _read_exception(self):
         return KeyError
 
-class StreamParticleIOHandler(BaseIOHandler):
+class StreamParticleIOHandler(IOHandlerStream):
 
     _data_style = "stream_particles"
-
-    def __init__(self, pf):
-        self.fields = pf.stream_handler.fields
-        super(StreamParticleIOHandler, self).__init__(pf)
-
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)
-        psize = defaultdict(lambda: 0)
-        chunks = list(chunks)
-        for ftype, fname in fields:
-            ptf[ftype].append(fname)
-        # For this type of file, we actually have something slightly different.
-        # We are given a list of ParticleDataChunks, which is composed of
-        # individual ParticleOctreeSubsets.  The data_files attribute on these
-        # may in fact overlap.  So we will iterate over a union of all the
-        # data_files.
-        data_files = set([])
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in data_files:
-            f = self.fields[data_file.filename]
-            # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
-                assert(ptype == "all")
-                psize[ptype] += selector.count_points(
-                        f["particle_position_x"],
-                        f["particle_position_y"],
-                        f["particle_position_z"])
-        # Now we have all the sizes, and we can allocate
-        ind = {}
-        for field in fields:
-            mylog.debug("Allocating %s values for %s", psize[field[0]], field)
-            rv[field] = np.empty(psize[field[0]], dtype="float64")
-            ind[field] = 0
-        for data_file in data_files:
-            f = self.fields[data_file.filename]
-            for ptype, field_list in sorted(ptf.items()):
-                assert(ptype == "all")
-                mask = selector.select_points(
-                        f["particle_position_x"],
-                        f["particle_position_y"],
-                        f["particle_position_z"])
-                if mask is None: continue
-                for field in field_list:
-                    data = f[field][mask,...]
-                    my_ind = ind[ptype, field]
-                    mylog.debug("Filling from %s to %s with %s",
-                        my_ind, my_ind+data.shape[0], field)
-                    rv[ptype, field][my_ind:my_ind + data.shape[0],...] = data
-                    ind[ptype, field] += data.shape[0]
-        return rv
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here

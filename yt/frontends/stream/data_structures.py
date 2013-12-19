@@ -247,7 +247,7 @@ class StreamHierarchy(GridGeometryHandler):
         """
         
         particle_types = set_particle_types(data[0])
-        ftype = "all"
+        ftype = "io"
 
         for key in data[0].keys() :
             if key is "number_of_particles": continue
@@ -262,7 +262,7 @@ class StreamHierarchy(GridGeometryHandler):
                 if fname in grid.field_data:
                     grid.field_data.pop(fname, None)
                 elif (ftype, fname) in grid.field_data:
-                    grid.field_data.pop( ("all", fname) )
+                    grid.field_data.pop( ("io", fname) )
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
         self._detect_fields()
@@ -335,9 +335,13 @@ class StreamStaticOutput(StaticOutput):
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 class StreamDictFieldHandler(dict):
+    _additional_fields = ()
 
     @property
-    def all_fields(self): return self[0].keys()
+    def all_fields(self): 
+        fields = list(self._additional_fields) + self[0].keys()
+        fields = list(set(fields))
+        return fields
 
 def set_particle_types(data) :
 
@@ -364,7 +368,7 @@ def assign_particle_data(pf, pdata) :
     if pf.h.num_grids > 1 :
 
         try:
-            x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
+            x, y, z = (pdata["io","particle_position_%s" % ax] for ax in 'xyz')
         except KeyError:
             raise KeyError("Cannot decompose particle data without position fields!")
         
@@ -461,7 +465,13 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         pdata["number_of_particles"] = number_of_particles
         for key in data.keys() :
             if len(data[key].shape) == 1 :
-                pdata[key] = data.pop(key)
+                if not isinstance(key, tuple):
+                    field = ("io", key)
+                    mylog.debug("Reassigning '%s' to '%s'", key, field)
+                else:
+                    field = key
+                sfh._additional_fields += field
+                pdata[field] = data.pop(key)
     else :
         particle_types = {}
     
@@ -519,12 +529,11 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     # Now figure out where the particles go
 
     if number_of_particles > 0 :
-        if ("all", "particle_position_x") not in pdata:
+        if ("io", "particle_position_x") not in pdata:
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
                 if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
-                pdata_ftype["all",f] = pdata.pop(f)
+                pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         assign_particle_data(spf, pdata)
@@ -723,12 +732,12 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     # Now reassign particle data to grids
 
     if number_of_particles > 0:
-        if ("all", "particle_position_x") not in pdata:
+        if ("io", "particle_position_x") not in pdata:
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
                 if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
-                pdata_ftype["all",f] = pdata.pop(f)
+                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
+                pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         assign_particle_data(pf, pdata)
@@ -874,7 +883,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
-        self._current_particle_type = 'all'
+        self._current_particle_type = 'io'
         self._current_fluid_type = self.pf.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
