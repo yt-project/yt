@@ -37,36 +37,43 @@ from yt.convenience import \
     load
 
 class EnzoSimulation(SimulationTimeSeries):
-    r"""Class for creating TimeSeriesData object from an Enzo
-    simulation parameter file.
+    r"""Initialize an Enzo Simulation object.
+
+    Upon creation, the parameter file is parsed and the time and redshift
+    are calculated and stored in all_outputs.  A time units dictionary is
+    instantiated to allow for time outputs to be requested with physical
+    time units.  The get_time_series can be used to generate a
+    TimeSeriesData object.
+
+    parameter_filename : str
+        The simulation parameter file.
+    find_outputs : bool
+        If True, subdirectories within the GlobalDir directory are
+        searched one by one for datasets.  Time and redshift
+        information are gathered by temporarily instantiating each
+        dataset.  This can be used when simulation data was created
+        in a non-standard way, making it difficult to guess the
+        corresponding time and redshift information.
+        Default: False.
+
+    Examples
+    --------
+    >>> from yt.mods import *
+    >>> es = EnzoSimulation("my_simulation.par")
+    >>> es.get_time_series()
+    >>> for pf in es:
+    ...     print pf.current_time
+
+    >>> from yt.mods import *
+    >>> es = simulation("my_simulation.par", "Enzo")
+    >>> es.get_time_series()
+    >>> for pf in es:
+    ...     print pf.current_time
+
     """
+
     def __init__(self, parameter_filename, find_outputs=False):
-        r"""Initialize an Enzo Simulation object.
 
-        Upon creation, the parameter file is parsed and the time and redshift
-        are calculated and stored in all_outputs.  A time units dictionary is
-        instantiated to allow for time outputs to be requested with physical
-        time units.  The get_time_series can be used to generate a
-        TimeSeriesData object.
-
-        parameter_filename : str
-            The simulation parameter file.
-        find_outputs : bool
-            If True, subdirectories within the GlobalDir directory are
-            searched one by one for datasets.  Time and redshift
-            information are gathered by temporarily instantiating each
-            dataset.  This can be used when simulation data was created
-            in a non-standard way, making it difficult to guess the
-            corresponding time and redshift information.
-            Default: False.
-
-        Examples
-        --------
-        >>> from yt.mods import *
-        >>> es = ES.EnzoSimulation("my_simulation.par")
-        >>> print es.all_outputs
-
-        """
         SimulationTimeSeries.__init__(self, parameter_filename,
                                       find_outputs=find_outputs)
 
@@ -75,7 +82,7 @@ class EnzoSimulation(SimulationTimeSeries):
                         initial_redshift=None, final_redshift=None,
                         initial_cycle=None, final_cycle=None,
                         times=None, redshifts=None, tolerance=None,
-                        parallel=True):
+                        parallel=True, setup_function=None):
 
         """
         Instantiate a TimeSeriesData object for a set of outputs.
@@ -152,9 +159,15 @@ class EnzoSimulation(SimulationTimeSeries):
             integer is supplied, the work will be divided into that
             number of jobs.
             Default: True.
+        setup_function : callable, accepts a pf
+            This function will be called whenever a parameter file is loaded.
 
         Examples
         --------
+
+        >>> from yt.mods import *
+        >>> es = simulation("my_simulation.par", "Enzo")
+        
         >>> es.get_time_series(initial_redshift=10, final_time=13.7,
                                time_units='Gyr', redshift_data=False)
 
@@ -166,9 +179,16 @@ class EnzoSimulation(SimulationTimeSeries):
 
         >>> # after calling get_time_series
         >>> for pf in es.piter():
-        >>>     pc = PlotCollection(pf, 'c')
-        >>>     pc.add_projection('Density', 0)
-        >>>     pc.save()
+        ...     pc = PlotCollection(pf, 'c')
+        ...     pc.add_projection('Density', 0)
+        ...     pc.save()
+
+        >>> # An example using the setup_function keyword
+        >>> def print_time(pf):
+        ...     print pf.current_time
+        >>> es.get_time_series(setup_function=print_time)
+        >>> for pf in es:
+        ...     SlicePlot(pf, "x", "Density").save()
 
         """
 
@@ -242,7 +262,8 @@ class EnzoSimulation(SimulationTimeSeries):
             if os.path.exists(output['filename']):
                 init_outputs.append(output['filename'])
             
-        TimeSeriesData.__init__(self, outputs=init_outputs, parallel=parallel)
+        TimeSeriesData.__init__(self, outputs=init_outputs, parallel=parallel,
+                                setup_function=setup_function)
         mylog.info("%d outputs loaded into time series.", len(init_outputs))
 
     def _parse_parameter_file(self):
