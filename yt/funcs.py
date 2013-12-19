@@ -538,6 +538,16 @@ def get_script_contents():
         contents = None
     return contents
 
+def download_file(url, filename):
+    import urllib
+    class MyURLopener(urllib.FancyURLopener):
+        def http_error_default(self, url, fp, errcode, errmsg, headers):
+            raise RuntimeError, \
+              "Attempt to download file from %s failed with error %s: %s." % \
+              (url, errcode, errmsg)
+    fn, h = MyURLopener().retrieve(url, filename)
+    return fn
+
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
     import urllib, urllib2

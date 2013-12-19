@@ -67,7 +67,9 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/ContourFinding.pyx",
                  "yt/utilities/lib/union_find.c"],
                 include_dirs=["yt/utilities/lib/"],
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+                libraries=["m"],
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/utilities/lib/amr_kdtools.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
