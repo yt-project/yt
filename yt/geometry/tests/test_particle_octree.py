@@ -91,6 +91,8 @@ def test_particle_octree_counts():
         bi = dd["io","mesh_id"]
         v = np.bincount(bi.astype("int64"))
         yield assert_equal, v.max() <= n_ref, True
+        bi2 = dd["all","mesh_id"]
+        yield assert_equal, bi, bi2
 
 def test_particle_overrefine():
     np.random.seed(int(0x4d3d3d3))

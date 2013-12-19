@@ -34,12 +34,10 @@ add_stream_field = KnownStreamFields.add_field
 StreamFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = StreamFieldInfo.add_field
 
-add_stream_field("density", function = NullFunc)
+add_stream_field("Density", function = NullFunc)
 add_stream_field("x-velocity", function = NullFunc)
 add_stream_field("y-velocity", function = NullFunc)
 add_stream_field("z-velocity", function = NullFunc)
-
-add_field("Density", function = TranslationFunc("density"))
 
 def _setup_particle_fields(registry, ptype):
     particle_vector_functions(ptype,

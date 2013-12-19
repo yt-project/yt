@@ -482,6 +482,7 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
                 pdata[field] = data.pop(key)
     else :
         particle_types = {}
+    update_field_names(data)
     
     if nprocs > 1:
         temp = {}

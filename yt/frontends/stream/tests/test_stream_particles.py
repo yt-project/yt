@@ -28,7 +28,6 @@ def test_stream_particles() :
     
     # Check that all of this runs ok without particles
     
-    ug0 = load_uniform_grid({"Density": dens}, domain_dims, 1.0)
     ug0 = load_uniform_grid({"Density": dens}, domain_dims, 1.0, nprocs=8)
     amr0 = refine_amr(ug0, rc, fo, 3)
 
