@@ -1000,7 +1000,13 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         super(StreamOctreeHandler, self)._setup_classes(dd)
 
     def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
+        # NOTE: Because particle unions add to the actual field list, without
+        # having the keys in the field list itself, we need to double check
+        # here.
+        fl = set(self.stream_handler.get_fields())
+        fl.update(set(getattr(self, "field_list", [])))
+        self.field_list = list(fl)
+
 
 class StreamOctreeStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamOctreeHandler
@@ -1141,7 +1147,13 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
             self.io = io_registry[self.data_style](self.pf)
 
     def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
+        # NOTE: Because particle unions add to the actual field list, without
+        # having the keys in the field list itself, we need to double check
+        # here.
+        fl = set(self.stream_handler.get_fields())
+        fl.update(set(getattr(self, "field_list", [])))
+        self.field_list = list(fl)
+
 
 class StreamHexahedralStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamHexahedralHierarchy
