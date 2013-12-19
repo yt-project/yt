@@ -724,7 +724,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = pf._get_field_info(*field)
-                if fi.particle_type :
+                if not fi.particle_type :
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < pf.h.max_level: continue
@@ -740,7 +740,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = pf._get_field_info(*field)
-                    if fi.particle_type :
+                    if not fi.particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
         

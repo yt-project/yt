@@ -34,7 +34,7 @@ class TopHatSphere(FluidOperator):
         if sub_select is not None:
             ind &= sub_select
         for field, val in self.fields.iteritems():
-            grid.field_data[field][ind] = val
+            grid[field][ind] = val
 
 class CoredSphere(FluidOperator):
     def __init__(self, core_radius, radius, center, fields):
