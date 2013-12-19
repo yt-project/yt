@@ -713,7 +713,7 @@ class YTArray(np.ndarray):
 
         Unit metadata is encoded in the zeroth element of third element of the 
         returned tuple, itself a tuple used to restore the state of the ndarray.  
-        This is always be defined for numpy arrays.
+        This is always defined for numpy arrays.
         """
         np_ret = super(YTArray, self).__reduce__()
         obj_state = np_ret[2]
