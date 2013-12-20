@@ -334,7 +334,8 @@ class Unit(Expr):
         if unit_expr != SYMPIFY_ONE:
             unit_expr = sympify(unit_expr)
             unit_expr = _make_symbols_positive(unit_expr)
-            unit_expr = nsimplify(unit_expr)
+            if any([atom.is_Float for atom in unit_expr.atoms()]):
+                unit_expr = nsimplify(unit_expr)
 
         # see if the unit is atomic.
         is_atomic = False
@@ -362,7 +363,8 @@ class Unit(Expr):
 
         # Sympy trick to get dimensions powers as Rationals
         if not dimensions.is_Atom:
-            dimensions = nsimplify(dimensions)
+            if any([atom.is_Float for atom in dimensions.atoms()]):
+                dimensions = nsimplify(dimensions)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
