@@ -111,6 +111,10 @@ default_unit_symbol_lut = {
     "J": (1.0e7, energy),
     "Hz": (1.0, rate),
 
+    # Imperial units
+    "ft": (30.48, length),
+    "mile": (160934, length),
+
     # dimensionless stuff
     "h": (1.0, dimensionless), # needs to be added for rho_crit_now
 
