@@ -46,9 +46,6 @@ def test_no_conflicting_symbols():
             # test if we have seen this symbol
             if new_symbol in full_set:
                 print "Duplicate symbol: %s" % new_symbol
-                # Special case, see: http://lists.spacepope.org/pipermail/yt-dev-spacepope.org/2013-December/003763.html
-                if new_symbol == 'mpc':
-                    pass
                 assert False
 
             full_set.add(new_symbol)

@@ -265,6 +265,7 @@ class UnitRegistry:
         return self.lut.keys()
 
 default_unit_registry = UnitRegistry()
+SYMPIFY_ONE = sympify(1)
 
 class Unit(Expr):
     """
@@ -281,7 +282,7 @@ class Unit(Expr):
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "dimensions", "registry"]
 
-    def __new__(cls, unit_expr=sympify(1), cgs_value=None, dimensions=None,
+    def __new__(cls, unit_expr=SYMPIFY_ONE, cgs_value=None, dimensions=None,
                 registry=None, **assumptions):
         """
         Create a new unit. May be an atomic unit (like a gram) or combinations
@@ -302,20 +303,21 @@ class Unit(Expr):
         """
         # Simplest case. If user passes a Unit object, just use the expr.
         unit_key = None
-        if isinstance(unit_expr, str) and registry and \
-                unit_expr in registry.unit_objs:
-            return registry.unit_objs[unit_expr]
+        if isinstance(unit_expr, str):
+            if registry and unit_expr in registry.unit_objs:
+                return registry.unit_objs[unit_expr]
+            elif unit_expr in default_unit_registry.unit_objs:
+                return default_unit_registry.unit_objs[unit_expr]
+            else:
+                unit_key = unit_expr
+                if not unit_expr:
+                    # Bug catch...
+                    # if unit_expr is an empty string, parse_expr fails hard...
+                    unit_expr = "1"
+                unit_expr = parse_expr(unit_expr)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
-        # If we have a string, have sympy parse it into an Expr.
-        elif isinstance(unit_expr, str):
-            unit_key = unit_expr
-            if not unit_expr:
-                # Bug catch...
-                # if unit_expr is an empty string, parse_expr fails hard...
-                unit_expr = "1"
-            unit_expr = parse_expr(unit_expr)
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \
@@ -329,9 +331,10 @@ class Unit(Expr):
         # done with argument checking...
 
         # sympify, make positive symbols, and nsimplify the expr
-        unit_expr = sympify(unit_expr)
-        unit_expr = _make_symbols_positive(unit_expr)
-        unit_expr = nsimplify(unit_expr)
+        if unit_expr != SYMPIFY_ONE:
+            unit_expr = sympify(unit_expr)
+            unit_expr = _make_symbols_positive(unit_expr)
+            unit_expr = nsimplify(unit_expr)
 
         # see if the unit is atomic.
         is_atomic = False
@@ -358,7 +361,8 @@ class Unit(Expr):
             cgs_value, dimensions = _get_unit_data_from_expr(unit_expr, registry.lut)
 
         # Sympy trick to get dimensions powers as Rationals
-        dimensions = nsimplify(dimensions)
+        if not dimensions.is_Atom:
+            dimensions = nsimplify(dimensions)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -578,7 +582,8 @@ def _make_symbols_positive(expr):
     # Replace one at a time
     for s in expr_symbols:
         # replace this symbol with a positive version
-        expr = expr.subs(s, Symbol(s.name, positive=True))
+        if not s.is_positive:
+            expr = expr.subs(s, Symbol(s.name, positive=True))
 
     return expr
 
