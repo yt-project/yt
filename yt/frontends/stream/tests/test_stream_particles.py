@@ -22,14 +22,14 @@ def test_stream_particles() :
     # Field operators and cell flagging methods
 
     fo = []
-    fo.append(ic.TopHatSphere(0.1, [0.2,0.3,0.4],{"Density": 2.0}))
-    fo.append(ic.TopHatSphere(0.05, [0.7,0.4,0.75],{"Density": 20.0}))
+    fo.append(ic.TopHatSphere(0.1, [0.2,0.3,0.4],{"density": 2.0}))
+    fo.append(ic.TopHatSphere(0.05, [0.7,0.4,0.75],{"density": 20.0}))
     rc = [fm.flagging_method_registry["overdensity"](1.0)]
     
     # Check that all of this runs ok without particles
     
-    ug0 = load_uniform_grid({"Density": dens}, domain_dims, 1.0)
-    ug0 = load_uniform_grid({"Density": dens}, domain_dims, 1.0, nprocs=8)
+    ug0 = load_uniform_grid({"density": dens}, domain_dims, 1.0)
+    ug0 = load_uniform_grid({"density": dens}, domain_dims, 1.0, nprocs=8)
     amr0 = refine_amr(ug0, rc, fo, 3)
 
     grid_data = []
@@ -52,7 +52,7 @@ def test_stream_particles() :
                         
     # Now add particles
 
-    fields1 = {"Density": dens,
+    fields1 = {"density": dens,
                "particle_position_x": x,
                "particle_position_y": y,
                "particle_position_z": z,
@@ -78,13 +78,13 @@ def test_stream_particles() :
     assert ug1._get_field_info("all", "particle_position_y").particle_type
     assert ug1._get_field_info("all", "particle_position_z").particle_type
     assert ug1._get_field_info("all", "particle_mass").particle_type
-    assert not ug1._get_field_info("gas", "Density").particle_type
+    assert not ug1._get_field_info("gas", "density").particle_type
 
     assert ug2._get_field_info("all", "particle_position_x").particle_type
     assert ug2._get_field_info("all", "particle_position_y").particle_type
     assert ug2._get_field_info("all", "particle_position_z").particle_type
     assert ug2._get_field_info("all", "particle_mass").particle_type
-    assert not ug2._get_field_info("gas", "Density").particle_type
+    assert not ug2._get_field_info("gas", "density").particle_type
     
     # Now refine this
 
@@ -120,10 +120,10 @@ def test_stream_particles() :
     assert amr1._get_field_info("all", "particle_position_y").particle_type
     assert amr1._get_field_info("all", "particle_position_z").particle_type
     assert amr1._get_field_info("all", "particle_mass").particle_type
-    assert not amr1._get_field_info("gas", "Density").particle_type
+    assert not amr1._get_field_info("gas", "density").particle_type
     
     assert amr2._get_field_info("all", "particle_position_x").particle_type
     assert amr2._get_field_info("all", "particle_position_y").particle_type
     assert amr2._get_field_info("all", "particle_position_z").particle_type
     assert amr2._get_field_info("all", "particle_mass").particle_type
-    assert not amr2._get_field_info("gas", "Density").particle_type
+    assert not amr2._get_field_info("gas", "density").particle_type
