@@ -27,9 +27,9 @@ import contextlib
 # These are the callbacks still to test:
 #
 #  X velocity
-#    magnetic_field
-#    quiver
-#    contour
+#  X magnetic_field
+#  X quiver
+#  X contour
 #    grids
 #    streamlines
 #    axis_label
@@ -72,3 +72,77 @@ def test_velocity_callback():
             p = SlicePlot(pf, ax, "Density")
             p.annotate_velocity()
             yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(pf, "x", "Density")
+        p.annotate_velocity(factor=8, scale=0.5, scale_units="inches",
+                            normalize = True)
+        p.save()
+
+def test_magnetic_callback():
+    with _cleanup_fname() as prefix:
+        pf = fake_amr_pf(fields = ("Density", "Bx", "By", "Bz"))
+        for ax in 'xyz':
+            p = ProjectionPlot(pf, ax, "Density")
+            p.annotate_magnetic_field()
+            yield assert_fname, p.save(prefix)[0]
+            p = ProjectionPlot(pf, ax, "Density", weight_field="Density")
+            p.annotate_magnetic_field()
+            yield assert_fname, p.save(prefix)[0]
+            p = SlicePlot(pf, ax, "Density")
+            p.annotate_magnetic_field()
+            yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(pf, "x", "Density")
+        p.annotate_magnetic_field(factor=8, scale=0.5,
+            scale_units="inches", normalize = True)
+        p.save()
+
+def test_quiver_callback():
+    with _cleanup_fname() as prefix:
+        pf = fake_amr_pf(fields = ("Density", "Vx", "Vy"))
+        for ax in 'xyz':
+            p = ProjectionPlot(pf, ax, "Density")
+            p.annotate_quiver("Vx", "Vy")
+            yield assert_fname, p.save(prefix)[0]
+            p = ProjectionPlot(pf, ax, "Density", weight_field="Density")
+            p.annotate_quiver("Vx", "Vy")
+            yield assert_fname, p.save(prefix)[0]
+            p = SlicePlot(pf, ax, "Density")
+            p.annotate_quiver("Vx", "Vy")
+            yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(pf, "x", "Density")
+        p.annotate_quiver("Vx", "Vy", factor=8, scale=0.5,
+            scale_units="inches", normalize = True,
+            bv_x = 0.5, bv_y = 0.5)
+        p.save()
+
+def test_contour_callback():
+    with _cleanup_fname() as prefix:
+        pf = fake_amr_pf(fields = ("Density", "Temperature"))
+        for ax in 'xyz':
+            p = ProjectionPlot(pf, ax, "Density")
+            p.annotate_contour("Temperature")
+            yield assert_fname, p.save(prefix)[0]
+            p = ProjectionPlot(pf, ax, "Density", weight_field="Density")
+            p.annotate_contour("Temperature")
+            yield assert_fname, p.save(prefix)[0]
+            p = SlicePlot(pf, ax, "Density")
+            p.annotate_contour("Temperature")
+            yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(pf, "x", "Density")
+        p.annotate_contour("Temperature", ncont=10, factor=8,
+            take_log=False, clim=(0.4, 0.6),
+            plot_args={'lw':2.0}, label=True,
+            label_args={'text-size':'x-large'})
+        p.save()
+
+        p = SlicePlot(pf, "x", "Density")
+        s2 = pf.h.slice(0.2, 0)
+        p.annotate_contour("Temperature", ncont=10, factor=8,
+            take_log=False, clim=(0.4, 0.6),
+            plot_args={'lw':2.0}, label=True,
+            label_args={'text-size':'x-large'},
+            data_source=s2)
+        p.save()
