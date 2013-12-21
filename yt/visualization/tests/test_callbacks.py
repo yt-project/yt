@@ -139,10 +139,31 @@ def test_contour_callback():
         p.save()
 
         p = SlicePlot(pf, "x", "Density")
-        s2 = pf.h.slice(0.2, 0)
+        s2 = pf.h.slice(0, 0.2)
         p.annotate_contour("Temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
             label_args={'text-size':'x-large'},
             data_source=s2)
         p.save()
+
+def test_grids_callback():
+    with _cleanup_fname() as prefix:
+        pf = fake_amr_pf()
+        for ax in 'xyz':
+            p = ProjectionPlot(pf, ax, "Density")
+            p.annotate_grids()
+            yield assert_fname, p.save(prefix)[0]
+            p = ProjectionPlot(pf, ax, "Density", weight_field="Density")
+            p.annotate_grids()
+            yield assert_fname, p.save(prefix)[0]
+            p = SlicePlot(pf, ax, "Density")
+            p.annotate_grids()
+            yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(pf, "x", "Density")
+        p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
+            draw_ids=True, periodic=False, min_level=2,
+            max_level=3, cmap="gist_stern")
+        p.save()
+
