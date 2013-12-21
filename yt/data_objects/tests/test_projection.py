@@ -53,8 +53,19 @@ def test_projection():
                             ax
                     yield assert_equal, frb[proj_field].info['field'], \
                             proj_field
-                    yield assert_equal, frb[proj_field].units, \
-                            Unit(pf._get_field_info("unkown", proj_field).units)
+                    print frb[proj_field].units
+                    print Unit(pf._get_field_info("unkown", proj_field).units)
+                    field_unit = pf._get_field_info("unkown", proj_field).units
+                    if wf is not None:
+                        yield assert_equal, frb[proj_field].units, Unit(field_unit)
+                    else:
+                        if frb[proj_field].units.is_code_unit:
+                            proj_unit = "code_length"
+                        else:
+                            proj_unit = "cm"
+                        if field_unit is not '':
+                            proj_unit = "({0}) * {1}".format(field_unit, proj_unit)
+                        yield assert_equal, frb[proj_field].units, Unit(proj_unit)
                     yield assert_equal, frb[proj_field].info['xlim'], \
                             frb.bounds[:2]
                     yield assert_equal, frb[proj_field].info['ylim'], \
