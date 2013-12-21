@@ -42,6 +42,8 @@ def test_ellipsoid():
                 vecs = [ell._e0, ell._e1, ell._e2]
                 mags = [ell._A, ell._B, ell._C]
                 my_c = np.array([c]*p.shape[1]).transpose()
+                dot_evec = [de.to_ndarray() for de in dot_evec]
+                mags = [m.to_ndarray() for m in mags]
                 for ax_i in range(3):
                     dist = _difference(p[ax_i,:], my_c[ax_i,:], DW[ax_i])
                     for ax_j in range(3):
