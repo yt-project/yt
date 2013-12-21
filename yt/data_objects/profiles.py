@@ -978,11 +978,15 @@ def create_profile(data_source, bin_fields, n = 64,
         cls = Profile3D
     else:
         raise NotImplementedError
+    bin_fields = data_source._determine_fields(bin_fields)
+    fields = data_source._determine_fields(fields)
+    if weight_field is not None:
+        weight_field, = data_source._determine_fields([weight_field])
     if not iterable(n):
         n = [n] * len(bin_fields)
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
-    logs = [data_source.pf.field_info[f].take_log for f in bin_fields]
+    logs = [data_source.pf._get_field_info(f).take_log for f in bin_fields]
     ex = [data_source.quantities["Extrema"](f, non_zero=l)[0] \
           for f, l in zip(bin_fields, logs)]
     args = [data_source]
