@@ -124,6 +124,12 @@ class AMRGridPatch(YTSelectionContainer):
             tr = self._current_chunk.fwidth[:,1]
         elif field == ("index", "dz"):
             tr = self._current_chunk.fwidth[:,2]
+        elif field == ("index", "x"):
+            tr = self._current_chunk.fcoords[:,0]
+        elif field == ("index", "y"):
+            tr = self._current_chunk.fcoords[:,1]
+        elif field == ("index", "z"):
+            tr = self._current_chunk.fcoords[:,2]
         return self._reshape_vals(tr)
 
     def _setup_dx(self):
