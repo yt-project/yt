@@ -21,6 +21,8 @@ from yt.utilities.exceptions import YTUnitOperationError
 from yt.testing import fake_random_pf
 from yt.funcs import fix_length
 import operator
+import cPickle as pickle
+import tempfile
 
 def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
@@ -269,6 +271,22 @@ def test_fix_length():
     Test fixing the length of an array. Used in spheres and other data objects
     """
     pf = fake_random_pf(64, nprocs=1)
-    length = YTQuantity(1.0,'code_length',pf.unit_registry)
+    length = pf.quan(1.0,'code_length')
     new_length = fix_length(length, pf=pf)
     assert length == new_length
+
+def test_ytarray_pickle():
+    pf = fake_random_pf(64, nprocs=1)
+    test_data = [pf.quan(12.0, 'code_length'), pf.arr([1,2,3], 'code_length')]
+    
+    for data in test_data:
+        tempf = tempfile.NamedTemporaryFile(delete=False)
+        pickle.dump(data, tempf)
+        tempf.close()
+
+        loaded_data = pickle.load(open(tempf.name, "rb"))
+
+        assert_array_equal(data, loaded_data)
+        assert data.units == loaded_data.units
+        assert_array_equal(array(data.in_cgs()), array(loaded_data.in_cgs()))
+        assert float(data.units.cgs_value) == float(loaded_data.units.cgs_value)
