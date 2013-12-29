@@ -143,7 +143,7 @@ def fake_random_pf(
         ndims, peak_value = 1.0,
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
-        negative = False, nprocs = 1):
+        negative = False, nprocs = 1, particles = 0):
     from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
@@ -166,6 +166,13 @@ def fake_random_pf(
             data['number_of_particles'] = v.size
             v = v.ravel()
         data[field] = (v, u)
+    if particles:
+        for f in ('particle_position_%s' % ax for ax in 'xyz'):
+            data[f] = np.random.uniform(size = particles)
+        for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+            data[f] = np.random.random(size = particles) - 0.5
+        data['particle_mass'] = np.random.random(particles)
+        data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, 1.0, nprocs=nprocs)
     return ug
 

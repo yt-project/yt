@@ -48,7 +48,7 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype not in ("gas", "deposit") for ftype, fname in fields)):
+        if any((ftype not in ("gas",) for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         for field in fields:
@@ -64,8 +64,6 @@ class IOHandlerStream(BaseIOHandler):
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
-            if ftype == 'deposit':
-                fname = field
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
@@ -73,54 +71,31 @@ class IOHandlerStream(BaseIOHandler):
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
 
-    def _read_particle_selection(self, chunks, selector, fields):
+    def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        if any((ftype != "all" for ftype, fname in fields)):
-            raise NotImplementedError
-        rv = {}
-        # Now we have to do something unpleasant
-        mylog.debug("First pass: counting particles.")
-        size = 0
-        pfields = [("all", "particle_position_%s" % ax) for ax in 'xyz']
         for chunk in chunks:
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 gf = self.fields[g.id]
-                # Sometimes the stream operator won't have the 
-                # ("all", "Something") fields, but instead just "Something".
-                pns = []
-                for pn in pfields:
-                    if pn in gf: pns.append(pn)
-                    else: pns.append(pn[1])
-                size += g.count_particles(selector, 
-                    gf[pns[0]], gf[pns[1]], gf[pns[2]])
-        for field in fields:
-            # TODO: figure out dataset types
-            rv[field] = np.empty(size, dtype='float64')
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s points of %s fields in %s grids",
-                   size, [f2 for f1, f2 in fields], ng)
-        ind = 0
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z  = (gf[ptype, "particle_position_%s" % ax]
+                                for ax in 'xyz')
+                    yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
         for chunk in chunks:
             for g in chunk.objs:
                 if g.NumberOfParticles == 0: continue
                 gf = self.fields[g.id]
-                pns = []
-                for pn in pfields:
-                    if pn in gf: pns.append(pn)
-                    else: pns.append(pn[1])
-                mask = g.select_particles(selector,
-                    gf[pns[0]], gf[pns[1]], gf[pns[2]])
-                if mask is None: continue
-                for field in set(fields):
-                    if field in gf:
-                        fn = field
-                    else:
-                        fn = field[1]
-                    gdata = gf[fn][mask]
-                    rv[field][ind:ind+gdata.size] = gdata
-                ind += gdata.size
-        return rv
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z  = (gf[ptype, "particle_position_%s" % ax]
+                                for ax in 'xyz')
+                    mask = selector.select_points(x, y, z)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = np.asarray(gf[ptype, field])
+                        yield (ptype, field), data[mask]
 
     @property
     def _read_exception(self):
@@ -166,8 +141,9 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
-        pos = np.column_stack(self.fields[data_file.filename]["io",
-                              "particle_position_%s" % ax] for ax in 'xyz')
+        pos = np.column_stack(self.fields[data_file.filename][
+                              ("io", "particle_position_%s" % ax)]
+                              for ax in 'xyz')
         if np.any(pos.min(axis=0) < data_file.pf.domain_left_edge) or \
            np.any(pos.max(axis=0) > data_file.pf.domain_right_edge):
             raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
@@ -182,7 +158,7 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _count_particles(self, data_file):
         npart = self.fields[data_file.filename]["io", "particle_position_x"].size
-        return {'all': npart}
+        return {'io': npart}
 
     def _identify_fields(self, data_file):
         return self.fields[data_file.filename].keys()

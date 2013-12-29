@@ -33,6 +33,7 @@ def test_cutting_plane():
         fns += pw.save(name=tmpname)
         frb = cut.to_frb((1.0,'unitary'), 64)
         for cut_field in ['ones', 'density']:
+            fi = pf._get_field_info("unknown", cut_field)
             yield assert_equal, frb[cut_field].info['data_source'], \
                 cut.__str__()
             yield assert_equal, frb[cut_field].info['axis'], \
@@ -40,7 +41,7 @@ def test_cutting_plane():
             yield assert_equal, frb[cut_field].info['field'], \
                 cut_field
             yield assert_equal, frb[cut_field].units, \
-                Unit(pf._get_field_info("unknown", cut_field).units)
+                Unit(fi.units)
             yield assert_equal, frb[cut_field].info['xlim'], \
                 frb.bounds[:2]
             yield assert_equal, frb[cut_field].info['ylim'], \

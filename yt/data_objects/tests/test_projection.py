@@ -47,15 +47,14 @@ def test_projection():
                 fns += pw.save(name=tmpname)
                 frb = proj.to_frb((1.0,'unitary'), 64)
                 for proj_field in ['ones', 'density']:
+                    fi = pf._get_field_info(proj_field)
                     yield assert_equal, frb[proj_field].info['data_source'], \
                             proj.__str__()
                     yield assert_equal, frb[proj_field].info['axis'], \
                             ax
                     yield assert_equal, frb[proj_field].info['field'], \
                             proj_field
-                    print frb[proj_field].units
-                    print Unit(pf._get_field_info("unkown", proj_field).units)
-                    field_unit = pf._get_field_info("unkown", proj_field).units
+                    field_unit = Unit(fi.units)
                     if wf is not None:
                         yield assert_equal, frb[proj_field].units, Unit(field_unit)
                     else:

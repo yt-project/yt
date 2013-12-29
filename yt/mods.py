@@ -62,7 +62,8 @@ from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ImageArray, particle_filter, create_profile
+    ImageArray, particle_filter, create_profile, \
+    Profile1D, Profile2D, Profile3D
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
