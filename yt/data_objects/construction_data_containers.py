@@ -232,6 +232,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self.get_data(field)
 
     @property
+    def blocks(self):
+        return self.data_source.blocks
+
+    @property
     def _mrep(self):
         return MinimalProjectionData(self)
 
@@ -251,6 +255,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                         bounds, style = self.proj_style)
 
     def get_data(self, fields = None):
+        fields = fields or []
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
