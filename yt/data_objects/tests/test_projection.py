@@ -63,7 +63,7 @@ def test_projection():
                             proj_unit = "code_length"
                         else:
                             proj_unit = "cm"
-                        if field_unit is not '':
+                        if field_unit != '':
                             proj_unit = "({0}) * {1}".format(field_unit, proj_unit)
                         yield assert_equal, frb[proj_field].units, Unit(proj_unit)
                     yield assert_equal, frb[proj_field].info['xlim'], \
