@@ -175,6 +175,8 @@ class Camera(ParallelAnalysisInterface):
             width = (width, width, width) # left/right, top/bottom, front/back 
         if not isinstance(width, YTArray):
             width = self.pf.arr(width, input_units="code_length")
+        if not isinstance(center, YTArray):
+            center = self.pf.arr(center, input_units="code_length")
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]

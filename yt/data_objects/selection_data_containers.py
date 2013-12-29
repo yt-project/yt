@@ -342,12 +342,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         if iterable(width):
             w, u = width
-            width = self.pf.arr(w, input_units = u)
+            width = self.pf.quan(w, input_units = u)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = self.pf.arr(w, input_units = u)
+            height = self.pf.quan(w, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
@@ -607,9 +607,9 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         if A<B or B<C:
             raise YTEllipsoidOrdering(pf, A, B, C)
         # make sure the smallest side is not smaller than dx
-        self._A = self.pf.arr(A, 'code_length')
-        self._B = self.pf.arr(B, 'code_length')
-        self._C = self.pf.arr(C, 'code_length')
+        self._A = self.pf.quan(A, 'code_length')
+        self._B = self.pf.quan(B, 'code_length')
+        self._C = self.pf.quan(C, 'code_length')
         if self._C < self.hierarchy.get_smallest_dx():
             raise YTSphereTooSmall(pf, self._C, self.hierarchy.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5

@@ -343,7 +343,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
     
-    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm,
+    cax = ax.imshow(data.to_ndarray(), vmin=limits[0], vmax=limits[1], norm=norm,
                     extent=extent, cmap=cmap_name)
     
     if title:

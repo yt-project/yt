@@ -28,7 +28,7 @@ class TopHatSphere(FluidOperator):
     def __call__(self, grid, sub_select = None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
         for i, ax in enumerate("xyz"):
-            np.add(r, (grid[ax] - self.center[i])**2.0, r)
+            np.add(r, (grid[ax].to_ndarray() - self.center[i])**2.0, r)
         np.sqrt(r, r)
         ind = (r <= self.radius)
         if sub_select is not None:

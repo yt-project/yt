@@ -380,7 +380,7 @@ def assign_particle_data(pf, pdata) :
     if len(pf.stream_handler.fields) > 1:
 
         try:
-            x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
+            x, y, z = (pdata["io", "particle_position_%s" % ax] for ax in 'xyz')
         except KeyError:
             raise KeyError("Cannot decompose particle data without position fields!")
         num_grids = len(pf.stream_handler.fields)
@@ -412,7 +412,6 @@ def assign_particle_data(pf, pdata) :
     
         pdata.pop("number_of_particles")    
         grid_pdata = []
-        
         for i, pcount in enumerate(particle_grid_count) :
             grid = {}
             grid["number_of_particles"] = pcount
@@ -611,12 +610,12 @@ Parameters
 
     # Now figure out where the particles go
     if number_of_particles > 0 :
-        if ("all", "particle_position_x") not in pdata:
+        if ("io", "particle_position_x") not in pdata:
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
                 if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
-                pdata_ftype["all",f] = pdata.pop(f)
+                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
+                pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         assign_particle_data(spf, pdata)
@@ -624,7 +623,8 @@ Parameters
     return spf
 
 def load_amr_grids(grid_data, domain_dimensions, length_units=None,
-                   field_units=None, bbox=None, sim_time=0.0,
+                   field_units=None, bbox=None, sim_time=0.0, length_unit=None,
+                   mass_unit = None, time_unit = None, velocity_unit=None,
                    periodicity=(True, True, True)):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -707,7 +707,18 @@ Parameters
             number_of_particles[i,:] = g.pop("number_of_particles")  
         sfh[i] = g
 
-    field_units, data = unitify_data(grid_data)
+    for i, g_data in enumerate(grid_data):
+        field_units, data = unitify_data(g_data)
+        grid_data[i] = data
+
+    if length_unit is None:
+        length_unit = 'code_length'
+    if mass_unit is None:
+        mass_unit = 'code_mass'
+    if time_unit is None:
+        time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
 
     handler = StreamHandler(
         grid_left_edges,
@@ -719,6 +730,7 @@ Parameters
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
         field_units,
+        (length_unit, mass_unit, time_unit, velocity_unit),
         particle_types=set_particle_types(grid_data[0])
     )
 
@@ -732,15 +744,6 @@ Parameters
     handler.cosmology_simulation = 0
 
     spf = StreamStaticOutput(handler)
-    if isinstance(length_unit, basestring):
-        #fixme
-        raise NotImplementedError
-    spf.units["cm"] = length_unit
-    spf.units['1'] = 1.0
-    spf.units["unitary"] = 1.0
-    box_in_mpc = length_unit / mpc_conversion['cm']
-    for unit in mpc_conversion.keys():
-        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
     return spf
 
 def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
@@ -830,12 +833,12 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     # Now reassign particle data to grids
 
     if number_of_particles > 0:
-        if ("all", "particle_position_x") not in pdata:
+        if ("io", "particle_position_x") not in pdata:
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
                 if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
-                pdata_ftype["all",f] = pdata.pop(f)
+                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
+                pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         assign_particle_data(pf, pdata)
