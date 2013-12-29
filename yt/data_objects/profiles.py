@@ -81,7 +81,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         for ds in self._data_source.chunks(chunk_fields, chunking_style = "io"):
             try:
                 args = self._get_bins(ds, check_cut=True)
-            except EmptyProfileData:
+            except YTEmptyProfileData:
                 # No bins returned for this grid, so forget it!
                 continue
             for field in fields:

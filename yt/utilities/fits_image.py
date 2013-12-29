@@ -19,7 +19,7 @@ try:
     from astropy.io.fits import HDUList, ImageHDU
     from astropy import wcs as pywcs
 except ImportError:
-    pass
+    HDUList = object
 
 class FITSImageBuffer(HDUList):
 
