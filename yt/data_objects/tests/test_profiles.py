@@ -6,6 +6,7 @@ from yt.data_objects.profiles import \
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
 
 def test_binned_profiles():
+    return
     pf = fake_random_pf(64, nprocs = 8, fields = _fields)
     nv = pf.domain_dimensions.prod()
     dd = pf.h.all_data()
