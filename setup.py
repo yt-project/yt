@@ -21,6 +21,53 @@ from distutils import version
 from distutils.core import Command
 from distutils.spawn import find_executable
 
+def _shared_func(pwd):
+    def _link_shared_object (self,
+                         objects,
+                         output_filename,
+                         output_dir=None,
+                         libraries=None,
+                         library_dirs=None,
+                         runtime_library_dirs=None,
+                         export_symbols=None,
+                         debug=0,
+                         extra_preargs=None,
+                         extra_postargs=None,
+                         build_temp=None,
+                         target_lang=None):
+
+        if output_dir is None:
+            (output_dir, output_filename) = os.path.split(output_filename)
+        output_fullname = os.path.join(output_dir, output_filename)
+        output_fullname = os.path.abspath(output_fullname)
+        linkline = "%s %s" % (output_filename[:-2], output_fullname)
+        for l in library_dirs:
+            linkline += " -L" + l
+        for l in libraries:
+            linkline += " -l" + l
+        old_fmt = self.static_lib_format
+        self.static_lib_format = "%s%.0s"
+        self.create_static_lib(objects,
+                               output_filename,
+                               output_dir,
+                               debug,
+                               target_lang)
+
+        self.static_lib_format = old_fmt
+    return _link_shared_object
+
+def fake_numpy():
+    base_path = os.environ["NACL_SDK_ROOT"]
+    return [os.path.join(base_path, "toolchain/linux_pnacl",
+            "usr/lib/python2.7/site-packages/numpy/core/include")]
+
+if os.environ.get("NACL_ARCH", None) == "pnacl":
+    import numpy.distutils.misc_util 
+    numpy.distutils.misc_util.get_numpy_include_dirs = fake_numpy
+    from distutils.unixccompiler import UnixCCompiler
+    pwd = os.getcwd()
+    UnixCCompiler.link_shared_object = _shared_func(pwd)
+
 def find_fortran_deps():
     return (find_executable("Forthon"),
             find_executable("gfortran"))
