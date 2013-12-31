@@ -152,3 +152,25 @@ def test_profiles():
         p3d.add_fields(["Ones"])
         yield assert_equal, p3d["Ones"], np.ones((nb,nb,nb))
 
+def test_particle_profiles():
+    for nproc in [1, 2, 4, 8]:
+        pf = fake_random_pf(32, nprocs=nproc, particles = 32**3)
+        dd = pf.h.all_data()
+
+        p1d = Profile1D(dd, "particle_position_x", 128,
+                        0.0, 1.0, False, weight_field = None)
+        p1d.add_fields(["particle_ones"])
+        yield assert_equal, p1d["particle_ones"].sum(), 32**3
+
+        p2d = Profile2D(dd, "particle_position_x", 128, 0.0, 1.0, False,
+                            "particle_position_y", 128, 0.0, 1.0, False,
+                        weight_field = None)
+        p2d.add_fields(["particle_ones"])
+        yield assert_equal, p2d["particle_ones"].sum(), 32**3
+
+        p3d = Profile3D(dd, "particle_position_x", 128, 0.0, 1.0, False,
+                            "particle_position_y", 128, 0.0, 1.0, False,
+                            "particle_position_z", 128, 0.0, 1.0, False,
+                        weight_field = None)
+        p3d.add_fields(["particle_ones"])
+        yield assert_equal, p3d["particle_ones"].sum(), 32**3

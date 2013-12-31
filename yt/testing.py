@@ -138,7 +138,7 @@ def amrspace(extent, levels=7, cells=8):
     return left, right, level
 
 def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
-                   negative = False, nprocs = 1):
+                   negative = False, nprocs = 1, particles = 0):
     from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
@@ -156,6 +156,13 @@ def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
             offsets.append(0.0)
     data = dict((field, (np.random.random(ndims) - offset) * peak_value)
                  for field,offset in zip(fields,offsets))
+    if particles:
+        for f in ('particle_position_%s' % ax for ax in 'xyz'):
+            data[f] = np.random.uniform(size = particles)
+        for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+            data[f] = np.random.random(size = particles) - 0.5
+        data['particle_mass'] = np.random.random(particles)
+        data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, 1.0, nprocs = nprocs)
     return ug
 

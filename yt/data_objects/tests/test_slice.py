@@ -67,6 +67,7 @@ def test_slice():
                 fns += pw.save(name=tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['Ones', 'Density']:
+                    fi = pf._get_field_info(slc_field)
                     yield assert_equal, frb[slc_field].info['data_source'], \
                         slc.__str__()
                     yield assert_equal, frb[slc_field].info['axis'], \
@@ -74,7 +75,7 @@ def test_slice():
                     yield assert_equal, frb[slc_field].info['field'], \
                         slc_field
                     yield assert_equal, frb[slc_field].info['units'], \
-                        pf.field_info[slc_field].get_units()
+                        fi.get_units()
                     yield assert_equal, frb[slc_field].info['xlim'], \
                         frb.bounds[:2]
                     yield assert_equal, frb[slc_field].info['ylim'], \

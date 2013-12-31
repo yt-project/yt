@@ -25,6 +25,8 @@ from yt.data_objects.data_containers import \
     YTFieldData, \
     YTDataContainer, \
     YTSelectionContainer
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.geometry_handler import \
@@ -66,7 +68,8 @@ from yt.data_objects.unstructured_mesh import \
 from .fields import \
     StreamFieldInfo, \
     add_stream_field, \
-    KnownStreamFields
+    KnownStreamFields, \
+    _setup_particle_fields
 
 class StreamGrid(AMRGridPatch):
     """
@@ -224,7 +227,12 @@ class StreamHierarchy(GridGeometryHandler):
         GridGeometryHandler._setup_classes(self, dd)
 
     def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
+        # NOTE: Because particle unions add to the actual field list, without
+        # having the keys in the field list itself, we need to double check
+        # here.
+        fl = set(self.stream_handler.get_fields())
+        fl.update(set(getattr(self, "field_list", [])))
+        self.field_list = list(fl)
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -245,16 +253,14 @@ class StreamHierarchy(GridGeometryHandler):
         already in the stream but not part of the data dict will be left
         alone. 
         """
-        
+        [update_field_names(d) for d in data]
         particle_types = set_particle_types(data[0])
-        ftype = "all"
+        ftype = "io"
 
         for key in data[0].keys() :
             if key is "number_of_particles": continue
             self.stream_handler.particle_types[key] = particle_types[key]
-            if key not in self.field_list:
-                self.field_list.append(key)
-                
+
         for i, grid in enumerate(self.grids) :
             if data[i].has_key("number_of_particles") :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
@@ -262,10 +268,16 @@ class StreamHierarchy(GridGeometryHandler):
                 if fname in grid.field_data:
                     grid.field_data.pop(fname, None)
                 elif (ftype, fname) in grid.field_data:
-                    grid.field_data.pop( ("all", fname) )
+                    grid.field_data.pop( ("io", fname) )
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
+
+        # We only want to create a superset of fields here.
         self._detect_fields()
+        mylog.debug("Creating Particle Union 'all'")
+        pu = ParticleUnion("all", list(self.pf.particle_types_raw))
+        self.pf.add_particle_union(pu)
+        self.pf.particle_types = tuple(set(self.pf.particle_types))
         self._setup_unknown_fields()
                 
 class StreamStaticOutput(StaticOutput):
@@ -323,10 +335,34 @@ class StreamStaticOutput(StaticOutput):
     def _skip_cache(self):
         return True
 
+    def _setup_particle_type(self, ptype):
+        orig = set(self.field_info.items())
+        _setup_particle_fields(self.field_info, ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
+
 class StreamDictFieldHandler(dict):
+    _additional_fields = ()
 
     @property
-    def all_fields(self): return self[0].keys()
+    def all_fields(self): 
+        fields = list(self._additional_fields) + self[0].keys()
+        fields = list(set(fields))
+        return fields
+
+def update_field_names(data):
+    orig_names = data.keys()
+    for k in orig_names:
+        if isinstance(k, tuple): continue
+        s = getattr(data[k], "shape", ())
+        if len(s) == 1:
+            field = ("io", k)
+        elif len(s) == 3:
+            field = ("gas", k)
+        elif len(s) == 0:
+            continue
+        else:
+            raise NotImplementedError
+        data[field] = data.pop(k)
 
 def set_particle_types(data) :
 
@@ -353,7 +389,7 @@ def assign_particle_data(pf, pdata) :
     if pf.h.num_grids > 1 :
 
         try:
-            x, y, z = (pdata["all","particle_position_%s" % ax] for ax in 'xyz')
+            x, y, z = (pdata["io","particle_position_%s" % ax] for ax in 'xyz')
         except KeyError:
             raise KeyError("Cannot decompose particle data without position fields!")
         
@@ -450,9 +486,16 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
         pdata["number_of_particles"] = number_of_particles
         for key in data.keys() :
             if len(data[key].shape) == 1 :
-                pdata[key] = data.pop(key)
+                if not isinstance(key, tuple):
+                    field = ("io", key)
+                    mylog.debug("Reassigning '%s' to '%s'", key, field)
+                else:
+                    field = key
+                sfh._additional_fields += (field,)
+                pdata[field] = data.pop(key)
     else :
         particle_types = {}
+    update_field_names(data)
     
     if nprocs > 1:
         temp = {}
@@ -508,12 +551,11 @@ def load_uniform_grid(data, domain_dimensions, sim_unit_to_cm, bbox=None,
     # Now figure out where the particles go
 
     if number_of_particles > 0 :
-        if ("all", "particle_position_x") not in pdata:
+        if ("io", "particle_position_x") not in pdata:
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
                 if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
-                pdata_ftype["all",f] = pdata.pop(f)
+                pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         assign_particle_data(spf, pdata)
@@ -593,6 +635,7 @@ def load_amr_grids(grid_data, domain_dimensions, sim_unit_to_cm, bbox=None,
         grid_levels[i,:] = g.pop("level")
         if g.has_key("number_of_particles") :
             number_of_particles[i,:] = g.pop("number_of_particles")  
+        update_field_names(g)
         sfh[i] = g
             
     handler = StreamHandler(
@@ -665,7 +708,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     if number_of_particles > 0 :
         pdata = {}
         for field in base_pf.h.field_list :
-            if base_pf.field_info[field].particle_type :
+            if not isinstance(field, tuple):
+                field = ("unknown", field)
+            fi = base_pf._get_field_info(*field)
+            if fi.particle_type :
                 pdata[field] = np.concatenate([grid[field]
                                                for grid in base_pf.h.grids])
         pdata["number_of_particles"] = number_of_particles
@@ -688,7 +734,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
             for field in pf.h.field_list:
-                if not pf.field_info[field].particle_type :
+                if not isinstance(field, tuple):
+                    field = ("unknown", field)
+                fi = pf._get_field_info(*field)
+                if not fi.particle_type :
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < pf.h.max_level: continue
@@ -701,7 +750,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
                 for field in pf.h.field_list:
-                    if not pf.field_info[field].particle_type :
+                    if not isinstance(field, tuple):
+                        field = ("unknown", field)
+                    fi = pf._get_field_info(*field)
+                    if not fi.particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
         
@@ -712,12 +764,12 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     # Now reassign particle data to grids
 
     if number_of_particles > 0:
-        if ("all", "particle_position_x") not in pdata:
+        if ("io", "particle_position_x") not in pdata:
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
                 if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('all','%s')", f, f)
-                pdata_ftype["all",f] = pdata.pop(f)
+                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
+                pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         assign_particle_data(pf, pdata)
@@ -750,17 +802,6 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
-
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        particle_vector_functions(ptype,
-            ["particle_position_%s" % ax for ax in 'xyz'],
-            ["particle_velocity_%s" % ax for ax in 'xyz'],
-            self.field_info)
-        particle_deposition_functions(ptype,
-            "Coordinates", "particle_mass", self.field_info)
-        standard_particle_fields(self.field_info, ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 def load_particles(data, sim_unit_to_cm, bbox=None,
                       sim_time=0.0, periodicity=(True, True, True),
@@ -819,8 +860,19 @@ def load_particles(data, sim_unit_to_cm, bbox=None,
 
     sfh = StreamDictFieldHandler()
     
+    pdata = {}
+    for key in data.keys() :
+        if not isinstance(key, tuple):
+            field = ("io", key)
+            mylog.debug("Reassigning '%s' to '%s'", key, field)
+        else:
+            field = key
+        pdata[field] = data[key]
+        sfh._additional_fields += (field,)
+    data = pdata # Drop reference count
+    update_field_names(data)
     particle_types = set_particle_types(data)
-    
+
     sfh.update({'stream_file':data})
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
@@ -874,7 +926,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
-        self._current_particle_type = 'all'
+        self._current_particle_type = 'io'
         self._current_fluid_type = self.pf.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
@@ -953,7 +1005,13 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         super(StreamOctreeHandler, self)._setup_classes(dd)
 
     def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
+        # NOTE: Because particle unions add to the actual field list, without
+        # having the keys in the field list itself, we need to double check
+        # here.
+        fl = set(self.stream_handler.get_fields())
+        fl.update(set(getattr(self, "field_list", [])))
+        self.field_list = list(fl)
+
 
 class StreamOctreeStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamOctreeHandler
@@ -1005,6 +1063,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+    update_field_names(data)
 
     sfh = StreamDictFieldHandler()
     
@@ -1093,7 +1152,13 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
             self.io = io_registry[self.data_style](self.pf)
 
     def _detect_fields(self):
-        self.field_list = list(set(self.stream_handler.get_fields()))
+        # NOTE: Because particle unions add to the actual field list, without
+        # having the keys in the field list itself, we need to double check
+        # here.
+        fl = set(self.stream_handler.get_fields())
+        fl.update(set(getattr(self, "field_list", [])))
+        self.field_list = list(fl)
+
 
 class StreamHexahedralStaticOutput(StreamStaticOutput):
     _hierarchy_class = StreamHexahedralHierarchy
