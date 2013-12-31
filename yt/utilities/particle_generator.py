@@ -5,9 +5,9 @@ from yt.funcs import *
 
 class ParticleGenerator(object) :
 
-    default_fields = ["particle_position_x",
-                      "particle_position_y",
-                      "particle_position_z"]
+    default_fields = [("io", "particle_position_x"),
+                      ("io", "particle_position_y"),
+                      ("io", "particle_position_z")]
     
     def __init__(self, pf, num_particles, field_list) :
         """
@@ -20,7 +20,7 @@ class ParticleGenerator(object) :
         self.pf = pf
         self.num_particles = num_particles
         self.field_list = field_list
-        self.field_list.append("particle_index")
+        self.field_list.append(("io", "particle_index"))
         
         try :
             self.posx_index = self.field_list.index(self.default_fields[0])
@@ -28,9 +28,8 @@ class ParticleGenerator(object) :
             self.posz_index = self.field_list.index(self.default_fields[2])
         except :
             raise KeyError("Field list must contain the following fields: " +
-                           "\'particle_position_x\', \'particle_position_y\'" +
-                           ", \'particle_position_z\' ")
-        self.index_index = self.field_list.index("particle_index")
+                           "\n".join(self.default_fields))
+        self.index_index = self.field_list.index(("io", "particle_index"))
         
         self.num_grids = self.pf.h.num_grids
         self.NumberOfParticles = np.zeros((self.num_grids), dtype='int64')
@@ -212,9 +211,9 @@ class FromListParticleGenerator(ParticleGenerator) :
         """
 
         field_list = data.keys()
-        x = data.pop("particle_position_x")
-        y = data.pop("particle_position_y")
-        z = data.pop("particle_position_z")
+        x = data.pop(("io", "particle_position_x"))
+        y = data.pop(("io", "particle_position_y"))
+        z = data.pop(("io", "particle_position_z"))
 
         xcond = np.logical_or(x < pf.domain_left_edge[0],
                               x >= pf.domain_right_edge[0])

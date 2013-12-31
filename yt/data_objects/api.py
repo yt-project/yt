@@ -32,7 +32,10 @@ from profiles import \
     BinnedProfile1D, \
     BinnedProfile2D, \
     BinnedProfile3D, \
-    create_profile
+    create_profile, \
+    Profile1D, \
+    Profile2D, \
+    Profile3D
 
 from time_series import \
     TimeSeriesData, \
