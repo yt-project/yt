@@ -46,7 +46,6 @@ def check_for_openmp():
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
-    png_inc, png_lib = check_for_png()
     if check_for_openmp() == True:
         omp_args = ['-fopenmp']
     else:
