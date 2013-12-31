@@ -21,8 +21,7 @@ from .fortran_reader import *
 from .Interpolators import *
 from .misc_utilities import *
 from .Octree import *
-if os.name == "posix":
-    from .png_writer import *
+from .image_utilities import *
 from .PointsInVolume import *
 from .QuadTree import *
 from .RayIntegrators import *
