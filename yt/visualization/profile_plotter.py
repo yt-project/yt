@@ -16,7 +16,6 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 import base64
 import types
-import os
 
 from collections import defaultdict
 from functools import wraps
