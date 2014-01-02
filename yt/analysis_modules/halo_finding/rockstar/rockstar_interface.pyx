@@ -198,7 +198,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
-    conv[0] = conv[1] = conv[2] = pf["mpchcm"]
+    conv[0] = conv[1] = conv[2] = pf.length_unit.in_units("Mpccm/h")
     conv[3] = conv[4] = conv[5] = 1e-5
     left_edge[0] = pf.domain_left_edge[0]
     left_edge[1] = pf.domain_left_edge[1]
@@ -301,7 +301,7 @@ cdef class RockstarInterface:
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
         BOX_SIZE = (tpf.domain_right_edge[0] -
-                    tpf.domain_left_edge[0]) * tpf['mpchcm']
+                    tpf.domain_left_edge[0]).in_units("Mpccm/h")
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles
