@@ -10,8 +10,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("absorption_spectrum")
     config.add_subpackage("coordinate_transformation")
     config.add_subpackage("cosmological_observation")
-    if os.name == "posix":
-        config.add_subpackage("halo_finding")
+    config.add_subpackage("halo_finding")
     config.add_subpackage("halo_mass_function")
     config.add_subpackage("halo_merger_tree")
     config.add_subpackage("halo_profiler")

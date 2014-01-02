@@ -128,9 +128,8 @@ from yt.analysis_modules.list_modules import \
 available_analysis_modules = get_available_modules()
 
 # Import our analysis modules
-if os.name == "posix":
-    from yt.analysis_modules.halo_finding.api import \
-        HaloFinder
+from yt.analysis_modules.halo_finding.api import \
+    HaloFinder
 
 from yt.utilities.definitions import \
     axis_names, x_dict, y_dict, inv_axis_names
