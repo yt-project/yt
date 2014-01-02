@@ -20,8 +20,8 @@ class OperatorRegistry(dict):
         if isinstance(op, types.StringTypes):
             # Lookup, assuming string or hashable object
             op = self[op]
-            if not getattr(op, "_hc_setup", False):
-                op = op(*args, **kwargs)
+            op.args = args
+            op.kwargs = kwargs
         return op
 
 callback_registry = OperatorRegistry()

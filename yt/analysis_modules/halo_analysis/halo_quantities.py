@@ -19,15 +19,14 @@ from .halo_callbacks import HaloCallback
 from .operator_registry import quantity_registry
 
 def add_quantity(name, function):
-    quantity_registry[name] = HaloQuantity(name, function)
+    quantity_registry[name] = HaloQuantity(function)
 
 class HaloQuantity(HaloCallback):
     def __init__(self, function, *args, **kwargs):
         HaloCallback.__init__(self, function, args, kwargs)
         
     def __call__(self, halo):
-        return self.function(halo_catalog, halo, 
-                             *self.args, **self.kwargs)
+        return self.function(halo, *self.args, **self.kwargs)
 
 def center_of_mass(halo):
     if halo.particles is None:

@@ -52,7 +52,8 @@ class HaloCatalog(ParallelAnalysisInterface):
     
     """
     
-    def __init__(self, halos_pf=None, data_pf=None, data_source=None, finder_method=None):
+    def __init__(self, halos_pf=None, data_pf=None, 
+                 data_source=None, finder_method=None):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
         self.data_pf = data_pf
@@ -77,10 +78,13 @@ class HaloCatalog(ParallelAnalysisInterface):
         callback = callback_registry.find(callback, *args, **kwargs)
         self.callbacks.append(callback)
 
-    def add_quantity(self, key, quantity, *args, **kwargs):
-        if self.halos_pf is None or \
-          quantity not in self.halos_pf.field_info:
-            quantity = quantity_registry.find(quantity, *args, **kwargs)
+    def add_quantity(self, key, field_type=None, *args, **kwargs):
+        if field_type is None:
+            quantity = quantity_registry.find(key, *args, **kwargs)
+        elif (field_type, key) in self.halos_pf.field_info:
+            quantity = (field_type, key)
+        else:
+            raise RuntimeError("HaloCatalog quantity must be a registered function or a field of a known type.")
         self.quantities.append((key, quantity))
 
     def add_filter(self, filter, *args, **kwargs):
@@ -129,10 +133,10 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     def add_default_quantities(self):
         self.quantities = []
-        self.add_quantity("particle_identifier", ("halos", "particle_identifier"))
-        self.add_quantity("particle_mass", ("halos", "particle_mass"))
-        self.add_quantity("particle_position_x", ("halos", "particle_position_x"))
-        self.add_quantity("particle_position_y", ("halos", "particle_position_y"))
-        self.add_quantity("particle_position_z", ("halos", "particle_position_z"))
-        self.add_quantity("virial_radius", ("halos", "virial_radius"))            
+        self.add_quantity("particle_identifier", field_type="halos")
+        self.add_quantity("particle_mass", field_type="halos")
+        self.add_quantity("particle_position_x", field_type="halos")
+        self.add_quantity("particle_position_y", field_type="halos")
+        self.add_quantity("particle_position_z", field_type="halos")
+        self.add_quantity("virial_radius", field_type="halos")
         
