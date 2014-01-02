@@ -123,7 +123,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         "Write out hdf5 file with all halo quantities."
 
         mylog.info("Saving halo catalog to %s." % filename)
-        out_file = h5py.File(filename)
+        out_file = h5py.File(filename, 'w')
         field_data = np.empty(self.n_halos)
         for key, quantity in self.quantities:
             for i in xrange(self.n_halos):
