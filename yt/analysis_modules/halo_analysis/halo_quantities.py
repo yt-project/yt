@@ -41,7 +41,7 @@ add_quantity('center_of_mass', center_of_mass)
 
 def bulk_velocity(halo):
     if halo.particles is None:
-        raise RuntimeError("Center of mass requires halo to have particle data.")
+        raise RuntimeError("Bulk velocity requires halo to have particle data.")
     return (halo.particles['particle_mass'] * 
             np.array([halo.particles['particle_velocity_x'],
                       halo.particles['particle_velocity_y'],
