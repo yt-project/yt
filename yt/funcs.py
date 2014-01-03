@@ -609,8 +609,6 @@ def fix_length(length, pf=None):
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], types.StringTypes)
     if length_valid_tuple and unit_is_string:
-        if length[1] in ('unitary', '1'):
-            length = (length[0], 'code_length')
         return YTArray(*length, registry=registry)
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
@@ -641,7 +639,6 @@ def fix_axis(axis):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
-
 
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
