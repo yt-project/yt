@@ -128,9 +128,9 @@ class PhotonList(object):
         
         f.close()
 
-        cosmo = Cosmology(HubbleConstantNow=parameters["HubbleConstant"],
-                          OmegaMatterNow=parameters["OmegaMatter"],
-                          OmegaLambdaNow=parameters["OmegaLambda"])
+        cosmo = Cosmology(hubble_constant=parameters["HubbleConstant"] / 100.,
+                          omega_matter=parameters["OmegaMatter"],
+                          omega_lambda=parameters["OmegaLambda"])
 
         return cls(photons, parameters, cosmo, p_bins)
     
@@ -254,15 +254,15 @@ class PhotonList(object):
             if hubble is not None and \
                omega_m is not None and \
                omega_l is not None:
-                cosmo = Cosmology(HubbleConstantNow=100.*hubble,
-                                  OmegaMatterNow=omega_m,
-                                  OmegaLambdaNow=omega_l)
+                cosmo = Cosmology(hubble_constant=hubble,
+                                  omega_matter=omega_m,
+                                  omega_lambda=omega_l)
             else:
                 cosmo = Cosmology()
         else:
             cosmo = cosmology
         mylog.info("Cosmology: H0 = %g, omega_matter = %g, omega_lambda = %g" %
-                   (cosmo.HubbleConstantNow, cosmo.OmegaMatterNow, cosmo.OmegaLambdaNow))
+                   (cosmo.hubble_constant, cosmo.omega_matter, cosmo.omega_lambda))
         if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)
         else:
@@ -282,9 +282,9 @@ class PhotonList(object):
         parameters["FiducialArea"] = area
         parameters["FiducialRedshift"] = redshift
         parameters["FiducialAngularDiameterDistance"] = D_A
-        parameters["HubbleConstant"] = cosmo.HubbleConstantNow
-        parameters["OmegaMatter"] = cosmo.OmegaMatterNow
-        parameters["OmegaLambda"] = cosmo.OmegaLambdaNow
+        parameters["HubbleConstant"] = cosmo.hubble_constant
+        parameters["OmegaMatter"] = cosmo.omega_matter
+        parameters["OmegaLambda"] = cosmo.omega_lambda
 
         dimension = 0
         width = 0.0
