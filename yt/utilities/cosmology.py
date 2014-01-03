@@ -43,92 +43,93 @@ class Cosmology(object):
     def hubble_distance(self):
         return (speed_of_light_cgs / self.hubble_constant).in_cgs()
 
-    def comoving_radial_distance(self,z_i,z_f):
+    def comoving_radial_distance(self, z_i, z_f):
         return (self.hubble_distance() *
-                trapzint(self.inverse_expansion_factor,z_i,z_f)).in_cgs()
+                trapzint(self.inverse_expansion_factor, z_i, z_f)).in_cgs()
 
-    def comoving_transverse_distance(self,z_i,z_f):
+    def comoving_transverse_distance(self, z_i, z_f):
          if (self.omega_curvature > 0):
              return (self.hubble_distance() / np.sqrt(self.omega_curvature) * 
                      np.sinh(np.sqrt(self.omega_curvature) * 
-                          self.comoving_radial_distance(z_i,z_f) /
+                          self.comoving_radial_distance(z_i, z_f) /
                           self.hubble_distance())).in_cgs()
          elif (self.omega_curvature < 0):
              return (self.hubble_distance() /
                      np.sqrt(np.fabs(self.omega_curvature)) * 
                      np.sin(np.sqrt(np.fabs(self.omega_curvature)) * 
-                            self.comoving_radial_distance(z_i,z_f) /
+                            self.comoving_radial_distance(z_i, z_f) /
                             self.hubble_distance())).in_cgs()
          else:
-             return self.comoving_radial_distance(z_i,z_f)
+             return self.comoving_radial_distance(z_i, z_f)
 
-    def comoving_volume(self,z_i,z_f):
+    def comoving_volume(self, z_i, z_f):
         if (self.omega_curvature > 0):
              return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      self.omega_curvature * 
-                     (self.comoving_transverse_distance(z_i,z_f) /
+                     (self.comoving_transverse_distance(z_i, z_f) /
                       self.hubble_distance() * 
                       np.sqrt(1 + self.omega_curvature * 
-                           sqr(self.comoving_transverse_distance(z_i,z_f) /
+                           sqr(self.comoving_transverse_distance(z_i, z_f) /
                                self.hubble_distance())) - 
                       np.sinh(np.fabs(self.omega_curvature) * 
-                            self.comoving_transverse_distance(z_i,z_f) /
+                            self.comoving_transverse_distance(z_i, z_f) /
                             self.hubble_distance()) /
                             np.sqrt(self.omega_curvature)) / 1e9).in_cgs()
         elif (self.omega_curvature < 0):
              return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      np.fabs(self.omega_curvature) * 
-                     (self.comoving_transverse_distance(z_i,z_f) /
+                     (self.comoving_transverse_distance(z_i, z_f) /
                       self.hubble_distance() * 
                       np.sqrt(1 + self.omega_curvature * 
-                           sqr(self.comoving_transverse_distance(z_i,z_f) /
+                           sqr(self.comoving_transverse_distance(z_i, z_f) /
                                self.hubble_distance())) - 
                       np.arcsin(np.fabs(self.omega_curvature) * 
-                           self.comoving_transverse_distance(z_i,z_f) /
+                           self.comoving_transverse_distance(z_i, z_f) /
                            self.hubble_distance()) /
                       np.sqrt(np.fabs(self.omega_curvature))) / 1e9).in_cgs()
         else:
              return (4 * np.pi *
-                     np.power(self.comoving_transverse_distance(z_i,z_f), 3) /\
+                     np.power(self.comoving_transverse_distance(z_i, z_f), 3) /\
                      3 / 1e9).in_cgs()
 
-    def angular_diameter_distance(self,z_i,z_f):
-        return (self.comoving_transverse_distance(0,z_f) / (1 + z_f) - 
-                self.comoving_transverse_distance(0,z_i) / (1 + z_i)).in_cgs()
+    def angular_diameter_distance(self, z_i, z_f):
+        return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
+                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs()
 
-    def luminosity_distance(self,z_i,z_f):
-        return (self.comoving_transverse_distance(0,z_f) * (1 + z_f) - 
-                self.comoving_transverse_distance(0,z_i) * (1 + z_i)).in_cgs()
+    def luminosity_distance(self, z_i, z_f):
+        return (self.comoving_transverse_distance(0, z_f) * (1 + z_f) - 
+                self.comoving_transverse_distance(0, z_i) * (1 + z_i)).in_cgs()
 
-    def lookback_time(self,z_i,z_f):
-        return (trapzint(self.age_integrand,z_i,z_f) / \
+    def lookback_time(self, z_i, z_f):
+        return (trapzint(self.age_integrand, z_i, z_f) / \
                 self.hubble_constant).in_cgs()
     
-    def hubble_time(self,z):
-        return (trapzint(self.age_integrand,z,1e6, **kwargs) /
+    def hubble_time(self, z):
+        return (trapzint(self.age_integrand, z, 1e6, **kwargs) /
                 self.hubble_constant).in_cgs()
 
-    def angular_scale_1arcsec_kpc(self,z_i,z_f):
-        return (self.angular_diameter_distance(z_i,z_f) / 648. * np.pi).in_cgs()
+    def angular_scale_1arcsec_kpc(self, z_i, z_f):
+        return (self.angular_diameter_distance(z_i, z_f) /
+                648. * np.pi).in_cgs()
 
-    def critical_density(self,z):
+    def critical_density(self, z):
         return (3.0 / 8.0 / np.pi * 
                 self.hubble_constant**2 / G *
                 ((1 + z)**3.0 * self.omega_matter + 
                  self.omega_lambda)).in_cgs()
 
-    def age_integrand(self,z):
+    def age_integrand(self, z):
         return (1 / (z + 1) / self.expansion_factor(z))
 
-    def expansion_factor(self,z):
+    def expansion_factor(self, z):
         return np.sqrt(self.omega_matter * ((1 + z)**3.0) + 
                     self.omega_curvature * np.sqrt(1 + z) + 
                     self.omega_lambda)
 
-    def inverse_expansion_factor(self,z):
+    def inverse_expansion_factor(self, z):
         return 1 / self.expansion_factor(z)
 
-    def path_length_function(self,z):
+    def path_length_function(self, z):
         return ((1 + z)**2) * self.inverse_expansion_factor(z)
 
     def path_length(self, z_i, z_f):
