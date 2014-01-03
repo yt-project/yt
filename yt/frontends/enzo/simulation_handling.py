@@ -239,16 +239,16 @@ class EnzoSimulation(SimulationTimeSeries):
             if initial_time is not None:
                 my_initial_time = initial_time / self.time_units[time_units]
             elif initial_redshift is not None:
-                my_initial_time = self.enzo_cosmology.ComputeTimeFromRedshift(initial_redshift) / \
-                    self.enzo_cosmology.TimeUnits
+                my_initial_time = self.enzo_cosmology.t_from_z(initial_redshift) / \
+                    self.enzo_cosmology.time_units
             else:
                 my_initial_time = self.initial_time
 
             if final_time is not None:
                 my_final_time = final_time / self.time_units[time_units]
             elif final_redshift is not None:
-                my_final_time = self.enzo_cosmology.ComputeTimeFromRedshift(final_redshift) / \
-                    self.enzo_cosmology.TimeUnits
+                my_final_time = self.enzo_cosmology.t_from_z(final_redshift) / \
+                    self.enzo_cosmology.time_units
             else:
                 my_final_time = self.final_time
 
@@ -369,8 +369,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
         if not self.cosmological_simulation: return
         for output in self.all_redshift_outputs:
-            output['time'] = self.enzo_cosmology.ComputeTimeFromRedshift(output['redshift']) / \
-                self.enzo_cosmology.TimeUnits
+            output['time'] = self.enzo_cosmology.t_from_z(output['redshift']) / \
+                self.enzo_cosmology.time_units
         self.all_redshift_outputs.sort(key=lambda obj:obj['time'])
 
     def _calculate_time_outputs(self):
@@ -391,8 +391,8 @@ class EnzoSimulation(SimulationTimeSeries):
             output = {'index': index, 'filename': filename, 'time': current_time}
             output['time'] = min(output['time'], self.final_time)
             if self.cosmological_simulation:
-                output['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(
-                    current_time * self.enzo_cosmology.TimeUnits)
+                output['redshift'] = self.enzo_cosmology.z_from_t(
+                    current_time * self.enzo_cosmology.time_units)
 
             self.all_time_outputs.append(output)
             if np.abs(self.final_time - current_time) / self.final_time < 1e-4: break
@@ -457,15 +457,15 @@ class EnzoSimulation(SimulationTimeSeries):
         # Convert initial/final redshifts to times.
         if self.cosmological_simulation:
             # Instantiate EnzoCosmology object for units and time conversions.
-            self.enzo_cosmology = EnzoCosmology(HubbleConstantNow=
-                                                (100.0 * self.parameters['CosmologyHubbleConstantNow']),
-                                                OmegaMatterNow=self.parameters['CosmologyOmegaMatterNow'],
-                                                OmegaLambdaNow=self.parameters['CosmologyOmegaLambdaNow'],
-                                                InitialRedshift=self.parameters['CosmologyInitialRedshift'])
-            self.initial_time = self.enzo_cosmology.ComputeTimeFromRedshift(self.initial_redshift) / \
-                self.enzo_cosmology.TimeUnits
-            self.final_time = self.enzo_cosmology.ComputeTimeFromRedshift(self.final_redshift) / \
-                self.enzo_cosmology.TimeUnits
+            self.enzo_cosmology = \
+              EnzoCosmology(hubble_constant=self.parameters['CosmologyHubbleConstantNow'],
+                            omega_matter=self.parameters['CosmologyOmegaMatterNow'],
+                            omega_lambda=self.parameters['CosmologyOmegaLambdaNow'],
+                            initial_redshift=self.parameters['CosmologyInitialRedshift'])
+            self.initial_time = self.enzo_cosmology.t_from_z(self.initial_redshift) / \
+                self.enzo_cosmology.time_units
+            self.final_time = self.enzo_cosmology.t_from_z(self.final_redshift) / \
+                self.enzo_cosmology.time_units
 
         # If not a cosmology simulation, figure out the stopping criteria.
         else:

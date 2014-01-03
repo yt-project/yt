@@ -160,7 +160,7 @@ class Cosmology(object):
  
         if ((np.fabs(self.omega_matter-1) < OMEGA_TOLERANCE) and
             (self.omega_lambda < OMEGA_TOLERANCE)):
-            a = np.power(my_time/self.InitialTime, 2.0/3.0)
+            a = np.power(my_time/self.initial_time, 2.0/3.0)
  
         # 2) For omega_matter < 1 and omega_lambda == 0 see
         #    Peebles 1993, eq. 13-3, 13-10.
@@ -262,30 +262,21 @@ def trapzint(f, a, b, bins=10000):
     return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
 
 class EnzoCosmology(object):
-    def __init__(self, HubbleConstantNow = 71.0,
+    def __init__(self, hubble_constant = 0.71,
                  omega_matter = 0.27,
                  omega_lambda = 0.73,
                  omega_curvature = 0.0,
-                 InitialRedshift = 99.0):
-        self.HubbleConstantNow = HubbleConstantNow
+                 initial_redshift = 99.0):
+        self.hubble_constant = hubble_constant
         self.omega_matter = omega_matter
         self.omega_lambda = omega_lambda
         self.omega_curvature = omega_curvature
-        self.InitialRedshift = InitialRedshift
-        self.InitialTime = self.ComputeTimeFromRedshift(self.InitialRedshift)
-        self.TimeUnits = self.ComputeTimeUnits()
+        self.initial_redshift = initial_redshift
+        self.initial_time = self.t_from_z(self.initial_redshift)
+        self.time_units = 2.52e17 / np.sqrt(self.omega_matter) / \
+          self.hubble_constant / np.power(1 + self.initial_redshift,1.5)
 
-    def ComputeTimeUnits(self):
-        """
-        Taken from CosmologyGetUnits.C in Enzo.
-        """
-        # Changed 2.52e17 to 2.52e19 because H_0 is in km/s/Mpc, 
-        # instead of 100 km/s/Mpc.
-        # TODO: Move me to physical_units
-        return 2.52e19 / np.sqrt(self.omega_matter) / \
-            self.HubbleConstantNow / np.power(1 + self.InitialRedshift,1.5)
-
-    def ComputeRedshiftFromTime(self,time):
+    def z_from_t(self,time):
         """
         Compute the redshift from time after the big bang.  This is based on
         Enzo's CosmologyComputeExpansionFactor.C, but altered to use physical
@@ -299,13 +290,13 @@ class EnzoCosmology(object):
 
         # Convert the time to Time * H0.
  
-        TimeHubble0 = time * self.HubbleConstantNow / kmPerMpc
+        TimeHubble0 = time * self.hubble_constant / kmPerMpc
  
         # 1) For a flat universe with omega_matter = 1, it's easy.
  
         if ((np.fabs(self.omega_matter-1) < OMEGA_TOLERANCE) and
             (self.omega_lambda < OMEGA_TOLERANCE)):
-            a = np.power(time/self.InitialTime,2.0/3.0)
+            a = np.power(time/self.initial_time,2.0/3.0)
  
         # 2) For omega_matter < 1 and omega_lambda == 0 see
         #    Peebles 1993, eq. 13-3, 13-10.
@@ -359,7 +350,7 @@ class EnzoCosmology(object):
 
         return redshift
 
-    def ComputeTimeFromRedshift(self,z):
+    def t_from_z(self,z):
         """
         Compute the time from redshift.  This is based on Enzo's
         CosmologyComputeTimeFromRedshift.C, but altered to use physical units.
@@ -395,6 +386,6 @@ class EnzoCosmology(object):
   
         # Now convert from Time * H0 to time.
   
-        time = TimeHubble0 / (self.HubbleConstantNow/kmPerMpc)
+        time = TimeHubble0 / (self.hubble_constant/kmPerMpc)
     
         return time

@@ -80,11 +80,11 @@ class StarFormationRate(object):
         else:
             self.mode = 'data_source'
         # Set up for time conversion.
-        self.cosm = EnzoCosmology(HubbleConstantNow = 
+        self.cosm = EnzoCosmology(hubble_constant = 
              (100.0 * self._pf.hubble_constant),
-             OmegaMatterNow = self._pf.omega_matter,
-             OmegaLambdaNow = self._pf.omega_lambda,
-             InitialRedshift = self._pf['CosmologyInitialRedshift'])
+             omega_matter = self._pf.omega_matter,
+             omega_lambda = self._pf.omega_lambda,
+             initial_redshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
         self.time_now = self.cosm.ComputeTimeFromRedshift(
             self._pf.current_redshift) # seconds
@@ -271,11 +271,11 @@ class SpectrumBuilder(object):
         elif model == "salpeter":
             self.model = SALPETER
         # Set up for time conversion.
-        self.cosm = EnzoCosmology(HubbleConstantNow = 
+        self.cosm = EnzoCosmology(hubble_constant = 
              (100.0 * self._pf.hubble_constant),
-             OmegaMatterNow = self._pf.omega_matter,
-             OmegaLambdaNow = self._pf.omega_lambda,
-             InitialRedshift = self._pf['CosmologyInitialRedshift'])
+             omega_matter = self._pf.omega_matter,
+             omega_lambda = self._pf.omega_lambda,
+             initial_redshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
         
         if time_now is None:
