@@ -18,9 +18,8 @@ import h5py
 import math, itertools
 
 from yt.funcs import *
-from yt.utilities.cosmology import \
-    Cosmology, \
-    EnzoCosmology
+from yt.frontends.enzo.simulation_handling import \
+     EnzoCosmology
 from yt.utilities.physical_constants import \
     sec_per_year, \
     speed_of_light_cgs
@@ -80,8 +79,8 @@ class StarFormationRate(object):
         else:
             self.mode = 'data_source'
         # Set up for time conversion.
-        self.cosm = EnzoCosmology(hubble_constant = 
-             (100.0 * self._pf.hubble_constant),
+        self.cosm = EnzoCosmology(
+             hubble_constant = self._pf.hubble_constant,
              omega_matter = self._pf.omega_matter,
              omega_lambda = self._pf.omega_lambda,
              initial_redshift = self._pf['CosmologyInitialRedshift'])
@@ -271,8 +270,8 @@ class SpectrumBuilder(object):
         elif model == "salpeter":
             self.model = SALPETER
         # Set up for time conversion.
-        self.cosm = EnzoCosmology(hubble_constant = 
-             (100.0 * self._pf.hubble_constant),
+        self.cosm = EnzoCosmology(
+             hubble_constant = self._pf.hubble_constant),
              omega_matter = self._pf.omega_matter,
              omega_lambda = self._pf.omega_lambda,
              initial_redshift = self._pf['CosmologyInitialRedshift'])

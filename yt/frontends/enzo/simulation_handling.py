@@ -22,8 +22,7 @@ import os
 from yt.data_objects.time_series import \
     SimulationTimeSeries, TimeSeriesData
 from yt.utilities.cosmology import \
-    Cosmology, \
-    EnzoCosmology
+    Cosmology
 from yt.utilities.definitions import \
     sec_conversion
 from yt.utilities.exceptions import \
@@ -696,3 +695,19 @@ class EnzoSimulation(SimulationTimeSeries):
                      + str(decimals) + "f\n") %
                     ((q + start_index), output['redshift']))
         f.close()
+
+class EnzoCosmology(Cosmology):
+    def __init__(self, hubble_constant = 0.71,
+                 omega_matter = 0.27,
+                 omega_lambda = 0.73,
+                 omega_curvature = 0.0,
+                 initial_redshift = 99.0):
+        Cosmology.__init__(self,
+                           hubble_constant=hubble_constant,
+                           omega_matter=omega_matter,
+                           omega_lambda=omega_lambda,
+                           omega_curvature=omega_curvature)
+        self.initial_redshift = initial_redshift
+        self.initial_time = self.t_from_z(self.initial_redshift)
+        self.time_units = 2.52e17 / np.sqrt(self.omega_matter) / \
+          self.hubble_constant / np.power(1 + self.initial_redshift, 1.5)
