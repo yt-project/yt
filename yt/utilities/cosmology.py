@@ -1,13 +1,12 @@
 """
-Cosmology calculator based on http://www.kempner.net/cosmic.php.  Also,
-conversion functions between time and redshift pulled from Enzo.
-
-
+Cosmology calculator.
+Cosmology calculator based originally on http://www.kempner.net/cosmic.php 
+and featuring time and redshift conversion functions from Enzo..
 
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2014, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
