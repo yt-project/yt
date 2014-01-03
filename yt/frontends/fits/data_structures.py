@@ -35,11 +35,9 @@ from yt.utilities.definitions import \
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
-from yt.utilities.exceptions import \
-    YTFITSHeaderNotUnderstood
-from .fields import FITSFieldInfo, add_fits_field, KnownFITSFields
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
-     ValidateDataField, TranslationFunc
+from .fields import FITSFieldInfo
+from yt.utilities.decompose import \
+    decompose_array, get_psize
 
 angle_units = ["deg","arcsec","arcmin","mas"]
 all_units = angle_units + mpc_conversion.keys()
@@ -74,11 +72,11 @@ class FITSHierarchy(GridGeometryHandler):
     def _initialize_data_storage(self):
         pass
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = []
         for h in self._handle[self.parameter_file.first_image:]:
             if h.is_image:
-                self.field_list.append(h.name.lower())
+                self.field_list.append(("fits", h.name.lower()))
                         
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -86,29 +84,37 @@ class FITSHierarchy(GridGeometryHandler):
         self.object_types.sort()
 
     def _count_grids(self):
-        self.num_grids = 1
+        self.num_grids = self.pf.nprocs
                 
     def _parse_hierarchy(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
+
+        if pf.nprocs > 1:
+            bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
+                                                       pf.domain_right_edge)])
+            psize = get_psize(np.array(pf.domain_dimensions), pf.nprocs)
+            temp_arr = np.zeros(pf.domain_dimensions)
+            gle, gre, temp_arr = decompose_array(temp_arr, psize, bbox)
+            self.grid_left_edge = self.pf.arr(gle, "code_length")
+            self.grid_right_edge = self.pf.arr(gre, "code_length")
+            self.grid_dimensions = np.array([grid.shape for grid in temp_arr], dtype="int32")
+            del temp_arr
+        else:
+            self.grid_left_edge[0,:] = pf.domain_left_edge
+            self.grid_right_edge[0,:] = pf.domain_right_edge
+            self.grid_dimensions[0] = pf.domain_dimensions
         
-        # Initialize to the domain left / domain right
-        self.grid_left_edge[0,:] = pf.domain_left_edge
-        self.grid_right_edge[0,:] = pf.domain_right_edge
-        self.grid_dimensions[0] = pf.domain_dimensions
-        
-        # This will become redundant, as _prepare_grid will reset it to its
-        # current value.  Note that FLASH uses 1-based indexing for refinement
-        # levels, but we do not, so we reduce the level by 1.
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i,0])
         
     def _populate_grid_objects(self):
-        self.grids[0]._prepare_grid()
-        self.grids[0]._setup_dx()
-        self.max_level = 0 
+        for i in xrange(self.num_grids):
+            self.grids[i]._prepare_grid()
+            self.grids[i]._setup_dx()
+        self.max_level = 0
 
     def _setup_derived_fields(self):
         super(FITSHierarchy, self)._setup_derived_fields()
@@ -129,19 +135,19 @@ class FITSHierarchy(GridGeometryHandler):
 
 class FITSStaticOutput(StaticOutput):
     _hierarchy_class = FITSHierarchy
-    _fieldinfo_fallback = FITSFieldInfo
-    _fieldinfo_known = KnownFITSFields
+    _field_info_class = FITSFieldInfo
+    _data_style = "fits"
     _handle = None
     
     def __init__(self, filename, data_style='fits',
                  primary_header = None,
                  sky_conversion = None,
                  storage_filename = None,
-                 conversion_override = None,
                  mask_nans = True,
                  nprocs=1):
-
+        self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
+        self.nprocs = nprocs
         if isinstance(filename, pyfits.HDUList):
             self._handle = filename
             fname = filename.filename()
@@ -158,11 +164,10 @@ class FITSStaticOutput(StaticOutput):
         else:
             self.primary_header = primary_header
         self.shape = self._handle[self.first_image].shape
-        if conversion_override is None: conversion_override = {}
-        self._conversion_override = conversion_override
 
         self.wcs = pywcs.WCS(header=self.primary_header)
-        
+
+        self.file_unit = None
         for i, unit in enumerate(self.wcs.wcs.cunit):
             if unit in all_units:
                 self.file_unit = unit.name
@@ -182,42 +187,24 @@ class FITSStaticOutput(StaticOutput):
         self.storage_filename = storage_filename
             
         self.refine_by = 2
-        self._set_units()
 
-    def _set_units(self):
+    def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        if self.new_unit in mpc_conversion:
-            self._setup_getunits_units()
+        if self.new_unit is not None:
+            length_factor = self.pixel_scale
+            length_unit = self.new_unit
         else:
-            self._setup_nounits_units()
-        self.parameters["Time"] = self.conversion_factors["Time"]
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self.conversion_factors["Time"] / sec_conversion[unit]
-        for p, v in self._conversion_override.items():
-            self.conversion_factors[p] = v
-
-    def _setup_comoving_units(self):
-        pass
-
-    def _setup_getunits_units(self):
-        for unit in mpc_conversion.keys():
-            self.units[unit] = self.pixel_scale*mpc_conversion[unit]/mpc_conversion[self.new_unit]
-        self.conversion_factors["Time"] = 1.0
-                                            
-    def _setup_nounits_units(self):
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-        self.conversion_factors["Time"] = 1.0
+            mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
+            length_factor = 1.0
+            length_unit = "cm"
+        self.length_unit = self.quan(length_factor,length_unit).in_cgs()
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.quan(1.0, "cm/s")        
+        DW = self.domain_right_edge-self.domain_left_edge
+        self.unit_registry.modify("unitary", DW.max())
 
     def _parse_parameter_file(self):
         self.unique_identifier = \

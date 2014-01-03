@@ -37,7 +37,7 @@ class IOHandlerFITS(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "gas" for ftype, fname in fields)):
+        if any((ftype != "fits" for ftype, fname in fields)):
             raise NotImplementedError
         f = self._handle
         rv = {}
@@ -45,17 +45,24 @@ class IOHandlerFITS(BaseIOHandler):
         for field in fields:
             rv[field] = np.empty(size, dtype=dt)
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s blocks",
+        mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
-            ds = f[fname].data.astype("float64").transpose()
-            if self.pf.mask_nans:
-                ds[np.isnan(ds)] = 0.0
+            ds = f[fname]
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
+                    start = (g.LeftEdge.ndarray_view()-0.5).astype("int")
+                    end = (g.RightEdge.ndarray_view()-0.5).astype("int")
                     if self.pf.dimensionality == 2:
-                        ds.shape = ds.shape + (1,)
-                    ind += g.select(selector, ds, rv[field], ind) # caches
+                        nx, ny = g.ActiveDimensions[:2]
+                        nz = 1
+                        data = np.zeros((nx,ny,nz))
+                        data[:,:,0] = ds.data.transpose()[start[0]:end[0],start[1]:end[1]]
+                    elif self.pf.dimensionality == 3:
+                        data = ds.data.transpose()[start[0]:end[0],start[1]:end[1],start[2]:end[2]]
+                    if self.pf.mask_nans: data[np.isnan(data)] = 0.0
+                    ind += g.select(selector, data.astype("float64"), rv[field], ind)
         return rv
+

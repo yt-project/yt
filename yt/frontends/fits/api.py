@@ -16,8 +16,7 @@ from .data_structures import \
       FITSStaticOutput
 
 from .fields import \
-      FITSFieldInfo, \
-      add_fits_field
+      FITSFieldInfo
 
 from .io import \
       IOHandlerFITS
