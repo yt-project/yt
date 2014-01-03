@@ -204,7 +204,7 @@ class FITSStaticOutput(StaticOutput):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")        
         DW = self.domain_right_edge-self.domain_left_edge
-        self.unit_registry.modify("unitary", DW.max())
+        self.unit_registry.modify("unitary", DW[:self.dimensionality].max())
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
