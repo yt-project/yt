@@ -67,7 +67,7 @@ class Cosmology(object):
                       np.sinh(np.fabs(self.omega_curvature) * 
                             self.comoving_transverse_distance(z_i, z_f) /
                             self.hubble_distance()) /
-                            np.sqrt(self.omega_curvature)) / 1e9).in_cgs()
+                            np.sqrt(self.omega_curvature))).in_cgs()
         elif (self.omega_curvature < 0):
              return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      np.fabs(self.omega_curvature) * 
@@ -79,11 +79,11 @@ class Cosmology(object):
                       np.arcsin(np.fabs(self.omega_curvature) * 
                            self.comoving_transverse_distance(z_i, z_f) /
                            self.hubble_distance()) /
-                      np.sqrt(np.fabs(self.omega_curvature))) / 1e9).in_cgs()
+                      np.sqrt(np.fabs(self.omega_curvature)))).in_cgs()
         else:
              return (4 * np.pi *
                      np.power(self.comoving_transverse_distance(z_i, z_f), 3) /\
-                     3 / 1e9).in_cgs()
+                     3).in_cgs()
 
     def angular_diameter_distance(self, z_i, z_f):
         return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
