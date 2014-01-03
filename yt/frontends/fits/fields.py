@@ -41,9 +41,10 @@ class FITSFieldInfo(FieldInfoContainer):
             else:
                 name = str(self.pf.wcs.wcs.cname[i])
             unit = str(self.pf.wcs.wcs.cunit[i])
-            if unit.lower() == "deg": unit = "degree"
-            if unit.lower() == "rad": unit = "radian"
-            self.add_field(("fits",name), function=world_f(i), units=unit)
+            if name != '' and unit != '':
+                if unit.lower() == "deg": unit = "degree"
+                if unit.lower() == "rad": unit = "radian"
+                self.add_field(("fits",name), function=world_f(i), units=unit)
 
 
 
