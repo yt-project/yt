@@ -167,6 +167,7 @@ class FITSStaticOutput(StaticOutput):
         for i, unit in enumerate(self.wcs.wcs.cunit):
             if unit in all_units:
                 self.file_unit = unit.name
+                idx = i
                 break
         self.new_unit = None
         self.pixel_scale = 1.0
