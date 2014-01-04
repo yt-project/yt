@@ -309,8 +309,6 @@ class Unit(Expr):
         if isinstance(unit_expr, str):
             if registry and unit_expr in registry.unit_objs:
                 return registry.unit_objs[unit_expr]
-            elif unit_expr in default_unit_registry.unit_objs:
-                return default_unit_registry.unit_objs[unit_expr]
             else:
                 unit_key = unit_expr
                 if not unit_expr:
