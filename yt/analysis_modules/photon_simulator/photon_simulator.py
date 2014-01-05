@@ -128,7 +128,7 @@ class PhotonList(object):
         
         f.close()
 
-        cosmo = Cosmology(hubble_constant=parameters["HubbleConstant"] / 100.,
+        cosmo = Cosmology(hubble_constant=parameters["HubbleConstant"],
                           omega_matter=parameters["OmegaMatter"],
                           omega_lambda=parameters["OmegaLambda"])
 
@@ -261,7 +261,7 @@ class PhotonList(object):
                 cosmo = Cosmology()
         else:
             cosmo = cosmology
-        mylog.info("Cosmology: H0 = %g, omega_matter = %g, omega_lambda = %g" %
+        mylog.info("Cosmology: h = %g, omega_matter = %g, omega_lambda = %g" %
                    (cosmo.hubble_constant, cosmo.omega_matter, cosmo.omega_lambda))
         if dist is None:
             D_A = cosmo.AngularDiameterDistance(0.0,redshift)
