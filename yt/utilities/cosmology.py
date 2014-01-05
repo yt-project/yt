@@ -24,6 +24,32 @@ from yt.utilities.physical_constants import \
     speed_of_light_cgs
 
 class Cosmology(object):
+    r"""
+    Create a cosmology calculator to compute cosmological distances and times.
+
+    Parameters
+    ----------
+    hubble_constant : float
+        The Hubble parameter at redshift zero in units of 100 km/s/Mpc.
+        Default: 0.71.
+    omega_matter : the fraction of the energy density of the Universe in 
+        matter at redshift zero.
+        Default: 0.27.
+    omega_lambda : the fraction of the energy density of the Universe in 
+        a cosmological constant.
+        Default: 0.73.
+    omega_curvature : the fraction of the energy density of the Universe in 
+        curvature.
+        Default: 0.0.
+
+    Examples
+    --------
+
+    >>> from yt.utilities.cosmology import Cosmology
+    >>> co = Cosmology()
+    >>> print co.hubble_time(0.0).in_units("Gyr")
+    
+    """
     def __init__(self, hubble_constant = 0.71,
                  omega_matter = 0.27,
                  omega_lambda = 0.73,
