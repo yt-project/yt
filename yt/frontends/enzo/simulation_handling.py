@@ -457,10 +457,10 @@ class EnzoSimulation(SimulationTimeSeries):
         if self.cosmological_simulation:
             # Instantiate EnzoCosmology object for units and time conversions.
             self.enzo_cosmology = \
-              EnzoCosmology(hubble_constant=self.parameters['CosmologyHubbleConstantNow'],
-                            omega_matter=self.parameters['CosmologyOmegaMatterNow'],
-                            omega_lambda=self.parameters['CosmologyOmegaLambdaNow'],
-                            initial_redshift=self.parameters['CosmologyInitialRedshift'])
+              EnzoCosmology(self.parameters['CosmologyHubbleConstantNow'],
+                            self.parameters['CosmologyOmegaMatterNow'],
+                            self.parameters['CosmologyOmegaLambdaNow'],
+                            0.0, self.parameters['CosmologyInitialRedshift'])
             self.initial_time = self.enzo_cosmology.t_from_z(self.initial_redshift) / \
                 self.enzo_cosmology.time_units
             self.final_time = self.enzo_cosmology.t_from_z(self.final_redshift) / \
@@ -697,11 +697,8 @@ class EnzoSimulation(SimulationTimeSeries):
         f.close()
 
 class EnzoCosmology(Cosmology):
-    def __init__(self, hubble_constant = 0.71,
-                 omega_matter = 0.27,
-                 omega_lambda = 0.73,
-                 omega_curvature = 0.0,
-                 initial_redshift = 99.0):
+    def __init__(self, hubble_constant, omega_matter, omega_lambda,
+                 omega_curvature, initial_redshift):
         Cosmology.__init__(self,
                            hubble_constant=hubble_constant,
                            omega_matter=omega_matter,
