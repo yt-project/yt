@@ -27,6 +27,9 @@ class Cosmology(object):
     r"""
     Create a cosmology calculator to compute cosmological distances and times.
 
+    For an explanation of the various cosmological measures, see, for example 
+    Hogg (1999, http://xxx.lanl.gov/abs/astro-ph/9905116).
+    
     Parameters
     ----------
     hubble_constant : float
@@ -60,28 +63,88 @@ class Cosmology(object):
         self.omega_curvature = omega_curvature
 
     def hubble_distance(self):
+        r"""
+        The distance corresponding to c / h, where c is the speed of light 
+        and h is the Hubble parameter in units of 1 / time.
+        """
         return (speed_of_light_cgs / self.hubble_constant).in_cgs()
 
     def comoving_radial_distance(self, z_i, z_f):
+        r"""
+        The comoving distance along the line of sight to on object at redshift, 
+        z_f, viewed at a redshift, z_i.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.comoving_radial_distance(0., 1.).in_units("Mpc")
+        
+        """
         return (self.hubble_distance() *
                 trapzint(self.inverse_expansion_factor, z_i, z_f)).in_cgs()
 
     def comoving_transverse_distance(self, z_i, z_f):
-         if (self.omega_curvature > 0):
-             return (self.hubble_distance() / np.sqrt(self.omega_curvature) * 
-                     np.sinh(np.sqrt(self.omega_curvature) * 
-                          self.comoving_radial_distance(z_i, z_f) /
-                          self.hubble_distance())).in_cgs()
-         elif (self.omega_curvature < 0):
-             return (self.hubble_distance() /
-                     np.sqrt(np.fabs(self.omega_curvature)) * 
-                     np.sin(np.sqrt(np.fabs(self.omega_curvature)) * 
+        r"""
+        When multiplied by some angle, the distance between two objects 
+        observed at redshift, z_f, with an angular separation given by that 
+        angle, viewed by an observer at redshift, z_i (Hogg 1999).
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.comoving_transverse_distance(0., 1.).in_units("Mpc")
+        
+        """
+        if (self.omega_curvature > 0):
+            return (self.hubble_distance() / np.sqrt(self.omega_curvature) * 
+                    np.sinh(np.sqrt(self.omega_curvature) * 
                             self.comoving_radial_distance(z_i, z_f) /
                             self.hubble_distance())).in_cgs()
-         else:
-             return self.comoving_radial_distance(z_i, z_f)
+        elif (self.omega_curvature < 0):
+            return (self.hubble_distance() /
+                    np.sqrt(np.fabs(self.omega_curvature)) * 
+                    np.sin(np.sqrt(np.fabs(self.omega_curvature)) * 
+                           self.comoving_radial_distance(z_i, z_f) /
+                           self.hubble_distance())).in_cgs()
+        else:
+            return self.comoving_radial_distance(z_i, z_f)
 
     def comoving_volume(self, z_i, z_f):
+        r"""
+        "The comoving volume is the volume measure in which number densities 
+        of non-evolving objects locked into Hubble flow are constant with 
+        redshift." -- Hogg (1999)
+        
+        Parameters
+        ----------
+        z_i : float
+            The lower redshift of the interval.
+        z_f : float
+            The higher redshift of the interval.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.comoving_volume(0., 1.).in_units("Gpc**3")
+
+        """
         if (self.omega_curvature > 0):
              return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      self.omega_curvature * 
@@ -112,38 +175,156 @@ class Cosmology(object):
                      3).in_cgs()
 
     def angular_diameter_distance(self, z_i, z_f):
+        r"""
+        The proper transverse distance between two points at redshift z_f 
+        observed at redshift z_i to have an angular separation of one radian.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.angular_diameter_distance(0., 1.).in_units("Mpc")
+        
+        """
+        
         return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
                 self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs()
 
     def luminosity_distance(self, z_i, z_f):
+        r"""
+        The distance that would be inferred from the inverse-square law of 
+        light and the measured flux and luminosity of the observed object.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.luminosity_distance(0., 1.).in_units("Mpc")
+        
+        """
+
         return (self.comoving_transverse_distance(0, z_f) * (1 + z_f) - 
                 self.comoving_transverse_distance(0, z_i) * (1 + z_i)).in_cgs()
 
     def lookback_time(self, z_i, z_f):
+        r"""
+        The difference in the age of the Universe between the redshift interval 
+        z_i to z_f.
+
+        Parameters
+        ----------
+        z_i : float
+            The lower redshift of the interval.
+        z_f : float
+            The higher redshift of the interval.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.lookback_time(0., 1.).in_units("Gyr")
+
+        """
         return (trapzint(self.age_integrand, z_i, z_f) / \
                 self.hubble_constant).in_cgs()
     
     def hubble_time(self, z, z_inf=1e6):
+        r"""
+        The age of the Universe at a given redshift.
+
+        Parameters
+        ----------
+        z : float
+            Redshift.
+        z_inf : float
+            The upper bound of the integral of the age integrand.
+            Default: 1e6.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.hubble_time(0.).in_units("Gyr")
+
+        See Also
+        --------
+
+        t_from_z
+
+        """
         return (trapzint(self.age_integrand, z, z_inf) /
                 self.hubble_constant).in_cgs()
 
-    def angular_scale_1arcsec_kpc(self, z_i, z_f):
-        return (self.angular_diameter_distance(z_i, z_f) /
-                648. * np.pi).in_cgs()
-
     def critical_density(self, z):
+        r"""
+        The density required for closure of the Universe at a given 
+        redshift in the proper frame.
+
+        Parameters
+        ----------
+        z : float
+            Redshift.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.critical_density(0.).in_units("g/cm**3")
+        >>> print co.critical_density(0).in_units("Msun/Mpc**3")
+        
+        """
         return (3.0 / 8.0 / np.pi * 
                 self.hubble_constant**2 / G *
                 ((1 + z)**3.0 * self.omega_matter + 
                  self.omega_lambda)).in_cgs()
 
+    def hubble_parameter(self, z):
+        r"""
+        The value of the Hubble parameter at a given redshift.
+
+        Parameters
+        ----------
+        z: float
+            Redshift.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.hubble_parameter(1.0).in_units("km/s/Mpc")
+
+        """
+        return self.hubble_constant * self.expansion_factor(z)
+
     def age_integrand(self, z):
         return (1 / (z + 1) / self.expansion_factor(z))
 
     def expansion_factor(self, z):
+        r"""
+        The ratio between the Hubble parameter at a given redshift and 
+        redshift zero.
+
+        This is also the primary function integrated to calculate the 
+        cosmological distances.
+        
+        """
         return np.sqrt(self.omega_matter * ((1 + z)**3.0) + 
-                    self.omega_curvature * np.sqrt(1 + z) + 
-                    self.omega_lambda)
+                       self.omega_curvature * np.sqrt(1 + z) + 
+                       self.omega_lambda)
 
     def inverse_expansion_factor(self, z):
         return 1 / self.expansion_factor(z)
@@ -159,6 +340,18 @@ class Cosmology(object):
         Compute the redshift from time after the big bang.  This is based on
         Enzo's CosmologyComputeExpansionFactor.C, but altered to use physical
         units.
+
+        Parameters
+        ----------
+        my_time : float
+            Age of the Universe in seconds.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.t_from_z(4.e17)
+
         """
 
         omega_curvature = 1.0 - self.omega_matter - self.omega_lambda
@@ -235,8 +428,26 @@ class Cosmology(object):
 
     def t_from_z(self, z):
         """
-        Compute the time from redshift.  This is based on Enzo's
-        CosmologyComputeTimeFromRedshift.C, but altered to use physical units.
+        Compute the age of the Universe from redshift.  This is based on Enzo's
+        CosmologyComputeTimeFromRedshift.C, but altered to use physical units.  
+        Similar to hubble_time, but using an analytical function.
+
+        Parameters
+        ----------
+        z : float
+            Redshift.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.t_from_z(0.).in_units("Gyr")
+
+        See Also
+        --------
+
+        hubble_time
+        
         """
         omega_curvature = 1.0 - self.omega_matter - self.omega_lambda
  
