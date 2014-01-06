@@ -21,4 +21,8 @@ gadget_header_specs = dict(
                     ('FlagMEtals', 1, 'i'),
                     ('NallHW', 6, 'i'),
                     ('unused', 16, 'i')),
+    pad32       = (('empty',  32, 'c'),),
+    pad64       = (('empty',  64, 'c'),),
+    pad128      = (('empty', 128, 'c'),),
+    pad256      = (('empty', 256, 'c'),),
 )
