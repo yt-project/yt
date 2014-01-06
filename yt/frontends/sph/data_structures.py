@@ -158,7 +158,10 @@ class GadgetStaticOutput(ParticleStaticOutput):
                  bounding_box = None,
                  header_spec = "default"):
         if isinstance(header_spec, types.StringTypes):
-            header_spec = gadget_header_specs[header_spec]
+            _hs = ()
+            for hs in header_spec.split("+"):
+                _hs += gadget_header_specs[hs]
+            header_spec = _hs
         self._header_spec = header_spec
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
