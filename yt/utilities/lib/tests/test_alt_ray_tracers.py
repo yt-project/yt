@@ -8,7 +8,7 @@ from nose.tools import assert_equal, assert_not_equal, assert_raises, raises, \
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from yt.testing import amrspace
 
-from yt.utilities.lib.alt_ray_tracers import clyindrical_ray_trace, _cyl2cart
+from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace, _cyl2cart
 
 left_grid = right_grid = amr_levels = center_grid = data = None
 
@@ -57,13 +57,13 @@ def check_bounds(arr, blower, bupper):
     assert_true(np.all(bupper >= arr))
 
 
-def test_clyindrical_ray_trace():
+def test_cylindrical_ray_trace():
     for pair in point_pairs:
         p1, p2 = pair
         p1cart, p2cart =  _cyl2cart(pair)
         pathlen = np.sqrt(np.sum((p2cart - p1cart)**2))
 
-        t, s, rztheta, inds = clyindrical_ray_trace(p1, p2, left_grid, right_grid)
+        t, s, rztheta, inds = cylindrical_ray_trace(p1, p2, left_grid, right_grid)
         npoints = len(t)
 
         yield check_monotonic_inc, t
