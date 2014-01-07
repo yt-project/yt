@@ -26,3 +26,23 @@ gadget_header_specs = dict(
     pad128      = (('empty', 128, 'c'),),
     pad256      = (('empty', 256, 'c'),),
 )
+
+gadget_ptype_specs = dict(
+    default = ( "Gas",
+                "Halo",
+                "Disk",
+                "Bulge",
+                "Stars",
+                "Bndry" )
+)
+
+gadget_field_specs = dict(
+    default = ( "Coordinates",
+                "Velocities",
+                "ParticleIDs",
+                "Mass",
+                ("InternalEnergy", "Gas"),
+                ("Density", "Gas"),
+                ("SmoothingLength", "Gas"),
+    )
+)

@@ -52,7 +52,9 @@ from yt.fields.particle_fields import \
     particle_deposition_functions, \
     standard_particle_fields
 from .definitions import \
-    gadget_header_specs
+    gadget_header_specs, \
+    gadget_field_specs, \
+    gadget_ptype_specs
 
 try:
     import requests
@@ -156,13 +158,15 @@ class GadgetStaticOutput(ParticleStaticOutput):
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None,
-                 header_spec = "default"):
-        if isinstance(header_spec, types.StringTypes):
-            _hs = ()
-            for hs in header_spec.split("+"):
-                _hs += gadget_header_specs[hs]
-            header_spec = _hs
-        self._header_spec = header_spec
+                 header_spec = "default",
+                 field_spec = "default",
+                 ptype_spec = "default"):
+        self._header_spec = self._setup_binary_spec(
+            header_spec, gadget_header_specs)
+        self._field_spec = self._setup_binary_spec(
+            field_spec, gadget_field_specs)
+        self._ptype_spec = self._setup_binary_spec(
+            ptype_spec, gadget_ptype_specs)
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
@@ -180,6 +184,14 @@ class GadgetStaticOutput(ParticleStaticOutput):
         else:
             self.domain_left_edge = self.domain_right_edge = None
         super(GadgetStaticOutput, self).__init__(filename, data_style)
+
+    def _setup_binary_spec(self, spec, spec_dict):
+        if isinstance(spec, types.StringTypes):
+            _hs = ()
+            for hs in spec.split("+"):
+                _hs += spec_dict[hs]
+            spec = _hs
+        return spec
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
