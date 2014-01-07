@@ -743,6 +743,9 @@ class YTQuantity(YTArray):
             raise RuntimeError
         return ret
 
+    def __repr__(self):
+        return str(self)+' '+self.units.__repr__()
+
     @property
     def value(self):
         return np.array(self)
