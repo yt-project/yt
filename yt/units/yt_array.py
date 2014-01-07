@@ -31,7 +31,9 @@ from numpy import \
      ldexp, frexp, fmod, floor, ceil, trunc
 
 
-from yt.units.unit_object import Unit, UnitRegistry, dimensionless
+from yt.units.unit_object import Unit
+from yt.units.unit_registry import UnitRegistry
+from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import YTUnitOperationError, YTUnitConversionError
 from numbers import Number as numeric_type
 
