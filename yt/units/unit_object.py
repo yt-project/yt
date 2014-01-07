@@ -18,7 +18,8 @@ from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
 from yt.units.dimensions import base_dimensions
 from yt.units.unit_lookup_table import \
-    default_unit_symbol_lut, latex_symbol_lut, unit_prefixes
+    default_unit_symbol_lut, latex_symbol_lut, \
+    unit_prefixes, prefixable_units
 from yt.units.unit_registry import UnitRegistry
  
 import string
@@ -423,7 +424,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
         # the first character could be a prefix, check the rest of the symbol
         symbol_wo_prefix = symbol_str[1:]
 
-        if symbol_wo_prefix in unit_symbol_lut:
+        if symbol_wo_prefix in unit_symbol_lut and symbol_wo_prefix in prefixable_units:
             # lookup successful, it's a symbol with a prefix
             unit_data = unit_symbol_lut[symbol_wo_prefix]
             prefix_value = unit_prefixes[possible_prefix]

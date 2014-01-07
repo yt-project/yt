@@ -135,3 +135,18 @@ unit_prefixes = {
     'y': 1e-24,  # yocto
 }
 
+prefixable_units = [
+    "m",
+    "pc",
+    "g",
+    "eV",
+    "s",
+    "yr",
+    "K",
+    "dyne",
+    "erg",
+    "esu",
+    "J",
+    "Hz",
+    "gauss",
+]
