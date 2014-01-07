@@ -28,7 +28,7 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
-from yt.data_objects.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity
 from .definitions import ramses_header
 from yt.utilities.lib import \
     get_box_grids_level

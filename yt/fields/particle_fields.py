@@ -25,7 +25,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs, \
     mh
 
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     uconcatenate
 
 from yt.utilities.math_utils import \

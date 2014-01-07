@@ -24,7 +24,7 @@ from yt.utilities.answer_testing.framework import \
     requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
-from yt.data_objects.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import YTArray, YTQuantity
 
 def setup():
     """Test specific setup."""

@@ -41,7 +41,7 @@ from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, ParallelAnalysisInterface
-from yt.utilities.units import Unit
+from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 
 from yt.fields.field_exceptions import \

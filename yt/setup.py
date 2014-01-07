@@ -14,6 +14,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('frontends')
     config.add_subpackage('geometry')
     config.add_subpackage('gui')
+    config.add_subpackage('units')
     config.add_subpackage('utilities')
     config.add_subpackage('visualization')
     config.make_config_py()

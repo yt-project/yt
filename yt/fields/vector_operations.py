@@ -13,7 +13,7 @@ This is where we define a handful of vector operations for fields.
 
 import numpy as np
 
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 
 from .derived_field import \
     ValidateParameter, \

@@ -22,7 +22,7 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.exceptions import *
 

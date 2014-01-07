@@ -20,7 +20,7 @@ import numpy as np
 import inspect
 import copy
 
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 
 from .derived_field import \
     ValidateParameter

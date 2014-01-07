@@ -1,5 +1,5 @@
 from yt.utilities.physical_ratios import *
-from yt.data_objects.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity
 
 mass_electron_cgs = YTQuantity(mass_electron_grams, 'g')
 amu_cgs           = YTQuantity(amu_grams, 'g')

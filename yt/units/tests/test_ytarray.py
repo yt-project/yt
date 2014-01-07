@@ -16,7 +16,7 @@ Test ndarray subclass that handles symbolic units.
 
 from numpy.testing import assert_approx_equal, assert_array_equal
 from numpy import array
-from yt.data_objects.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
 from yt.testing import fake_random_pf
 from yt.funcs import fix_length

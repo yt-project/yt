@@ -16,7 +16,7 @@ import inspect
 
 from yt.funcs import \
     ensure_list
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray
 from .field_exceptions import \
     ValidationException, \
@@ -28,7 +28,7 @@ from .field_exceptions import \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
-from yt.utilities.units import \
+from yt.units.unit_object import \
     Unit
 
 def derived_field(**kwargs):

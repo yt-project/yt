@@ -1,6 +1,6 @@
 from yt.testing import *
 #from yt.fields.api import add_field
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 
 def setup():
     return

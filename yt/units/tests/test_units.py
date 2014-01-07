@@ -19,13 +19,13 @@ from numpy.testing import assert_approx_equal, assert_allclose
 from sympy import Symbol
 
 # base dimensions
-from yt.utilities.units import mass, length, time, temperature
+from yt.units.unit_object import mass, length, time, temperature
 # functions
-from yt.utilities.units import get_conversion_factor
+from yt.units.unit_object import get_conversion_factor
 # classes
-from yt.utilities.units import Unit, UnitParseError
+from yt.units.unit_object import Unit, UnitParseError
 # objects
-from yt.utilities.units import default_unit_symbol_lut, unit_prefixes
+from yt.units.unit_object import default_unit_symbol_lut, unit_prefixes
 # unit definitions
 from yt.utilities.physical_constants import \
     cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
@@ -79,7 +79,7 @@ def test_create_from_string():
     Create units with strings and check attributes.
 
     """
-    from yt.utilities.units import energy
+    from yt.units.unit_object import energy
 
     u1 = Unit("g * cm**2 * s**-2")
     assert u1.dimensions == energy
@@ -133,7 +133,7 @@ def test_create_with_duplicate_dimensions():
     Create units with overlapping dimensions. Ex: km/Mpc.
 
     """
-    from yt.utilities.units import power, rate
+    from yt.units.unit_object import power, rate
 
     u1 = Unit("erg * s**-1")
     u2 = Unit("km/s/Mpc")

@@ -18,7 +18,7 @@ import numpy as np
 from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray
 
 from yt.utilities.physical_constants import \

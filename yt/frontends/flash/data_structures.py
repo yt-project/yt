@@ -34,7 +34,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo
-from yt.data_objects.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -241,7 +241,7 @@ class FLASHStaticOutput(StaticOutput):
 
     def set_code_units(self):
         super(FLASHStaticOutput, self).set_code_units()
-        from yt.utilities.units import dimensionless
+        from yt.units.unit_object import dimensionless
         self.unit_registry.modify("code_temperature",
             self.temperature_unit.value)
 

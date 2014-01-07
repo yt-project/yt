@@ -30,7 +30,7 @@ from yt.utilities.lib import \
     get_box_grids_level
 
 from .fields import AthenaFieldInfo
-from yt.data_objects.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity
 
 def _get_convert(fname):
     def _conv(data):

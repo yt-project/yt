@@ -26,7 +26,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.utilities.units import \
+from yt.units.unit_object import \
      Unit, UnitRegistry, dimensionless, length
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -36,7 +36,7 @@ from yt.data_objects.particle_unions import \
     ParticleUnion
 from yt.utilities.minimal_representation import \
     MinimalStaticOutput
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
@@ -397,7 +397,7 @@ class StaticOutput(object):
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
-        import yt.utilities.units as units
+        import yt.units.unit_object as units
         self.unit_registry.lut["code_length"] = (1.0, units.length)
         self.unit_registry.lut["code_mass"] = (1.0, units.mass)
         self.unit_registry.lut["code_time"] = (1.0, units.time)
@@ -439,7 +439,7 @@ class StaticOutput(object):
         return new_unit
 
     def set_code_units(self):
-        from yt.utilities.units import length, mass, time
+        from yt.units.unit_object import length, mass, time
         # domain_width does not yet exist
         DW = self.domain_right_edge - self.domain_left_edge
         self._set_code_unit_attributes()

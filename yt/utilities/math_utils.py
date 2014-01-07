@@ -15,7 +15,7 @@ Commonly used mathematical functions.
 
 import numpy as np
 import math
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray
 
 prec_accum = {

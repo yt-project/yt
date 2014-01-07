@@ -32,7 +32,7 @@ from yt.utilities.physical_constants import \
     mh, \
     kboltz
 
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray
 
 from yt.utilities.math_utils import \

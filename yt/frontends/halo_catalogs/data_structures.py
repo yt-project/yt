@@ -33,7 +33,7 @@ from yt.data_objects.static_output import \
     StaticOutput, \
     ParticleFile
 import yt.utilities.fortran_utils as fpu
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 

@@ -27,8 +27,8 @@ License:
 
 import numpy as np
 
-from yt.data_objects.yt_array import YTArray
-from yt.utilities.units import Unit
+from yt.units.yt_array import YTArray
+from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTUnitOperationError
 
 

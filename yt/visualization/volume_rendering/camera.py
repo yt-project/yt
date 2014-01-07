@@ -18,7 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.math_utils import *
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 from copy import deepcopy
 
 from .grid_partitioner import HomogenizedVolume

@@ -1,5 +1,5 @@
 from yt.testing import *
-from yt.utilities.units import Unit
+from yt.units.unit_object import Unit
 import os
 import tempfile
 

@@ -10,9 +10,9 @@ from nose import with_setup
 from nose.plugins.skip import SkipTest
 import numpy as np
 
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 from yt.utilities.quantities import Quantity
-from yt.utilities.units import Unit
+from yt.units.unit_object import Unit
 from yt.utilities.quantities import YTUnitOperationError
 
 from yt.config import ytcfg

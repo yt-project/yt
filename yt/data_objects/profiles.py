@@ -18,7 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 
-from yt.data_objects.yt_array import uconcatenate
+from yt.units.yt_array import uconcatenate
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d, \

@@ -14,7 +14,7 @@ Simple utilities that don't fit anywhere else
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math

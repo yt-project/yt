@@ -62,7 +62,7 @@ from yt.utilities.lib import \
     MatchPointsToGrids
 from yt.utilities.decompose import \
     decompose_array, get_psize
-from yt.data_objects.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.flagging_methods import \

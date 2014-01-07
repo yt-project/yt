@@ -5,7 +5,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \
     StreamFieldInfo
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 
 def setup():
     global base_pf

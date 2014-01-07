@@ -32,7 +32,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 from yt.utilities.lib import \

@@ -20,7 +20,7 @@ import numpy as np
 from yt.funcs import *
 
 from yt.config import ytcfg
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 from yt.fields.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy

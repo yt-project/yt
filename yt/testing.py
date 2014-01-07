@@ -22,7 +22,7 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
     assert_allclose, assert_raises
-from yt.data_objects.yt_array import uconcatenate
+from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):

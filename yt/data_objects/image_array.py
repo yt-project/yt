@@ -14,7 +14,7 @@ ImageArray Class
 import numpy as np
 import h5py as h5
 from yt.visualization.image_writer import write_bitmap, write_image
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 
 class ImageArray(YTArray):
     r"""A custom Numpy ndarray used for images.

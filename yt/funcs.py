@@ -27,7 +27,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 from collections import defaultdict
 from functools import wraps
 

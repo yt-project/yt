@@ -18,7 +18,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
     kboltz,mh
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 
 b_units = "code_magnetic"
 pres_units = "code_mass/(code_length*code_time**2)"

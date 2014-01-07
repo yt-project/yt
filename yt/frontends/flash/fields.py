@@ -18,7 +18,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
     kboltz, mh, Na
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
     YTArray
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)

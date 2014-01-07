@@ -18,8 +18,8 @@ native.
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.units import Unit
-from yt.data_objects.yt_array import YTArray
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray
 from .derived_field import \
     DerivedField, \
     NullFunc, \
@@ -31,7 +31,7 @@ from yt.utilities.exceptions import \
     YTFieldNotFound
 from .field_plugin_registry import \
     field_plugins
-from yt.utilities.units import \
+from yt.units.unit_object import \
     Unit
 from .particle_fields import \
     particle_deposition_functions, \

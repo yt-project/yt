@@ -21,7 +21,7 @@ from yt.utilities.definitions import \
     x_dict, y_dict
 from yt.utilities.exceptions import \
     YTNoDataInObjectError
-from yt.utilities.units import Unit
+from yt.units.unit_object import Unit
 
 def setup():
     from yt.config import ytcfg

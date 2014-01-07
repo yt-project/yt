@@ -42,7 +42,7 @@ from yt.funcs import \
     mylog, defaultdict, iterable, ensure_list, \
     fix_axis, get_image_suffix, assert_valid_width_tuple, \
     get_ipython_api_version
-from yt.utilities.units import Unit
+from yt.units.unit_object import Unit
 from yt.utilities.lib import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -56,7 +56,7 @@ from yt.utilities.exceptions import \
 
 from yt.data_objects.time_series import \
     TimeSeriesData
-from yt.data_objects.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import YTArray, YTQuantity
     
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)

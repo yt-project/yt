@@ -35,7 +35,7 @@ from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
-from yt.data_objects.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity
 
 class YTOrthoRayBase(YTSelectionContainer1D):
     """

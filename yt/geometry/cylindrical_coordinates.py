@@ -15,7 +15,7 @@ Cylindrical fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.data_objects.yt_array import YTArray
+from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord
