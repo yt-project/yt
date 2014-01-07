@@ -83,10 +83,8 @@ REASON_DIRS = [
 ]
 
 for subdir in REASON_DIRS:
-    if os.name == "nt":
-        dir_name = "yt\\gui\\reason\\html\\%s\\" % (subdir)
-    else:
-        dir_name = "yt/gui/reason/html/%s/" % (subdir)
+    dir_name = os.path.join("yt", "gui", "reason", "html", subdir)
+    print dir_name
     files = []
     for ext in ["js", "html", "css", "png", "ico", "gif"]:
         files += glob.glob("%s/*.%s" % (dir_name, ext))
