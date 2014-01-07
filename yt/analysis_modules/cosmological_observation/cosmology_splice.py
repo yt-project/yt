@@ -34,9 +34,9 @@ class CosmologySplice(object):
                                      find_outputs=find_outputs)
 
         self.cosmology = Cosmology(
-            HubbleConstantNow=(100.0 * self.simulation.hubble_constant),
-            OmegaMatterNow=self.simulation.omega_matter,
-            OmegaLambdaNow=self.simulation.omega_lambda)
+            hubble_constant=(self.simulation.hubble_constant),
+            omega_matter=self.simulation.omega_matter,
+            omega_lambda=self.simulation.omega_lambda)
 
     def create_cosmology_splice(self, near_redshift, far_redshift,
                                 minimal=True, deltaz_min=0.0,
@@ -287,7 +287,7 @@ class CosmologySplice(object):
 
             # Convert comoving radial distance into Mpc / h,
             # since that's how box size is stored.
-            distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
+            distance2 = self.cosmology.comoving_radial_distance(z2, z) * \
               self.simulation.hubble_constant
 
             while ((np.fabs(distance2-target_distance)/distance2) > d_Tolerance):
@@ -295,7 +295,7 @@ class CosmologySplice(object):
                 z1 = z2
                 distance1 = distance2
                 z2 = ((target_distance - distance2) / m) + z2
-                distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
+                distance2 = self.cosmology.comoving_radial_distance(z2, z) * \
                   self.simulation.hubble_constant
                 iteration += 1
                 if (iteration > max_Iterations):
@@ -327,7 +327,7 @@ class CosmologySplice(object):
 
             # Convert comoving radial distance into Mpc / h,
             # since that's how box size is stored.
-            distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
+            distance2 = self.cosmology.comoving_radial_distance(z2, z) * \
               self.simulation.hubble_constant
 
             while ((np.fabs(distance2 - target_distance) / distance2) > d_Tolerance):
@@ -335,7 +335,7 @@ class CosmologySplice(object):
                 z1 = z2
                 distance1 = distance2
                 z2 = ((target_distance - distance2) / m) + z2
-                distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
+                distance2 = self.cosmology.comoving_radial_distance(z2, z) * \
                   self.simulation.hubble_constant
                 iteration += 1
                 if (iteration > max_Iterations):
@@ -362,16 +362,16 @@ class CosmologySplice(object):
 
         # Convert comoving radial distance into Mpc / h,
         # since that's how box size is stored.
-        distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
-          self.cosmology.HubbleConstantNow / 100.0
+        distance2 = self.cosmology.comoving_radial_distance(z2, z) * \
+          self.cosmology.hubble_constant
 
         while ((np.fabs(distance2 - target_distance)/distance2) > d_Tolerance):
             m = (distance2 - distance1) / (z2 - z1)
             z1 = z2
             distance1 = distance2
             z2 = ((target_distance - distance2) / m) + z2
-            distance2 = self.cosmology.ComovingRadialDistance(z2, z) * \
-              self.cosmology.HubbleConstantNow / 100.0
+            distance2 = self.cosmology.comoving_radial_distance(z2, z) * \
+              self.cosmology.hubble_constant
             iteration += 1
             if (iteration > max_Iterations):
                 mylog.error("deltaz_forward: Warning - max iterations exceeded for z = %f (delta z = %f)." %
