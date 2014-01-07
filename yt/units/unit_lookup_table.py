@@ -12,7 +12,7 @@ The default unit symbol lookup table.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt.units.dimensions as dimensions
+from yt.units import dimensions
 from yt.utilities.physical_ratios import \
     cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
@@ -49,6 +49,7 @@ default_unit_symbol_lut = {
     # some SI
     "m": (1.0e2, dimensions.length),
     "J": (1.0e7, dimensions.energy),
+    "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
 
     # Imperial units
@@ -81,9 +82,6 @@ default_unit_symbol_lut = {
 
     # electric stuff
     "gauss": (1.0, dimensions.magnetic_field),
-
-    # other astro
-    "H_0": (hubble_constant_hertz, dimensions.rate),  # check cf
 
     # misc
     "eV": (erg_per_eV, dimensions.energy),

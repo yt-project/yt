@@ -16,14 +16,13 @@ from sympy import Expr, Mul, Number, Pow, Symbol
 from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
-from yt.units.dimensions import base_dimensions
+from yt.units import dimensions
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, latex_symbol_lut, \
     unit_prefixes, prefixable_units
 from yt.units.unit_registry import UnitRegistry
  
 import string
-import yt.units.dimensions as dimensions
 
 class UnitParseError(Exception):
     pass
@@ -455,7 +454,7 @@ def validate_dimensions(d):
     if isinstance(d, Number):
         return d
     elif isinstance(d, Symbol):
-        if d in base_dimensions:
+        if d in dimensions.base_dimensions:
             return d
         else:
             raise UnitParseError("dimensionality expression contains an "
