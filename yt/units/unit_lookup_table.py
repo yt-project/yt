@@ -133,7 +133,7 @@ unit_prefixes = {
     'y': 1e-24,  # yocto
 }
 
-prefixable_units = [
+prefixable_units = (
     "m",
     "pc",
     "g",
@@ -147,4 +147,4 @@ prefixable_units = [
     "J",
     "Hz",
     "gauss",
-]
+)
