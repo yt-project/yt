@@ -134,8 +134,8 @@ from yt.frontends.stream.api import \
 #    get_available_modules, amods
 #available_analysis_modules = get_available_modules()
 
-#from yt.frontends.fits.api import \
-#    FITSStaticOutput, FITSFieldInfo, add_fits_field
+from yt.frontends.fits.api import \
+    FITSStaticOutput, FITSFieldInfo
 
 # Import our analysis modules
 from yt.analysis_modules.halo_finding.api import \

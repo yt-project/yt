@@ -12,7 +12,7 @@ Symbolic unit handling.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from sympy import Expr, Mul, Number, Pow, Rational, Symbol
+from sympy import Expr, Mul, Number, Pow, Rational, Symbol, Integer, Float
 from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
@@ -23,6 +23,7 @@ from yt.utilities.physical_ratios import \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
     hubble_constant_hertz
 import string
+import numpy as np
 
 # Define a sympy one object.
 sympy_one = sympify(1)
@@ -49,8 +50,9 @@ length = Symbol("(length)", positive=True)
 time = Symbol("(time)", positive=True)
 temperature = Symbol("(temperature)", positive=True)
 metallicity = Symbol("(metallicity)", positive=True)
+angle = Symbol("(angle)", positive=True)
 
-base_dimensions = [mass, length, time, temperature, metallicity]
+base_dimensions = [mass, length, time, temperature, metallicity, angle]
 
 #
 # Derived dimensions
@@ -89,7 +91,8 @@ default_unit_symbol_lut = {
     #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
     "s":  (1.0, time),
     "K":  (1.0, temperature),
-
+    "radian": (1.0, angle),
+    
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
     "code_length" : (1.0, length),
@@ -145,6 +148,12 @@ default_unit_symbol_lut = {
     # other astro
     "H_0": (hubble_constant_hertz, rate),  # check cf
 
+    # angles
+    "degree": (np.pi/180., angle), # degrees
+    "arcmin": (np.pi/10800., angle), # arcminutes
+    "arcsec": (np.pi/64800., angle), # arcseconds
+    "mas": (np.pi/648000000., angle), # millarcseconds
+    
     # misc
     "eV": (erg_per_eV, energy),
     "amu": (amu_grams, mass),
@@ -270,6 +279,12 @@ class UnitRegistry:
 default_unit_registry = UnitRegistry()
 SYMPIFY_ONE = sympify(1)
 
+global_dict = {
+    'Symbol': Symbol,
+    'Integer': Integer,
+    'Float': Float,
+}
+
 class Unit(Expr):
     """
     A symbolic unit, using sympy functionality. We only add "dimensions" so
@@ -315,7 +330,7 @@ class Unit(Expr):
                     # Bug catch...
                     # if unit_expr is an empty string, parse_expr fails hard...
                     unit_expr = "1"
-                unit_expr = parse_expr(unit_expr)
+                unit_expr = parse_expr(unit_expr, global_dict=global_dict)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
