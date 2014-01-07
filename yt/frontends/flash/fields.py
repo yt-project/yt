@@ -66,7 +66,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("erad", (erg_units, [], "Radiation Internal Energy")),
         ("pden", (rho_units, [], None)),
         ("depo", ("code_length**2/code_time**2", [], None)),
-        ("ye", ("", [], None)),
+        ("ye", ("", [], "Y_e")),
         ("magp", (pres_units, [], None)),
         ("divb", ("code_magnetic*code_length", [], None)),
         ("game", ("", [], "\gamma_e\/\rm{(ratio\/of\/specific\/heats)}")),

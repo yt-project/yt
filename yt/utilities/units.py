@@ -103,7 +103,7 @@ default_unit_symbol_lut = {
     "code_magnetic" : (1.0, magnetic_field),
     "code_temperature" : (1.0, temperature),
     "code_metallicity" : (1.0, metallicity),
-    
+
     # other cgs
     "dyne": (1.0, force),
     "erg":  (1.0, energy),
