@@ -508,7 +508,16 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 continue
             fd = self.pf.field_dependencies.get(field, None) or \
                  self.pf.field_dependencies.get(field[1], None)
-            if fd is None: continue
+            # This is long overdue.  Any time we *can't* find a field
+            # dependency -- for instance, if the derived field has been added
+            # after parameter file instantiation -- let's just try to
+            # recalculate it.
+            if fd is None:
+                try:
+                    fd = fi.get_dependencies(pf = self.pf)
+                    self.pf.field_dependencies[field] = fd
+                except:
+                    continue
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps

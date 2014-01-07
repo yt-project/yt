@@ -315,7 +315,8 @@ class ContourCallback(PlotCallback):
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         
         if self.take_log is None:
-            self.take_log = plot.pf.field_info[self.field].take_log
+            field = data._determine_fields([self.field])[0]
+            self.take_log = plot.pf._get_field_info(*field).take_log
 
         if self.take_log: zi=np.log10(zi)
 
@@ -366,30 +367,29 @@ class GridBoundaryCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
         (dx, dy) = self.pixel_scale(plot)
         (xpix, ypix) = plot.image._A.shape
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
-        dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
+        DW = plot.data.pf.domain_width
         if self.periodic:
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
         else:
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
-        GLE = plot.data.grid_left_edge
-        GRE = plot.data.grid_right_edge
-        levels = plot.data.grid_levels[:,0]
-        min_level = self.min_level
-        max_level = self.max_level
-        if max_level is None:
-            max_level = plot.data.pf.h.max_level
-        if min_level is None:
-            min_level = 0
+        GLE, GRE, levels = [], [], []
+        for block, mask in plot.data.blocks:
+            GLE.append(block.LeftEdge)
+            GRE.append(block.RightEdge)
+            levels.append(block.Level)
+        GLE = np.array(GLE)
+        GRE = np.array(GRE)
+        levels = np.array(levels)
+        min_level = self.min_level or 0
+        max_level = self.max_level or levels.max()
 
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
-            pxo = px_off * dom[px_index]
-            pyo = py_off * dom[py_index]
+            pxo = px_off * DW[px_index]
+            pyo = py_off * DW[py_index]
             left_edge_x = (GLE[:,px_index]+pxo-x0)*dx + xx0
             left_edge_y = (GLE[:,py_index]+pyo-y0)*dy + yy0
             right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
