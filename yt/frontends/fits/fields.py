@@ -12,20 +12,39 @@ FITS-specific fields
 
 import numpy as np
 from yt.utilities.exceptions import *
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, \
-    NullFunc, \
-    TranslationFunc, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
-import yt.fields.universal_fields
-KnownFITSFields = FieldInfoContainer()
-add_fits_field = KnownFITSFields.add_field
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 
-FITSFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = FITSFieldInfo.add_field
+class FITSFieldInfo(FieldInfoContainer):
+    known_other_fields = ()
+    def _get_wcs(self, data, axis):
+        if data.pf.dimensionality == 2:
+            xw, yw = data.pf.wcs.wcs_pix2world(data["x"], data["y"], 1)
+            zw = data["z"]
+        else:
+            xw, yw, zw = data.pf.wcs.wcs_pix2world(data["x"], data["y"],
+                                                   data["z"], 1)
+        if axis == 0:
+            return xw
+        elif axis == 1:
+            return yw
+        elif axis == 2:
+            return zw
+    def setup_fluid_fields(self):
+        def world_f(axis):
+            def _world_f(field, data):
+                return self._get_wcs(data, axis)
+            return _world_f
+        for i in range(self.pf.dimensionality):
+            if self.pf.wcs.wcs.cname[i] == '':
+                name = str(self.pf.wcs.wcs.ctype[i])
+            else:
+                name = str(self.pf.wcs.wcs.cname[i])
+            unit = str(self.pf.wcs.wcs.cunit[i])
+            if name != '' and unit != '':
+                if unit.lower() == "deg": unit = "degree"
+                if unit.lower() == "rad": unit = "radian"
+                self.add_field(("fits",name), function=world_f(i), units=unit)
+
+
 

@@ -83,9 +83,9 @@ class RockstarStaticOutput(StaticOutput):
         self.hubble_constant = hvals['h0']
         self.omega_lambda = hvals['Ol']
         self.omega_matter = hvals['Om']
-        cosmo = Cosmology(self.hubble_constant * 100.0,
+        cosmo = Cosmology(self.hubble_constant,
                           self.omega_matter, self.omega_lambda)
-        self.current_time = self.quan(cosmo.UniverseAge(
+        self.current_time = self.quan(cosmo.hubble_time(
             self.current_redshift), "s")
         self.periodicity = (True, True, True)
         self.particle_types = ("halos")

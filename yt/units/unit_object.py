@@ -23,6 +23,7 @@ from yt.units.unit_lookup_table import \
 from yt.units.unit_registry import UnitRegistry
  
 import string
+import numpy as np
 
 class UnitParseError(Exception):
     pass
@@ -30,10 +31,15 @@ class UnitParseError(Exception):
 class InvalidUnitOperation(Exception):
     pass
 
-
 default_unit_registry = UnitRegistry()
 
 sympy_one = sympify(1)
+
+global_dict = {
+    'Symbol': Symbol,
+    'Integer': Integer,
+    'Float': Float,
+}
 
 class Unit(Expr):
     """
@@ -80,7 +86,7 @@ class Unit(Expr):
                     # Bug catch...
                     # if unit_expr is an empty string, parse_expr fails hard...
                     unit_expr = "1"
-                unit_expr = parse_expr(unit_expr)
+                unit_expr = parse_expr(unit_expr, global_dict=global_dict)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr

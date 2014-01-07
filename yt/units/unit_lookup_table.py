@@ -29,6 +29,7 @@ default_unit_symbol_lut = {
     #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
+    "radian": (1.0, dimensions.angle),
 
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
@@ -83,6 +84,12 @@ default_unit_symbol_lut = {
     # electric stuff
     "gauss": (1.0, dimensions.magnetic_field),
 
+    # angles
+    "degree": (np.pi/180., angle), # degrees
+    "arcmin": (np.pi/10800., angle), # arcminutes
+    "arcsec": (np.pi/64800., angle), # arcseconds
+    "mas": (np.pi/648000000., angle), # millarcseconds
+    
     # misc
     "eV": (erg_per_eV, dimensions.energy),
     "amu": (amu_grams, dimensions.mass),
