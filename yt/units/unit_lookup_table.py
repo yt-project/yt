@@ -47,6 +47,7 @@ default_unit_symbol_lut = {
     "dyne": (1.0, dimensions.force),
     "erg":  (1.0, dimensions.energy),
     "esu":  (1.0, dimensions.charge),
+    "gauss": (1.0, dimensions.magnetic_field),
 
     # some SI
     "m": (1.0e2, dimensions.length),
@@ -82,13 +83,10 @@ default_unit_symbol_lut = {
     "ly": (cm_per_ly, dimensions.length),
     "pc": (cm_per_pc, dimensions.length),
 
-    # electric stuff
-    "gauss": (1.0, dimensions.magnetic_field),
-
     # angles
     "degree": (np.pi/180., dimensions.angle), # degrees
     "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
-    "arcsec": (np.pi/64800., dimensions.angle), # arcseconds
+    "arcsec": (np.pi/648000., dimensions.angle), # arcseconds
     "mas": (np.pi/648000000., dimensions.angle), # millarcseconds
     
     # misc
