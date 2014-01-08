@@ -531,6 +531,15 @@ class YTArray(np.ndarray):
             if not power.units.is_dimensionless:
                 raise YTUnitOperationError('power', power.unit)
 
+        # Work around a sympy issue (I think?)
+        #
+        # If I don't do this, super(YTArray, self).__pow__ returns a YTArray
+        # with a unit attribute set to the sympy expression 1/1 rather than a
+        # dimensionless Unit object.
+        if self.units.is_dimensionless and power == -1:
+            ret = super(YTArray, self).__pow__(power)
+            return YTArray(ret, input_units='')
+
         return YTArray(super(YTArray, self).__pow__(power))
 
     def __abs__(self):
