@@ -15,7 +15,7 @@ and featuring time and redshift conversion functions from Enzo..
 
 import numpy as np
 
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
      YTArray, \
      YTQuantity
 

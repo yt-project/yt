@@ -22,9 +22,7 @@ from .data_containers import data_object_registry
 from .analyzer_objects import create_quantity_proxy, \
     analysis_task_registry, AnalysisTask
 from .derived_quantities import quantity_info
-from yt.data_objects.yt_array import \
-    YTArray, \
-    YTQuantity
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import parallel_objects, parallel_root_only

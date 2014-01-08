@@ -21,9 +21,7 @@ import os
 
 from yt.data_objects.time_series import \
     SimulationTimeSeries, TimeSeriesData
-from yt.data_objects.yt_array import \
-    YTArray, \
-    YTQuantity
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.definitions import \
