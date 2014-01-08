@@ -19,6 +19,7 @@ from yt.utilities.physical_ratios import \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
     hubble_constant_hertz
+import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
 # conversion factor to cgs and dimensionality.
@@ -85,10 +86,10 @@ default_unit_symbol_lut = {
     "gauss": (1.0, dimensions.magnetic_field),
 
     # angles
-    "degree": (np.pi/180., angle), # degrees
-    "arcmin": (np.pi/10800., angle), # arcminutes
-    "arcsec": (np.pi/64800., angle), # arcseconds
-    "mas": (np.pi/648000000., angle), # millarcseconds
+    "degree": (np.pi/180., dimensions.angle), # degrees
+    "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
+    "arcsec": (np.pi/64800., dimensions.angle), # arcseconds
+    "mas": (np.pi/648000000., dimensions.angle), # millarcseconds
     
     # misc
     "eV": (erg_per_eV, dimensions.energy),

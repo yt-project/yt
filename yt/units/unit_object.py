@@ -12,7 +12,7 @@ A class that represents a unit symbol.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from sympy import Expr, Mul, Number, Pow, Symbol
+from sympy import Expr, Mul, Number, Pow, Symbol, Integer, Float
 from sympy import nsimplify, posify, sympify, latex
 from sympy.parsing.sympy_parser import parse_expr
 from collections import defaultdict
