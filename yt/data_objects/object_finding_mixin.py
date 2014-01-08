@@ -63,7 +63,7 @@ class ObjectFindingMixin(object) :
                 gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
                 if gi.sum() >= nproc:
                     break
-                elif finest_levels == self.max_level:
+                elif finest_levels >= self.max_level:
                     raise YTTooParallel
                 else:
                     finest_levels += 1
