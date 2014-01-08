@@ -144,6 +144,8 @@ unit_prefixes = {
 prefixable_units = (
     "m",
     "pc",
+    "mcm",
+    "pccm",
     "g",
     "eV",
     "s",
