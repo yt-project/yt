@@ -58,7 +58,7 @@ s    = second       = quan(1.0, "s")
 # minute
 #
 
-m = minute = quan(1.0, "min")
+min = minute = quan(1.0, "min")
 
 #
 # hr
