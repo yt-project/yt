@@ -154,5 +154,6 @@ prefixable_units = (
     "esu",
     "J",
     "Hz",
+    "W",
     "gauss",
 )
