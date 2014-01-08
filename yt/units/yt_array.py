@@ -744,7 +744,7 @@ class YTQuantity(YTArray):
         return ret
 
     def __repr__(self):
-        return str(self)+' '+self.units.__repr__()
+        return str(self)
 
     @property
     def value(self):
