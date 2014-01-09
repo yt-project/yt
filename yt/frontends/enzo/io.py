@@ -39,12 +39,13 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         f = h5py.File(grid.filename, "r")
         group = f["/Grid%08i" % grid.id]
         fields = []
+        add_io = "io" in grid.pf.particle_types
         for name, v in group.iteritems():
             # NOTE: This won't work with 1D datasets.
             if not hasattr(v, "shape"):
                 continue
             elif len(v.dims) == 1:
-                fields.append( ("io", str(name)) )
+                if add_io: fields.append( ("io", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
         f.close()
