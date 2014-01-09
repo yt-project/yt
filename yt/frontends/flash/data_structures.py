@@ -241,7 +241,7 @@ class FLASHStaticOutput(StaticOutput):
 
     def set_code_units(self):
         super(FLASHStaticOutput, self).set_code_units()
-        from yt.units.unit_object import dimensionless
+        from yt.units.dimensions import dimensionless
         self.unit_registry.modify("code_temperature",
             self.temperature_unit.value)
 
