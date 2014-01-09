@@ -417,6 +417,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.length_unit = YTQuantity(length_unit, "cm")
         self.mass_unit = YTQuantity(mass_unit, "g")
         self.time_unit = YTQuantity(time_unit, "s")
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
         # hardcoded for now
