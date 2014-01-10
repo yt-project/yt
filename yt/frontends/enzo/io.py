@@ -256,7 +256,6 @@ class IOHandlerInMemory(BaseIOHandler):
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
 
-        # this is probably fine as-is
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -265,23 +264,17 @@ class IOHandlerInMemory(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
 
-        # not totally sure about this piece... is this needed if the output is in memory?
         ind = 0
         for chunk in chunks:
-            fid = None
             for g in chunk.objs:
-                if g.filename is None: continue
-                if fid is None:
-                    fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
+                if g.id not in self.grids_in_memory: continue
+
                 data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
                 data_view = data.swapaxes(0,2)
                 for field in fields:
                     ftype, fname = field
-                    dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
-                    dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
-                    nd = g.select(selector, data_view, rv[field], ind) # caches
-                ind += nd
-            if fid: fid.close()
+                    data_view = self.grids_in_memory[g.id][fname]
+                    nd = g.select(selector, data_view, rv[field], ind)
         return rv
 
     @property
