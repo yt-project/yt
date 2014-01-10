@@ -174,12 +174,6 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
     # Particle types (Table 3 in GADGET-2 user guide)
-    _ptypes = ( "Gas",
-                "Halo",
-                "Disk",
-                "Bulge",
-                "Stars",
-                "Bndry" )
     #
     # Blocks in the file:
     #   HEAD
@@ -195,16 +189,12 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     #   ENDT    (only if enabled in makefile)
     #   TSTP    (only if enabled in makefile)
 
-    _fields = ( "Coordinates",
-                "Velocities",
-                "ParticleIDs",
-                "Mass",
-                ("InternalEnergy", "Gas"),
-                ("Density", "Gas"),
-                ("SmoothingLength", "Gas"),
-    )
-
     _var_mass = None
+
+    def __init__(self, pf, *args, **kwargs):
+        self._fields = pf._field_spec
+        self._ptypes = pf._ptype_spec
+        super(IOHandlerGadgetBinary, self).__init__(pf, *args, **kwargs)
 
     @property
     def var_mass(self):
