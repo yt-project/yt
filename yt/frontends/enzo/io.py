@@ -246,7 +246,6 @@ class IOHandlerInMemory(BaseIOHandler):
         # Now we have to do something unpleasant
         chunks = list(chunks)
         if selector.__class__.__name__ == "GridSelector":
-            print "in the first case of _read_fluid_selection"
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
@@ -257,7 +256,7 @@ class IOHandlerInMemory(BaseIOHandler):
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
 
-        # this probably fine as-is
+        # this is probably fine as-is
         for field in fields:
             ftype, fname = field
             fsize = size
