@@ -240,6 +240,50 @@ class IOHandlerInMemory(BaseIOHandler):
         # In-place unit conversion requires we return a copy
         return tr.copy()
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        rv = {}
+        # Now we have to do something unpleasant
+        chunks = list(chunks)
+        if selector.__class__.__name__ == "GridSelector":
+            print "in the first case of _read_fluid_selection"
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            for ftype, fname in fields:
+                rv[(ftype, fname)] = self.grids_in_memory[grid.id][fname].swapaxes(0,2)
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
+
+        # this probably fine as-is
+        for field in fields:
+            ftype, fname = field
+            fsize = size
+            rv[field] = np.empty(fsize, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+
+        # not totally sure about this piece... is this needed if the output is in memory?
+        ind = 0
+        for chunk in chunks:
+            fid = None
+            for g in chunk.objs:
+                if g.filename is None: continue
+                if fid is None:
+                    fid = h5py.h5f.open(g.filename, h5py.h5f.ACC_RDONLY)
+                data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+                data_view = data.swapaxes(0,2)
+                for field in fields:
+                    ftype, fname = field
+                    dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                    dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+                    nd = g.select(selector, data_view, rv[field], ind) # caches
+                ind += nd
+            if fid: fid.close()
+        return rv
+
     @property
     def _read_exception(self):
         return KeyError
