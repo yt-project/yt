@@ -34,7 +34,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs as G
-from yt.utilities.units import \
+from yt.units.unit_registry import \
      UnitRegistry
 
 from yt.convenience import \
@@ -83,8 +83,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _set_units(self):
         self.unit_registry = UnitRegistry()
-        import yt.utilities.units as units
-        self.unit_registry.lut["code_time"] = (1.0, units.time)
+        import yt.units.dimensions as units
+        self.unit_registry.lut["code_time"] = (1.0, dimensions.time)
         if self.cosmological_simulation:
             # Instantiate EnzoCosmology object for units and time conversions.
             self.enzo_cosmology = \
