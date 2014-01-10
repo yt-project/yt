@@ -16,7 +16,8 @@ from .plot_window import \
 from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
-    defaultdict, get_image_suffix, get_ipython_api_version
+    defaultdict, get_image_suffix, \
+    get_ipython_api_version, ensure_list
 from yt.utilities.definitions import axis_names
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
@@ -89,6 +90,14 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
+class PlotDictionary(dict):
+    def __getitem__(self, item):
+        item = self.data_source._determine_fields(item)[0]
+        return dict.__getitem__(self, item)
+
+    def __init__(self, data_source, *args):
+        self.data_source = data_source
+        return dict.__init__(self, args)
 
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
@@ -101,7 +110,7 @@ class ImagePlotContainer(object):
     def __init__(self, data_source, fields, figure_size, fontsize):
         self.data_source = data_source
         self.figure_size = figure_size
-        self.plots = {}
+        self.plots = PlotDictionary(data_source)
         self.fields = self.data_source._determine_fields(fields)
         self._callbacks = []
         self._field_transform = {}
