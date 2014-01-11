@@ -277,6 +277,57 @@ class IOHandlerInMemory(BaseIOHandler):
                     nd = g.select(selector, data_view, rv[field], ind)
         return rv
 
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            for g in chunk.objs:
+                if g.id not in self.grids_in_memory: continue
+
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0:
+                    continue
+                for ptype, field_list in sorted(ptf.items()):
+                    # this if/else can probably be removed
+                    if ptype != "io":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = self.grids_in_memory[g.id][ptype]
+                    else:
+                        pds = self.grids_in_memory[g.id]
+                    # remove to above comment?
+                    x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
+                                        self.grids_in_memory[g.id]['particle_position_y'], \
+                                        self.grids_in_memory[g.id]['particle_position_z']
+                    yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            for g in chunk.objs:
+                if g.id not in self.grids_in_memory: continue
+
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0:
+                    continue
+                
+                for ptype, field_list in sorted(ptf.items()):
+                    # remove to below comment?
+                    if ptype != "io":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = self.grids_in_memory[g.id][ptype]
+                    else:
+                        pds = self.grids_in_memory[g.id]
+                    # remove to above comment?
+                    x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
+                                        self.grids_in_memory[g.id]['particle_position_y'], \
+                                        self.grids_in_memory[g.id]['particle_position_z']
+                    mask = selector.select_points(x, y, z)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = self.grids_in_memory[g.id][field]
+                        if field in _convert_mass:
+                            data *= g.dds.prod(dtype="f8")
+                        yield (ptype, field), data[mask]
+
     @property
     def _read_exception(self):
         return KeyError
