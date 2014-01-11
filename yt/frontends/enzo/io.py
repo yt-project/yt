@@ -282,18 +282,9 @@ class IOHandlerInMemory(BaseIOHandler):
         for chunk in chunks: # These should be organized by grid filename
             for g in chunk.objs:
                 if g.id not in self.grids_in_memory: continue
-
                 nap = sum(g.NumberOfActiveParticles.values())
-                if g.NumberOfParticles == 0 and nap == 0:
-                    continue
+                if g.NumberOfParticles == 0 and nap == 0: continue
                 for ptype, field_list in sorted(ptf.items()):
-                    # this if/else can probably be removed
-                    if ptype != "io":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = self.grids_in_memory[g.id][ptype]
-                    else:
-                        pds = self.grids_in_memory[g.id]
-                    # remove to above comment?
                     x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
                                         self.grids_in_memory[g.id]['particle_position_y'], \
                                         self.grids_in_memory[g.id]['particle_position_z']
@@ -304,19 +295,9 @@ class IOHandlerInMemory(BaseIOHandler):
         for chunk in chunks: # These should be organized by grid filename
             for g in chunk.objs:
                 if g.id not in self.grids_in_memory: continue
-
                 nap = sum(g.NumberOfActiveParticles.values())
-                if g.NumberOfParticles == 0 and nap == 0:
-                    continue
-                
+                if g.NumberOfParticles == 0 and nap == 0: continue
                 for ptype, field_list in sorted(ptf.items()):
-                    # remove to below comment?
-                    if ptype != "io":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = self.grids_in_memory[g.id][ptype]
-                    else:
-                        pds = self.grids_in_memory[g.id]
-                    # remove to above comment?
                     x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
                                         self.grids_in_memory[g.id]['particle_position_y'], \
                                         self.grids_in_memory[g.id]['particle_position_z']
