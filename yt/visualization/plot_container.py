@@ -386,7 +386,7 @@ class ImagePlotContainer(object):
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
             os.mkdir(name)
-        if os.path.isdir(name):
+        if os.path.isdir(name) and name != str(self.pf):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
         suffix = get_image_suffix(name)
         if suffix != '':
