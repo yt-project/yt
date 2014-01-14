@@ -61,73 +61,15 @@ class IOHandlerCharmHDF5(BaseIOHandler):
         
         return data.reshape(dims, order='F')
 
-    def _read_particles(self, grid, field):
-        """
-        parses the Orion Star Particle text files
-             
-        """
-
-        fn = grid.pf.fullplotdir[:-4] + "sink"
-
-        # Figure out the format of the particle file
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-        line = lines[1]
-
-        # The basic fields that all sink particles have
-        index = {'particle_mass': 0,
-                 'particle_position_x': 1,
-                 'particle_position_y': 2,
-                 'particle_position_z': 3,
-                 'particle_momentum_x': 4,
-                 'particle_momentum_y': 5,
-                 'particle_momentum_z': 6,
-                 'particle_angmomen_x': 7,
-                 'particle_angmomen_y': 8,
-                 'particle_angmomen_z': 9,
-                 'particle_id': -1}
-
-        if len(line.strip().split()) == 11:
-            # these are vanilla sinks, do nothing
-            pass  
-
-        elif len(line.strip().split()) == 17:
-            # these are old-style stars, add stellar model parameters
-            index['particle_mlast']     = 10
-            index['particle_r']         = 11
-            index['particle_mdeut']     = 12
-            index['particle_n']         = 13
-            index['particle_mdot']      = 14,
-            index['particle_burnstate'] = 15
-
-        elif len(line.strip().split()) == 18:
-            # these are the newer style, add luminosity as well
-            index['particle_mlast']     = 10
-            index['particle_r']         = 11
-            index['particle_mdeut']     = 12
-            index['particle_n']         = 13
-            index['particle_mdot']      = 14,
-            index['particle_burnstate'] = 15,
-            index['particle_luminosity']= 16
-
-        else:
-            # give a warning if none of the above apply:
-            mylog.warning('Warning - could not figure out particle output file')
-            mylog.warning('These results could be nonsense!')
-            
-        def read(line, field):
-            return float(line.strip().split(' ')[index[field]])
-
-        fn = grid.pf.fullplotdir[:-4] + "sink"
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-            particles = []
-            for line in lines[1:]:
-                if grid.NumberOfParticles > 0:
-                    coord = read(line, "particle_position_x"), \
-                            read(line, "particle_position_y"), \
-                            read(line, "particle_position_z")
-                    if ( (grid.LeftEdge < coord).all() and
-                         (coord <= grid.RightEdge).all() ):
-                        particles.append(read(line, field))
+    def _read_particles(self, grid, name):
+        num_particles = grid.pf.h.num_particles
+        particles = []
+        for i in np.arange(num_particles):
+            particle_position_x = grid.pf.h._handle['particles/position_x'][i]
+            particle_position_y = grid.pf.h._handle['particles/position_y'][i]
+            particle_position_z = grid.pf.h._handle['particles/position_z'][i]
+            coord = [particle_position_x, particle_position_y, particle_position_z]
+            if ( (grid.LeftEdge < coord).all() and
+                 (coord <= grid.RightEdge).all() ):
+                particles.append(grid.pf.h._handle['particles/' + name][i])
         return np.array(particles)

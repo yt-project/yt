@@ -35,6 +35,14 @@ add_charm_field("potential", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("potential")],
                 units=r"")
 
+add_charm_field("density", function=NullFunc, take_log=False,
+                validators = [ValidateDataField("density")],
+                units=r"")
+
+add_charm_field("pressure", function=NullFunc, take_log=False,
+                validators = [ValidateDataField("pressure")],
+                units=r"")
+
 def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
         io = data.hierarchy.io
@@ -55,7 +63,7 @@ _particle_field_list = ["mass",
                         "particle_id"]
 
 for pf in _particle_field_list:
-    pfunc = particle_func("particle_%s" % (pf))
+    pfunc = particle_func("%s" % (pf))
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)

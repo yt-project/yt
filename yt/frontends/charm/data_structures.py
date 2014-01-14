@@ -106,32 +106,28 @@ class CharmHierarchy(AMRHierarchy):
         self._read_particles()
 
     def _read_particles(self):
-        self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
-        if not os.path.exists(self.particle_filename): return
-        with open(self.particle_filename, 'r') as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip().split(' ')[0])
-            for line in lines[1:]:
-                particle_position_x = float(line.split(' ')[1])
-                particle_position_y = float(line.split(' ')[2])
-                particle_position_z = float(line.split(' ')[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask=np.ones(self.num_grids)
-                for i in xrange(len(coord)):
-                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
+        self.num_particles = self._handle['particles'].attrs['num_particles']
+        for i in np.arange(self.num_particles):
+            particle_position_x = self._handle['particles/position_x'][i]
+            particle_position_y = self._handle['particles/position_y'][i]
+            particle_position_z = self._handle['particles/position_z'][i]
+            coord = [particle_position_x, particle_position_y, particle_position_z]
+            # for each particle, determine which grids contain it
+            # copied from object_finding_mixin.py
+            mask=np.ones(self.num_grids)
+            for i in xrange(len(coord)):
+                np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+            ind = np.where(mask == 1)
+            selected_grids = self.grids[ind]
+            # in orion, particles always live on the finest level.
+            # so, we want to assign the particle to the finest of
+            # the grids we just found
+            if len(selected_grids) != 0:
+                grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                ind = np.where(self.grids == grid)[0][0]
+                self.grid_particle_count[ind] += 1
+                self.grids[ind].NumberOfParticles += 1
 
     def _detect_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
