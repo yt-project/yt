@@ -165,7 +165,7 @@ class ImagePlotContainer(object):
 
     @invalidate_plot
     def set_transform(self, field, name):
-        field = self.data_source._determine_fields(field)
+        field = self.data_source._determine_fields(field)[0]
         if name not in field_transforms: 
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
@@ -383,7 +383,7 @@ class ImagePlotContainer(object):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        field = self.data_source._determine_fields(field)
+        field = self.data_source._determine_fields(field)[0]
         new_unit = ensure_list(new_unit)
         if len(field) > 1 and len(new_unit) != len(field):
             raise RuntimeError(
