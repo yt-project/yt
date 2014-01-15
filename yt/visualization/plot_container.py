@@ -135,7 +135,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             if log:
                 self._field_transform[field] = log_transform
             else:
@@ -156,7 +156,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             if self._field_transform[field] == log_transform:
                 log[field] = True
             else:
@@ -165,7 +165,7 @@ class ImagePlotContainer(object):
 
     @invalidate_plot
     def set_transform(self, field, name):
-        field = self._field_check(field)
+        field = self.data_source._determine_fields(field)
         if name not in field_transforms: 
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
@@ -189,7 +189,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
         return self
@@ -224,7 +224,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             myzmin = zmin
             myzmax = zmax
             if zmin == 'min':
@@ -344,7 +344,7 @@ class ImagePlotContainer(object):
         else:
             fields = [field]
 
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap
             if isinstance(cmap, types.StringTypes):
@@ -383,7 +383,7 @@ class ImagePlotContainer(object):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        field = self._field_check(field)
+        field = self.data_source._determine_fields(field)
         new_unit = ensure_list(new_unit)
         if len(field) > 1 and len(new_unit) != len(field):
             raise RuntimeError(
@@ -508,11 +508,3 @@ class ImagePlotContainer(object):
             img = base64.b64encode(self.plots[field]._repr_png_())
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
-
-    def _field_check(self, field):
-        field = self.data_source._determine_fields(field)
-        if isinstance(field, (list, tuple)):
-            return field
-        else:
-            return field[0]
-
