@@ -13,8 +13,11 @@ and featuring time and redshift conversion functions from Enzo..
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import functools
 import numpy as np
 
+from yt.units.unit_registry import \
+     UnitRegistry
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
@@ -56,11 +59,15 @@ class Cosmology(object):
     def __init__(self, hubble_constant = 0.71,
                  omega_matter = 0.27,
                  omega_lambda = 0.73,
-                 omega_curvature = 0.0):
-        self.hubble_constant = YTQuantity(hubble_constant, "100*km/s/Mpc")
+                 omega_curvature = 0.0,
+                 unit_registry = None):
         self.omega_matter = omega_matter
         self.omega_lambda = omega_lambda
         self.omega_curvature = omega_curvature
+        if unit_registry is None:
+            unit_registry = UnitRegistry()
+        self.unit_registry = unit_registry
+        self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
 
     def hubble_distance(self):
         r"""
@@ -362,7 +369,7 @@ class Cosmology(object):
         # Convert the time to Time * H0.
 
         if not isinstance(my_time, YTArray):
-            my_time = YTQuantity(my_time, "s")
+            my_time = self.quan(my_time, "s")
 
         t0 = (my_time.in_units("s") *
               self.hubble_constant.in_units("1/s")).to_ndarray()
@@ -485,6 +492,23 @@ class Cosmology(object):
         my_time = t0 / self.hubble_constant
     
         return my_time.in_cgs()
+
+    _arr = None
+    @property
+    def arr(self):
+        if self._arr is not None:
+            return self._arr
+        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        return self._arr
+    
+    _quan = None
+    @property
+    def quan(self):
+        if self._quan is not None:
+            return self._quan
+        self._quan = functools.partial(YTQuantity,
+                registry = self.unit_registry)
+        return self._quan
 
 def trapzint(f, a, b, bins=10000):
     zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
