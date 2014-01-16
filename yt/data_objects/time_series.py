@@ -372,6 +372,14 @@ class SimulationTimeSeries(TimeSeriesData):
 
     def __repr__(self):
         return self.parameter_filename
+
+    _arr = None
+    @property
+    def arr(self):
+        if self._arr is not None:
+            return self._arr
+        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        return self._arr
     
     _quan = None
     @property
