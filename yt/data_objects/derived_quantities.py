@@ -24,6 +24,7 @@ from yt.units.yt_array import YTArray
 from yt.fields.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
+from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 from yt.utilities.lib import Octree
@@ -114,13 +115,13 @@ def _TotalMass(data):
     particle masses in the object.
     """
     try:
-        cell_mass = _TotalQuantity(data,["cell_mass"])
-    except KeyError:
-        cell_mass = 0.0
+        cell_mass = _TotalQuantity(data,["cell_mass"])[1][0]
+    except (KeyError, YTFieldNotFound):
+        cell_mass = data.pf.quan(0.0, 'g')
     try:
-        particle_mass = _TotalQuantity(data,["particle_mass"])
-    except KeyError:
-        particle_mass = 0.0
+        particle_mass = _TotalQuantity(data,["particle_mass"])[1][0]
+    except (KeyError, YTFieldNotFound):
+        particle_mass = data.pf.quan(0.0, 'g')
     total_mass = cell_mass + particle_mass
     return [total_mass]
 def _combTotalMass(data, total_mass):
