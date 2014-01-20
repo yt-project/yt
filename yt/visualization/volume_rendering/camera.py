@@ -259,9 +259,8 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        if region is None:
-            region = self.pf.h.region((self.re + self.le) / 2.0,
-                                      self.le, self.re)
+        region = self.pf.h.region((self.re + self.le) / 2.0,
+                                  self.le, self.re)
         corners = region.grid_corners
         levels = region.grid_levels[:,0]
 
