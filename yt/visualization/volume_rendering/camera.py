@@ -227,7 +227,7 @@ class Camera(ParallelAnalysisInterface):
         return px, py, dz
 
     def draw_grids(self, im, alpha=0.3, cmap='algae', min_level=None, 
-                   max_level=None, region=None):
+                   max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
         By mapping grid level to a color, draws edges of grids on 
@@ -247,8 +247,6 @@ class Camera(ParallelAnalysisInterface):
         min_level, max_level : int, optional
             Optional parameters to specify the min and max level grid boxes 
             to overplot on the image.  
-        region: YTRegion, optional
-            Optional region over which to draw the grids.
         
         Returns
         -------
