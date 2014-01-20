@@ -19,6 +19,8 @@ import numpy as np
 from yt.funcs import *
 
 from yt.units.yt_array import uconcatenate
+from yt.data_objects.yt_array import \
+     YTArray, YTQuantity
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d, \
@@ -827,7 +829,9 @@ class Profile1D(ProfileND):
         super(Profile1D, self).__init__(data_source, weight_field)
         self.x_field = x_field
         self.x_log = x_log
-        self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
+        self.x_bins = data_source.pf.arr(self._get_bins(x_min.to_ndarray(), 
+                                                        x_max.to_ndarray(), x_n, x_log),
+                                         x_min.units)
 
         self.size = (self.x_bins.size - 1,)
         self.bin_fields = (self.x_field,)
