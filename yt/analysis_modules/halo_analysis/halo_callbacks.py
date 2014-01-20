@@ -72,7 +72,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0):
 add_callback("sphere", halo_sphere)
 
 def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
-            weight_field="cell_mass"):
+            weight_field="cell_mass", storage="profiles"):
     r"""
     Create a 1d profile.
 
@@ -99,6 +99,9 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 
     """
 
+    mylog.info("Calculating 1D profile for halo %d." % 
+               halo.quantities['particle_identifier'])
+    
     dpf = halo.halo_catalog.data_pf
     
     if x_range is None:
@@ -110,10 +113,14 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
             raise RuntimeError("Looks like derived quantities have been fixed.  Fix this code!")
         except YTUnitConversionError:
             # for now, Extrema return dimensionless, but assume it is code_length
-            x_range = [dpf.arr(x.to_ndarray(), "code_length") for x in x_range]
-            print halo.data_object.radius.in_units("Mpc")
-            print x_range
-        #    my_profile = Profile1D(halo.data_object
+            x_range = [dpf.arr(x.to_ndarray(), "cm") for x in x_range]
+            
+    my_profile = Profile1D(halo.data_object, x_field, x_bins, 
+                           x_range[0], x_range[1], x_log, 
+                           weight_field=weight_field)
+    my_profile.add_fields(ensure_list(y_fields))
+    setattr(halo, storage, my_profile)
+
     return
 
 add_callback("profile", profile)
