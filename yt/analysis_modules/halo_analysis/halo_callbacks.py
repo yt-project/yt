@@ -76,8 +76,8 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     r"""
     Create a 1d profile.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     halo : Halo object
         The Halo object to be provided by the HaloCatalog.
     x_field : string
@@ -121,6 +121,28 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     my_profile.add_fields(ensure_list(y_fields))
     setattr(halo, storage, my_profile)
 
-    return
-
 add_callback("profile", profile)
+
+def virial_quantities(halo, fields, critical_density=200,
+                      profile_storage="profiles"):
+    r"""
+    Calculate the value of the given fields at the virial radius defined at 
+    the given critical density by interpolating from radial profiles.
+
+    Parameters
+    ----------    
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    fields : string or list of strings
+        The fields whose virial values are to be calculated.
+    critical_density : float
+        The value of the overdensity at which to evaulate the virial quantities.  
+        Overdensity is with respect to the critical density.
+        Default: 200
+    profile_storage : string
+        Name of the halo attribute that holds the profiles to be used.
+        Default: "profiles"
+    
+    """
+
+    return
