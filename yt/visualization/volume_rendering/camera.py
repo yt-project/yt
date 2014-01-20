@@ -259,9 +259,8 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        if self.region is None:
-            self.region = self.pf.h.region((self.re + self.le) / 2.0,
-                                           self.le, self.re)
+        self.region = self.pf.h.region((self.re + self.le) / 2.0,
+                                       self.le, self.re)
         corners = self.region.grid_corners
         levels = self.region.grid_levels[:,0]
 
@@ -603,7 +602,7 @@ class Camera(ParallelAnalysisInterface):
         ax.get_yaxis().set_visible(False)
         ax.get_yaxis().set_ticks([])
         cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
-        label = self.pf.field_info[self.fields[0]].get_label()
+        label = self.pf._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
             label = '$\\rm{log}\\/ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label)
