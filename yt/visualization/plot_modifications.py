@@ -290,6 +290,7 @@ class ContourCallback(PlotCallback):
                 XShifted = data["px"].copy()
                 YShifted = data["py"].copy()
                 dom_x, dom_y = plot._period
+                dom_x, dom_y = dom_x.to_ndarray(), dom_y.to_ndarray()
                 for shift in np.mgrid[-1:1:3j]:
                     xlim = ((data["px"] + shift*dom_x >= x0) &
                             (data["px"] + shift*dom_x <= x1))

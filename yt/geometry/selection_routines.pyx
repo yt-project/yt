@@ -645,7 +645,7 @@ cdef class RegionSelector(SelectorObject):
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
             self.right_edge_shift[i] = \
-                (dobj.right_edge).to_ndarray()[i] - domain_width
+                (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
