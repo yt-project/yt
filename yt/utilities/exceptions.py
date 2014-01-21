@@ -171,11 +171,11 @@ class YTUnitOperationError(YTException):
         YTException.__init__(self)
 
     def __str__(self):
-        err = "The %s operator for YTArrays with units (%s) "
+        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
         if self.unit2 is not None:
-            err += "and (%s) "
+            err += "and (%s) " % self.unit2
         err += "is not well defined."
-        return err % (self.operation, self.unit1, self.unit2)
+        return err
 
 class YTUnitConversionError(YTException):
     def __init__(self, unit1, dimension1, unit2, dimension2):

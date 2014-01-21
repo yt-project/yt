@@ -111,9 +111,6 @@ def return_without_unit(unit):
 def unitless(unit):
     return Unit()
 
-def sign_unit(unit):
-    return Unit()
-
 @ensure_same_dimensions
 def arctan2_unit(unit1, unit2):
     return Unit()
@@ -162,8 +159,8 @@ class YTArray(np.ndarray):
         subtract: preserve_units,
         multiply: multiply_units,
         divide: divide_units,
-        logaddexp: unitless,
-        logaddexp2: unitless,
+        logaddexp: return_without_unit,
+        logaddexp2: return_without_unit,
         true_divide: divide_units,
         floor_divide: divide_units,
         negative: passthrough_unit,
@@ -173,25 +170,25 @@ class YTArray(np.ndarray):
         fmod: preserve_units,
         absolute: passthrough_unit,
         rint: passthrough_unit,
-        sign: sign_unit,
+        sign: return_without_unit,
         conj: passthrough_unit,
-        exp: unitless,
-        exp2: unitless,
-        log: unitless,
-        log2: unitless,
-        log10: unitless,
-        expm1: unitless,
-        log1p: unitless,
+        exp: return_without_unit,
+        exp2: return_without_unit,
+        log: return_without_unit,
+        log2: return_without_unit,
+        log10: return_without_unit,
+        expm1: return_without_unit,
+        log1p: return_without_unit,
         sqrt: sqrt_unit,
         square: square_unit,
         reciprocal: reciprocal_unit,
         ones_like: passthrough_unit,
-        sin: unitless,
-        cos: unitless,
-        tan: unitless,
-        arcsin: unitless,
-        arccos: unitless,
-        arctan: unitless,
+        sin: return_without_unit,
+        cos: return_without_unit,
+        tan: return_without_unit,
+        arcsin: return_without_unit,
+        arccos: return_without_unit,
+        arctan: return_without_unit,
         arctan2: arctan2_unit,
         hypot: preserve_units,
         deg2rad: unitless,
@@ -698,7 +695,7 @@ class YTArray(np.ndarray):
                 if self._ufunc_registry[context[0]] is return_without_unit:
                     out_arr = out_arr.view(np.ndarray)
                     return out_arr
-            except RuntimeError:
+            except RuntimeError as e:
                 raise YTUnitOperationError(context[0], u)
         elif len(context[1]) in (2,3):
             # binary operators
