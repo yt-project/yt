@@ -18,6 +18,7 @@ import copy
 import numpy as np
 import sympy
 
+from functools import wraps
 from numpy import \
      add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
      floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
@@ -44,6 +45,7 @@ def iterable(obj):
     return True
 
 def ensure_unitless(func):
+    @wraps(func)
     def wrapped(unit):
         if unit != Unit():
             raise RuntimeError(
@@ -53,19 +55,26 @@ def ensure_unitless(func):
         return func(unit)
     return wrapped
 
-def ensure_same_units(func):
+def ensure_same_dimensions(func):
+    @wraps(func)
     def wrapped(unit1, unit2):
-        if None in (unit1, unit2):
-            if unit1 is not None and not unit1.is_dimensionless:
-                raise RuntimeError("(%s) and (%s) do not match"\
-                              % unit1, unit2)
-            if unit2 is not None and not unit2.is_dimensionless:
-                raise RuntimeError("(%s) and (%s) do not match"\
-                              % unit1, unit2)
+        if unit1 is None and not unit2.is_dimensionless():
+            raise RuntimeError
+        elif unit2 is None and not unit1.is_dimensionless():
+            raise RuntimeError
         elif unit1.dimensions != unit2.dimensions:
-            raise RuntimeError("(%s) and (%s) must be equivalent units" \
-                               % unit1, unit2)
+            raise RuntimeError
         return func(unit1, unit2)
+    return wrapped
+
+def return_arr(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        ret, units = func(*args, **kwargs)
+        if ret.shape == ():
+            return YTQuantity(ret, units)
+        else:
+            return YTArray(ret, units)
     return wrapped
 
 def sqrt_unit(unit):
@@ -74,7 +83,7 @@ def sqrt_unit(unit):
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
-@ensure_same_units
+@ensure_same_dimensions
 def preserve_units(unit1, unit2):
     return unit1
 
@@ -103,15 +112,15 @@ def unitless(unit):
 def sign_unit(unit):
     return Unit()
 
-@ensure_same_units
+@ensure_same_dimensions
 def arctan2_unit(unit1, unit2):
     return Unit()
 
-@ensure_same_units
+@ensure_same_dimensions
 def comparison_unit(unit1, unit2):
     return None
 
-@ensure_same_units
+@ensure_same_dimensions
 def bitwise_comparison_unit(unit1, unit2):
     return unit1
 
@@ -642,36 +651,33 @@ class YTArray(np.ndarray):
     # Begin reduction operators
     #
 
+    @return_arr
     def prod(self, axis=None, dtype=None, out=None):
-        ret = super(YTArray, self).prod(axis, dtype, out)
         if axis:
-            ret = YTArray(ret, self.units**(self.shape[axis]))
+            units = self.units**self.shape[axis]
         else:
-            ret = YTArray(ret, self.units**(self.size))
-        return ret
+            units = self.units**self.size
+        return super(YTArray, self).prod(axis, dtype, out), units
 
+    @return_arr
     def mean(self, axis=None, dtype=None, out=None):
-        ret = super(YTArray, self).mean(axis, dtype, out)
-        return YTArray(ret, self.units)
+        return super(YTArray, self).mean(axis, dtype, out), self.units
 
+    @return_arr
     def sum(self, axis=None, dtype=None, out=None):
-        ret = super(YTArray, self).sum(axis, dtype, out)
-        return YTArray(ret, self.units)
+        return super(YTArray, self).sum(axis, dtype, out), self.units
 
+    @return_arr
     def dot(self, b, out=None):
-        ret = super(YTArray, self).dot(b)
-        return YTArray(ret, self.units*b.units)
+        return super(YTArray, self).dot(b), self.units*b.units
 
+    @return_arr
     def std(self, axis=None, dtype=None, out=None, ddof=0):
-        ret = super(YTArray, self).std(axis, dtype, out, ddof)
-        return YTArray(ret, self.units)
+        return super(YTArray, self).std(axis, dtype, out, ddof), self.units
 
+    @return_arr
     def __getitem__(self, item):
-        ret = super(YTArray, self).__getitem__(item)
-        if ret.shape == ():
-            return YTQuantity(ret, self.units)
-        else:
-            return ret
+        return super(YTArray, self).__getitem__(item), self.units
 
     def __array_wrap__(self, out_arr, context=None):
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
