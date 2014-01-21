@@ -15,7 +15,8 @@ Test ndarray subclass that handles symbolic units.
 #-----------------------------------------------------------------------------
 
 from numpy.testing import \
-    assert_approx_equal, assert_array_equal, assert_raises
+    assert_approx_equal, assert_array_equal, \
+    assert_equal, assert_raises
 from numpy import array
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError, YTUfuncUnitError
@@ -293,9 +294,18 @@ def test_ytarray_pickle():
         assert_array_equal(array(data.in_cgs()), array(loaded_data.in_cgs()))
         assert float(data.units.cgs_value) == float(loaded_data.units.cgs_value)
 
-def test_deepcopy():
+def test_copy():
     quan = YTQuantity(1, 'g')
     arr = YTArray([1,2,3], 'cm')
 
-    assert copy.deepcopy(quan) == quan
-    assert_array_equal(copy.deepcopy(arr), arr)
+    yield assert_equal, copy.copy(quan), quan
+    yield assert_array_equal, copy.copy(arr), arr
+
+    yield assert_equal,  copy.deepcopy(quan), quan
+    yield assert_array_equal, copy.deepcopy(arr), arr
+
+    yield assert_equal, quan.copy(), quan
+    yield assert_array_equal, arr.copy(), arr
+
+    yield assert_equal, np.copy(quan), quan
+    yield assert_array_equal, np.copy(arr), arr
