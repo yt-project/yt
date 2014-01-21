@@ -191,6 +191,20 @@ class YTUnitConversionError(YTException):
           % (self.unit1, self.dimension1, self.unit2, self.dimension2)
         return err
 
+class YTUfuncUnitError(YTException):
+    def __init__(self, ufunc, unit1, unit2):
+        self.ufunc = ufunc
+        self.unit1 = unit1
+        self.unit2 = unit2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "The NumPy %s operation is only allowed on objects with " \
+        "identical units. Convert one of the arrays to the other\'s " \
+        "units first. Received units (%s) and (%s)." % \
+        (self.ufunc, self.unit1, self.unit2)
+        return err
+
 class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \
