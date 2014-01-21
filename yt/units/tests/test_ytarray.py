@@ -32,6 +32,9 @@ def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
     assert_array_equal(op(a, b), answer)
 
+def assert_isinstance(a, type):
+    assert isinstance(a, type)
+
 def test_addition():
     """
     Test addition of two YTArrays
@@ -248,17 +251,17 @@ def test_yt_array_yt_quantity_ops():
     a = YTArray(range(10), 'cm')
     b = YTQuantity(5, 'g')
 
-    assert isinstance(a*b, YTArray)
-    assert isinstance(b*a, YTArray)
+    yield assert_isinstance, a*b, YTArray
+    yield assert_isinstance, b*a, YTArray
 
-    assert isinstance(a/b, YTArray)
-    assert isinstance(b/a, YTArray)
+    yield assert_isinstance, a/b, YTArray
+    yield assert_isinstance, b/a, YTArray
 
-    assert isinstance(a*a, YTArray)
-    assert isinstance(a/a, YTArray)
+    yield assert_isinstance, a*a, YTArray
+    yield assert_isinstance, a/a, YTArray
 
-    assert isinstance(b*b, YTQuantity)
-    assert isinstance(b/b, YTQuantity)
+    yield assert_isinstance, b*b, YTQuantity
+    yield assert_isinstance, b/b, YTQuantity
 
 def test_selecting():
     """
@@ -267,7 +270,7 @@ def test_selecting():
     """
     a = YTArray(range(10), 'cm')
     assert_array_equal, a[:3], YTArray([0, 1, 2], 'cm')
-    assert isinstance(a[0], YTQuantity)
+    yield assert_isinstance, a[0], YTQuantity
 
 def test_fix_length():
     """
@@ -276,7 +279,7 @@ def test_fix_length():
     pf = fake_random_pf(64, nprocs=1)
     length = pf.quan(1.0,'code_length')
     new_length = fix_length(length, pf=pf)
-    assert length == new_length
+    yield assert_equal, length, new_length
 
 def test_ytarray_pickle():
     pf = fake_random_pf(64, nprocs=1)
@@ -289,10 +292,10 @@ def test_ytarray_pickle():
 
         loaded_data = pickle.load(open(tempf.name, "rb"))
 
-        assert_array_equal(data, loaded_data)
-        assert data.units == loaded_data.units
-        assert_array_equal(array(data.in_cgs()), array(loaded_data.in_cgs()))
-        assert float(data.units.cgs_value) == float(loaded_data.units.cgs_value)
+        yield assert_array_equal, data, loaded_data
+        yield assert_equal, data.units, loaded_data.units
+        yield assert_array_equal, array(data.in_cgs()), array(loaded_data.in_cgs())
+        yield assert_equal, float(data.units.cgs_value), float(loaded_data.units.cgs_value)
 
 def test_copy():
     quan = YTQuantity(1, 'g')
