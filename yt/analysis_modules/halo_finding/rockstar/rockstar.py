@@ -264,7 +264,14 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     def _get_hosts(self):
         if self.comm.rank == 0 or self.comm.size == 1:
-            server_address = socket.gethostname()
+            
+            #Temporary mac hostname fix
+            try:
+                server_address = socket.gethostname()
+                socket.gethostbyname(server_address)
+            except socket.gaierror:
+                server_address = "localhost"
+
             sock = socket.socket()
             sock.bind(('', 0))
             port = sock.getsockname()[-1]
