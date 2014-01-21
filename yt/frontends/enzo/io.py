@@ -305,8 +305,10 @@ class IOHandlerInMemory(BaseIOHandler):
                     if mask is None: continue
                     for field in field_list:
                         data = self.grids_in_memory[g.id][field]
+                        '''
                         if field in _convert_mass:
                             data *= g.dds.prod(dtype="f8")
+                        '''
                         yield (ptype, field), data[mask]
 
     @property
