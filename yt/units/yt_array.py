@@ -695,6 +695,8 @@ class YTArray(np.ndarray):
                 if self._ufunc_registry[context[0]] is return_without_unit:
                     out_arr = out_arr.view(np.ndarray)
                     return out_arr
+            # Catch the RuntimeError raised inside of ensure_same_dimensions
+            # Raise YTUnitOperationError up here since we know the context now
             except RuntimeError as e:
                 raise YTUnitOperationError(context[0], u)
         elif len(context[1]) in (2,3):
