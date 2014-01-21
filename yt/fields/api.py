@@ -17,6 +17,7 @@ from .field_plugin_registry import \
     field_plugins
 
 from . import angular_momentum
+from . import cosmology_fields
 from . import fluid_fields
 from . import magnetic_field
 from . import geometric_fields
