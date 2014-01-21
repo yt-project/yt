@@ -743,6 +743,16 @@ class YTArray(np.ndarray):
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
 
+    def __deepcopy__(self, memodict=None):
+        """copy.deepcopy implementation
+
+        This is necessary for stdlib deepcopy of arrays and quantities.
+        """
+        if memodict is None:
+            memodict = {}
+        ret = super(YTArray, self).__deepcopy__(memodict)
+        return type(self)(ret, copy.deepcopy(self.units))
+
 class YTQuantity(YTArray):
     def __new__(cls, input, input_units=None, registry=None, dtype=None):
         if not isinstance(input, (numeric_type, np.number)):
