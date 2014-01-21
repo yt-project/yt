@@ -17,9 +17,11 @@ Test ndarray subclass that handles symbolic units.
 from numpy.testing import assert_approx_equal, assert_array_equal
 from numpy import array
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTUnitOperationError
+from yt.utilities.exceptions import YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_pf
 from yt.funcs import fix_length
+import numpy as np
+import copy
 import operator
 import cPickle as pickle
 import tempfile
@@ -41,6 +43,8 @@ def test_addition():
 
     yield operate_and_compare, a1, a2, operator.add, answer
     yield operate_and_compare, a2, a1, operator.add, answer
+    yield operate_and_compare, a1, a2, np.add, answer
+    yield operate_and_compare, a2, a1, np.add, answer
 
     # different units
     a1 = YTArray([1, 2, 3], 'cm')
@@ -50,6 +54,10 @@ def test_addition():
 
     yield operate_and_compare, a1, a2, operator.add, answer1
     yield operate_and_compare, a2, a1, operator.add, answer2
+    try:
+        np.add(a1, a2)
+    except YTUfuncUnitError:
+        pass
 
     # Test dimensionless quantities
     a1 = YTArray([1,2,3])
@@ -58,6 +66,8 @@ def test_addition():
 
     yield operate_and_compare, a1, a2, operator.add, answer
     yield operate_and_compare, a2, a1, operator.add, answer
+    yield operate_and_compare, a1, a2, np.add, answer
+    yield operate_and_compare, a2, a1, np.add, answer
 
     # Catch the different dimensions error
     a1 = YTArray([1, 2, 3], 'm')
@@ -97,6 +107,8 @@ def test_subtraction():
 
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
+    yield operate_and_compare, a1, a2, np.subtract, answer1
+    yield operate_and_compare, a2, a1, np.subtract, answer2
 
     # different units
     a1 = YTArray([1, 2, 3], 'cm')
@@ -107,6 +119,11 @@ def test_subtraction():
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
 
+    try:
+        np.subtract(a1, a2)
+    except YTUfuncUnitError:
+        pass
+
     # Test dimensionless quantities
     a1 = YTArray([1,2,3])
     a2 = array([4,5,6])
@@ -115,6 +132,8 @@ def test_subtraction():
 
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
+    yield operate_and_compare, a1, a2, np.subtract, answer1
+    yield operate_and_compare, a2, a1, np.subtract, answer2
 
     # Catch the different dimensions error
     a1 = YTArray([1, 2, 3], 'm')
@@ -153,15 +172,20 @@ def test_multiplication():
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a2, np.multiply, answer
+    yield operate_and_compare, a2, a1, np.multiply, answer
 
     # different units, same dimension
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'm')
     answer1 = YTArray([400, 1000, 1800], 'cm**2')
     answer2 = YTArray([.04, .10, .18], 'm**2')
+    answer3 = YTArray([4, 10, 18], 'cm*m')
 
     yield operate_and_compare, a1, a2, operator.mul, answer1
     yield operate_and_compare, a2, a1, operator.mul, answer2
+    yield operate_and_compare, a1, a2, np.multiply, answer3
+    yield operate_and_compare, a2, a1, np.multiply, answer3
 
     # different dimensions
     a1 = YTArray([1, 2, 3], 'cm')
@@ -170,6 +194,8 @@ def test_multiplication():
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a2, np.multiply, answer
+    yield operate_and_compare, a2, a1, np.multiply, answer
 
     # One dimensionless, one unitful
     a1 = YTArray([1,2,3], 'cm')
@@ -178,6 +204,8 @@ def test_multiplication():
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a2, np.multiply, answer
+    yield operate_and_compare, a2, a1, np.multiply, answer
 
     # Both dimensionless quantities
     a1 = YTArray([1,2,3])
@@ -186,6 +214,8 @@ def test_multiplication():
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a2, np.multiply, answer
+    yield operate_and_compare, a2, a1, np.multiply, answer
 
 def test_division():
     """
@@ -201,15 +231,21 @@ def test_division():
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, np.divide, answer1
+    yield operate_and_compare, a2, a1, np.divide, answer2
 
     # different units, same dimension
     a1 = YTArray([1., 2., 3.], 'cm')
     a2 = YTArray([4., 5., 6.], 'm')
     answer1 = YTArray([.0025, .004, .005])
     answer2 = YTArray([400, 250, 200])
+    answer3 = YTArray([0.25, 0.4, 0.5], 'cm/m')
+    answer4 = YTArray([4.0, 2.5, 2.0], 'm/cm')
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, np.divide, answer3
+    yield operate_and_compare, a2, a1, np.divide, answer4
 
     # different dimensions
     a1 = YTArray([1., 2., 3.], 'cm')
@@ -219,6 +255,8 @@ def test_division():
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, np.divide, answer1
+    yield operate_and_compare, a2, a1, np.divide, answer2
 
     # One dimensionless, one unitful
     a1 = YTArray([1., 2., 3.], 'cm')
@@ -228,6 +266,8 @@ def test_division():
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, np.divide, answer1
+    yield operate_and_compare, a2, a1, np.divide, answer2
 
     # Both dimensionless quantities
     a1 = YTArray([1., 2., 3.])
@@ -237,6 +277,8 @@ def test_division():
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, np.divide, answer1
+    yield operate_and_compare, a2, a1, np.divide, answer2
 
 def test_yt_array_yt_quantity_ops():
     """
@@ -290,3 +332,10 @@ def test_ytarray_pickle():
         assert data.units == loaded_data.units
         assert_array_equal(array(data.in_cgs()), array(loaded_data.in_cgs()))
         assert float(data.units.cgs_value) == float(loaded_data.units.cgs_value)
+
+def test_deepcopy():
+    quan = YTQuantity(1, 'g')
+    arr = YTArray([1,2,3], 'cm')
+
+    assert copy.deepcopy(quan) == quan
+    assert_array_equal(copy.deepcopy(arr), arr)
