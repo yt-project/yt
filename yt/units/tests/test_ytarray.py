@@ -14,7 +14,8 @@ Test ndarray subclass that handles symbolic units.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from numpy.testing import assert_approx_equal, assert_array_equal
+from numpy.testing import \
+    assert_approx_equal, assert_array_equal, assert_raises
 from numpy import array
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError, YTUfuncUnitError
@@ -54,10 +55,7 @@ def test_addition():
 
     yield operate_and_compare, a1, a2, operator.add, answer1
     yield operate_and_compare, a2, a1, operator.add, answer2
-    try:
-        np.add(a1, a2)
-    except YTUfuncUnitError:
-        pass
+    yield assert_raises, YTUfuncUnitError, np.add, a1, a2
 
     # Test dimensionless quantities
     a1 = YTArray([1,2,3])
@@ -73,25 +71,8 @@ def test_addition():
     a1 = YTArray([1, 2, 3], 'm')
     a2 = YTArray([4, 5, 6], 'kg')
 
-    try:
-        a1+a2
-    except YTUnitOperationError as e:
-        pass
-
-    assert(isinstance(e, YTUnitOperationError))
-    assert str(e) == \
-        'The addition operator for YTArrays with units ' \
-        '(m) and (kg) is not well defined.'
-
-    try:
-        a1 += a2
-    except YTUnitOperationError as e:
-        pass
-
-    assert(isinstance(e, YTUnitOperationError))
-    assert str(e) == \
-        'The addition operator for YTArrays with units ' \
-        '(m) and (kg) is not well defined.'
+    yield assert_raises, YTUnitOperationError, operator.add, a1, a2
+    yield assert_raises, YTUnitOperationError, operator.iadd, a1, a2
 
 def test_subtraction():
     """
@@ -118,11 +99,7 @@ def test_subtraction():
 
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
-
-    try:
-        np.subtract(a1, a2)
-    except YTUfuncUnitError:
-        pass
+    yield assert_raises, YTUfuncUnitError, np.subtract, a1, a2
 
     # Test dimensionless quantities
     a1 = YTArray([1,2,3])
@@ -139,25 +116,8 @@ def test_subtraction():
     a1 = YTArray([1, 2, 3], 'm')
     a2 = YTArray([4, 5, 6], 'kg')
 
-    try:
-        a1-a2
-    except YTUnitOperationError as e:
-        pass
-
-    assert isinstance(e, YTUnitOperationError)
-    assert str(e) == \
-        'The subtraction operator for YTArrays with units ' \
-        '(m) and (kg) is not well defined.'
-
-    try:
-        a1 -= a2
-    except YTUnitOperationError as e:
-        pass
-
-    assert(isinstance(e, YTUnitOperationError))
-    assert str(e) == \
-        'The subtraction operator for YTArrays with units ' \
-        '(m) and (kg) is not well defined.'
+    yield assert_raises, YTUnitOperationError, operator.sub, a1, a2
+    yield assert_raises, YTUnitOperationError, operator.isub, a1, a2
 
 def test_multiplication():
     """
