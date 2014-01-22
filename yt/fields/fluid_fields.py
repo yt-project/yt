@@ -221,6 +221,7 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
             new_field[slice_3d]  = data[field][slice_3dr]/ds[slice_3d]
             new_field[slice_3d] -= data[field][slice_3dl]/ds[slice_3d]
             return new_field
+        return func
 
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
