@@ -773,9 +773,12 @@ class ProfileND(ParallelAnalysisInterface):
         # We use our main comm here
         # This also will fill _field_data
         # FIXME: Add parallelism and combining std stuff
+        blank = ~temp_storage.used
+        self.used = temp_storage.used
         if self.weight_field is not None:
             temp_storage.values /= temp_storage.weight_values[...,None]
-        blank = ~temp_storage.used
+            self.weight = temp_storage.weight_values[...,None]
+            self.weight[blank] = 0.0
         for i, field in enumerate(fields):
             self.field_data[field] = temp_storage.values[...,i]
             self.field_data[field][blank] = 0.0
