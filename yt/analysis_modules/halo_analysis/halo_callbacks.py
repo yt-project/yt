@@ -208,9 +208,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     total_mass = profile_data[("gas", "matter_mass")]
     overdensity = total_mass / total_volume / co.critical_density(dpf.current_redshift)
     dfilter = np.isfinite(overdensity) & profile_data["used"] & (overdensity > 0)
-    print overdensity
-    print overdensity[dfilter]
-
+    
     vquantities = dict([("%s_%d" % (field[0], critical_overdensity), 0) \
                         for field in fields])
                         
@@ -220,7 +218,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
 
     # find interpolation index
     # require a negative slope, but not monotonicity
-    vod = overdensity[dfilter]
+    vod = overdensity[dfilter].to_ndarray()
     if (vod > critical_overdensity).all():
         if vod[-1] < vod[-2]:
             index = -2
@@ -239,11 +237,13 @@ def virial_quantities(halo, fields, critical_overdensity=200,
                          (vod[1:] < critical_overdensity))[0][0]
 
     for field in fields:
-        v_prof = profile_data[field[0]]
-        slope = (v_prof[index + 1] - v_prof[index]) / (vod[index + 1] - vod[index])
-        vquantities["%s_%d" % (field[0], critical_overdensity)] = \
-          (slope * (critical_overdensity - vod[index]) + v_prof[index]).in_units(field[1])
-        print field[0], vquantities["%s_%d" % (field[0], critical_overdensity)]
+        v_prof = profile_data[field[0]][dfilter].to_ndarray()
+        slope = np.log(v_prof[index + 1] / v_prof[index]) / \
+          np.log(vod[index + 1] / vod[index])
+        value = dpf.quan(np.exp(slope * np.log(critical_overdensity / 
+                                               vod[index])) * v_prof[index],
+                         profile_data[field[0]].units)
+        vquantities["%s_%d" % (field[0], critical_overdensity)] = value.in_units(field[1])
 
     halo.quantities.update(vquantities)
 
