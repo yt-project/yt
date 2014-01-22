@@ -189,7 +189,11 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             data_view = data.swapaxes(0,2)
             for field in fluid_fields:
                 ftype, fname = field
-                dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                try:
+                    dg = h5py.h5d.open(fid, "/Grid%08i/%s" % (g.id, fname))
+                except KeyError:
+                    if fname == "Dark_Matter_Density": continue
+                    raise
                 dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                 gf[field] = data_view.copy()
         if fid: fid.close()
