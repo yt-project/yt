@@ -212,10 +212,10 @@ class StaticOutput(object):
         max_nu = 1e30
         good_u = None
         for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-            vv = v*self[unit]
+            vv = v * self.length_unit.in_units(unit)
             if vv < max_nu and vv > 1.0:
                 good_u = unit
-                max_nu = v*self[unit]
+                max_nu = v * self.length_unit.in_units(unit)
         if good_u is None : good_u = 'cm'
         return good_u
 
@@ -427,7 +427,6 @@ class StaticOutput(object):
                                        length, "\\rm{%s}/(1+z)" % my_unit)
 
         self.set_code_units()
-
 
     def get_unit_from_registry(self, unit_str):
         """
