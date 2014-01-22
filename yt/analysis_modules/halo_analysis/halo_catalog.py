@@ -107,10 +107,11 @@ class HaloCatalog(ParallelAnalysisInterface):
                     new_halo.quantities[key] = self.data_source[quantity][i]
                 elif callable(quantity):
                     new_halo.quantities[key] = quantity(new_halo)
-            self.halo_list.append(new_halo.quantities)
 
             for callback in self.callbacks:
                 callback(new_halo)
+
+            self.halo_list.append(new_halo.quantities)
             
             del new_halo
 
