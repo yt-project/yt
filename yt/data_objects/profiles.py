@@ -19,6 +19,8 @@ import numpy as np
 from yt.funcs import *
 
 from yt.units.yt_array import uconcatenate
+from yt.data_objects.yt_array import \
+     YTArray, YTQuantity
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
 from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d, \
@@ -771,9 +773,12 @@ class ProfileND(ParallelAnalysisInterface):
         # We use our main comm here
         # This also will fill _field_data
         # FIXME: Add parallelism and combining std stuff
+        blank = ~temp_storage.used
+        self.used = temp_storage.used
         if self.weight_field is not None:
             temp_storage.values /= temp_storage.weight_values[...,None]
-        blank = ~temp_storage.used
+            self.weight = temp_storage.weight_values[...,None]
+            self.weight[blank] = 0.0
         for i, field in enumerate(fields):
             self.field_data[field] = temp_storage.values[...,i]
             self.field_data[field][blank] = 0.0
@@ -827,7 +832,9 @@ class Profile1D(ProfileND):
         super(Profile1D, self).__init__(data_source, weight_field)
         self.x_field = x_field
         self.x_log = x_log
-        self.x_bins = self._get_bins(x_min, x_max, x_n, x_log)
+        self.x_bins = data_source.pf.arr(self._get_bins(x_min.to_ndarray(), 
+                                                        x_max.to_ndarray(), x_n, x_log),
+                                         x_min.units)
 
         self.size = (self.x_bins.size - 1,)
         self.bin_fields = (self.x_field,)

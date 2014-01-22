@@ -62,7 +62,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("RadAccel1", (ra_units, ["radiation_acceleration_x"], None)),
         ("RadAccel2", (ra_units, ["radiation_acceleration_y"], None)),
         ("RadAccel3", (ra_units, ["radiation_acceleration_z"], None)),
-        ("Dark_Matter_Mass", (rho_units, ["dark_matter_mass"], None)),
+        ("Dark_Matter_Density", (rho_units, ["dark_matter_density"], None)),
         ("Temperature", ("K", ["temperature"], None)),
         ("Dust_Temperature", ("K", ["dust_temperature"], None)),
         ("x-velocity", (vel_units, ["velocity_x"], None)),
