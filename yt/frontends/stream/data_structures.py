@@ -286,7 +286,6 @@ class StreamHierarchy(GridGeometryHandler):
         pu = ParticleUnion("all", list(self.pf.particle_types_raw))
         self.pf.add_particle_union(pu)
         self.pf.particle_types = tuple(set(self.pf.particle_types))
-        self._setup_unknown_fields()
 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy

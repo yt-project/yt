@@ -14,6 +14,8 @@ Painting zones in a grid
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.units.yt_array import YTQuantity
+from yt.funcs import fix_length
 
 class FluidOperator(object):
     def apply(self, pf):
@@ -21,8 +23,8 @@ class FluidOperator(object):
 
 class TopHatSphere(FluidOperator):
     def __init__(self, radius, center, fields):
-        self.radius = radius
-        self.center = center
+        self.radius = fix_length(radius)
+        self.center = fix_length(center)
         self.fields = fields
         
     def __call__(self, grid, sub_select = None):
@@ -38,10 +40,10 @@ class TopHatSphere(FluidOperator):
 
 class CoredSphere(FluidOperator):
     def __init__(self, core_radius, radius, center, fields):
-        self.radius = radius
-        self.center = center
+        self.radius = fix_length(radius)
+        self.center = fix_length(center)
         self.fields = fields
-        self.core_radius = core_radius
+        self.core_radius = fix_length(core_radius)
 
     def __call__(self, grid, sub_select = None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
@@ -59,10 +61,10 @@ class CoredSphere(FluidOperator):
 
 class BetaModelSphere(FluidOperator):
     def __init__(self, beta, core_radius, radius, center, fields):
-        self.radius = radius
-        self.center = center
+        self.radius = fix_length(radius)
+        self.center = fix_length(center)
         self.fields = fields
-        self.core_radius = core_radius
+        self.core_radius = fix_length(core_radius)
         self.beta = beta
         
     def __call__(self, grid, sub_select = None):
@@ -80,10 +82,10 @@ class BetaModelSphere(FluidOperator):
 
 class NFWModelSphere(FluidOperator):
     def __init__(self, scale_radius, radius, center, fields):
-        self.radius = radius
-        self.center = center
+        self.radius = fix_length(radius)
+        self.center = fix_length(center)
         self.fields = fields
-        self.scale_radius = scale_radius
+        self.scale_radius = scale_radius # unitless
         
     def __call__(self, grid, sub_select = None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
