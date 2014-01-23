@@ -13,13 +13,14 @@ Operation registry class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import copy
 import types
 
 class OperatorRegistry(dict):
     def find(self, op, *args, **kwargs):
         if isinstance(op, types.StringTypes):
             # Lookup, assuming string or hashable object
-            op = self[op]
+            op = copy.deepcopy(self[op])
             op.args = args
             op.kwargs = kwargs
         return op
