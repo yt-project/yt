@@ -21,6 +21,8 @@ from yt.data_objects.profiles import \
      Profile1D
 from yt.data_objects.yt_array import \
      YTArray, YTQuantity
+from yt.utilities.exceptions import \
+     YTSphereTooSmall
 from yt.funcs import \
      ensure_list
 from yt.utilities.cosmology import \
@@ -32,6 +34,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
      
 from .operator_registry import \
     callback_registry
+from . import fields
 
 def add_callback(name, function):
     callback_registry[name] =  HaloCallback(function)
@@ -48,7 +51,8 @@ class HaloCallback(object):
         self.function(halo, *self.args, **self.kwargs)
         return True
 
-def halo_sphere(halo, radius_field="virial_radius", factor=1.0):
+def halo_sphere(halo, radius_field="virial_radius", factor=1.0, 
+                field_parameters=None):
     r"""
     Create a sphere data container to associate with a halo.
 
@@ -64,6 +68,9 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0):
         Factor to be multiplied by the base radius for defining 
         the radius of the sphere.
         Defautl: 1.0.
+    field_parameters : dict
+        Dictionary of field parameters to be set with the sphere 
+        created.
         
     """
 
@@ -72,7 +79,21 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0):
     center = dpf.arr([halo.quantities["particle_position_%s" % axis] \
                       for axis in "xyz"]) / dpf.length_unit
     radius = factor * halo.quantities[radius_field] / dpf.length_unit
-    sphere = dpf.h.sphere(center, (radius, "code_length"))
+    if radius <= 0.0:
+        setattr(halo, "data_object", None)
+        return
+    try:
+        sphere = dpf.h.sphere(center, (radius, "code_length"))
+    except YTSphereTooSmall:
+        setattr(halo, "data_object", None)
+        return
+    if field_parameters is not None:
+        for field, par in field_parameters.items():
+            if isinstance(par, tuple) and par[0] == "quantity":
+                value = halo.quantities[par[1]]
+            else:
+                value = par
+            sphere.set_field_parameter(field, value)
     setattr(halo, "data_object", sphere)
 
 add_callback("sphere", halo_sphere)
@@ -127,6 +148,14 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     if dpf is None:
         raise RuntimeError("Profile callback requires a data pf.")
 
+    if not hasattr(halo, "data_object"):
+        raise RuntimeError("Profile callback requires a data container.")
+
+    if halo.data_object is None:
+        mylog.info("Skipping halo %d since data_object is None." %
+                   halo.quantities["particle_identifier"])
+        return
+
     if output_dir is None:
         output_dir = storage
     output_dir = os.path.join(halo.halo_catalog.output_dir, output_dir)
@@ -140,7 +169,8 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
             raise RuntimeError("Looks like derived quantities have been fixed.  Fix this code!")
         except YTUnitConversionError:
             # for now, Extrema return dimensionless, but assume it is code_length
-            x_range = [dpf.arr(x.to_ndarray(), "cm") for x in x_range]
+            units_should_be = dpf.field_info["index", x_field].units
+            x_range = [dpf.arr(x.to_ndarray(), units_should_be) for x in x_range]
             
     my_profile = Profile1D(halo.data_object, x_field, x_bins, 
                            x_range[0], x_range[1], x_log, 
@@ -182,7 +212,7 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 add_callback("profile", profile)
 
 @parallel_root_only
-def write_profiles(halo, storage="profiles", filename="profile", 
+def write_profiles(halo, storage="profiles", filename=None,
                    output_dir="profiles"):
     r"""
     Write out profile data.
@@ -196,8 +226,9 @@ def write_profiles(halo, storage="profiles", filename="profile",
         Default: "profiles"
     filename : string
         The name of the file to be written.  The final filename will be 
-        "<filename>_<id>.h5".
-        Default: "profile"
+        "<filename>_<id>.h5".  If None, filename is set to the value given 
+        by the storage keyword.
+        Default: None
     output_dir : string
         Name of directory where profile data will be written.  The full path will be
         the output_dir of the halo catalog concatenated with this directory.
@@ -205,6 +236,11 @@ def write_profiles(halo, storage="profiles", filename="profile",
     
     """
 
+    if not hasattr(halo, storage):
+        return
+    
+    if filename is None:
+        filename = storage
     output_file = os.path.join(halo.halo_catalog.output_dir, output_dir,
                                "%s_%06d.h5" % (filename, 
                                                halo.quantities["particle_identifier"]))
