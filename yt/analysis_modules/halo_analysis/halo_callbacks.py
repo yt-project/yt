@@ -238,7 +238,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     ----------    
     halo : Halo object
         The Halo object to be provided by the HaloCatalog.
-    fields : (field, units) tuple or list of tuples
+    fields : string or list of strings
         The fields whose virial values are to be calculated.
     critical_density : float
         The value of the overdensity at which to evaulate the virial quantities.  
@@ -255,7 +255,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
 
     fields = ensure_list(fields)
     for field in fields:
-        q_tuple = ("%s_%d" % (field[0], critical_overdensity), "callback")
+        q_tuple = ("%s_%d" % (field, critical_overdensity), "callback")
         if q_tuple not in halo.halo_catalog.quantities:
             halo.halo_catalog.quantities.append(q_tuple)
     
@@ -272,7 +272,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     overdensity = profile_data[("gas", "overdensity")]
     dfilter = np.isfinite(overdensity) & profile_data["used"] & (overdensity > 0)
     
-    vquantities = dict([("%s_%d" % (field[0], critical_overdensity), 0) \
+    vquantities = dict([("%s_%d" % (field, critical_overdensity), 0) \
                         for field in fields])
                         
     if dfilter.sum() < 2:
@@ -300,13 +300,13 @@ def virial_quantities(halo, fields, critical_overdensity=200,
                          (vod[1:] < critical_overdensity))[0][0]
 
     for field in fields:
-        v_prof = profile_data[field[0]][dfilter].to_ndarray()
+        v_prof = profile_data[field][dfilter].to_ndarray()
         slope = np.log(v_prof[index + 1] / v_prof[index]) / \
           np.log(vod[index + 1] / vod[index])
         value = dpf.quan(np.exp(slope * np.log(critical_overdensity / 
                                                vod[index])) * v_prof[index],
-                         profile_data[field[0]].units)
-        vquantities["%s_%d" % (field[0], critical_overdensity)] = value.in_units(field[1])
+                         profile_data[field].units).in_cgs()
+        vquantities["%s_%d" % (field, critical_overdensity)] = value
 
     halo.quantities.update(vquantities)
 
