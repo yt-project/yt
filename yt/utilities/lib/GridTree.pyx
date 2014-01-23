@@ -72,6 +72,8 @@ cdef class GridTree :
                   np.ndarray[np.int64_t, ndim=1] level,
                   np.ndarray[np.int64_t, ndim=1] num_children) :
 
+        if parent_ind is None:
+            raise RuntimeError
         cdef int i, j, k
         cdef np.ndarray[np.int64_t, ndim=1] child_ptr
 
@@ -112,6 +114,8 @@ cdef class GridTree :
 
             else :
 
+                if k >= self.num_root_grids:
+                    raise RuntimeError
                 self.root_grids[k] = self.grids[i] 
                 
                 k = k + 1

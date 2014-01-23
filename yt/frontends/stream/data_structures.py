@@ -187,9 +187,9 @@ class StreamHierarchy(GridGeometryHandler):
         if parent_ids is not None:
             reverse_tree = self.stream_handler.parent_ids.tolist()
             # Initial setup:
-            for gid,pid in enumerate(reverse_tree):
+            for gid, pid in enumerate(reverse_tree):
                 if pid >= 0:
-                    self.grids[id]._parent_id = pid
+                    self.grids[gid]._parent_id = pid
                     self.grids[pid]._children_ids.append(self.grids[gid].id)
         else:
             mylog.debug("Reconstructing parent-child relationships")
