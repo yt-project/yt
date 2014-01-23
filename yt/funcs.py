@@ -648,6 +648,12 @@ def ensure_dir_exists(path):
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
 
+def ensure_dir(path):
+    r"""Parallel safe directory maker."""
+    if not os.path.exists(path):
+        only_on_root(os.makedirs, path)
+    return path
+        
 def assert_valid_width_tuple(width):
     try:
         assert iterable(width) and len(width) == 2, \
