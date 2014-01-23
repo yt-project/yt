@@ -918,11 +918,6 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     n_ref = 64
     over_refine_factor = 1
 
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        self.field_info.setup_particle_fields(ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
-
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
                    velocity_unit=None, periodicity=(True, True, True),

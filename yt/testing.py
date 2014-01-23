@@ -168,10 +168,10 @@ def fake_random_pf(
         data[field] = (v, u)
     if particles:
         for f in ('particle_position_%s' % ax for ax in 'xyz'):
-            data[f] = np.random.uniform(size = particles)
+            data[f] = (np.random.uniform(size = particles), 'code_length')
         for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-            data[f] = np.random.random(size = particles) - 0.5
-        data['particle_mass'] = np.random.random(particles)
+            data[f] = (np.random.random(size = particles) - 0.5, 'cm/s')
+        data['particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, 1.0, nprocs=nprocs)
     return ug
