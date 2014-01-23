@@ -214,6 +214,9 @@ def write_profiles(halo, storage="profiles", filename="profile",
     out_file = h5py.File(output_file, "w")
     my_profile = getattr(halo, storage)
     for field in my_profile:
+        # Don't write code units because we might not know those later.
+        if hasattr(my_profile[field], "units"):
+            my_profile[field].convert_to_cgs()
         out_file.create_dataset(str(field), data=my_profile[field])
         # Why is isinstance(my_profile[field], YTArray) always returning False?
         # Something is wrong.
