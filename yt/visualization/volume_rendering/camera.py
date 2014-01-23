@@ -2040,13 +2040,15 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         def _make_wf(f, w):
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
+                return b.apply_units(tr, a.units)
                 return tr
             return temp_weightfield
         pf.field_info.add_field("temp_weightfield",
             function=_make_wf(field, weight))
-        # Now we have to tell the parameter file to add it and to calculate its
-        # dependencies..
-        pf.h._derived_fields_add(["temp_weightfield"])
+        # Now we have to tell the parameter file to add it and to calculate
+        # its dependencies..
+        deps, _ = pf.field_info.check_derived_fields(["temp_weightfield"])
+        pf.field_dependencies.update(deps)
         fields = ["temp_weightfield", weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
@@ -2083,11 +2085,9 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
         image *= dl
     else:
         image[:,:,0] /= image[:,:,1]
+        image = pf.arr(image, finfo.units)
         pf.field_info.pop("temp_weightfield")
         pf.field_dependencies.pop("temp_weightfield")
-        for g in pf.h.grids:
-            if "temp_weightfield" in g.keys():
-                del g["temp_weightfield"]
     return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
@@ -2131,13 +2131,15 @@ class ProjectionCamera(Camera):
             def _make_wf(f, w):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
+                    return b.apply_units(tr, a.units)
                     return tr
                 return temp_weightfield
             pf.field_info.add_field("temp_weightfield",
                 function=_make_wf(self.field, self.weight))
             # Now we have to tell the parameter file to add it and to calculate
             # its dependencies..
-            pf.h._derived_fields_add(["temp_weightfield"])
+            deps, _ = pf.field_info.check_derived_fields(["temp_weightfield"])
+            pf.field_dependencies.update(deps)
             fields = ["temp_weightfield", self.weight]
         
         self.fields = fields
@@ -2147,7 +2149,6 @@ class ProjectionCamera(Camera):
                 log_fields=self.log_fields, 
                 north_vector=north_vector,
                 no_ghost=no_ghost)
-        self.center = center
 
     def get_sampler(self, args):
         if self.interpolated:

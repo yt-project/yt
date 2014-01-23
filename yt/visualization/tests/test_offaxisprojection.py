@@ -46,7 +46,7 @@ def test_write_projection():
 
     # kwargs for off_axis_projection
     oap_kwargs = {}
-    oap_kwargs['weight'] = (None, 'CellMassMsun')
+    oap_kwargs['weight'] = (None, 'cell_mass')
     oap_kwargs['no_ghost'] = (True, False)
     oap_kwargs['interpolated'] = (True, False)
     oap_kwargs['north_vector'] = ((1,0,0), (0,0.5,1.0))
