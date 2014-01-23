@@ -300,11 +300,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         # We now convert to half-widths and center-points
         data = {}
         #non_nan = ~np.any(np.isnan(nvals), axis=-1)
-        data['px'] = px
-        data['py'] = py
+        code_length = self.pf.domain_width.units
+        data['px'] = self.pf.arr(px, code_length)
+        data['py'] = self.pf.arr(py, code_length)
         data['weight_field'] = nwvals
-        data['pdx'] = pdx
-        data['pdy'] = pdy
+        data['pdx'] = self.pf.arr(pdx, code_length)
+        data['pdy'] = self.pf.arr(pdy, code_length)
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
         fd = data['fields']
