@@ -62,7 +62,7 @@ from yt.utilities.lib import \
     MatchPointsToGrids
 from yt.utilities.decompose import \
     decompose_array, get_psize
-from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.flagging_methods import \
@@ -218,9 +218,13 @@ class StreamHierarchy(GridGeometryHandler):
             ids = np.where(mask.astype("bool"))
             grid._children_ids = ids[0] # where is a tuple
         mylog.debug("Second pass; identifying parents")
+        self.stream_handler.parent_ids = np.zeros(
+            self.stream_handler.num_grids, "int64") - 1
         for i, grid in enumerate(self.grids): # Second pass
             for child in grid.Children:
                 child._parent_id = i
+                # _id_offset = 0
+                self.stream_handler.parent_ids[child.id] = i
 
     def _initialize_grid_arrays(self):
         GridGeometryHandler._initialize_grid_arrays(self)
@@ -440,7 +444,7 @@ def assign_particle_data(pf, pdata) :
         else :
             particle_indices[1] = particle_grid_count.squeeze()
     
-        pdata.pop("number_of_particles")    
+        pdata.pop("number_of_particles", None) 
         grid_pdata = []
         for i, pcount in enumerate(particle_grid_count) :
             grid = {}
@@ -731,10 +735,11 @@ Parameters
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros((ngrids, 1), dtype='int32')
-    grid_left_edges = np.zeros((ngrids, 3), dtype="float32")
-    grid_right_edges = np.zeros((ngrids, 3), dtype="float32")
+    grid_left_edges = np.zeros((ngrids, 3), dtype="float64")
+    grid_right_edges = np.zeros((ngrids, 3), dtype="float64")
     grid_dimensions = np.zeros((ngrids, 3), dtype="int32")
     number_of_particles = np.zeros((ngrids,1), dtype='int64')
+    parent_ids = np.zeros(ngrids, dtype="int64") - 1
     sfh = StreamDictFieldHandler()
     for i, g in enumerate(grid_data):
         grid_left_edges[i,:] = g.pop("left_edge")
@@ -745,6 +750,19 @@ Parameters
             number_of_particles[i,:] = g.pop("number_of_particles")  
         update_field_names(g)
         sfh[i] = g
+
+    # We now reconstruct our parent ids, so that our particle assignment can
+    # proceed.
+    mask = np.empty(ngrids, dtype='int32')
+    for gi in range(ngrids):
+        get_box_grids_level(grid_left_edges[gi,:],
+                            grid_right_edges[gi,:],
+                            grid_levels[gi] + 1,
+                            grid_left_edges, grid_right_edges,
+                            grid_levels, mask)
+        ids = np.where(mask.astype("bool"))
+        for ci in ids:
+            parent_ids[ci] = gi
 
     for i, g_data in enumerate(grid_data):
         field_units, data = unitify_data(g_data)
@@ -764,7 +782,7 @@ Parameters
         grid_right_edges,
         grid_dimensions,
         grid_levels,
-        None, # parent_ids is none
+        parent_ids,
         number_of_particles,
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
@@ -829,7 +847,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 field = ("unknown", field)
             fi = base_pf._get_field_info(*field)
             if fi.particle_type :
-                pdata[field] = np.concatenate([grid[field]
+                pdata[field] = uconcatenate([grid[field]
                                                for grid in base_pf.h.grids])
         pdata["number_of_particles"] = number_of_particles
         
@@ -876,20 +894,20 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
         
         pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0,
                             bbox = bbox)
+        if number_of_particles > 0:
+            if ("io", "particle_position_x") not in pdata:
+                pdata_ftype = {}
+                for f in [k for k in sorted(pdata)]:
+                    if not hasattr(pdata[f], "shape"): continue
+                    mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
+                    pdata_ftype["io",f] = pdata.pop(f)
+                pdata_ftype.update(pdata)
+                pdata = pdata_ftype
+            assign_particle_data(pf, pdata)
+            # We need to reassign the field list here.
         cur_gc = pf.h.num_grids
 
     # Now reassign particle data to grids
-
-    if number_of_particles > 0:
-        if ("io", "particle_position_x") not in pdata:
-            pdata_ftype = {}
-            for f in [k for k in sorted(pdata)]:
-                if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                pdata_ftype["io",f] = pdata.pop(f)
-            pdata_ftype.update(pdata)
-            pdata = pdata_ftype
-        assign_particle_data(pf, pdata)
     
     return pf
 
