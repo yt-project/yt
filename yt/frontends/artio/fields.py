@@ -89,7 +89,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
             mb = XH*mH + XHe*mHe
             wmu   = 4.0/(8.0-5.0*Yp)
             # Note that we have gamma = 5.0/3.0 here
-            return tr * wmu * (5.0/3.0 - 1)
+            return tr * wmu * (data["gamma"] - 1)
         # TODO: The conversion factor here needs to be addressed, as previously
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
