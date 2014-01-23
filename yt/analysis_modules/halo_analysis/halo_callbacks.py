@@ -153,12 +153,15 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     prof_store = dict([(field, my_profile[field]) \
                        for field in my_profile.field_data])
     prof_store[my_profile.x_field] = my_profile.x
-    if "used" in prof_store:
-        prof_store["used"] &= my_profile.used
+
+    if hasattr(halo, storage):
+        halo_store = getattr(halo, storage)
+        if "used" in halo_store:
+            halo_store["used"] &= my_profile.used
     else:
-        prof_store["used"] = my_profile.used
-    
-    setattr(halo, storage, prof_store)
+        halo_store = {"used": my_profile.used}
+        setattr(halo, storage, halo_store)
+    halo_store.update(prof_store)
 
 add_callback("profile", profile)
 
@@ -200,13 +203,10 @@ def virial_quantities(halo, fields, critical_overdensity=200,
                    unit_registry=dpf.unit_registry)
     profile_data = getattr(halo, profile_storage)
 
-    if ("index", "cell_volume") not in profile_data or \
-      ("gas", "matter_mass") not in profile_data:
-      raise RuntimeError('virial_quantities callback requires profiles of ("index", "cell_volume") and ("gas", "matter_mass").')
+    if ("gas", "overdensity") not in profile_data:
+      raise RuntimeError('virial_quantities callback requires profile of ("gas", "overdensity").')
 
-    total_volume = profile_data[("index", "cell_volume")]
-    total_mass = profile_data[("gas", "matter_mass")]
-    overdensity = total_mass / total_volume / co.critical_density(dpf.current_redshift)
+    overdensity = profile_data[("gas", "overdensity")]
     dfilter = np.isfinite(overdensity) & profile_data["used"] & (overdensity > 0)
     
     vquantities = dict([("%s_%d" % (field[0], critical_overdensity), 0) \
