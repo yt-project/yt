@@ -30,7 +30,8 @@ b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
-mom_units = "code_mass * code_length / code_time"
+# NOTE: ARTIO uses momentum density.
+mom_units = "code_mass / (code_length**2 * code_time)"
 
 class ARTIOFieldInfo(FieldInfoContainer):
     known_other_fields = (
@@ -75,12 +76,20 @@ class ARTIOFieldInfo(FieldInfoContainer):
                            units = "cm/s")
 
         def _temperature(field, data):
-            tr = data["GasEnergy"]/data["Density"]
-            #Gamma fixed not field *(data["Gamma"]-1)*wmu
-            tr[np.isnan(tr)] = 0.0
-            #dhr - this is bad, don't just mask nan's,
-            #make the user think about what they're doing
-            return tr
+            tr = data["thermal_energy"]/data["density"]
+            # We want this to match *exactly* what ARTIO would compute
+            # internally.  We therefore use the exact values that are internal
+            # to ARTIO, rather than yt's own internal constants.
+            amu = 1.660538782e-24
+            mH  = 1.007825*amu
+            mHe = 4.002602*amu
+            Yp    = 0.24
+            XH    = 1.0 - Yp
+            XHe   = 0.25*Yp
+            mb = XH*mH + XHe*mHe
+            wmu   = 4.0/(8.0-5.0*Yp)
+            # Note that we have gamma = 5.0/3.0 here
+            return tr * wmu * (5.0/3.0 - 1)
         # TODO: The conversion factor here needs to be addressed, as previously
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
@@ -90,8 +99,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
             tr = data["metal_ia_density"]
             tr += data["metal_ii_density"]
             return tr
-        self.add_field("metal_density", function=_metal_density, units="Zsun",
-            take_log=True)
+        self.add_field("metal_density", function=_metal_density, units="g/cm**3",
+                       take_log=True)
 
     def setup_particle_fields(self, ptype):
 
