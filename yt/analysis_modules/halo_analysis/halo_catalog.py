@@ -15,8 +15,10 @@ HaloCatalog object
 
 import h5py
 import numpy as np
+import os
 
 from yt.funcs import \
+     ensure_dir, \
      mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
@@ -46,6 +48,9 @@ class HaloCatalog(ParallelAnalysisInterface):
         Data container associated with either the halos_pf or the data_pf.
     finder_method : str
         Halo finder to be used if no halos_pf is given.
+    output_dir : str
+        The top level directory into which analysis output will be written.
+        Default: "."
 
     Examples
     --------
@@ -53,11 +58,13 @@ class HaloCatalog(ParallelAnalysisInterface):
     """
     
     def __init__(self, halos_pf=None, data_pf=None, 
-                 data_source=None, finder_method=None):
+                 data_source=None, finder_method=None, 
+                 output_dir="."):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
         self.data_pf = data_pf
         self.finder_method = finder_method
+        self.output_dir = ensure_dir(output_dir)
 
         if halos_pf is None:
             if data_pf is None:
@@ -76,6 +83,8 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     def add_callback(self, callback, *args, **kwargs):
         callback = callback_registry.find(callback, *args, **kwargs)
+        if "output_dir" in kwargs is not None:
+            ensure_dir(os.path.join(self.output_dir, kwargs["output_dir"]))
         self.callbacks.append(callback)
 
     def add_quantity(self, key, field_type=None, *args, **kwargs):
