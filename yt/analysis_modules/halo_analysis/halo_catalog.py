@@ -136,13 +136,21 @@ class HaloCatalog(ParallelAnalysisInterface):
     def save_catalog(self, filename):
         "Write out hdf5 file with all halo quantities."
 
+        if len(self.halo_list) < 1:
+            mylog.info("Halo list is empty.  Nothing will be written.")
+            return
+        
         mylog.info("Saving halo catalog to %s." % filename)
         out_file = h5py.File(filename, 'w')
         field_data = np.empty(self.n_halos)
         for key, quantity in self.quantities:
+            units = ""
+            if hasattr(self.halo_list[0][key], "units"):
+                units = str(self.halo_list[0][key].units)
             for i in xrange(self.n_halos):
                 field_data[i] = self.halo_list[i][key]
-            out_file.create_dataset(key, data=field_data)
+            dataset = out_file.create_dataset(str(key), data=field_data)
+            dataset.attrs["units"] = units
         out_file.close()
 
     def add_default_quantities(self):
