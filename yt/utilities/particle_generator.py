@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 from yt.utilities.lib import CICSample_3
 from yt.funcs import *
+from yt.units.yt_array import uconcatenate, YTArray
 
 class ParticleGenerator(object) :
 
@@ -21,6 +22,10 @@ class ParticleGenerator(object) :
         self.num_particles = num_particles
         self.field_list = field_list
         self.field_list.append(("io", "particle_index"))
+        self.field_units = dict(
+          (('io', 'particle_position_%s' % ax), 'code_length')
+          for ax in 'xyz')
+        self.field_units['io', 'particle_index'] = ''
         
         try :
             self.posx_index = self.field_list.index(self.default_fields[0])
@@ -79,8 +84,15 @@ class ParticleGenerator(object) :
         ind = grid.id-grid._id_offset
         start = self.ParticleGridIndices[ind]
         end = self.ParticleGridIndices[ind+1]
-        return dict([(field, self.particles[start:end,self.field_list.index(field)])
-                     for field in self.field_list])
+        tr = {}
+        for field in self.field_list:
+            fi = self.field_list.index(field)
+            if field in self.field_units:
+                tr[field] = self.pf.arr(self.particles[start:end, fi],
+                                        self.field_units[field])
+            else:
+                tr[field] = self.particles[start:end, fi]
+        return tr
     
     def _setup_particles(self,x,y,z,setup_fields=None) :
         """
@@ -121,8 +133,8 @@ class ParticleGenerator(object) :
 
         Examples
         --------
-        >>> field_map = {'Density':'particle_density',
-        >>>              'Temperature':'particle_temperature'}
+        >>> field_map = {'density':'particle_density',
+        >>>              'temperature':'particle_temperature'}
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
@@ -136,6 +148,7 @@ class ParticleGenerator(object) :
                 le = np.array(grid.LeftEdge).astype(np.float64)
                 dims = np.array(grid.ActiveDimensions).astype(np.int32)
                 for gfield, pfield in mapping_dict.items() :
+                    self.field_units[pfield] = cube[gfield].units
                     field_index = self.field_list.index(pfield)
                     CICSample_3(self.particles[start:end,self.posx_index],
                                 self.particles[start:end,self.posy_index],
@@ -172,8 +185,10 @@ class ParticleGenerator(object) :
                             # This one doesn't, set the previous particles' field
                             # values to zero
                             prev_particles = np.zeros((g.NumberOfParticles))
-                        data[field] = np.concatenate((prev_particles,
-                                                      grid_particles[field]))
+                            prev_particles = self.pf.arr(prev_particles,
+                                input_units = self.field_units[field])
+                        data[field] = uconcatenate((prev_particles,
+                                                    grid_particles[field]))
                     else :
                         # Particles do not already exist or we're clobbering
                         data[field] = grid_particles[field]
@@ -270,13 +285,12 @@ class LatticeParticleGenerator(ParticleGenerator) :
         xmax = particles_right_edge[0]
         ymax = particles_right_edge[1]
         zmax = particles_right_edge[2]
+        DLE = pf.domain_left_edge.in_units("code_length").ndarray_view()
+        DRE = pf.domain_right_edge.in_units("code_length").ndarray_view()
 
-        xcond = (xmin < pf.domain_left_edge[0]) or \
-                (xmax >= pf.domain_right_edge[0])
-        ycond = (ymin < pf.domain_left_edge[1]) or \
-                (ymax >= pf.domain_right_edge[1])
-        zcond = (zmin < pf.domain_left_edge[2]) or \
-                (zmax >= pf.domain_right_edge[2])
+        xcond = (xmin < DLE[0]) or (xmax >= DRE[0])
+        ycond = (ymin < DLE[1]) or (ymax >= DRE[1])
+        zcond = (zmin < DLE[2]) or (zmax >= DRE[2])
         cond = xcond or ycond or zcond
 
         if cond :
@@ -297,7 +311,7 @@ class LatticeParticleGenerator(ParticleGenerator) :
 class WithDensityParticleGenerator(ParticleGenerator) :
 
     def __init__(self, pf, data_source, num_particles, field_list,
-                 density_field="Density") :
+                 density_field="density") :
         r"""
         Generate particles based on a density field.
 
@@ -330,7 +344,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
 
         num_cells = len(data_source["x"].flat)
         max_mass = (data_source[density_field]*
-                    data_source["CellVolume"]).max()
+                    data_source["cell_volume"]).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -346,7 +360,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
             idxs = np.random.random_integers(low=0, high=num_cells-1,
                                              size=num_particles_left)
             m_true = (data_source[density_field]*
-                      data_source["CellVolume"]).flat[idxs]
+                      data_source["cell_volume"]).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
@@ -371,9 +385,9 @@ class WithDensityParticleGenerator(ParticleGenerator) :
 
         pbar.finish()
 
-        x = np.concatenate(all_x)
-        y = np.concatenate(all_y)
-        z = np.concatenate(all_z)
+        x = uconcatenate(all_x)
+        y = uconcatenate(all_y)
+        z = uconcatenate(all_z)
 
         self._setup_particles(x,y,z)
         

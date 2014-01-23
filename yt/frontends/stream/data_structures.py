@@ -253,7 +253,7 @@ class StreamHierarchy(GridGeometryHandler):
         else:
             self.io = io_registry[self.data_style](self.pf)
 
-    def update_data(self, data) :
+    def update_data(self, data, units = None):
 
         """
         Update the stream data with a new data dict. If fields already exist,
@@ -262,6 +262,8 @@ class StreamHierarchy(GridGeometryHandler):
         alone. 
         """
         [update_field_names(d) for d in data]
+        if units is not None:
+            self.stream_handler.field_units.update(units)
         particle_types = set_particle_types(data[0])
         ftype = "io"
 
@@ -279,13 +281,14 @@ class StreamHierarchy(GridGeometryHandler):
                     grid.field_data.pop( ("io", fname) )
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
-
         # We only want to create a superset of fields here.
         self._detect_output_fields()
+        self.pf.create_field_info()
         mylog.debug("Creating Particle Union 'all'")
         pu = ParticleUnion("all", list(self.pf.particle_types_raw))
         self.pf.add_particle_union(pu)
         self.pf.particle_types = tuple(set(self.pf.particle_types))
+
 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy

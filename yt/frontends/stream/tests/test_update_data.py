@@ -8,7 +8,7 @@ def test_update_data() :
     dims = (32,32,32)
     grid_data = [{"temperature":uniform(size=dims)}
                  for i in xrange(pf.h.num_grids)]
-    pf.h.update_data(grid_data)
+    pf.h.update_data(grid_data, {'temperature':'K'})
     prj = pf.h.proj("temperature", 2)
     prj["temperature"]
     dd = pf.h.all_data()
