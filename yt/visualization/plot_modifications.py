@@ -26,7 +26,7 @@ from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
-from yt.units.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 
 import _MPL
@@ -107,12 +107,12 @@ class VelocityCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("CuttingPlaneVelocityX",
-                                        "CuttingPlaneVelocityY",
+            qcb = CuttingQuiverCallback("cutting_plane_velocity_x",
+                                        "cutting_plane_velocity_y",
                                         self.factor)
         else:
-            xv = "%s-velocity" % (x_names[plot.data.axis])
-            yv = "%s-velocity" % (y_names[plot.data.axis])
+            xv = "velocity_%s" % (x_names[plot.data.axis])
+            yv = "velocity_%s" % (y_names[plot.data.axis])
 
             bv = plot.data.get_field_parameter("bulk_velocity")
             if bv is not None:
@@ -148,12 +148,12 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("CuttingPlaneBx",
-                                        "CuttingPlaneBy",
+            qcb = CuttingQuiverCallback("cutting_plane_bx",
+                                        "cutting_plane_by",
                                         self.factor)
         else:
-            xv = "B%s" % (x_names[plot.data.axis])
-            yv = "B%s" % (y_names[plot.data.axis])
+            xv = "magnetic_field_%s" % (x_names[plot.data.axis])
+            yv = "magnetic_field_%s" % (y_names[plot.data.axis])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
@@ -193,11 +193,19 @@ class QuiverCallback(PlotCallback):
         period_x = pf.domain_width[x_dict[ax]]
         period_y = pf.domain_width[y_dict[ax]]
         periodic = int(any(pf.periodicity))
+        fv_x = plot.data[self.field_x]
+        if self.bv_x != 0.0:
+            # Workaround for 0.0 without units
+            fv_x -= self.bv_x
+        fv_y = plot.data[self.field_y]
+        if self.bv_y != 0.0:
+            # Workaround for 0.0 without units
+            fv_y -= self.bv_y
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x] - self.bv_x,
+                             fv_x,
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
@@ -206,7 +214,7 @@ class QuiverCallback(PlotCallback):
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y] - self.bv_y,
+                             fv_y,
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
@@ -256,12 +264,14 @@ class ContourCallback(PlotCallback):
         self.data_source = data_source
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        
+        # These need to be in code_length
+        x0, x1 = (v.in_units("code_length") for v in plot.xlim)
+        y0, y1 = (v.in_units("code_length") for v in plot.ylim)
+
+        # These are in plot coordinates, which may not be code coordinates.
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        
+
         plot._axes.hold(True)
         
         numPoints_x = plot.image._A.shape[0]
@@ -290,7 +300,6 @@ class ContourCallback(PlotCallback):
                 XShifted = data["px"].copy()
                 YShifted = data["py"].copy()
                 dom_x, dom_y = plot._period
-                dom_x, dom_y = dom_x.to_ndarray(), dom_y.to_ndarray()
                 for shift in np.mgrid[-1:1:3j]:
                     xlim = ((data["px"] + shift*dom_x >= x0) &
                             (data["px"] + shift*dom_x <= x1))
@@ -306,8 +315,8 @@ class ContourCallback(PlotCallback):
                 wI = (AllX & AllY)
 
                 # This converts XShifted and YShifted into plot coordinates
-                x = (XShifted[wI]-x0)*dx + xx0
-                y = (YShifted[wI]-y0)*dy + yy0
+                x = ((XShifted[wI]-x0)*dx).ndarray_view() + xx0
+                y = ((YShifted[wI]-y0)*dy).ndarray_view() + yy0
                 z = data[self.field][wI]
         
             # Both the input and output from the triangulator are in plot
@@ -317,7 +326,9 @@ class ContourCallback(PlotCallback):
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         
         if self.take_log is None:
-            self.take_log = plot.pf.field_info[self.field].take_log
+            field = plot.data._determine_fields([self.field])[0]
+            fi = plot.pf._get_field_info(field)
+            self.take_log = fi.take_log
 
         if self.take_log: zi=np.log10(zi)
 
@@ -379,11 +390,13 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
         GLE, GRE, levels = [], [], []
         for block, mask in plot.data.blocks:
-            GLE.append(block.LeftEdge)
-            GRE.append(block.RightEdge)
+            GLE.append(block.LeftEdge.in_units("code_length"))
+            GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
-        GLE = np.array(GLE)
-        GRE = np.array(GRE)
+        if len(GLE) == 0: return
+        # Retain both units and registry
+        GLE = YTArray(GLE, input_units = GLE[0].units)
+        GRE = YTArray(GRE, input_units = GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
@@ -422,7 +435,7 @@ class GridBoundaryCallback(PlotCallback):
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
                                ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
-                active_ids = np.unique(plot.data['GridIndices'])
+                active_ids = np.unique(plot.data['grid_indices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
                         left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
@@ -1107,7 +1120,7 @@ class ParticleCallback(PlotCallback):
             gg &= (reg["creation_time"] <= 0.0)
             if gg.sum() == 0: return
         if self.minimum_mass is not None:
-            gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
+            gg &= (reg["particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
