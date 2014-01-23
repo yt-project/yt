@@ -15,6 +15,7 @@ Halo callback object
 
 import h5py
 import numpy as np
+import os
 
 from yt.data_objects.profiles import \
      Profile1D
@@ -26,6 +27,8 @@ from yt.utilities.cosmology import \
      Cosmology
 from yt.utilities.exceptions import YTUnitConversionError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
      
 from .operator_registry import \
     callback_registry
@@ -75,7 +78,8 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0):
 add_callback("sphere", halo_sphere)
 
 def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
-            weight_field="cell_mass", accumulation=False, storage="profiles"):
+            weight_field="cell_mass", accumulation=False, storage="profiles",
+            output_dir="."):
     r"""
     Create 1d profiles.
 
@@ -88,7 +92,8 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     x_field : string
         The binning field for the profile.
     y_fields : string or list of strings
-        The fields to be profiled.
+        The fields to be propython
+        filed.
     x_bins : int
         The number of bins in the profile.
         Default: 32
@@ -107,13 +112,24 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     storage : string
         Name of the dictionary to store profiles.
         Default: "profiles"
+    output_dir : string
+        Name of directory where profile data will be written.  The full path will be
+        the output_dir of the halo catalog concatenated with this directory.
+        Default : "."
 
     """
 
     mylog.info("Calculating 1D profile for halo %d." % 
                halo.quantities["particle_identifier"])
-    
+
     dpf = halo.halo_catalog.data_pf
+
+    if dpf is None:
+        raise RuntimeError("Profile callback requires a data pf.")
+
+    if output_dir is None:
+        output_dir = storage
+    output_dir = os.path.join(halo.halo_catalog.output_dir, output_dir)
     
     if x_range is None:
         x_range = halo.data_object.quantities["Extrema"](x_field)[0]
@@ -165,6 +181,48 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 
 add_callback("profile", profile)
 
+@parallel_root_only
+def write_profiles(halo, storage="profiles", filename="profile", 
+                   output_dir="profiles"):
+    r"""
+    Write out profile data.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    storage : string
+        Name of the dictionary to store profiles.
+        Default: "profiles"
+    filename : string
+        The name of the file to be written.  The final filename will be 
+        "<filename>_<id>.h5".
+        Default: "profile"
+    output_dir : string
+        Name of directory where profile data will be written.  The full path will be
+        the output_dir of the halo catalog concatenated with this directory.
+        Default : "."
+    
+    """
+
+    output_file = os.path.join(halo.halo_catalog.output_dir, output_dir,
+                               "%s_%06d.h5" % (filename, 
+                                               halo.quantities["particle_identifier"]))
+    mylog.info("Writing halo %d profile data to %s." %
+               (halo.quantities["particle_identifier"], output_file))
+
+    out_file = h5py.File(output_file, "w")
+    my_profile = getattr(halo, storage)
+    for field in my_profile:
+        out_file.create_dataset(str(field), data=my_profile[field])
+        # Why is isinstance(my_profile[field], YTArray) always returning False?
+        # Something is wrong.
+        if hasattr(my_profile[field], "units"):
+            out_file[str(field)].attrs["units"] = str(my_profile[field].units)
+    out_file.close()
+
+add_callback("write_profiles", write_profiles)
+    
 def virial_quantities(halo, fields, critical_overdensity=200,
                       profile_storage="profiles"):
     r"""
