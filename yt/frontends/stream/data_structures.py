@@ -385,7 +385,7 @@ def set_particle_types(data) :
     
     for key in data.keys() :
 
-        if key is "number_of_particles": continue
+        if key == "number_of_particles": continue
         
         if len(data[key].shape) == 1:
             particle_types[key] = True
@@ -452,12 +452,12 @@ def assign_particle_data(pf, pdata) :
             grid_pdata.append(grid)
 
     else :
-
         grid_pdata = [pdata]
     
     for pd, gi in zip(grid_pdata, sorted(pf.stream_handler.fields)):
-        pd.pop("number_of_particles")
         pf.stream_handler.fields[gi].update(pd)
+        npart = pf.stream_handler.fields[gi].pop("number_of_particles", 0)
+        pf.stream_handler.particle_count[gi] = npart
                                         
 def unitify_data(data):
     if all([isinstance(val, np.ndarray) for val in data.values()]):
@@ -574,7 +574,7 @@ Parameters
 
     if number_of_particles > 0 :
         particle_types = set_particle_types(data)
-        pdata = {}
+        pdata = {} # Used much further below.
         pdata["number_of_particles"] = number_of_particles
         for key in data.keys() :
             if len(data[key].shape) == 1 :
@@ -625,7 +625,7 @@ Parameters
         grid_dimensions,
         grid_levels,
         -np.ones(nprocs, dtype='int64'),
-        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
+        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # particle count
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
@@ -655,6 +655,7 @@ Parameters
                 pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
+        # This will update the stream handler too
         assign_particle_data(spf, pdata)
     
     return spf
