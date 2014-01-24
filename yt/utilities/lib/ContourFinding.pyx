@@ -638,7 +638,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef OctInfo oi
         cdef ContourID *c0, *c1
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
-        cdef np.int64_t i, j, k, n, nneighbors, poffset, offset
+        cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
@@ -661,7 +661,6 @@ cdef class ParticleContourTree(ContourTree):
             pcount[offset] += 1
             pdoms[i] = offset
         pind = np.argsort(pdoms)
-        cdef np.int64_t contour_id = 0
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
         cdef np.float64_t *fpos = <np.float64_t*> positions.data
         # pind is now the pointer into the position and particle_ids array.
@@ -704,7 +703,8 @@ cdef class ParticleContourTree(ContourTree):
             free(neighbors)
             # Now we look at each particle.
             for j in range(pcount[i]):
-                poffset = pind[doff[i] + j]
+                # Note that this offset is the particle index
+                pind0 = pind[doff[i] + j]
                 # Look at each neighboring oct
                 for k in range(nneighbors):
                     if nind[k] == -1: continue
@@ -716,9 +716,8 @@ cdef class ParticleContourTree(ContourTree):
                     self.link_particles(container,
                                         fpos, ipind,
                                         pcount[nind[k]], 
-                                        offset, poffset,
-                                        contour_id)
-                contour_id += 1
+                                        offset, pind0, 
+                                        doff[i] + j)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
         # Sort on our particle IDs.
@@ -739,35 +738,38 @@ cdef class ParticleContourTree(ContourTree):
                                    np.int64_t *pind,
                                    np.int64_t pcount, 
                                    np.int64_t noffset,
-                                   np.int64_t poffset,
-                                   np.int64_t contour_id):
+                                   np.int64_t pind0,
+                                   np.int64_t poffset):
         # Now we look at each particle and evaluate it
         cdef np.float64_t pos0[3], pos1[3], d
         cdef ContourID *c0, *c1
         cdef np.int64_t pind1
         cdef int i, j, k
         # We use pid here so that we strictly take new ones.
-        c0 = container[poffset]
+        # Note that pind0 will not monotonically increase, but 
+        c0 = container[pind0]
         if c0 == NULL:
-            c0 = container[poffset] = contour_create(contour_id, self.last)
+            c0 = container[pind0] = contour_create(poffset, self.last)
             self.last = c0
             if self.first == NULL:
                 self.first = c0
         c0 = contour_find(c0)
-        container[poffset] = c0
+        container[pind0] = c0
         for i in range(3):
-            pos0[i] = positions[poffset*3 + i]
+            pos0[i] = positions[pind0*3 + i]
         for i in range(pcount):
             pind1 = pind[noffset + i]
-            if pind1 == poffset: continue
+            if pind1 == pind0: continue
             for j in range(3):
                 pos1[j] = positions[pind1*3 + j]
             d = r2dist(pos0, pos1, self.DW, self.periodicity)
             if d > self.linking_length2:
                 continue
-            c1 = container[noffset + i]
-            if c1 != NULL:
-                contour_union(c0, c1)
-                c0 = c1 = contour_find(c0)
-            container[noffset + i] = c0
-            container[poffset] = c0
+            c1 = container[pind1]
+            if c1 == NULL:
+                container[pind1] = c1 = contour_create(
+                    noffset + i, self.last)
+            contour_union(c0, c1)
+            c0 = c1 = contour_find(c0)
+            container[pind1] = c0
+            container[pind0] = c0
