@@ -120,6 +120,10 @@ def comparison_unit(unit1, unit2):
     return None
 
 @ensure_same_dimensions
+def size_comparison_unit(unit1, unit2):
+    return None
+
+@ensure_same_dimensions
 def bitwise_comparison_unit(unit1, unit2):
     return unit1
 
@@ -199,12 +203,12 @@ class YTArray(np.ndarray):
         invert: bitwise_comparison_unit,
         left_shift: passthrough_unit,
         right_shift: passthrough_unit,
-        greater: comparison_unit,
-        greater_equal: comparison_unit,
-        less: comparison_unit,
-        less_equal: comparison_unit,
-        not_equal: comparison_unit,
-        equal: comparison_unit,
+        greater: size_comparison_unit,
+        greater_equal: size_comparison_unit,
+        less: size_comparison_unit,
+        less_equal: size_comparison_unit,
+        not_equal: size_comparison_unit,
+        equal: size_comparison_unit,
         logical_and: comparison_unit,
         logical_or: comparison_unit,
         logical_xor: comparison_unit,
@@ -320,8 +324,8 @@ class YTArray(np.ndarray):
         new_units = self._unit_repr_check_same(units)
         conversion_factor = self.units.get_conversion_factor(new_units)
 
-        self *= conversion_factor
         self.units = new_units
+        self *= conversion_factor
         return self
 
     def convert_to_cgs(self):
@@ -690,44 +694,44 @@ class YTArray(np.ndarray):
         elif len(context[1]) == 1:
             # unary operators
             u = getattr(context[1][0], 'units', None)
+            if u == None:
+                u = Unit()
             try:
                 unit = self._ufunc_registry[context[0]](u)
-                if self._ufunc_registry[context[0]] is return_without_unit:
-                    out_arr = out_arr.view(np.ndarray)
-                    return out_arr
             # Catch the RuntimeError raised inside of ensure_same_dimensions
             # Raise YTUnitOperationError up here since we know the context now
-            except RuntimeError as e:
+            except RuntimeError:
                 raise YTUnitOperationError(context[0], u)
         elif len(context[1]) in (2,3):
             # binary operators
-            try:
-                unit1 = context[1][0].units
-            except AttributeError:
+            unit1 = getattr(context[1][0], 'units', None)
+            unit2 = getattr(context[1][1], 'units', None)
+            if unit1 == None:
                 unit1 = Unit()
-            try:
-                unit2 = context[1][1].units
-            except AttributeError:
-                if context[0] is power:
-                    unit2 = context[1][1]
-                else:
-                    unit2 = Unit()
-            if self._ufunc_registry[context[0]] is preserve_units and unit1 != unit2:
-                if not unit1.same_dimensions_as(unit2):
-                    raise YTUnitOperationError(context[0], unit1, unit2)
-                else:
-                    raise YTUfuncUnitError(context[0], unit1, unit2)
+            if unit2 == None:
+                unit2 = Unit()
+            if self._ufunc_registry[context[0]] in (preserve_units, size_comparison_unit):
+                if unit1 != unit2:
+                    if not unit1.same_dimensions_as(unit2):
+                        raise YTUnitOperationError(context[0], unit1, unit2)
+                    else:
+                        raise YTUfuncUnitError(context[0], unit1, unit2)
             try:
                 unit = self._ufunc_registry[context[0]](unit1, unit2)
+            # Catch the RuntimeError raised inside of ensure_same_dimensions
+            # Raise YTUnitOperationError up here since we know the context now
             except RuntimeError:
                 raise YTUnitOperationError(context[0], unit1, unit2)
         else:
             raise RuntimeError("Operation is not defined.")
+        if unit is None:
+            out_arr = np.array(out_arr)
+            return out_arr
         out_arr.units = unit
         if out_arr.size > 1:
-            return YTArray(out_arr.view(np.ndarray), unit)
+            return YTArray(np.array(out_arr), unit)
         else:
-            return YTQuantity(out_arr.view(np.ndarray), unit)
+            return YTQuantity(np.array(out_arr), unit)
 
     def __reduce__(self):
         """Pickle reduction method
@@ -769,10 +773,10 @@ class YTArray(np.ndarray):
 class YTQuantity(YTArray):
     def __new__(cls, input, input_units=None, registry=None, dtype=None):
         if not isinstance(input, (numeric_type, np.number, np.ndarray)):
-            return input.view(np.ndarray)
+            raise RuntimeError("YTQuantity values must be numeric")
         ret = YTArray.__new__(cls, input, input_units, registry, dtype=dtype)
         if ret.size > 1:
-            raise RuntimeError
+            raise RuntimeError("YTQuantity instances must be scalars")
         return ret
 
     def __repr__(self):
