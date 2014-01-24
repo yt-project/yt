@@ -244,6 +244,71 @@ def test_division():
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
 
+def test_comparisons():
+    """
+    Test numpy ufunc comparison operators for unit consistency.
+
+    """
+    from yt.units.yt_array import YTArray, YTQuantity
+
+    a1 = YTArray([1,2,3], 'cm')
+    a2 = YTArray([2,1,3], 'cm')
+    a3 = YTArray([.02, .01, .03], 'm')
+
+    ops = (
+        np.less,
+        np.less_equal,
+        np.greater,
+        np.greater_equal,
+        np.equal,
+        np.not_equal
+    )
+
+    answers = (
+        [True, False, False],
+        [True, False, True],
+        [False, True, False],
+        [False, True, True],
+        [False, False, True],
+        [True, True, False],
+    )
+
+    for op, answer in zip(ops, answers):
+        yield operate_and_compare, a1, a2, op, answer
+
+    for op in ops:
+        yield assert_raises, YTUfuncUnitError, op, a1, a3
+
+    for op, answer in zip(ops, answers):
+        yield operate_and_compare, a1, a3.in_units('cm'), op, answer
+
+def test_unit_conversions():
+    """
+    Test operations that convert to different units or cast to ndarray
+
+    """
+    from yt.units.yt_array import YTQuantity
+    from yt.units.unit_object import Unit
+
+    km = YTQuantity(1, 'km')
+    km_in_cm = km.in_units('cm')
+    km_unit = Unit('km')
+    cm_unit = Unit('cm')
+
+    yield assert_equal, km_in_cm, km
+    yield assert_equal, km_in_cm.in_cgs(), 1e5
+    yield assert_equal, km_in_cm.units, cm_unit
+
+    km.convert_to_units('cm')
+
+    yield assert_equal, km, YTQuantity(1, 'km')
+    yield assert_equal, km.in_cgs(), 1e5
+    yield assert_equal, km.units, cm_unit
+
+    yield assert_isinstance, km.to_ndarray(), np.ndarray
+    yield assert_isinstance, km.ndarray_view(), np.ndarray
+
+
 def test_yt_array_yt_quantity_ops():
     """
     Test operations that combine YTArray and YTQuantity
