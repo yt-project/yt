@@ -675,7 +675,7 @@ cdef class ParticleContourTree(ContourTree):
             counter += 1
             if counter == 10000:
                 counter = 0
-                print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+                #print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             # Any particles found for this oct?
             if doff[i] < 0: continue
             offset = pind[doff[i]]
