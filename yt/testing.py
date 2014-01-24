@@ -12,6 +12,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import md5
 import itertools as it
 import numpy as np
 import importlib
@@ -524,3 +525,88 @@ _amr_grid_hierarchy = [
   [44,48,48],
  ],
 ]
+
+def compute_results(func):
+    def _func(*args, **kwargs):
+        rv = func(*args, **kwargs)
+        if hasattr(rv, "convert_to_cgs"):
+            rv.convert_to_cgs()
+            _rv = rv.ndarray_view()
+        else:
+            _rv = rv
+        mi = _rv.min()
+        ma = _rv.max()
+        st = _rv.std(dtype="float64")
+        su = _rv.sum(dtype="float64")
+        ha = md5.md5(_rv.tostring()).hexdigest()
+        print "Inexact: @check_results(%s, %s, %s, %s)" % (mi, ma, st, su)
+        print "Exact  : @check_results(0, 0, 0, 0, '%s')" % (ha)
+        return rv
+    return _func
+
+def check_results(ref_mi, ref_ma, ref_std, ref_sum, ref_hash = None):
+    r"""This is a decorator for a function to verify that the (numpy ndarray)
+    result of a function is what it should be.
+
+    This function is designed to be used for very light answer testing.
+    Essentially, it wraps around a larger function that returns a numpy array,
+    and that has results that should not change.  It is not necessarily used
+    inside the testing scripts themselves, but inside testing scripts written
+    by developers during the testing of pull requests and new functionality.
+    If a hash is specified, it "wins" and the others are ignored.  Otherwise,
+    tolerance is 1e-8 (just above single precision.)
+
+    This will raise an exception if the results are not correct.
+
+    Parameters
+    ----------
+    ref_mi : float
+        The minimum to check against.
+    ref_ma : float
+        The maximum to check against.
+    ref_std : float
+        Reference standard deviation to check against.
+    ref_sum : float
+        Reference sum.
+    ref_hash : string (md5 hexdigest)
+        Reference hash, which will trump the others.
+
+    Returns
+    -------
+    result : bool
+        True or false for whether it matches or not.
+
+    Examples
+    --------
+
+    @check_results(0.0, 1.0, 0.1, 10.0)
+    def my_func(pf):
+        return pf.domain_width
+
+    my_func(pf)
+    """
+    a1 = np.array([ref_mi, ref_ma, ref_std, ref_sum], dtype="float64")
+    def result_wrapper(func):
+        def _func(*args, **kwargs):
+            rv = func(*args, **kwargs)
+            if hasattr(rv, "convert_to_cgs"):
+                rv.convert_to_cgs()
+                _rv = rv.ndarray_view()
+            else:
+                _rv = rv
+            mi = _rv.min()
+            ma = _rv.max()
+            st = _rv.std(dtype="float64")
+            su = _rv.sum(dtype="float64")
+            ha = md5.md5(_rv.tostring()).hexdigest()
+            a2 = np.array([mi, ma, st, su], dtype="float64")
+            if ref_hash is None:
+                print "Checking near-equality."
+                assert_allclose(a1, a2, 1e-8)
+            else:
+                print "Checking hashes."
+                assert(ha == ref_hash)
+            print a1, a2
+            return rv
+        return _func
+    return result_wrapper
