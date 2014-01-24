@@ -78,6 +78,10 @@ class HaloCatalog(ParallelAnalysisInterface):
                 data_source = data_pf.h.all_data()
         self.data_source = data_source
 
+        # all of the analysis actions to be performed: callbacks, filters, and quantities
+        self.actions = []
+        # fields to be written to the halo catalog
+        self.quantities = []
         self.add_default_quantities()
         self.callbacks = []
 
@@ -85,7 +89,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         callback = callback_registry.find(callback, *args, **kwargs)
         if "output_dir" in kwargs is not None:
             ensure_dir(os.path.join(self.output_dir, kwargs["output_dir"]))
-        self.callbacks.append(callback)
+        self.actions.append(("callback", callback))
 
     def add_quantity(self, key, field_type=None, *args, **kwargs):
         if field_type is None:
@@ -94,7 +98,8 @@ class HaloCatalog(ParallelAnalysisInterface):
             quantity = (field_type, key)
         else:
             raise RuntimeError("HaloCatalog quantity must be a registered function or a field of a known type.")
-        self.quantities.append((key, quantity))
+        self.quantities.append(key)
+        self.actions.append(("quantity", (key, quantity)))
 
     def add_filter(self, filter, *args, **kwargs):
         filter = callback_registry.find(filter, *args, **kwargs)
@@ -111,14 +116,15 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.n_halos = self.data_source["particle_identifier"].size
         for i in parallel_objects(xrange(self.n_halos), njobs=njobs):
             new_halo = Halo(self)
-            for key, quantity in self.quantities:
-                if quantity in self.halos_pf.field_info:
-                    new_halo.quantities[key] = self.data_source[quantity][i]
-                elif callable(quantity):
-                    new_halo.quantities[key] = quantity(new_halo)
-
-            for callback in self.callbacks:
-                callback(new_halo)
+            for action_type, action in self.actions:
+                if action_type == "callback":
+                    action(new_halo)
+                elif action_type == "quantity":
+                    key, quantity = action
+                    if quantity in self.halos_pf.field_info:
+                        new_halo.quantities[key] = self.data_source[quantity][i]
+                    elif callable(quantity):
+                        new_halo.quantities[key] = quantity(new_halo)
 
             self.halo_list.append(new_halo.quantities)
             
@@ -143,7 +149,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         mylog.info("Saving halo catalog to %s." % filename)
         out_file = h5py.File(filename, 'w')
         field_data = np.empty(self.n_halos)
-        for key, quantity in self.quantities:
+        for key in self.quantities:
             units = ""
             if hasattr(self.halo_list[0][key], "units"):
                 units = str(self.halo_list[0][key].units)
@@ -154,7 +160,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         out_file.close()
 
     def add_default_quantities(self):
-        self.quantities = []
         self.add_quantity("particle_identifier", field_type="halos")
         self.add_quantity("particle_mass", field_type="halos")
         self.add_quantity("particle_position_x", field_type="halos")

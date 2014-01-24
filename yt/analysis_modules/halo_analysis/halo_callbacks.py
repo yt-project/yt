@@ -290,7 +290,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
 
     fields = ensure_list(fields)
     for field in fields:
-        q_tuple = ("%s_%d" % (field, critical_overdensity), "callback")
+        q_tuple = "%s_%d" % (field, critical_overdensity)
         if q_tuple not in halo.halo_catalog.quantities:
             halo.halo_catalog.quantities.append(q_tuple)
     
