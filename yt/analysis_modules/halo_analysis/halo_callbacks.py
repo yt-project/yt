@@ -39,6 +39,11 @@ def add_callback(name, function):
     callback_registry[name] =  HaloCallback(function)
 
 class HaloCallback(object):
+    r"""
+    A HaloCallback is a function that minimally takes in a Halo object 
+    and performs some analysis on it.  This function may attach attributes 
+    to the Halo object, write out data, etc, but does not return anything.
+    """
     def __init__(self, function, args=None, kwargs=None):
         self.function = function
         self.args = args

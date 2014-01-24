@@ -22,6 +22,11 @@ def add_quantity(name, function):
     quantity_registry[name] = HaloQuantity(function)
 
 class HaloQuantity(HaloCallback):
+    r"""
+    A HaloQuantity is a function that takes minimally a Halo object, 
+    performs some analysis, and then returns a value that is assigned 
+    to an entry in the Halo.quantities dictionary.
+    """
     def __init__(self, function, *args, **kwargs):
         HaloCallback.__init__(self, function, args, kwargs)
         

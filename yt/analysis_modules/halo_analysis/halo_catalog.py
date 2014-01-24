@@ -30,8 +30,9 @@ from .halo_object import \
      Halo
 from .operator_registry import \
     callback_registry, \
-    quantity_registry, \
-    hf_registry
+    filter_registry, \
+    hf_registry, \
+    quantity_registry
 
 class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
@@ -83,7 +84,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         # fields to be written to the halo catalog
         self.quantities = []
         self.add_default_quantities()
-        self.callbacks = []
 
     def add_callback(self, callback, *args, **kwargs):
         callback = callback_registry.find(callback, *args, **kwargs)
@@ -101,9 +101,9 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.quantities.append(key)
         self.actions.append(("quantity", (key, quantity)))
 
-    def add_filter(self, filter, *args, **kwargs):
-        filter = callback_registry.find(filter, *args, **kwargs)
-        self.callbacks.append(filter)
+    def add_filter(self, halo_filter, *args, **kwargs):
+        halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
+        self.actions.append(("filter", halo_filter))
 
     def run(self, njobs=-1, filename=None):
         self.halo_list = []
@@ -113,20 +113,27 @@ class HaloCatalog(ParallelAnalysisInterface):
             # the dataset that we have just created.
             raise NotImplementedError
 
-        self.n_halos = self.data_source["particle_identifier"].size
-        for i in parallel_objects(xrange(self.n_halos), njobs=njobs):
+        n_halos = self.data_source["particle_identifier"].size
+        for i in parallel_objects(xrange(n_halos), njobs=njobs):
             new_halo = Halo(self)
+            halo_filter = True
             for action_type, action in self.actions:
                 if action_type == "callback":
                     action(new_halo)
+                elif action_type == "filter":
+                    halo_filter = action(new_halo)
+                    if not halo_filter: break
                 elif action_type == "quantity":
                     key, quantity = action
                     if quantity in self.halos_pf.field_info:
                         new_halo.quantities[key] = self.data_source[quantity][i]
                     elif callable(quantity):
                         new_halo.quantities[key] = quantity(new_halo)
+                else:
+                    raise RuntimeError("Action must be a callback, filter, or quantity.")
 
-            self.halo_list.append(new_halo.quantities)
+            if halo_filter:
+                self.halo_list.append(new_halo.quantities)
             
             del new_halo
 
@@ -148,12 +155,13 @@ class HaloCatalog(ParallelAnalysisInterface):
         
         mylog.info("Saving halo catalog to %s." % filename)
         out_file = h5py.File(filename, 'w')
-        field_data = np.empty(self.n_halos)
+        n_halos = len(self.halo_list)
+        field_data = np.empty(n_halos)
         for key in self.quantities:
             units = ""
             if hasattr(self.halo_list[0][key], "units"):
                 units = str(self.halo_list[0][key].units)
-            for i in xrange(self.n_halos):
+            for i in xrange(n_halos):
                 field_data[i] = self.halo_list[i][key]
             dataset = out_file.create_dataset(str(key), data=field_data)
             dataset.attrs["units"] = units
