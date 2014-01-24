@@ -6,7 +6,7 @@ Halo filter object
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2014, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -14,6 +14,10 @@ Halo filter object
 #-----------------------------------------------------------------------------
 
 from .halo_callbacks import HaloCallback
+from .operator_registry import filter_registry
+
+def add_filter(name, function):
+    filter_registry[name] = HaloFilter(function)
 
 class HaloFilter(HaloCallback):
     def __init__(self, function, args, kwargs):

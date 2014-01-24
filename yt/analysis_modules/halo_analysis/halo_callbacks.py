@@ -34,7 +34,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
      
 from .operator_registry import \
     callback_registry
-from . import fields
 
 def add_callback(name, function):
     callback_registry[name] =  HaloCallback(function)
