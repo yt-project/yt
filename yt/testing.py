@@ -12,6 +12,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import cPickle
 import md5
 import itertools as it
 import numpy as np
@@ -526,25 +527,7 @@ _amr_grid_hierarchy = [
  ],
 ]
 
-def compute_results(func):
-    def _func(*args, **kwargs):
-        rv = func(*args, **kwargs)
-        if hasattr(rv, "convert_to_cgs"):
-            rv.convert_to_cgs()
-            _rv = rv.ndarray_view()
-        else:
-            _rv = rv
-        mi = _rv.min()
-        ma = _rv.max()
-        st = _rv.std(dtype="float64")
-        su = _rv.sum(dtype="float64")
-        ha = md5.md5(_rv.tostring()).hexdigest()
-        print "Inexact: @check_results(%s, %s, %s, %s)" % (mi, ma, st, su)
-        print "Exact  : @check_results(0, 0, 0, 0, '%s')" % (ha)
-        return rv
-    return _func
-
-def check_results(ref_mi, ref_ma, ref_std, ref_sum, ref_hash = None):
+def check_results(func):
     r"""This is a decorator for a function to verify that the (numpy ndarray)
     result of a function is what it should be.
 
@@ -556,37 +539,23 @@ def check_results(ref_mi, ref_ma, ref_std, ref_sum, ref_hash = None):
     If a hash is specified, it "wins" and the others are ignored.  Otherwise,
     tolerance is 1e-8 (just above single precision.)
 
+    The correct results will be stored if the command line contains
+    --answer-reference , and otherwise it will compare against the results on
+    disk.  The filename will be func_results_ref_FUNCNAME.cpkl where FUNCNAME
+    is the name of the function being tested.
+
     This will raise an exception if the results are not correct.
-
-    Parameters
-    ----------
-    ref_mi : float
-        The minimum to check against.
-    ref_ma : float
-        The maximum to check against.
-    ref_std : float
-        Reference standard deviation to check against.
-    ref_sum : float
-        Reference sum.
-    ref_hash : string (md5 hexdigest)
-        Reference hash, which will trump the others.
-
-    Returns
-    -------
-    result : bool
-        True or false for whether it matches or not.
 
     Examples
     --------
 
-    @check_results(0.0, 1.0, 0.1, 10.0)
+    @check_results
     def my_func(pf):
         return pf.domain_width
 
     my_func(pf)
     """
-    a1 = np.array([ref_mi, ref_ma, ref_std, ref_sum], dtype="float64")
-    def result_wrapper(func):
+    def compute_results(func):
         def _func(*args, **kwargs):
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
@@ -599,14 +568,37 @@ def check_results(ref_mi, ref_ma, ref_std, ref_sum, ref_hash = None):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             ha = md5.md5(_rv.tostring()).hexdigest()
-            a2 = np.array([mi, ma, st, su], dtype="float64")
-            if ref_hash is None:
-                print "Checking near-equality."
-                assert_allclose(a1, a2, 1e-8)
-            else:
-                print "Checking hashes."
-                assert(ha == ref_hash)
-            print a1, a2
+            fn = "func_results_ref_%s.cpkl" % (func.func_name)
+            with open(fn, "wb") as f:
+                cPickle.dump( (mi, ma, st, su, ha), f)
             return rv
         return _func
-    return result_wrapper
+    from yt.mods import unparsed_args
+    if "--answer-reference" in unparsed_args:
+        return compute_results(func)
+    
+    def compare_results(func):
+        def _func(*args, **kwargs):
+            rv = func(*args, **kwargs)
+            if hasattr(rv, "convert_to_cgs"):
+                rv.convert_to_cgs()
+                _rv = rv.ndarray_view()
+            else:
+                _rv = rv
+            vals = (_rv.min(),
+                    _rv.max(),
+                    _rv.std(dtype="float64"),
+                    _rv.sum(dtype="float64"),
+                    md5.md5(_rv.tostring()).hexdigest() )
+            fn = "func_results_ref_%s.cpkl" % (func.func_name)
+            if not os.path.exists(fn):
+                print "Answers need to be created with --answer-reference ."
+                return False
+            with open(fn, "rb") as f:
+                ref = cPickle.load(f)
+            for v1, v2 in zip(vals[:-1], ref[:-1]):
+                assert_allclose(v1, v2, 1e-8)
+            print "Hashes equal: %s" % (vals[-1] == ref[-1])
+            return rv
+        return _func
+    return compare_results(func)
