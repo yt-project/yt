@@ -130,7 +130,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.halo_list.sort(key=lambda a:a['particle_identifier'].to_ndarray())
             
         if filename is not None:
-            self.save_catalog(filename)
+            self.save_catalog(os.path.join(self.output_dir, filename))
 
     @parallel_root_only
     def save_catalog(self, filename):
