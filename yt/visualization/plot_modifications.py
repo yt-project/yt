@@ -404,10 +404,10 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
-            left_edge_x = (GLE[:,px_index]+pxo-x0)*dx + xx0
-            left_edge_y = (GLE[:,py_index]+pyo-y0)*dy + yy0
-            right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
-            right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            left_edge_x = np.array((GLE[:,px_index]+pxo-x0)*dx + xx0)
+            left_edge_y = np.array((GLE[:,py_index]+pyo-y0)*dy + yy0)
+            right_edge_x = np.array((GRE[:,px_index]+pxo-x0)*dx + xx0)
+            right_edge_y = np.array((GRE[:,py_index]+pyo-y0)*dy + yy0)
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
                        ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
                        ( levels >= min_level) & \
