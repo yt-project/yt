@@ -600,6 +600,7 @@ def check_results(func):
                 return False
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
+            print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
