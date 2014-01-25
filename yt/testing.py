@@ -568,7 +568,8 @@ def check_results(func):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             ha = md5.md5(_rv.tostring()).hexdigest()
-            fn = "func_results_ref_%s.cpkl" % (func.func_name)
+            name = kwargs.pop("result_basename", func.func_name)
+            fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
                 cPickle.dump( (mi, ma, st, su, ha), f)
             return rv
@@ -590,7 +591,8 @@ def check_results(func):
                     _rv.std(dtype="float64"),
                     _rv.sum(dtype="float64"),
                     md5.md5(_rv.tostring()).hexdigest() )
-            fn = "func_results_ref_%s.cpkl" % (func.func_name)
+            name = kwargs.pop("result_basename", func.func_name)
+            fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
                 print "Answers need to be created with --answer-reference ."
                 return False
