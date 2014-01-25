@@ -598,8 +598,10 @@ def check_results(func):
                 return False
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
-            for v1, v2 in zip(vals[:-1], ref[:-1]):
-                assert_allclose(v1, v2, 1e-8)
+            assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
+            assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
+            assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
+            assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
             print "Hashes equal: %s" % (vals[-1] == ref[-1])
             return rv
         return _func
