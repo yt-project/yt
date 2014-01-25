@@ -195,8 +195,11 @@ class GadgetStaticOutput(ParticleStaticOutput):
             self._unit_base = dict(length = ("mpchcm", 1.0))
         # The other same defaults we will use from the standard Gadget
         # defaults.
+        unit_base = self._unit_base or {}
         if "length" in unit_base:
             length_unit = unit_base["length"]
+        elif "UnitLength_in_cm" in unit_base:
+            length_unit = ("cm", unit_base["UnitLength_in_cm"])
         else:
             raise RuntimeError
         self.length_unit = self.quan(length_unit[1], length_unit[0])
@@ -205,7 +208,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
         elif "UnitVelocity_in_cm_per_s" in unit_base:
-            velocity_unit = ("cm/s", unit_base["UnitVelocity_in_cm_per_s"]
+            velocity_unit = ("cm/s", unit_base["UnitVelocity_in_cm_per_s"])
         else:
             velocity_unit = ("cm/s", 1e5)
         self.velocity_unit = self.quan(velocity_unit[1], velocity_unit[0])
@@ -229,8 +232,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
 
 class GadgetHDF5StaticOutput(GadgetStaticOutput):
     _file_class = ParticleFile
-    _fieldinfo_fallback = GadgetHDF5FieldInfo
-    _fieldinfo_known = KnownGadgetHDF5Fields
+    _field_info_class = SPHFieldInfo
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
@@ -340,8 +342,7 @@ class TipsyFile(ParticleFile):
 class TipsyStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = TipsyFile
-    _fieldinfo_fallback = TipsyFieldInfo
-    _fieldinfo_known = KnownTipsyFields
+    _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _header_spec = (('time',    'd'),
@@ -511,8 +512,7 @@ class HTTPParticleFile(ParticleFile):
 class HTTPStreamStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = HTTPParticleFile
-    _fieldinfo_fallback = GadgetFieldInfo
-    _fieldinfo_known = KnownGadgetFields
+    _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"

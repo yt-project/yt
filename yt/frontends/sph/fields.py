@@ -17,6 +17,8 @@ OWLS-specific fields
 import numpy as np
 
 from yt.funcs import *
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 from .definitions import \
     gadget_ptypes, \
     ghdf5_ptypes
@@ -54,6 +56,6 @@ def SmoothedGas(field, data):
     dens = data["PartType0", "Density"]
     rv = data.deposit(pos, [sml, dens], method="simple_smooth")
     return rv
-OWLSFieldInfo.add_field(("deposit", "PartType0_simple_smooth"),
-                function = SmoothedGas, validators = [ValidateSpatial()])
+#OWLSFieldInfo.add_field(("deposit", "PartType0_simple_smooth"),
+#                function = SmoothedGas, validators = [ValidateSpatial()])
 

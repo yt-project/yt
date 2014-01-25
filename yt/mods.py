@@ -125,10 +125,9 @@ from yt.frontends.stream.api import \
     load_particles, load_hexahedral_mesh, load_octree
 
 from yt.frontends.sph.api import \
-    OWLSStaticOutput, OWLSFieldInfo, \
+    OWLSStaticOutput, SPHFieldInfo, \
     GadgetStaticOutput, GadgetHDF5StaticOutput, \
-    GadgetFieldInfo, \
-    TipsyStaticOutput, TipsyFieldInfo
+    TipsyStaticOutput
 
 #from yt.analysis_modules.list_modules import \
 #    get_available_modules, amods
