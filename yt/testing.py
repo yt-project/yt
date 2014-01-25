@@ -544,6 +544,9 @@ def check_results(func):
     disk.  The filename will be func_results_ref_FUNCNAME.cpkl where FUNCNAME
     is the name of the function being tested.
 
+    Call your wrapped function with a result_basename keyword argument to
+    control the name of the saved pickle file.
+
     This will raise an exception if the results are not correct.
 
     Examples
@@ -553,7 +556,14 @@ def check_results(func):
     def my_func(pf):
         return pf.domain_width
 
+    @check_results
+    def my_field_check(dd, f):
+        return dd[f]
+
     my_func(pf)
+
+    dd = pf.h.all_data()
+    my_field_check(dd, 'density', result_basename='density_reference')
     """
     def compute_results(func):
         def _func(*args, **kwargs):
