@@ -276,11 +276,14 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        cgs_units_string = "g**(%s) * cm**(%s) * s**(%s) * K**(%s)" % \
+        cgs_units_string = "g**(%s) * cm**(%s) * s**(%s) * K**(%s) * Zfrac**(%s) * radian**(%s)" % \
             (self.dimensions.expand().as_coeff_exponent(dimensions.mass)[1],
              self.dimensions.expand().as_coeff_exponent(dimensions.length)[1],
              self.dimensions.expand().as_coeff_exponent(dimensions.time)[1],
-             self.dimensions.expand().as_coeff_exponent(dimensions.temperature)[1])
+             self.dimensions.expand().as_coeff_exponent(dimensions.temperature)[1],
+             self.dimensions.expand().as_coeff_exponent(dimensions.metallicity)[1],
+             self.dimensions.expand().as_coeff_exponent(dimensions.angle)[1],
+            )
 
         return Unit(cgs_units_string, cgs_value=1.0,
                     dimensions=self.dimensions, registry=self.registry)
