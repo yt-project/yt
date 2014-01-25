@@ -568,10 +568,11 @@ def check_results(func):
             ma = _rv.max()
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
+            si = _rv.size
             ha = md5.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
-                cPickle.dump( (mi, ma, st, su, ha), f)
+                cPickle.dump( (mi, ma, st, su, si, ha), f)
             return rv
         return _func
     from yt.mods import unparsed_args
@@ -591,6 +592,7 @@ def check_results(func):
                     _rv.max(),
                     _rv.std(dtype="float64"),
                     _rv.sum(dtype="float64"),
+                    _rv.size,
                     md5.md5(_rv.tostring()).hexdigest() )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
@@ -602,6 +604,7 @@ def check_results(func):
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
             assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
+            assert_equal(vals[4], ref[4])
             print "Hashes equal: %s" % (vals[-1] == ref[-1])
             return rv
         return _func
