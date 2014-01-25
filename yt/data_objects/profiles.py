@@ -59,7 +59,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         return ParallelAnalysisInterface._get_dependencies(
                     self, fields + self._get_bin_fields())
 
-    def add_fields(self, fields, weight = "CellMassMsun", accumulation = False, fractional=False):
+    def add_fields(self, fields, weight = "cell_mass", accumulation = False, fractional=False):
         """
         We accept a list of *fields* which will be binned if *weight* is not
         None and otherwise summed.  *accumulation* determines whether or not
@@ -130,8 +130,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         # which is how we will implement hybrid particle/cell fields
         # but...  we default to just the field.
         data = []
-        for field in _field_mapping.get(this_field, (this_field,)):
-            data.append(source[field].astype('float64'))
+        data.append(source[field].astype('float64'))
         return uconcatenate(data, axis=0)
 
     def _fix_pickle(self):
@@ -925,7 +924,7 @@ class Profile3D(ProfileND):
         # We've binned it!
 
 def create_profile(data_source, bin_fields, n = 64, 
-                   weight_field = "CellMass", fields = None,
+                   weight_field = "cell_mass", fields = None,
                    accumulation = False, fractional = False):
     r"""
     Create a 1, 2, or 3D profile object.

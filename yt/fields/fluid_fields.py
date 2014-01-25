@@ -32,6 +32,9 @@ from yt.utilities.physical_constants import \
     mh, \
     kboltz
 
+from yt.utilities.physical_ratios import \
+    metallicity_sun
+
 from yt.units.yt_array import \
     YTArray
 
@@ -142,7 +145,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     def _metallicity(field, data):
         tr = data[ftype, "metal_density"] / data[ftype, "density"]
-        return data.apply_units(tr, "code_metallicity")
+        tr /= metallicity_sun
+        return data.apply_units(tr, "Zsun")
     registry.add_field((ftype, "metallicity"),
              function=_metallicity,
              units="Zsun")
@@ -195,9 +199,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     setup_gradient_fields(registry, (ftype, "density"), "g / cm**3",
                           slice_info)
 
-def setup_gradient_fields(registry, field, field_units, slice_info = None):
-    assert(isinstance(field, tuple))
-    ftype, fname = field
+def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
+    assert(isinstance(grad_field, tuple))
+    ftype, fname = grad_field
     if slice_info is None:
         sl_left = slice(None, -2, None)
         sl_right = slice(2, None, None)
@@ -215,18 +219,21 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
         def func(field, data):
             # We need to set up stencils
             # This is based on enzo parameters and should probably be changed.    
-            new_field = data.pf.arr(np.zeros(data[field].shape, dtype=np.float64),
+            new_field = data.pf.arr(np.zeros(data[grad_field].shape,
+                                dtype=np.float64),
                                 field_units)
+            new_field /= data['dx'] # This fixes our units for in-place ops.
             ds = div_fac * data['dx']
-            new_field[slice_3d]  = data[field][slice_3dr]/ds[slice_3d]
-            new_field[slice_3d] -= data[field][slice_3dl]/ds[slice_3d]
+            new_field[slice_3d]  = data[grad_field][slice_3dr]/ds[slice_3d]
+            new_field[slice_3d] -= data[grad_field][slice_3dl]/ds[slice_3d]
             return new_field
+        return func
 
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
                  function = f,
-                 validators = [ValidateSpatial(1, [field])],
+                 validators = [ValidateSpatial(1, [grad_field])],
                  units = "%s / cm" % field_units)
     
     def _gradient_magnitude(field, data):
@@ -235,5 +242,5 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
                        data[ftype, "%s_gradient_z" % fname]**2)
     registry.add_field((ftype, "%s_gradient_magnitude" % fname),
              function = _gradient_magnitude,
-             validators = [ValidateSpatial(1, [field])],
+             validators = [ValidateSpatial(1, [grad_field])],
              units = "%s / cm" % field_units)

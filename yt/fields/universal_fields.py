@@ -245,8 +245,7 @@ add_field("contours",
 def get_radius(data, field_prefix):
     center = data.get_field_parameter("center")
     DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = data.pf.arr(np.zeros(data[field_prefix+"x"].shape,
-                         dtype='float64'), 'cm')
+    radius = np.zeros(data[field_prefix+"x"].shape, dtype='float64')
     r = radius.copy()
     if any(data.pf.periodicity):
         rdw = radius.copy()

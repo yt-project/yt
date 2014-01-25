@@ -73,7 +73,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         # our long axis is the first one!
         rv = []
         for my_list in retvals:
-            data = YTArray(my_list).transpose()
+            data = np.array(my_list).transpose()
             rv.append(self.comm.par_combine_object(data,
                         datatype="array", op="cat").transpose())
         retvals = rv

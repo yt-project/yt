@@ -62,7 +62,7 @@ from yt.utilities.lib import \
     MatchPointsToGrids
 from yt.utilities.decompose import \
     decompose_array, get_psize
-from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.flagging_methods import \
@@ -187,9 +187,9 @@ class StreamHierarchy(GridGeometryHandler):
         if parent_ids is not None:
             reverse_tree = self.stream_handler.parent_ids.tolist()
             # Initial setup:
-            for gid,pid in enumerate(reverse_tree):
+            for gid, pid in enumerate(reverse_tree):
                 if pid >= 0:
-                    self.grids[id]._parent_id = pid
+                    self.grids[gid]._parent_id = pid
                     self.grids[pid]._children_ids.append(self.grids[gid].id)
         else:
             mylog.debug("Reconstructing parent-child relationships")
@@ -218,9 +218,13 @@ class StreamHierarchy(GridGeometryHandler):
             ids = np.where(mask.astype("bool"))
             grid._children_ids = ids[0] # where is a tuple
         mylog.debug("Second pass; identifying parents")
+        self.stream_handler.parent_ids = np.zeros(
+            self.stream_handler.num_grids, "int64") - 1
         for i, grid in enumerate(self.grids): # Second pass
             for child in grid.Children:
                 child._parent_id = i
+                # _id_offset = 0
+                self.stream_handler.parent_ids[child.id] = i
 
     def _initialize_grid_arrays(self):
         GridGeometryHandler._initialize_grid_arrays(self)
@@ -249,7 +253,7 @@ class StreamHierarchy(GridGeometryHandler):
         else:
             self.io = io_registry[self.data_style](self.pf)
 
-    def update_data(self, data) :
+    def update_data(self, data, units = None):
 
         """
         Update the stream data with a new data dict. If fields already exist,
@@ -258,6 +262,8 @@ class StreamHierarchy(GridGeometryHandler):
         alone. 
         """
         [update_field_names(d) for d in data]
+        if units is not None:
+            self.stream_handler.field_units.update(units)
         particle_types = set_particle_types(data[0])
         ftype = "io"
 
@@ -275,14 +281,14 @@ class StreamHierarchy(GridGeometryHandler):
                     grid.field_data.pop( ("io", fname) )
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
             
-
         # We only want to create a superset of fields here.
         self._detect_output_fields()
+        self.pf.create_field_info()
         mylog.debug("Creating Particle Union 'all'")
         pu = ParticleUnion("all", list(self.pf.particle_types_raw))
         self.pf.add_particle_union(pu)
         self.pf.particle_types = tuple(set(self.pf.particle_types))
-        self._setup_unknown_fields()
+
 
 class StreamStaticOutput(StaticOutput):
     _hierarchy_class = StreamHierarchy
@@ -385,7 +391,7 @@ def set_particle_types(data) :
     
     for key in data.keys() :
 
-        if key is "number_of_particles": continue
+        if key == "number_of_particles": continue
         
         if len(data[key].shape) == 1:
             particle_types[key] = True
@@ -440,7 +446,7 @@ def assign_particle_data(pf, pdata) :
         else :
             particle_indices[1] = particle_grid_count.squeeze()
     
-        pdata.pop("number_of_particles")    
+        pdata.pop("number_of_particles", None) 
         grid_pdata = []
         for i, pcount in enumerate(particle_grid_count) :
             grid = {}
@@ -452,12 +458,12 @@ def assign_particle_data(pf, pdata) :
             grid_pdata.append(grid)
 
     else :
-
         grid_pdata = [pdata]
     
     for pd, gi in zip(grid_pdata, sorted(pf.stream_handler.fields)):
-        pd.pop("number_of_particles")
         pf.stream_handler.fields[gi].update(pd)
+        npart = pf.stream_handler.fields[gi].pop("number_of_particles", 0)
+        pf.stream_handler.particle_count[gi] = npart
                                         
 def unitify_data(data):
     if all([isinstance(val, np.ndarray) for val in data.values()]):
@@ -574,7 +580,7 @@ Parameters
 
     if number_of_particles > 0 :
         particle_types = set_particle_types(data)
-        pdata = {}
+        pdata = {} # Used much further below.
         pdata["number_of_particles"] = number_of_particles
         for key in data.keys() :
             if len(data[key].shape) == 1 :
@@ -625,7 +631,7 @@ Parameters
         grid_dimensions,
         grid_levels,
         -np.ones(nprocs, dtype='int64'),
-        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
+        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # particle count
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
@@ -655,6 +661,7 @@ Parameters
                 pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
+        # This will update the stream handler too
         assign_particle_data(spf, pdata)
     
     return spf
@@ -730,10 +737,11 @@ Parameters
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros((ngrids, 1), dtype='int32')
-    grid_left_edges = np.zeros((ngrids, 3), dtype="float32")
-    grid_right_edges = np.zeros((ngrids, 3), dtype="float32")
+    grid_left_edges = np.zeros((ngrids, 3), dtype="float64")
+    grid_right_edges = np.zeros((ngrids, 3), dtype="float64")
     grid_dimensions = np.zeros((ngrids, 3), dtype="int32")
     number_of_particles = np.zeros((ngrids,1), dtype='int64')
+    parent_ids = np.zeros(ngrids, dtype="int64") - 1
     sfh = StreamDictFieldHandler()
     for i, g in enumerate(grid_data):
         grid_left_edges[i,:] = g.pop("left_edge")
@@ -744,6 +752,19 @@ Parameters
             number_of_particles[i,:] = g.pop("number_of_particles")  
         update_field_names(g)
         sfh[i] = g
+
+    # We now reconstruct our parent ids, so that our particle assignment can
+    # proceed.
+    mask = np.empty(ngrids, dtype='int32')
+    for gi in range(ngrids):
+        get_box_grids_level(grid_left_edges[gi,:],
+                            grid_right_edges[gi,:],
+                            grid_levels[gi] + 1,
+                            grid_left_edges, grid_right_edges,
+                            grid_levels, mask)
+        ids = np.where(mask.astype("bool"))
+        for ci in ids:
+            parent_ids[ci] = gi
 
     for i, g_data in enumerate(grid_data):
         field_units, data = unitify_data(g_data)
@@ -763,7 +784,7 @@ Parameters
         grid_right_edges,
         grid_dimensions,
         grid_levels,
-        None, # parent_ids is none
+        parent_ids,
         number_of_particles,
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
@@ -828,7 +849,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 field = ("unknown", field)
             fi = base_pf._get_field_info(*field)
             if fi.particle_type :
-                pdata[field] = np.concatenate([grid[field]
+                pdata[field] = uconcatenate([grid[field]
                                                for grid in base_pf.h.grids])
         pdata["number_of_particles"] = number_of_particles
         
@@ -875,20 +896,20 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
         
         pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0,
                             bbox = bbox)
+        if number_of_particles > 0:
+            if ("io", "particle_position_x") not in pdata:
+                pdata_ftype = {}
+                for f in [k for k in sorted(pdata)]:
+                    if not hasattr(pdata[f], "shape"): continue
+                    mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
+                    pdata_ftype["io",f] = pdata.pop(f)
+                pdata_ftype.update(pdata)
+                pdata = pdata_ftype
+            assign_particle_data(pf, pdata)
+            # We need to reassign the field list here.
         cur_gc = pf.h.num_grids
 
     # Now reassign particle data to grids
-
-    if number_of_particles > 0:
-        if ("io", "particle_position_x") not in pdata:
-            pdata_ftype = {}
-            for f in [k for k in sorted(pdata)]:
-                if not hasattr(pdata[f], "shape"): continue
-                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                pdata_ftype["io",f] = pdata.pop(f)
-            pdata_ftype.update(pdata)
-            pdata = pdata_ftype
-        assign_particle_data(pf, pdata)
     
     return pf
 
@@ -917,11 +938,6 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
-
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        self.field_info.setup_particle_fields(ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,

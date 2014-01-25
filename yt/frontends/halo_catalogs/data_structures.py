@@ -113,8 +113,3 @@ class RockstarStaticOutput(StaticOutput):
                 return True
         return False
 
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        self.field_info.setup_particle_fields(ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
-

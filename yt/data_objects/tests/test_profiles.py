@@ -4,10 +4,11 @@ from yt.data_objects.profiles import \
     Profile1D, Profile2D, Profile3D
 
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
+_units = ("g/cm**3", "K", "dyne", "erg")
 
 def test_binned_profiles():
     return
-    pf = fake_random_pf(64, nprocs = 8, fields = _fields)
+    pf = fake_random_pf(64, nprocs = 8, fields = _fields, units = _units)
     nv = pf.domain_dimensions.prod()
     dd = pf.h.all_data()
     (rmi, rma), (tmi, tma), (dmi, dma) = dd.quantities["Extrema"](
@@ -74,7 +75,7 @@ def test_binned_profiles():
         yield assert_equal, p3d["ones"][:-1,:-1,:-1], np.ones((nb,nb,nb))
 
 def test_profiles():
-    pf = fake_random_pf(64, nprocs = 8, fields = _fields)
+    pf = fake_random_pf(64, nprocs = 8, fields = _fields, units = _units)
     nv = pf.domain_dimensions.prod()
     dd = pf.h.all_data()
     (rmi, rma), (tmi, tma), (dmi, dma) = dd.quantities["Extrema"](
