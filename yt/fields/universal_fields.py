@@ -185,29 +185,6 @@ add_field("contours",
           display_field=False,
           function=_contours)
 
-def get_radius(data, field_prefix):
-    center = data.get_field_parameter("center").in_units("cm")
-    DW = (data.pf.domain_right_edge - data.pf.domain_left_edge).in_units("cm")
-    radius = data.pf.arr(np.zeros(data[field_prefix+"x"].shape,
-                         dtype='float64'), 'cm')
-    r = radius.copy()
-    if any(data.pf.periodicity):
-        rdw = radius.copy()
-    for i, ax in enumerate('xyz'):
-        np.subtract(data["%s%s" % (field_prefix, ax)].in_units("cm"),
-                    center[i], r)
-        if data.pf.periodicity[i] == True:
-            np.abs(r, r)
-            np.subtract(r, DW[i], rdw)
-            np.abs(rdw, rdw)
-            np.minimum(r, rdw, r)
-        np.power(r, 2.0, r)
-        np.add(radius, r, radius)
-        if data.pf.dimensionality < i+1:
-            break
-    np.sqrt(radius, radius)
-    return radius
-
 def _baroclinic_vorticity_x(field, data):
     rho2 = data["density"].astype(np.float64)**2
     return (data["pressure_gradient_y"] * data["density_gradient_z"] -

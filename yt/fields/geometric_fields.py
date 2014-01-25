@@ -21,6 +21,9 @@ from .derived_field import \
     ValidateGridType, \
     ValidateSpatial
 
+from .field_functions import \
+     get_radius
+
 from .field_plugin_registry import \
     register_field_plugin
 
@@ -35,8 +38,6 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
-
-from .universal_fields import get_radius
 
 from yt.utilities.lib.geometry_utils import \
     obtain_rvec
