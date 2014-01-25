@@ -19,11 +19,9 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip, fmax, fmin
-from selection_routines cimport SelectorObject
-from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
-from oct_visitors cimport cind
-#from geometry_utils cimport point_to_hilbert
+from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 

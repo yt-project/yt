@@ -35,4 +35,3 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.funcs import *
 
-import yt.utilities.lib as amr_utils

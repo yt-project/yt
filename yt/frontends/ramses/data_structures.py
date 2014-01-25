@@ -30,7 +30,7 @@ from yt.data_objects.octree_subset import \
 
 from yt.units.yt_array import YTQuantity
 from .definitions import ramses_header
-from yt.utilities.lib import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
@@ -472,11 +472,6 @@ class RAMSESStaticOutput(StaticOutput):
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level
-
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        self.field_info.setup_particle_fields(ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

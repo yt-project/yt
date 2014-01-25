@@ -56,8 +56,9 @@ from yt.data_objects.static_output import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
-from yt.utilities.lib import \
-    get_box_grids_level, \
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
+from yt.utilities.lib.GridTree import \
     GridTree, \
     MatchPointsToGrids
 from yt.utilities.decompose import \
@@ -917,11 +918,6 @@ class StreamParticlesStaticOutput(StreamStaticOutput):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
-
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        self.field_info.setup_particle_fields(ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,

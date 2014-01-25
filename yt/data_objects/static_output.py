@@ -378,8 +378,9 @@ class StaticOutput(object):
         raise YTFieldNotFound((ftype, fname), self)
 
     def _setup_particle_type(self, ptype):
-        mylog.debug("Don't know what to do with %s", ptype)
-        return []
+        orig = set(self.field_info.items())
+        self.field_info.setup_particle_fields(ptype)
+        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @property
     def particle_fields_by_type(self):
@@ -450,7 +451,9 @@ class StaticOutput(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
+        vel_unit = getattr(self, "code_velocity",
+                    self.length_unit / self.time_unit)
+        self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None

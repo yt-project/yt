@@ -27,7 +27,7 @@ from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
-from yt.utilities.lib import Octree
+from yt.utilities.lib.Octree import Octree
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
     mass_sun_cgs, \

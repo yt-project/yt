@@ -1,6 +1,6 @@
 import numpy as np
 import h5py
-from yt.utilities.lib import CICSample_3
+from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.funcs import *
 
 class ParticleGenerator(object) :

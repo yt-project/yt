@@ -35,7 +35,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.utilities.lib import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.selection_routines import \
     RegionSelector
