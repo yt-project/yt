@@ -82,63 +82,6 @@ def jeans_mass(field, data):
 
 add_field("jeans_mass", function=jeans_mass, units="g")
 
-# This is rho_total / rho_cr(z).
-def _overdensity(field, data):
-    return data["matter_density"] / (rho_crit_now * data.pf.hubble_constant**2 *
-                (1+data.pf.current_redshift)**3)
-add_field("overdensity", function=_overdensity)
-
-# This is rho_matter / <rho_matter> - 1.0
-def _density_perturbation(field, data):
-    omega_m = data.pf.omega_matter
-    h = data.pf.hubble_constant
-    z = data.pf.current_redshift
-    rho_m = rho_crit_now * h**2 * omega_m * (1.0 + z)**3
-    return data["matter_density"] / rho_m - 1.0
-
-add_field("density_perturbation", function=_overdensity)
-
-# This is rho_baryon / <rho_baryon>
-def _baryon_overdensity(field, data):
-    # @todo: should we provide this field if the dataset doesn't have omega_b?
-    if data.pf.has_key('omega_baryon_now'):
-        omega_baryon_now = data.pf['omega_baryon_now']
-    else:
-        omega_baryon_now = 0.0441
-
-    # These are enzo parameters and should be changed.
-    return data["density"] / (omega_baryon_now * rho_crit_now *
-                              (data.pf["CosmologyHubbleConstantNow"]**2) *
-                              ((1.0 + data.pf["CosmologyCurrentRedshift"])**3))
-
-add_field("baryon_overdensity", function=_baryon_overdensity)
-
-#FIXME
-
-# Weak lensing convergence.
-# Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
-#def _convertConvergence(data):
-#    if not data.pf.parameters.has_key('cosmology_calculator'):
-#        data.pf.parameters['cosmology_calculator'] = Cosmology(
-#            HubbleConstantNow=(100.*data.pf.hubble_constant),
-#            OmegaMatterNow=data.pf.omega_matter, OmegaLambdaNow=data.pf.omega_lambda)
-#    # observer to lens
-#    DL = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-#        data.pf.parameters['observer_redshift'], data.pf.current_redshift)
-#    # observer to source
-#    DS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-#        data.pf.parameters['observer_redshift'], data.pf.parameters['lensing_source_redshift'])
-#    # lens to source
-#    DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-#        data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
-#    # TODO: convert 1.5e14 to constants
-#    return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter *
-#                                (data.pf.hubble_constant / speed_of_light_cgs)**2 *
-#                                (1 + data.pf.current_redshift)))
-#add_field("weak_lensing_convergence", function=_overdensity,
-#          convert_function=_convertConvergence,
-#          projection_conversion='mpccm')
-
 ### Begin block that should probably be in an analysis module ###
 
 def _chandra_emissivity(field, data):
@@ -241,29 +184,6 @@ add_field("contours",
           take_log=False,
           display_field=False,
           function=_contours)
-
-def get_radius(data, field_prefix):
-    center = data.get_field_parameter("center")
-    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
-    radius = data.pf.arr(np.zeros(data[field_prefix+"x"].shape,
-                         dtype='float64'), 'cm')
-    r = radius.copy()
-    if any(data.pf.periodicity):
-        rdw = radius.copy()
-    for i, ax in enumerate('xyz'):
-        np.subtract(data["%s%s" % (field_prefix, ax)].in_units("cm"),
-                    data.pf.arr(center[i], center.units).in_units("cm"), r)
-        if data.pf.periodicity[i] == True:
-            np.abs(r, r)
-            np.subtract(r, DW[i], rdw)
-            np.abs(rdw, rdw)
-            np.minimum(r, rdw, r)
-        np.power(r, 2.0, r)
-        np.add(radius, r, radius)
-        if data.pf.dimensionality < i+1:
-            break
-    np.sqrt(radius, radius)
-    return radius
 
 def _baroclinic_vorticity_x(field, data):
     rho2 = data["density"].astype(np.float64)**2
