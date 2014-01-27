@@ -30,6 +30,7 @@ yt/utilities/lib/FixedInterpolator.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
 yt/utilities/lib/geometry_utils.c
+yt/utilities/lib/image_utilities.c
 yt/utilities/lib/Interpolators.c
 yt/utilities/lib/kdtree.c
 yt/utilities/lib/mesh_utilities.c
