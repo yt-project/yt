@@ -202,15 +202,22 @@ cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
             o.file_ind = nfinest[0]
             o.domain = 1
             nfinest[0] += 1
-    elif arr[data.index] == 1:
+    elif arr[data.index] > 0:
+        if arr[data.index] != 1 and arr[data.index] != 8:
+            print "ARRAY CLUE: ", arr[data.index], "UNKNOWN"
+            raise RuntimeError
         if o.children == NULL:
             o.children = <Oct **> malloc(sizeof(Oct *) * 8)
             for i in range(8):
                 o.children[i] = NULL
-        o.children[ii] = &octs[nocts[0]]
-        o.children[ii].domain_ind = nocts[0]
-        o.children[ii].file_ind = -1
-        o.children[ii].domain = -1
-        o.children[ii].children = NULL
-        nocts[0] += 1
+        for i in range(arr[data.index]):
+            o.children[ii + i] = &octs[nocts[0]]
+            o.children[ii + i].domain_ind = nocts[0]
+            o.children[ii + i].file_ind = -1
+            o.children[ii + i].domain = -1
+            o.children[ii + i].children = NULL
+            nocts[0] += 1
+    else:
+        print "SOMETHING IS AMISS", data.index
+        raise RuntimeError
     data.index += 1
