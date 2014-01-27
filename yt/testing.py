@@ -12,6 +12,8 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import md5
+import cPickle
 import itertools as it
 import numpy as np
 import importlib
