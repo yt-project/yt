@@ -192,7 +192,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             mylog.info("Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length = ("mpchcm", 1.0))
+            self._unit_base = dict(length = ("Mpccm/h", 1.0))
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}
