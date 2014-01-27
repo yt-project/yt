@@ -21,18 +21,19 @@ from yt.funcs import \
      ensure_dir, \
      mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, \
-    parallel_blocking_call, \
-    parallel_root_only, \
-    parallel_objects
+     only_on_root, \
+     ParallelAnalysisInterface, \
+     parallel_blocking_call, \
+     parallel_root_only, \
+     parallel_objects
      
 from .halo_object import \
      Halo
 from .operator_registry import \
-    callback_registry, \
-    filter_registry, \
-    hf_registry, \
-    quantity_registry
+     callback_registry, \
+     filter_registry, \
+     hf_registry, \
+     quantity_registry
 
 class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
@@ -60,12 +61,16 @@ class HaloCatalog(ParallelAnalysisInterface):
     
     def __init__(self, halos_pf=None, data_pf=None, 
                  data_source=None, finder_method=None, 
-                 output_dir="."):
+                 output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
         self.data_pf = data_pf
         self.finder_method = finder_method
         self.output_dir = ensure_dir(output_dir)
+        if os.path.basename(self.output_dir) != ".":
+            self.output_prefix = os.path.basename(self.output_dir)
+        else:
+            self.output_prefix = "catalog"
 
         if halos_pf is None:
             if data_pf is None:
@@ -105,8 +110,8 @@ class HaloCatalog(ParallelAnalysisInterface):
         halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
         self.actions.append(("filter", halo_filter))
 
-    def run(self, njobs=-1, filename=None):
-        self.halo_list = []
+    def run(self, njobs=-1):
+        self.catalog = []
 
         if self.halos_pf is None:
             # this is where we would do halo finding and assign halos_pf to 
@@ -133,36 +138,33 @@ class HaloCatalog(ParallelAnalysisInterface):
                     raise RuntimeError("Action must be a callback, filter, or quantity.")
 
             if halo_filter:
-                self.halo_list.append(new_halo.quantities)
+                self.catalog.append(new_halo.quantities)
             
             del new_halo
 
-        self.halo_list = self.comm.par_combine_object(self.halo_list,
-                                                      datatype="list",
-                                                      op="cat")
-        self.halo_list.sort(key=lambda a:a['particle_identifier'].to_ndarray())
-            
-        if filename is not None:
-            self.save_catalog(os.path.join(self.output_dir, filename))
+        self.catalog.sort(key=lambda a:a['particle_identifier'].to_ndarray())
+        self.save_catalog()
 
-    @parallel_root_only
-    def save_catalog(self, filename):
+    def save_catalog(self):
         "Write out hdf5 file with all halo quantities."
 
-        if len(self.halo_list) < 1:
+        if len(self.catalog) < 1:
             mylog.info("Halo list is empty.  Nothing will be written.")
             return
         
-        mylog.info("Saving halo catalog to %s." % filename)
+        filename = os.path.join(self.output_dir, "%s.%04d" %
+                                (self.output_prefix, self.comm.rank))
+        only_on_root(mylog.info, "Saving halo catalog to %s.",
+                     os.path.join(self.output_dir, self.output_prefix))
         out_file = h5py.File(filename, 'w')
-        n_halos = len(self.halo_list)
+        n_halos = len(self.catalog)
         field_data = np.empty(n_halos)
         for key in self.quantities:
             units = ""
-            if hasattr(self.halo_list[0][key], "units"):
-                units = str(self.halo_list[0][key].units)
+            if hasattr(self.catalog[0][key], "units"):
+                units = str(self.catalog[0][key].units)
             for i in xrange(n_halos):
-                field_data[i] = self.halo_list[i][key]
+                field_data[i] = self.catalog[i][key]
             dataset = out_file.create_dataset(str(key), data=field_data)
             dataset.attrs["units"] = units
         out_file.close()
