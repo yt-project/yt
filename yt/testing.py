@@ -597,7 +597,7 @@ def check_results(func):
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
                 print "Answers need to be created with --answer-reference ."
-                return False
+                assert(False)
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
             print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
