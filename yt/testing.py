@@ -537,7 +537,8 @@ def check_results(func):
     If you would like more control over the name of the pickle file the results
     are stored in, you can pass the result_basename keyword argument to the
     function you are testing.  The check_results decorator will use the value
-    of the keyword to construct the filename of the results data file.
+    of the keyword to construct the filename of the results data file.  If
+    result_basename is not specified, the name of the testing function is used.
 
     This will raise an exception if the results are not correct.
 
