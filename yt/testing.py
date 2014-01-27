@@ -534,6 +534,11 @@ def check_results(func):
     disk.  The filename will be func_results_ref_FUNCNAME.cpkl where FUNCNAME
     is the name of the function being tested.
 
+    If you would like more control over the name of the pickle file the results
+    are stored in, you can pass the result_basename keyword argument to the
+    function you are testing.  The check_results decorator will use the value
+    of the keyword to construct the filename of the results data file.
+
     This will raise an exception if the results are not correct.
 
     Examples
@@ -544,6 +549,13 @@ def check_results(func):
         return pf.domain_width
 
     my_func(pf)
+
+    @check_results
+    def field_checker(dd, field_name):
+        return dd[field_name]
+
+    field_cheker(pf.h.all_data(), 'density', result_basename='density')
+
     """
     def compute_results(func):
         def _func(*args, **kwargs):
