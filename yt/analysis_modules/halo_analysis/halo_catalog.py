@@ -110,8 +110,9 @@ class HaloCatalog(ParallelAnalysisInterface):
         halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
         self.actions.append(("filter", halo_filter))
 
-    def run(self, njobs=-1):
+    def run(self, njobs=-1, save_halos=False):
         self.catalog = []
+        if save_halos: self.halo_list = []
 
         if self.halos_pf is None:
             # this is where we would do halo finding and assign halos_pf to 
@@ -139,8 +140,11 @@ class HaloCatalog(ParallelAnalysisInterface):
 
             if halo_filter:
                 self.catalog.append(new_halo.quantities)
-            
-            del new_halo
+
+            if save_halos and halo_filter:
+                self.halo_list.append(new_halo)
+            else:
+                del new_halo
 
         self.catalog.sort(key=lambda a:a['particle_identifier'].to_ndarray())
         self.save_catalog()
