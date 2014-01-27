@@ -19,7 +19,7 @@ import os
 
 from yt.data_objects.profiles import \
      Profile1D
-from yt.data_objects.yt_array import \
+from yt.units.yt_array import \
      YTArray, YTQuantity
 from yt.utilities.exceptions import \
      YTSphereTooSmall
