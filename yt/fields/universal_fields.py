@@ -61,22 +61,3 @@ from yt.utilities.math_utils import \
 UniversalFields = FieldInfoContainer(None, [])
 add_field = UniversalFields.add_field
 
-def _averaged_density(field, data):
-    nx, ny, nz = data["density"].shape
-    new_field = np.zeros((nx-2, ny-2, nz-2), dtype=np.float64)
-    weight_field = np.zeros((nx-2, ny-2, nz-2), dtype=np.float64)
-    i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
-
-    for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
-        sl = [slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k))]
-        new_field += data["density"][sl] * data["cell_mass"][sl]
-        weight_field += data["cell_mass"][sl]
-
-    # Now some fancy footwork
-    new_field2 = data.pf.arr(np.zeros((nx, ny, nz)), 'g/cm**3')
-    new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
-    return new_field2
-
-add_field("averaged_density", function=_averaged_density,
-          validators=[ValidateSpatial(1, ["density"])])
-
