@@ -14,6 +14,7 @@ Test ndarray subclass that handles symbolic units.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from nose.tools import assert_true
 from numpy.testing import \
     assert_approx_equal, assert_array_equal, \
     assert_equal, assert_raises
@@ -334,8 +335,11 @@ def test_selecting():
 
     """
     a = YTArray(range(10), 'cm')
-    assert_array_equal, a[:3], YTArray([0, 1, 2], 'cm')
+    yield assert_array_equal, a[:3], YTArray([0, 1, 2], 'cm')
     yield assert_isinstance, a[0], YTQuantity
+    # .base points to the original array for a numpy view.  If it is not a
+    # view, .base is None.
+    yield assert_true, a[:3].base is a
 
 def test_fix_length():
     """
