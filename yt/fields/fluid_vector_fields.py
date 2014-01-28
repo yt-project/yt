@@ -190,104 +190,112 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        validators=[ValidateSpatial(1,
                         ["velocity_x", "velocity_y", "velocity_z"])])
 
-    # ########################################################################
-    # # With radiation pressure
-    # ########################################################################
+    ########################################################################
+    # With radiation pressure
+    ########################################################################
 
-    # def _vorticity_radiation_pressure_x(field, data):
-    #     rho = data["density"].astype(np.float64)
-    #     return (data["radiation_acceleration_y"] * data["density_gradient_z"] -
-    #             data["radiation_acceleration_z"] * data["density_gradient_y"]) / rho
-    # def _vorticity_radiation_pressure_y(field, data):
-    #     rho = data["density"].astype(np.float64)
-    #     return (data["radiation_acceleration_z"] * data["density_gradient_x"] -
-    #             data["radiation_acceleration_x"] * data["density_gradient_z"]) / rho
-    # def _vorticity_radiation_pressure_z(field, data):
-    #     rho = data["density"].astype(np.float64)
-    #     return (data["radiation_acceleration_x"] * data["density_gradient_y"] -
-    #             data["radiation_acceleration_y"] * data["density_gradient_x"]) / rho
+    def _vorticity_radiation_pressure_x(field, data):
+        rho = data["density"].astype(np.float64)
+        return (data["radiation_acceleration_y"] * data["density_gradient_z"] -
+                data["radiation_acceleration_z"] * data["density_gradient_y"]) / rho
+    def _vorticity_radiation_pressure_y(field, data):
+        rho = data["density"].astype(np.float64)
+        return (data["radiation_acceleration_z"] * data["density_gradient_x"] -
+                data["radiation_acceleration_x"] * data["density_gradient_z"]) / rho
+    def _vorticity_radiation_pressure_z(field, data):
+        rho = data["density"].astype(np.float64)
+        return (data["radiation_acceleration_x"] * data["density_gradient_y"] -
+                data["radiation_acceleration_y"] * data["density_gradient_x"]) / rho
 
-    # for ax in 'xyz':
-    #     n = "vorticity_radiation_pressure_%s" % ax
-    #     add_field(n, function=eval("_%s" % n),
-    #               validators=[ValidateSpatial(1,
-    #                    ["density",
-    #                     "radiation_acceleration_x",
-    #                     "radiation_acceleration_y",
-    #                     "radiation_acceleration_z"])],
-    #               units="1/s")
+    for ax in 'xyz':
+        n = "vorticity_radiation_pressure_%s" % ax
+        registry.add_field((ftype, n),
+                           function=eval("_%s" % n),
+                           units="1/s",
+                           validators=[ValidateSpatial(1,
+                            ["density",
+                             "radiation_acceleration_x",
+                             "radiation_acceleration_y",
+                             "radiation_acceleration_z"])])
 
-    # def _vorticity_radiation_pressure_magnitude(field, data):
-    #     return np.sqrt(data["vorticity_radiation_pressure_x"]**2 +
-    #                    data["vorticity_radiation_pressure_y"]**2 +
-    #                    data["vorticity_radiation_pressure_z"]**2)
-    # add_field("vorticity_radiation_pressure_magnitude",
-    #           function=_vorticity_radiation_pressure_magnitude,
-    #           validators=[ValidateSpatial(1,
-    #                       ["density",
-    #                        "radiation_acceleration_x",
-    #                        "radiation_acceleration_y",
-    #                        "radiation_acceleration_z"])],
-    #           units="1/s")
+    create_magnitude_field(registry, "vorticity_radiation_pressure", "1/s",
+                           ftype=ftype, slice_info=slice_info,
+                           validators=[ValidateSpatial(1,
+                            ["density",
+                             "radiation_acceleration_x",
+                             "radiation_acceleration_y",
+                             "radiation_acceleration_z"])])
 
-    # def _vorticity_radiation_pressure_growth_x(field, data):
-    #     return -data["vorticity_stretching_x"] - data["baroclinic_vorticity_x"] \
-    #            -data["vorticity_radiation_pressure_x"]
-    # def _vorticity_radiation_pressure_growth_y(field, data):
-    #     return -data["vorticity_stretching_y"] - data["baroclinic_vorticity_y"] \
-    #            -data["vorticity_radiation_pressure_y"]
-    # def _vorticity_radiation_pressure_growth_z(field, data):
-    #     return -data["vorticity_stretching_z"] - data["baroclinic_vorticity_z"] \
-    #            -data["vorticity_radiation_pressure_z"]
-    # for ax in 'xyz':
-    #     n = "vorticity_radiation_pressure_growth_%s" % ax
-    #     add_field(n, function=eval("_%s" % n),
-    #               validators=[ValidateSpatial(1,
-    #                        ["density",
-    #                         "radiation_acceleration_x",
-    #                         "radiation_acceleration_y",
-    #                         "radiation_acceleration_z"])],
-    #               units="1/s")
-    # def _vorticity_radiation_pressure_growth_magnitude(field, data):
-    #     result = np.sqrt(data["vorticity_radiation_pressure_growth_x"]**2 +
-    #                      data["vorticity_radiation_pressure_growth_y"]**2 +
-    #                      data["vorticity_radiation_pressure_growth_z"]**2)
-    #     dot = data.pf.arr(np.zeros(result.shape), '1/s')
-    #     for ax in "xyz":
-    #         dot += data["Vorticity%s" % ax] * data["vorticity_growth_%s" % ax]
-    #     result = np.sign(dot) * result
-    #     return result
-    # add_field("vorticity_radiation_pressure_growth_magnitude", function=_vorticity_growth_magnitude,
-    #           validators=[ValidateSpatial(1,
-    #                       ["density", "radiation_acceleration_x", "radiation_acceleration_y", "radiation_acceleration_z"])],
-    #           units="1/s",
-    #           take_log=False)
-    # def _vorticity_radiation_pressure_growth_magnitude_absolute(field, data):
-    #     return np.sqrt(data["vorticity_radiation_pressure_growth_x"]**2 +
-    #                    data["vorticity_radiation_pressure_growth_y"]**2 +
-    #                    data["vorticity_radiation_pressure_growth_z"]**2)
-    # add_field("vorticity_radiation_pressure_growth_magnitude_absolute",
-    #           function=_vorticity_radiation_pressure_growth_magnitude_absolute,
-    #           validators=[ValidateSpatial(1,
-    #                       ["density",
-    #                        "radiation_acceleration_x",
-    #                        "radiation_acceleration_y",
-    #                        "radiation_acceleration_z"])],
-    #           units="1/s")
+    def _vorticity_radiation_pressure_growth_x(field, data):
+        return -data["vorticity_stretching_x"] - data["baroclinic_vorticity_x"] \
+               -data["vorticity_radiation_pressure_x"]
+    def _vorticity_radiation_pressure_growth_y(field, data):
+        return -data["vorticity_stretching_y"] - data["baroclinic_vorticity_y"] \
+               -data["vorticity_radiation_pressure_y"]
+    def _vorticity_radiation_pressure_growth_z(field, data):
+        return -data["vorticity_stretching_z"] - data["baroclinic_vorticity_z"] \
+               -data["vorticity_radiation_pressure_z"]
+               
+    for ax in 'xyz':
+        n = "vorticity_radiation_pressure_growth_%s" % ax
+        registry.add_field((ftype, n),
+                           function=eval("_%s" % n),
+                           units="s**(-2)",
+                           validators=[ValidateSpatial(1,
+                            ["density",
+                             "radiation_acceleration_x",
+                             "radiation_acceleration_y",
+                             "radiation_acceleration_z"])])
 
-    # def _vorticity_radiation_pressure_growth_timescale(field, data):
-    #     domegax_dt = data["vorticity_x"] / data["vorticity_radiation_pressure_growth_x"]
-    #     domegay_dt = data["vorticity_y"] / data["vorticity_radiation_pressure_growth_y"]
-    #     domegaz_dt = data["vorticity_z"] / data["vorticity_radiation_pressure_growth_z"]
-    #     return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
-    # add_field("vorticity_radiation_pressure_growth_timescale", function=_vorticity_radiation_pressure_growth_timescale,
-    #           validators=[ValidateSpatial(1,
-    #                       ["density",
-    #                        "radiation_acceleration_x",
-    #                        "radiation_acceleration_y",
-    #                        "radiation_acceleration_z"])],
-    #           units="1/s")
+    def _vorticity_radiation_pressure_growth_magnitude(field, data):
+        result = np.sqrt(data["vorticity_radiation_pressure_growth_x"]**2 +
+                         data["vorticity_radiation_pressure_growth_y"]**2 +
+                         data["vorticity_radiation_pressure_growth_z"]**2)
+        dot = data.pf.arr(np.zeros(result.shape), "")
+        for ax in "xyz":
+            dot += (data["Vorticity%s" % ax] *
+                    data["vorticity_growth_%s" % ax]).to_ndarray()
+        result = np.sign(dot) * result
+        return result
+    
+    registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude"),
+                       function=_vorticity_radiation_pressure_growth_magnitude,
+                       units="s**(-2)",
+                       validators=[ValidateSpatial(1,
+                        ["density",
+                         "radiation_acceleration_x",
+                         "radiation_acceleration_y",
+                         "radiation_acceleration_z"])],
+                       take_log=False)
 
+    def _vorticity_radiation_pressure_growth_magnitude_absolute(field, data):
+        return np.sqrt(data["vorticity_radiation_pressure_growth_x"]**2 +
+                       data["vorticity_radiation_pressure_growth_y"]**2 +
+                       data["vorticity_radiation_pressure_growth_z"]**2)
+    
+    registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude_absolute"),
+                       function=_vorticity_radiation_pressure_growth_magnitude_absolute,
+                       units="s**(-2)",
+                       validators=[ValidateSpatial(1,
+                        ["density",
+                         "radiation_acceleration_x",
+                         "radiation_acceleration_y",
+                         "radiation_acceleration_z"])])
+
+    def _vorticity_radiation_pressure_growth_timescale(field, data):
+        domegax_dt = data["vorticity_x"] / data["vorticity_radiation_pressure_growth_x"]
+        domegay_dt = data["vorticity_y"] / data["vorticity_radiation_pressure_growth_y"]
+        domegaz_dt = data["vorticity_z"] / data["vorticity_radiation_pressure_growth_z"]
+        return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
+    
+    registry.add_field((ftype, "vorticity_radiation_pressure_growth_timescale"),
+                       function=_vorticity_radiation_pressure_growth_timescale,
+                       units="s",
+                       validators=[ValidateSpatial(1,
+                        ["density",
+                         "radiation_acceleration_x",
+                         "radiation_acceleration_y",
+                         "radiation_acceleration_z"])])
 
     # def _Shear(field, data):
     #     """
