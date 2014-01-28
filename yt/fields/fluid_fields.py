@@ -26,6 +26,7 @@ from .field_plugin_registry import \
     register_field_plugin
 
 from .vector_operations import \
+     create_averaged_field, \
      create_magnitude_field, \
      create_vector_fields
 
@@ -159,6 +160,10 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     setup_gradient_fields(registry, (ftype, "density"), "g / cm**3",
                           slice_info)
+
+    create_averaged_field(registry, "density", "g/cm**3",
+                          ftype=ftype, slice_info=slice_info,
+                          weight="cell_mass")
 
 def setup_gradient_fields(registry, field, field_units, slice_info = None):
     assert(isinstance(field, tuple))

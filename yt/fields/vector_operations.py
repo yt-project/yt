@@ -198,3 +198,37 @@ def create_vector_fields(registry, basename, field_units,
              units=field_units,
              validators=[ValidateParameter("normal")])
 
+def create_averaged_field(registry, basename, field_units,
+                          ftype = "gas", slice_info = None,
+                          validators = None,
+                          weight = "cell_mass"):
+
+    if validators is None:
+        validators = []
+    validators += [ValidateSpatial(1, [(ftype, basename)])]
+
+    def _averaged_field(field, data):
+        nx, ny, nz = data[(ftype, basename)].shape
+        new_field = data.pf.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+                                (just_one(data[(ftype, basename)]) *
+                                 just_one(data[(ftype, weight)])).units)
+        weight_field = data.pf.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+                                   data[(ftype, weight)].units)
+        i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
+
+        for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
+            sl = [slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k))]
+            new_field += data[(ftype, basename)][sl] * \
+              data[(ftype, weight)][sl]
+            weight_field += data[(ftype, weight)][sl]
+
+        # Now some fancy footwork
+        new_field2 = data.pf.arr(np.zeros((nx, ny, nz)), 
+                                 data[(ftype, basename)].units)
+        new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
+        return new_field2
+
+    registry.add_field((ftype, "averaged_%s" % basename),
+                       function=_averaged_field,
+                       units=field_units,
+                       validators=validators)
