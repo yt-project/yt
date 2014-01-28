@@ -148,12 +148,11 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              function=_metallicity,
              units="Zsun")
     
-    # # This may not be appropriate to have an 'ftype' for.
-    # def _mean_molecular_weight(field,data):
-    #     return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
-    # registry.add_field((ftype, "mean_molecular_weight"),
-    #           function=_mean_molecular_weight,
-    #           units=r"")
+    def _mean_molecular_weight(field, data):
+        return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
+    registry.add_field((ftype, "mean_molecular_weight"),
+              function=_mean_molecular_weight,
+              units=r"")
 
     def _vorticity_squared(field, data):
         # We need to set up stencils
