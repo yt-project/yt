@@ -24,9 +24,6 @@ from yt.fields.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.fields.universal_fields
-from yt.fields.universal_fields import \
-    _get_conv
 from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
