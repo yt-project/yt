@@ -147,9 +147,11 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_species_field(sp)
         def _number_density(_sp_list, masses):
             def _num_dens_func(field, data):
-                num = YTArray(np.zeros(data["density"].shape, "float64"))
+                num = data.pf.arr(np.zeros_like(data["density"], np.float64),
+                                  "1/cm**3")
                 for sp in _sp_list:
                     num += data["%s_density" % sp] / masses[sp]
+                return num
             return _num_dens_func
         func = _number_density(species_names, known_species_masses)
         self.add_field(("gas", "number_density"),
