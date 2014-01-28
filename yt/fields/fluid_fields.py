@@ -154,41 +154,6 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
               function=_mean_molecular_weight,
               units=r"")
 
-    def _vorticity_squared(field, data):
-        # We need to set up stencils
-        new_field = data.pf.arr(np.zeros(data[ftype, "velocity_x"].shape),
-                                's**-2')
-        dvzdy = (data[ftype, "velocity_z"][1:-1,sl_right,1:-1] -
-                 data[ftype, "velocity_z"][1:-1,sl_left,1:-1]) \
-                     / (div_fac*data["dy"][1:-1,1:-1,1:-1])
-        dvydz = (data[ftype, "velocity_y"][1:-1,1:-1,sl_right] -
-                 data[ftype, "velocity_y"][1:-1,1:-1,sl_left]) \
-                     / (div_fac*data["dz"][1:-1,1:-1,1:-1])
-        new_field[1:-1,1:-1,1:-1] += (dvzdy - dvydz)**2.0
-        del dvzdy, dvydz
-        dvxdz = (data[ftype, "velocity_x"][1:-1,1:-1,sl_right] -
-                 data[ftype, "velocity_x"][1:-1,1:-1,sl_left]) \
-                     / (div_fac*data["dz"][1:-1,1:-1,1:-1])
-        dvzdx = (data[ftype, "velocity_z"][sl_right,1:-1,1:-1] -
-                 data[ftype, "velocity_z"][sl_left,1:-1,1:-1]) \
-                     / (div_fac*data["dx"][1:-1,1:-1,1:-1])
-        new_field[1:-1,1:-1,1:-1] += (dvxdz - dvzdx)**2.0
-        del dvxdz, dvzdx
-        dvydx = (data[ftype, "velocity_y"][sl_right,1:-1,1:-1] -
-                 data[ftype, "velocity_y"][sl_left,1:-1,1:-1]) \
-                     / (div_fac*data["dx"][1:-1,1:-1,1:-1])
-        dvxdy = (data[ftype, "velocity_x"][1:-1,sl_right,1:-1] -
-                 data[ftype, "velocity_x"][1:-1,sl_left,1:-1]) \
-                     / (div_fac*data["dy"][1:-1,1:-1,1:-1])
-        new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
-        del dvydx, dvxdy
-        new_field = np.abs(new_field)
-        return new_field
-    registry.add_field((ftype, "vorticity_squared"),
-             function=_vorticity_squared,
-             validators=[ValidateSpatial(1)],
-             units="s**-2")
-
     setup_gradient_fields(registry, (ftype, "pressure"), "dyne/cm**2",
                           slice_info)
 
