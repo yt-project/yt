@@ -37,7 +37,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         sl_right = slice(2, None, None)
         div_fac = 2.0
     else:
-        sl_left, sl_right, div_face = slice_info
+        sl_left, sl_right, div_fac = slice_info
 
     def _matter_density(field, data):
         return data[ftype, "density"] + \
@@ -69,7 +69,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
                        unit_registry=data.pf.unit_registry)
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
-        return data["density"] / omega_baryon_now / co.critical_density(0.0) / \
+        return data["density"] / omega_baryon / co.critical_density(0.0) / \
           (1.0 + data.pf.hubble_constant)**3
 
     registry.add_field("baryon_overdensity",
