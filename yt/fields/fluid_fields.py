@@ -26,7 +26,8 @@ from .field_plugin_registry import \
     register_field_plugin
 
 from .vector_operations import \
-    create_vector_fields
+     create_magnitude_field, \
+     create_vector_fields
 
 from yt.utilities.physical_constants import \
     mh, \
@@ -60,7 +61,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         sl_right = slice(2, None, None)
         div_fac = 2.0
     else:
-        sl_left, sl_right, div_face = slice_info
+        sl_left, sl_right, div_fac = slice_info
 
     create_vector_fields(registry, "velocity", "cm / s", ftype, slice_info)
 
@@ -147,12 +148,12 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              function=_metallicity,
              units="Zsun")
     
-    # This may not be appropriate to have an 'ftype' for.
-    def _mean_molecular_weight(field,data):
-        return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
-    registry.add_field((ftype, "mean_molecular_weight"),
-              function=_mean_molecular_weight,
-              units=r"")
+    # # This may not be appropriate to have an 'ftype' for.
+    # def _mean_molecular_weight(field,data):
+    #     return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
+    # registry.add_field((ftype, "mean_molecular_weight"),
+    #           function=_mean_molecular_weight,
+    #           units=r"")
 
     def _vorticity_squared(field, data):
         # We need to set up stencils
@@ -203,8 +204,7 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
         sl_right = slice(2, None, None)
         div_fac = 2.0
     else:
-        sl_left, sl_right, div_face = slice_info
-
+        sl_left, sl_right, div_fac = slice_info
     slice_3d = [slice(1, -1), slice(1, -1), slice(1, -1)]
 
     def grad_func(axi, ax):
@@ -212,28 +212,23 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
         slice_3dr = slice_3d[:]
         slice_3dl[axi] = sl_left
         slice_3dr[axi] = sl_right
-        def func(field, data):
-            # We need to set up stencils
-            # This is based on enzo parameters and should probably be changed.    
-            new_field = data.pf.arr(np.zeros(data[field].shape, dtype=np.float64),
-                                field_units)
+        def func(my_field, data):
             ds = div_fac * data['dx']
-            new_field[slice_3d]  = data[field][slice_3dr]/ds[slice_3d]
-            new_field[slice_3d] -= data[field][slice_3dl]/ds[slice_3d]
+            f  = data[field][slice_3dr]/ds[slice_3d]
+            f -= data[field][slice_3dl]/ds[slice_3d]
+            new_field = data.pf.arr(np.zeros_like(data[field], dtype=np.float64),
+                                    f.units)
+            new_field[slice_3d] = f
             return new_field
+        return func
 
+    grad_units = "%s / cm" % field_units
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                 function = f,
-                 validators = [ValidateSpatial(1, [field])],
-                 units = "%s / cm" % field_units)
-    
-    def _gradient_magnitude(field, data):
-        return np.sqrt(data[ftype, "%s_gradient_x" % fname]**2 +
-                       data[ftype, "%s_gradient_y" % fname]**2 +
-                       data[ftype, "%s_gradient_z" % fname]**2)
-    registry.add_field((ftype, "%s_gradient_magnitude" % fname),
-             function = _gradient_magnitude,
-             validators = [ValidateSpatial(1, [field])],
-             units = "%s / cm" % field_units)
+                           function = f,
+                           validators = [ValidateSpatial(1, [field])],
+                           units = grad_units)
+    create_magnitude_field(registry, "%s_gradient" % fname,
+                           grad_units, ftype=ftype,
+                           validators = [ValidateSpatial(1, [field])])
