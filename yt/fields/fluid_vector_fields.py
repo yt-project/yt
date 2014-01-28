@@ -407,7 +407,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
     
-    registry.add_field("shear_mach",
+    registry.add_field((ftype, "shear_mach"),
                        function=_shear_mach,
                        units="",
                        validators=[ValidateSpatial(1,
