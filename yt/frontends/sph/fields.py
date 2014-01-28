@@ -27,7 +27,6 @@ from yt.fields.field_info_container import \
     ValidateGridType, \
     NullFunc, \
     TranslationFunc
-import yt.fields.universal_fields
 from .definitions import \
     gadget_ptypes, \
     ghdf5_ptypes
