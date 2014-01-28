@@ -22,7 +22,6 @@ from yt.fields.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.fields.universal_fields
 import numpy as np
 
 KnownChomboFields = FieldInfoContainer()
