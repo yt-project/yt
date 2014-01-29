@@ -31,7 +31,7 @@ default_unit_symbol_lut = {
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
-    "Zfrac": (1.0, dimensions.metallicity),
+    "Zsun": (metallicity_sun, dimensions.metallicity),
 
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
@@ -76,7 +76,6 @@ default_unit_symbol_lut = {
     "rsun": ( cm_per_rsun, dimensions.length),
     "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
     "Tsun": ( temp_sun_kelvin, dimensions.temperature),
-    "Zsun": ( metallicity_sun, dimensions.metallicity),
 
     # astro distances
     "AU": (cm_per_au, dimensions.length),
