@@ -157,3 +157,12 @@ prefixable_units = (
     "W",
     "gauss",
 )
+
+cgs_base_units = {
+    dimensions.mass:'g',
+    dimensions.length:'cm',
+    dimensions.time:'s',
+    dimensions.temperature:'K',
+    dimensions.metallicity:'Zsun',
+    dimensions.angle:'radian',
+}
