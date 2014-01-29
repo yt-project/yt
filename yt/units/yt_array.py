@@ -678,9 +678,12 @@ class YTArray(np.ndarray):
     def std(self, axis=None, dtype=None, out=None, ddof=0):
         return super(YTArray, self).std(axis, dtype, out, ddof), self.units
 
-    @return_arr
     def __getitem__(self, item):
-        return super(YTArray, self).__getitem__(item), self.units
+        ret = super(YTArray, self).__getitem__(item)
+        if ret.shape == ():
+            return YTQuantity(ret, self.units)
+        else:
+            return ret
 
     def __array_wrap__(self, out_arr, context=None):
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
