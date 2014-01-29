@@ -335,11 +335,24 @@ def test_selecting():
 
     """
     a = YTArray(range(10), 'cm')
-    yield assert_array_equal, a[:3], YTArray([0, 1, 2], 'cm')
-    yield assert_isinstance, a[0], YTQuantity
+    a_slice = a[:3]
+    a_fancy_index = a[[1,1,3,5]]
+    a_array_fancy_index = a[array([[1,1], [3,5]])]
+    a_boolean_index = a[a > 5]
+    a_selection = a[0]
+
+    yield assert_array_equal, a_slice, YTArray([0, 1, 2], 'cm')
+    yield assert_array_equal, a_fancy_index, YTArray([1,1,3,5], 'cm')
+    yield assert_array_equal, a_array_fancy_index, YTArray([[1, 1,], [3,5]], 'cm')
+    yield assert_array_equal, a_boolean_index, YTArray([6,7,8,9], 'cm')
+    yield assert_isinstance, a_selection, YTQuantity
+
     # .base points to the original array for a numpy view.  If it is not a
     # view, .base is None.
-    yield assert_true, a[:3].base is a
+    yield assert_true, a_slice.base is a
+    yield assert_true, a_fancy_index.base is None
+    yield assert_true, a_array_fancy_index.base is None
+    yield assert_true, a_boolean_index.base is None
 
 def test_fix_length():
     """
