@@ -92,9 +92,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units = "")
 
     def _kin_energy(field, data):
-        return 0.5*data["density"] * ( data["velocity_x"]**2.0
-                                     + data["velocity_y"]**2.0
-                                     + data["velocity_z"]**2.0 )
+        return 0.5*data[ftype, "density"] * ( data[ftype, "velocity_x"]**2.0
+                                              + data[ftype, "velocity_y"]**2.0
+                                              + data[ftype, "velocity_z"]**2.0 )
     registry.add_field(("gas", "kinetic_energy"),
                        function = _kin_energy,
                        units = "erg / cm**3")
@@ -186,7 +186,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl[axi] = sl_left
         slice_3dr[axi] = sl_right
         def func(field, data):
-            ds = div_fac * data['dx']
+            ds = div_fac * data["index", "dx"]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = data.pf.arr(np.zeros_like(data[grad_field], dtype=np.float64),
