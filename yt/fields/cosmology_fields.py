@@ -53,7 +53,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         co = Cosmology(hubble_constant=data.pf.hubble_constant,
                        omega_matter=data.pf.omega_matter,
                        omega_lambda=data.pf.omega_lambda)
-        return data["matter_density"] / co.critical_density(data.pf.current_redshift)
+        return data[ftype, "matter_density"] / \
+          co.critical_density(data.pf.current_redshift)
     
     registry.add_field((ftype, "overdensity"),
                        function=_overdensity,
@@ -69,7 +70,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
                        unit_registry=data.pf.unit_registry)
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
-        return data["density"] / omega_baryon / co.critical_density(0.0) / \
+        return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
           (1.0 + data.pf.hubble_constant)**3
 
     registry.add_field("baryon_overdensity",
@@ -85,7 +86,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
                        unit_registry=data.pf.unit_registry)
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
-        return data["density"] / data.pf.omega_matter / co.critical_density(0.0) / \
+        return data[ftype, "density"] / data.pf.omega_matter / \
+          co.critical_density(0.0) / \
           (1.0 + data.pf.hubble_constant)**3
 
     registry.add_field("matter_overdensity",
@@ -114,7 +116,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         # removed the factor of 1 / a to account for the fact that we are projecting 
         # with a proper distance.
         return 1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
-          data["matter_overdensity"]
+          data[ftype, "matter_overdensity"]
        
     registry.add_field("weak_lensing_convergence",
                        function=_weak_lensing_convergence,
