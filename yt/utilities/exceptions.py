@@ -210,6 +210,10 @@ class YTInvalidWidthError(YTException):
 class YTEmptyProfileData(Exception):
     pass
 
+class YTTooParallel(YTException):
+    def __str__(self):
+        return "You've used too many processors for this dataset."
+
 class YTDuplicateFieldInProfile(Exception):
     def __init__(self, field, new_spec, old_spec):
         self.field = field
