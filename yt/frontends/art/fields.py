@@ -18,7 +18,6 @@ import numpy as np
 from yt.funcs import *
 from yt.fields.field_info_container import \
     FieldInfoContainer
-import yt.fields.universal_fields
 import yt.utilities.lib as amr_utils
 from yt.utilities.physical_constants import mass_sun_cgs
 from yt.frontends.art.definitions import *

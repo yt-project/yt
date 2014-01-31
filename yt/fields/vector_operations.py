@@ -39,8 +39,9 @@ from yt.funcs import just_one
 
 from yt.utilities.lib import obtain_rvec, obtain_rv_vec
 
-def create_vector_fields(registry, basename, field_units,
-                         ftype = "gas", slice_info = None):
+def create_magnitude_field(registry, basename, field_units,
+                           ftype = "gas", slice_info = None,
+                           validators = None):
 
     xn, yn, zn = ["%s_%s" % (basename, ax) for ax in 'xyz']
 
@@ -57,8 +58,36 @@ def create_vector_fields(registry, basename, field_units,
         return np.sqrt(mag)
 
     registry.add_field((ftype, "%s_magnitude" % basename),
-                       function = _magnitude, units = field_units)
+                       function = _magnitude, units = field_units,
+                       validators = validators)
 
+def create_vector_fields(registry, basename, field_units,
+                         ftype = "gas", slice_info = None):
+    # slice_info would be the left, the right, and the factor.
+    # For example, with the old Enzo-ZEUS fields, this would be:
+    # slice(None, -2, None)
+    # slice(1, -1, None)
+    # 1.0
+    # Otherwise, we default to a centered difference.
+    if slice_info is None:
+        sl_left = slice(None, -2, None)
+        sl_right = slice(2, None, None)
+        div_fac = 2.0
+    else:
+        sl_left, sl_right, div_fac = slice_info
+    sl_center = slice(1, -1, None)
+
+    xn, yn, zn = ["%s_%s" % (basename, ax) for ax in 'xyz']
+
+    # Is this safe?
+    if registry.pf.dimensionality < 3:
+        zn = "zeros"
+    if registry.pf.dimensionality < 2:
+        yn = "zeros"
+
+    create_magnitude_field(registry, basename, field_units,
+                           ftype=ftype, slice_info=slice_info)
+        
     def _radial(field, data):
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
@@ -97,16 +126,6 @@ def create_vector_fields(registry, basename, field_units,
     registry.add_field((ftype, "cutting_plane_%s_z" % basename),
                        function = _cp_vectors('z'), units = field_units)
 
-    # slice_info would be the left, the right, and the factor.
-    # For example, with the old Enzo-ZEUS fields, this would be:
-    # slice(None, -2, None)
-    # slice(1, -1, None)
-    # 1.0
-    # Otherwise, we default to a centered difference.
-    if slice_info is None:
-        sl_left = slice(None, -2, None)
-        sl_right = slice(2, None, None)
-        div_fac = 2.0
     def _divergence(field, data):
         ds = div_fac * just_one(data["dx"])
         f  = data[xn][sl_right,1:-1,1:-1]/ds
@@ -118,7 +137,7 @@ def create_vector_fields(registry, basename, field_units,
         f += data[zn][1:-1,1:-1,sl_right]/ds
         f -= data[zn][1:-1,1:-1,sl_left ]/ds
         new_field = data.pf.arr(np.zeros(data[xn].shape, dtype=np.float64),
-                            '1/s')
+                                f.units)        
         new_field[1:-1,1:-1,1:-1] = f
         return new_field
     def _divergence_abs(field, data):
@@ -179,3 +198,37 @@ def create_vector_fields(registry, basename, field_units,
              units=field_units,
              validators=[ValidateParameter("normal")])
 
+def create_averaged_field(registry, basename, field_units,
+                          ftype = "gas", slice_info = None,
+                          validators = None,
+                          weight = "cell_mass"):
+
+    if validators is None:
+        validators = []
+    validators += [ValidateSpatial(1, [(ftype, basename)])]
+
+    def _averaged_field(field, data):
+        nx, ny, nz = data[(ftype, basename)].shape
+        new_field = data.pf.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+                                (just_one(data[(ftype, basename)]) *
+                                 just_one(data[(ftype, weight)])).units)
+        weight_field = data.pf.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+                                   data[(ftype, weight)].units)
+        i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
+
+        for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
+            sl = [slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k))]
+            new_field += data[(ftype, basename)][sl] * \
+              data[(ftype, weight)][sl]
+            weight_field += data[(ftype, weight)][sl]
+
+        # Now some fancy footwork
+        new_field2 = data.pf.arr(np.zeros((nx, ny, nz)), 
+                                 data[(ftype, basename)].units)
+        new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
+        return new_field2
+
+    registry.add_field((ftype, "averaged_%s" % basename),
+                       function=_averaged_field,
+                       units=field_units,
+                       validators=validators)

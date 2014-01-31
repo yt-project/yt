@@ -62,7 +62,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("RadAccel1", (ra_units, ["radiation_acceleration_x"], None)),
         ("RadAccel2", (ra_units, ["radiation_acceleration_y"], None)),
         ("RadAccel3", (ra_units, ["radiation_acceleration_z"], None)),
-        ("Dark_Matter_Mass", (rho_units, ["dark_matter_mass"], None)),
+        ("Dark_Matter_Density", (rho_units, ["dark_matter_density"], None)),
         ("Temperature", ("K", ["temperature"], None)),
         ("Dust_Temperature", ("K", ["dust_temperature"], None)),
         ("x-velocity", (vel_units, ["velocity_x"], None)),
@@ -147,9 +147,11 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_species_field(sp)
         def _number_density(_sp_list, masses):
             def _num_dens_func(field, data):
-                num = YTArray(np.zeros(data["density"].shape, "float64"))
+                num = data.pf.arr(np.zeros_like(data["density"], np.float64),
+                                  "1/cm**3")
                 for sp in _sp_list:
                     num += data["%s_density" % sp] / masses[sp]
+                return num
             return _num_dens_func
         func = _number_density(species_names, known_species_masses)
         self.add_field(("gas", "number_density"),

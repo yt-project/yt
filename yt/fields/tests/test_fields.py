@@ -1,6 +1,5 @@
 from yt.testing import *
 import numpy as np
-import yt.fields.universal_fields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \

@@ -324,7 +324,7 @@ def standard_particle_fields(registry, ptype,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
-    from .universal_fields import \
+    from .field_functions import \
         get_radius
 
     def _particle_radius(field, data):
