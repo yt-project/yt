@@ -16,8 +16,10 @@ Cosmology related fields.
 
 import numpy as np
 
+from .derived_field import \
+     ValidateParameter
 from .field_plugin_registry import \
-    register_field_plugin
+     register_field_plugin
 
 from yt.utilities.cosmology import \
      Cosmology
@@ -73,9 +75,10 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
           (1.0 + data.pf.hubble_constant)**3
 
-    registry.add_field("baryon_overdensity",
+    registry.add_field((ftype, "baryon_overdensity"),
                        function=_baryon_overdensity,
-                       units="")
+                       units="",
+                       validators=[ValidateParameter("omega_baryon")])
 
     # rho_matter / <rho_matter>
     def _matter_overdensity(field, data):
@@ -90,7 +93,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
           co.critical_density(0.0) / \
           (1.0 + data.pf.hubble_constant)**3
 
-    registry.add_field("matter_overdensity",
+    registry.add_field((ftype, "matter_overdensity"),
                        function=_matter_overdensity,
                        units="")
     
@@ -118,6 +121,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         return 1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
           data[ftype, "matter_overdensity"]
        
-    registry.add_field("weak_lensing_convergence",
+    registry.add_field((ftype, "weak_lensing_convergence"),
                        function=_weak_lensing_convergence,
-                       units="1/cm")
+                       units="1/cm",
+        validators=[ValidateParameter("observer_redshift"),
+                    ValidateParameter("source_redshift")])

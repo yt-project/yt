@@ -161,7 +161,7 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = resize_vector(data[ftype, 'cylindrical_theta'], vectors)
+        theta = resize_vector(data["index", 'cylindrical_theta'], vectors)
         return get_cyl_r_component(vectors, theta, normal)
 
     def _cylindrical_radial_absolute(field, data):
@@ -180,7 +180,7 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = data[ftype, 'cylindrical_theta'].copy()
+        theta = data["index", 'cylindrical_theta'].copy()
         theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
         return get_cyl_theta_component(vectors, theta, normal)
 

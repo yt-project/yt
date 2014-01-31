@@ -52,20 +52,21 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         """
         return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
 
-    registry.add_field("dynamical_time",
+    registry.add_field((ftype, "dynamical_time"),
                        function=_dynamical_time,
                        units="s")
 
     def _jeans_mass(field, data):
         MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
           (3.0 / (4.0 * np.pi)) ** (0.5)
+        print MJ_constant
         u = (MJ_constant * \
              ((data[ftype, "temperature"] /
                data[ftype, "mean_molecular_weight"])**(1.5)) * \
              (data[ftype, "density"]**(-0.5)))
         return u
 
-    registry.add_field("jeans_mass",
+    registry.add_field((ftype, "jeans_mass"),
                        function=_jeans_mass,
                        units="g")
 
@@ -110,7 +111,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
         return scale * vel * data[ftype, "density"]
 
-    registry.add_field("sz_kinetic",
+    registry.add_field((ftype, "sz_kinetic"),
                        function=_sz_kinetic,
                        units="1/cm",
                        validators=[ValidateParameter("axis")])
@@ -119,6 +120,6 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
         return scale * data[ftype, "density"] * data[ftype, "temperature"]
 
-    registry.add_field("szy",
+    registry.add_field((ftype, "szy"),
                        function=_szy,
                        units="1/cm")
