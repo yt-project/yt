@@ -165,9 +165,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                           ftype=ftype, slice_info=slice_info,
                           weight="cell_mass")
 
-def setup_gradient_fields(registry, field, field_units, slice_info = None):
-    assert(isinstance(field, tuple))
-    ftype, fname = field
+def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
+    assert(isinstance(grad_field, tuple))
+    ftype, fname = grad_field
     if slice_info is None:
         sl_left = slice(None, -2, None)
         sl_right = slice(2, None, None)
@@ -181,11 +181,11 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
         slice_3dr = slice_3d[:]
         slice_3dl[axi] = sl_left
         slice_3dr[axi] = sl_right
-        def func(my_field, data):
+        def func(field, data):
             ds = div_fac * data['dx']
-            f  = data[field][slice_3dr]/ds[slice_3d]
-            f -= data[field][slice_3dl]/ds[slice_3d]
-            new_field = data.pf.arr(np.zeros_like(data[field], dtype=np.float64),
+            f  = data[grad_field][slice_3dr]/ds[slice_3d]
+            f -= data[grad_field][slice_3dl]/ds[slice_3d]
+            new_field = data.pf.arr(np.zeros_like(data[grad_field], dtype=np.float64),
                                     f.units)
             new_field[slice_3d] = f
             return new_field
@@ -196,8 +196,8 @@ def setup_gradient_fields(registry, field, field_units, slice_info = None):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
                            function = f,
-                           validators = [ValidateSpatial(1, [field])],
+                           validators = [ValidateSpatial(1, [grad_field])],
                            units = grad_units)
     create_magnitude_field(registry, "%s_gradient" % fname,
                            grad_units, ftype=ftype,
-                           validators = [ValidateSpatial(1, [field])])
+                           validators = [ValidateSpatial(1, [grad_field])])
