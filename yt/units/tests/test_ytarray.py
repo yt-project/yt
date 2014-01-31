@@ -16,7 +16,8 @@ Test ndarray subclass that handles symbolic units.
 
 from numpy.testing import \
     assert_approx_equal, assert_array_equal, \
-    assert_equal, assert_raises
+    assert_equal, assert_raises, \
+    assert_array_almost_equal_nulp
 from numpy import array
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError, YTUfuncUnitError
@@ -294,6 +295,7 @@ def test_unit_conversions():
     km_in_cm = km.in_units('cm')
     km_unit = Unit('km')
     cm_unit = Unit('cm')
+    kpc_unit = Unit('kpc')
 
     yield assert_equal, km_in_cm, km
     yield assert_equal, km_in_cm.in_cgs(), 1e5
@@ -304,6 +306,12 @@ def test_unit_conversions():
     yield assert_equal, km, YTQuantity(1, 'km')
     yield assert_equal, km.in_cgs(), 1e5
     yield assert_equal, km.units, cm_unit
+
+    km.convert_to_units('kpc')
+
+    yield assert_array_almost_equal_nulp, km, YTQuantity(1, 'km')
+    yield assert_array_almost_equal_nulp, km.in_cgs(), YTQuantity(1e5, 'cm')
+    yield assert_equal, km.units, kpc_unit
 
     yield assert_isinstance, km.to_ndarray(), np.ndarray
     yield assert_isinstance, km.ndarray_view(), np.ndarray
