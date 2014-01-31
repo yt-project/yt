@@ -711,8 +711,10 @@ class YTArray(np.ndarray):
             unit2 = getattr(context[1][1], 'units', None)
             if unit1 == None:
                 unit1 = Unit()
-            if unit2 == None:
+            if unit2 == None and context[0] is not power:
                 unit2 = Unit()
+            elif context[0] is power:
+                unit2 = context[1][1]
             if self._ufunc_registry[context[0]] in (preserve_units, size_comparison_unit):
                 if unit1 != unit2:
                     if not unit1.same_dimensions_as(unit2):

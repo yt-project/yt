@@ -246,6 +246,26 @@ def test_division():
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
 
+def test_power():
+    """
+    Test power operator ensure units are correct.
+
+    """
+
+    from yt.units import cm
+
+    cm_arr = np.array([1.0, 1.0]) * cm
+
+    assert_equal, cm**3, YTQuantity(1, 'cm**3')
+    assert_equal, np.power(cm, 3), YTQuantity(1, 'cm**3')
+    assert_equal, cm**YTQuantity(3), YTQuantity(1, 'cm**3')
+    assert_raises, YTUnitOperationError, np.power, cm, YTQuantity(3, 'g')
+
+    assert_equal, cm_arr**3, YTArray([1,1], 'cm**3')
+    assert_equal, np.power(cm_arr, 3), YTArray([1,1], 'cm**3')
+    assert_equal, cm_arr**YTQuantity(3), YTArray([1,1], 'cm**3')
+    assert_raises, YTUnitOperationError, np.power, cm_arr, YTQuantity(3, 'g')
+
 def test_comparisons():
     """
     Test numpy ufunc comparison operators for unit consistency.
