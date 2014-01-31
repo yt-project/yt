@@ -79,10 +79,10 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     def _vorticity_x(field, data):
         f  = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
               data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
-              / (div_fac*just_one(data[ftype, "dy"]).in_cgs())
+              / (div_fac*just_one(data[index, "dy"]).in_cgs())
         f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
               data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
-              / (div_fac*just_one(data[ftype, "dz"].in_cgs()))
+              / (div_fac*just_one(data[index, "dz"].in_cgs()))
         new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"], dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
@@ -90,10 +90,10 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     def _vorticity_y(field, data):
         f  = (data[ftype, "velocity_x"][sl_center,sl_center,sl_right] -
               data[ftype, "velocity_x"][sl_center,sl_center,sl_left]) \
-              / (div_fac*just_one(data[ftype, "dz"]))
+              / (div_fac*just_one(data[index, "dz"]))
         f -= (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
               data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
-              / (div_fac*just_one(data[ftype, "dx"]))
+              / (div_fac*just_one(data[index, "dx"]))
         new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"], dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
@@ -101,10 +101,10 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     def _vorticity_z(field, data):
         f  = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
               data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
-              / (div_fac*just_one(data[ftype, "dx"]))
+              / (div_fac*just_one(data[index, "dx"]))
         f -= (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
               data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
-              / (div_fac*just_one(data[ftype, "dy"]))
+              / (div_fac*just_one(data[index, "dy"]))
         new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"], dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
@@ -331,27 +331,27 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         if data.pf.dimensionality > 1:
             dvydx = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
                     data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
-                    / (div_fac*just_one(data[ftype, "dx"]))
+                    / (div_fac*just_one(data[index, "dx"]))
             dvxdy = (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
                     data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
-                    / (div_fac*just_one(data[ftype, "dy"]))
+                    / (div_fac*just_one(data[index, "dy"]))
             f  = (dvydx + dvxdy)**2.0
             del dvydx, dvxdy
         if data.pf.dimensionality > 2:
             dvzdy = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
                     data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
-                    / (div_fac*just_one(data[ftype, "dy"]))
+                    / (div_fac*just_one(data[index, "dy"]))
             dvydz = (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
                     data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
-                    / (div_fac*just_one(data[ftype, "dz"]))
+                    / (div_fac*just_one(data[index, "dz"]))
             f += (dvzdy + dvydz)**2.0
             del dvzdy, dvydz
             dvxdz = (data[ftype, "velocity_x"][sl_center,sl_center,sl_right] -
                     data[ftype, "velocity_x"][sl_center,sl_center,sl_left]) \
-                    / (div_fac*just_one(data[ftype, "dz"]))
+                    / (div_fac*just_one(data[index, "dz"]))
             dvzdx = (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
                     data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
-                    / (div_fac*just_one(data[ftype, "dx"]))
+                    / (div_fac*just_one(data[index, "dx"]))
             f += (dvxdz + dvzdx)**2.0
             del dvxdz, dvzdx
         np.sqrt(f, out=f)
