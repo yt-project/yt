@@ -22,4 +22,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("two_point_functions")
     config.add_subpackage("radmc3d_export")
     config.add_subpackage("sunyaev_zeldovich")    
+    config.add_subpackage("particle_trajectories")
+    config.add_subpackage("photon_simulator")
     return config
