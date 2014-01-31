@@ -27,7 +27,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
-from yt.units.yt_array import YTArray
+from yt.units.yt_array import YTArray, YTQuantity
 from collections import defaultdict
 from functools import wraps
 
@@ -89,6 +89,8 @@ def read_struct(f, fmt):
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
     if hasattr(obj,'flat'):
+        if isinstance(obj, YTArray):
+            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
         return obj.flat[0]
     elif iterable(obj):
         return obj[0]

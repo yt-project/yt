@@ -21,6 +21,9 @@ from .derived_field import \
     ValidateGridType, \
     ValidateSpatial
 
+from .field_functions import \
+     get_radius
+
 from .field_plugin_registry import \
     register_field_plugin
 
@@ -35,8 +38,6 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
-
-from .universal_fields import get_radius
 
 from yt.utilities.lib.geometry_utils import \
     obtain_rvec
@@ -59,20 +60,20 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
                           ValidateSpatial(0)])
 
     def _grid_indices(field, data):
-        return np.ones(data["ones"].shape)*(data.id-data._id_offset)
+        return np.ones(data["index", "ones"].shape)*(data.id-data._id_offset)
     registry.add_field(("index", "grid_indices"),
               function=_grid_indices, units = "",
               validators=[ValidateGridType(),
                           ValidateSpatial(0)], take_log=False)
     def _ones_over_dx(field, data):
-        return np.ones(data["ones"].shape,
-                       dtype="float64")/data["index", 'dx']
+        return np.ones(data["index", "ones"].shape,
+                       dtype="float64")/data["index", "dx"]
     registry.add_field(("index", "ones_over_dx"), function=_ones_over_dx,
               units = "1 / cm",
               display_field=False)
 
     def _zeros(field, data):
-        arr = np.zeros(data["ones"].shape, dtype='float64')
+        arr = np.zeros(data["index", "ones"].shape, dtype='float64')
         return data.apply_units(arr, field.units)
 
     registry.add_field(("index", "zeros"), function=_zeros,
@@ -207,4 +208,19 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
                          ValidateParameter("normal")],
              units="cm",
              display_field=False)
+
+    def _contours(field, data):
+        fd = data.get_field_parameter("contour_slices")
+        vals = data["index", "ones"] * -1
+        if fd is None or fd == 0.0:
+            return vals
+        for sl, v in fd.get(data.id, []):
+            vals[sl] = v
+        return vals
+    
+    registry.add_field(("index", "contours"),
+                       function=_contours,
+                       validators=[ValidateSpatial(0)],
+                       take_log=False,
+                       display_field=False)
 

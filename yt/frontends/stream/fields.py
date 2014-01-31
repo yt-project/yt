@@ -23,6 +23,7 @@ from yt.fields.particle_fields import \
 class StreamFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", ("code_mass/code_length**3", [], None)),
+        ("dark_matter_density", ("code_mass/code_length**3", [], None)),
         ("number_density", ("1/code_length**3", [], None)),
         ("pressure", ("dyne/code_length**2", [], None)),
         ("thermal_energy", ("erg / g", [], None)),
