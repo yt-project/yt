@@ -311,10 +311,8 @@ class StreamStaticOutput(StaticOutput):
         self.basename = self.stream_handler.name
         self.parameters['CurrentTimeIdentifier'] = time.time()
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
-        self.domain_left_edge = self.arr(self.stream_handler.domain_left_edge,
-                                        'code_length')
-        self.domain_right_edge = self.arr(self.stream_handler.domain_right_edge,
-                                         'code_length')
+        self.domain_left_edge = self.stream_handler.domain_left_edge.copy()
+        self.domain_right_edge = self.stream_handler.domain_right_edge.copy()
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality
         self.periodicity = self.stream_handler.periodicity
