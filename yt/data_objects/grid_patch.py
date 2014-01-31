@@ -317,7 +317,7 @@ class AMRGridPatch(YTSelectionContainer):
         coords[:] = self.Level
         return coords
 
-    def tcoords(self, dobj):
+    def select_tcoords(self, dobj):
         dt, t = dobj.selector.get_dt(self)
         return dt, t
 
