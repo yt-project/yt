@@ -1213,6 +1213,20 @@ cdef class RaySelector(SelectorObject):
             return 1
         return 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3],
+                               np.float64_t dds[3]) nogil:
+        # This is terribly inefficient for Octrees.  For grids, it will never
+        # get called.
+        cdef int i
+        cdef np.float64_t left_edge[3], right_edge[3]
+        for i in range(3):
+            left_edge[i] = pos[i] - dds[i]/2.0
+            right_edge[i] = pos[i] + dds[i]/2.0
+        return self.select_bbox(left_edge, right_edge)
+
     def _hash_vals(self):
         return (self.p1[0], self.p1[1], self.p1[2],
                 self.p2[0], self.p2[1], self.p2[2],
