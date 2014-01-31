@@ -50,7 +50,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         """
         sqrt(3 pi / (16 G rho))
         """
-        return np.sqrt(3.0 * np.pi / (16.0 * G * data["density"]))
+        return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
 
     registry.add_field("dynamical_time",
                        function=_dynamical_time,
@@ -60,8 +60,9 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
           (3.0 / (4.0 * np.pi)) ** (0.5)
         u = (MJ_constant * \
-             ((data["temperature"] / data["mean_molecular_weight"])**(1.5)) * \
-             (data["density"]**(-0.5)))
+             ((data[ftype, "temperature"] /
+               data[ftype, "mean_molecular_weight"])**(1.5)) * \
+             (data[ftype, "density"]**(-0.5)))
         return u
 
     registry.add_field("jeans_mass",
@@ -69,16 +70,16 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        units="g")
 
     def _chandra_emissivity(field, data):
-        logT0 = np.log10(data["temperature"].to_ndarray().astype(np.float64)) - 7
+        logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
         # we get rid of the units here since this is a fit and not an 
         # analytical expression
-        return data.pf.arr(data["number_density"].to_ndarray().astype(np.float64)**2
+        return data.pf.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
                            * (10**(- 0.0103 * logT0**8 + 0.0417 * logT0**7
                                    - 0.0636 * logT0**6 + 0.1149 * logT0**5
                                    - 0.3151 * logT0**4 + 0.6655 * logT0**3
                                    - 1.1256 * logT0**2 + 1.0026 * logT0**1
                                    - 0.6984 * logT0)
-                             + data["metallicity"].to_ndarray() *
+                             + data[ftype, "metallicity"].to_ndarray() *
                              10**(  0.0305 * logT0**11 - 0.0045 * logT0**10
                                     - 0.3620 * logT0**9  + 0.0513 * logT0**8
                                     + 1.6669 * logT0**7  - 0.3854 * logT0**6
@@ -93,8 +94,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     
     def _xray_emissivity(field, data):
         # old scaling coefficient was 2.168e60
-        return data.pf.arr(data["density"].to_ndarray().astype(np.float64)**2
-                           * data["temperature"].to_ndarray()**0.5,
+        return data.pf.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
+                           * data[ftype, "temperature"].to_ndarray()**0.5,
                            "") # add correct units here
 
     registry.add_field((ftype, "xray_emissivity"),
@@ -106,8 +107,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         vel_axis = data.get_field_parameter("axis")
         if vel_axis > 2:
             raise NeedsParameter(["axis"])
-        vel = data["velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
-        return scale * vel * data["density"]
+        vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
+        return scale * vel * data[ftype, "density"]
 
     registry.add_field("sz_kinetic",
                        function=_sz_kinetic,
@@ -116,7 +117,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     def _szy(field, data):
         scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
-        return scale * data["density"] * data["temperature"]
+        return scale * data[ftype, "density"] * data[ftype, "temperature"]
 
     registry.add_field("szy",
                        function=_szy,
