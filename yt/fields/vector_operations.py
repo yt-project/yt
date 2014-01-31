@@ -43,13 +43,13 @@ def create_magnitude_field(registry, basename, field_units,
                            ftype = "gas", slice_info = None,
                            validators = None):
 
-    xn, yn, zn = ["%s_%s" % (basename, ax) for ax in 'xyz']
+    xn, yn, zn = [(ftype, "%s_%s") % (basename, ax) for ax in 'xyz']
 
     # Is this safe?
     if registry.pf.dimensionality < 3:
-        zn = "zeros"
+        zn = ("index", "zeros")
     if registry.pf.dimensionality < 2:
-        yn = "zeros"
+        yn = ("index", "zeros")
 
     def _magnitude(field, data):
         mag  = data[xn] * data[xn]
@@ -77,13 +77,13 @@ def create_vector_fields(registry, basename, field_units,
         sl_left, sl_right, div_fac = slice_info
     sl_center = slice(1, -1, None)
 
-    xn, yn, zn = ["%s_%s" % (basename, ax) for ax in 'xyz']
+    xn, yn, zn = [(ftype, "%s_%s") % (basename, ax) for ax in 'xyz']
 
     # Is this safe?
     if registry.pf.dimensionality < 3:
-        zn = "zeros"
+        zn = ("index", "zeros")
     if registry.pf.dimensionality < 2:
-        yn = "zeros"
+        yn = ("index", "zeros")
 
     create_magnitude_field(registry, basename, field_units,
                            ftype=ftype, slice_info=slice_info)
@@ -96,11 +96,11 @@ def create_vector_fields(registry, basename, field_units,
         phi   = data['index', 'spherical_phi']
         return get_sph_r_component(vectors, theta, phi, normal)
     def _radial_absolute(field, data):
-        return np.abs(data["radial_%s" % basename])
+        return np.abs(data[ftype, "radial_%s" % basename])
 
     def _tangential(field, data):
-        return np.sqrt(data["%s_magnitude" % basename]**2.0
-                     - data["radial_%s" % basename]**2.0)
+        return np.sqrt(data[ftype, "%s_magnitude" % basename]**2.0
+                     - data[ftype, "radial_%s" % basename]**2.0)
 
     registry.add_field((ftype, "radial_%s" % basename),
                        function = _radial, units = field_units)
@@ -127,13 +127,13 @@ def create_vector_fields(registry, basename, field_units,
                        function = _cp_vectors('z'), units = field_units)
 
     def _divergence(field, data):
-        ds = div_fac * just_one(data["dx"])
+        ds = div_fac * just_one(data["index", "dx"])
         f  = data[xn][sl_right,1:-1,1:-1]/ds
         f -= data[xn][sl_left ,1:-1,1:-1]/ds
-        ds = div_fac * just_one(data["dy"])
+        ds = div_fac * just_one(data["index", "dy"])
         f += data[yn][1:-1,sl_right,1:-1]/ds
         f -= data[yn][1:-1,sl_left ,1:-1]/ds
-        ds = div_fac * just_one(data["dz"])
+        ds = div_fac * just_one(data["index", "dz"])
         f += data[zn][1:-1,1:-1,sl_right]/ds
         f -= data[zn][1:-1,1:-1,sl_left ]/ds
         new_field = data.pf.arr(np.zeros(data[xn].shape, dtype=np.float64),
@@ -161,7 +161,7 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = resize_vector(data['cylindrical_theta'], vectors)
+        theta = resize_vector(data[ftype, 'cylindrical_theta'], vectors)
         return get_cyl_r_component(vectors, theta, normal)
 
     def _cylindrical_radial_absolute(field, data):
@@ -180,7 +180,7 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = data['cylindrical_theta'].copy()
+        theta = data[ftype, 'cylindrical_theta'].copy()
         theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
         return get_cyl_theta_component(vectors, theta, normal)
 
