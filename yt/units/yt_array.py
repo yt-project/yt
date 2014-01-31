@@ -173,7 +173,7 @@ class YTArray(np.ndarray):
         mod: preserve_units,
         fmod: preserve_units,
         absolute: passthrough_unit,
-        rint: passthrough_unit,
+        rint: return_without_unit,
         sign: return_without_unit,
         conj: passthrough_unit,
         exp: return_without_unit,
@@ -231,7 +231,7 @@ class YTArray(np.ndarray):
 
     __array_priority__ = 2.0
 
-    def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
+    def __new__(cls, input_array, input_units=None, registry=None, dtype=np.float64):
         if input_array is NotImplemented:
             return input_array
         if isinstance(input_array, YTArray):
@@ -774,7 +774,7 @@ class YTArray(np.ndarray):
         return type(self)(ret, copy.deepcopy(self.units))
 
 class YTQuantity(YTArray):
-    def __new__(cls, input, input_units=None, registry=None, dtype=None):
+    def __new__(cls, input, input_units=None, registry=None, dtype=np.float64):
         if not isinstance(input, (numeric_type, np.number, np.ndarray)):
             raise RuntimeError("YTQuantity values must be numeric")
         ret = YTArray.__new__(cls, input, input_units, registry, dtype=dtype)
