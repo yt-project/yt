@@ -393,7 +393,6 @@ class GeometryHandler(ParallelAnalysisInterface):
             selector,
             fields_to_read,
             chunk_size)
-        #mylog.debug("Don't know how to read %s", fields_to_generate)
         return fields_to_return, fields_to_generate
 
 

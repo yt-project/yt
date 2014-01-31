@@ -171,11 +171,11 @@ class YTUnitOperationError(YTException):
         YTException.__init__(self)
 
     def __str__(self):
-        err = "The %s operator for YTArrays with units (%s) "
+        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
         if self.unit2 is not None:
-            err += "and (%s) "
+            err += "and (%s) " % self.unit2
         err += "is not well defined."
-        return err % (self.operation, self.unit1, self.unit2)
+        return err
 
 class YTUnitConversionError(YTException):
     def __init__(self, unit1, dimension1, unit2, dimension2):
@@ -189,6 +189,20 @@ class YTUnitConversionError(YTException):
         err = "Unit dimensionalities do not match. Tried to convert between " \
           "%s (dim %s) and %s (dim %s)." \
           % (self.unit1, self.dimension1, self.unit2, self.dimension2)
+        return err
+
+class YTUfuncUnitError(YTException):
+    def __init__(self, ufunc, unit1, unit2):
+        self.ufunc = ufunc
+        self.unit1 = unit1
+        self.unit2 = unit2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "The NumPy %s operation is only allowed on objects with " \
+        "identical units. Convert one of the arrays to the other\'s " \
+        "units first. Received units (%s) and (%s)." % \
+        (self.ufunc, self.unit1, self.unit2)
         return err
 
 class YTHubRegisterError(YTException):

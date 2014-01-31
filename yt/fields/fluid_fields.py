@@ -34,6 +34,9 @@ from yt.utilities.physical_constants import \
     mh, \
     kboltz
 
+from yt.utilities.physical_ratios import \
+    metallicity_sun
+
 from yt.units.yt_array import \
     YTArray
 
@@ -144,7 +147,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     def _metallicity(field, data):
         tr = data[ftype, "metal_density"] / data[ftype, "density"]
-        return data.apply_units(tr, "code_metallicity")
+        tr /= metallicity_sun
+        return data.apply_units(tr, "Zsun")
     registry.add_field((ftype, "metallicity"),
              function=_metallicity,
              units="Zsun")

@@ -21,7 +21,8 @@ from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, latex_symbol_lut, \
     unit_prefixes, prefixable_units
 from yt.units.unit_registry import UnitRegistry
- 
+
+import copy
 import string
 import numpy as np
 
@@ -238,6 +239,15 @@ class Unit(Expr):
         return \
           (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
 
+    def __deepcopy__(self, memodict=None):
+        if memodict is None:
+            memodict = {}
+        expr = str(self.expr)
+        cgs_value = copy.deepcopy(self.cgs_value)
+        dimensions = copy.deepcopy(self.dimensions)
+        lut = copy.deepcopy(self.registry.lut)
+        registry = UnitRegistry(lut=lut)
+        return Unit(expr, cgs_value, dimensions, registry)
 
     #
     # End unit operations

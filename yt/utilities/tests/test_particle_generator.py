@@ -6,6 +6,7 @@ from yt.frontends.stream.api import load_uniform_grid, refine_amr
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from IPython import embed
+from yt.units.yt_array import uconcatenate
 
 def setup() :
     pass
@@ -15,7 +16,8 @@ def test_particle_generator() :
     domain_dims = (128, 128, 128)
     dens = np.zeros(domain_dims) + 0.1
     temp = 4.*np.ones(domain_dims)
-    fields = {"density": dens, "temperature": temp}
+    fields = {"density": (dens, 'code_mass/code_length**3'),
+              "temperature": (temp, 'K')}
     ug = load_uniform_grid(fields, domain_dims, 1.0)
     fo = [ic.BetaModelSphere(1.0,0.1,0.5,[0.5,0.5,0.5],{"density":(10.0)})]
     rc = [fm.flagging_method_registry["overdensity"](4.0)]
@@ -43,7 +45,7 @@ def test_particle_generator() :
     particles_per_grid1 = [len(grid["particle_position_x"]) for grid in pf.h.grids]
     yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
 
-    tags = np.concatenate([grid["particle_index"] for grid in pf.h.grids])
+    tags = uconcatenate([grid["particle_index"] for grid in pf.h.grids])
     assert(np.unique(tags).size == num_particles)
     # Set up a lattice of particles
     pdims = np.array([64,64,64])
