@@ -59,7 +59,6 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _jeans_mass(field, data):
         MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
           (3.0 / (4.0 * np.pi)) ** (0.5)
-        print MJ_constant
         u = (MJ_constant * \
              ((data[ftype, "temperature"] /
                data[ftype, "mean_molecular_weight"])**(1.5)) * \
