@@ -63,7 +63,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         sl_right = slice(2, None, None)
         div_fac = 2.0
     else:
-        sl_left, sl_right, div_face = slice_info
+        sl_left, sl_right, div_fac = slice_info
 
     create_vector_fields(registry, "velocity", "cm / s", ftype, slice_info)
 
@@ -207,7 +207,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         sl_right = slice(2, None, None)
         div_fac = 2.0
     else:
-        sl_left, sl_right, div_face = slice_info
+        sl_left, sl_right, div_fac = slice_info
 
     slice_3d = [slice(1, -1), slice(1, -1), slice(1, -1)]
 
