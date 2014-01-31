@@ -1,4 +1,9 @@
 include distribute_setup.py README* CREDITS COPYING.txt CITATION
 recursive-include yt/gui/reason/html *.html *.png *.ico *.js
-recursive-include yt *.pyx *.pxd *.h README*
+recursive-include yt *.pyx *.pxd *.h README* *.glsl *.cu
 recursive-include yt/utilities/kdtree *.f90 *.v Makefile LICENSE
+recursive-include yt/analysis_modules/halo_finding/rockstar *.py *.pyx
+prune yt/frontends/_skeleton
+prune tests
+graft yt/gui/reason/html/resources
+exclude clean.sh nose.cfg .hgchurn
