@@ -123,6 +123,9 @@ class OctreeSubset(YTSelectionContainer):
         for i, sl in slicer:
             yield sl, mask[:,:,:,i]
 
+    def select_tcoords(self, dobj):
+        raise NotImplementedError
+
     @property
     def domain_ind(self):
         if self._domain_ind is None:
