@@ -292,7 +292,7 @@ class IOHandlerInMemory(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        for chunk in chunks:
+        for chunk in chunks: # These should be organized by grid filename
             for g in chunk.objs:
                 if g.id not in self.grids_in_memory: continue
                 nap = sum(g.NumberOfActiveParticles.values())
@@ -305,10 +305,8 @@ class IOHandlerInMemory(BaseIOHandler):
                     if mask is None: continue
                     for field in field_list:
                         data = self.grids_in_memory[g.id][field]
-
                         if field in _convert_mass:
                             data = data * g.dds.prod(dtype="f8")
-                            
                         yield (ptype, field), data[mask]
 
     @property
