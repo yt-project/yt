@@ -592,6 +592,10 @@ class YTDataChunk(object):
         for obj in self.objs:
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
+        if method == "dtcoords":
+            arrs = [arr[0] for arr in arrs]
+        elif method == "tcoords":
+            arrs = [arr[1] for arr in arrs]
         arrs = np.concatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs

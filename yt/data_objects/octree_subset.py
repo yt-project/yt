@@ -124,7 +124,15 @@ class OctreeSubset(YTSelectionContainer):
             yield sl, mask[:,:,:,i]
 
     def select_tcoords(self, dobj):
-        raise NotImplementedError
+        # These will not be pre-allocated, which can be a problem for speed and
+        # memory usage.
+        dts, ts = [], []
+        for sl, mask in self.select_blocks(dobj.selector):
+            sl.child_mask = mask
+            dt, t = dobj.selector.get_dt(sl)
+            dts.append(dt)
+            ts.append(t)
+        return np.concatenate(dts), np.concatenate(ts)
 
     @property
     def domain_ind(self):
