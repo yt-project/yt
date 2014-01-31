@@ -43,7 +43,7 @@ def create_magnitude_field(registry, basename, field_units,
                            ftype = "gas", slice_info = None,
                            validators = None):
 
-    xn, yn, zn = [(ftype, "%s_%s") % (basename, ax) for ax in 'xyz']
+    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
     # Is this safe?
     if registry.pf.dimensionality < 3:
@@ -77,7 +77,7 @@ def create_vector_fields(registry, basename, field_units,
         sl_left, sl_right, div_fac = slice_info
     sl_center = slice(1, -1, None)
 
-    xn, yn, zn = [(ftype, "%s_%s") % (basename, ax) for ax in 'xyz']
+    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
     # Is this safe?
     if registry.pf.dimensionality < 3:

@@ -64,17 +64,17 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                 data[ftype, "density_gradient_y"] -
                 data[ftype, "pressure_gradient_y"] *
                 data[ftype, "density_gradient_x"]) / rho2
-    
+
+    bv_validators = [ValidateSpatial(1, [(ftype, "density"), (ftype, "pressure")])]
     for ax in 'xyz':
         n = "baroclinic_vorticity_%s" % ax
         registry.add_field((ftype, n), function=eval("_%s" % n),
-                           validators=[ValidateSpatial(1, ["density", "pressure"])],
+                           validators=bv_validators,
                            units="s**(-2)")
 
     create_magnitude_field(registry, "baroclinic_vorticity", "s**(-2)",
                            ftype=ftype, slice_info=slice_info,
-                           validators=[ValidateSpatial(1,
-                            ["density", "pressure"])])
+                           validators=bv_validators)
 
     def _vorticity_x(field, data):
         f  = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
@@ -83,7 +83,8 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
               data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
               / (div_fac*just_one(data[index, "dz"].in_cgs()))
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"], dtype=np.float64),
+        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"],
+                                              dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
@@ -94,7 +95,8 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f -= (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
               data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
               / (div_fac*just_one(data[index, "dx"]))
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"], dtype=np.float64),
+        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"],
+                                              dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
@@ -105,22 +107,25 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f -= (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
               data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
               / (div_fac*just_one(data[index, "dy"]))
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"], dtype=np.float64),
+        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"],
+                                              dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
 
+    vort_validators = [ValidateSpatial(1,
+                            [(ftype, "velocity_x"),
+                             (ftype, "velocity_y"),
+                             (ftype, "velocity_z")])]
     for ax in 'xyz':
         n = "vorticity_%s" % ax
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
                            units="1/s",
-                           validators=[ValidateSpatial(1,
-                            ["velocity_x", "velocity_y", "velocity_z"])])
+                           validators=vort_validators)
     create_magnitude_field(registry, "vorticity", "1/s",
                            ftype=ftype, slice_info=slice_info,
-                           validators=[ValidateSpatial(1,
-                            ["velocity_x", "velocity_y", "velocity_z"])])
+                           validators=vort_validators)
 
     def _vorticity_stretching_x(field, data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_x"]
@@ -133,13 +138,11 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         registry.add_field((ftype, n), 
                            function=eval("_%s" % n),
                            units = "s**(-2)",
-                           validators=[ValidateSpatial(1,
-                            ["velocity_x", "velocity_y", "velocity_z"])])
+                           validators=vort_validators)
 
     create_magnitude_field(registry, "vorticity_stretching", "s**(-2)",
                            ftype=ftype, slice_info=slice_info,
-                           validators=[ValidateSpatial(1,
-                            ["velocity_x", "velocity_y", "velocity_z"])])
+                           validators=vort_validators)
 
     def _vorticity_growth_x(field, data):
         return -data[ftype, "vorticity_stretching_x"] - \
@@ -155,8 +158,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
                            units="s**(-2)",
-                           validators=[ValidateSpatial(1,
-                            ["velocity_x", "velocity_y", "velocity_z"])])
+                           validators=vort_validators)
 
     def _vorticity_growth_magnitude(field, data):
         result = np.sqrt(data[ftype, "vorticity_growth_x"]**2 +
@@ -172,8 +174,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "vorticity_growth_magnitude"),
               function=_vorticity_growth_magnitude,
               units="s**(-2)",
-              validators=[ValidateSpatial(1,
-               ["velocity_x", "velocity_y", "velocity_z"])],
+              validators=vort_validators,
               take_log=False)
 
     def _vorticity_growth_magnitude_absolute(field, data):
@@ -184,8 +185,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "vorticity_growth_magnitude_absolute"),
                        function=_vorticity_growth_magnitude_absolute,
                        units="s**(-2)",
-                       validators=[ValidateSpatial(1,
-                        ["velocity_x", "velocity_y", "velocity_z"])])
+                       validators=vort_validators)
 
     def _vorticity_growth_timescale(field, data):
         domegax_dt = data[ftype, "vorticity_x"] / data[ftype, "vorticity_growth_x"]
@@ -196,8 +196,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "vorticity_growth_timescale"),
                        function=_vorticity_growth_timescale,
                        units="s",
-                       validators=[ValidateSpatial(1,
-                        ["velocity_x", "velocity_y", "velocity_z"])])
+                       validators=vort_validators)
 
     ########################################################################
     # With radiation pressure
@@ -222,24 +221,21 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                 data[ftype, "radiation_acceleration_y"] *
                 data[ftype, "density_gradient_x"]) / rho
 
+    vrp_validators = [ValidateSpatial(1,
+                            [(ftype, "density"),
+                             (ftype, "radiation_acceleration_x"),
+                             (ftype, "radiation_acceleration_y"),
+                             (ftype, "radiation_acceleration_z")])]
     for ax in 'xyz':
         n = "vorticity_radiation_pressure_%s" % ax
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
                            units="1/s",
-                           validators=[ValidateSpatial(1,
-                            ["density",
-                             "radiation_acceleration_x",
-                             "radiation_acceleration_y",
-                             "radiation_acceleration_z"])])
+                           validators=vrp_validators)
 
     create_magnitude_field(registry, "vorticity_radiation_pressure", "1/s",
                            ftype=ftype, slice_info=slice_info,
-                           validators=[ValidateSpatial(1,
-                            ["density",
-                             "radiation_acceleration_x",
-                             "radiation_acceleration_y",
-                             "radiation_acceleration_z"])])
+                           validators=vrp_validators)
 
     def _vorticity_radiation_pressure_growth_x(field, data):
         return -data[ftype, "vorticity_stretching_x"] - \
@@ -259,11 +255,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
                            units="s**(-2)",
-                           validators=[ValidateSpatial(1,
-                            ["density",
-                             "radiation_acceleration_x",
-                             "radiation_acceleration_y",
-                             "radiation_acceleration_z"])])
+                           validators=vrp_validators)
 
     def _vorticity_radiation_pressure_growth_magnitude(field, data):
         result = np.sqrt(data[ftype, "vorticity_radiation_pressure_growth_x"]**2 +
@@ -279,11 +271,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude"),
                        function=_vorticity_radiation_pressure_growth_magnitude,
                        units="s**(-2)",
-                       validators=[ValidateSpatial(1,
-                        ["density",
-                         "radiation_acceleration_x",
-                         "radiation_acceleration_y",
-                         "radiation_acceleration_z"])],
+                       validators=vrp_validators,
                        take_log=False)
 
     def _vorticity_radiation_pressure_growth_magnitude_absolute(field, data):
@@ -294,11 +282,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude_absolute"),
                        function=_vorticity_radiation_pressure_growth_magnitude_absolute,
                        units="s**(-2)",
-                       validators=[ValidateSpatial(1,
-                        ["density",
-                         "radiation_acceleration_x",
-                         "radiation_acceleration_y",
-                         "radiation_acceleration_z"])])
+                       validators=vrp_validators)
 
     def _vorticity_radiation_pressure_growth_timescale(field, data):
         domegax_dt = data[ftype, "vorticity_x"] / \
@@ -312,11 +296,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "vorticity_radiation_pressure_growth_timescale"),
                        function=_vorticity_radiation_pressure_growth_timescale,
                        units="s",
-                       validators=[ValidateSpatial(1,
-                        ["density",
-                         "radiation_acceleration_x",
-                         "radiation_acceleration_y",
-                         "radiation_acceleration_z"])])
+                       validators=vrp_validators)
 
     def _shear(field, data):
         """
@@ -362,7 +342,9 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "shear"),
                        function=_shear,
                        validators=[ValidateSpatial(1,
-                        ["velocity_x","velocity_y","velocity_z"])],
+                        [(ftype, "velocity_x"),
+                         (ftype, "velocity_y"),
+                         (ftype, "velocity_z")])],
                         units=r"1/s")
 
     def _shear_criterion(field, data):
@@ -378,8 +360,10 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        function=_shear_criterion,
                        units="1/cm",
                        validators=[ValidateSpatial(1,
-                        ["sound_speed", "velocity_x",
-                         "velocity_y",  "velocity_z"])])
+                        [(ftype, "sound_speed"),
+                         (ftype, "velocity_x"),
+                         (ftype, "velocity_y"),
+                         (ftype, "velocity_z")])])
 
     def _shear_mach(field, data):
         """
@@ -432,5 +416,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        function=_shear_mach,
                        units="",
                        validators=[ValidateSpatial(1,
-                        ["sound_speed", "velocity_x",
-                         "velocity_y",  "velocity_z"])])
+                        [(ftype, "sound_speed"),
+                         (ftype, "velocity_x"),
+                         (ftype, "velocity_y"),
+                         (ftype, "velocity_z")])])
