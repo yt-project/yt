@@ -44,9 +44,9 @@ cdef inline np.float64_t r2dist(np.float64_t ppos[3],
         if periodicity[i] == 0:
             pass
         elif (DR > DW[i]/2.0):
-            DR -= DW[i]/2.0
+            DR -= DW[i]
         elif (DR < -DW[i]/2.0):
-            DR += DW[i]/2.0
+            DR += DW[i]
         r2 += DR * DR
     return r2
 
