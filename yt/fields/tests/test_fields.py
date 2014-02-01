@@ -1,6 +1,5 @@
 from yt.testing import *
 import numpy as np
-import yt.fields.universal_fields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \
@@ -36,6 +35,9 @@ def get_params(pf):
             "", registry = pf.unit_registry),
         cp_z_vec = YTArray((0.0, 0.0, 1.0),
             "", registry = pf.unit_registry),
+        omega_baryon = 0.04,
+        observer_redshift = 0.0,
+        source_redshift = 3.0,
     )
 
 _base_fields = (("gas", "density"),

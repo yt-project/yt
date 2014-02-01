@@ -324,7 +324,7 @@ def standard_particle_fields(registry, ptype,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
-    from .universal_fields import \
+    from .field_functions import \
         get_radius
 
     def _particle_radius(field, data):
@@ -487,7 +487,7 @@ def add_particle_average(registry, ptype, field_name,
         v = data.deposit(pos, [f], method = "sum")
         w = data.deposit(pos, [wf], method = "sum")
         v /= w
-        if density: v /= data["cell_volume"]
+        if density: v /= data["index", "cell_volume"]
         v[np.isnan(v)] = 0.0
         return v
     fn = ("deposit", "%s_avg_%s" % (ptype, field_name))

@@ -17,12 +17,14 @@ from .field_plugin_registry import \
     field_plugins
 
 from . import angular_momentum
+from . import astro_fields
+from . import cosmology_fields
 from . import fluid_fields
+from . import fluid_vector_fields
 from . import magnetic_field
 from . import geometric_fields
 from . import particle_fields
 #from . import species_fields
-from . import universal_fields
 from . import vector_operations
 
 from .derived_field import \
