@@ -20,6 +20,8 @@ import functools
 from yt.funcs import *
 
 from yt.config import ytcfg
+from yt.utilities.cosmology import \
+     Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -429,6 +431,16 @@ class StaticOutput(object):
 
         self.set_code_units()
 
+        if hasattr(self, "cosmological_simulation") \
+           and getattr(self, "cosmological_simulation"):
+            # this dataset is cosmological, add a cosmology object
+            setattr(self, "cosmology",
+                    Cosmology(hubble_constant=self.hubble_constant,
+                              omega_matter=self.omega_matter,
+                              omega_lambda=self.omega_lambda,
+                              unit_registry=self.unit_registry))
+            setattr(self, "critical_density",
+                    self.cosmology.critical_density(self.current_redshift))
 
     def get_unit_from_registry(self, unit_str):
         """
