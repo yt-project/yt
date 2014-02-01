@@ -750,8 +750,6 @@ class YTArray(np.ndarray):
         if unit is None:
             out_arr = np.array(out_arr)
             return out_arr
-        if unit is ():
-            return out_arr
         out_arr.units = unit
         if out_arr.size > 1:
             return YTArray(np.array(out_arr), unit)
