@@ -486,3 +486,9 @@ def test_ufuncs():
 
             yield assert_array_equal, ret1.to_ndarray(), npret1
             yield assert_array_equal, ret2.to_ndarray(), npret2
+        elif ufunc is np.frexp:
+            ret1, ret2 = ufunc(a)
+            npret1, npret2 = ufunc(np.array([.3, .4, .5]))
+
+            yield assert_array_equal, ret1, npret1
+            yield assert_array_equal, ret2, npret2
