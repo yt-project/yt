@@ -443,9 +443,8 @@ def test_ufuncs():
                        np.arcsinh, np.arctanh, np.deg2rad, np.rad2deg,
                        np.isfinite, np.isinf, np.isnan, np.signbit, np.sign,
                        np.rint, np.logical_not):
+            # These operations should return identical results compared to numpy.
 
-            # These operations should return identical results compared to numpy
-            # in-place copies do not drop units.
             try:
                 ret = ufunc(a, a)
                 yield assert_array_equal, a.to_ndarray(), ufunc(np.array([.3, .4, .5]))
@@ -454,6 +453,7 @@ def test_ufuncs():
                 ret = ufunc(YTArray(a, '1'))
 
             yield assert_array_equal, ret, ufunc(np.array([.3, .4, .5]))
+            # In-place copies do not drop units.
             yield assert_true, hasattr(a, 'units')
             yield assert_true, not hasattr(ret, 'units')
         elif ufunc in (np.absolute, np.conjugate, np.floor, np.ceil,
