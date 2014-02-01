@@ -363,18 +363,18 @@ class AthenaStaticOutput(StaticOutput):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        if self.specified_parameters.has_key("LengthUnits"):
-            length_factor = self.specified_parameters["LengthUnits"]
+        if self.specified_parameters.has_key("mass_unit"):
+            length_factor = self.specified_parameters["length_unit"]
         else:
             mylog.warning("No length conversion to cgs provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
-        if self.specified_parameters.has_key("TimeUnits"):
-            time_factor = self.specified_parameters["TimeUnits"]
+        if self.specified_parameters.has_key("time_unit"):
+            time_factor = self.specified_parameters["time_unit"]
         else:
             mylog.warning("No time conversion to cgs provided. Assuming 1 = 1 s.")
             time_factor = 1.0
-        if self.specified_parameters.has_key("MassUnits"):
-            mass_factor = self.specified_parameters["MassUnits"]
+        if self.specified_parameters.has_key("mass_unit"):
+            mass_factor = self.specified_parameters["mass_unit"]
         else:
             mylog.warning("No mass conversion to cgs provided. Assuming 1 = 1 g.")
             mass_factor = 1.0
