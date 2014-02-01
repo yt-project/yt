@@ -490,6 +490,7 @@ class PhotonList(object):
         parameters = {}
         
         if responses is not None:
+            responses = ensure_list(responses)
             parameters["ARF"] = responses[0]
             if len(responses) == 2:
                 parameters["RMF"] = responses[1]
@@ -533,6 +534,10 @@ class PhotonList(object):
             else:
                 if redshift_new is None:
                     zobs = 0.0
+                    if dist_new[1] not in mpc_conversion:
+                        mylog.error("Please specify dist_new in one of the following units: %s",
+                                    mpc_conversion.keys())
+                        raise KeyError
                     D_A = dist_new[0]*mpc_conversion["kpc"]/mpc_conversion[dist_new[1]]
                 else:
                     zobs = redshift_new
