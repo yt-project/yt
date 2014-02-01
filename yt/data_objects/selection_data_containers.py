@@ -19,7 +19,7 @@ import numpy as np
 from exceptions import ValueError, SyntaxError
 
 from yt.funcs import *
-from yt.utilities.lib.alt_ray_tracers import clyindrical_ray_trace
+from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace
 from yt.utilities.orientation import Orientation
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D

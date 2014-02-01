@@ -131,7 +131,7 @@ def check_for_dependencies(env, cfg, header, library):
     elif os.path.exists(cfg):
         return get_location_from_cfg(cfg)
     # Now we see if ctypes can help us
-    if os.name == 'posix':
+    if os.name == 'posix' or os.name == 'nt':
         target_inc, target_lib = get_location_from_ctypes(header, library)
     if None not in (target_inc, target_lib):
         print(

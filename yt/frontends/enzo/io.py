@@ -262,6 +262,74 @@ class IOHandlerInMemory(BaseIOHandler):
         # In-place unit conversion requires we return a copy
         return tr.copy()
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        rv = {}
+        # Now we have to do something unpleasant
+        chunks = list(chunks)
+        if selector.__class__.__name__ == "GridSelector":
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            g = chunks[0].objs[0]
+            for ftype, fname in fields:
+                rv[(ftype, fname)] = self.grids_in_memory[grid.id][fname].swapaxes(0,2)
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
+
+        for field in fields:
+            ftype, fname = field
+            fsize = size
+            rv[field] = np.empty(fsize, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+
+        ind = 0
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.id not in self.grids_in_memory: continue
+
+                data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+                data_view = data.swapaxes(0,2)
+                for field in fields:
+                    ftype, fname = field
+                    data_view = self.grids_in_memory[g.id][fname]
+                    nd = g.select(selector, data_view, rv[field], ind)
+        return rv
+
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            for g in chunk.objs:
+                if g.id not in self.grids_in_memory: continue
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0: continue
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
+                                        self.grids_in_memory[g.id]['particle_position_y'], \
+                                        self.grids_in_memory[g.id]['particle_position_z']
+                    yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            for g in chunk.objs:
+                if g.id not in self.grids_in_memory: continue
+                nap = sum(g.NumberOfActiveParticles.values())
+                if g.NumberOfParticles == 0 and nap == 0: continue
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
+                                        self.grids_in_memory[g.id]['particle_position_y'], \
+                                        self.grids_in_memory[g.id]['particle_position_z']
+                    mask = selector.select_points(x, y, z)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = self.grids_in_memory[g.id][field]
+                        if field in _convert_mass:
+                            data = data * g.dds.prod(dtype="f8")
+                        yield (ptype, field), data[mask]
+
     @property
     def _read_exception(self):
         return KeyError

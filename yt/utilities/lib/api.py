@@ -1,3 +1,4 @@
+import os
 """
 Compatibility module
 
@@ -20,7 +21,7 @@ from .fortran_reader import *
 from .Interpolators import *
 from .misc_utilities import *
 from .Octree import *
-from .png_writer import *
+from .image_utilities import *
 from .PointsInVolume import *
 from .QuadTree import *
 from .RayIntegrators import *

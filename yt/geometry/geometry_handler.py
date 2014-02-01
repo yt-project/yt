@@ -388,6 +388,7 @@ def cached_property(func):
         else:
             tr = func(self)
         if self._cache:
+        
             setattr(self, n, tr)
         return tr
     return property(cached_func)
@@ -411,6 +412,10 @@ class YTDataChunk(object):
         for obj in self.objs:
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
+        if method == "dtcoords":
+            arrs = [arr[0] for arr in arrs]
+        elif method == "tcoords":
+            arrs = [arr[1] for arr in arrs]
         arrs = uconcatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs
@@ -480,7 +485,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return cdt
         ind = 0
         for obj in self.objs:
-            gdt, gt = obj.tcoords(self.dobj)
+            gdt, gt = obj.select_tcoords(self.dobj)
             if gt.shape == 0: continue
             ct[ind:ind+gt.size] = gt
             cdt[ind:ind+gdt.size] = gdt

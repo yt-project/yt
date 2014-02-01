@@ -43,7 +43,7 @@ from yt.funcs import \
     fix_axis, get_image_suffix, assert_valid_width_tuple, \
     get_ipython_api_version
 from yt.units.unit_object import Unit
-from yt.utilities.lib.png_writer import \
+from yt.utilities.png_writer import \
     write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \

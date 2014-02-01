@@ -71,7 +71,7 @@ class Tree(object):
     def add_grids(self, grids):
         gles = np.array([g.LeftEdge for g in grids])
         gres = np.array([g.RightEdge for g in grids])
-        gids = np.array([g.id for g in grids])
+        gids = np.array([g.id for g in grids], dtype="int64")
         add_pygrids(self.trunk, gids.size, gles, gres, gids,
                     self.comm_rank, self.comm_size)
         del gles, gres, gids, grids
