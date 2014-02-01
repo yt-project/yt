@@ -46,6 +46,7 @@ def test_projection():
                 fns += pw.save(name=tmpname)
                 frb = proj.to_frb((1.0,'unitary'), 64)
                 for proj_field in ['Ones', 'Density']:
+                    fi = pf._get_field_info(proj_field)
                     yield assert_equal, frb[proj_field].info['data_source'], \
                             proj.__str__()
                     yield assert_equal, frb[proj_field].info['axis'], \
@@ -53,7 +54,7 @@ def test_projection():
                     yield assert_equal, frb[proj_field].info['field'], \
                             proj_field
                     yield assert_equal, frb[proj_field].info['units'], \
-                            pf.field_info[proj_field].get_units()
+                            fi.get_units()
                     yield assert_equal, frb[proj_field].info['xlim'], \
                             frb.bounds[:2]
                     yield assert_equal, frb[proj_field].info['ylim'], \

@@ -35,8 +35,7 @@ from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
      create_profile
-from yt.utilities.lib import \
-    write_png_to_string
+from yt.utilities.png_writer import write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
@@ -119,7 +118,7 @@ class ProfilePlot(object):
     
     Parameters
     ----------
-    data_source : AMR4DData Object
+    data_source : AMR3DData Object
         The data object to be profiled, such as all_data, region, or 
         sphere.
     x_field : str
@@ -246,13 +245,18 @@ class ProfilePlot(object):
             name = "%s.png" % prefix
         suffix = get_image_suffix(name)
         prefix = name[:name.rfind(suffix)]
+        xfn = self.profiles[0].x_field
+        if isinstance(xfn, types.TupleType):
+            xfn = xfn[1]
         if not suffix:
             suffix = ".png"
         canvas_cls = get_canvas(name)
         for uid, fig in iters:
+            if isinstance(uid, types.TupleType):
+                uid = uid[1]
             canvas = canvas_cls(fig)
             fn = "%s_1d-Profile_%s_%s%s" % \
-              (prefix, self.profiles[0].x_field, uid, suffix)
+              (prefix, xfn, uid, suffix)
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
         return self
@@ -410,7 +414,8 @@ class ProfilePlot(object):
             
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
-        yfi = pf.field_info[field_y]
+        yf, = profile.data_source._determine_fields([field_y])
+        yfi = pf._get_field_info(*yf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -425,6 +430,7 @@ class ProfilePlot(object):
     def _get_field_label(self, field, field_info):
         units = field_info.get_units()
         field_name = field_info.display_name
+        if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
@@ -438,8 +444,10 @@ class ProfilePlot(object):
     def _get_field_title(self, field_y, profile):
         pf = profile.data_source.pf
         field_x = profile.x_field
-        xfi = pf.field_info[field_x]
-        yfi = pf.field_info[field_y]
+        xf, yf = profile.data_source._determine_fields(
+            [field_x, field_y])
+        xfi = pf._get_field_info(*xf)
+        yfi = pf._get_field_info(*yf)
         x_title = self.x_title or self._get_field_label(field_x, xfi)
         y_title = self.y_title.get(field_y, None) or \
                     self._get_field_label(field_y, yfi)
@@ -554,9 +562,11 @@ class PhasePlot(ImagePlotContainer):
         pf = profile.data_source.pf
         field_x = profile.x_field
         field_y = profile.y_field
-        xfi = pf.field_info[field_x]
-        yfi = pf.field_info[field_y]
-        zfi = pf.field_info[field_z]
+        xf, yf, zf = profile.data_source._determine_fields(
+            [field_x, field_y, field_z])
+        xfi = pf._get_field_info(*xf)
+        yfi = pf._get_field_info(*yf)
+        zfi = pf._get_field_info(*zf)
         x_title = self.x_title or self._get_field_label(field_x, xfi)
         y_title = self.y_title or self._get_field_label(field_y, yfi)
         z_title = self.z_title.get(field_z, None) or \
@@ -566,6 +576,7 @@ class PhasePlot(ImagePlotContainer):
     def _get_field_label(self, field, field_info):
         units = field_info.get_units()
         field_name = field_info.display_name
+        if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
@@ -578,7 +589,8 @@ class PhasePlot(ImagePlotContainer):
         
     def _get_field_log(self, field_z, profile):
         pf = profile.data_source.pf
-        zfi = pf.field_info[field_z]
+        zf, = profile.data_source._determine_fields([field_z])
+        zfi = pf._get_field_info(*zf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -659,9 +671,16 @@ class PhasePlot(ImagePlotContainer):
 
         if not self._plot_valid: self._setup_plots()
         if mpl_kwargs is None: mpl_kwargs = {}
+        xfn = self.profile.x_field
+        yfn = self.profile.y_field
+        if isinstance(xfn, types.TupleType):
+            xfn = xfn[1]
+        if isinstance(yfn, types.TupleType):
+            yfn = yfn[1]
         for f in self.profile.field_data:
-            middle = "2d-Profile_%s_%s_%s" % (self.profile.x_field, 
-                                              self.profile.y_field, f)
+            _f = f
+            if isinstance(f, types.TupleType): _f = _f[1]
+            middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             if name is None:
                 prefix = self.profile.pf
                 name = "%s.png" % prefix

@@ -41,7 +41,7 @@ from .plot_container import \
 from yt.funcs import \
     mylog, iterable, ensure_list, fix_axis, \
     get_ipython_api_version
-from yt.utilities.lib import write_png_to_string
+from yt.utilities.png_writer import write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
     axis_names, axis_labels, \

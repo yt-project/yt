@@ -234,6 +234,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self.get_data(field)
 
     @property
+    def blocks(self):
+        return self.data_source.blocks
+
+    @property
     def _mrep(self):
         return MinimalProjectionData(self)
 
@@ -263,6 +267,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         return convs
 
     def get_data(self, fields = None):
+        fields = fields or []
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
@@ -404,6 +409,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
         rdx = self.pf.domain_dimensions*self.pf.relative_refinement(0, level)
         rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
+        self.base_dds = self.pf.domain_width / self.pf.domain_dimensions
         self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
@@ -451,8 +457,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.pf.h.region(
-            self.center, self.left_edge, self.right_edge)
+        self._data_source = self.pf.h.region(self.center,
+            self.left_edge - self.base_dds,
+            self.right_edge + self.base_dds)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
 

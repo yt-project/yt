@@ -23,11 +23,13 @@ def test_particle_generator() :
 
     # Now generate particles from density
 
-    field_list = ["particle_position_x","particle_position_y",
-                  "particle_position_z","particle_index",
-                  "particle_gas_density"]
+    field_list = [("io", "particle_position_x"),
+                  ("io", "particle_position_y"),
+                  ("io", "particle_position_z"),
+                  ("io", "particle_index"),
+                  ("io", "particle_gas_density")]
     num_particles = 1000000
-    field_dict = {"Density": "particle_gas_density"}
+    field_dict = {("gas", "Density"): ("io", "particle_gas_density")}
     sphere = pf.h.sphere(pf.domain_center, 0.45)
 
     particles1 = WithDensityParticleGenerator(pf, sphere, num_particles, field_list)
@@ -41,6 +43,8 @@ def test_particle_generator() :
     particles_per_grid1 = [len(grid["particle_position_x"]) for grid in pf.h.grids]
     yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
 
+    tags = np.concatenate([grid["particle_index"] for grid in pf.h.grids])
+    assert(np.unique(tags).size == num_particles)
     # Set up a lattice of particles
     pdims = np.array([64,64,64])
     def new_indices() :
@@ -48,31 +52,33 @@ def test_particle_generator() :
         return np.arange((np.product(pdims)))+num_particles
     le = np.array([0.25,0.25,0.25])
     re = np.array([0.75,0.75,0.75])
-    new_field_list = field_list + ["particle_gas_temperature"]
-    new_field_dict = {"Density": "particle_gas_density",
-                      "Temperature": "particle_gas_temperature"}
+    new_field_list = field_list + [("io", "particle_gas_temperature")]
+    new_field_dict = {("gas", "Density"): ("io", "particle_gas_density"),
+                      ("gas", "Temperature"): ("io", "particle_gas_temperature")}
 
     particles2 = LatticeParticleGenerator(pf, pdims, le, re, new_field_list)
     particles2.assign_indices(function=new_indices)
     particles2.map_grid_fields_to_particles(new_field_dict)
 
     #Test lattice positions
-    xpos = np.unique(particles2["particle_position_x"])
-    ypos = np.unique(particles2["particle_position_y"])
-    zpos = np.unique(particles2["particle_position_z"])
+    xpos = np.unique(particles2["io", "particle_position_x"])
+    ypos = np.unique(particles2["io", "particle_position_y"])
+    zpos = np.unique(particles2["io", "particle_position_z"])
 
     xpred = np.linspace(le[0],re[0],num=pdims[0],endpoint=True)
     ypred = np.linspace(le[1],re[1],num=pdims[1],endpoint=True)
     zpred = np.linspace(le[2],re[2],num=pdims[2],endpoint=True)
 
-    yield assert_almost_equal, xpos, xpred
-    yield assert_almost_equal, ypos, ypred
-    yield assert_almost_equal, zpos, zpred
+    assert_almost_equal( xpos, xpred)
+    assert_almost_equal( ypos, ypred)
+    assert_almost_equal( zpos, zpred)
 
     #Test the number of particles again
     particles2.apply_to_stream()
     particles_per_grid2 = [grid.NumberOfParticles for grid in pf.h.grids]
     yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
+
+    [grid.field_data.clear() for grid in pf.h.grids]
     particles_per_grid2 = [len(grid["particle_position_x"]) for grid in pf.h.grids]
     yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
 

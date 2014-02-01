@@ -146,7 +146,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in fields:
+        for field in self._field_check(fields):
             if self._field_transform[field] == log_transform:
                 log[field] = True
             else:
@@ -179,7 +179,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in fields:
+        for field in self._field_check(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
         return self
@@ -214,7 +214,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in fields:
+        for field in self._field_check(fields):
             myzmin = zmin
             myzmax = zmax
             if zmin == 'min':
@@ -386,7 +386,7 @@ class ImagePlotContainer(object):
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
             os.mkdir(name)
-        if os.path.isdir(name):
+        if os.path.isdir(name) and name != str(self.pf):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
         suffix = get_image_suffix(name)
         if suffix != '':
