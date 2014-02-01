@@ -527,12 +527,12 @@ def add_smoothed_field(ptype, coord_name, mass_name, smoothed_field, registry,
 def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, smoothed_field, registry):
     field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
-    field_units = registry[ptype, smoothed_field].units
+    field_units = "(%s) / cm**3" % (registry[ptype, smoothed_field].units,)
     def _mass_cons(field, data):
         pos = data[ptype, coord_name].in_units("code_length")
         hsml = data[ptype, smoothing_length_name].in_units("code_length")
-        mass = data[ptype, mass_name].in_units("code_mass")
-        vol = data["cell_volume"].in_units("code_length**3")
+        mass = data[ptype, mass_name].in_cgs()
+        vol = data["cell_volume"].in_cgs()
         dep_mass = mass.copy()
         dep_mass[:] = 0.0
         quan = data[ptype, smoothed_field]
@@ -543,7 +543,7 @@ def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
         rv = data.smooth(pos, [mass, hsml, dep_mass, quan],
                          method="conserved_mass",
                          create_octree = True)[0]
-        return rv
+        return data.apply_units(rv, field.units)
     registry.add_field(field_name, function = _mass_cons,
                        validators = [ValidateSpatial(0)],
                        units = field_units)
