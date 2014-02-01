@@ -17,8 +17,7 @@ from yt.utilities.physical_ratios import \
     cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
-    metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
-    hubble_constant_hertz
+    metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
