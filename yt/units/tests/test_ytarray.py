@@ -20,8 +20,12 @@ from numpy.testing import \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp
 from numpy import array
-from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTUnitOperationError, YTUfuncUnitError
+from yt.units.yt_array import \
+    YTArray, YTQuantity, \
+    unary_operators, binary_operators
+from yt.units.unit_object import Unit
+from yt.utilities.exceptions import \
+    YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_pf
 from yt.funcs import fix_length
 import numpy as np
@@ -394,7 +398,7 @@ def test_fix_length():
 def test_ytarray_pickle():
     pf = fake_random_pf(64, nprocs=1)
     test_data = [pf.quan(12.0, 'code_length'), pf.arr([1,2,3], 'code_length')]
-    
+
     for data in test_data:
         tempf = tempfile.NamedTemporaryFile(delete=False)
         pickle.dump(data, tempf)
@@ -422,3 +426,63 @@ def test_copy():
 
     yield assert_equal, np.copy(quan), quan
     yield assert_array_equal, np.copy(arr), arr
+
+def test_ufuncs():
+    for ufunc in unary_operators:
+        a = YTArray([.3, .4, .5], 'cm')
+        if ufunc in (np.isreal, np.iscomplex, ):
+            # According to the numpy docs, these two explicitly do not do
+            # in-place copies.
+            ret = ufunc(a)
+            assert_true(not hasattr(ret, 'units'))
+            assert_array_equal(ret, ufunc(a))
+
+        elif ufunc in (np.exp, np.exp2, np.log, np.log2, np.log10, np.expm1,
+                       np.log1p, np.sin, np.cos, np.tan, np.arcsin, np.arccos,
+                       np.arctan, np.sinh, np.cosh, np.tanh, np.arccosh,
+                       np.arcsinh, np.arctanh, np.deg2rad, np.rad2deg,
+                       np.isfinite, np.isinf, np.isnan, np.signbit, np.sign,
+                       np.rint, np.logical_not):
+
+            # These operations should return identical results compared to numpy
+            # in-place copies do not drop units.
+            try:
+                ret = ufunc(a, a)
+                yield assert_array_equal, a.to_ndarray(), ufunc(np.array([.3, .4, .5]))
+            except YTUnitOperationError:
+                yield assert_true, ufunc in (np.deg2rad, np.rad2deg)
+                ret = ufunc(YTArray(a, '1'))
+
+            yield assert_array_equal, ret, ufunc(np.array([.3, .4, .5]))
+            yield assert_true, hasattr(a, 'units')
+            yield assert_true, not hasattr(ret, 'units')
+        elif ufunc in (np.absolute, np.conjugate, np.floor, np.ceil,
+                       np.trunc, np.negative):
+            ret = ufunc(a, a)
+
+            yield assert_array_equal, ret, a
+            yield assert_array_equal, ret.to_ndarray(), ufunc(np.array([.3, .4, .5]))
+            yield assert_true, ret.units == Unit('cm')
+        elif ufunc in (np.ones_like, np.square, np.sqrt, np.reciprocal):
+            if ufunc is np.ones_like:
+                ret = ufunc(a)
+            else:
+                ret = ufunc(a, a)
+
+            yield assert_true, a.units == ret.units
+            yield assert_array_equal, ret.to_ndarray(), ufunc(np.array([.3, .4, .5]))
+            if ufunc is np.square:
+                yield assert_true, a.units == Unit('cm**2')
+                yield assert_true, ret.units == Unit('cm**2')
+            if ufunc is np.sqrt:
+                yield assert_true, a.units == Unit('cm**(1/2)')
+                yield assert_true, ret.units == Unit('cm**(1/2)')
+            if ufunc is np.reciprocal:
+                yield assert_true, a.units == Unit('1/cm')
+                yield assert_true, ret.units == Unit('1/cm')
+        elif ufunc is np.modf:
+            ret1, ret2 = ufunc(a)
+            npret1, npret2 = ufunc(np.array([.3, .4, .5]))
+
+            yield assert_array_equal, ret1.to_ndarray(), npret1
+            yield assert_array_equal, ret2.to_ndarray(), npret2
