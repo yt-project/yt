@@ -356,7 +356,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         
         return data[ftype, "shear"] / data[ftype, "sound_speed"]
 
-    registry.add_field("shear_criterion",
+    registry.add_field((ftype, "shear_criterion"),
                        function=_shear_criterion,
                        units="1/cm",
                        validators=[ValidateSpatial(1,
