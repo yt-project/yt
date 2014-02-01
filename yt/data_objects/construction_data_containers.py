@@ -31,8 +31,13 @@ from yt.utilities.logger import ytLogger
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
     restore_field_information_state, YTFieldData
-from yt.utilities.lib import \
-    QuadTree, ghost_zone_interpolate, fill_region, \
+from yt.utilities.lib.QuadTree import \
+    QuadTree
+from yt.utilities.lib.Interpolators import \
+    ghost_zone_interpolate
+from yt.utilities.lib.misc_utilities import \
+    fill_region
+from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
@@ -314,7 +319,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             finfo = self.pf._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             units = finfo.units
-            if self.weight_field is None:
+            if self.weight_field is None and str(units) != "":
                 # See _handle_chunk where we mandate cm
                 if units == '':
                     input_units = "cm"

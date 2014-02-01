@@ -170,9 +170,11 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs(axi, ptype)
         registry.add_field((ptype, "particle_velocity_%s" % ax),
-            particle_type = True, function = v)
+            particle_type = True, function = v,
+            units = "code_length")
         registry.add_field((ptype, "particle_position_%s" % ax),
-            particle_type = True, function = p)
+            particle_type = True, function = p,
+            units = "code_length")
 
     return list(set(registry.keys()).difference(orig))
 

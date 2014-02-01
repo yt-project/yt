@@ -56,8 +56,9 @@ from yt.data_objects.static_output import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
-from yt.utilities.lib import \
-    get_box_grids_level, \
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
+from yt.utilities.lib.GridTree import \
     GridTree, \
     MatchPointsToGrids
 from yt.utilities.decompose import \

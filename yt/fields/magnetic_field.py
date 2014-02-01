@@ -16,7 +16,8 @@ Magnetic field ... er, fields.
 import numpy as np
 
 from yt.units.yt_array import YTArray
-from yt.utilities.lib import obtain_rvec, obtain_rv_vec
+from yt.utilities.lib.misc_utilities import \
+    obtain_rvec, obtain_rv_vec
 from yt.utilities.math_utils import resize_vector
 from yt.utilities.cosmology import Cosmology
 from yt.fields.derived_field import \

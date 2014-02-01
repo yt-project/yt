@@ -112,4 +112,3 @@ class RockstarStaticOutput(StaticOutput):
             if header['magic'] == 18077126535843729616:
                 return True
         return False
-

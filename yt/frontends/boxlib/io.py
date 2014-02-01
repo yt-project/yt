@@ -15,7 +15,7 @@ Orion data-file handling functions
 
 import os
 import numpy as np
-from yt.utilities.lib import \
+from yt.utilities.lib.fortran_reader import \
     read_castro_particles, \
     read_and_seek
 from yt.utilities.io_handler import \

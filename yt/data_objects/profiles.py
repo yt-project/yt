@@ -20,9 +20,10 @@ from yt.funcs import *
 
 from yt.units.yt_array import uconcatenate
 from yt.data_objects.data_containers import YTFieldData
-from yt.utilities.lib import bin_profile1d, bin_profile2d, bin_profile3d
-from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d, \
-                             new_bin_profile3d
+from yt.utilities.lib.misc_utilities import \
+    bin_profile1d, bin_profile2d, bin_profile3d, \
+    new_bin_profile1d, new_bin_profile2d, \
+    new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 

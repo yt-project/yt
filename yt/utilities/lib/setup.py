@@ -62,12 +62,14 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/CICDeposit.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("ContourFinding", 
-                ["yt/utilities/lib/ContourFinding.pyx",
-                 "yt/utilities/lib/union_find.c"],
-                include_dirs=["yt/utilities/lib/"],
+                ["yt/utilities/lib/ContourFinding.pyx"],
+                include_dirs=["yt/utilities/lib/",
+                              "yt/geometry/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
-                         "yt/utilities/lib/amr_kdtools.pxd"])
+                         "yt/utilities/lib/amr_kdtools.pxd",
+                         "yt/utilities/lib/ContourFinding.pxd",
+                         "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
