@@ -641,6 +641,7 @@ class PhasePlot(ImagePlotContainer):
                   [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
                 for label in labels:
                     label.set_color(self._font_color)
+        self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
