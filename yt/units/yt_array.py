@@ -25,12 +25,11 @@ from numpy import \
      sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
      reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
      hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
-     bitwise_and, bitwise_or, bitwise_xor, invert, left_shift, right_shift, \
+     bitwise_and, bitwise_or, bitwise_xor, left_shift, right_shift, \
      greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
      logical_or, logical_xor, logical_not, maximum, minimum, isreal, \
      iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, modf, \
-     ldexp, frexp, fmod, floor, ceil, trunc
-
+     ldexp, fmod, floor, ceil, trunc, fmax, fmin
 
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
@@ -99,7 +98,7 @@ def divide_units(unit1, unit2):
     return unit1/unit2
 
 def reciprocal_unit(unit):
-    return 1/unit
+    return unit**-1
 
 def passthrough_unit(unit):
     return unit
@@ -154,6 +153,22 @@ def sanitize_units_add(this_object, other_object, op_string):
         ret = other_object
     return ret
 
+unary_operators = (
+    negative, absolute, rint, ones_like, sign, conj, exp, exp2, log, log2,
+    log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
+    arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
+    rad2deg, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
+    signbit, floor, ceil, trunc, modf
+)
+
+binary_operators = (
+    add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, power,
+    remainder, mod, fmod, arctan2, hypot, bitwise_and, bitwise_or, bitwise_xor,
+    left_shift, right_shift, greater, greater_equal, less, less_equal,
+    not_equal, equal, logical_and, logical_or, logical_xor, maximum, minimum,
+    fmax, fmin, copysign, nextafter, ldexp, fmod,
+)
+
 class YTArray(np.ndarray):
     """
 
@@ -190,17 +205,22 @@ class YTArray(np.ndarray):
         sin: return_without_unit,
         cos: return_without_unit,
         tan: return_without_unit,
+        sinh: return_without_unit,
+        cosh: return_without_unit,
+        tanh: return_without_unit,
         arcsin: return_without_unit,
         arccos: return_without_unit,
         arctan: return_without_unit,
         arctan2: arctan2_unit,
+        arcsinh: return_without_unit,
+        arccosh: return_without_unit,
+        arctanh: return_without_unit,
         hypot: preserve_units,
-        deg2rad: unitless,
-        rad2deg: unitless,
+        deg2rad: return_without_unit,
+        rad2deg: return_without_unit,
         bitwise_and: bitwise_comparison_unit,
         bitwise_or: bitwise_comparison_unit,
         bitwise_xor: bitwise_comparison_unit,
-        invert: bitwise_comparison_unit,
         left_shift: passthrough_unit,
         right_shift: passthrough_unit,
         greater: size_comparison_unit,
@@ -212,7 +232,7 @@ class YTArray(np.ndarray):
         logical_and: comparison_unit,
         logical_or: comparison_unit,
         logical_xor: comparison_unit,
-        logical_not: comparison_unit,
+        logical_not: return_without_unit,
         maximum: passthrough_unit,
         minimum: passthrough_unit,
         isreal: return_without_unit,
@@ -226,8 +246,8 @@ class YTArray(np.ndarray):
         modf: passthrough_unit,
         floor: passthrough_unit,
         ceil: passthrough_unit,
-        trunc: passthrough_unit
-        }
+        trunc: passthrough_unit,
+    }
 
     __array_priority__ = 2.0
 
@@ -694,8 +714,7 @@ class YTArray(np.ndarray):
                 return ret[()]
             else:
                 return ret
-        elif len(context[1]) == 1:
-            # unary operators
+        elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
             if u == None:
                 u = Unit()
@@ -705,8 +724,7 @@ class YTArray(np.ndarray):
             # Raise YTUnitOperationError up here since we know the context now
             except RuntimeError:
                 raise YTUnitOperationError(context[0], u)
-        elif len(context[1]) in (2,3):
-            # binary operators
+        elif context[0] in binary_operators:
             unit1 = getattr(context[1][0], 'units', None)
             unit2 = getattr(context[1][1], 'units', None)
             if unit1 == None:
@@ -731,6 +749,8 @@ class YTArray(np.ndarray):
             raise RuntimeError("Operation is not defined.")
         if unit is None:
             out_arr = np.array(out_arr)
+            return out_arr
+        if unit is ():
             return out_arr
         out_arr.units = unit
         if out_arr.size > 1:
