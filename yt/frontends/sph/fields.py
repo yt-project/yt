@@ -43,6 +43,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("InternalEnergy", ("", ["thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
+        ("MaximumTemperature", ("K", [], None)),
         ("Temperature", ("K", ["temperature"], None)),
         ("Epsilon", ("", [], None)),
         ("Metals", ("code_metallicity", ["metallicity"], None)),
