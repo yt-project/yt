@@ -118,8 +118,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
         # removed the factor of 1 / a to account for the fact that we are projecting 
         # with a proper distance.
-        return 1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
-          data[ftype, "matter_overdensity"]
+        return (1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
+          data[ftype, "matter_overdensity"]).in_units("1/cm")
        
     registry.add_field((ftype, "weak_lensing_convergence"),
                        function=_weak_lensing_convergence,
