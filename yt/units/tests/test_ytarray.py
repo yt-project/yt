@@ -520,6 +520,7 @@ def binary_ufunc_comparison(ufunc, a, b):
                    np.not_equal, np.equal, np.logical_and, np.logical_or,
                    np.logical_xor):
         assert_true(not isinstance(ret, YTArray) and isinstance(ret, np.ndarray))
+    assert_array_equal(ret, out)
     assert_array_equal(ret, ufunc(a.to_ndarray(), b.to_ndarray()))
 
 def test_ufuncs():
