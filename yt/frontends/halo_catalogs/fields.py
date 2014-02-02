@@ -26,8 +26,6 @@ from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs
 
-import yt.utilities.lib as amr_utils
-
 m_units = "Msun / h"                # Msun / h
 p_units = "Mpccm / h"               # Mpc / h comoving
 v_units = "km / s"                  # km /s phys, peculiar

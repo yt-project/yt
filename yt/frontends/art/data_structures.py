@@ -40,9 +40,8 @@ from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
-from yt.utilities.lib import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
-import yt.utilities.lib as amr_utils
 
 from yt.frontends.art.definitions import *
 from yt.utilities.fortran_utils import *
@@ -56,8 +55,6 @@ from .io import b2t
 from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from yt.utilities.lib import \
-    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
 from yt.fields.field_info_container import \

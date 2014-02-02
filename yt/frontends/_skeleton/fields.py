@@ -23,7 +23,6 @@ from yt.fields.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.fields.universal_fields
 from yt.utilities.physical_constants import \
     kboltz
 

@@ -451,7 +451,9 @@ class StaticOutput(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
+        vel_unit = getattr(self, "code_velocity",
+                    self.length_unit / self.time_unit)
+        self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None

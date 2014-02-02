@@ -41,10 +41,12 @@ cdef inline np.float64_t r2dist(np.float64_t ppos[3],
     r2 = 0.0
     for i in range(3):
         DR = (ppos[i] - cpos[i])
-        if (DR > DW[i]/2.0):
-            DR -= DW[i]/2.0
+        if not periodicity[i]:
+            pass
+        elif (DR > DW[i]/2.0):
+            DR -= DW[i]
         elif (DR < -DW[i]/2.0):
-            DR += DW[i]/2.0
+            DR += DW[i]
         r2 += DR * DR
     return r2
 

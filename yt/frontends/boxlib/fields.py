@@ -19,7 +19,6 @@ from yt.utilities.physical_constants import \
     mh, kboltz
 from yt.fields.field_info_container import \
     FieldInfoContainer
-import yt.fields.universal_fields
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass * code_length / code_time"

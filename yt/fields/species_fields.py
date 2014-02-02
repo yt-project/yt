@@ -25,7 +25,6 @@ from yt.fields.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
-import yt.fields.universal_fields
 from yt.fields.particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
@@ -35,4 +34,3 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.funcs import *
 
-import yt.utilities.lib as amr_utils
