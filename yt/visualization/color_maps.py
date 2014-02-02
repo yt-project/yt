@@ -120,7 +120,7 @@ add_cmap("cubehelix", _cubehelix_data)
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0,1,255)
 for k,v in _cm.color_map_luts.iteritems():
-    if k not in yt_colormaps:
+    if k not in yt_colormaps and k not in mcm.cmap_d:
         cdict = { 'red': zip(_vs,v[0],v[0]),
                   'green': zip(_vs,v[1],v[1]),
                   'blue': zip(_vs,v[2],v[2]) }
