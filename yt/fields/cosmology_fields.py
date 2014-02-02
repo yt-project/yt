@@ -18,6 +18,9 @@ import numpy as np
 
 from .derived_field import \
      ValidateParameter
+from .field_exceptions import \
+     NeedsConfiguration, \
+     NeedsParameter
 from .field_plugin_registry import \
      register_field_plugin
 
@@ -51,10 +54,15 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         
     # rho_total / rho_cr(z).
     def _overdensity(field, data):
-        # consider moving cosmology object to pf attribute
-        co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                       omega_matter=data.pf.omega_matter,
-                       omega_lambda=data.pf.omega_lambda)
+        if not hasattr(data.pf, "cosmological_simulation") or \
+          not data.pf.cosmological_simulation:
+            raise NeedsConfiguration("cosmological_simulation", 1)
+        if hasattr(data.pf, "cosmology"):
+            co = data.pf.cosmology
+        else:
+            co = Cosmology(hubble_constant=data.pf.hubble_constant,
+                           omega_matter=data.pf.omega_matter,
+                           omega_lambda=data.pf.omega_lambda)
         return data[ftype, "matter_density"] / \
           co.critical_density(data.pf.current_redshift)
     
@@ -64,12 +72,18 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     # rho_baryon / <rho_baryon>
     def _baryon_overdensity(field, data):
+        if not hasattr(data.pf, "cosmological_simulation") or \
+          not data.pf.cosmological_simulation:
+            raise NeedsConfiguration("cosmological_simulation", 1)
         omega_baryon = data.get_field_parameter("omega_baryon")
-        # consider moving cosmology object to pf attribute
-        co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                       omega_matter=data.pf.omega_matter,
-                       omega_lambda=data.pf.omega_lambda,
-                       unit_registry=data.pf.unit_registry)
+        if omega_baryon is None:
+            raise NeedsParameter("omega_baryon")
+        if hasattr(data.pf, "cosmology"):
+            co = data.pf.cosmology
+        else:
+            co = Cosmology(hubble_constant=data.pf.hubble_constant,
+                           omega_matter=data.pf.omega_matter,
+                           omega_lambda=data.pf.omega_lambda)
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
@@ -82,11 +96,15 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     # rho_matter / <rho_matter>
     def _matter_overdensity(field, data):
-        # consider moving cosmology object to pf attribute
-        co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                       omega_matter=data.pf.omega_matter,
-                       omega_lambda=data.pf.omega_lambda,
-                       unit_registry=data.pf.unit_registry)
+        if not hasattr(data.pf, "cosmological_simulation") or \
+          not data.pf.cosmological_simulation:
+            raise NeedsConfiguration("cosmological_simulation", 1)
+        if hasattr(data.pf, "cosmology"):
+            co = data.pf.cosmology
+        else:
+            co = Cosmology(hubble_constant=data.pf.hubble_constant,
+                           omega_matter=data.pf.omega_matter,
+                           omega_lambda=data.pf.omega_lambda)
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / data.pf.omega_matter / \
@@ -101,11 +119,15 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
     # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
     # This needs to be checked for accuracy.
     def _weak_lensing_convergence(field, data):
-        # consider moving cosmology object to pf attribute
-        co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                       omega_matter=data.pf.omega_matter,
-                       omega_lambda=data.pf.omega_lambda,
-                       unit_registry=data.pf.unit_registry)
+        if not hasattr(data.pf, "cosmological_simulation") or \
+          not data.pf.cosmological_simulation:
+            raise NeedsConfiguration("cosmological_simulation", 1)
+        if hasattr(data.pf, "cosmology"):
+            co = data.pf.cosmology
+        else:
+            co = Cosmology(hubble_constant=data.pf.hubble_constant,
+                           omega_matter=data.pf.omega_matter,
+                           omega_lambda=data.pf.omega_lambda)
         observer_redshift = data.get_field_parameter('observer_redshift')
         source_redshift = data.get_field_parameter('source_redshift')
         

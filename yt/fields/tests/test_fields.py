@@ -58,8 +58,10 @@ def realistic_pf(fields, nprocs):
     pf.conversion_factors.update( dict((f, 1.0) for f in fields) )
     pf.gamma = 5.0/3.0
     pf.current_redshift = 0.0001
+    pf.cosmological_simulation = 1
     pf.hubble_constant = 0.7
     pf.omega_matter = 0.27
+    pf.omega_lambda = 0.73
     return pf
 
 def _strip_ftype(field):
