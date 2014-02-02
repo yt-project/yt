@@ -25,11 +25,10 @@ from numpy import \
      sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
      reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
      hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
-     bitwise_and, bitwise_or, bitwise_xor, left_shift, right_shift, \
      greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
-     logical_or, logical_xor, logical_not, maximum, minimum, isreal, \
-     iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, modf, \
-     ldexp, frexp, fmod, floor, ceil, trunc, fmax, fmin
+     logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
+     isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
+     floor, ceil, trunc, fmax, fmin
 
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
@@ -118,14 +117,6 @@ def arctan2_unit(unit1, unit2):
 def comparison_unit(unit1, unit2):
     return None
 
-@ensure_same_dimensions
-def size_comparison_unit(unit1, unit2):
-    return None
-
-@ensure_same_dimensions
-def bitwise_comparison_unit(unit1, unit2):
-    return unit1
-
 def sanitize_units_mul(this_object, other_object):
     ret = other_object
     # If the other object is a YTArray and has the same dimensions as the object
@@ -163,10 +154,9 @@ unary_operators = (
 
 binary_operators = (
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, power,
-    remainder, mod, fmod, arctan2, hypot, bitwise_and, bitwise_or, bitwise_xor,
-    left_shift, right_shift, greater, greater_equal, less, less_equal,
+    remainder, mod, arctan2, hypot, greater, greater_equal, less, less_equal,
     not_equal, equal, logical_and, logical_or, logical_xor, maximum, minimum,
-    fmax, fmin, copysign, nextafter, ldexp, fmod,
+    fmax, fmin, copysign, nextafter, fmod,
 )
 
 class YTArray(np.ndarray):
@@ -218,30 +208,27 @@ class YTArray(np.ndarray):
         hypot: preserve_units,
         deg2rad: return_without_unit,
         rad2deg: return_without_unit,
-        bitwise_and: bitwise_comparison_unit,
-        bitwise_or: bitwise_comparison_unit,
-        bitwise_xor: bitwise_comparison_unit,
-        left_shift: passthrough_unit,
-        right_shift: passthrough_unit,
-        greater: size_comparison_unit,
-        greater_equal: size_comparison_unit,
-        less: size_comparison_unit,
-        less_equal: size_comparison_unit,
-        not_equal: size_comparison_unit,
-        equal: size_comparison_unit,
+        greater: comparison_unit,
+        greater_equal: comparison_unit,
+        less: comparison_unit,
+        less_equal: comparison_unit,
+        not_equal: comparison_unit,
+        equal: comparison_unit,
         logical_and: comparison_unit,
         logical_or: comparison_unit,
         logical_xor: comparison_unit,
         logical_not: return_without_unit,
-        maximum: passthrough_unit,
-        minimum: passthrough_unit,
+        maximum: preserve_units,
+        minimum: preserve_units,
+        fmax: preserve_units,
+        fmin: preserve_units,
         isreal: return_without_unit,
         iscomplex: return_without_unit,
         isfinite: return_without_unit,
         isinf: return_without_unit,
         isnan: return_without_unit,
         signbit: return_without_unit,
-        copysign: preserve_units,
+        copysign: passthrough_unit,
         nextafter: preserve_units,
         modf: passthrough_unit,
         frexp: return_without_unit,
@@ -734,7 +721,8 @@ class YTArray(np.ndarray):
                 unit2 = Unit()
             elif context[0] is power:
                 unit2 = context[1][1]
-            if self._ufunc_registry[context[0]] in (preserve_units, size_comparison_unit):
+            if self._ufunc_registry[context[0]] in \
+               (preserve_units, comparison_unit, arctan2_unit):
                 if unit1 != unit2:
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
