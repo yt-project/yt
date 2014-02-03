@@ -54,15 +54,15 @@ class IOHandlerAthena(BaseIOHandler):
                 f.seek(read_table_offset+offset)
                 if dtype == 'scalar':
                     v = np.fromfile(f, dtype='>f4',
-                                    count=grid_ncells).reshape(grid_dims,order='F').copy()
+                                    count=grid_ncells).reshape(grid_dims,order='F')
                 if dtype == 'vector':
                     v = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
                 if '_x' in field[-1]:
-                    v = v[0::3].reshape(grid_dims,order='F').copy()
+                    v = v[0::3].reshape(grid_dims,order='F')
                 elif '_y' in field[-1]:
-                    v = v[1::3].reshape(grid_dims,order='F').copy()
+                    v = v[1::3].reshape(grid_dims,order='F')
                 elif '_z' in field[-1]:
-                    v = v[2::3].reshape(grid_dims,order='F').copy()
+                    v = v[2::3].reshape(grid_dims,order='F')
                 if grid.pf.field_ordering == 1:
                     data[grid.id][field] = v.T.astype("float64")
                 else:
