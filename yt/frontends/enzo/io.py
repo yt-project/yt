@@ -124,7 +124,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             f = h5py.File(g.filename, 'r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
-                rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
+                if fname in gds:
+                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
+                else:
+                    rv[(ftype, fname)] = np.zeros(g.ActiveDimensions)
             f.close()
             return rv
         if size is None:
