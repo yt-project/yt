@@ -60,6 +60,7 @@ cdef class ParticleSmoothOperation:
     def process_octree(self, OctreeContainer mesh_octree,
                      np.ndarray[np.int64_t, ndim=1] mdom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
+                     np.ndarray[np.float64_t, ndim=2] oct_positions,
                      fields = None, int domain_id = -1,
                      int domain_offset = 0,
                      periodicity = (True, True, True),
@@ -182,9 +183,9 @@ cdef class ParticleSmoothOperation:
         visited = np.zeros(mdom_ind.shape[0], dtype="uint8")
         cdef int maxnei = 0
         cdef int nproc = 0
-        for i in range(positions.shape[0]):
+        for i in range(oct_positions.shape[0]):
             for j in range(3):
-                pos[j] = positions[i, j]
+                pos[j] = oct_positions[i, j]
             oct = mesh_octree.get(pos, &moi)
             offset = mdom_ind[oct.domain_ind - moff_m] * nz
             if visited[oct.domain_ind - moff_m] == 1: continue
@@ -214,8 +215,8 @@ cdef class ParticleSmoothOperation:
             self.neighbor_process(dims, moi.left_edge, moi.dds,
                          ppos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset, index_field_pointers)
-        #print "NPROC", nproc, positions.shape[0]
-        #print "MAX NEIGHBORS", maxnei
+        #print "VISITED", visited.sum(), visited.size,
+        #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
             free(nind)
         
