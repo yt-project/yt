@@ -76,6 +76,8 @@ keV_per_K = 1.0 / K_per_keV
 keV_per_erg = 1.0 / erg_per_keV
 eV_per_erg = 1.0 / erg_per_eV
 
+# flux
+jansky_cgs = 1.0e-23
 # Cosmological constants
 rho_crit_g_cm3_h2 = 1.8788e-29
 hubble_constant_hertz = 2.19724836e-18 # Planck 2013

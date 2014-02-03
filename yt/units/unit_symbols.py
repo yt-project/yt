@@ -152,4 +152,4 @@ rad    = radian = quan(1.0, "radian")
 arcsec = arcsecond = quan(1.0, "arcsec")
 arcmin = arcminute = quan(1.0, "arcmin")
 mas    = milliarcsecond = quan(1.0, "mas")
-
+sr     = steradian = quan(1.0, "steradian")

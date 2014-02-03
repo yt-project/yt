@@ -18,7 +18,7 @@ from yt.utilities.physical_ratios import \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
-    hubble_constant_hertz, cm_per_ang
+    hubble_constant_hertz, cm_per_ang, jansky_cgs
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -31,6 +31,7 @@ default_unit_symbol_lut = {
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
+    "steradian": (1.0, dimensions.solid_angle),
 
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
@@ -94,6 +95,7 @@ default_unit_symbol_lut = {
     "amu": (amu_grams, dimensions.mass),
     "me": (mass_electron_grams, dimensions.mass),
     "angstrom": (cm_per_ang, dimensions.length),
+    "Jy": (jansky_cgs, dimensions.specific_flux)
 
 }
 
@@ -157,4 +159,5 @@ prefixable_units = (
     "Hz",
     "W",
     "gauss",
+    "Jy",
 )
