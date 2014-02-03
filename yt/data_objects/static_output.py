@@ -309,9 +309,8 @@ class StaticOutput(object):
         self.h.field_list.extend(fields)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
-        self.h._setup_particle_types([union.name])
-        #self.h._setup_unknown_fields(fields, self.field_info,
-        #                             skip_removal = True)
+        new_fields = self.h._setup_particle_types([union.name])
+        rv = self.field_info.find_dependencies(new_fields)
 
     def add_particle_filter(self, filter):
         # This is a dummy, which we set up to enable passthrough of "all"

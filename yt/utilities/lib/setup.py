@@ -5,16 +5,13 @@ import os, sys, os.path, glob, \
 from yt.utilities.setup import \
     check_for_dependencies
 
-
-def check_for_png():
-    return check_for_dependencies("PNG_DIR", "png.cfg", "png.h", "png")
-
-
 def check_for_openmp():
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     exit_code = 1
+
+    if os.name == 'nt': return False
 
     try:
         os.chdir(tmpdir)
@@ -49,7 +46,6 @@ def check_for_openmp():
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
-    png_inc, png_lib = check_for_png()
     if check_for_openmp() == True:
         omp_args = ['-fopenmp']
     else:
@@ -103,13 +99,10 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("png_writer", 
-                ["yt/utilities/lib/png_writer.pyx"],
-                define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
-                include_dirs=[png_inc],
-                library_dirs=[png_lib],
-                libraries=["m", "png"],
-                depends=["yt/utilities/lib/fp_utils.pxd"]),
+    config.add_extension("image_utilities", 
+                         ["yt/utilities/lib/image_utilities.pyx"],
+                         libraries=["m"],
+                         depends=["yt/utilities/lib/fp_utils.pxd"]),
     config.add_extension("PointsInVolume", 
                 ["yt/utilities/lib/PointsInVolume.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])

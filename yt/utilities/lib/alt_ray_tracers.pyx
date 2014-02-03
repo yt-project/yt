@@ -65,7 +65,7 @@ def _cart_intersect(np.ndarray[np.float64_t, ndim=1] a,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1, 
+def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1, 
                           np.ndarray[np.float64_t, ndim=1] p2, 
                           np.ndarray[np.float64_t, ndim=2] left_edges, 
                           np.ndarray[np.float64_t, ndim=2] right_edges):
@@ -152,7 +152,7 @@ def clyindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                                      np.argwhere(tmmright).flat, 
                                      np.argwhere(tpmright).flat,]))
     if 0 == inds.shape[0]:
-        inds = np.arange(I)
+        inds = np.arange(np.int64(I))
         thetaleft = np.empty(I)
         thetaleft.fill(p1[2])
         thetaright = np.empty(I)

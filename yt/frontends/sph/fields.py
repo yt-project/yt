@@ -34,8 +34,8 @@ class SPHFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
     known_particle_fields = (
-        ("Mass", ("code_mass", ["mass"], None)),
-        ("Masses", ("code_mass", ["mass"], None)),
+        ("Mass", ("code_mass", ["particle_mass"], None)),
+        ("Masses", ("code_mass", ["particle_mass"], None)),
         ("Coordinates", ("code_length", [], None)),
         ("Velocity", ("code_velocity", ["velocity"], None)),
         ("Velocities", ("code_velocity", ["velocity"], None)),
@@ -49,13 +49,3 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Phi", ("", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
     )
-
-def SmoothedGas(field, data):
-    pos = data["PartType0", "Coordinates"]
-    sml = data["PartType0", "SmoothingLength"]
-    dens = data["PartType0", "Density"]
-    rv = data.deposit(pos, [sml, dens], method="simple_smooth")
-    return rv
-#OWLSFieldInfo.add_field(("deposit", "PartType0_simple_smooth"),
-#                function = SmoothedGas, validators = [ValidateSpatial()])
-
