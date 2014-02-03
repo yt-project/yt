@@ -228,7 +228,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
             mass_unit = ("1e10*Msun/h", 1.0)
         self.mass_unit = self.quan(mass_unit[1], mass_unit[0])
         self.time_unit = self.length_unit / self.velocity_unit
-        
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         # We do not allow load() of these files.

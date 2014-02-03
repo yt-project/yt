@@ -377,12 +377,12 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
-        cdef np.float64_t weight, r2, val, hsml, dens, mass, coeff
+        cdef np.float64_t weight, r2, val, hsml, dens, mass, coeff, max_r
         coeff = 0.0
         cdef np.int64_t pn
         # We get back our mass 
         # rho_i = sum(j = 1 .. n) m_j * W_ij
-        #hsml = sqrt(self.neighbors[self.curn-1].r2 * 1.1)
+        max_r = sqrt(self.neighbors[self.curn-1].r2)
         for n in range(self.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
@@ -391,6 +391,8 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             # Smoothing kernel weight function
             mass = fields[0][pn]
             hsml = fields[1][pn]
+            if hsml < 0:
+                hsml = max_r
             if hsml == 0: continue
             # Usually this density has been computed
             dens = fields[2][pn]
