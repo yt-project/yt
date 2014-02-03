@@ -485,9 +485,9 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         f.close()
 
-    def _set_units(self):
-        super(TipsyStaticOutput, self)._set_units()
+    def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
+            raise NotImplementedError
             DW = (self.domain_right_edge - self.domain_left_edge).max()
             cosmo = Cosmology(self.hubble_constant * 100.0,
                               self.omega_matter, self.omega_lambda)
@@ -495,16 +495,12 @@ class TipsyStaticOutput(ParticleStaticOutput):
             density_unit = cosmo.CriticalDensity(self.current_redshift)
             mass_unit = density_unit * length_unit ** 3
         else:
-            mass_unit = self.parameters.get('dMsolUnit', 1.0) * mass_sun_cgs
-            length_unit = self.parameters.get('dKpcUnit', 1.0) * cm_per_kpc
-            density_unit = mass_unit / length_unit ** 3
-        time_unit = 1.0 / np.sqrt(G * density_unit)
-        velocity_unit = length_unit / time_unit
-        self.conversion_factors["velocity"] = velocity_unit
-        self.conversion_factors["mass"] = mass_unit
-        self.conversion_factors["density"] = density_unit
-        for u in sec_conversion:
-            self.time_units[u] = time_unit * sec_conversion[u]
+            mu = self.parameters.get('dMsolUnit', 1.0)
+            self.mass_unit = self.quan(mu, 'Msun')
+            lu = self.parameters.get('dKpcUnit', 1.0)
+            self.length_unit = self.quan(lu, 'kpc')
+            density_unit = self.mass_unit / self.length_unit**3
+        self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

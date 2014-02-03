@@ -45,8 +45,8 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("MaximumTemperature", ("K", [], None)),
         ("Temperature", ("K", ["temperature"], None)),
-        ("Epsilon", ("", [], None)),
+        ("Epsilon", ("code_length", [], None)),
         ("Metals", ("code_metallicity", ["metallicity"], None)),
-        ("Phi", ("", [], None)),
+        ("Phi", ("code_length", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
     )
