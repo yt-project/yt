@@ -992,7 +992,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     >>> pf = load("DD0046/DD0046")
     >>> ad = pf.h.all_data()
     >>> extrema = {"density": (1.0e-30, 1.0e-25)}
-    >>> profile = create_profile(ad, ["density"],
+    >>> profile = create_profile(ad, ["density"], extrema=extrema,
     ...                          fields=["temperature", "velocity_x"]))
     >>> print profile.x
     >>> print profile.field_data["temperature"]
