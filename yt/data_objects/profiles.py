@@ -810,7 +810,7 @@ class ProfileND(ParallelAnalysisInterface):
         return arr, weight_data, bin_fields
 
     def __getitem__(self, key):
-        field = self.data_source._determine_fields(key)
+        field = self.data_source._determine_fields(key)[0]
         return array_like_field(self.pf, self.field_data[field], field)
 
     def __iter__(self):
@@ -939,7 +939,8 @@ class Profile3D(ProfileND):
         # We've binned it!
 
 def create_profile(data_source, bin_fields, fields, n = 64,
-                   extrema = None, weight_field = "cell_mass",
+                   extrema = None, logs = None,
+                   weight_field = "cell_mass",
                    accumulation = False, fractional = False):
     r"""
     Create a 1, 2, or 3D profile object.
@@ -957,9 +958,14 @@ def create_profile(data_source, bin_fields, fields, n = 64,
         The number of bins in each dimension.  If None, 64 bins for 
         each bin are used for each bin field.
         Default: 64.
-    extrema : dict of tuples
+    extrema : dict of min, max tuples
         Minimum and maximum values of the bin_fields for the profiles.
-        Defaults to the extrema of the bin_fields of the dataset.
+        The keys correspond to the field names. Defaults to the extrema
+        of the bin_fields of the dataset.
+    logs : dict of boolean values
+        Whether or not to log the bin_fields for the profiles.
+        The keys correspond to the field names. Defaults to the take_log
+        attribute of the field. 
     weight_field : str
         The weight field for computing weighted average for the profile 
         values.  If None, the profile values are sums of the data in 
@@ -1010,12 +1016,15 @@ def create_profile(data_source, bin_fields, fields, n = 64,
         n = [n] * len(bin_fields)
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
-    logs = [data_source.pf._get_field_info(f[-1]).take_log for f in bin_fields]
+    if logs is None:
+        logs = [data_source.pf._get_field_info(f[-1]).take_log for f in bin_fields]
+    else:
+        logs = [logs[bin_field[-1]] for bin_field in bin_fields]
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)[0] \
               for f, l in zip(bin_fields, logs)]
     else:
-        ex = [extrema[bin_field] for bin_field in bin_fields]
+        ex = [extrema[bin_field[-1]] for bin_field in bin_fields]
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n, ex, logs):
         args += [f, n, mi, ma, l] 
