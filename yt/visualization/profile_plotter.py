@@ -129,7 +129,7 @@ class ProfilePlot(object):
         The weight field for calculating weighted averages.  If None, 
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
-        Default : "CellMassMsun".
+        Default : "cell_mass".
     n_bins : int
         The number of bins in the profile.
         Default: 64.
@@ -160,8 +160,8 @@ class ProfilePlot(object):
 
     >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
-    >>> plot = ProfilePlot(ad, "Density", ["Temperature", "x-velocity"], 
-                           weight_field="CellMassMsun",
+    >>> plot = ProfilePlot(ad, "density", ["temperature", "velocity_x"],
+                           weight_field="cell_mass",
                            plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
@@ -175,9 +175,9 @@ class ProfilePlot(object):
     >>> plot_specs = []
     >>> for pf in es[-4:]:
     ...     ad = pf.h.all_data()
-    ...     profiles.append(create_profile(ad, ["Density"],
-    ...                                    fields=["Temperature",
-    ...                                            "x-velocity"]))
+    ...     profiles.append(create_profile(ad, ["density"],
+    ...                                    fields=["temperature",
+    ...                                            "velocity_x"]))
     ...     labels.append(pf.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
@@ -197,7 +197,7 @@ class ProfilePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields, 
-                 weight_field="CellMassMsun", n_bins=64, 
+                 weight_field="cell_mass", n_bins=64,
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None, profiles=None):
         self.y_log = {}
@@ -313,7 +313,7 @@ class ProfilePlot(object):
         self.axes = AxesContainer(self.figures)
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.field_data.items():
-                self.axes[field].plot(profile.x[:-1], field_data, 
+                self.axes[field].plot(profile.x, field_data,
                                       label=self.label[i],
                                       **self.plot_spec[i])
         
@@ -480,7 +480,7 @@ class PhasePlot(ImagePlotContainer):
         The weight field for calculating weighted averages.  If None, 
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
-        Default : "CellMassMsun".
+        Default : "cell_mass".
     x_bins : int
         The number of bins in x field for the profile.
         Default: 128.
@@ -516,14 +516,14 @@ class PhasePlot(ImagePlotContainer):
 
     >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
-    >>> plot = PhasePlot(ad, "Density", "Temperature", ["CellMassMsun"],
+    >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
                          weight_field=None)
     >>> plot.save()
 
     >>> # Change plot properties.
-    >>> plot.set_cmap("CellMassMsun", "jet")
-    >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
-    >>> plot.set_title("CellMassMsun", "This is a phase plot")
+    >>> plot.set_cmap("cell_mass", "jet")
+    >>> plot.set_zlim("cell_mass", 1e8, 1e13)
+    >>> plot.set_title("cell_mass", "This is a phase plot")
     
     """
     x_log = None
@@ -536,7 +536,7 @@ class PhasePlot(ImagePlotContainer):
     _plot_type = 'Phase'
 
     def __init__(self, data_source, x_field, y_field, z_fields,
-                 weight_field="CellMassMsun", x_bins=128, y_bins=128,
+                 weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  profile=None, fontsize=18, font_color="black", figure_size=8.0):
         self.plot_title = {}
