@@ -280,6 +280,7 @@ class PlotWindow(ImagePlotContainer):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
+            old_units = [str(self._frb[of].units) for of in old_fields]
         if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
@@ -291,7 +292,9 @@ class PlotWindow(ImagePlotContainer):
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:
-            for key in old_fields: self._frb[key]
+            for key, unit in zip(old_fields, old_units):
+                self._frb[key]
+                self._frb[key].convert_to_units(unit)
         for key in self.override_fields:
             self._frb[key]
         self._data_valid = True
