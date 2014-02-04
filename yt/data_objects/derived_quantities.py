@@ -262,7 +262,7 @@ def _ParticleSpinParameter(data):
                        *data["particle_velocity_magnitude"]**2.0,dtype=np.float64)
     weight=data["particle_mass"].sum(dtype=np.float64)
     return j_mag, m_enc, e_term_pre, weight
-    
+
 def _Extrema(data, fields, non_zero = False, filter=None):
     """
     This function returns the extrema of a set of fields
@@ -308,23 +308,6 @@ def _combExtrema(data, n_fields, mins, maxs):
     n_fields = mins.shape[1]
     return [(np.min(mins[:,i]), np.max(maxs[:,i])) for i in range(n_fields)]
 
-def _Action(data, action, combine_action, filter=None):
-    """
-    This function evals the string given by the action arg and uses 
-    the function thrown with the combine_action to combine the values.  
-    A filter can be thrown to be evaled to short-circuit the calculation 
-    if some criterion is not met.
-    :param action: a string containing the desired action to be evaled.
-    :param combine_action: the function used to combine the answers when done lazily.
-    :param filter: a string to be evaled to serve as a data filter.
-    """
-    if filter is not None:
-        if not eval(filter).any(): return 0, False, combine_action
-    value = eval(action)
-    return value, True, combine_action
-def _combAction(data, value, valid, combine_action):
-    return combine_action[0](value[valid])
-
 def _MaxLocation(data, field):
     """
     This function returns the location of the maximum of a set
@@ -356,25 +339,3 @@ def _combMinLocation(data, *args):
     args = [np.atleast_1d(arg) for arg in args]
     i = np.argmin(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
-
-def _HalfMass(data, field):
-    """
-    Cumulative sum the given mass field and find 
-    at what radius the half mass is. Simple but 
-    memory-expensive method.
-    """
-    d = np.nan_to_num(data[field])
-    r = data['Radius']
-    return d, r
-
-def _combHalfMass(data, field_vals, radii, frac=0.5):
-    fv = np.concatenate(field_vals.tolist()).ravel()
-    r = np.concatenate(radii.tolist()).ravel()
-    idx = np.argsort(r)
-    r = r[idx]
-    fv = np.cumsum(fv[idx])
-    idx, = np.where(fv / fv[-1] > frac)
-    if len(idx) > 0:
-        return r[idx[0]]
-    else:
-        return np.nan
