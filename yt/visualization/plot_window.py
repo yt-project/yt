@@ -699,8 +699,8 @@ class PWViewerMPL(PlotWindow):
                 if un.endswith('cm') and un != 'cm':
                     comoving = True
                     un = un[:-2]
-                # no length units end in h so this is safe
-                if un.endswith('h'):
+                # no length units besides code_length end in h so this is safe
+                if un.endswith('h') and un != 'code_length':
                     hinv = True
                     un = un[:-1]
                 if un in formatted_length_unit_names:
