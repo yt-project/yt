@@ -104,7 +104,7 @@ class WeightedAverage(DerivedQuantity):
         rv = super(WeightedAverage, self).__call__(fields, weight)
         if len(rv) == 1: rv = rv[0]
         return rv
-        
+
     def process_chunk(self, data, fields, weight):
         vals = [(data[field] * data[weight]).sum(dtype=np.float64)
                 for field in fields]
@@ -224,6 +224,29 @@ class ParticleAngularMomentumVector(WeightedAverage):
         weight = (ptype, "particle_mass")
         return super(AngularMomentumVector, self).__call__(fields, weight)
 
+class Extrema(DerivedQuantity):
+    def count_values(self, fields, non_zero):
+        self.num_vals = len(fields) * 2
+
+    def __call__(self, fields, non_zero = False):
+        fields = ensure_list(fields)
+        rv = super(Extrema, self).__call__(fields, non_zero)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, fields, non_zero):
+        vals = []
+        for field in fields:
+            fd = data[field]
+            if non_zero: fd = fd[fd > 0.0]
+            vals += [fd.min(), fd.max()]
+        return vals
+
+    def reduce_intermediate(self, values):
+        # The values get turned into arrays here.
+        return [(mis.min(), mas.max() )
+                for mis, mas in zip(values[::2], values[1::2])]
+
 def _BaryonSpinParameter(data):
     """
     This function returns the spin parameter for the baryons, but it uses
@@ -262,51 +285,6 @@ def _ParticleSpinParameter(data):
                        *data["particle_velocity_magnitude"]**2.0,dtype=np.float64)
     weight=data["particle_mass"].sum(dtype=np.float64)
     return j_mag, m_enc, e_term_pre, weight
-
-def _Extrema(data, fields, non_zero = False, filter=None):
-    """
-    This function returns the extrema of a set of fields
-    
-    :param fields: A field name, or a list of field names
-    :param filter: a string to be evaled to serve as a data filter.
-    """
-    # There is a heck of a lot of logic in this.  I really wish it were more
-    # elegant.
-    fields = ensure_list(fields)
-    if filter is not None: this_filter = eval(filter)
-    mins, maxs = [], []
-    for field in fields:
-        if data[field].size < 1:
-            mins.append(HUGE)
-            maxs.append(-HUGE)
-            continue
-        if filter is None:
-            if non_zero:
-                nz_filter = data[field]>0.0
-                if not nz_filter.any():
-                    mins.append(HUGE)
-                    maxs.append(-HUGE)
-                    continue
-            else:
-                nz_filter = None
-            mins.append(np.nanmin(data[field][nz_filter]))
-            maxs.append(np.nanmax(data[field][nz_filter]))
-        else:
-            if this_filter.any():
-                if non_zero:
-                    nz_filter = ((this_filter) &
-                                 (data[field][this_filter] > 0.0))
-                else: nz_filter = this_filter
-                mins.append(np.nanmin(data[field][nz_filter]))
-                maxs.append(np.nanmax(data[field][nz_filter]))
-            else:
-                mins.append(HUGE)
-                maxs.append(-HUGE)
-    return len(fields), mins, maxs
-def _combExtrema(data, n_fields, mins, maxs):
-    mins, maxs = np.atleast_2d(mins, maxs)
-    n_fields = mins.shape[1]
-    return [(np.min(mins[:,i]), np.max(maxs[:,i])) for i in range(n_fields)]
 
 def _MaxLocation(data, field):
     """
