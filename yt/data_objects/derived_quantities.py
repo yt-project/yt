@@ -52,6 +52,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         return
 
     def __call__(self, *args, **kwargs):
+        self.count_values(*args, **kwargs)
         chunks = self.data_source.chunks([], chunking_style="io")
         storage = {}
         for sto, ds in parallel_objects(chunks, -1, storage = storage):
@@ -64,7 +65,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             for i in range(self.num_vals):
                 values[i].append(storage[key][i])
         # These will be YTArrays
-        values = [uconcatenate(values[i]) for i in range(self.num_vals)]
+        values = [self.data_source.pf.arr(values[i]) for i in range(self.num_vals)]
         values = self.reduce_intermediate(values)
         return values
 
@@ -74,7 +75,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
     def reduce_intermediate(self, values):
         raise NotImplementedError
 
-class DerivedQuantityCollection(dict):
+class DerivedQuantityCollection(object):
     def __new__(cls, data_source, *args, **kwargs):
         inst = object.__new__(cls)
         inst.data_source = data_source
@@ -90,7 +91,7 @@ class DerivedQuantityCollection(dict):
         return dq(self.data_source)
 
     def keys(self):
-        return self.functions.keys()
+        return derived_quantity_registry.keys()
 
 class WeightedAverage(DerivedQuantity):
 
