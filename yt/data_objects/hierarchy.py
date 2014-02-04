@@ -319,7 +319,11 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         obj = self.get_data("/Objects", name)
         if obj is None:
             return
-        obj = cPickle.loads(obj.value)
+        if isinstance(obj, np.ndarray):
+            obj = obj.tostring()
+        elif hasattr(obj, 'value'):
+            obj = obj.value
+        obj = cPickle.loads(obj)
         if iterable(obj) and len(obj) == 2:
             obj = obj[1] # Just the object, not the pf
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()

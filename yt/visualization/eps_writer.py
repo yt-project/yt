@@ -31,6 +31,7 @@ from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
 from .plot_modifications import get_smallest_appropriate_unit
 
+
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
         r"""Initializes the DualEPS class to which we can progressively add layers
@@ -540,6 +541,12 @@ class DualEPS(object):
 
         # Scale the colorbar
         shift = (0.5*(1.0-shrink[0])*size[0], 0.5*(1.0-shrink[1])*size[1])
+        # To facilitate strething rather than shrinking
+        # If stretched in both directions (makes no sense?) then y dominates. 
+        if(shrink[0] > 1.0):
+            shift = (0.05*self.figsize[0], 0.5*(1.0-shrink[1])*size[1])
+        if(shrink[1] > 1.0):
+            shift = (0.5*(1.0-shrink[0])*size[0], 0.05*self.figsize[1])
         size = (size[0] * shrink[0], size[1] * shrink[1])
         origin = (origin[0] + shift[0], origin[1] + shift[1])
 
@@ -694,6 +701,59 @@ class DualEPS(object):
 
 #=============================================================================
 
+    def arrow(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
+              color=pyx.color.cmyk.white,
+              linewidth=pyx.style.linewidth.normal):
+        r"""Draws an arrow in the current figure
+
+        Parameters
+        ----------
+        size : float
+            Length of arrow (base to tip) in units of the figure size.
+        label : string
+            Annotation label of the arrow.
+        loc : tuple of floats
+            Location of the left hand side of the arrow in units of
+            the figure size.
+        labelloc : string
+            Location of the label with respect to the line.  Can be
+            "top" or "bottom"
+        color : `pyx.color.*.*`
+            Color of the arrow.  Example: pyx.color.cymk.white
+        linewidth : `pyx.style.linewidth.*`
+            Width of the arrow.  Example: pyx.style.linewidth.normal
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("arrow_image.jpg")
+        >>> d.arrow(size=0.2, label="Black Hole!", loc=(0.05, 0.1))
+        >>> d.save_fig()
+        """
+        line = pyx.path.line(self.figsize[0]*loc[0],
+                             self.figsize[1]*loc[1],
+                             self.figsize[0]*(loc[0]+size),
+                             self.figsize[1]*loc[1])
+        self.canvas.stroke(line, [linewidth, color, pyx.deco.earrow()])
+       
+
+        if labelloc == "bottom":
+            yoff = -0.1*size
+            valign = pyx.text.valign.top
+        else:
+            yoff = +0.1*size
+            valign = pyx.text.valign.bottom
+        if label != "":
+            self.canvas.text(self.figsize[0]*(loc[0]+0.5*size),
+                             self.figsize[1]*(loc[1]+yoff), label,
+                             [color, valign, pyx.text.halign.center])
+
+        
+
+
+#=============================================================================
+
     def scale_line(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
                    color=pyx.color.cmyk.white,
                    linewidth=pyx.style.linewidth.normal):
@@ -724,6 +784,7 @@ class DualEPS(object):
         >>> d.scale_line(size=0.2, label="1 kpc", loc=(0.05, 0.1))
         >>> d.save_fig()
         """
+        
         line = pyx.path.line(self.figsize[0]*loc[0],
                              self.figsize[1]*loc[1],
                              self.figsize[0]*(loc[0]+size),
@@ -937,7 +998,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     d = DualEPS(figsize=figsize)
     count = 0
     for j in range(nrow):
-        ypos = j*(figsize[1] + margins[1])
+        invj = nrow - j - 1
+        ypos = invj*(figsize[1] + margins[1])
         for i in range(ncol):
             xpos = i*(figsize[0] + margins[0])
             index = j*ncol + i
@@ -1003,7 +1065,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
             100.0 * d.canvas.bbox().bottom().t,
             100.0 * d.canvas.bbox().top().t - d.figsize[1])
     for j in range(nrow):
-        ypos0 = j*(figsize[1] + margins[1])
+        invj = nrow - j - 1
+        ypos0 = invj*(figsize[1] + margins[1])
         for i in range(ncol):
             xpos0 = i*(figsize[0] + margins[0])
             index = j*ncol + i
