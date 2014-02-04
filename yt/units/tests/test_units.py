@@ -15,7 +15,10 @@ Test symbolic unit handling.
 #-----------------------------------------------------------------------------
 
 import nose
-from numpy.testing import assert_approx_equal, assert_allclose
+import numpy as np
+from numpy.testing import \
+    assert_approx_equal, assert_array_almost_equal_nulp, \
+    assert_allclose
 from sympy import Symbol
 
 # dimensions
@@ -108,7 +111,8 @@ def test_create_from_string():
     # nonzero CGS conversion factor
     u6 = Unit("Msun/pc**3")
     assert u6.dimensions == mass/length**3
-    assert u6.cgs_value == 6.767925712378867e-23
+    assert_array_almost_equal_nulp(np.array([u6.cgs_value]),
+                                   np.array([mass_sun_grams/cm_per_pc**3]))
 
 def test_create_from_expr():
     """
