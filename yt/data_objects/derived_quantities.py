@@ -145,47 +145,43 @@ class TotalMass(TotalValue):
         rv = super(TotalMass, self).__call__(fields)
         return rv
 
-class CenterOfMass(TotalValue):
-    def __call__(self, use_cells = True, use_particles = False):
-        fields = []
-        if use_calls:
-            fields += [("index", ax) for ax in 'xyz']
-            fields.append( ("gas", "cell_mass") )
+class CenterOfMass(DerivedQuantity):
+    def count_values(self, use_cells, use_particles):
+        # This is a list now
+        self.num_vals = 0
+        if use_cells:
+            self.num_vals += 4
         if use_particles:
-            fields += [("all", "particle_position_%s" % ax) for ax in 'xyz']
-            fields.append( ("all", "particle_mass") )
-        super(TotalValue, self).__call__(fields)
+            self.num_vals += 4
 
-def _CenterOfMass(data, use_cells=True, use_particles=False):
-    """
-    This function returns the location of the center
-    of mass. By default, it computes of the *non-particle* data in the object. 
+    def process_chunk(self, data, use_cells = True, use_particles = False):
+        vals = []
+        if use_cells:
+            vals += [(data[ax] * data["cell_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["cell_mass"].sum(dtype=np.float64))
+        if use_particles:
+            vals += [(data["particle_position_%s" % ax] *
+                      data["particle_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["particle_mass"].sum(dtype=np.float64))
+        return vals
 
-    Parameters
-    ----------
-
-    use_cells : bool
-        If True, will include the cell mass (default: True)
-    use_particles : bool
-        if True, will include the particles in the object (default: False)
-    """
-    x = y = z = den = 0
-    if use_cells: 
-        cmass = data["cell_mass"]
-        x += (data["index","x"] * cmass).sum(dtype=np.float64)
-        y += (data["index","y"] * cmass).sum(dtype=np.float64)
-        z += (data["index","z"] * cmass).sum(dtype=np.float64)
-        den += cmass.sum(dtype=np.float64)
-    if use_particles:
-        pmass = data["particle_mass"]
-        x += (data["particle_position_x"] * pmass).sum(dtype=np.float64)
-        y += (data["particle_position_y"] * pmass).sum(dtype=np.float64)
-        z += (data["particle_position_z"] * pmass).sum(dtype=np.float64)
-        den += pmass.sum(dtype=np.float64)
-
-    return x,y,z, den
-def _combCenterOfMass(data, x,y,z, den):
-    return np.array([x.sum(), y.sum(), z.sum()])/den.sum()
+    def reduce_intermediate(self, values):
+        if len(values) not in (4, 8):
+            raise RuntimeError
+        x = values.pop(0).sum(dtype=np.float64)
+        y = values.pop(0).sum(dtype=np.float64)
+        z = values.pop(0).sum(dtype=np.float64)
+        w = values.pop(0).sum(dtype=np.float64)
+        if len(values) > 0:
+            # Note that this could be shorter if we pre-initialized our x,y,z,w
+            # values as YTQuantity objects.
+            x += values.pop(0).sum(dtype=np.float64)
+            y += values.pop(0).sum(dtype=np.float64)
+            z += values.pop(0).sum(dtype=np.float64)
+            w += values.pop(0).sum(dtype=np.float64)
+        return [v/w for v in [x, y, z]]
 
 def _WeightedVariance(data, field, weight):
     """
@@ -214,70 +210,19 @@ class BulkVelocity(WeightedAverage):
         weight = (ftype, "cell_mass")
         return super(BulkVelocity, self).__call__(fields, weight)
 
-def _BulkVelocity(data):
-    """
-    This function returns the mass-weighted average velocity in the object.
-    """
-    xv = (data["velocity_x"] * data["cell_mass"]).sum(dtype=np.float64)
-    yv = (data["velocity_y"] * data["cell_mass"]).sum(dtype=np.float64)
-    zv = (data["velocity_z"] * data["cell_mass"]).sum(dtype=np.float64)
-    w = data["cell_mass"].sum(dtype=np.float64)
-    return xv, yv, zv, w
-def _combBulkVelocity(data, xv, yv, zv, w):
-    w = w.sum()
-    xv = xv.sum()/w
-    yv = yv.sum()/w
-    zv = zv.sum()/w
-    return np.array([xv, yv, zv])
+class AngularMomentumVector(WeightedAverage):
+    def __call__(self, ftype = "gas"):
+        fields = [(ftype, "specific_angular_momentum_%s" % ax)
+                  for ax in 'xyz']
+        weight = (ftype, "cell_mass")
+        return super(AngularMomentumVector, self).__call__(fields, weight)
 
-def _AngularMomentumVector(data):
-    """
-    This function returns the mass-weighted average angular momentum vector.
-    """
-    amx = data["specific_angular_momentum_x"]*data["cell_mass"]
-    amy = data["specific_angular_momentum_y"]*data["cell_mass"]
-    amz = data["specific_angular_momentum_z"]*data["cell_mass"]
-    j_mag = [amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)]
-    return [j_mag]
-
-def _StarAngularMomentumVector(data, ftype=None):
-    """
-    This function returns the mass-weighted average angular momentum vector 
-    for stars.
-    """
-    if ftype is None:
-        is_star = data["creation_time"] > 0
-        star_mass = data["particle_mass"][is_star]
-    else:
-        is_star = Ellipsis
-        key = (ftype, "ParticleSpecificAngularMomentum%s")
-    j_mag = np.ones(3, dtype='f8')
-    for i, ax in enumerate("XYZ"):
-        j_mag[i] = data[key % ax][is_star]
-        j_mag[i] *= star_mass
-    j_mag = [amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)]
-    return [j_mag]
-
-def _ParticleAngularMomentumVector(data):
-    """
-    This function returns the mass-weighted average angular momentum vector 
-    for all particles.
-    """
-    mass = data["particle_mass"]
-    sLx = data["particle_specific_angular_momentum_x"]
-    sLy = data["particle_specific_angular_momentum_y"]
-    sLz = data["particle_specific_angular_momentum_z"]
-    amx = sLx * mass
-    amy = sLy * mass
-    amz = sLz * mass
-    j_mag = [amx.sum(), amy.sum(), amz.sum()]
-    return [j_mag]
-
-def _combAngularMomentumVector(data, j_mag):
-    if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
-    L_vec = j_mag.sum(axis=0,dtype=np.float64)
-    L_vec_norm = L_vec / np.sqrt((L_vec**2.0).sum(dtype=np.float64))
-    return L_vec_norm
+class ParticleAngularMomentumVector(WeightedAverage):
+    def __call__(self, ptype = "all"):
+        fields = [(ptype, "particle_specific_angular_momentum_%s" % ax)
+                  for ax in 'xyz']
+        weight = (ptype, "particle_mass")
+        return super(AngularMomentumVector, self).__call__(fields, weight)
 
 def _BaryonSpinParameter(data):
     """
@@ -411,56 +356,6 @@ def _combMinLocation(data, *args):
     args = [np.atleast_1d(arg) for arg in args]
     i = np.argmin(args[0]) # ma is arg[0]
     return [arg[i] for arg in args]
-
-def _TotalQuantity(data, fields):
-    """
-    This function sums up a given field over the entire region
-
-    :param fields: The fields to sum up
-    """
-    fields = ensure_list(fields)
-    totals = []
-    for field in fields:
-        if data[field].size < 1:
-            totals.append(np.zeros(1,dtype=prec_accum[data[field].dtype])[0])
-            continue
-        totals.append(data[field].sum(dtype=prec_accum[data[field].dtype]))
-    return len(fields), totals
-def _combTotalQuantity(data, n_fields, totals):
-    totals = np.atleast_2d(totals)
-    n_fields = totals.shape[1]
-    return [np.sum(totals[:,i]) for i in range(n_fields)]
-
-def _ParticleDensityCenter(data,nbins=3,particle_type="all"):
-    """
-    Find the center of the particle density
-    by histogramming the particles iteratively.
-    """
-    pos = [data[(particle_type,"particle_position_%s"%ax)] for ax in "xyz"]
-    pos = np.array(pos).T
-    mas = data[(particle_type,"particle_mass")]
-    calc_radius= lambda x,y:np.sqrt(np.sum((x-y)**2.0,axis=1,dtype=np.float64))
-    density = 0
-    if pos.shape[0]==0:
-        return -1.0,[-1.,-1.,-1.]
-    while pos.shape[0] > 1:
-        table,bins=np.histogramdd(pos,bins=nbins, weights=mas)
-        bin_size = min((np.max(bins,axis=1)-np.min(bins,axis=1))/nbins)
-        centeridx = np.where(table==table.max())
-        le = np.array([bins[0][centeridx[0][0]],
-                       bins[1][centeridx[1][0]],
-                       bins[2][centeridx[2][0]]])
-        re = np.array([bins[0][centeridx[0][0]+1],
-                       bins[1][centeridx[1][0]+1],
-                       bins[2][centeridx[2][0]+1]])
-        center = 0.5*(le+re)
-        idx = calc_radius(pos,center)<bin_size
-        pos, mas = pos[idx],mas[idx]
-        density = max(density,mas.sum(dtype=np.float64)/bin_size**3.0)
-    return density, center
-def _combParticleDensityCenter(data,densities,centers):
-    i = np.argmax(densities)
-    return densities[i],centers[i]
 
 def _HalfMass(data, field):
     """
