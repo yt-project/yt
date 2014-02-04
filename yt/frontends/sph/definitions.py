@@ -44,5 +44,15 @@ gadget_field_specs = dict(
                 ("InternalEnergy", "Gas"),
                 ("Density", "Gas"),
                 ("SmoothingLength", "Gas"),
+    ),
+    agora_unlv = ( "Coordinates",
+                   "Velocities",
+                   "ParticleIDs",
+                   "Mass",
+                   ("InternalEnergy", "Gas"),
+                   ("Density", "Gas"),
+                   ("Electron_Number_Density", "Gas"),
+                   ("HI_NumberDensity", "Gas"),
+                   ("SmoothingLength", "Gas"),
     )
 )

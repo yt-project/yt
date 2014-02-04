@@ -500,51 +500,32 @@ def add_particle_average(registry, ptype, field_name,
                        units = field_units)
     return fn
 
-def add_smoothed_field(ptype, coord_name, mass_name, smoothed_field, registry,
-                       smoothing_type = "neighbor_smoothing", nneighbors = 64):
+def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
+        smoothing_length_name, density_name, smoothed_field, registry,
+        nneighbors = None):
     field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
     field_units = registry[ptype, smoothed_field].units
-    def _smoothed_quantity(field, data):
-        pos = data[ptype, coord_name]
-        mass = data[ptype, mass_name]
-        dep_mass = np.zeros_like(mass)
-        quan = data[ptype, smoothed_field]
-        data.smooth(pos, [mass, dep_mass], method="neighbor_mass_dep",
-                          index_fields = [data["cell_volume"]],
-                          nneighbors = nneighbors, create_octree = True)
-        # Now, what dep_mass is is a total mass deposited, but in units of the
-        # code -- not in the units of either the quantity or the mass.  So we
-        # need to convert it back to cm^3 eventually.
-        rv = data.smooth(pos, [mass, dep_mass, quan], method="neighbor_smoothing",
-                          nneighbors = nneighbors, create_octree = True)[0]
-
-        return rv
-    registry.add_field(field_name, function = _smoothed_quantity,
-                       validators = [ValidateSpatial(0)],
-                       units = field_units)
-    return [field_name]
-
-def add_mass_conserved_smoothed_field(ptype, coord_name, mass_name,
-        smoothing_length_name, smoothed_field, registry):
-    field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
-    field_units = registry[ptype, smoothed_field].units
-    def _mass_cons(field, data):
+    def _vol_weight(field, data):
         pos = data[ptype, coord_name].in_units("code_length")
-        hsml = data[ptype, smoothing_length_name].in_units("code_length")
-        mass = data[ptype, mass_name].in_units("code_mass")
-        vol = data["cell_volume"].in_units("code_length**3")
-        dep_mass = mass.copy()
-        dep_mass[:] = 0.0
+        mass = data[ptype, mass_name].in_cgs()
+        dens = data[ptype, density_name].in_cgs()
         quan = data[ptype, smoothed_field]
-        data.smooth(pos, [mass, hsml, dep_mass],
-                method="mass_deposition_coeff",
-                index_fields = [vol],
-                create_octree = True)
-        rv = data.smooth(pos, [mass, hsml, dep_mass, quan],
-                         method="conserved_mass",
+        if smoothing_length_name is None:
+            hsml = np.zeros(quan.shape, dtype='float64') - 1
+            hsml = data.apply_units(hsml, "code_length")
+        else:
+            hsml = data[ptype, smoothing_length_name].in_units("code_length")
+        kwargs = {}
+        if nneighbors:
+            kwargs['nneighbors'] = nneighbors
+        rv = data.smooth(pos, [mass, hsml, dens, quan],
+                         method="volume_weighted",
                          create_octree = True)[0]
+        rv[np.isnan(rv)] = 0.0
+        # Now some quick unit conversions.
+        rv = data.apply_units(rv, field_units)
         return rv
-    registry.add_field(field_name, function = _mass_cons,
+    registry.add_field(field_name, function = _vol_weight,
                        validators = [ValidateSpatial(0)],
                        units = field_units)
     return [field_name]
