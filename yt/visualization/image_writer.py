@@ -18,7 +18,8 @@ import numpy as np
 
 from yt.funcs import *
 import _colormap_data as cmd
-import yt.utilities.lib.png_writer as au
+import yt.utilities.lib.image_utilities as au
+import yt.utilities.png_writer as pw
 import __builtin__
 
 def scale_image(image, mi=None, ma=None):
@@ -106,7 +107,7 @@ def multi_image_composite(fn, red_channel, blue_channel,
         alpha_channel = scale_image(alpha_channel) 
     image = np.array([red_channel, green_channel, blue_channel, alpha_channel])
     image = image.transpose().copy() # Have to make sure it's contiguous 
-    au.write_png(image, fn)
+    pw.write_png(image, fn)
 
 def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
@@ -151,9 +152,9 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
-        au.write_png(bitmap_array.copy(), filename)
+        pw.write_png(bitmap_array.copy(), filename)
     else:
-        return au.write_png_to_string(bitmap_array.copy())
+        return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
@@ -195,7 +196,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
         mylog.info("Using only channel 1 of supplied image")
         image = image[:,:,0]
     to_plot = apply_colormap(image, color_bounds = color_bounds, cmap_name = cmap_name)
-    au.write_png(to_plot, filename)
+    pw.write_png(to_plot, filename)
     return to_plot
 
 def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda x: x):

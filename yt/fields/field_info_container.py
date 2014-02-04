@@ -66,7 +66,7 @@ class FieldInfoContainer(dict): # Resistance has utility
             self.add_output_field((ptype, f),
                 units = units, particle_type = True, display_name = dn)
             for alias in aliases:
-                self.alias(alias, (ptype, f))
+                self.alias((ptype, alias), (ptype, f))
 
         if self.pf._particle_coordinates_name is None:
             particle_vector_functions(ptype,

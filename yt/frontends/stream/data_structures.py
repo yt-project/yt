@@ -476,7 +476,7 @@ def unitify_data(data):
                 assert isinstance(data[field][0], np.ndarray), \
                   "Field data is not an ndarray!"
                 assert isinstance(data[field][1], basestring), \
-                  "Unit specification is not a sring!"
+                  "Unit specification is not a string!"
                 field_units[field] = data[field][1]
                 new_data[field] = data[field][0]
             except AssertionError, e:

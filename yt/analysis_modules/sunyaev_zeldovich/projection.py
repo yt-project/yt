@@ -28,9 +28,12 @@ from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
 from yt.visualization.plot_window import StandardCenter
+from yt import units
+from .field_plugin_registry import register_field_plugin
+
 import numpy as np
 
-I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
+I0 = (2*(kboltz*Tcmb)**3/((hcgs*clight)**2)/units.sr).in_units("MJy/steradian")
 
 try:
     import SZpack
@@ -39,25 +42,32 @@ except ImportError:
 
 vlist = "xyz"
 
-def _t_squared(field, data):
-    return data["Density"]*data["TempkeV"]*data["TempkeV"]
-add_field("TSquared", function=_t_squared)
+@register_field_plugin
+def setup_SZ_fields(registry, ftype = "gas"):
 
-def _beta_perp_squared(field, data):
-    return data["Density"]*data["VelocityMagnitude"]**2/clight/clight - data["BetaParSquared"]
-add_field("BetaPerpSquared", function=_beta_perp_squared)
+    def _tempkev(field, data):
+        return (kboltz*data["gas","temperature"]).in_units("keV")
+    registry.add_field(("gas","TempkeV"), function=_tempkev)
 
-def _beta_par_squared(field, data):
-    return data["BetaPar"]**2/data["Density"]
-add_field("BetaParSquared", function=_beta_par_squared)
+    def _t_squared(field, data):
+        return data["gas","density"]*data["gas","TempkeV"]*data["gas","TempkeV"]
+    registry.add_field(("gas","TSquared"), function=_t_squared)
 
-def _t_beta_par(field, data):
-    return data["TempkeV"]*data["BetaPar"]
-add_field("TBetaPar", function=_t_beta_par)
+    def _beta_perp_squared(field, data):
+        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","BetaParSquared"]
+    registry.add_field(("gas","BetaPerpSquared"), function=_beta_perp_squared)
 
-def _t_sz(field, data):
-    return data["Density"]*data["TempkeV"]
-add_field("TeSZ", function=_t_sz)
+    def _beta_par_squared(field, data):
+        return data["gas","BetaPar"]**2/data["gas","density"]
+    registry.add_field(("gas","BetaParSquared"), function=_beta_par_squared)
+
+    def _t_beta_par(field, data):
+        return data["gas","TempkeV"]*data["gas","BetaPar"]
+    registry.add_field(("gas","TBetaPar"), function=_t_beta_par)
+
+    def _t_sz(field, data):
+        return data["gas","density"]*data["gas","TempkeV"]
+    registry.add_field(("gas","TeSZ"), function=_t_sz)
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -85,20 +95,15 @@ class SZProjection(object):
         self.high_order = high_order
         self.freqs = np.array(freqs)
         self.mueinv = 1./mue
-        self.xinit = hcgs*self.freqs*1.0e9/(kboltz*Tcmb)
+        self.xinit = hcgs*pf.arr(self.freqs, "GHz")/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
         self.data = {}
-
-        self.units = {}
-        self.units["TeSZ"] = r"$\mathrm{keV}$"
-        self.units["Tau"] = None
 
         self.display_names = {}
         self.display_names["TeSZ"] = r"$\mathrm{T_e}$"
         self.display_names["Tau"] = r"$\mathrm{\tau}$"
 
         for f, field in zip(self.freqs, self.freq_fields):
-            self.units[field] = r"$\mathrm{MJy\ sr^{-1}}$"
             self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % (int(f))
 
     def on_axis(self, axis, center="c", width=(1, "unitary"), nx=800, source=None):
@@ -126,7 +131,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("density")
         else:
             ctr = center
 
@@ -135,15 +140,15 @@ class SZProjection(object):
             # Load these, even though we will only use one
             for ax in 'xyz':
                 data['velocity_%s' % ax]
-            vpar = data["Density"]*data["velocity_%s" % (vlist[axis])]
+            vpar = data["density"]*data["velocity_%s" % (vlist[axis])]
             return vpar/clight
         add_field("BetaPar", function=_beta_par)
         self.pf.h._derived_fields_add(["BetaPar"])
 
-        proj = self.pf.h.proj("Density", axis, center=ctr, data_source=source)
+        proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
         proj.data_source.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
-        dens = frb["Density"]
+        dens = frb["density"]
         Te = frb["TeSZ"]/dens
         bpar = frb["BetaPar"]/dens
         omega1 = frb["TSquared"]/dens/(Te*Te) - 1.
@@ -193,7 +198,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("density")
         else:
             ctr = center
 
@@ -202,14 +207,14 @@ class SZProjection(object):
             raise NotImplementedError
 
         def _beta_par(field, data):
-            vpar = data["Density"]*(data["velocity_x"]*L[0]+
+            vpar = data["density"]*(data["velocity_x"]*L[0]+
                                     data["velocity_y"]*L[1]+
                                     data["velocity_z"]*L[2])
             return vpar/clight
         add_field("BetaPar", function=_beta_par)
         self.pf.h._derived_fields_add(["BetaPar"])
 
-        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "Density")
+        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
         Te      = off_axis_projection(self.pf, ctr, L, w, nx, "TeSZ")/dens
         bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "BetaPar")/dens
         omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "TSquared")/dens
@@ -407,7 +412,7 @@ class SZProjection(object):
         import h5py
         f = h5py.File(filename, "w")
         for field, data in self.items():
-            f.create_dataset(field,data=data)
+            f.create_dataset(field,data=data.ndarray_view())
         f.close()
 
     def keys(self):

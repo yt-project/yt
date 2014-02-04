@@ -38,17 +38,24 @@ snap         = length / time**4
 crackle      = length / time**5
 pop          = length / time**6
 
+area     = length * length
+volume   = area * length
 momentum = mass * velocity
 force    = mass * acceleration
 energy   = force * length
 power    = energy / time
+flux     = power / area
+specific_flux = flux / rate
 charge   = (energy * length)**Rational(1, 2)  # proper 1/2 power
 
 electric_field = charge / length**2
 magnetic_field = electric_field
 
+solid_angle = angle * angle
+
 derived_dimensions = [rate, velocity, acceleration, jerk, snap, crackle, pop, 
                       momentum, force, energy, power, charge, electric_field, 
-                      magnetic_field]
+                      magnetic_field, solid_angle, flux, specific_flux, volume,
+                      area]
 
 dimensions = base_dimensions + derived_dimensions

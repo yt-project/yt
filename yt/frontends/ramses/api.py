@@ -21,3 +21,6 @@ from .fields import \
 
 from .io import \
       IOHandlerRAMSES
+
+from .definitions import \
+      field_aliases

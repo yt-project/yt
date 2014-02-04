@@ -119,14 +119,12 @@ cdef class OctreeContainer:
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         cdef OctVisitorData data
         obj.setup_data(&data, -1)
-        assert(ref_mask.shape[0] / 8.0 == <int>(ref_mask.shape[0]/8.0))
-        obj.allocate_domains([ref_mask.shape[0] / 8.0])
         cdef int i, j, k, n
         data.global_index = -1
         data.level = 0
-        # This is not something I terribly like, but it needs to be done.
-        data.oref = 1
-        data.nz = 8
+        assert(ref_mask.shape[0] / float(data.nz) ==
+            <int>(ref_mask.shape[0]/float(data.nz)))
+        obj.allocate_domains([ref_mask.shape[0] / data.nz])
         cdef np.float64_t pos[3], dds[3]
         # This dds is the oct-width
         for i in range(3):
@@ -166,8 +164,7 @@ cdef class OctreeContainer:
                 pos[1] += dds[1]
             pos[0] += dds[0]
         obj.nocts = cur.n_assigned
-        if obj.nocts * 8 != ref_mask.size:
-            print "SOMETHING WRONG", ref_mask.size, obj.nocts, obj.oref
+        if obj.nocts * data.nz != ref_mask.size:
             raise KeyError(ref_mask.size, obj.nocts, obj.oref,
                 obj.partial_coverage)
         return obj

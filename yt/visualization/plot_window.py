@@ -43,7 +43,7 @@ from yt.funcs import \
     fix_axis, get_image_suffix, assert_valid_width_tuple, \
     get_ipython_api_version
 from yt.units.unit_object import Unit
-from yt.utilities.lib.png_writer import \
+from yt.utilities.png_writer import \
     write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
@@ -94,6 +94,8 @@ def validate_iterable_width(width, pf, unit=None):
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
         return (pf.quan(width[0], 'code_length'),
                 pf.quan(width[1], 'code_length'))
+    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
+        return width
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
@@ -416,10 +418,11 @@ class PlotWindow(ImagePlotContainer):
         else:
             set_axes_unit = False
 
-        if iterable(unit) and not isinstance(unit, basestring):
-            assert_valid_width_tuple(unit)
+        if isinstance(width, Number):
             width = (width, unit)
-            
+        elif iterable(width):
+            width = validate_iterable_width(width, self.data_source.pf, unit)
+
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
@@ -1004,7 +1007,8 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
-                 fontsize=18, field_parameters=None, data_source=None):
+                 fontsize=18, field_parameters=None, data_source=None,
+                 proj_style = "integrate"):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1013,7 +1017,7 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
                          center=center, data_source=data_source,
-                         field_parameters = field_parameters)
+                         field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize)
         self.set_axes_unit(axes_unit)

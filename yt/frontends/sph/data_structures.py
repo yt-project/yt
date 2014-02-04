@@ -22,6 +22,7 @@ import struct
 import glob
 import time
 import os
+import types
 
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
@@ -38,6 +39,10 @@ from yt.utilities.physical_constants import \
 from yt.utilities.cosmology import Cosmology
 from .fields import \
     SPHFieldInfo
+from .definitions import \
+    gadget_header_specs, \
+    gadget_field_specs, \
+    gadget_ptype_specs
 
 try:
     import requests
@@ -74,29 +79,21 @@ class GadgetStaticOutput(ParticleStaticOutput):
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
     _suffix = ""
-    _header_spec = (('Npart', 6, 'i'),
-                    ('Massarr', 6, 'd'),
-                    ('Time', 1, 'd'),
-                    ('Redshift', 1, 'd'),
-                    ('FlagSfr', 1, 'i'),
-                    ('FlagFeedback', 1, 'i'),
-                    ('Nall', 6, 'i'),
-                    ('FlagCooling', 1, 'i'),
-                    ('NumFiles', 1, 'i'),
-                    ('BoxSize', 1, 'd'),
-                    ('Omega0', 1, 'd'),
-                    ('OmegaLambda', 1, 'd'),
-                    ('HubbleParam', 1, 'd'),
-                    ('FlagAge', 1, 'i'),
-                    ('FlagMEtals', 1, 'i'),
-                    ('NallHW', 6, 'i'),
-                    ('unused', 16, 'i'))
 
     def __init__(self, filename, data_style="gadget_binary",
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
-                 bounding_box = None):
+                 bounding_box = None,
+                 header_spec = "default",
+                 field_spec = "default",
+                 ptype_spec = "default"):
+        self._header_spec = self._setup_binary_spec(
+            header_spec, gadget_header_specs)
+        self._field_spec = self._setup_binary_spec(
+            field_spec, gadget_field_specs)
+        self._ptype_spec = self._setup_binary_spec(
+            ptype_spec, gadget_ptype_specs)
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.storage_filename = None
@@ -114,6 +111,14 @@ class GadgetStaticOutput(ParticleStaticOutput):
         else:
             self.domain_left_edge = self.domain_right_edge = None
         super(GadgetStaticOutput, self).__init__(filename, data_style)
+
+    def _setup_binary_spec(self, spec, spec_dict):
+        if isinstance(spec, types.StringTypes):
+            _hs = ()
+            for hs in spec.split("+"):
+                _hs += spec_dict[hs]
+            spec = _hs
+        return spec
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]

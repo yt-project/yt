@@ -36,6 +36,7 @@ km_per_cm     = 1e-5
 ly_per_cm     = 1.05702341e-18
 rsun_per_cm   = 1.4378145e-11
 au_per_cm     = 6.68458712e-14
+ang_per_cm    = 1.0e8
 
 m_per_fpc     = 0.0324077929
 
@@ -53,6 +54,7 @@ cm_per_pc     = 1.0 / pc_per_cm
 cm_per_ly     = 1.0 / ly_per_cm
 cm_per_rsun   = 1.0 / rsun_per_cm
 cm_per_au     = 1.0 / au_per_cm
+cm_per_ang    = 1.0 / ang_per_cm
 
 # time
 # "IAU Style Manual" by G.A. Wilkins, Comm. 5, in IAU Transactions XXB (1989)
@@ -71,7 +73,11 @@ erg_per_eV = 1.602176562e-12
 erg_per_keV = erg_per_eV * 1.0e3
 K_per_keV = erg_per_keV / boltzmann_constant_erg_per_K
 keV_per_K = 1.0 / K_per_keV
+keV_per_erg = 1.0 / erg_per_keV
+eV_per_erg = 1.0 / erg_per_eV
 
+# flux
+jansky_cgs = 1.0e-23
 # Cosmological constants
 rho_crit_g_cm3_h2 = 1.8788e-29
 hubble_constant_hertz = 2.19724836e-18 # Planck 2013

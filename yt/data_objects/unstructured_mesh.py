@@ -122,7 +122,7 @@ class SemiStructuredMesh(YTSelectionContainer):
         if mask is None: return np.empty(0, dtype='int32')
         return ind[mask]
 
-    def tcoords(self, dobj):
+    def select_tcoords(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty(0, dtype='float64')
         dt, t = dobj.selector.get_dt_mesh(self, mask.sum(), self._index_offset)

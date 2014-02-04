@@ -12,8 +12,8 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cPickle
 import md5
+import cPickle
 import itertools as it
 import numpy as np
 import importlib
@@ -544,6 +544,12 @@ def check_results(func):
     disk.  The filename will be func_results_ref_FUNCNAME.cpkl where FUNCNAME
     is the name of the function being tested.
 
+    If you would like more control over the name of the pickle file the results
+    are stored in, you can pass the result_basename keyword argument to the
+    function you are testing.  The check_results decorator will use the value
+    of the keyword to construct the filename of the results data file.  If
+    result_basename is not specified, the name of the testing function is used.
+
     This will raise an exception if the results are not correct.
 
     Examples
@@ -554,6 +560,13 @@ def check_results(func):
         return pf.domain_width
 
     my_func(pf)
+
+    @check_results
+    def field_checker(dd, field_name):
+        return dd[field_name]
+
+    field_cheker(pf.h.all_data(), 'density', result_basename='density')
+
     """
     def compute_results(func):
         def _func(*args, **kwargs):
@@ -597,7 +610,7 @@ def check_results(func):
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
                 print "Answers need to be created with --answer-reference ."
-                assert(False)
+                return False
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
             print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
@@ -610,3 +623,4 @@ def check_results(func):
             return rv
         return _func
     return compare_results(func)
+

@@ -105,7 +105,7 @@ W  = Watt  = watt = quan(1.0, "W")
 Hz = Hertz = hertz = quan(1.0, "Hz") 
 
 #
-# Imperdial units
+# Imperial units
 #
 
 ft = foot = quan(1.0, "ft")
@@ -136,6 +136,20 @@ ly = light_year = quan(1.0, "ly")
 #
 
 eV  = electron_volt = quan(1.0, "eV")
+keV = kilo_electron_volt = quan(1.0, "keV")
+MeV = mega_electron_volt = quan(1.0, "MeV")
+GeV = giga_electron_volt = quan(1.0, "GeV")
 amu = atomic_mass_unit = quan(1.0, "amu")
 me  = electron_mass = quan(1.0, "me")
+angstrom = quan(1.0, "angstrom")
 
+#
+# Angle units
+#
+
+deg    = degree = quan(1.0, "degree")
+rad    = radian = quan(1.0, "radian")
+arcsec = arcsecond = quan(1.0, "arcsec")
+arcmin = arcminute = quan(1.0, "arcmin")
+mas    = milliarcsecond = quan(1.0, "mas")
+sr     = steradian = quan(1.0, "steradian")
