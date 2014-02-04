@@ -809,3 +809,10 @@ def uconcatenate(arrs, *args, **kwargs):
         raise RuntimeError("Your arrays must have identical units.")
     v.units = a1.units
     return v
+
+def array_like_field(pf, x, field):
+    units = pf._get_field_info(field).units
+    if isinstance(x, np.ndarray):
+        return pf.arr(x, units)
+    else:
+        return pf.quan(x, units)
