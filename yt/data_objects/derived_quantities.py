@@ -100,15 +100,9 @@ class WeightedAverage(DerivedQuantity):
         self.num_vals = len(fields) + 1
 
     def __call__(self, fields, weight):
-        if isinstance(fields, (tuple, types.StringTypes)):
-            fields = [fields]
-        elif isinstance(fields, list):
-            pass
-        else:
-            raise RuntimeError
+        fields = ensure_list(fields)
         rv = super(WeightedAverage, self).__call__(fields, weight)
-        if len(rv) == 1:
-            rv = rv[0]
+        if len(rv) == 1: rv = rv[0]
         return rv
         
     def process_chunk(self, data, fields, weight):
@@ -121,23 +115,46 @@ class WeightedAverage(DerivedQuantity):
         w = values.pop(-1).sum(dtype=np.float64)
         return [v.sum(dtype=np.float64)/w for v in values]
 
-def _TotalMass(data):
-    """
-    This function takes no arguments and returns the sum of cell masses and
-    particle masses in the object.
-    """
-    try:
-        cell_mass = _TotalQuantity(data,["cell_mass"])[1][0]
-    except (KeyError, YTFieldNotFound):
-        cell_mass = data.pf.quan(0.0, 'g')
-    try:
-        particle_mass = _TotalQuantity(data,["particle_mass"])[1][0]
-    except (KeyError, YTFieldNotFound):
-        particle_mass = data.pf.quan(0.0, 'g')
-    total_mass = cell_mass + particle_mass
-    return [total_mass]
-def _combTotalMass(data, total_mass):
-    return total_mass.sum()
+class TotalValue(DerivedQuantity):
+
+    def count_values(self, fields):
+        # This is a list now
+        self.num_vals = len(fields)
+
+    def __call__(self, fields):
+        fields = ensure_list(fields)
+        rv = super(WeightedAverage, self).__call__(fields)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, fields):
+        vals = [data[field].sum(dtype=np.float64)
+                for field in fields]
+        return vals
+
+    def reduce_intermediate(self, values):
+        return [v.sum(dtype=np.float64) for v in values]
+
+class TotalMass(TotalValue):
+    def __call__(self):
+        fi = self.data_source.pf.field_info
+        if ("gas", "cell_mass") in fi:
+            fields.append(("gas", "cell_mass"))
+        if ("all", "particle_mass") in fi:
+            fields.append(("all", "particle_mass"))
+        rv = super(TotalMass, self).__call__(fields)
+        return rv
+
+class CenterOfMass(TotalValue):
+    def __call__(self, use_cells = True, use_particles = False):
+        fields = []
+        if use_calls:
+            fields += [("index", ax) for ax in 'xyz']
+            fields.append( ("gas", "cell_mass") )
+        if use_particles:
+            fields += [("all", "particle_position_%s" % ax) for ax in 'xyz']
+            fields.append( ("all", "particle_mass") )
+        super(TotalValue, self).__call__(fields)
 
 def _CenterOfMass(data, use_cells=True, use_particles=False):
     """
@@ -190,6 +207,12 @@ def _combWeightedVariance(data, my_weight, my_mean, my_var2):
     all_mean = (my_weight * my_mean).sum() / all_weight
     return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
                     all_weight), all_mean]
+
+class BulkVelocity(WeightedAverage):
+    def __call__(self, ftype = "gas"):
+        fields = [(ftype, "velocity_%s" % ax) for ax in 'xyz']
+        weight = (ftype, "cell_mass")
+        return super(BulkVelocity, self).__call__(fields, weight)
 
 def _BulkVelocity(data):
     """
