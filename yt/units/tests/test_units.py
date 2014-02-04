@@ -20,7 +20,7 @@ from sympy import Symbol
 
 # dimensions
 from yt.units.dimensions import \
-    mass, length, time, temperature, energy, power, rate
+    mass, length, time, temperature, energy, magnetic_field, power, rate
 # functions
 from yt.units.unit_object import get_conversion_factor
 # classes
@@ -90,6 +90,25 @@ def test_create_from_string():
     assert u2.dimensions == energy
     assert u2.cgs_value == 1.0
 
+    # Test rationals
+    u3 = Unit("g**0.5 * cm**-0.5 * s**-1")
+    assert u3.dimensions == magnetic_field
+    assert u3.cgs_value == 1.0
+
+    # sqrt functions
+    u4 = Unit("sqrt(g)/sqrt(cm)/s")
+    assert u4.dimensions == magnetic_field
+    assert u4.cgs_value == 1.0
+
+    # commutative sqrt function
+    u5 = Unit("sqrt(g/cm)/s")
+    assert u5.dimensions == magnetic_field
+    assert u5.cgs_value == 1.0
+
+    # nonzero CGS conversion factor
+    u6 = Unit("Msun/pc**3")
+    assert u6.dimensions == mass/length**3
+    assert u6.cgs_value == 6.767925712378867e-23
 
 def test_create_from_expr():
     """
