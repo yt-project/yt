@@ -188,6 +188,10 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     # if the number of readers > 1.
     dd = pf.h.all_data()
 
+    # Add particle type filter if not defined
+    if rh.particle_type not in pf.particle_types:
+        pf.add_particle_filter(rh.particle_type)
+
     if NUM_BLOCKS > 1:
         local_parts = 0
         for chunk in parallel_objects(
@@ -226,6 +230,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             fi += 1
         pi += npart
     num_p[0] = local_parts
+    del pf._instantiated_hierarchy
+    del pf
 
 cdef class RockstarInterface:
 

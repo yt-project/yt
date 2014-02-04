@@ -222,6 +222,10 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.workgroup.name != "readers": return None
         tpf = ts[0]
         ptype = self.particle_type
+        if ptype not in tpf.particle_types:
+            has_particle_filter = tpf.add_particle_filter(ptype)
+            if not has_particle_filter:
+                raise RuntimeError("Particle type (filter) %s not found." % (ptype))
 
         dd = tpf.h.all_data()
         # Get DM particle mass.
@@ -250,6 +254,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         p['particle_mass'] = self.particle_mass = particle_mass
+        del tpf
         return p
 
     def __del__(self):

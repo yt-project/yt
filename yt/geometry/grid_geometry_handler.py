@@ -56,6 +56,14 @@ class GridGeometryHandler(GeometryHandler):
         mylog.debug("Re-examining hierarchy")
         self._initialize_level_stats()
 
+    def __del__(self):
+        del self.grid_dimensions
+        del self.grid_left_edge
+        del self.grid_right_edge
+        del self.grid_levels
+        del self.grid_particle_count
+        del self.grids
+
     @property
     def parameters(self):
         return self.parameter_file.parameters
