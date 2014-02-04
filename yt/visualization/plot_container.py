@@ -384,6 +384,7 @@ class ImagePlotContainer(object):
            The name of the new unit.
         """
         field = self.data_source._determine_fields(field)[0]
+        field = ensure_list(field)
         new_unit = ensure_list(new_unit)
         if len(field) > 1 and len(new_unit) != len(field):
             raise RuntimeError(
