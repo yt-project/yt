@@ -94,6 +94,8 @@ def validate_iterable_width(width, pf, unit=None):
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
         return (pf.quan(width[0], 'code_length'),
                 pf.quan(width[1], 'code_length'))
+    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
+        return width
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
@@ -419,7 +421,7 @@ class PlotWindow(ImagePlotContainer):
         if isinstance(width, Number):
             width = (width, unit)
         elif iterable(width):
-            width = validate_iterable_width(width, unit)
+            width = validate_iterable_width(width, self.data_source.pf, unit)
 
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
