@@ -416,11 +416,10 @@ class PlotWindow(ImagePlotContainer):
         else:
             set_axes_unit = False
 
-        if isinstance(width, Number):
+        if iterable(unit) and not isinstance(unit, basestring):
+            assert_valid_width_tuple(unit)
             width = (width, unit)
-        elif iterable(width):
-            width = validate_iterable_width(width, unit)
-
+            
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
