@@ -349,6 +349,8 @@ class AthenaStaticOutput(StaticOutput):
         if len(self.parameters) == 0:
             self._parse_parameter_file()
         self.conversion_factors = defaultdict(lambda: 1.0)    
+        if "EOSType" not in self.parameters:
+            self.parameters["EOSType"] = -1
         if self.specified_parameters.has_key("LengthUnits") :
             self._setup_getunits_units()
         else :
