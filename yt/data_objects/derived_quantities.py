@@ -20,7 +20,7 @@ import numpy as np
 from yt.funcs import *
 
 from yt.config import ytcfg
-from yt.units.yt_array import YTArray, uconcatenate
+from yt.units.yt_array import YTArray, uconcatenate, array_like_field
 from yt.fields.field_info_container import \
     FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
@@ -123,7 +123,7 @@ class TotalValue(DerivedQuantity):
 
     def __call__(self, fields):
         fields = ensure_list(fields)
-        rv = super(WeightedAverage, self).__call__(fields)
+        rv = super(TotalValue, self).__call__(fields)
         if len(rv) == 1: rv = rv[0]
         return rv
 
@@ -138,6 +138,7 @@ class TotalValue(DerivedQuantity):
 class TotalMass(TotalValue):
     def __call__(self):
         fi = self.data_source.pf.field_info
+        fields = []
         if ("gas", "cell_mass") in fi:
             fields.append(("gas", "cell_mass"))
         if ("all", "particle_mass") in fi:
@@ -239,13 +240,69 @@ class Extrema(DerivedQuantity):
         for field in fields:
             fd = data[field]
             if non_zero: fd = fd[fd > 0.0]
-            vals += [fd.min(), fd.max()]
+            if fd.size > 0:
+                vals += [fd.min(), fd.max()]
+            else:
+                vals += [array_like_field(data.pf, HUGE, field),
+                         array_like_field(data.pf, -HUGE, field)]
         return vals
 
     def reduce_intermediate(self, values):
         # The values get turned into arrays here.
         return [(mis.min(), mas.max() )
                 for mis, mas in zip(values[::2], values[1::2])]
+
+class MaxLocation(DerivedQuantity):
+    def count_values(self, *args, **kwargs):
+        self.num_vals = 5
+
+    def __call__(self, field):
+        rv = super(MaxLocation, self).__call__(field)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, field):
+        field = data._determine_fields(field)[0]
+        ma = array_like_field(data.pf, -HUGE, field)
+        mx = array_like_field(data.pf, -1, "x")
+        my = array_like_field(data.pf, -1, "y")
+        mz = array_like_field(data.pf, -1, "z")
+        maxi = -1
+        if data[field].size > 0:
+            maxi = np.argmax(data[field])
+            ma = data[field][maxi]
+            mx, my, mz = [data[ax][maxi] for ax in 'xyz']
+        return (ma, maxi, mx, my, mz)
+
+    def reduce_intermediate(self, values):
+        i = np.argmax(values[0]) # ma is values[0]
+        return [val[i] for val in values]
+
+class MinLocation(DerivedQuantity):
+    def count_values(self, *args, **kwargs):
+        self.num_vals = 5
+
+    def __call__(self, field):
+        rv = super(MinLocation, self).__call__(field)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, field):
+        field = data._determine_fields(field)[0]
+        ma = array_like_field(data.pf, HUGE, field)
+        mx = array_like_field(data.pf, -1, "x")
+        my = array_like_field(data.pf, -1, "y")
+        mz = array_like_field(data.pf, -1, "z")
+        mini = -1
+        if data[field].size > 0:
+            mini = np.argmin(data[field])
+            ma = data[field][mini]
+            mx, my, mz = [data[ax][mini] for ax in 'xyz']
+        return (ma, mini, mx, my, mz)
+
+    def reduce_intermediate(self, values):
+        i = np.argmin(values[0]) # ma is values[0]
+        return [val[i] for val in values]
 
 def _BaryonSpinParameter(data):
     """
@@ -285,35 +342,3 @@ def _ParticleSpinParameter(data):
                        *data["particle_velocity_magnitude"]**2.0,dtype=np.float64)
     weight=data["particle_mass"].sum(dtype=np.float64)
     return j_mag, m_enc, e_term_pre, weight
-
-def _MaxLocation(data, field):
-    """
-    This function returns the location of the maximum of a set
-    of fields.
-    """
-    ma, maxi, mx, my, mz = -HUGE, -1, -1, -1, -1
-    if data[field].size > 0:
-        maxi = np.argmax(data[field])
-        ma = data[field][maxi]
-        mx, my, mz = [data[ax][maxi] for ax in 'xyz']
-    return (ma, maxi, mx, my, mz)
-def _combMaxLocation(data, *args):
-    args = [np.atleast_1d(arg) for arg in args]
-    i = np.argmax(args[0]) # ma is arg[0]
-    return [arg[i] for arg in args]
-
-def _MinLocation(data, field):
-    """
-    This function returns the location of the minimum of a set
-    of fields.
-    """
-    ma, mini, mx, my, mz = HUGE, -1, -1, -1, -1
-    if data[field].size > 0:
-        mini = np.argmin(data[field])
-        ma = data[field][mini]
-        mx, my, mz = [data[ax][mini] for ax in 'xyz']
-    return (ma, mini, mx, my, mz)
-def _combMinLocation(data, *args):
-    args = [np.atleast_1d(arg) for arg in args]
-    i = np.argmin(args[0]) # ma is arg[0]
-    return [arg[i] for arg in args]
