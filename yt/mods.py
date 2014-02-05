@@ -67,9 +67,6 @@ from yt.data_objects.api import \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
 
-from yt.data_objects.derived_quantities import \
-    add_quantity, quantity_info
-
 from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, \
     EnzoSimulation, EnzoFieldInfo, add_enzo_field
