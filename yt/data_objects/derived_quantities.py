@@ -146,7 +146,7 @@ class TotalMass(TotalValue):
         return rv
 
 class CenterOfMass(DerivedQuantity):
-    def count_values(self, use_cells, use_particles):
+    def count_values(self, use_cells = True, use_particles = False):
         # This is a list now
         self.num_vals = 0
         if use_cells:
@@ -222,7 +222,7 @@ class ParticleAngularMomentumVector(WeightedAverage):
         fields = [(ptype, "particle_specific_angular_momentum_%s" % ax)
                   for ax in 'xyz']
         weight = (ptype, "particle_mass")
-        return super(AngularMomentumVector, self).__call__(fields, weight)
+        return super(ParticleAngularMomentumVector, self).__call__(fields, weight)
 
 class Extrema(DerivedQuantity):
     def count_values(self, fields, non_zero):
