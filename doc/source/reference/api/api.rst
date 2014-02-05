@@ -109,18 +109,6 @@ Frontends
 .. autosummary::
    :toctree: generated/
 
-ART
-^^^
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.art.data_structures.ARTDomainFile
-   ~yt.frontends.art.data_structures.ARTDomainSubset
-   ~yt.frontends.art.data_structures.ARTGeometryHandler
-   ~yt.frontends.art.data_structures.ARTStaticOutput
-   ~yt.frontends.art.io.IOHandlerART
-
 ARTIO
 ^^^^^
 
@@ -169,17 +157,6 @@ Boxlib
    ~yt.frontends.boxlib.io.IOHandlerNyx
    ~yt.frontends.boxlib.io.IOHandlerOrion
 
-Chombo
-^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.chombo.data_structures.ChomboGrid
-   ~yt.frontends.chombo.data_structures.ChomboHierarchy
-   ~yt.frontends.chombo.data_structures.ChomboStaticOutput
-   ~yt.frontends.chombo.io.IOHandlerChomboHDF5
-
 Enzo
 ^^^^
 
@@ -222,23 +199,12 @@ FLASH
 
 .. autosummary::
    :toctree: generated/
-
+   
    ~yt.frontends.flash.data_structures.FLASHGrid
    ~yt.frontends.flash.data_structures.FLASHHierarchy
    ~yt.frontends.flash.data_structures.FLASHStaticOutput
    ~yt.frontends.flash.fields.FLASHFieldInfo
    ~yt.frontends.flash.io.IOHandlerFLASH
-
-GDF
-^^^
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.gdf.data_structures.GDFGrid
-   ~yt.frontends.gdf.data_structures.GDFHierarchy
-   ~yt.frontends.gdf.data_structures.GDFStaticOutput
-   ~yt.frontends.gdf.io.IOHandlerGDFHDF5
 
 Halo Catalogs
 ^^^^^^^^^^^^^
@@ -265,17 +231,6 @@ MOAB
    ~yt.frontends.moab.data_structures.PyneMoabHex8StaticOutput
    ~yt.frontends.moab.io.IOHandlerMoabH5MHex8
    ~yt.frontends.moab.io.IOHandlerMoabPyneHex8
-
-Pluto
-^^^^^
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.pluto.data_structures.PlutoGrid
-   ~yt.frontends.pluto.data_structures.PlutoHierarchy
-   ~yt.frontends.pluto.data_structures.PlutoStaticOutput
-   ~yt.frontends.pluto.io.IOHandlerPlutoHDF5
 
 RAMSES
 ^^^^^^
