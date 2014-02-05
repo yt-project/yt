@@ -106,32 +106,24 @@ class CharmHierarchy(AMRHierarchy):
         self._read_particles()
 
     def _read_particles(self):
-        self.num_particles = self._handle['particles'].attrs['num_particles']
-        for i in np.arange(self.num_particles):
-            particle_position_x = self._handle['particles/position_x'][i]
-            particle_position_y = self._handle['particles/position_y'][i]
-            particle_position_z = self._handle['particles/position_z'][i]
-            coord = [particle_position_x, particle_position_y, particle_position_z]
-            # for each particle, determine which grids contain it
-            # copied from object_finding_mixin.py
-            mask=np.ones(self.num_grids)
-            for i in xrange(len(coord)):
-                np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-            ind = np.where(mask == 1)
-            selected_grids = self.grids[ind]
-            # in orion, particles always live on the finest level.
-            # so, we want to assign the particle to the finest of
-            # the grids we just found
-            if len(selected_grids) != 0:
-                grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                ind = np.where(self.grids == grid)[0][0]
-                self.grid_particle_count[ind] += 1
-                self.grids[ind].NumberOfParticles += 1
+        
+        self.num_particles = 0
+        for key, val in self._handle.items():
+            if key.startswith('level'):
+                self.num_particles += val['particles:offsets'][:].sum()
+
+        particles_per_grid = self._handle["level_0/particles:offsets"]
+        for i, grid in enumerate(self.grids):
+            self.grids[i].NumberOfParticles = particles_per_grid[i]
+            self.grid_particle_count[i] = particles_per_grid[i]
+
+        assert(self.num_particles == self.grid_particle_count.sum())
 
     def _detect_fields(self):
-        ncomp = int(self._handle['/'].attrs['num_components'])
-        self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
+        self.field_list = []
+        for key, val in self._handle.attrs.items():
+            if key.startswith("component"):
+                self.field_list.append(val)
           
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -200,7 +192,7 @@ class CharmStaticOutput(StaticOutput):
     def __init__(self, filename, data_style='charm_hdf5',
                  storage_filename = None, ini_filename = None):
         self._handle = h5py.File(filename,'r')
-        self.current_time = self._handle.attrs['time']
+        self.current_time = self._handle['level_0'].attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         StaticOutput.__init__(self,filename,data_style)

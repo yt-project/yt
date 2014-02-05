@@ -39,9 +39,10 @@ add_charm_field("density", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("density")],
                 units=r"")
 
-add_charm_field("pressure", function=NullFunc, take_log=False,
-                validators = [ValidateDataField("pressure")],
-                units=r"")
+def _Density(field, data):
+    return data["density"]
+add_field("Density",function=_Density, take_log=True,
+          units=r'\rm{g}/\rm{cm^3}')
 
 def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
@@ -60,7 +61,9 @@ _particle_field_list = ["mass",
                         "velocity_x",
                         "velocity_y",
                         "velocity_z",
-                        "particle_id"]
+                        "acceleration_x",
+                        "acceleration_y"
+                        "acceleration_z"]
 
 for pf in _particle_field_list:
     pfunc = particle_func("%s" % (pf))
