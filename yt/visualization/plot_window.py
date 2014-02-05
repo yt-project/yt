@@ -356,6 +356,29 @@ class PlotWindow(ImagePlotContainer):
         self.ylim = (self.ylim[0] + Wy*deltas[1], self.ylim[1] + Wy*deltas[1])
         return self
 
+    @invalidate_plot
+    def set_unit(self, field, new_unit):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string or field tuple
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        field = self.data_source._determine_fields(field)[0]
+        field = ensure_list(field)
+        new_unit = ensure_list(new_unit)
+        if len(field) > 1 and len(new_unit) != len(field):
+            raise RuntimeError(
+                "Field list {} and unit "
+                "list {} are incompatible".format(field, new_unit))
+        for f, u in zip(field, new_unit):
+            self._frb[f].convert_to_units(u)
+        return self
+
     @invalidate_data
     def _set_window(self, bounds):
         """Set the bounds of the plot window.
