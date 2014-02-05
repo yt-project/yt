@@ -105,9 +105,9 @@ from yt.frontends.halo_catalogs.api import \
 #from yt.frontends.gdf.api import \
 #    GDFStaticOutput, GDFFieldInfo, add_gdf_field
 
-#from yt.frontends.moab.api import \
-#    MoabHex8StaticOutput, MoabFieldInfo, add_moab_field, \
-#    PyneMoabHex8StaticOutput
+from yt.frontends.moab.api import \
+    MoabHex8StaticOutput, MoabFieldInfo, \
+    PyneMoabHex8StaticOutput, PyneFieldInfo
 
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo
