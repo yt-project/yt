@@ -39,7 +39,7 @@ from .particle_fields import \
     particle_scalar_functions, \
     standard_particle_fields
 
-class FieldInfoContainer(dict): # Resistance has utility
+class FieldInfoContainer(dict):
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.
