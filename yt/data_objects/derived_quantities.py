@@ -238,6 +238,7 @@ class Extrema(DerivedQuantity):
     def process_chunk(self, data, fields, non_zero):
         vals = []
         for field in fields:
+            field = data._determine_fields(field)[0]
             fd = data[field]
             if non_zero: fd = fd[fd > 0.0]
             if fd.size > 0:
