@@ -1031,7 +1031,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     setattr(obj, "accumulation", accumulation)
     setattr(obj, "fractional", fractional)
     if fields is not None:
-        obj.add_fields(fields)
+        obj.add_fields([field[-1] for field in fields])
     for field in fields:
         if fractional:
             obj.field_data[field] /= obj.field_data[field].sum()
