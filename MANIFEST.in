@@ -1,4 +1,10 @@
-include distribute_setup.py README* CREDITS COPYING.txt CITATION
-recursive-include yt/gui/reason/html *.html *.png *.ico *.js
-recursive-include yt *.pyx *.pxd *.h README*
+include distribute_setup.py README* CREDITS COPYING.txt CITATION LICENSE
+recursive-include yt/gui/reason/html *.html *.png *.ico *.js *.gif *.css
+recursive-include yt *.py *.pyx *.pxd *.h README* *.txt
+recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.inc *.html
+recursive-include doc *.h *.c *.sh *.svgz
+include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
+include doc/extensions/README 
+prune doc/source/reference/api/generated
+prune doc/build/
 recursive-include yt/utilities/kdtree *.f90 *.v Makefile LICENSE
