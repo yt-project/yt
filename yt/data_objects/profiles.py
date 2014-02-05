@@ -810,7 +810,13 @@ class ProfileND(ParallelAnalysisInterface):
         return arr, weight_data, bin_fields
 
     def __getitem__(self, key):
-        return array_like_field(self.pf, self.field_data[key], key)
+        field = self.data_source._determine_fields(key)[0]
+        fd = self.field_data.get(field, None)
+        if fd is None and isinstance(field, tuple):
+            fd = self.field_data.get(field[1], None)
+        if fd is None:
+            raise KeyError(key)
+        return array_like_field(self.pf, fd, field)
 
     def __iter__(self):
         return sorted(self.field_data.items())

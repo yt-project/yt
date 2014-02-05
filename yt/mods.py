@@ -56,7 +56,9 @@ from yt.fields.api import \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
-    ValidateGridType
+    ValidateGridType, \
+    add_field, \
+    derived_field
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -64,9 +66,6 @@ from yt.data_objects.api import \
     TimeSeriesData, AnalysisTask, analysis_task, \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
-
-from yt.data_objects.derived_quantities import \
-    add_quantity, quantity_info
 
 from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, \

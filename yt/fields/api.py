@@ -39,3 +39,5 @@ from .field_detector import \
 from .field_info_container import \
     FieldInfoContainer
 
+from . import local_fields
+from .local_fields import add_field, derived_field
