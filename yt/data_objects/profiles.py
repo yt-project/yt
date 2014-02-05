@@ -816,7 +816,7 @@ class ProfileND(ParallelAnalysisInterface):
             fd = self.field_data.get(field[1], None)
         if fd is None:
             raise KeyError(key)
-        return array_like_field(self.pf, fd, field)
+        return array_like_field(self.data_source, fd, key)
 
     def __iter__(self):
         return sorted(self.field_data.items())
@@ -833,7 +833,7 @@ class Profile1D(ProfileND):
         super(Profile1D, self).__init__(data_source, weight_field)
         self.x_field = x_field
         self.x_log = x_log
-        self.x_bins = array_like_field(self.pf,
+        self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
 
@@ -862,13 +862,13 @@ class Profile2D(ProfileND):
         # X
         self.x_field = x_field
         self.x_log = x_log
-        self.x_bins = array_like_field(self.pf,
+        self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
         self.y_field = y_field
         self.y_log = y_log
-        self.y_bins = array_like_field(self.pf,
+        self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
 
@@ -902,19 +902,19 @@ class Profile3D(ProfileND):
         # X
         self.x_field = x_field
         self.x_log = x_log
-        self.x_bins = array_like_field(self.pf,
+        self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
         self.y_field = y_field
         self.y_log = y_log
-        self.y_bins = array_like_field(self.pf,
+        self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
         # Z
         self.z_field = z_field
         self.z_log = z_log
-        self.z_bins = array_like_field(self.pf,
+        self.z_bins = array_like_field(data_source,
                                        self._get_bins(z_min, z_max, z_n, z_log),
                                        self.z_field)
 

@@ -812,7 +812,10 @@ def uconcatenate(arrs, *args, **kwargs):
 
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
-    units = data.pf._get_field_info(field).units
+    if isinstance(field, tuple):
+        units = data.pf._get_field_info(field[0],field[1]).units
+    else:
+        units = data.pf._get_field_info(field).units
     if isinstance(x, np.ndarray):
         return data.pf.arr(x, units)
     else:
