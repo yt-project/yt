@@ -228,7 +228,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
             mass_unit = ("1e10*Msun/h", 1.0)
         self.mass_unit = self.quan(mass_unit[1], mass_unit[0])
         self.time_unit = self.length_unit / self.velocity_unit
-        
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         # We do not allow load() of these files.
@@ -485,26 +485,26 @@ class TipsyStaticOutput(ParticleStaticOutput):
 
         f.close()
 
-    def _set_units(self):
-        super(TipsyStaticOutput, self)._set_units()
+    def _set_code_unit_attributes(self):
+        # Set a sane default for cosmological simulations.
+        if self._unit_base is None and self.cosmological_simulation == 1:
+            mylog.info("Assuming length units are in Mpc/h (comoving)")
+            self._unit_base.update(dict(length = ("Mpccm/h", 1.0)))
         if self.cosmological_simulation:
-            DW = (self.domain_right_edge - self.domain_left_edge).max()
+            length_units = self._unit_base['length']
+            DW = self.quan(1./length_units[1], length_units[0])
             cosmo = Cosmology(self.hubble_constant * 100.0,
                               self.omega_matter, self.omega_lambda)
-            length_unit = DW * self.units['cm']  # Get it in proper cm
-            density_unit = cosmo.CriticalDensity(self.current_redshift)
-            mass_unit = density_unit * length_unit ** 3
+            self.length_unit = DW
+            density_unit = cosmo.critical_density(self.current_redshift)
+            self.mass_unit = density_unit * self.length_unit ** 3
         else:
-            mass_unit = self.parameters.get('dMsolUnit', 1.0) * mass_sun_cgs
-            length_unit = self.parameters.get('dKpcUnit', 1.0) * cm_per_kpc
-            density_unit = mass_unit / length_unit ** 3
-        time_unit = 1.0 / np.sqrt(G * density_unit)
-        velocity_unit = length_unit / time_unit
-        self.conversion_factors["velocity"] = velocity_unit
-        self.conversion_factors["mass"] = mass_unit
-        self.conversion_factors["density"] = density_unit
-        for u in sec_conversion:
-            self.time_units[u] = time_unit * sec_conversion[u]
+            mu = self.parameters.get('dMsolUnit', 1.0)
+            self.mass_unit = self.quan(mu, 'Msun')
+            lu = self.parameters.get('dKpcUnit', 1.0)
+            self.length_unit = self.quan(lu, 'kpc')
+            density_unit = self.mass_unit / self.length_unit**3
+        self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

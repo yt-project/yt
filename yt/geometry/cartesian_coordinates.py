@@ -42,7 +42,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                display_field = False,
                                units = "code_length")
         def _cell_volume(field, data):
-            rv  = data["index", "dx"].copy()
+            rv  = data["index", "dx"].copy(order='K')
             rv *= data["index", "dy"]
             rv *= data["index", "dz"]
             return rv
