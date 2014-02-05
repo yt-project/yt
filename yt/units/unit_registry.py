@@ -35,6 +35,9 @@ class UnitRegistry:
     def __getitem__(self, key):
         return self.lut[key]
 
+    def __contains__(self, item):
+        return item in self.lut
+
     def add(self, symbol, cgs_value, dimensions, tex_repr=None):
         """
         Add a symbol to this registry.
