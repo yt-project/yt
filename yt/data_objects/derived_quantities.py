@@ -244,8 +244,8 @@ class Extrema(DerivedQuantity):
             if fd.size > 0:
                 vals += [fd.min(), fd.max()]
             else:
-                vals += [array_like_field(data.pf, HUGE, field),
-                         array_like_field(data.pf, -HUGE, field)]
+                vals += [array_like_field(data, HUGE, field),
+                         array_like_field(data, -HUGE, field)]
         return vals
 
     def reduce_intermediate(self, values):
@@ -264,10 +264,10 @@ class MaxLocation(DerivedQuantity):
 
     def process_chunk(self, data, field):
         field = data._determine_fields(field)[0]
-        ma = array_like_field(data.pf, -HUGE, field)
-        mx = array_like_field(data.pf, -1, "x")
-        my = array_like_field(data.pf, -1, "y")
-        mz = array_like_field(data.pf, -1, "z")
+        ma = array_like_field(data, -HUGE, field)
+        mx = array_like_field(data, -1, "x")
+        my = array_like_field(data, -1, "y")
+        mz = array_like_field(data, -1, "z")
         maxi = -1
         if data[field].size > 0:
             maxi = np.argmax(data[field])
@@ -290,10 +290,10 @@ class MinLocation(DerivedQuantity):
 
     def process_chunk(self, data, field):
         field = data._determine_fields(field)[0]
-        ma = array_like_field(data.pf, HUGE, field)
-        mx = array_like_field(data.pf, -1, "x")
-        my = array_like_field(data.pf, -1, "y")
-        mz = array_like_field(data.pf, -1, "z")
+        ma = array_like_field(data, HUGE, field)
+        mx = array_like_field(data, -1, "x")
+        my = array_like_field(data, -1, "y")
+        mz = array_like_field(data, -1, "z")
         mini = -1
         if data[field].size > 0:
             mini = np.argmin(data[field])

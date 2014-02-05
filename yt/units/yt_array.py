@@ -810,9 +810,10 @@ def uconcatenate(arrs, *args, **kwargs):
     v.units = a1.units
     return v
 
-def array_like_field(pf, x, field):
-    units = pf._get_field_info(field).units
+def array_like_field(data, x, field):
+    field = data._determine_fields(field)[0]
+    units = data.pf._get_field_info(field).units
     if isinstance(x, np.ndarray):
-        return pf.arr(x, units)
+        return data.pf.arr(x, units)
     else:
-        return pf.quan(x, units)
+        return data.pf.quan(x, units)
