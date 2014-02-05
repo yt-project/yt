@@ -56,7 +56,9 @@ from yt.fields.api import \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
-    ValidateGridType
+    ValidateGridType, \
+    add_field, \
+    derived_field
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \

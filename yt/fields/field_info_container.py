@@ -116,7 +116,7 @@ class FieldInfoContainer(dict):
         :class:`~yt.data_objects.api.DerivedField`.
 
         """
-        if function == None:
+        if function is None:
             def create_function(function):
                 self[name] = DerivedField(name, function, **kwargs)
                 return function
