@@ -62,7 +62,7 @@ _particle_field_list = ["mass",
                         "velocity_y",
                         "velocity_z",
                         "acceleration_x",
-                        "acceleration_y"
+                        "acceleration_y",
                         "acceleration_z"]
 
 for pf in _particle_field_list:

@@ -69,10 +69,10 @@ class IOHandlerCharmHDF5(BaseIOHandler):
                                 'velocity_x': 3,
                                 'velocity_y': 4,
                                 'velocity_z': 5,
-                                'mass': 6,
-                                'acceleration_x': 7,
-                                'acceleration_y': 8,
-                                'acceleration_z': 9}
+                                'acceleration_x': 6,
+                                'acceleration_y': 7,
+                                'acceleration_z': 8,
+                                'mass': 9}
 
         field_index = particle_field_index[name]
 
