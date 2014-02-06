@@ -31,7 +31,6 @@ default_unit_symbol_lut = {
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
-    "Zsun": (metallicity_sun, dimensions.metallicity),
 
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
@@ -42,7 +41,7 @@ default_unit_symbol_lut = {
     "code_velocity" : (1.0, dimensions.velocity),
     "code_magnetic" : (1.0, dimensions.magnetic_field),
     "code_temperature" : (1.0, dimensions.temperature),
-    "code_metallicity" : (1.0, dimensions.metallicity),
+    "code_metallicity" : (1.0, dimensions.dimensionless),
 
     # other cgs
     "dyne": (1.0, dimensions.force),
@@ -76,6 +75,7 @@ default_unit_symbol_lut = {
     "rsun": ( cm_per_rsun, dimensions.length),
     "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
     "Tsun": ( temp_sun_kelvin, dimensions.temperature),
+    "Zsun": (metallicity_sun, dimensions.dimensionless),
 
     # astro distances
     "AU": (cm_per_au, dimensions.length),
@@ -167,6 +167,5 @@ cgs_base_units = {
     dimensions.length:'cm',
     dimensions.time:'s',
     dimensions.temperature:'K',
-    dimensions.metallicity:'Zsun',
     dimensions.angle:'radian',
 }

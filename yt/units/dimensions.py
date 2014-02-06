@@ -18,12 +18,10 @@ mass = Symbol("(mass)", positive=True)
 length = Symbol("(length)", positive=True)
 time = Symbol("(time)", positive=True)
 temperature = Symbol("(temperature)", positive=True)
-metallicity = Symbol("(metallicity)", positive=True)
 angle = Symbol("(angle)", positive=True)
 dimensionless = sympify(1)
 
-base_dimensions = [mass, length, time, temperature, metallicity, angle, 
-                   dimensionless]
+base_dimensions = [mass, length, time, temperature, angle, dimensionless]
 
 #
 # Derived dimensions
