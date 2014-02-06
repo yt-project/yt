@@ -20,8 +20,9 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.utilities.fits_image import FITSImageBuffer
+from yt.fields.local_fields import add_field
+from yt.fields.field_plugin_registry import register_field_plugin
 from yt.data_objects.image_array import ImageArray
-from yt.fields.field_info_container import add_field
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
 from yt.utilities.definitions import inv_axis_names
 from yt.visualization.volume_rendering.camera import off_axis_projection
@@ -29,7 +30,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
 from yt.visualization.plot_window import StandardCenter
 from yt import units
-from .field_plugin_registry import register_field_plugin
 
 import numpy as np
 
@@ -43,31 +43,31 @@ except ImportError:
 vlist = "xyz"
 
 @register_field_plugin
-def setup_SZ_fields(registry, ftype = "gas"):
+def setup_SZ_fields(registry, ftype = "gas", slice_info = None):
 
     def _tempkev(field, data):
         return (kboltz*data["gas","temperature"]).in_units("keV")
-    registry.add_field(("gas","TempkeV"), function=_tempkev)
+    registry.add_field(("gas","TempkeV"), function=_tempkev, units="keV")
 
     def _t_squared(field, data):
         return data["gas","density"]*data["gas","TempkeV"]*data["gas","TempkeV"]
-    registry.add_field(("gas","TSquared"), function=_t_squared)
+    registry.add_field(("gas","TSquared"), function=_t_squared, units="g*keV**2/cm**3")
 
     def _beta_perp_squared(field, data):
         return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","BetaParSquared"]
-    registry.add_field(("gas","BetaPerpSquared"), function=_beta_perp_squared)
+    registry.add_field(("gas","BetaPerpSquared"), function=_beta_perp_squared, units="g/cm**3")
 
     def _beta_par_squared(field, data):
         return data["gas","BetaPar"]**2/data["gas","density"]
-    registry.add_field(("gas","BetaParSquared"), function=_beta_par_squared)
+    registry.add_field(("gas","BetaParSquared"), function=_beta_par_squared, units="cm**3/g")
 
     def _t_beta_par(field, data):
         return data["gas","TempkeV"]*data["gas","BetaPar"]
-    registry.add_field(("gas","TBetaPar"), function=_t_beta_par)
+    registry.add_field(("gas","TBetaPar"), function=_t_beta_par, units="keV*g/cm**3")
 
     def _t_sz(field, data):
         return data["gas","density"]*data["gas","TempkeV"]
-    registry.add_field(("gas","TeSZ"), function=_t_sz)
+    registry.add_field(("gas","TeSZ"), function=_t_sz, units="keV*g/cm**3")
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -142,8 +142,7 @@ class SZProjection(object):
                 data['velocity_%s' % ax]
             vpar = data["density"]*data["velocity_%s" % (vlist[axis])]
             return vpar/clight
-        add_field("BetaPar", function=_beta_par)
-        self.pf.h._derived_fields_add(["BetaPar"])
+        add_field(("gas","BetaPar"), function=_beta_par, units="g/cm**3")
 
         proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
         proj.data_source.set_field_parameter("axis", axis)
@@ -211,8 +210,7 @@ class SZProjection(object):
                                     data["velocity_y"]*L[1]+
                                     data["velocity_z"]*L[2])
             return vpar/clight
-        add_field("BetaPar", function=_beta_par)
-        self.pf.h._derived_fields_add(["BetaPar"])
+        add_field("BetaPar", function=_beta_par,
 
         dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
         Te      = off_axis_projection(self.pf, ctr, L, w, nx, "TeSZ")/dens
