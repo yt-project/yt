@@ -10,16 +10,16 @@ def test_extrema():
         pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",
                 "velocity_x", "velocity_y", "velocity_z"))
         sp = pf.h.sphere("c", (0.25, 'unitary'))
-        (mi, ma), = sp.quantities["Extrema"]("density")
+        mi, ma = sp.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(sp["density"])
         yield assert_equal, ma, np.nanmax(sp["density"])
         dd = pf.h.all_data()
-        (mi, ma), = dd.quantities["Extrema"]("density")
+        mi, ma = dd.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(dd["density"])
         yield assert_equal, ma, np.nanmax(dd["density"])
         sp = pf.h.sphere("max", (0.25, 'unitary'))
         yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), False
-        (mi, ma), = dd.quantities["Extrema"]("radial_velocity")
+        mi, ma = dd.quantities["Extrema"]("radial_velocity")
         yield assert_equal, mi, np.nanmin(dd["radial_velocity"])
         yield assert_equal, ma, np.nanmax(dd["radial_velocity"])
 
