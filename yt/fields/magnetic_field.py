@@ -68,6 +68,12 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
              function=_magnetic_pressure,
              units="erg / cm**3")
 
+    def _magnetic_field_strength(field,data):
+        return np.sqrt(8.*np.pi*data[ftype,"magnetic_energy"])
+    registry.add_field((ftype,"magnetic_field_strength"),
+                       function=_magnetic_field_strength,
+                       units = "gauss")
+
     def _magnetic_field_poloidal(field,data):
         normal = data.get_field_parameter("normal")
         d = data[ftype,'magnetic_field_x']
