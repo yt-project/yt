@@ -412,7 +412,26 @@ class ProfilePlot(object):
         for spec in specs:
             spec[property] = value
         return self
-            
+
+    @invalidate_plot
+    def set_log(self, field, log):
+        """set a field to log or linear.
+
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
+        """
+        if field == "all":
+            fields = self.profiles[0].field_data.keys()
+        else:
+            fields = [field]
+        for field in fields:
+            self.y_log[field] = log
+        return self
+
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
         yf, = profile.data_source._determine_fields([field_y])
@@ -726,7 +745,26 @@ class PhasePlot(ImagePlotContainer):
     def reset_plot(self):
         self.plots = {}
         return self
-            
+
+    @invalidate_plot
+    def set_log(self, field, log):
+        """set a field to log or linear.
+
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
+        """
+        if field == "all":
+            fields = self.fields
+        else:
+            fields = [field]
+        for field in fields:
+            self.z_log[field] = log
+        return self
+
     def run_callbacks(self, *args):
         raise NotImplementedError
     def setup_callbacks(self, *args):
