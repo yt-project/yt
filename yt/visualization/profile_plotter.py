@@ -313,7 +313,8 @@ class ProfilePlot(object):
         self.axes = AxesContainer(self.figures)
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.field_data.items():
-                self.axes[field].plot(profile.x, field_data,
+                self.axes[field].plot(np.array(profile.x),
+                                      np.array(field_data),
                                       label=self.label[i],
                                       **self.plot_spec[i])
         
@@ -427,18 +428,18 @@ class ProfilePlot(object):
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log]
 
-    def _get_field_label(self, field, field_info):
-        units = field_info.get_units()
+    def _get_field_label(self, field, field_info, field_unit):
+        field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
             field_name = r'$\rm{'+field+r'}$'
-        if units is None or units == '':
+        if field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+units+r')$'
+            label = field_name+r'$\/\/('+field_unit+r')$'
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -448,9 +449,12 @@ class ProfilePlot(object):
             [field_x, field_y])
         xfi = pf._get_field_info(*xf)
         yfi = pf._get_field_info(*yf)
-        x_title = self.x_title or self._get_field_label(field_x, xfi)
+        x_unit = profile.x.units
+        y_unit = profile.field_units[field_y]
+        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title.get(field_y, None) or \
-                    self._get_field_label(field_y, yfi)
+                    self._get_field_label(field_y, yfi, y_unit)
+
         return (x_title, y_title)
             
 
@@ -567,24 +571,27 @@ class PhasePlot(ImagePlotContainer):
         xfi = pf._get_field_info(*xf)
         yfi = pf._get_field_info(*yf)
         zfi = pf._get_field_info(*zf)
-        x_title = self.x_title or self._get_field_label(field_x, xfi)
-        y_title = self.y_title or self._get_field_label(field_y, yfi)
+        x_unit = profile.x.units
+        y_unit = profile.y.units
+        z_unit = profile.field_units[field_z]
+        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
+        y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi)
+                    self._get_field_label(field_z, zfi, z_unit)
         return (x_title, y_title, z_title)
 
-    def _get_field_label(self, field, field_info):
-        units = field_info.get_units()
+    def _get_field_label(self, field, field_info, field_unit):
+        field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
             field_name = r'$\rm{'+field+r'}$'
-        if units is None or units == '':
+        if field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+units+r')$'
+            label = field_name+r'$\/\/('+field_unit+r')$'
         return label
         
     def _get_field_log(self, field_z, profile):

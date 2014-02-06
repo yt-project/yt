@@ -611,7 +611,8 @@ class PWViewerMPL(PlotWindow):
             yllim = self.pf.domain_left_edge[y_dict[axis_index]]
             yrlim = self.pf.domain_right_edge[y_dict[axis_index]]
         elif origin[2] == 'native':
-            return 0.0, 0.0
+            return (self.pf.quan(0.0, 'code_length'),
+                    self.pf.quan(0.0, 'code_length'))
         else:
             mylog.warn("origin = {0}".format(origin))
             msg = \
