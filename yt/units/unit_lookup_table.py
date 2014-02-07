@@ -17,7 +17,8 @@ from yt.utilities.physical_ratios import \
     cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
-    metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams
+    metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
+    cm_per_ang, jansky_cgs
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -40,7 +41,7 @@ default_unit_symbol_lut = {
     "code_velocity" : (1.0, dimensions.velocity),
     "code_magnetic" : (1.0, dimensions.magnetic_field),
     "code_temperature" : (1.0, dimensions.temperature),
-    "code_metallicity" : (1.0, dimensions.metallicity),
+    "code_metallicity" : (1.0, dimensions.dimensionless),
 
     # other cgs
     "dyne": (1.0, dimensions.force),
@@ -74,7 +75,7 @@ default_unit_symbol_lut = {
     "rsun": ( cm_per_rsun, dimensions.length),
     "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
     "Tsun": ( temp_sun_kelvin, dimensions.temperature),
-    "Zsun": ( metallicity_sun, dimensions.metallicity),
+    "Zsun": (metallicity_sun, dimensions.dimensionless),
 
     # astro distances
     "AU": (cm_per_au, dimensions.length),
@@ -87,11 +88,14 @@ default_unit_symbol_lut = {
     "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
     "arcsec": (np.pi/648000., dimensions.angle), # arcseconds
     "mas": (np.pi/648000000., dimensions.angle), # millarcseconds
-    
+    "steradian": (1.0, dimensions.solid_angle),
+
     # misc
     "eV": (erg_per_eV, dimensions.energy),
     "amu": (amu_grams, dimensions.mass),
     "me": (mass_electron_grams, dimensions.mass),
+    "angstrom": (cm_per_ang, dimensions.length),
+    "Jy": (jansky_cgs, dimensions.specific_flux)
 
 }
 
@@ -155,4 +159,13 @@ prefixable_units = (
     "Hz",
     "W",
     "gauss",
+    "Jy",
 )
+
+cgs_base_units = {
+    dimensions.mass:'g',
+    dimensions.length:'cm',
+    dimensions.time:'s',
+    dimensions.temperature:'K',
+    dimensions.angle:'radian',
+}

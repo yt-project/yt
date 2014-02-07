@@ -26,7 +26,7 @@ from yt.config import ytcfg
 from yt.utilities.definitions import \
     x_dict, y_dict
 import yt.utilities.logger
-from yt.utilities.lib import \
+from yt.utilities.lib.QuadTree import \
     QuadTree, merge_quadtrees
 
 parallel_capable = ytcfg.getboolean("yt", "__parallel")

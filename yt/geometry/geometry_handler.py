@@ -113,44 +113,11 @@ class GeometryHandler(ParallelAnalysisInterface):
         self.object_types.sort()
 
     def _setup_particle_types(self, ptypes = None):
-        mname = self.pf._particle_mass_name
-        cname = self.pf._particle_coordinates_name
-        vname = self.pf._particle_velocity_name
-        # We require overriding if any of this is true
         df = []
         if ptypes is None: ptypes = self.pf.particle_types_raw
-        if None in (mname, cname, vname): 
-            # If we don't know what to do, then let's not.
-            for ptype in set(ptypes):
-                df += self.pf._setup_particle_type(ptype)
-            # Now we have a bunch of new fields to add!
-            # This is where the dependencies get calculated.
-            #self._derived_fields_add(df)
-            return
-        fi = self.pf.field_info
-        def _get_conv(cf):
-            def _convert(data):
-                return data.convert(cf)
-            return _convert
-        for ptype in ptypes:
-            fi.add_field((ptype, vname), function=NullFunc,
-                particle_type = True,
-                convert_function=_get_conv("velocity"),
-                units = r"\mathrm{cm}/\mathrm{s}")
-            df.append((ptype, vname))
-            fi.add_field((ptype, mname), function=NullFunc,
-                particle_type = True,
-                convert_function=_get_conv("mass"),
-                units = r"\mathrm{g}")
-            df.append((ptype, mname))
-            df += particle_deposition_functions(ptype, cname, mname, fi)
-            df += particle_scalar_functions(ptype, cname, vname, fi)
-            fi.add_field((ptype, cname), function=NullFunc,
-                         particle_type = True)
-            df.append((ptype, cname))
-            # Now we add some translations.
+        for ptype in set(ptypes):
             df += self.pf._setup_particle_type(ptype)
-        self._derived_fields_add(df)
+        return df
 
     def _setup_field_registry(self):
         self.derived_field_list = []
@@ -421,6 +388,7 @@ def cached_property(func):
         else:
             tr = func(self)
         if self._cache:
+        
             setattr(self, n, tr)
         return tr
     return property(cached_func)
@@ -444,6 +412,10 @@ class YTDataChunk(object):
         for obj in self.objs:
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
+        if method == "dtcoords":
+            arrs = [arr[0] for arr in arrs]
+        elif method == "tcoords":
+            arrs = [arr[1] for arr in arrs]
         arrs = uconcatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs
@@ -513,7 +485,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return cdt
         ind = 0
         for obj in self.objs:
-            gdt, gt = obj.tcoords(self.dobj)
+            gdt, gt = obj.select_tcoords(self.dobj)
             if gt.shape == 0: continue
             ct[ind:ind+gt.size] = gt
             cdt[ind:ind+gdt.size] = gdt

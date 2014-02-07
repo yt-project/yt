@@ -326,9 +326,8 @@ class ContourCallback(PlotCallback):
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         
         if self.take_log is None:
-            field = plot.data._determine_fields([self.field])[0]
-            fi = plot.pf._get_field_info(field)
-            self.take_log = fi.take_log
+            field = data._determine_fields([self.field])[0]
+            self.take_log = plot.pf._get_field_info(*field).take_log
 
         if self.take_log: zi=np.log10(zi)
 

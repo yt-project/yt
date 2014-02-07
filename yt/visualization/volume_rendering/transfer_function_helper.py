@@ -99,7 +99,7 @@ class TransferFunctionHelper(object):
         """
         self.log = log
         self.pf.h
-        self.pf.field_info[self.field].take_log = log
+        self.pf._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
         """
@@ -185,7 +185,7 @@ class TransferFunctionHelper(object):
 
         ax.set_xscale({True: 'log', False: 'linear'}[self.log])
         ax.set_xlim(x.min(), x.max())
-        ax.set_xlabel(self.pf.field_info[self.field].get_label())
+        ax.set_xlabel(self.pf._get_field_info(self.field).get_label())
         ax.set_ylabel(r'$\mathrm{alpha}$')
         ax.set_ylim(y.max()*1.0e-3, y.max()*2)
 
@@ -204,7 +204,7 @@ class TransferFunctionHelper(object):
         prof = BinnedProfile1D(self.pf.h.all_data(), 128, self.field,
                                self.bounds[0], self.bounds[1],
                                log_space=self.log,
-                               lazy_reader=False, end_collect=False)
+                               end_collect=False)
         prof.add_fields([profile_field], fractional=False,
                         weight=profile_weight)
         self.profiles[self.field] = prof

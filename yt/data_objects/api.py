@@ -50,10 +50,6 @@ from data_containers import \
 import construction_data_containers as __cdc
 import selection_data_containers as __sdc
 
-from derived_quantities import \
-    quantity_info, \
-    add_quantity
-
 from image_array import \
     ImageArray
 

@@ -56,7 +56,9 @@ from yt.fields.api import \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
-    ValidateGridType
+    ValidateGridType, \
+    add_field, \
+    derived_field
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -64,9 +66,6 @@ from yt.data_objects.api import \
     TimeSeriesData, AnalysisTask, analysis_task, \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
-
-from yt.data_objects.derived_quantities import \
-    add_quantity, quantity_info
 
 from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, \
@@ -124,11 +123,10 @@ from yt.frontends.stream.api import \
     StreamHandler, load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree
 
-#from yt.frontends.sph.api import \
-#    OWLSStaticOutput, OWLSFieldInfo, add_owls_field, \
-#    GadgetStaticOutput, GadgetHDF5StaticOutput, \
-#    GadgetFieldInfo, add_gadget_field, \
-#    TipsyStaticOutput, TipsyFieldInfo, add_tipsy_field
+from yt.frontends.sph.api import \
+    OWLSStaticOutput, SPHFieldInfo, \
+    GadgetStaticOutput, GadgetHDF5StaticOutput, \
+    TipsyStaticOutput
 
 #from yt.analysis_modules.list_modules import \
 #    get_available_modules, amods

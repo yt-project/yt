@@ -16,10 +16,10 @@ AMR hierarchy container class
 import numpy as np
 
 from yt.funcs import *
-from yt.utilities.lib import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level, \
     get_box_grids_below_level
-from yt.utilities.lib import \
+from yt.utilities.lib.GridTree import \
     MatchPointsToGrids, \
     GridTree
 from yt.utilities.physical_constants import \

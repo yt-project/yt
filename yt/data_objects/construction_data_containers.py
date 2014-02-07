@@ -31,8 +31,13 @@ from yt.utilities.logger import ytLogger
 from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
     restore_field_information_state, YTFieldData
-from yt.utilities.lib import \
-    QuadTree, ghost_zone_interpolate, fill_region, \
+from yt.utilities.lib.QuadTree import \
+    QuadTree
+from yt.utilities.lib.Interpolators import \
+    ghost_zone_interpolate
+from yt.utilities.lib.misc_utilities import \
+    fill_region
+from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.data_point_utilities import CombineGrids,\
     DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
@@ -420,6 +425,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
         rdx = self.pf.domain_dimensions*self.pf.relative_refinement(0, level)
         rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1   # issue 602
+        self.base_dds = self.pf.domain_width / self.pf.domain_dimensions
         self.dds = self.pf.domain_width / rdx.astype("float64")
         self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
@@ -467,8 +473,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.pf.h.region(
-            self.center, self.left_edge, self.right_edge)
+        self._data_source = self.pf.h.region(self.center,
+            self.left_edge - self.base_dds,
+            self.right_edge + self.base_dds)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
 

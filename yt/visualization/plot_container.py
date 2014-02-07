@@ -371,28 +371,6 @@ class ImagePlotContainer(object):
         self.figure_size = size
         return self
 
-    @invalidate_plot
-    def set_unit(self, field, new_unit):
-        """Sets a new unit for the requested field
-
-        parameters
-        ----------
-        field : string or field tuple
-           The name of the field that is to be changed.
-
-        new_unit : string or Unit object
-           The name of the new unit.
-        """
-        field = self.data_source._determine_fields(field)[0]
-        new_unit = ensure_list(new_unit)
-        if len(field) > 1 and len(new_unit) != len(field):
-            raise RuntimeError(
-                "Field list {} and unit "
-                "list {} are incompatible".format(field, new_unit))
-        for f, u in zip(field, new_unit):
-            self._frb[f].convert_to_units(u)
-        return self
-
     def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
 
@@ -414,7 +392,7 @@ class ImagePlotContainer(object):
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
             os.mkdir(name)
-        if os.path.isdir(name):
+        if os.path.isdir(name) and name != str(self.pf):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
         suffix = get_image_suffix(name)
         if suffix != '':

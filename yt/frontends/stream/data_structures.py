@@ -56,8 +56,9 @@ from yt.data_objects.static_output import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
-from yt.utilities.lib import \
-    get_box_grids_level, \
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
+from yt.utilities.lib.GridTree import \
     GridTree, \
     MatchPointsToGrids
 from yt.utilities.decompose import \
@@ -475,7 +476,7 @@ def unitify_data(data):
                 assert isinstance(data[field][0], np.ndarray), \
                   "Field data is not an ndarray!"
                 assert isinstance(data[field][1], basestring), \
-                  "Unit specification is not a sring!"
+                  "Unit specification is not a string!"
                 field_units[field] = data[field][1]
                 new_data[field] = data[field][0]
             except AssertionError, e:

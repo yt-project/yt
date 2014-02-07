@@ -17,7 +17,7 @@ that SciPy doesn't have that I expected it to
 import numpy as np
 
 from yt.funcs import *
-import yt.utilities.lib as lib
+import yt.utilities.lib.Interpolators as lib
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):
@@ -211,9 +211,9 @@ class TrilinearFieldInterpolator:
         y_vals = data_object[self.y_name].ravel().astype('float64')
         z_vals = data_object[self.z_name].ravel().astype('float64')
 
-        x_i = np.digitize(x_vals, self.x_bins) - 1
-        y_i = np.digitize(y_vals, self.y_bins) - 1
-        z_i = np.digitize(z_vals, self.z_bins) - 1
+        x_i = np.digitize(x_vals, self.x_bins).astype("int") - 1
+        y_i = np.digitize(y_vals, self.y_bins).astype("int") - 1
+        z_i = np.digitize(z_vals, self.z_bins).astype("int") - 1
         if np.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or np.any((y_i == -1) | (y_i == len(self.y_bins)-1)) \
             or np.any((z_i == -1) | (z_i == len(self.z_bins)-1)):

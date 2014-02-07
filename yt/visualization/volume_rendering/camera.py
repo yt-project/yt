@@ -24,13 +24,15 @@ from copy import deepcopy
 from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.lib import \
+from yt.utilities.lib.grid_traversal import \
     arr_vec2pix_nest, arr_pix2vec_nest, \
-    arr_ang2pix_nest, arr_fisheye_vectors, lines, \
+    arr_ang2pix_nest, arr_fisheye_vectors, \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, InterpolatedProjectionSampler, \
     arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
-    pixelize_healpix, arr_fisheye_vectors, rotate_vectors
+    pixelize_healpix, arr_fisheye_vectors
+from yt.utilities.lib.misc_utilities import \
+    lines, rotate_vectors
 
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
@@ -264,11 +266,10 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        if self.region is None:
-            self.region = self.pf.h.region((self.re + self.le) / 2.0,
-                                           self.le, self.re)
-        corners = self.region.grid_corners
-        levels = self.region.grid_levels[:,0]
+        region = self.pf.h.region((self.re + self.le) / 2.0,
+                                  self.le, self.re)
+        corners = region.grid_corners
+        levels = region.grid_levels[:,0]
 
         if max_level is not None:
             subset = levels <= max_level
@@ -608,7 +609,7 @@ class Camera(ParallelAnalysisInterface):
         ax.get_yaxis().set_visible(False)
         ax.get_yaxis().set_ticks([])
         cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
-        label = self.pf.field_info[self.fields[0]].get_label()
+        label = self.pf._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
             label = '$\\rm{log}\\/ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label)

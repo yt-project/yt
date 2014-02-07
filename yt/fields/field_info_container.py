@@ -36,9 +36,10 @@ from yt.units.unit_object import \
 from .particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
+    particle_scalar_functions, \
     standard_particle_fields
 
-class FieldInfoContainer(dict): # Resistance has utility
+class FieldInfoContainer(dict):
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.
@@ -64,22 +65,41 @@ class FieldInfoContainer(dict): # Resistance has utility
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             self.add_output_field((ptype, f),
                 units = units, particle_type = True, display_name = dn)
+            if (ptype, f) not in self.field_list:
+                continue
             for alias in aliases:
-                self.alias(alias, (ptype, f))
+                self.alias((ptype, alias), (ptype, f))
 
-        particle_vector_functions(ptype,
-                ["particle_position_%s" % ax for ax in 'xyz'],
-                ["particle_velocity_%s" % ax for ax in 'xyz'],
-                self)
+        if self.pf._particle_coordinates_name is None:
+            particle_vector_functions(ptype,
+                    ["particle_position_%s" % ax for ax in 'xyz'],
+                    ["particle_velocity_%s" % ax for ax in 'xyz'],
+                    self)
+        else:
+            particle_scalar_functions(ptype,
+                   self.pf._particle_coordinates_name,
+                   self.pf._particle_velocity_name,
+                   self)
         particle_deposition_functions(ptype, "Coordinates",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
+        # Now we check for any leftover particle fields
+        for field in sorted(self.field_list):
+            if field in self: continue
+            if not isinstance(field, tuple):
+                raise RuntimeError
+            if field[0] not in self.pf.particle_types:
+                continue
+            self.add_output_field(field, units = "",
+                                  particle_type = True)
 
     def setup_fluid_aliases(self):
         known_other_fields = dict(self.known_other_fields)
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
                 raise RuntimeError
+            if field[0] in self.pf.particle_types:
+                continue
             args = known_other_fields.get(
                 field[1], ("", [], None))
             units, aliases, display_name = args
@@ -96,7 +116,7 @@ class FieldInfoContainer(dict): # Resistance has utility
         :class:`~yt.data_objects.api.DerivedField`.
 
         """
-        if function == None:
+        if function is None:
             def create_function(function):
                 self[name] = DerivedField(name, function, **kwargs)
                 return function

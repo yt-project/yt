@@ -43,7 +43,8 @@ from yt.funcs import \
     fix_axis, get_image_suffix, assert_valid_width_tuple, \
     get_ipython_api_version
 from yt.units.unit_object import Unit
-from yt.utilities.lib import write_png_to_string
+from yt.utilities.png_writer import \
+    write_png_to_string
 from yt.utilities.definitions import \
     x_dict, y_dict, \
     axis_names, axis_labels, \
@@ -93,6 +94,8 @@ def validate_iterable_width(width, pf, unit=None):
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
         return (pf.quan(width[0], 'code_length'),
                 pf.quan(width[1], 'code_length'))
+    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
+        return width
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
@@ -277,6 +280,7 @@ class PlotWindow(ImagePlotContainer):
         old_fields = None
         if self._frb is not None:
             old_fields = self._frb.keys()
+            old_units = [str(self._frb[of].units) for of in old_fields]
         if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
@@ -288,7 +292,9 @@ class PlotWindow(ImagePlotContainer):
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:
-            for key in old_fields: self._frb[key]
+            for key, unit in zip(old_fields, old_units):
+                self._frb[key]
+                self._frb[key].convert_to_units(unit)
         for key in self.override_fields:
             self._frb[key]
         self._data_valid = True
@@ -348,6 +354,29 @@ class PlotWindow(ImagePlotContainer):
         Wx, Wy = self.width
         self.xlim = (self.xlim[0] + Wx*deltas[0], self.xlim[1] + Wx*deltas[0])
         self.ylim = (self.ylim[0] + Wy*deltas[1], self.ylim[1] + Wy*deltas[1])
+        return self
+
+    @invalidate_plot
+    def set_unit(self, field, new_unit):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string or field tuple
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        field = self.data_source._determine_fields(field)[0]
+        field = ensure_list(field)
+        new_unit = ensure_list(new_unit)
+        if len(field) > 1 and len(new_unit) != len(field):
+            raise RuntimeError(
+                "Field list {} and unit "
+                "list {} are incompatible".format(field, new_unit))
+        for f, u in zip(field, new_unit):
+            self._frb[f].convert_to_units(u)
         return self
 
     @invalidate_data
@@ -415,10 +444,11 @@ class PlotWindow(ImagePlotContainer):
         else:
             set_axes_unit = False
 
-        if iterable(unit) and not isinstance(unit, basestring):
-            assert_valid_width_tuple(unit)
+        if isinstance(width, Number):
             width = (width, unit)
-            
+        elif iterable(width):
+            width = validate_iterable_width(width, self.data_source.pf, unit)
+
         width = StandardWidth(self._frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
@@ -692,8 +722,8 @@ class PWViewerMPL(PlotWindow):
                 if un.endswith('cm') and un != 'cm':
                     comoving = True
                     un = un[:-2]
-                # no length units end in h so this is safe
-                if un.endswith('h'):
+                # no length units besides code_length end in h so this is safe
+                if un.endswith('h') and un != 'code_length':
                     hinv = True
                     un = un[:-1]
                 if un in formatted_length_unit_names:
@@ -1003,7 +1033,8 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
-                 fontsize=18, field_parameters=None, data_source=None):
+                 fontsize=18, field_parameters=None, data_source=None,
+                 proj_style = "integrate"):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1012,7 +1043,7 @@ class ProjectionPlot(PWViewerMPL):
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
                          center=center, data_source=data_source,
-                         field_parameters = field_parameters)
+                         field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize)
         self.set_axes_unit(axes_unit)

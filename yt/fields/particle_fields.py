@@ -170,9 +170,11 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs(axi, ptype)
         registry.add_field((ptype, "particle_velocity_%s" % ax),
-            particle_type = True, function = v)
+            particle_type = True, function = v,
+            units = "code_length")
         registry.add_field((ptype, "particle_position_%s" % ax),
-            particle_type = True, function = p)
+            particle_type = True, function = p,
+            units = "code_length")
 
     return list(set(registry.keys()).difference(orig))
 
@@ -479,6 +481,7 @@ def standard_particle_fields(registry, ptype,
 def add_particle_average(registry, ptype, field_name, 
                          weight = "particle_mass",
                          density = True):
+    field_units = registry[ptype, field_name].units
     def _pfunc_avg(field, data):
         pos = data[ptype, "Coordinates"]
         f = data[ptype, field_name]
@@ -493,5 +496,37 @@ def add_particle_average(registry, ptype, field_name,
     fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
     registry.add_field(fn, function=_pfunc_avg,
                        validators = [ValidateSpatial(0)],
-                       particle_type = False)
+                       particle_type = False,
+                       units = field_units)
     return fn
+
+def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
+        smoothing_length_name, density_name, smoothed_field, registry,
+        nneighbors = None):
+    field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
+    field_units = registry[ptype, smoothed_field].units
+    def _vol_weight(field, data):
+        pos = data[ptype, coord_name].in_units("code_length")
+        mass = data[ptype, mass_name].in_cgs()
+        dens = data[ptype, density_name].in_cgs()
+        quan = data[ptype, smoothed_field]
+        if smoothing_length_name is None:
+            hsml = np.zeros(quan.shape, dtype='float64') - 1
+            hsml = data.apply_units(hsml, "code_length")
+        else:
+            hsml = data[ptype, smoothing_length_name].in_units("code_length")
+        kwargs = {}
+        if nneighbors:
+            kwargs['nneighbors'] = nneighbors
+        rv = data.smooth(pos, [mass, hsml, dens, quan],
+                         method="volume_weighted",
+                         create_octree = True)[0]
+        rv[np.isnan(rv)] = 0.0
+        # Now some quick unit conversions.
+        rv = data.apply_units(rv, field_units)
+        return rv
+    registry.add_field(field_name, function = _vol_weight,
+                       validators = [ValidateSpatial(0)],
+                       units = field_units)
+    return [field_name]
+

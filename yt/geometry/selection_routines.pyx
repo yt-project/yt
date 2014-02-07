@@ -19,11 +19,9 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip, fmax, fmin
-from selection_routines cimport SelectorObject
-from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
-from oct_visitors cimport cind
-#from geometry_utils cimport point_to_hilbert
+from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 
@@ -1255,6 +1253,20 @@ cdef class RaySelector(SelectorObject):
         if ia.hits > 0:
             return 1
         return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3],
+                               np.float64_t dds[3]) nogil:
+        # This is terribly inefficient for Octrees.  For grids, it will never
+        # get called.
+        cdef int i
+        cdef np.float64_t left_edge[3], right_edge[3]
+        for i in range(3):
+            left_edge[i] = pos[i] - dds[i]/2.0
+            right_edge[i] = pos[i] + dds[i]/2.0
+        return self.select_bbox(left_edge, right_edge)
 
     def _hash_vals(self):
         return (self.p1[0], self.p1[1], self.p1[2],

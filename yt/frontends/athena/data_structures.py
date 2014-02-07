@@ -26,7 +26,7 @@ from yt.data_objects.static_output import \
            StaticOutput
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
-from yt.utilities.lib import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 
 from .fields import AthenaFieldInfo
@@ -363,28 +363,19 @@ class AthenaStaticOutput(StaticOutput):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        if self.specified_parameters.has_key("LengthUnits"):
-            length_factor = self.specified_parameters["LengthUnits"]
-        else:
-            mylog.warning("No length conversion to cgs provided. Assuming 1 = 1 cm.")
-            length_factor = 1.0
-        if self.specified_parameters.has_key("TimeUnits"):
-            time_factor = self.specified_parameters["TimeUnits"]
-        else:
-            mylog.warning("No time conversion to cgs provided. Assuming 1 = 1 s.")
-            time_factor = 1.0
-        if self.specified_parameters.has_key("MassUnits"):
-            mass_factor = self.specified_parameters["MassUnits"]
-        else:
-            mylog.warning("No mass conversion to cgs provided. Assuming 1 = 1 g.")
-            mass_factor = 1.0
-        self.length_unit = self.quan(length_factor, "cm")
-        self.mass_unit = self.quan(mass_factor, "g")
-        self.time_unit = self.quan(time_factor, "s")
-        magnetic_factor = np.sqrt(4*np.pi * mass_factor /
-                                  (time_factor**2 * length_factor))
-        self.magnetic_unit = self.quan(magnetic_factor, "gauss")
-        self.velocity_unit = self.quan(length_factor/time_factor, "cm/s")
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+            val = self.specified_parameters.get("%s_unit" % unit, None)
+            if val is None:
+                mylog.warning("No %s conversion to cgs provided.  " +
+                              "Assuming 1.0 = 1.0 %s", unit, cgs)
+                val = 1.0
+            if not isinstance(val, tuple):
+                val = (val, cgs)
+            setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+        self.velocity_unit = self.length_unit/self.time_unit
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                  (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit.convert_to_units("gauss")
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         DW = self.domain_right_edge-self.domain_left_edge
         self.unit_registry.modify("unitary", DW.max())
