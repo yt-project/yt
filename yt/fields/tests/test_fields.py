@@ -1,5 +1,7 @@
 from yt.testing import *
 import numpy as np
+from yt.utilities.cosmology import \
+     Cosmology
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \
@@ -16,6 +18,8 @@ def setup():
         units.append(code_units)
     base_pf = fake_random_pf(4, fields = fields, units = units)
     base_pf.h
+    base_pf.cosmological_simulation = 1
+    base_pf.cosmology = Cosmology()
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     np.seterr(all = 'ignore')
@@ -62,6 +66,10 @@ def realistic_pf(fields, nprocs):
     pf.hubble_constant = 0.7
     pf.omega_matter = 0.27
     pf.omega_lambda = 0.73
+    pf.cosmology = Cosmology(hubble_constant=pf.hubble_constant,
+                             omega_matter=pf.omega_matter,
+                             omega_lambda=pf.omega_lambda,
+                             unit_registry=pf.unit_registry)
     return pf
 
 def _strip_ftype(field):
