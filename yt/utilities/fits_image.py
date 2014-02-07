@@ -169,14 +169,14 @@ class FITSImageBuffer(HDUList):
         h = self.wcs.to_header()
         for img in self:
             for k, v in h.items():
-                img.header.update(k,v)
+                img.header[k] = v
 
     def update_all_headers(self, key, value):
         """
         Update the FITS headers for all images with the
         same *key*, *value* pair.
         """
-        for img in self: img.header.update(key,value)
+        for img in self: img.header[key] = value
             
     def keys(self):
         return [f.name for f in self]
