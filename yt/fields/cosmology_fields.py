@@ -57,12 +57,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         if not hasattr(data.pf, "cosmological_simulation") or \
           not data.pf.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
-        if hasattr(data.pf, "cosmology"):
-            co = data.pf.cosmology
-        else:
-            co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                           omega_matter=data.pf.omega_matter,
-                           omega_lambda=data.pf.omega_lambda)
+        co = data.pf.cosmology
         return data[ftype, "matter_density"] / \
           co.critical_density(data.pf.current_redshift)
     
@@ -78,12 +73,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         omega_baryon = data.get_field_parameter("omega_baryon")
         if omega_baryon is None:
             raise NeedsParameter("omega_baryon")
-        if hasattr(data.pf, "cosmology"):
-            co = data.pf.cosmology
-        else:
-            co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                           omega_matter=data.pf.omega_matter,
-                           omega_lambda=data.pf.omega_lambda)
+        co = data.pf.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
@@ -99,12 +89,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         if not hasattr(data.pf, "cosmological_simulation") or \
           not data.pf.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
-        if hasattr(data.pf, "cosmology"):
-            co = data.pf.cosmology
-        else:
-            co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                           omega_matter=data.pf.omega_matter,
-                           omega_lambda=data.pf.omega_lambda)
+        co = data.pf.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / data.pf.omega_matter / \
@@ -122,12 +107,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         if not hasattr(data.pf, "cosmological_simulation") or \
           not data.pf.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
-        if hasattr(data.pf, "cosmology"):
-            co = data.pf.cosmology
-        else:
-            co = Cosmology(hubble_constant=data.pf.hubble_constant,
-                           omega_matter=data.pf.omega_matter,
-                           omega_lambda=data.pf.omega_lambda)
+        co = data.pf.cosmology
         observer_redshift = data.get_field_parameter('observer_redshift')
         source_redshift = data.get_field_parameter('source_redshift')
         
