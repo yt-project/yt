@@ -20,8 +20,7 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.utilities.fits_image import FITSImageBuffer
-from yt.fields.local_fields import add_field
-from yt.fields.field_plugin_registry import register_field_plugin
+from yt.fields.local_fields import add_field, derived_field
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
 from yt.utilities.definitions import inv_axis_names
@@ -42,32 +41,37 @@ except ImportError:
 
 vlist = "xyz"
 
-@register_field_plugin
-def setup_SZ_fields(registry, ftype = "gas", slice_info = None):
+@derived_field(name=("gas","TempkeV"), units="keV")
+def _tempkev(field, data):
+    return (kboltz*data["gas","temperature"]).in_units("keV")
 
-    def _tempkev(field, data):
-        return (kboltz*data["gas","temperature"]).in_units("keV")
-    registry.add_field(("gas","TempkeV"), function=_tempkev, units="keV")
+@derived_field(name=("gas","TSquared"), units="g*keV**2/cm**3")
+def _t_squared(field, data):
+    return data["gas","density"]*data["gas","TempkeV"]*data["gas","TempkeV"]
 
-    def _t_squared(field, data):
-        return data["gas","density"]*data["gas","TempkeV"]*data["gas","TempkeV"]
-    registry.add_field(("gas","TSquared"), function=_t_squared, units="g*keV**2/cm**3")
+@derived_field(name=("gas","BetaPerpSquared"), units="g/cm**3")
+def _beta_perp_squared(field, data):
+    return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","BetaParSquared"]
 
-    def _beta_perp_squared(field, data):
-        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","BetaParSquared"]
-    registry.add_field(("gas","BetaPerpSquared"), function=_beta_perp_squared, units="g/cm**3")
+@derived_field(name=("gas","BetaParSquared"), units="g/cm**3")
+def _beta_par_squared(field, data):
+    return data["gas","BetaPar"]**2/data["gas","density"]
 
-    def _beta_par_squared(field, data):
-        return data["gas","BetaPar"]**2/data["gas","density"]
-    registry.add_field(("gas","BetaParSquared"), function=_beta_par_squared, units="cm**3/g")
+@derived_field(name=("gas","TBetaPar"), units="keV*g/cm**3")
+def _t_beta_par(field, data):
+    return data["gas","TempkeV"]*data["gas","BetaPar"]
 
-    def _t_beta_par(field, data):
-        return data["gas","TempkeV"]*data["gas","BetaPar"]
-    registry.add_field(("gas","TBetaPar"), function=_t_beta_par, units="keV*g/cm**3")
+@derived_field(name=("gas","TeSZ"), units="keV*g/cm**3")
+def _t_sz(field, data):
+    return data["gas","density"]*data["gas","TempkeV"]
 
-    def _t_sz(field, data):
-        return data["gas","density"]*data["gas","TempkeV"]
-    registry.add_field(("gas","TeSZ"), function=_t_sz, units="keV*g/cm**3")
+def generate_beta_par(L):
+    def _beta_par(field, data):
+        vpar = data["density"]*(data["velocity_x"]*L[0]+
+                                data["velocity_y"]*L[1]+
+                                data["velocity_z"]*L[2])
+        return vpar/clight
+    return _beta_par
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -135,17 +139,12 @@ class SZProjection(object):
         else:
             ctr = center
 
-        def _beta_par(field, data):
-            axis = data.get_field_parameter("axis")
-            # Load these, even though we will only use one
-            for ax in 'xyz':
-                data['velocity_%s' % ax]
-            vpar = data["density"]*data["velocity_%s" % (vlist[axis])]
-            return vpar/clight
-        add_field(("gas","BetaPar"), function=_beta_par, units="g/cm**3")
+        L = np.zeros((3))
+        L[axis] = 1.0
 
+        beta_par = generate_beta_par(L)
+        self.pf.field_info.add_field(name=("gas","BetaPar"), function=beta_par, units="g/cm**3")
         proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
-        proj.data_source.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
         Te = frb["TeSZ"]/dens
@@ -166,7 +165,9 @@ class SZProjection(object):
         self.dy = (frb.bounds[3]-frb.bounds[2])/ny
         self.nx = nx
 
-        self._compute_intensity(tau, Te, bpar, omega1, sigma1, kappa1, bperp2)
+        self._compute_intensity(np.array(tau), np.array(Te), np.array(bpar),
+                                np.array(omega1), np.array(sigma1),
+                                np.array(kappa1), np.array(bperp2))
 
     def off_axis(self, L, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an off-axis projection of the SZ signal.
@@ -205,12 +206,8 @@ class SZProjection(object):
             mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
             raise NotImplementedError
 
-        def _beta_par(field, data):
-            vpar = data["density"]*(data["velocity_x"]*L[0]+
-                                    data["velocity_y"]*L[1]+
-                                    data["velocity_z"]*L[2])
-            return vpar/clight
-        add_field("BetaPar", function=_beta_par,
+        beta_par = generate_beta_par(L)
+        self.pf.field_info.add_field(name=("gas","BetaPar"), function=beta_par, units="g/cm**3")
 
         dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
         Te      = off_axis_projection(self.pf, ctr, L, w, nx, "TeSZ")/dens
@@ -234,7 +231,9 @@ class SZProjection(object):
         self.dy = w/nx
         self.nx = nx
 
-        self._compute_intensity(tau, Te, bpar, omega1, sigma1, kappa1, bperp2)
+        self._compute_intensity(np.array(tau), np.array(Te), np.array(bpar),
+                                np.array(omega1), np.array(sigma1),
+                                np.array(kappa1), np.array(bperp2))
 
     def _compute_intensity(self, tau, Te, bpar, omega1, sigma1, kappa1, bperp2):
 
@@ -270,12 +269,13 @@ class SZProjection(object):
         pbar.finish()
 
         for i, field in enumerate(self.freq_fields):
-            self.data[field] = ImageArray(I0*self.xinit[i]**3*signal[i,:,:])
-        self.data["Tau"] = ImageArray(tau)
-        self.data["TeSZ"] = ImageArray(Te)
+            self.data[field] = I0*self.xinit[i]**3*signal[i,:,:]
+        self.data["Tau"] = self.pf.arr(tau, "dimensionless")
+        self.data["TeSZ"] = self.pf.arr(Te, "keV")
 
     @parallel_root_only
-    def write_fits(self, filename, sky_center=None, sky_scale=None, clobber=True):
+    def write_fits(self, filename, units="kpc", sky_center=None, sky_scale=None,
+                   time_units="Gyr", clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc, unless *sky_center*
@@ -304,12 +304,12 @@ class SZProjection(object):
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
 
-        deltas = np.array([self.dx*self.pf.units["kpc"],
-                           self.dy*self.pf.units["kpc"]])
+        deltas = np.array([self.dx.in_units(units),
+                           self.dy.in_units(units)])
 
         if sky_center is None:
             center = [0.0]*2
-            units = "kpc"
+            units = units
         else:
             center = sky_center
             units = "deg"
@@ -318,12 +318,12 @@ class SZProjection(object):
         fib = FITSImageBuffer(self.data, fields=self.data.keys(),
                               center=center, units=units,
                               scale=deltas)
-        fib.update_all_headers("Time", self.pf.current_time)
+        fib.update_all_headers("Time", float(self.pf.current_time.in_units(time_units).value))
         fib.writeto(filename, clobber=clobber)
         
     @parallel_root_only
     def write_png(self, filename_prefix, cmap_name="algae",
-                  log_fields=None):
+                  axes_units="kpc", log_fields=None):
         r""" Export images to PNG files. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc.
@@ -341,7 +341,7 @@ class SZProjection(object):
         import matplotlib.pyplot as plt
         if log_fields is None: log_fields = {}
         ticks_font = matplotlib.font_manager.FontProperties(family='serif',size=16)
-        extent = tuple([bound*self.pf.units["kpc"] for bound in self.bounds])
+        extent = tuple([bound.in_units(axes_units).value for bound in self.bounds])
         for field, image in self.items():
             data = image.copy()
             vmin, vmax = image.min(), image.max()
@@ -367,17 +367,18 @@ class SZProjection(object):
                 formatter = None
             filename = filename_prefix+"_"+field+".png"
             cbar_label = self.display_names[field]
-            if self.units[field] is not None:
-                cbar_label += " ("+self.units[field]+")"
+            units = self.data[field].units.latex_representation()
+            if units is not None and units != "":
+                cbar_label += " ("+units+")"
             fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
-            cax = ax.imshow(data, norm=norm, extent=extent, cmap=cmap_name, origin="lower")
+            cax = ax.imshow(data.ndarray_view(), norm=norm, extent=extent, cmap=cmap_name, origin="lower")
             for label in ax.get_xticklabels():
                 label.set_fontproperties(ticks_font)
             for label in ax.get_yticklabels():
                 label.set_fontproperties(ticks_font)                      
-            ax.set_xlabel(r"$\mathrm{x\ (kpc)}$", fontsize=16)
-            ax.set_ylabel(r"$\mathrm{y\ (kpc)}$", fontsize=16)
+            ax.set_xlabel(r"$\mathrm{x\ (%s)}$" % (axes_units), fontsize=16)
+            ax.set_ylabel(r"$\mathrm{y\ (%s)}$" % (axes_units), fontsize=16)
             cbar = fig.colorbar(cax, format=formatter)
             cbar.ax.set_ylabel(cbar_label, fontsize=16)
             if negative:
