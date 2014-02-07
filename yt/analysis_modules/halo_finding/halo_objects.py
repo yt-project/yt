@@ -32,10 +32,11 @@ from yt.utilities.performance_counters import \
     yt_counters, time_function
 from yt.utilities.math_utils import periodic_dist, get_rotation_matrix
 from yt.utilities.physical_constants import \
-    rho_crit_now, \
     mass_sun_cgs, \
     TINY
-
+from yt.utilities.physical_ratios import \
+     rho_crit_g_cm3_h2
+    
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
 try:
@@ -436,7 +437,7 @@ class Halo(object):
             self.pf.domain_left_edge
         cm = self.pf["cm"]
         thissize = self.get_size()
-        rho_crit = rho_crit_now * h ** 2.0 * Om_matter  # g cm^-3
+        rho_crit = rho_crit_g_cm3_h2 * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
         # Get some pertinent information about the halo.
@@ -710,7 +711,7 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         h = self.data.pf.hubble_constant
         Om_matter = self.data.pf.omega_matter
         z = self.data.pf.current_redshift
-        rho_crit = rho_crit_now * h ** 2.0 * Om_matter  # g cm^-3
+        rho_crit = rho_crit_g_cm3_h2 * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
         # If I own some of this halo operate on the particles.
