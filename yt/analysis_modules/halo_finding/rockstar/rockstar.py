@@ -287,13 +287,23 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             (server_address, port))
         self.port = str(self.port)
 
-    def run(self, block_ratio = 1, callbacks = None):
+    def run(self, block_ratio = 1, callbacks = None, restart = False):
         """
         
         """
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
+        # Find restart output number
+        if restart:
+            restart_file = self.outbase + "/restart.cfg"
+            if not os.path.exists(restart_file):
+                raise RuntimeError("Restart file %s not found" % (restart_file))
+            lines = open(restart_file).readlines()
+            for l in lines:
+                if l.startswith("RESTART_SNAP"):
+                    restart_num = int(l.split("=")[1])
+            del lines
         self.handler.setup_rockstar(self.server_address, self.port,
                     len(self.ts), self.total_particles, 
                     self.particle_type,
@@ -305,7 +315,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     block_ratio = block_ratio,
                     outbase = self.outbase,
                     force_res = self.force_res,
-                    callbacks = callbacks)
+                    callbacks = callbacks,
+                    restart_num = restart_num)
         # Make the directory to store the halo lists in.
         if not self.outbase:
             self.outbase = os.getcwd()

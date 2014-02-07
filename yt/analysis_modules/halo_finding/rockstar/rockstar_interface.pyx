@@ -100,6 +100,7 @@ cdef import from "config_vars.h":
     char *INBASE
     char *FILENAME
     np.int64_t STARTING_SNAP
+    np.int64_t RESTART_SNAP
     np.int64_t NUM_SNAPS
     np.int64_t NUM_BLOCKS
     np.int64_t NUM_READERS
@@ -259,13 +260,13 @@ cdef class RockstarInterface:
                        int writing_port = -1, int block_ratio = 1,
                        int periodic = 1, force_res=None,
                        int min_halo_size = 25, outbase = "None",
-                       callbacks = None):
+                       callbacks = None, int restart_num = 0):
         global PARALLEL_IO, PARALLEL_IO_SERVER_ADDRESS, PARALLEL_IO_SERVER_PORT
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
         global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE
-        global OVERLAP_LENGTH, TOTAL_PARTICLES, FORCE_RES
+        global OVERLAP_LENGTH, TOTAL_PARTICLES, FORCE_RES, RESTART_SNAP
         if force_res is not None:
             FORCE_RES=np.float64(force_res)
             #print "set force res to ",FORCE_RES
@@ -284,6 +285,7 @@ cdef class RockstarInterface:
         FILE_FORMAT = "GENERIC"
         OUTPUT_FORMAT = "ASCII"
         NUM_SNAPS = num_snaps
+        RESTART_SNAP = restart_num
         NUM_READERS = num_readers
         NUM_WRITERS = num_writers
         NUM_BLOCKS = num_readers
