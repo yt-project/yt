@@ -295,6 +295,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             raise NotImplementedError
         self._get_hosts()
         # Find restart output number
+        num_outputs = len(self.ts)
         if restart:
             restart_file = self.outbase + "/restart.cfg"
             if not os.path.exists(restart_file):
@@ -304,8 +305,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 if l.startswith("RESTART_SNAP"):
                     restart_num = int(l.split("=")[1])
             del lines
+            # Remove the datasets that were already analyzed
+            self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
+        else:
+            restart_num = 0
         self.handler.setup_rockstar(self.server_address, self.port,
-                    len(self.ts), self.total_particles, 
+                    num_outputs, self.total_particles, 
                     self.particle_type,
                     particle_mass = self.particle_mass,
                     parallel = self.comm.size > 1,
@@ -320,7 +325,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         # Make the directory to store the halo lists in.
         if not self.outbase:
             self.outbase = os.getcwd()
-        if self.comm.rank == 0:
+        if self.comm.rank == 0 and not restart:
             if not os.path.exists(self.outbase):
                 os.makedirs(self.outbase)
             # Make a record of which dataset corresponds to which set of
