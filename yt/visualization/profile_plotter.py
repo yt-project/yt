@@ -375,7 +375,7 @@ class ProfilePlot(object):
             raise RuntimeError("Profiles list and labels list must be the same size.")
         if plot_specs is not None and len(plot_specs) != len(profiles):
             raise RuntimeError("Profiles list and plot_specs list must be the same size.")
-        obj = cls(None, None, None, profiles=profiles, label=labels,
+        obj = cls(profiles[0].data_source, None, None, profiles=profiles, label=labels,
                   plot_spec=plot_specs)
         return obj
 
