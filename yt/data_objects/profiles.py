@@ -828,8 +828,8 @@ class ProfileND(ParallelAnalysisInterface):
             raise RuntimeError(
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
-        for f, u in zip(field, new_unit):
-            self.field_units[field] = new_unit
+        for f, u in zip(fd, new_unit):
+            self.field_units[f[1]] = Unit(u)
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
@@ -882,10 +882,13 @@ class ProfileND(ParallelAnalysisInterface):
             fd = self.field_data.get(field[1], None)
         if fd is None:
             raise KeyError(key)
-        return self.data_source.pf.arr(fd, self.field_units[key])
+        return array_like_field(self.data_source, fd, key).in_units(self.field_units[key])
 
         #return array_like_field(self.data_source, fd, key)
 
+    def items(self):
+        return [(k,self[k]) for k in self.field_data.keys()]
+    
     def __iter__(self):
         return sorted(self.field_data.items())
 

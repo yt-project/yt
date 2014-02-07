@@ -312,7 +312,7 @@ class ProfilePlot(object):
         self.figures = FigureContainer()
         self.axes = AxesContainer(self.figures)
         for i, profile in enumerate(self.profiles):
-            for field, field_data in profile.field_data.items():
+            for field, field_data in profile.items():
                 self.axes[field].plot(np.array(profile.x),
                                       np.array(field_data),
                                       label=self.label[i],
