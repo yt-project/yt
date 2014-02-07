@@ -31,7 +31,6 @@ default_unit_symbol_lut = {
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
-    "steradian": (1.0, dimensions.solid_angle),
 
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
@@ -42,7 +41,7 @@ default_unit_symbol_lut = {
     "code_velocity" : (1.0, dimensions.velocity),
     "code_magnetic" : (1.0, dimensions.magnetic_field),
     "code_temperature" : (1.0, dimensions.temperature),
-    "code_metallicity" : (1.0, dimensions.metallicity),
+    "code_metallicity" : (1.0, dimensions.dimensionless),
 
     # other cgs
     "dyne": (1.0, dimensions.force),
@@ -76,7 +75,7 @@ default_unit_symbol_lut = {
     "rsun": ( cm_per_rsun, dimensions.length),
     "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
     "Tsun": ( temp_sun_kelvin, dimensions.temperature),
-    "Zsun": ( metallicity_sun, dimensions.metallicity),
+    "Zsun": (metallicity_sun, dimensions.dimensionless),
 
     # astro distances
     "AU": (cm_per_au, dimensions.length),
@@ -89,7 +88,8 @@ default_unit_symbol_lut = {
     "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
     "arcsec": (np.pi/648000., dimensions.angle), # arcseconds
     "mas": (np.pi/648000000., dimensions.angle), # millarcseconds
-    
+    "steradian": (1.0, dimensions.solid_angle),
+
     # misc
     "eV": (erg_per_eV, dimensions.energy),
     "amu": (amu_grams, dimensions.mass),
@@ -161,3 +161,11 @@ prefixable_units = (
     "gauss",
     "Jy",
 )
+
+cgs_base_units = {
+    dimensions.mass:'g',
+    dimensions.length:'cm',
+    dimensions.time:'s',
+    dimensions.temperature:'K',
+    dimensions.angle:'radian',
+}
