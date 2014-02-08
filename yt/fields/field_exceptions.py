@@ -47,6 +47,13 @@ class NeedsParameter(ValidationException):
     def __str__(self):
         return "(%s)" % (self.missing_parameters)
 
+class NeedsConfiguration(ValidationException):
+    def __init__(self, parameter, value):
+        self.parameter = parameter
+        self.value = value
+    def __str__(self):
+        return "(Needs %s = %s)" % (self.parameter, self.value)
+
 class FieldUnitsError(Exception):
     pass
 

@@ -24,7 +24,7 @@ def test_projection():
         xi, yi, zi = pf.domain_left_edge.to_ndarray() + 1.0/(pf.domain_dimensions * 2)
         xf, yf, zf = pf.domain_right_edge.to_ndarray() - 1.0/(pf.domain_dimensions * 2)
         dd = pf.h.all_data()
-        rho_tot = dd.quantities["TotalQuantity"]("density")[0]
+        rho_tot = dd.quantities["TotalQuantity"]("density")
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]
         uc = [np.unique(c) for c in coords]
         # Some simple projection tests with single grids
