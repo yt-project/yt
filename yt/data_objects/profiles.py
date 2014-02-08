@@ -839,10 +839,9 @@ class ProfileND(ParallelAnalysisInterface):
             temp_storage.values /= temp_storage.weight_values[...,None]
         blank = ~temp_storage.used
         for i, field in enumerate(fields):
-            self.field_data[field] = temp_storage.values[...,i]
+            self.field_data[field] = array_like_field(self.data_source, temp_storage.values[...,i], field)
             self.field_data[field][blank] = 0.0
-            fd = self.data_source._determine_fields(field)[0]
-            self.field_units[field] = Unit(self.data_source.pf._get_field_info(fd).units)
+            self.field_units[field] = self.field_data[field].units
 
     def _bin_chunk(self, chunk, fields, storage):
         raise NotImplementedError
@@ -875,16 +874,14 @@ class ProfileND(ParallelAnalysisInterface):
         # So that we can pass these into 
         return arr, weight_data, bin_fields
 
-    def __getitem__(self, key):
-        field = self.data_source._determine_fields(key)[0]
+    def __getitem__(self, field):
         fd = self.field_data.get(field, None)
         if fd is None and isinstance(field, tuple):
             fd = self.field_data.get(field[1], None)
         if fd is None:
-            raise KeyError(key)
-        return array_like_field(self.data_source, fd, key).in_units(self.field_units[key])
-
-        #return array_like_field(self.data_source, fd, key)
+            raise KeyError(field)
+        else:
+            return fd.in_units(self.field_units[field])
 
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]
