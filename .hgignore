@@ -52,3 +52,7 @@ syntax: glob
 *.so
 .idea/*
 tests/results/*
+doc/build/*
+doc/source/reference/api/generated/*
+doc/_temp/*
+doc/source/bootcamp/.ipynb_checkpoints/

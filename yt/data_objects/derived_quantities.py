@@ -93,7 +93,7 @@ class DerivedQuantityCollection(object):
     def keys(self):
         return derived_quantity_registry.keys()
 
-class WeightedAverage(DerivedQuantity):
+class WeightedAverageQuantity(DerivedQuantity):
 
     def count_values(self, fields, weight):
         # This is a list now
@@ -101,7 +101,7 @@ class WeightedAverage(DerivedQuantity):
 
     def __call__(self, fields, weight):
         fields = ensure_list(fields)
-        rv = super(WeightedAverage, self).__call__(fields, weight)
+        rv = super(WeightedAverageQuantity, self).__call__(fields, weight)
         if len(rv) == 1: rv = rv[0]
         return rv
 
@@ -115,7 +115,7 @@ class WeightedAverage(DerivedQuantity):
         w = values.pop(-1).sum(dtype=np.float64)
         return [v.sum(dtype=np.float64)/w for v in values]
 
-class TotalValue(DerivedQuantity):
+class TotalQuantity(DerivedQuantity):
 
     def count_values(self, fields):
         # This is a list now
@@ -123,7 +123,7 @@ class TotalValue(DerivedQuantity):
 
     def __call__(self, fields):
         fields = ensure_list(fields)
-        rv = super(TotalValue, self).__call__(fields)
+        rv = super(TotalQuantity, self).__call__(fields)
         if len(rv) == 1: rv = rv[0]
         return rv
 
@@ -135,7 +135,7 @@ class TotalValue(DerivedQuantity):
     def reduce_intermediate(self, values):
         return [v.sum(dtype=np.float64) for v in values]
 
-class TotalMass(TotalValue):
+class TotalMass(TotalQuantity):
     def __call__(self):
         fi = self.data_source.pf.field_info
         fields = []
@@ -205,20 +205,20 @@ def _combWeightedVariance(data, my_weight, my_mean, my_var2):
     return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
                     all_weight), all_mean]
 
-class BulkVelocity(WeightedAverage):
+class BulkVelocity(WeightedAverageQuantity):
     def __call__(self, ftype = "gas"):
         fields = [(ftype, "velocity_%s" % ax) for ax in 'xyz']
         weight = (ftype, "cell_mass")
         return super(BulkVelocity, self).__call__(fields, weight)
 
-class AngularMomentumVector(WeightedAverage):
+class AngularMomentumVector(WeightedAverageQuantity):
     def __call__(self, ftype = "gas"):
         fields = [(ftype, "specific_angular_momentum_%s" % ax)
                   for ax in 'xyz']
         weight = (ftype, "cell_mass")
         return super(AngularMomentumVector, self).__call__(fields, weight)
 
-class ParticleAngularMomentumVector(WeightedAverage):
+class ParticleAngularMomentumVector(WeightedAverageQuantity):
     def __call__(self, ptype = "all"):
         fields = [(ptype, "particle_specific_angular_momentum_%s" % ax)
                   for ax in 'xyz']
