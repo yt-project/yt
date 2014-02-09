@@ -1105,7 +1105,8 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.pf._get_field_info(f).take_log for f in bin_fields]
+        logs = [data_source.pf._get_field_info(f[0],f[1]).take_log 
+                for f in bin_fields]
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
     if extrema is None:
@@ -1114,7 +1115,8 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.pf._get_field_info(bin_field).units
+            bf_units = data_source.pf._get_field_info(bin_field[0],
+                                                      bin_field[1]).units
             field_ex = list(extrema[bin_field[-1]])
             if iterable(field_ex[0]):
                 field_ex[0] = data_source.pf.quan(field_ex[0][0], field_ex[0][1])
