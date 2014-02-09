@@ -41,8 +41,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         add_io = "io" in grid.pf.particle_types
         for name, v in group.iteritems():
-            # NOTE: This won't work with 1D datasets.
-            if not hasattr(v, "shape"):
+            # NOTE: This won't work with 1D datasets or references.
+            if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             elif len(v.dims) == 1:
                 if add_io: fields.append( ("io", str(name)) )
