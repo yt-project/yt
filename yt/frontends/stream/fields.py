@@ -72,3 +72,10 @@ class StreamFieldInfo(FieldInfoContainer):
         ("particle_gas_temperature", ("K", [], None)),
         ("particle_mass", ("code_mass", [], None)),
     )
+        
+    def setup_fluid_fields(self):
+        for field in self.pf.stream_handler.get_fields():
+            self.add_output_field(field, 
+                                  units=self.pf.stream_handler.field_units[field[1]])
+
+        
