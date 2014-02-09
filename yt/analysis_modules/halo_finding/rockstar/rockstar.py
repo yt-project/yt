@@ -304,6 +304,14 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             for l in lines:
                 if l.startswith("RESTART_SNAP"):
                     restart_num = int(l.split("=")[1])
+                if l.startswith("NUM_WRITERS"):
+                    num_writers = int(l.split("=")[1])
+            if num_writers != self.num_writers:
+                raise RuntimeError(
+                    "Number of writers in restart has changed from the original "
+                    "run (OLD = %d, NEW = %d).  To avoid problems in the "
+                    "restart, choose the same number of writers." % \
+                        (num_writers, self.num_writers))
             del lines
             # Remove the datasets that were already analyzed
             self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
