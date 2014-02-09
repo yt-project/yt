@@ -21,8 +21,7 @@ from .data_structures import \
 
 from .fields import \
       MoabFieldInfo, \
-      KnownMoabFields, \
-      add_moab_field
+      PyneFieldInfo
 
 from .io import \
       IOHandlerMoabH5MHex8
