@@ -553,8 +553,7 @@ class PhasePlot(ImagePlotContainer):
                accumulation=accumulation,
                fractional=fractional)
         self.profile = profile
-        ImagePlotContainer.__init__(self, data_source, profile.field_data.keys(),
-                                    figure_size, fontsize)
+        ImagePlotContainer.__init__(self, data_source, figure_size, fontsize)
         # This is a fallback, in case we forget.
         self._setup_plots()
         self._initfinished = True

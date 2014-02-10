@@ -107,7 +107,7 @@ class ImagePlotContainer(object):
     _plot_valid = False
     _colorbar_valid = False
 
-    def __init__(self, data_source, fields, figure_size, fontsize):
+    def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
         self.figure_size = figure_size
         self.plots = PlotDictionary(data_source)
