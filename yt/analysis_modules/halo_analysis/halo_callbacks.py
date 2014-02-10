@@ -143,6 +143,22 @@ def sphere_bulk_velocity(halo):
 
 add_callback("sphere_bulk_velocity", sphere_bulk_velocity)
 
+def sphere_angular_momentum_vector(halo):
+    r"""
+    Set the bulk velocity for the sphere.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+
+    """
+
+    halo.data_object.set_field_parameter("angular_momentum_vector",
+                                         halo.data_object.quantities.angular_momentum_vector())
+
+add_callback("sphere_angular_momentum_vector", sphere_angular_momentum_vector)
+
 def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
             weight_field="cell_mass", accumulation=False, storage="profiles",
             output_dir="."):
