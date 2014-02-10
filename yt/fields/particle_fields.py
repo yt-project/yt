@@ -171,7 +171,7 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
         v, p = _get_coord_funcs(axi, ptype)
         registry.add_field((ptype, "particle_velocity_%s" % ax),
             particle_type = True, function = v,
-            units = "code_length")
+            units = "code_velocity")
         registry.add_field((ptype, "particle_position_%s" % ax),
             particle_type = True, function = p,
             units = "code_length")
