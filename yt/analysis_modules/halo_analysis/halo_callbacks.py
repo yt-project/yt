@@ -344,7 +344,8 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     overdensity = profile_data[("gas", "overdensity")]
     dfilter = np.isfinite(overdensity) & profile_data["used"] & (overdensity > 0)
     
-    vquantities = dict([("%s_%d" % (field, critical_overdensity), 0) \
+    vquantities = dict([("%s_%d" % (field, critical_overdensity),
+                         dpf.quan(0, profile_data[field].units)) \
                         for field in fields])
                         
     if dfilter.sum() < 2:
