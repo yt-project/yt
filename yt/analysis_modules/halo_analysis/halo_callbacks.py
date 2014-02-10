@@ -126,7 +126,23 @@ def sphere_field_max_recenter(halo, field):
     halo.data_object = new_sphere
 
 add_callback("sphere_field_max_recenter", sphere_field_max_recenter)
-    
+
+def sphere_bulk_velocity(halo):
+    r"""
+    Set the bulk velocity for the sphere.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+
+    """
+
+    halo.data_object.set_field_parameter("bulk_velocity",
+                                         halo.data_object.quantities.bulk_velocity())
+
+add_callback("sphere_bulk_velocity", sphere_bulk_velocity)
+
 def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
             weight_field="cell_mass", accumulation=False, storage="profiles",
             output_dir="."):
