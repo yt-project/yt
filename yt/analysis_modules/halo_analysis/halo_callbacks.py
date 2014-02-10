@@ -165,16 +165,7 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     output_dir = os.path.join(halo.halo_catalog.output_dir, output_dir)
     
     if x_range is None:
-        x_range = halo.data_object.quantities["Extrema"](x_field)[0]
-        # temporary check until derived quantities are fixed
-        # right now derived quantities do not work with units, so once they do, let us know
-        try:
-            x_range[0]._unit_repr_check_same("cm")
-            raise RuntimeError("Looks like derived quantities have been fixed.  Fix this code!")
-        except YTUnitConversionError:
-            # for now, Extrema return dimensionless, but assume it is code_length
-            units_should_be = dpf.field_info["index", x_field].units
-            x_range = [dpf.arr(x.to_ndarray(), units_should_be) for x in x_range]
+        x_range = halo.data_object.quantities["Extrema"](x_field)
             
     my_profile = Profile1D(halo.data_object, x_field, x_bins, 
                            x_range[0], x_range[1], x_log, 
