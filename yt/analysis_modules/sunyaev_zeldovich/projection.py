@@ -93,9 +93,9 @@ class SZProjection(object):
         self.pf = pf
         self.num_freqs = len(freqs)
         self.high_order = high_order
-        self.freqs = np.array(freqs)
+        self.freqs = pf.arr(freqs, "GHz")
         self.mueinv = 1./mue
-        self.xinit = hcgs*pf.arr(self.freqs, "GHz")/(kboltz*Tcmb)
+        self.xinit = hcgs*self.freqs.in_units("Hz")/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
         self.data = {}
 
