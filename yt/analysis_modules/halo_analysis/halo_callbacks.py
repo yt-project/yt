@@ -381,3 +381,21 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     halo.quantities.update(vquantities)
 
 add_callback("virial_quantities", virial_quantities)
+
+def delete_attribute(halo, attribute):
+    r"""
+    Delete attribute from halo object.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    attribute : string
+        The attribute to be deleted.
+
+    """
+
+    if hasattr(halo, attribute):
+        delattr(halo, attribute)
+
+add_callback("delete_attribute", delete_attribute)
