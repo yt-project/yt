@@ -102,6 +102,31 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
 
 add_callback("sphere", halo_sphere)
 
+def sphere_field_max_recenter(halo, field):
+    r"""
+    Recenter the halo sphere on the location of the maximum of the given field.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    field : string
+        Field to be used for recentering.
+
+    """
+
+    s_pf = halo.data_object.pf
+    old_sphere = halo.data_object
+    max_vals = old_sphere.quantities.max_location(field)
+    new_center = s_pf.arr(max_vals[2:])
+    new_sphere = s_pf.h.sphere(new_center.in_units("code_length"),
+                               old_sphere.radius.in_units("code_length"))
+    mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
+                                                        new_sphere.center))
+    halo.data_object = new_sphere
+
+add_callback("sphere_field_max_recenter", sphere_field_max_recenter)
+    
 def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
             weight_field="cell_mass", accumulation=False, storage="profiles",
             output_dir="."):
