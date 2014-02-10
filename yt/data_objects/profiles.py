@@ -961,6 +961,8 @@ def create_profile(data_source, bin_fields, fields, n = 64,
         The data object to be profiled.
     bin_fields : list of strings
         List of the binning fields for profiling.
+    fields : list of strings
+        The fields to be profiled.
     n : int or list of ints
         The number of bins in each dimension.  If None, 64 bins for 
         each bin are used for each bin field.
@@ -977,8 +979,6 @@ def create_profile(data_source, bin_fields, fields, n = 64,
         The weight field for computing weighted average for the profile 
         values.  If None, the profile values are sums of the data in 
         each bin.
-    fields : list of strings
-        The fields to be profiled.
     accumulation : bool or list of bools
         If True, the profile values for a bin n are the cumulative sum of 
         all the values from bin 0 to n.  If -True, the sum is reversed so 
@@ -1028,7 +1028,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
     if extrema is None:
-        ex = [data_source.quantities["Extrema"](f, non_zero=l)[0] \
+        ex = [data_source.quantities["Extrema"](f, non_zero=l) \
               for f, l in zip(bin_fields, logs)]
     else:
         ex = [extrema[bin_field[-1]] for bin_field in bin_fields]
@@ -1039,7 +1039,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     setattr(obj, "accumulation", accumulation)
     setattr(obj, "fractional", fractional)
     if fields is not None:
-        obj.add_fields([field[-1] for field in fields])
+        obj.add_fields([field for field in fields])
     for field in fields:
         if fractional:
             obj.field_data[field] /= obj.field_data[field].sum()
