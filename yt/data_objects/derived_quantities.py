@@ -184,6 +184,44 @@ class CenterOfMass(DerivedQuantity):
             w += values.pop(0).sum(dtype=np.float64)
         return [v/w for v in [x, y, z]]
 
+class BulkVelocity(DerivedQuantity):
+    def count_values(self, use_cells = True, use_particles = False):
+        # This is a list now
+        self.num_vals = 0
+        if use_cells:
+            self.num_vals += 4
+        if use_particles:
+            self.num_vals += 4
+
+    def process_chunk(self, data, use_cells = True, use_particles = False):
+        vals = []
+        if use_cells:
+            vals += [(data["velocity_%s" % ax] * data["cell_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["cell_mass"].sum(dtype=np.float64))
+        if use_particles:
+            vals += [(data["particle_velocity_%s" % ax] *
+                      data["particle_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["particle_mass"].sum(dtype=np.float64))
+        return vals
+
+    def reduce_intermediate(self, values):
+        if len(values) not in (4, 8):
+            raise RuntimeError
+        x = values.pop(0).sum(dtype=np.float64)
+        y = values.pop(0).sum(dtype=np.float64)
+        z = values.pop(0).sum(dtype=np.float64)
+        w = values.pop(0).sum(dtype=np.float64)
+        if len(values) > 0:
+            # Note that this could be shorter if we pre-initialized our x,y,z,w
+            # values as YTQuantity objects.
+            x += values.pop(0).sum(dtype=np.float64)
+            y += values.pop(0).sum(dtype=np.float64)
+            z += values.pop(0).sum(dtype=np.float64)
+            w += values.pop(0).sum(dtype=np.float64)
+        return [v/w for v in [x, y, z]]
+    
 def _WeightedVariance(data, field, weight):
     """
     This function returns the variance of a field.
@@ -204,12 +242,6 @@ def _combWeightedVariance(data, my_weight, my_mean, my_var2):
     all_mean = (my_weight * my_mean).sum() / all_weight
     return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
                     all_weight), all_mean]
-
-class BulkVelocity(WeightedAverage):
-    def __call__(self, ftype = "gas"):
-        fields = [(ftype, "velocity_%s" % ax) for ax in 'xyz']
-        weight = (ftype, "cell_mass")
-        return super(BulkVelocity, self).__call__(fields, weight)
 
 class AngularMomentumVector(WeightedAverage):
     def __call__(self, ftype = "gas"):
