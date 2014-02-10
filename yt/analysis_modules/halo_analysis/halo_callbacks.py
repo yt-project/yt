@@ -25,8 +25,6 @@ from yt.utilities.exceptions import \
      YTSphereTooSmall
 from yt.funcs import \
      ensure_list
-from yt.utilities.cosmology import \
-     Cosmology
 from yt.utilities.exceptions import YTUnitConversionError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -115,6 +113,7 @@ def sphere_field_max_recenter(halo, field):
 
     """
 
+    if halo.data_object is None: return
     s_pf = halo.data_object.pf
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
@@ -123,6 +122,9 @@ def sphere_field_max_recenter(halo, field):
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
                                                         new_sphere.center))
+    for par, value in old_sphere.field_parameters.items():
+        if par not in new_sphere.field_parameters:
+            new_sphere.set_field_parameter(par, value)
     halo.data_object = new_sphere
 
 add_callback("sphere_field_max_recenter", sphere_field_max_recenter)
@@ -222,8 +224,8 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     output_dir = os.path.join(halo.halo_catalog.output_dir, output_dir)
     
     if x_range is None:
-        x_range = halo.data_object.quantities["Extrema"](x_field)
-            
+        x_range = list(halo.data_object.quantities.extrema(x_field, non_zero=True))
+
     my_profile = Profile1D(halo.data_object, x_field, x_bins, 
                            x_range[0], x_range[1], x_log, 
                            weight_field=weight_field)
@@ -348,10 +350,6 @@ def virial_quantities(halo, fields, critical_overdensity=200,
             halo.halo_catalog.quantities.append(q_tuple)
     
     dpf = halo.halo_catalog.data_pf
-    co = Cosmology(hubble_constant=dpf.hubble_constant,
-                   omega_matter=dpf.omega_matter,
-                   omega_lambda=dpf.omega_lambda,
-                   unit_registry=dpf.unit_registry)
     profile_data = getattr(halo, profile_storage)
 
     if ("gas", "overdensity") not in profile_data:
