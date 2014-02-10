@@ -29,6 +29,8 @@ from yt.utilities.exceptions import YTUnitConversionError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.visualization.profile_plotter import \
+     PhasePlot
      
 from .operator_registry import \
     callback_registry
@@ -381,6 +383,32 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     halo.quantities.update(vquantities)
 
 add_callback("virial_quantities", virial_quantities)
+
+def phase_plot(halo, output_dir=".", phase_args=None, phase_kwargs=None):
+    r"""
+    Make a phase plot for the halo object.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    output_dir : string
+        Name of directory where profile data will be written.  The full path will be
+        the output_dir of the halo catalog concatenated with this directory.
+        Default : "."
+
+    """
+
+    if phase_args is None:
+        phase_args = []
+    if phase_kwargs is None:
+        phase_kwargs = {}
+
+    plot = PhasePlot(halo.data_object, *phase_args, **phase_kwargs)
+    plot.save(os.path.join(halo.halo_catalog.output_dir, output_dir,
+                           "halo_%06d" % halo.quantities["particle_identifier"]))
+
+add_callback("phase_plot", phase_plot)
 
 def delete_attribute(halo, attribute):
     r"""
