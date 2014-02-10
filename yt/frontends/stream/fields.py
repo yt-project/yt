@@ -67,7 +67,8 @@ class StreamFieldInfo(FieldInfoContainer):
     )
         
     def setup_fluid_fields(self):
-        for field, units in self.pf.stream_handler.field_units.items():
+        for field in self.pf.stream_handler.get_fields():
+            units = self.pf.stream_handler.field_units[field]
             self.add_output_field(field, units=units)
 
         
