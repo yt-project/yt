@@ -111,7 +111,6 @@ class ImagePlotContainer(object):
         self.data_source = data_source
         self.figure_size = figure_size
         self.plots = PlotDictionary(data_source)
-        self.fields = self.data_source._determine_fields(fields)
         self._callbacks = []
         self._field_transform = {}
         self._colormaps = defaultdict(lambda: 'algae')
