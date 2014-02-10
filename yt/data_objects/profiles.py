@@ -1026,7 +1026,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
     if extrema is None:
-        ex = [data_source.quantities["Extrema"](f, non_zero=l) \
+        ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
     else:
         ex = [extrema[bin_field[-1]] for bin_field in bin_fields]
