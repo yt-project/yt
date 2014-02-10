@@ -409,9 +409,12 @@ def phase_plot(halo, output_dir=".", phase_args=None, phase_kwargs=None):
     if phase_kwargs is None:
         phase_kwargs = {}
 
-    plot = PhasePlot(halo.data_object, *phase_args, **phase_kwargs)
-    plot.save(os.path.join(halo.halo_catalog.output_dir, output_dir,
-                           "halo_%06d" % halo.quantities["particle_identifier"]))
+    try:
+        plot = PhasePlot(halo.data_object, *phase_args, **phase_kwargs)
+        plot.save(os.path.join(halo.halo_catalog.output_dir, output_dir,
+                               "halo_%06d" % halo.quantities["particle_identifier"]))
+    except ValueError:
+        return
 
 add_callback("phase_plot", phase_plot)
 
