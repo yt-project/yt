@@ -305,7 +305,6 @@ class SZProjection(object):
 
         if sky_center is None:
             center = [0.0]*2
-            units = units
         else:
             center = sky_center
             units = "deg"
