@@ -396,6 +396,10 @@ def phase_plot(halo, output_dir=".", phase_args=None, phase_kwargs=None):
         Name of directory where profile data will be written.  The full path will be
         the output_dir of the halo catalog concatenated with this directory.
         Default : "."
+    phase_args : list
+        List of arguments to be given to PhasePlot.
+    phase_kwargs : dict
+        Dictionary of keyword arguments to be given to PhasePlot.
 
     """
 
