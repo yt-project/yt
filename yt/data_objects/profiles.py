@@ -769,47 +769,6 @@ class ProfileND(ParallelAnalysisInterface):
             self._bin_chunk(chunk, fields, temp_storage)
         self._finalize_storage(fields, temp_storage)
 
-    def set_x_unit(self, new_unit):
-        """Sets a new unit for the x field
-
-        parameters
-        ----------
-        new_unit : string or Unit object
-           The name of the new unit.
-        """
-        self.x_bins.convert_to_units(new_unit)
-        self.x = 0.5*(self.x_bins[1:]+self.x_bins[:-1])
-
-    def set_y_unit(self, new_unit):
-        """Sets a new unit for the y field
-
-        parameters
-        ----------
-        new_unit : string or Unit object
-           The name of the new unit.
-        """
-        try:
-            self.y_bins.convert_to_units(new_unit)
-            self.y = 0.5*(self.y_bins[1:]+self.y_bins[:-1])
-        except AttributeError:
-            mylog.error("This is a 1D profile, it doesn't have a y-field!")
-            raise AttributeError
-
-    def set_z_unit(self, new_unit):
-        """Sets a new unit for the z field
-
-        parameters
-        ----------
-        new_unit : string or Unit object
-           The name of the new unit.
-        """
-        try:
-            self.z_bins.convert_to_units(new_unit)
-            self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
-        except AttributeError:
-            mylog.error("This is a 1D or 2D profile, it doesn't have a z-field!")
-            raise AttributeError
-
     def set_field_unit(self, field, new_unit):
         """Sets a new unit for the requested field
 
@@ -921,6 +880,17 @@ class Profile1D(ProfileND):
 
         # We've binned it!
 
+    def set_x_unit(self, new_unit):
+        """Sets a new unit for the x field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.x_bins.convert_to_units(new_unit)
+        self.x = 0.5*(self.x_bins[1:]+self.x_bins[:-1])
+
     @property
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
@@ -961,6 +931,28 @@ class Profile2D(ProfileND):
                       storage.mvalues, storage.qvalues,
                       storage.used)
         # We've binned it!
+
+    def set_x_unit(self, new_unit):
+        """Sets a new unit for the x field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.x_bins.convert_to_units(new_unit)
+        self.x = 0.5*(self.x_bins[1:]+self.x_bins[:-1])
+
+    def set_y_unit(self, new_unit):
+        """Sets a new unit for the y field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.y_bins.convert_to_units(new_unit)
+        self.y = 0.5*(self.y_bins[1:]+self.y_bins[:-1])
 
     @property
     def bounds(self):
@@ -1023,6 +1015,39 @@ class Profile3D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]),
                 (self.z_bins[0], self.z_bins[-1]))
+
+    def set_x_unit(self, new_unit):
+        """Sets a new unit for the x field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.x_bins.convert_to_units(new_unit)
+        self.x = 0.5*(self.x_bins[1:]+self.x_bins[:-1])
+
+    def set_y_unit(self, new_unit):
+        """Sets a new unit for the y field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.y_bins.convert_to_units(new_unit)
+        self.y = 0.5*(self.y_bins[1:]+self.y_bins[:-1])
+
+    def set_z_unit(self, new_unit):
+        """Sets a new unit for the z field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.z_bins.convert_to_units(new_unit)
+        self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
 def create_profile(data_source, bin_fields, fields, n = 64,
                    extrema = None, logs = None,

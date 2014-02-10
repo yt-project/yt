@@ -41,29 +41,25 @@ except ImportError:
 
 vlist = "xyz"
 
-@derived_field(name=("gas","TempkeV"), units="keV")
-def _tempkev(field, data):
-    return (kboltz*data["gas","temperature"]).in_units("keV")
-
-@derived_field(name=("gas","TSquared"), units="g*keV**2/cm**3")
+@derived_field(name=("gas","t_squared"), units="g*keV**2/cm**3")
 def _t_squared(field, data):
-    return data["gas","density"]*data["gas","TempkeV"]*data["gas","TempkeV"]
+    return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
 
-@derived_field(name=("gas","BetaPerpSquared"), units="g/cm**3")
+@derived_field(name=("gas","beta_perp_squared"), units="g/cm**3")
 def _beta_perp_squared(field, data):
-    return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","BetaParSquared"]
+    return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
 
-@derived_field(name=("gas","BetaParSquared"), units="g/cm**3")
+@derived_field(name=("gas","beta_par_squared"), units="g/cm**3")
 def _beta_par_squared(field, data):
-    return data["gas","BetaPar"]**2/data["gas","density"]
+    return data["gas","beta_par"]**2/data["gas","density"]
 
-@derived_field(name=("gas","TBetaPar"), units="keV*g/cm**3")
+@derived_field(name=("gas","t_beta_par"), units="keV*g/cm**3")
 def _t_beta_par(field, data):
-    return data["gas","TempkeV"]*data["gas","BetaPar"]
+    return data["gas","kT"]*data["gas","beta_par"]
 
-@derived_field(name=("gas","TeSZ"), units="keV*g/cm**3")
+@derived_field(name=("gas","t_sz"), units="keV*g/cm**3")
 def _t_sz(field, data):
-    return data["gas","density"]*data["gas","TempkeV"]
+    return data["gas","density"]*data["gas","kT"]
 
 def generate_beta_par(L):
     def _beta_par(field, data):
@@ -128,7 +124,7 @@ class SZProjection(object):
 
         Examples
         --------
-        >>> szprj.on_axis("y", center="max", width=(1.0, "mpc"), source=my_sphere)
+        >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
         axis = fix_axis(axis)
 
@@ -143,20 +139,20 @@ class SZProjection(object):
         L[axis] = 1.0
 
         beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(name=("gas","BetaPar"), function=beta_par, units="g/cm**3")
+        self.pf.field_info.add_field(name=("gas","beta_par"), function=beta_par, units="g/cm**3")
         proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
-        Te = frb["TeSZ"]/dens
-        bpar = frb["BetaPar"]/dens
-        omega1 = frb["TSquared"]/dens/(Te*Te) - 1.
+        Te = frb["t_sz"]/dens
+        bpar = frb["beta_par"]/dens
+        omega1 = frb["t_squared"]/dens/(Te*Te) - 1.
         bperp2 = np.zeros((nx,nx))
         sigma1 = np.zeros((nx,nx))
         kappa1 = np.zeros((nx,nx))
         if self.high_order:
-            bperp2 = frb["BetaPerpSquared"]/dens
-            sigma1 = frb["TBetaPar"]/dens/Te - bpar
-            kappa1 = frb["BetaParSquared"]/dens - bpar*bpar
+            bperp2 = frb["beta_perp_squared"]/dens
+            sigma1 = frb["t_beta_par"]/dens/Te - bpar
+            kappa1 = frb["beta_par_squared"]/dens - bpar*bpar
         tau = sigma_thompson*dens*self.mueinv/mh
 
         nx,ny = frb.buff_size
@@ -189,7 +185,7 @@ class SZProjection(object):
         Examples
         --------
         >>> L = np.array([0.5, 1.0, 0.75])
-        >>> szprj.off_axis(L, center="c", width=(2.0, "mpc"))
+        >>> szprj.off_axis(L, center="c", width=(2.0, "Mpc"))
         """
         if iterable(width):
             w = width[0]/self.pf.units[width[1]]
@@ -207,18 +203,18 @@ class SZProjection(object):
             raise NotImplementedError
 
         beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(name=("gas","BetaPar"), function=beta_par, units="g/cm**3")
+        self.pf.field_info.add_field(name=("gas","beta_par"), function=beta_par, units="g/cm**3")
 
         dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
-        Te      = off_axis_projection(self.pf, ctr, L, w, nx, "TeSZ")/dens
-        bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "BetaPar")/dens
-        omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "TSquared")/dens
+        Te      = off_axis_projection(self.pf, ctr, L, w, nx, "t_sz")/dens
+        bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "beta_par")/dens
+        omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "t_squared")/dens
         omega1  = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2  = off_axis_projection(self.pf, ctr, L, w, nx, "BetaPerpSquared")/dens
-            sigma1  = off_axis_projection(self.pf, ctr, L, w, nx, "TBetaPar")/dens
+            bperp2  = off_axis_projection(self.pf, ctr, L, w, nx, "beta_perp_squared")/dens
+            sigma1  = off_axis_projection(self.pf, ctr, L, w, nx, "t_beta_par")/dens
             sigma1  = sigma1/Te - bpar
-            kappa1  = off_axis_projection(self.pf, ctr, L, w, nx, "BetaParSquared")/dens
+            kappa1  = off_axis_projection(self.pf, ctr, L, w, nx, "beta_par_squared")/dens
             kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))
