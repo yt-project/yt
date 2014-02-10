@@ -203,7 +203,8 @@ class ProfilePlot(object):
         self.y_log = {}
         self.y_title = {}
         if profiles is None:
-            self.profiles = [create_profile(data_source, [x_field], n_bins,
+            self.profiles = [create_profile(data_source, [x_field],
+                                            n_bins=[n_bins],
                                             fields=ensure_list(y_fields),
                                             weight_field=weight_field,
                                             accumulation=accumulation,
@@ -569,7 +570,7 @@ class PhasePlot(ImagePlotContainer):
 
         if profile is None:
             profile = create_profile(data_source,
-               [x_field, y_field], [x_bins, y_bins],
+               [x_field, y_field], n_bins=[x_bins, y_bins],
                fields = ensure_list(z_fields),
                weight_field = weight_field,
                accumulation=accumulation,
@@ -656,9 +657,11 @@ class PhasePlot(ImagePlotContainer):
                 zlim = [zmin, data.max()]                
             
             fp = self._font_properties
+            f = self.profile.data_source._determine_fields(f)[0]
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, 
                                          x_scale, y_scale, z_scale,
-                                         self._colormaps[f], zlim, size, fp.get_size(),
+                                         self._colormaps[f], np.array(zlim), 
+                                         size, fp.get_size(),
                                          fig, axes, cax)
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
@@ -716,10 +719,6 @@ class PhasePlot(ImagePlotContainer):
             if not suffix:
                 suffix = ".png"
             self.plots[f].save(fn, mpl_kwargs)
-
-    @property
-    def fields(self):
-        return self.plots.keys()
 
     @invalidate_plot
     def set_title(self, field, title):
@@ -807,7 +806,9 @@ class PhasePlotMPL(WindowPlotMPL):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
-        self.image = self.axes.pcolormesh(x_data, y_data, image_data.T,
+        self.image = self.axes.pcolormesh(np.array(x_data), 
+                                          np.array(y_data), 
+                                          np.array(image_data.T),
                                           norm=norm, 
                                           cmap=cmap)
         self.axes.set_xscale(x_scale)

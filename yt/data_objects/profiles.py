@@ -1049,7 +1049,7 @@ class Profile3D(ProfileND):
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
-def create_profile(data_source, bin_fields, fields, n = 64,
+def create_profile(data_source, bin_fields, fields, n_bins = 64,
                    extrema = None, logs = None,
                    weight_field = "cell_mass",
                    accumulation = False, fractional = False):
@@ -1125,8 +1125,8 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     fields = data_source._determine_fields(fields)
     if weight_field is not None:
         weight_field, = data_source._determine_fields([weight_field])
-    if not iterable(n):
-        n = [n] * len(bin_fields)
+    if not iterable(n_bins):
+        n_bins = [n_bins] * len(bin_fields)
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
@@ -1135,7 +1135,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
     if extrema is None:
-        ex = [data_source.quantities["Extrema"](f, non_zero=l)[0] \
+        ex = [data_source.quantities["Extrema"](f, non_zero=l) \
               for f, l in zip(bin_fields, logs)]
     else:
         ex = []
@@ -1151,7 +1151,7 @@ def create_profile(data_source, bin_fields, fields, n = 64,
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
     args = [data_source]
-    for f, n, (mi, ma), l in zip(bin_fields, n, ex, logs):
+    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
         args += [f, n, mi, ma, l] 
     obj = cls(*args, weight_field = weight_field)
     setattr(obj, "accumulation", accumulation)
