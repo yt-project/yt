@@ -65,7 +65,6 @@ def get_filenames_from_glob_pattern(filenames):
             raise YTOutputNotIdentified(filenames, {})
     return sorted(filenames)
 
-
 attrs = ("refine_by", "dimensionality", "current_time",
          "domain_dimensions", "domain_left_edge",
          "domain_right_edge", "unique_identifier",
