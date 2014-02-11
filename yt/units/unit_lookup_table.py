@@ -31,6 +31,7 @@ default_unit_symbol_lut = {
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
+    "Zfrac": (1.0, dimensions.metallicity),
 
     # "code" units, default to CGS conversion.
     # These default values are overridden in the code frontends
