@@ -23,6 +23,7 @@ from itertools import izip, repeat
 import matplotlib
 import numpy as np
 import cStringIO
+import __builtin__
 
 from matplotlib.font_manager import FontProperties
 
@@ -42,8 +43,9 @@ from yt.data_objects.profiles import \
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
-     ensure_list, \
-     get_image_suffix
+    ensure_list, \
+    get_image_suffix, \
+    get_ipython_api_version
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
@@ -66,6 +68,7 @@ def invalidate_plot(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._plot_valid = False
+        args[0]._setup_plots()
         return rv
     return newfunc
 
@@ -202,6 +205,7 @@ class ProfilePlot(object):
                  label=None, plot_spec=None, profiles=None):
         self.y_log = {}
         self.y_title = {}
+        self.x_log = None
         if profiles is None:
             self.profiles = [create_profile(data_source, [x_field],
                                             n_bins=[n_bins],
@@ -427,10 +431,25 @@ class ProfilePlot(object):
         """
         if field == "all":
             fields = self.profiles[0].field_data.keys()
+            fields.append(self.profiles[0].x_field[1])
         else:
             fields = [field]
         for field in fields:
-            self.y_log[field] = log
+            if field == self.profiles[0].x_field[1]:
+                self.x_log = log
+            else:
+                self.y_log[field] = log
+        return self
+
+    @invalidate_plot
+    def set_unit(self, field, unit):
+        for profile in self.profiles:
+            if field == profile.x_field[1]:
+                profile.set_x_unit(unit)
+            elif field in profile.field_data:
+                profile.set_field_unit(field, unit)
+            else:
+                raise KeyError("Field %s not in profiles!" % (field))
         return self
 
     def _get_field_log(self, field_y, profile):
@@ -454,8 +473,10 @@ class ProfilePlot(object):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
+            field_name = field_name.replace(' ','\/')
+            field_name = r'$\rm{'+field_name+r'}$'
         if field_unit is None or field_unit == '':
             label = field_name
         else:
@@ -567,6 +588,8 @@ class PhasePlot(ImagePlotContainer):
         self.z_log = {}
         self.z_title = {}
         self._initfinished = False
+        self.x_log = None
+        self.y_log = None
 
         if profile is None:
             profile = create_profile(data_source,
@@ -606,8 +629,10 @@ class PhasePlot(ImagePlotContainer):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
+            field_name = field_name.replace(' ','\/')
+            field_name = r'$\rm{'+field_name+r'}$'
         if field_unit is None or field_unit == '':
             label = field_name
         else:
@@ -626,7 +651,10 @@ class PhasePlot(ImagePlotContainer):
             y_log = profile.y_log
         else:
             y_log = self.y_log
+        print field_z, self.z_log
         if field_z in self.z_log:
+            print "help"
+            print field_z
             z_log = self.z_log[field_z]
         else:
             z_log = zfi.take_log
@@ -734,7 +762,7 @@ class PhasePlot(ImagePlotContainer):
         Examples
         --------
 
-        >>> plot.set_title("CellMassMsun", "This is a phase plot")
+        >>> plot.set_title("cell_mass", "This is a phase plot")
         
         """
 
@@ -757,11 +785,31 @@ class PhasePlot(ImagePlotContainer):
             Log on/off.
         """
         if field == "all":
-            fields = self.fields
+            fields = [field[1] for field in self.fields]
+            fields.append(self.profile.x_field[1])
+            fields.append(self.profile.y_field[1])
+            print fields
         else:
             fields = [field]
         for field in fields:
-            self.z_log[field] = log
+            if field == self.profile.x_field[1]:
+                self.x_log = log
+            elif field == self.profile.y_field[1]:
+                self.y_log = log
+            else:
+                self.z_log[field] = log
+        return self
+
+    @invalidate_plot
+    def set_unit(self, field, unit):
+        if field == self.profile.x_field[1]:
+            self.profile.set_x_unit(unit)
+        elif field == self.profile.y_field[1]:
+            self.profile.set_y_unit(unit)
+        elif field in self.fields:
+            self.profile.set_field_unit(field, unit)
+        else:
+            raise KeyError("Field %s not in profile!" % (field))
         return self
 
     def run_callbacks(self, *args):

@@ -155,6 +155,12 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "metallicity"),
              function=_metallicity,
              units="Zsun")
+
+    def _metal_mass(field, data):
+        return data[ftype, "metal_density"] * data["index", "cell_volume"]
+    registry.add_field((ftype, "metal_mass"),
+                       function=_metal_mass,
+                       units="g")
     
     def _mean_molecular_weight(field, data):
         return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))

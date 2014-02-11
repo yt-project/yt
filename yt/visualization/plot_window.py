@@ -1206,7 +1206,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
-         A tuple containing the depth to project thourhg and the string
+         A tuple containing the depth to project through and the string
          key of the unit: (width, 'unit').  If set to a float, code units
          are assumed
     weight_field : string

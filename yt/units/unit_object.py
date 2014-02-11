@@ -19,7 +19,7 @@ from collections import defaultdict
 from yt.units import dimensions
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, latex_symbol_lut, \
-    unit_prefixes, prefixable_units
+    unit_prefixes, prefixable_units, cgs_base_units
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -277,11 +277,15 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        cgs_units_string = "g**(%s) * cm**(%s) * s**(%s) * K**(%s)" % \
-            (self.dimensions.expand().as_coeff_exponent(dimensions.mass)[1],
-             self.dimensions.expand().as_coeff_exponent(dimensions.length)[1],
-             self.dimensions.expand().as_coeff_exponent(dimensions.time)[1],
-             self.dimensions.expand().as_coeff_exponent(dimensions.temperature)[1])
+        # The dimensions of a unit object is the product of the base dimensions.
+        # Use sympy to factor the dimensions into base CGS unit symbols.
+        cgs_units = []
+        my_dims = self.dimensions.expand()
+        for dim in cgs_base_units:
+            unit_string = cgs_base_units[dim]
+            power_string = "**(%s)" % my_dims.as_coeff_exponent(dim)[1]
+            cgs_units.append("".join([unit_string, power_string]))
+        cgs_units_string = " * ".join(cgs_units)
 
         return Unit(cgs_units_string, cgs_value=1.0,
                     dimensions=self.dimensions, registry=self.registry)
