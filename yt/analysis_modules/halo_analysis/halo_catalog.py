@@ -21,10 +21,8 @@ from yt.funcs import \
      ensure_dir, \
      mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     only_on_root, \
      ParallelAnalysisInterface, \
      parallel_blocking_call, \
-     parallel_root_only, \
      parallel_objects
      
 from .halo_object import \
@@ -110,7 +108,8 @@ class HaloCatalog(ParallelAnalysisInterface):
         halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
         self.actions.append(("filter", halo_filter))
 
-    def run(self, njobs=-1, save_halos=False):
+    @parallel_blocking_call
+    def run(self, njobs=-1, dynamic=False, save_halos=False):
         self.catalog = []
         if save_halos: self.halo_list = []
 
@@ -120,7 +119,7 @@ class HaloCatalog(ParallelAnalysisInterface):
             raise NotImplementedError
 
         n_halos = self.data_source["particle_identifier"].size
-        for i in parallel_objects(xrange(n_halos), njobs=njobs):
+        for i in parallel_objects(xrange(n_halos), njobs=njobs, dynamic=dynamic):
             new_halo = Halo(self)
             halo_filter = True
             for action_type, action in self.actions:
@@ -158,8 +157,8 @@ class HaloCatalog(ParallelAnalysisInterface):
         
         filename = os.path.join(self.output_dir, "%s.%04d" %
                                 (self.output_prefix, self.comm.rank))
-        only_on_root(mylog.info, "Saving halo catalog to %s.",
-                     os.path.join(self.output_dir, self.output_prefix))
+        mylog.info("Saving halo catalog (%d halos) to %s." %
+                   (len(self.catalog), os.path.join(self.output_dir, self.output_prefix)))
         out_file = h5py.File(filename, 'w')
         n_halos = len(self.catalog)
         field_data = np.empty(n_halos)
