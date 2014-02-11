@@ -780,15 +780,14 @@ class ProfileND(ParallelAnalysisInterface):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        fd = self.data_source._determine_fields(field)[0]
-        fd = ensure_list(fd)
-        new_unit = ensure_list(new_unit)
-        if len(fd) > 1 and len(new_unit) != len(fd):
-            raise RuntimeError(
-                "Field list {} and unit "
-                "list {} are incompatible".format(field, new_unit))
-        for f, u in zip(fd, new_unit):
-            self.field_units[f] = Unit(u)
+        if field in self.field_units:
+            self.field_units[field] = Unit(new_unit)
+        else:
+            fd = self.data_source._determine_fields(field)[0]
+            if fd in self.field_units:
+                self.field_units[fd] = Unit(new_unit)
+            else:
+                raise KeyError("%s not in profile!" % (field))
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
