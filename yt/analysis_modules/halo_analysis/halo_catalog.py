@@ -118,8 +118,8 @@ class HaloCatalog(ParallelAnalysisInterface):
             # the dataset that we have just created.
             raise NotImplementedError
 
-        n_halos = self.data_source["particle_identifier"].size
-        for i in parallel_objects(xrange(n_halos), njobs=njobs, dynamic=dynamic):
+        my_index = np.argsort(self.data_source["particle_identifier"])
+        for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
             new_halo = Halo(self)
             halo_filter = True
             for action_type, action in self.actions:
@@ -131,7 +131,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                 elif action_type == "quantity":
                     key, quantity = action
                     if quantity in self.halos_pf.field_info:
-                        new_halo.quantities[key] = self.data_source[quantity][i]
+                        new_halo.quantities[key] = self.data_source[quantity][int(i)]
                     elif callable(quantity):
                         new_halo.quantities[key] = quantity(new_halo)
                 else:
