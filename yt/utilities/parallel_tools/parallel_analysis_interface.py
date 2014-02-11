@@ -28,8 +28,6 @@ from yt.utilities.definitions import \
 import yt.utilities.logger
 from yt.utilities.lib.QuadTree import \
     QuadTree, merge_quadtrees
-from yt.units.yt_array import YTArray
-from yt.units.unit_registry import UnitRegistry
 
 parallel_capable = ytcfg.getboolean("yt", "__parallel")
 
@@ -722,19 +720,12 @@ class Communicator(object):
         if isinstance(data, np.ndarray) and \
                 get_mpi_type(data.dtype) is not None:
             if self.comm.rank == root:
-                if isinstance(data, YTArray):
-                    info = (data.shape, data.dtype, str(data.units), data.units.registry.lut)
-                else:
-                    info = (data.shape, data.dtype)
+                info = (data.shape, data.dtype)
             else:
                 info = ()
             info = self.comm.bcast(info, root=root)
             if self.comm.rank != root:
-                if len(info) == 4:
-                    registry = UnitRegistry(lut=info[3], add_default_symbols=False)
-                    data = YTArray(np.empty(info[0], dtype=info[1]), info[2], registry=registry)
-                else:
-                    data = np.empty(info[0], dtype=info[1])
+                data = np.empty(info[0], dtype=info[1])
             mpi_type = get_mpi_type(info[1])
             self.comm.Bcast([data, mpi_type], root = root)
             return data
@@ -939,24 +930,16 @@ class Communicator(object):
             self.comm.send(arr, dest=dest, tag=tag)
             return
         tmp = arr.view(self.__tocast) # Cast to CHAR
-        # communicate type and shape and optionally units
-        if isinstance(arr, YTArray):
-            unit_metadata = (str(arr.units), arr.units.registry.lut)
-        else:
-            unit_metadata = ()
-        self.comm.send((arr.dtype.str, arr.shape) + unit_metadata, dest=dest, tag=tag)
+        # communicate type and shape
+        self.comm.send((arr.dtype.str, arr.shape), dest=dest, tag=tag)
         self.comm.Send([arr, MPI.CHAR], dest=dest, tag=tag)
         del tmp
 
     def recv_array(self, source, tag = 0):
-        metadata = self.comm.recv(source=source, tag=tag)
-        dt, ne = metadata[:2]
-        if ne is None and dt is None:
+        dt, ne = self.comm.recv(source=source, tag=tag)
+        if dt is None and ne is None:
             return self.comm.recv(source=source, tag=tag)
         arr = np.empty(ne, dtype=dt)
-        if len(metadata) == 4:
-            registry = UnitRegistry(lut=metadata[3], add_default_symbols=False)
-            arr = YTArray(arr, metadata[2], registry=registry)
         tmp = arr.view(self.__tocast)
         self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
         return arr
@@ -972,10 +955,6 @@ class Communicator(object):
         offset = offsets[self.comm.rank]
         tmp_send = send.view(self.__tocast)
         recv = np.empty(total_size, dtype=send.dtype)
-        if isinstance(send, YTArray):
-            # We assume send.units is consitent with the units
-            # on the receiving end.
-            recv = YTArray(recv, send.units)
         recv[offset:offset+send.size] = send[:]
         dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
         roff = [off * dtr for off in offsets]
