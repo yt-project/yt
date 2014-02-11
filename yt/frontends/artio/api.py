@@ -18,8 +18,7 @@ from .data_structures import \
     ARTIODataset
 
 from .fields import \
-    ARTIOFieldInfo, \
-    add_artio_field
+    ARTIOFieldInfo
 
 from .io import \
     IOHandlerARTIO

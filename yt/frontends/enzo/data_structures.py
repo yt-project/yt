@@ -34,18 +34,17 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.dataset import \
     Dataset
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.physical_constants import \
+    rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 
-from .definitions import parameterDict
 from .fields import \
-    EnzoFieldInfo, Enzo2DFieldInfo, Enzo1DFieldInfo, \
-    add_enzo_field, add_enzo_2d_field, add_enzo_1d_field, \
-    KnownEnzoFields, _setup_particle_fields
+    EnzoFieldInfo
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -551,20 +550,6 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
     _cached_field_list = None
     _cached_derived_field_list = None
 
-    def _detect_fields(self):
-        if self.__class__._cached_field_list is None:
-            EnzoHierarchy._detect_fields(self)
-            self.__class__._cached_field_list = self.field_list
-        else:
-            self.field_list = self.__class__._cached_field_list
-
-    def _setup_derived_fields(self):
-        if self.__class__._cached_derived_field_list is None:
-            EnzoHierarchy._setup_derived_fields(self)
-            self.__class__._cached_derived_field_list = self.derived_field_list
-        else:
-            self.derived_field_list = self.__class__._cached_derived_field_list
-
     def _generate_random_grids(self):
         my_rank = self.comm.rank
         my_grids = self.grids[self.grid_procs.ravel() == my_rank]
@@ -611,8 +596,7 @@ class EnzoDataset(Dataset):
     Enzo-specific output, set at a fixed time.
     """
     _index_class = EnzoHierarchy
-    _fieldinfo_fallback = EnzoFieldInfo
-    _fieldinfo_known = KnownEnzoFields
+    _field_info_class = EnzoFieldInfo
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"
 
@@ -630,6 +614,7 @@ class EnzoDataset(Dataset):
         paarmeter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
+        self.fluid_types += ("enzo",)
         if filename.endswith(".hierarchy"): filename = filename[:-10]
         if parameter_override is None: parameter_override = {}
         self._parameter_override = parameter_override
@@ -638,12 +623,9 @@ class EnzoDataset(Dataset):
         self.storage_filename = storage_filename
 
         Dataset.__init__(self, filename, dataset_type, file_style=file_style)
-        if "InitialTime" not in self.parameters:
-            self.current_time = 0.0
 
     def _setup_1d(self):
         self._index_class = EnzoHierarchy1D
-        self._fieldinfo_fallback = Enzo1DFieldInfo
         self.domain_left_edge = \
             np.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
@@ -651,7 +633,6 @@ class EnzoDataset(Dataset):
 
     def _setup_2d(self):
         self._index_class = EnzoHierarchy2D
-        self._fieldinfo_fallback = Enzo2DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
@@ -663,12 +644,7 @@ class EnzoDataset(Dataset):
         """
         if self.parameters.has_key(parameter):
             return self.parameters[parameter]
-
-        # Let's read the file
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        lines = open(self.parameter_filename).readlines()
-        for lineI, line in enumerate(lines):
+        for line in open(self.parameter_filename):
             if line.find("#") >= 1: # Keep the commented lines
                 line=line[:line.find("#")]
             line=line.strip().rstrip()
@@ -703,10 +679,10 @@ class EnzoDataset(Dataset):
         # Let's read the file
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        lines = open(self.parameter_filename).readlines()
         data_labels = {}
         data_label_factors = {}
-        for line in (l.strip() for l in lines):
+        conversion_factors = {}
+        for line in (l.strip() for l in open(self.parameter_filename)):
             if len(line) < 2: continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
@@ -730,39 +706,21 @@ class EnzoDataset(Dataset):
                     else:
                         pcast = int
             # Now we figure out what to do with it.
-            if param.endswith("Units") and not param.startswith("Temperature"):
-                dataType = param[:-5]
-                # This one better be a float.
-                self.conversion_factors[dataType] = float(vals[0])
-            if param.startswith("#DataCGS") or \
-                 param.startswith("#CGSConversionFactor"):
-                # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                # Which one does it belong to?
-                data_id = param[param.find("[")+1:param.find("]")]
-                data_label_factors[data_id] = float(vals[0])
-            if param.startswith("DataLabel"):
-                data_id = param[param.find("[")+1:param.find("]")]
-                data_labels[data_id] = vals[0]
             if len(vals) == 0:
                 vals = ""
             elif len(vals) == 1:
                 vals = pcast(vals[0])
             else:
                 vals = np.array([pcast(i) for i in vals if i != "-99999"])
-            if param.startswith("Append") and param not in self.parameters:
-                self.parameters[param] = []
             if param.startswith("Append"):
+                if param not in self.parameters:
+                    self.parameters[param] = []
                 self.parameters[param].append(vals)
             else:
                 self.parameters[param] = vals
-        for p, v in self._parameter_override.items():
-            self.parameters[p] = v
-        for p, v in self._conversion_override.items():
-            self.conversion_factors[p] = v
-        for k, v in data_label_factors.items():
-            self.conversion_factors[data_labels[k]] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        self.periodicity = ensure_tuple(
+            self.parameters["LeftFaceBoundaryCondition"] == 3)
         self.dimensionality = self.parameters["TopGridRank"]
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
@@ -783,12 +741,12 @@ class EnzoDataset(Dataset):
             self.domain_dimensions = np.array([self.parameters["TopGridDimensions"],1,1])
             self.periodicity += (False, False)
 
-        self.current_time = self.parameters["InitialTime"]
+        self.gamma = self.parameters["Gamma"]
         # To be enabled when we can break old pickles:
         #if "MetaDataSimulationUUID" in self.parameters:
         #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
-        if "CurrentTimeIdentifier" in self.parameters:
-            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        self.unique_identifier = self.parameters.get("MetaDataDatasetUUID",
+                self.parameters.get("CurrentTimeIdentifier", None))
         if self.parameters["ComovingCoordinates"]:
             self.cosmological_simulation = 1
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
@@ -798,81 +756,65 @@ class EnzoDataset(Dataset):
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
-        self.particle_types = ["io"]
+        self.particle_types = []
+        self.current_time = self.parameters["InitialTime"]
         if self.parameters["NumberOfParticles"] > 0 and \
             "AppendActiveParticleType" in self.parameters.keys():
             # If this is the case, then we know we should have a DarkMatter
             # particle type, and we don't need the "io" type.
-            self.particle_types = ["DarkMatter"]
             self.parameters["AppendActiveParticleType"].append("DarkMatter")
+        else:
+            # We do not have an "io" type for Enzo particles if the
+            # ActiveParticle machinery is on, as we simply will ignore any of
+            # the non-DarkMatter particles in that case.  However, for older
+            # datasets, we call this particle type "io".
+            self.particle_types = ["io"]
         for ptype in self.parameters.get("AppendActiveParticleType", []):
             self.particle_types.append(ptype)
         self.particle_types = tuple(self.particle_types)
+        self.particle_types_raw = self.particle_types
 
         if self.dimensionality == 1:
             self._setup_1d()
         elif self.dimensionality == 2:
             self._setup_2d()
 
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        if "EOSType" not in self.parameters: self.parameters["EOSType"] = -1
-        if self["ComovingCoordinates"]:
-            self._setup_comoving_units()
-        elif self.has_key("LengthUnit"):
-            # 'Why share when we can reinvent incompatibly?'
-            self.parameters["LengthUnits"] = self["LengthUnit"]
-            self._setup_getunits_units()
-        elif self.has_key("LengthUnits"):
-            self._setup_getunits_units()
+    def set_code_units(self):
+        if self.cosmological_simulation:
+            k = self.cosmology_get_units()
+            # Now some CGS values
+            self.length_unit = \
+                self.quan(self.parameters["CosmologyComovingBoxSize"], "Mpccm/h")
+            self.mass_unit = \
+                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
+            self.time_unit = self.quan(k['utim'], 's')
+            self.velocity_unit = self.quan(k['uvel'], 'cm/s')
         else:
-            self._setup_nounits_units()
-        self.time_units['1'] = 1
-        self.units['1'] = 1
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self["Time"] / sec_conversion[unit]
+            if "LengthUnits" in self.parameters:
+                length_unit = self.parameters["LengthUnits"]
+                mass_unit = self.parameters["MassUnits"]
+                time_unit = self.parameters["TimeUnits"]
+            else:
+                mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+                mylog.warning("Setting 1.0 in code units to be 1.0 s")
+                mylog.warning("Setting 1.0 in code units to be 1.0 g")
+                length_unit = mass_unit = time_unit = 1.0
 
-    def _setup_comoving_units(self):
-        z = self["CosmologyCurrentRedshift"]
-        h = self["CosmologyHubbleConstantNow"]
-        boxcm_cal = self["CosmologyComovingBoxSize"]
-        boxcm_uncal = boxcm_cal / h
-        box_proper = boxcm_uncal/(1+z)
-        self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z + 1.0)
-        if not self.has_key("Time"):
-            cu = self.cosmology_get_units()
-            self.conversion_factors["Time"] = cu['utim']
-        for unit in mpc_conversion:
-            self.units[unit] = mpc_conversion[unit] * box_proper
-            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
-            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
-            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
+            self.length_unit = self.quan(length_unit, "cm")
+            self.mass_unit = self.quan(mass_unit, "g")
+            self.time_unit = self.quan(time_unit, "s")
+            self.velocity_unit = self.length_unit / self.time_unit
 
-    def _setup_getunits_units(self):
-        # We are given LengthUnits, which is number of cm per box length
-        # So we convert that to box-size in Mpc
-        box_proper = 3.24077e-25 * self["LengthUnits"]
-        self.units['aye']  = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] * box_proper
-        if not self.has_key("TimeUnits"):
-            self.conversion_factors["Time"] = self["LengthUnits"] / self["x-velocity"]
+        magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                (self.time_unit**2 * self.length_unit))
+        magnetic_unit = np.float64(magnetic_unit.in_cgs())
+        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
 
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        self.unit_registry.modify("code_length", self.length_unit)
+        self.unit_registry.modify("code_mass", self.mass_unit)
+        self.unit_registry.modify("code_time", self.time_unit)
+        self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def cosmology_get_units(self):
         """
@@ -884,10 +826,10 @@ class EnzoDataset(Dataset):
         k["utim"] = 2.52e17/np.sqrt(self.omega_matter)\
                        / self.hubble_constant \
                        / (1+self.parameters["CosmologyInitialRedshift"])**1.5
-        k["urho"] = 1.88e-29 * self.omega_matter \
+        k["urho"] = rho_crit_g_cm3_h2 * self.omega_matter \
                         * self.hubble_constant**2 \
                         * (1.0 + self.current_redshift)**3
-        k["uxyz"] = 3.086e24 * \
+        k["uxyz"] = cm_per_mpc * \
                self.parameters["CosmologyComovingBoxSize"] / \
                self.hubble_constant / \
                (1.0 + self.current_redshift)
@@ -908,13 +850,8 @@ class EnzoDataset(Dataset):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
 
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        _setup_particle_fields(self.field_info, ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
-
     def _detect_active_particle_fields(self):
-        ap_list = self["AppendActiveParticleType"]
+        ap_list = self.parameter_file["AppendActiveParticleType"]
         _fields = dict((ap, []) for ap in ap_list)
         fields = []
         for ptype in self["AppendActiveParticleType"]:
@@ -935,8 +872,7 @@ class EnzoDataset(Dataset):
 
     def _setup_derived_fields(self):
         super(EnzoDataset, self)._setup_derived_fields()
-        aps = self.parameters.get(
-            "AppendActiveParticleType", [])
+        aps = self.parameters.get("AppendActiveParticleType", [])
         for fname, field in self.field_info.items():
             if not field.particle_type: continue
             if isinstance(fname, tuple): continue

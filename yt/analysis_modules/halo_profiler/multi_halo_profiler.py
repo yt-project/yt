@@ -25,13 +25,13 @@ from yt.utilities.math_utils import periodic_dist
 from yt.convenience import \
     load
 from yt.data_objects.profiles import \
-    BinnedProfile1D, EmptyProfileData
+    BinnedProfile1D, YTEmptyProfileData
 from yt.analysis_modules.halo_finding.api import *
 from .halo_filters import \
     VirialFilter
 from .centering_methods import \
     centering_registry
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     add_field
 from yt.data_objects.dataset import \
     Dataset
@@ -588,7 +588,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                                 r_min, halo['r_max'],
                                                 log_space=True, end_collect=True)
-            except EmptyProfileData:
+            except YTEmptyProfileData:
                 mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
                 return None
             # Figure out which fields to add simultaneously
@@ -617,17 +617,6 @@ class HaloProfiler(ParallelAnalysisInterface):
             mylog.info("Re-writing halo %d" % halo['id'])
             self._write_profile(profile, filename, format='%0.6e')
 
-        if newProfile:
-            # Temporary solution to memory leak.
-            for g in self.pf.h.grids:
-                g.clear_data()
-            sphere.clear_data()
-            del sphere
-            # Currently, this seems to be the only way to prevent large 
-            # halo profiling runs from running out of ram.
-            # It would be good to track down the real cause at some point.
-            gc.collect()
-
         return profile
 
     def _get_halo_sphere(self, halo):
@@ -637,7 +626,6 @@ class HaloProfiler(ParallelAnalysisInterface):
         """
 
         sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
-        #if len(sphere._grids) == 0: return None
         new_sphere = False
 
         if self.recenter:
@@ -663,11 +651,6 @@ class HaloProfiler(ParallelAnalysisInterface):
             new_sphere = True
 
         if new_sphere:
-            # Temporary solution to memory leak.
-            for g in self.pf.h.grids:
-                g.clear_data()
-            sphere.clear_data()
-            del sphere
             sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
 
         if self._need_bulk_velocity:

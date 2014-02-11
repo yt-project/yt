@@ -27,9 +27,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \
     ARTIOFieldInfo, \
-    KnownARTIOFields, \
-    b2t, \
-    _setup_particle_fields
+    b2t
 from yt.fields.particle_fields import \
     standard_particle_fields
 
@@ -44,7 +42,7 @@ from yt.data_objects.octree_subset import \
 from yt.data_objects.data_containers import \
     YTFieldData
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 
 class ARTIOOctreeSubset(OctreeSubset):
@@ -80,8 +78,8 @@ class ARTIOOctreeSubset(OctreeSubset):
     def fill(self, fields, selector):
         if len(fields) == 0: return []
         handle = self.oct_handler.artio_handle
-        field_indices = [handle.parameters["grid_variable_labels"].index(
-                        yt_to_art[f]) for (ft, f) in fields]
+        field_indices = [handle.parameters["grid_variable_labels"].index(f)
+                        for (ft, f) in fields]
         cell_count = selector.count_oct_cells(
             self.oct_handler, self.domain_id)
         self.data_size = cell_count
@@ -137,8 +135,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         # We know how big these will be.
         if len(fields) == 0: return []
         handle = self.pf._handle
-        field_indices = [handle.parameters["grid_variable_labels"].index(
-                        yt_to_art[f]) for (ft, f) in fields]
+        field_indices = [handle.parameters["grid_variable_labels"].index(f)
+                        for (ft, f) in fields]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
         tr = dict((field, v) for field, v in zip(fields, tr))
@@ -215,14 +213,14 @@ class ARTIOIndex(Index):
         self.pf.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
         return max_val, np.array((mx, my, mz), dtype='float64')
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields()
         self.field_list = self.fluid_field_list + self.particle_field_list
         mylog.debug("Detected fields: %s", (self.field_list,))
 
     def _detect_fluid_fields(self):
-        return [art_to_yt[f] for f in yt_to_art.values() if f in
+        return [("artio", f) for f in
                 self.pf.artio_parameters["grid_variable_labels"]]
 
     def _detect_particle_fields(self):
@@ -315,22 +313,17 @@ class ARTIOIndex(Index):
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_fluid_selection(self._chunk_io(dobj),
-                                                         dobj.selector,
-                                                         fields_to_read)
-        for field in fields_to_read:
-            ftype, fname = field
-            conv_factor = self.pf.field_info[fname]._convert_function(self)
-            np.multiply(fields_to_return[field], conv_factor,
-                        fields_to_return[field])
+        fields_to_return = self.io._read_fluid_selection(
+            self._chunk_io(dobj),
+            dobj.selector,
+            fields_to_read)
         return fields_to_return, fields_to_generate
 
 
 class ARTIODataset(Dataset):
     _handle = None
     _index_class = ARTIOIndex
-    _fieldinfo_fallback = ARTIOFieldInfo
-    _fieldinfo_known = KnownARTIOFields
+    _field_info_class = ARTIOFieldInfo
     _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"
     max_range = 1024
@@ -339,6 +332,7 @@ class ARTIODataset(Dataset):
                  storage_filename=None):
         if self._handle is not None:
             return
+        self.fluid_types += ("artio",)
         self._filename = filename
         self._fileset_prefix = filename[:-4]
         self._handle = artio_fileset(self._fileset_prefix)
@@ -347,79 +341,11 @@ class ARTIODataset(Dataset):
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
-    def _set_units(self):
-        """
-        Generates the conversion to physical units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        for unit in mpc_conversion.keys():
-            self.units[unit] = self.parameters['unit_l']\
-                * mpc_conversion[unit] / mpc_conversion["cm"]
-        if self.cosmological_simulation:
-            for unit in mpc_conversion:
-                self.units["%sh" % unit] = self.units[unit] * \
-                    self.hubble_constant
-                self.units["%shcm" % unit] = \
-                    (self.units["%sh" % unit] *
-                        (1 + self.current_redshift))
-                self.units["%scm" % unit] = \
-                    self.units[unit] * (1 + self.current_redshift)
-
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self.parameters['unit_t']\
-                / sec_conversion[unit]
-
-        constants = ARTIOconstants()
-        mb = constants.XH*constants.mH + constants.XHe * constants.mHe
-
-        self.parameters['unit_d'] = self.parameters['unit_m']\
-            / self.parameters['unit_l']**3.0
-        self.parameters['unit_v'] = self.parameters['unit_l']\
-            / self.parameters['unit_t']
-        self.parameters['unit_E'] = self.parameters['unit_m']\
-            * self.parameters['unit_v']**2.0
-        self.parameters['unit_T'] = self.parameters['unit_v']**2.0*mb\
-            / constants.k
-        self.parameters['unit_rhoE'] = self.parameters['unit_E']\
-            / self.parameters['unit_l']**3.0
-        self.parameters['unit_nden'] = self.parameters['unit_d'] / mb
-        self.parameters['Gamma'] = constants.gamma
-
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge -
-                                       self.domain_left_edge).max()
-        self.conversion_factors["Density"] = self.parameters['unit_d']
-        self.conversion_factors["x-velocity"] = self.parameters['unit_v']
-        self.conversion_factors["y-velocity"] = self.parameters['unit_v']
-        self.conversion_factors["z-velocity"] = self.parameters['unit_v']
-        #*cell_gas_internal_energy(cell)/cell_gas_density(cell);
-        self.conversion_factors["Temperature"] = \
-            self.parameters['unit_T'] * constants.wmu * (constants.gamma-1)
-
-        mylog.info('note artio T uses fixed gamma not variable')
-
-        for ax in 'xyz':
-            self.conversion_factors["particle_velocity_%s" % ax] =\
-                self.parameters['unit_v']
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
-        self.conversion_factors['particle_mass'] = self.parameters['unit_m']
-        self.conversion_factors['particle_creation_time'] =\
-            self.parameters['unit_t']
-        self.conversion_factors['particle_mass_msun'] =\
-            self.parameters['unit_m'] / constants.Msun
-
-        #for mult_halo_profiler.py:
-        self.parameters['TopGridDimensions'] = 3 * [self._handle.num_grid]
-        self.parameters['RefineBy'] = 2
-        self.parameters['DomainLeftEdge'] = 3 * [0]
-        self.parameters['DomainRightEdge'] = 3 * [self._handle.num_grid]
-        self.parameters['TopGridRank'] = 3  # number of dimensions
+    def _set_code_unit_attributes(self):
+        self.mass_unit = self.quan(self.parameters["unit_m"], "g")
+        self.length_unit = self.quan(self.parameters["unit_l"], "cm")
+        self.time_unit = self.quan(self.parameters["unit_t"], "s")
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
         # hard-coded -- not provided by headers
@@ -473,7 +399,7 @@ class ARTIODataset(Dataset):
                             "species_%02d_secondary_variable_labels"
                             % (species, )])
 
-            self.particle_types = tuple(
+            self.particle_types_raw = tuple(
                 set(art_to_yt[s] for s in
                     self.artio_parameters["particle_species_labels"]))
             self.particle_types = tuple(self.particle_types)
@@ -515,12 +441,6 @@ class ARTIODataset(Dataset):
 
         # hard coded assumption of 3D periodicity (add to parameter file)
         self.periodicity = (True, True, True)
-
-    def _setup_particle_type(self, ptype):
-        orig = set(self.field_info.items())
-        _setup_particle_fields(self.field_info, ptype)
-        standard_particle_fields(self.field_info, ptype)
-        return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

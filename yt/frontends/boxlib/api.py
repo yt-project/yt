@@ -23,9 +23,7 @@ from .data_structures import \
       MaestroDataset
 
 from .fields import \
-      OrionFieldInfo, \
-      KnownOrionFields, \
-      add_orion_field
+      BoxlibFieldInfo
 
 from .io import \
       IOHandlerBoxlib

@@ -35,11 +35,11 @@ def test_stream_hexahedral() :
     coords, conn = hexahedral_connectivity(cell_x, cell_y, cell_z)
     data = {'random_field': np.random.random(Nx*Ny*Nz)}
     bbox = np.array([ [0.0, 1.0], [0.0, 1.0], [0.0, 1.0] ])
-    ds = load_hexahedral_mesh(data, conn, coords, bbox)
+    ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
     dd = ds.h.all_data()
     #raise RuntimeError
-    yield assert_almost_equal, dd["CellVolumeCode"].sum(dtype="float64"), 1.0
-    yield assert_equal, dd["Ones"].size, Nx * Ny * Nz
+    yield assert_almost_equal, float(dd["cell_volume"].sum(dtype="float64")), 1.0
+    yield assert_equal, dd["ones"].size, Nx * Ny * Nz
     # Now we try it with a standard mesh
     cell_x = np.linspace(0.0, 1.0, Nx+1)
     cell_y = np.linspace(0.0, 1.0, Ny+1)
@@ -47,10 +47,10 @@ def test_stream_hexahedral() :
     coords, conn = hexahedral_connectivity(cell_x, cell_y, cell_z)
     data = {'random_field': np.random.random(Nx*Ny*Nz)}
     bbox = np.array([ [0.0, 1.0], [0.0, 1.0], [0.0, 1.0] ])
-    ds = load_hexahedral_mesh(data, conn, coords, bbox)
+    ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
     dd = ds.h.all_data()
-    yield assert_almost_equal, dd["CellVolumeCode"].sum(dtype="float64"), 1.0
-    yield assert_equal, dd["Ones"].size, Nx * Ny * Nz
-    yield assert_almost_equal, dd["dx"], 1.0/Nx
-    yield assert_almost_equal, dd["dy"], 1.0/Ny
-    yield assert_almost_equal, dd["dz"], 1.0/Nz
+    yield assert_almost_equal, float(dd["cell_volume"].sum(dtype="float64")), 1.0
+    yield assert_equal, dd["ones"].size, Nx * Ny * Nz
+    yield assert_almost_equal, dd["dx"].to_ndarray(), 1.0/Nx
+    yield assert_almost_equal, dd["dy"].to_ndarray(), 1.0/Ny
+    yield assert_almost_equal, dd["dz"].to_ndarray(), 1.0/Nz

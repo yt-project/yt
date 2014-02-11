@@ -18,9 +18,7 @@ from .data_structures import \
       AthenaDataset
 
 from .fields import \
-      AthenaFieldInfo, \
-      KnownAthenaFields, \
-      add_athena_field
+      AthenaFieldInfo
 
 from .io import \
       IOHandlerAthena

@@ -34,8 +34,8 @@ from .config import ytcfg
 from .startup_tasks import unparsed_args
 
 from yt.utilities.logger import level as __level
-from yt.config import ytcfgDefaults
-if __level >= int(ytcfgDefaults["loglevel"]):
+from yt.config import ytcfg_defaults
+if __level >= int(ytcfg_defaults["loglevel"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
     np.seterr(all = 'ignore')

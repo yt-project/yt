@@ -14,15 +14,17 @@ Oct definitions file
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+cimport cython
 cimport numpy as np
 from fp_utils cimport *
-from selection_routines cimport SelectorObject
-from oct_visitors cimport \
-    OctVisitorData, oct_visitor_function, Oct
-from libc.stdlib cimport bsearch, qsort
+cimport oct_visitors
+cimport selection_routines
+from .oct_visitors cimport \
+    OctVisitorData, oct_visitor_function, Oct, cind
+from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
+from libc.math cimport floor
 
 cdef int ORDER_MAX
-
 
 cdef struct OctKey:
     np.int64_t key
@@ -67,12 +69,14 @@ cdef class OctreeContainer:
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?)
     cdef int get_root(self, int ind[3], Oct **o)
-    cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors)
+    cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
+                         Oct *o)
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
     # OctAllocationContainer.offset if such a thing exists.
     cdef np.int64_t get_domain_offset(self, int domain_id)
-    cdef void visit_all_octs(self, SelectorObject selector,
+    cdef void visit_all_octs(self,
+                        selection_routines.SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data,
                         int vc = ?)

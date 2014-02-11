@@ -14,7 +14,7 @@ Utilities for flagging zones for refinement in a dataset
 #-----------------------------------------------------------------------------
 
 import numpy as np # For modern purposes
-from yt.utilities.lib import grow_flagging_field
+from yt.utilities.lib.misc_utilities import grow_flagging_field
 
 flagging_method_registry = {}
 
@@ -32,7 +32,7 @@ class OverDensity(FlaggingMethod):
         self.over_density = over_density
 
     def __call__(self, grid):
-        rho = grid["Density"] / (grid.pf.refine_by**grid.Level)
+        rho = grid["density"] / (grid.pf.refine_by**grid.Level)
         return (rho > self.over_density)
 
 class FlaggingGrid(object):

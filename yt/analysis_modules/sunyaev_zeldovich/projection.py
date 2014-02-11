@@ -19,18 +19,21 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
+from yt.utilities.fits_image import FITSImageBuffer
 from yt.data_objects.image_array import ImageArray
-from yt.data_objects.field_info_container import add_field
+from yt.fields.field_info_container import add_field
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
 from yt.utilities.definitions import inv_axis_names
-from yt.visualization.image_writer import write_fits, write_projection
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
 from yt.visualization.plot_window import StandardCenter
+from yt import units
+from .field_plugin_registry import register_field_plugin
+
 import numpy as np
 
-I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
+I0 = (2*(kboltz*Tcmb)**3/((hcgs*clight)**2)/units.sr).in_units("MJy/steradian")
 
 try:
     import SZpack
@@ -39,25 +42,32 @@ except ImportError:
 
 vlist = "xyz"
 
-def _t_squared(field, data):
-    return data["Density"]*data["TempkeV"]*data["TempkeV"]
-add_field("TSquared", function=_t_squared)
+@register_field_plugin
+def setup_SZ_fields(registry, ftype = "gas"):
 
-def _beta_perp_squared(field, data):
-    return data["Density"]*data["VelocityMagnitude"]**2/clight/clight - data["BetaParSquared"]
-add_field("BetaPerpSquared", function=_beta_perp_squared)
+    def _tempkev(field, data):
+        return (kboltz*data["gas","temperature"]).in_units("keV")
+    registry.add_field(("gas","TempkeV"), function=_tempkev)
 
-def _beta_par_squared(field, data):
-    return data["BetaPar"]**2/data["Density"]
-add_field("BetaParSquared", function=_beta_par_squared)
+    def _t_squared(field, data):
+        return data["gas","density"]*data["gas","TempkeV"]*data["gas","TempkeV"]
+    registry.add_field(("gas","TSquared"), function=_t_squared)
 
-def _t_beta_par(field, data):
-    return data["TempkeV"]*data["BetaPar"]
-add_field("TBetaPar", function=_t_beta_par)
+    def _beta_perp_squared(field, data):
+        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","BetaParSquared"]
+    registry.add_field(("gas","BetaPerpSquared"), function=_beta_perp_squared)
 
-def _t_sz(field, data):
-    return data["Density"]*data["TempkeV"]
-add_field("TeSZ", function=_t_sz)
+    def _beta_par_squared(field, data):
+        return data["gas","BetaPar"]**2/data["gas","density"]
+    registry.add_field(("gas","BetaParSquared"), function=_beta_par_squared)
+
+    def _t_beta_par(field, data):
+        return data["gas","TempkeV"]*data["gas","BetaPar"]
+    registry.add_field(("gas","TBetaPar"), function=_t_beta_par)
+
+    def _t_sz(field, data):
+        return data["gas","density"]*data["gas","TempkeV"]
+    registry.add_field(("gas","TeSZ"), function=_t_sz)
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -85,20 +95,15 @@ class SZProjection(object):
         self.high_order = high_order
         self.freqs = np.array(freqs)
         self.mueinv = 1./mue
-        self.xinit = hcgs*self.freqs*1.0e9/(kboltz*Tcmb)
+        self.xinit = hcgs*pf.arr(self.freqs, "GHz")/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
         self.data = {}
-
-        self.units = {}
-        self.units["TeSZ"] = r"$\mathrm{keV}$"
-        self.units["Tau"] = None
 
         self.display_names = {}
         self.display_names["TeSZ"] = r"$\mathrm{T_e}$"
         self.display_names["Tau"] = r"$\mathrm{\tau}$"
 
         for f, field in zip(self.freqs, self.freq_fields):
-            self.units[field] = r"$\mathrm{MJy\ sr^{-1}}$"
             self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % (int(f))
 
     def on_axis(self, axis, center="c", width=(1, "unitary"), nx=800, source=None):
@@ -126,7 +131,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("density")
         else:
             ctr = center
 
@@ -134,16 +139,16 @@ class SZProjection(object):
             axis = data.get_field_parameter("axis")
             # Load these, even though we will only use one
             for ax in 'xyz':
-                data['%s-velocity' % ax]
-            vpar = data["Density"]*data["%s-velocity" % (vlist[axis])]
+                data['velocity_%s' % ax]
+            vpar = data["density"]*data["velocity_%s" % (vlist[axis])]
             return vpar/clight
         add_field("BetaPar", function=_beta_par)
         self.pf.h._derived_fields_add(["BetaPar"])
 
-        proj = self.pf.h.proj("Density", axis, center=ctr, data_source=source)
+        proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
         proj.data_source.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
-        dens = frb["Density"]
+        dens = frb["density"]
         Te = frb["TeSZ"]/dens
         bpar = frb["BetaPar"]/dens
         omega1 = frb["TSquared"]/dens/(Te*Te) - 1.
@@ -193,7 +198,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("density")
         else:
             ctr = center
 
@@ -202,14 +207,14 @@ class SZProjection(object):
             raise NotImplementedError
 
         def _beta_par(field, data):
-            vpar = data["Density"]*(data["x-velocity"]*L[0]+
-                                    data["y-velocity"]*L[1]+
-                                    data["z-velocity"]*L[2])
+            vpar = data["density"]*(data["velocity_x"]*L[0]+
+                                    data["velocity_y"]*L[1]+
+                                    data["velocity_z"]*L[2])
             return vpar/clight
         add_field("BetaPar", function=_beta_par)
         self.pf.h._derived_fields_add(["BetaPar"])
 
-        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "Density")
+        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
         Te      = off_axis_projection(self.pf, ctr, L, w, nx, "TeSZ")/dens
         bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "BetaPar")/dens
         omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "TSquared")/dens
@@ -272,32 +277,52 @@ class SZProjection(object):
         self.data["TeSZ"] = ImageArray(Te)
 
     @parallel_root_only
-    def write_fits(self, filename, clobber=True):
+    def write_fits(self, filename, sky_center=None, sky_scale=None, clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
-        optical depth. Distance units are in kpc.
+        optical depth. Distance units are in kpc, unless *sky_center*
+        and *scale* are specified. 
 
         Parameters
         ----------
         filename : string
             The name of the FITS file to be written. 
+        sky_center : tuple of floats, optional
+            The center of the observation in (RA, Dec) in degrees. Only used if
+            converting to sky coordinates.          
+        sky_scale : float, optional
+            Scale between degrees and kpc. Only used if
+            converting to sky coordinates.
         clobber : boolean, optional
             If the file already exists, do we overwrite?
 
         Examples
         --------
+        >>> # This example just writes out a FITS file with kpc coords
         >>> szprj.write_fits("SZbullet.fits", clobber=False)
+        >>> # This example uses sky coords
+        >>> sky_scale = 1./3600. # One arcsec per kpc
+        >>> sky_center = (30., 45.) # In degrees
+        >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        coords = {}
-        coords["dx"] = self.dx*self.pf.units["kpc"]
-        coords["dy"] = self.dy*self.pf.units["kpc"]
-        coords["xctr"] = 0.0
-        coords["yctr"] = 0.0
-        coords["units"] = "kpc"
-        other_keys = {"Time" : self.pf.current_time}
-        write_fits(self.data, filename, clobber=clobber, coords=coords,
-                   other_keys=other_keys)
 
+        deltas = np.array([self.dx*self.pf.units["kpc"],
+                           self.dy*self.pf.units["kpc"]])
+
+        if sky_center is None:
+            center = [0.0]*2
+            units = "kpc"
+        else:
+            center = sky_center
+            units = "deg"
+            deltas *= sky_scale
+            
+        fib = FITSImageBuffer(self.data, fields=self.data.keys(),
+                              center=center, units=units,
+                              scale=deltas)
+        fib.update_all_headers("Time", self.pf.current_time)
+        fib.writeto(filename, clobber=clobber)
+        
     @parallel_root_only
     def write_png(self, filename_prefix, cmap_name="algae",
                   log_fields=None):
@@ -387,7 +412,7 @@ class SZProjection(object):
         import h5py
         f = h5py.File(filename, "w")
         for field, data in self.items():
-            f.create_dataset(field,data=data)
+            f.create_dataset(field,data=data.ndarray_view())
         f.close()
 
     def keys(self):

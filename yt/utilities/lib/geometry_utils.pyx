@@ -408,11 +408,11 @@ def obtain_rv_vec(data):
     if bulk_velocity == None:
         bulk_velocity = np.zeros(3)
     bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
-    if len(data['x-velocity'].shape) == 1:
+    if len(data['velocity_x'].shape) == 1:
         # One dimensional data
-        vxf = data['x-velocity'].astype("float64")
-        vyf = data['y-velocity'].astype("float64")
-        vzf = data['z-velocity'].astype("float64")
+        vxf = data['velocity_x'].astype("float64")
+        vyf = data['velocity_y'].astype("float64")
+        vzf = data['velocity_z'].astype("float64")
         rvf = np.empty((3, vxf.shape[0]), 'float64')
         for i in range(vxf.shape[0]):
             rvf[0, i] = vxf[i] - bv[0]
@@ -421,9 +421,9 @@ def obtain_rv_vec(data):
         return rvf
     else:
         # Three dimensional data
-        vxg = data['x-velocity'].astype("float64")
-        vyg = data['y-velocity'].astype("float64")
-        vzg = data['z-velocity'].astype("float64")
+        vxg = data['velocity_x'].astype("float64")
+        vyg = data['velocity_y'].astype("float64")
+        vzg = data['velocity_z'].astype("float64")
         rvg = np.empty((3, vxg.shape[0], vxg.shape[1], vxg.shape[2]), 'float64')
         for i in range(vxg.shape[0]):
             for j in range(vxg.shape[1]):

@@ -26,10 +26,11 @@ from yt.data_objects.dataset import \
            Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
 
-from .fields import AthenaFieldInfo, KnownAthenaFields
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
+from .fields import AthenaFieldInfo
+from yt.units.yt_array import YTQuantity
 
 def _get_convert(fname):
     def _conv(data):
@@ -60,7 +61,7 @@ class AthenaGrid(AMRGridPatch):
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = np.array((RE-LE)/self.ActiveDimensions)
+            self.dds = self.pf.arr((RE-LE)/self.ActiveDimensions, "code_length")
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -109,11 +110,11 @@ class AthenaHierarchy(GridIndex):
         self.hierarchy_filename = self.parameter_file.filename
         #self.directory = os.path.dirname(self.hierarchy_filename)
         self._fhandle = file(self.hierarchy_filename,'rb')
-        AMRHierarchy.__init__(self, pf, dataset_type)
+        GridGeometryHandler.__init__(self, pf, dataset_type)
 
         self._fhandle.close()
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         field_map = {}
         f = open(self.hierarchy_filename,'rb')
         line = f.readline()
@@ -140,7 +141,7 @@ class AthenaHierarchy(GridIndex):
         while line != '':
             splitup = line.strip().split()
             if 'SCALARS' in splitup:
-                field = splitup[1]
+                field = ("athena", splitup[1])
                 if not read_table:
                     line = f.readline() # Read the lookup table line
                     read_table = True
@@ -150,7 +151,7 @@ class AthenaHierarchy(GridIndex):
             elif 'VECTORS' in splitup:
                 field = splitup[1]
                 for ax in 'xyz':
-                    field_map["%s_%s" % (field, ax)] =\
+                    field_map[("athena","%s_%s" % (field, ax))] =\
                             ('vector', f.tell() - read_table_offset)
             line = f.readline()
 
@@ -257,9 +258,9 @@ class AthenaHierarchy(GridIndex):
         # Now we convert the glis, which were left edges (floats), to indices 
         # from the domain left edge.  Then we do a bunch of fixing now that we
         # know the extent of all the grids. 
-        glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
+        glis = np.round((glis - self.parameter_file.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
         self.parameter_file.domain_width = \
                 (self.parameter_file.domain_right_edge - 
                  self.parameter_file.domain_left_edge)
@@ -271,7 +272,7 @@ class AthenaHierarchy(GridIndex):
 
         # Need to reset the units in the parameter file based on the correct
         # domain left/right/dimensions.
-        self.parameter_file._set_units()
+        self.parameter_file._set_code_unit_attributes()
 
         if self.parameter_file.dimensionality <= 2 :
             self.parameter_file.domain_dimensions[2] = np.int(1)
@@ -285,27 +286,46 @@ class AthenaHierarchy(GridIndex):
                   self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
             dx = dx/self.parameter_file.refine_by**(levels[i])
             dxs.append(dx)
-        
-        dx = np.array(dxs)
-        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
+
+        dx = self.pf.arr(dxs, "code_length")
+        dle = self.parameter_file.domain_left_edge
+        dre = self.parameter_file.domain_right_edge
+        self.grid_left_edge = self.pf.arr(np.round(dle + dx*glis, decimals=12), "code_length")
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
+        self.grid_right_edge = self.pf.arr(np.round(self.grid_left_edge +
+                                                    dx*self.grid_dimensions,
+                                                    decimals=12),
+                                            "code_length")
+        
         if self.parameter_file.dimensionality <= 2:
-            self.grid_right_edge[:,2] = self.parameter_file.domain_right_edge[2]
+            self.grid_right_edge[:,2] = dre[2]
         if self.parameter_file.dimensionality == 1:
-            self.grid_right_edge[:,1:] = self.parameter_file.domain_right_edge[1:]
+            self.grid_right_edge[:,1:] = dre[1:]
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
     def _populate_grid_objects(self):
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-
-        for g in self.grids:
-            g.Children = self._get_grid_children(g)
-            for g1 in g.Children:
-                g1.Parent.append(g)
+        self._reconstruct_parent_child()
         self.max_level = self.grid_levels.max()
+
+    def _reconstruct_parent_child(self):
+        mask = np.empty(len(self.grids), dtype='int32')
+        mylog.debug("First pass; identifying child grids")
+        for i, grid in enumerate(self.grids):
+            get_box_grids_level(self.grid_left_edge[i,:],
+                                self.grid_right_edge[i,:],
+                                self.grid_levels[i] + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+                #ids = np.where(mask.astype("bool")) # where is a tuple
+                #mask[ids] = True
+            grid.Children = [g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1]
+        mylog.debug("Second pass; identifying parents")
+        for i, grid in enumerate(self.grids): # Second pass
+            for child in grid.Children:
+                child.Parent.append(grid)
 
     def _get_grid_children(self, grid):
         mask = np.zeros(self.num_grids, dtype='bool')
@@ -315,12 +335,12 @@ class AthenaHierarchy(GridIndex):
 
 class AthenaDataset(Dataset):
     _index_class = AthenaHierarchy
-    _fieldinfo_fallback = AthenaFieldInfo
-    _fieldinfo_known = KnownAthenaFields
+    _field_info_class = AthenaFieldInfo
     _dataset_type = "athena"
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None):
+        self.fluid_types += ("athena",)
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
@@ -329,58 +349,32 @@ class AthenaDataset(Dataset):
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
-
         # Unfortunately we now have to mandate that the hierarchy gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
         self.h
 
-    def _set_units(self):
+    def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.conversion_factors = defaultdict(lambda: 1.0)    
-        if self.specified_parameters.has_key("LengthUnits") :
-            self._setup_getunits_units()
-        else :
-            self._setup_nounits_units()
-        self.parameters["Time"] = self.conversion_factors["Time"]
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self.conversion_factors["Time"] / sec_conversion[unit]
-                        
-    def _setup_getunits_units(self) :
-        box_proper = 3.24077e-25 * self.specified_parameters["LengthUnits"]
-        self.units['aye']  = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] * box_proper
-        if self.specified_parameters.has_key("TimeUnits"):
-            self.conversion_factors["Time"] = self.specified_parameters["TimeUnits"]
-        else :
-            self.conversion_factors["Time"] = 1.0
-        if self.specified_parameters.has_key("DensityUnits"):
-            self.conversion_factors["Density"] = self.specified_parameters["DensityUnits"]
-        else :
-            self.conversion_factors["Density"] = 1.0
-        self.conversion_factors["Mass"] = self.conversion_factors["Density"]*self.units["cm"]**3
-        for a in 'xyz':
-            self.conversion_factors["%s-velocity" % (a)] = self.units["cm"]/self.conversion_factors["Time"]
-                                            
-    def _setup_nounits_units(self):
-        self.conversion_factors["Time"] = 1.0
-        self.conversion_factors["Density"] = 1.0
-        self.conversion_factors["Mass"] = 1.0
-        for a in 'xyz':
-            self.conversion_factors["%s-velocity" % (a)] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-        
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+            val = self.specified_parameters.get("%s_unit" % unit, None)
+            if val is None:
+                mylog.warning("No %s conversion to cgs provided.  " +
+                              "Assuming 1.0 = 1.0 %s", unit, cgs)
+                val = 1.0
+            if not isinstance(val, tuple):
+                val = (val, cgs)
+            setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+        self.velocity_unit = self.length_unit/self.time_unit
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                  (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit.convert_to_units("gauss")
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        DW = self.domain_right_edge-self.domain_left_edge
+        self.unit_registry.modify("unitary", DW.max())
+
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
         # Read the start of a grid to get simulation parameters.
@@ -425,7 +419,10 @@ class AthenaDataset(Dataset):
             self.periodicity = ensure_tuple(self.specified_parameters['periodicity'])
         else:
             self.periodicity = (True,)*self.dimensionality
-
+        if 'gamma' in self.specified_parameters:
+            self.gamma = float(self.specified_parameters['gamma'])
+        else:
+            self.gamma = 5./3.
         dataset_dir = os.path.dirname(self.parameter_filename)
         dname = os.path.split(self.parameter_filename)[-1]
         if dataset_dir.endswith("id0"):

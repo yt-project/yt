@@ -12,7 +12,7 @@ Particle trajectories
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import DatasetSeries
-from yt.utilities.lib import sample_field_at_positions
+from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.funcs import *
 
 import numpy as np

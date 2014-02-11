@@ -26,9 +26,7 @@ from .data_structures import \
       refine_amr
 
 from .fields import \
-      KnownStreamFields, \
-      StreamFieldInfo, \
-      add_stream_field
+      StreamFieldInfo
 
 from .io import \
       IOHandlerStream

@@ -18,7 +18,7 @@ import numpy as np
 import copy
 from contextlib import contextmanager
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     NullFunc, TranslationFunc
 from yt.utilities.exceptions import YTIllDefinedFilter
 from yt.funcs import *

@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.testing import *
-from yt.utilities.lib import CICSample_3
+from yt.utilities.lib.CICDeposit import CICSample_3
 
 def setup():
     pass

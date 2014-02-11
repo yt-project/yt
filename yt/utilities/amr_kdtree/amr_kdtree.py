@@ -71,7 +71,7 @@ class Tree(object):
     def add_grids(self, grids):
         gles = np.array([g.LeftEdge for g in grids])
         gres = np.array([g.RightEdge for g in grids])
-        gids = np.array([g.id for g in grids])
+        gids = np.array([g.id for g in grids], dtype="int64")
         add_pygrids(self.trunk, gids.size, gles, gres, gids,
                     self.comm_rank, self.comm_size)
         del gles, gres, gids, grids
@@ -162,7 +162,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                          data_source=data_source)
 
     def set_fields(self, fields, log_fields, no_ghost):
-        self.fields = fields
+        self.fields = self.data_source._determine_fields(fields)
         self.log_fields = log_fields
         self.no_ghost = no_ghost
         del self.bricks, self.brick_dimensions
@@ -254,8 +254,8 @@ class AMRKDTree(ParallelAnalysisInterface):
     def get_brick_data(self, node):
         if node.data is not None: return node.data
         grid = self.pf.h.grids[node.grid - self._id_offset]
-        dds = grid.dds
-        gle = grid.LeftEdge
+        dds = grid.dds.ndarray_view()
+        gle = grid.LeftEdge.ndarray_view()
         nle = get_left_edge(node)
         nre = get_right_edge(node)
         li = np.rint((nle-gle)/dds).astype('int32')

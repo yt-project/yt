@@ -25,7 +25,7 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.dataset import \
     Dataset
-from yt.utilities.lib import \
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -33,7 +33,6 @@ from yt.utilities.definitions import \
 from .fields import GDFFieldInfo, KnownGDFFields
 from yt.data_objects.field_info_container import \
     NullFunc
-
 
 def _get_convert(fname):
     def _conv(data):
@@ -221,8 +220,7 @@ class GDFDataset(Dataset):
                 current_fields_unit = ""
             self._fieldinfo_known.add_field(
                 field_name, function=NullFunc, take_log=False,
-                units=current_fields_unit, projected_units="",
-                convert_function=_get_convert(field_name))
+                units=current_fields_unit, projected_units="")
 
         h5f.close()
 

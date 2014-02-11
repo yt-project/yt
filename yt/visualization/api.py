@@ -34,8 +34,7 @@ from image_writer import \
     splat_points, \
     apply_colormap, \
     scale_image, \
-    write_projection, \
-    write_fits
+    write_projection
 
 from plot_modifications import \
     PlotCallback, \
@@ -54,6 +53,10 @@ from plot_window import \
     ProjectionPlot, \
     OffAxisProjectionPlot
 
+from profile_plotter import \
+     ProfilePlot, \
+     PhasePlot
+    
 from base_plot_types import \
     get_multi_plot
 

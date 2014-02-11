@@ -88,9 +88,11 @@ def test_particle_octree_counts():
     for n_ref in [16, 32, 64, 512, 1024]:
         pf = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
         dd = pf.h.all_data()
-        bi = dd["all","mesh_id"]
+        bi = dd["io","mesh_id"]
         v = np.bincount(bi.astype("int64"))
         yield assert_equal, v.max() <= n_ref, True
+        bi2 = dd["all","mesh_id"]
+        yield assert_equal, bi, bi2
 
 def test_particle_overrefine():
     np.random.seed(int(0x4d3d3d3))
@@ -109,7 +111,7 @@ def test_particle_overrefine():
         pf1 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
         dd1 = pf1.h.all_data()
         v1 = dict((a, getattr(dd1, a)) for a in _attrs)
-        cv1 = dd1["CellVolumeCode"].sum(dtype="float64")
+        cv1 = dd1["cell_volume"].sum(dtype="float64")
         for over_refine in [1, 2, 3]:
             f = 1 << (3*(over_refine-1))
             pf2 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref,
@@ -118,24 +120,29 @@ def test_particle_overrefine():
             v2 = dict((a, getattr(dd2, a)) for a in _attrs)
             for a in sorted(v1):
                 yield assert_equal, v1[a].size * f, v2[a].size
-            cv2 = dd2["CellVolumeCode"].sum(dtype="float64")
+            cv2 = dd2["cell_volume"].sum(dtype="float64")
             yield assert_equal, cv1, cv2
 
 class FakePF:
     domain_left_edge = None
     domain_right_edge = None
+    domain_width = None
     periodicity = (False, False, False)
 
 class FakeRegion:
     def __init__(self, nfiles):
         self.pf = FakePF()
-        self.pf.domain_left_edge = [0.0, 0.0, 0.0]
-        self.pf.domain_right_edge = [nfiles, nfiles, nfiles]
+        self.pf.domain_left_edge = YTArray([0.0, 0.0, 0.0], "code_length")
+        self.pf.domain_right_edge = YTArray([nfiles, nfiles, nfiles], "code_length")
+        self.pf.domain_width = self.pf.domain_right_edge - \
+                               self.pf.domain_left_edge
         self.nfiles = nfiles
 
     def set_edges(self, file_id):
-        self.left_edge = [file_id + 0.1, 0.0, 0.0]
-        self.right_edge = [file_id+1 - 0.1, self.nfiles, self.nfiles]
+        self.left_edge = YTArray([file_id + 0.1, 0.0, 0.0],
+                                  "code_length")
+        self.right_edge = YTArray([file_id+1 - 0.1, self.nfiles, self.nfiles],
+                                  "code_length")
 
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))

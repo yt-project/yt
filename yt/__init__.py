@@ -91,22 +91,34 @@ from yt.funcs import \
     parallel_profile, \
     enable_plugins
 
-from yt.data_objects.api import \
-    BinnedProfile1D, \
-    BinnedProfile2D, \
-    BinnedProfile3D, \
-    derived_field, \
-    add_field, \
-    add_grad, \
-    FieldInfo, \
+from yt.fields.api import \
+    field_plugins, \
+    DerivedField, \
+    FieldDetector, \
+    FieldInfoContainer, \
     ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType, \
+    add_field, \
+    derived_field
+
+from yt.data_objects.api import \
+    BinnedProfile1D, \
+    BinnedProfile2D, \
+    BinnedProfile3D, \
+    data_object_registry, \
     DatasetSeries, \
+    AnalysisTask, \
+    analysis_task, \
     ImageArray, \
-    particle_filter
+    particle_filter, \
+    create_profile, \
+    Profile1D, \
+    Profile2D, \
+    Profile3D
+
 
 from yt.utilities.logger import ytLogger as mylog
 
@@ -116,18 +128,23 @@ frontends = _frontend_container()
 from yt.analysis_modules.list_modules import \
     amods
 
+from yt.frontends.stream.api import \
+    load_uniform_grid, load_amr_grids, \
+    load_particles, load_hexahedral_mesh, load_octree
+
 # Now individual component imports from the visualization API
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    write_bitmap, write_image, \
-    apply_colormap, scale_image, write_projection, write_fits, \
+    callback_registry, write_bitmap, write_image, \
+    apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps
+    show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    off_axis_projection
+    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
+    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
@@ -138,6 +155,9 @@ from yt.convenience import \
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
+
+from yt.utilities.definitions import \
+    axis_names, x_dict, y_dict, inv_axis_names
 
 import yt.utilities.physical_constants as physical_constants
 from yt.testing import run_nose

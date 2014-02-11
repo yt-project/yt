@@ -15,7 +15,7 @@ Orion data-file handling functions
 
 import os
 import numpy as np
-from yt.utilities.lib import \
+from yt.utilities.lib.fortran_reader import \
     read_castro_particles, \
     read_and_seek
 from yt.utilities.io_handler import \
@@ -31,7 +31,7 @@ class IOHandlerBoxlib(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "gas" for ftype, fname in fields)):
+        if any((ftype != "boxlib" for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         for field in fields:
@@ -44,8 +44,7 @@ class IOHandlerBoxlib(BaseIOHandler):
             data = self._read_chunk_data(chunk, fields)
             for g in chunk.objs:
                 for field in fields:
-                    ftype, fname = field
-                    ds = data[g.id].pop(fname)
+                    ds = data[g.id].pop(field)
                     nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
                 data.pop(g.id)
@@ -61,7 +60,6 @@ class IOHandlerBoxlib(BaseIOHandler):
             grids_by_file[g.filename].append(g)
         dtype = self.pf.hierarchy._dtype
         bpr = dtype.itemsize
-        field_list = set(f[1] for f in fields)
         for filename in grids_by_file:
             grids = grids_by_file[filename]
             grids.sort(key = lambda a: a._offset)
@@ -72,7 +70,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                 count = grid.ActiveDimensions.prod()
                 size = count * bpr
                 for field in self.pf.hierarchy.field_order:
-                    if field in field_list:
+                    if field in fields:
                         # We read it ...
                         v = np.fromfile(f, dtype=dtype, count=count)
                         v = v.reshape(grid.ActiveDimensions, order='F')

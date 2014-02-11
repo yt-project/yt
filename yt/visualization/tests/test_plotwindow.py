@@ -19,12 +19,12 @@ import shutil
 import unittest
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
-    fake_random_pf, assert_equal, assert_rel_equal
+    fake_random_pf, assert_equal, assert_rel_equal, assert_array_equal
 from yt.utilities.answer_testing.framework import \
     requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
-
+from yt.units.yt_array import YTArray, YTQuantity
 
 def setup():
     """Test specific setup."""
@@ -73,21 +73,33 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_buff_size": [((1600, ), {}),
                                (((600, 800), ), {})],
              "set_center": [(((0.4, 0.3), ), {})],
-             "set_cmap": [(('Density', 'RdBu'), {}),
-                          (('Density', 'kamae'), {})],
+             "set_cmap": [(('density', 'RdBu'), {}),
+                          (('density', 'kamae'), {})],
              "set_font": [(({'family': 'sans-serif', 'style': 'italic',
                              'weight': 'bold', 'size': 24}, ), {})],
-             "set_log": [(('Density', False), {})],
+             "set_log": [(('density', False), {})],
              "set_window_size": [((7.0, ), {})],
-             "set_zlim": [(('Density', 1e-25, 1e-23), {}),
-                          (('Density', 1e-25, None), {'dynamic_range': 4})],
+             "set_zlim": [(('density', 1e-25, 1e-23), {}),
+                          (('density', 1e-25, None), {'dynamic_range': 4})],
              "zoom": [((10, ), {})]}
 
+
+CENTER_SPECS = ("m",
+                "M",
+                "max",
+                "Max",
+                "c",
+                "C",
+                "center",
+                "Center",
+                [0.5, 0.5, 0.5],
+                [[0.2, 0.3, 0.4], "cm"],
+                YTArray([0.3, 0.4, 0.7], "cm"))
 
 @requires_pf(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
-    plot_field = 'Density'
+    plot_field = 'density'
     decimals = 3
 
     pf = data_dir_load(M7)
@@ -102,7 +114,7 @@ def test_attributes():
 
 @requires_pf(WT)
 def test_attributes_wt():
-    plot_field = 'Density'
+    plot_field = 'density'
     decimals = 3
 
     pf = data_dir_load(WT)
@@ -120,19 +132,19 @@ class TestSetWidth(unittest.TestCase):
     def setUp(self):
         if self.pf is None:
             self.pf = fake_random_pf(64)
-            self.slc = SlicePlot(self.pf, 0, 'Density')
+            self.slc = SlicePlot(self.pf, 0, "density")
 
-    def _assert_15kpc(self):
-        assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
-                         [(-7.5 / self.pf['kpc'], 7.5 / self.pf['kpc']),
-                          (-7.5 / self.pf['kpc'], 7.5 / self.pf['kpc']),
-                          (15.0 / self.pf['kpc'], 15. / self.pf['kpc'])], 15)
+    def _assert_05cm(self):
+        assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
+                         [(YTQuantity(0.25, 'cm'), YTQuantity(0.75, 'cm')),
+                          (YTQuantity(0.25, 'cm'), YTQuantity(0.75, 'cm')),
+                          (YTQuantity(0.5,  'cm'), YTQuantity(0.5,  'cm'))])
 
-    def _assert_15_10kpc(self):
-        assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
-                         [(-7.5 / self.pf['kpc'], 7.5 / self.pf['kpc']),
-                          (-5.0 / self.pf['kpc'], 5.0 / self.pf['kpc']),
-                          (15.0 / self.pf['kpc'], 10. / self.pf['kpc'])], 15)
+    def _assert_05_075cm(self):
+        assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
+                         [(YTQuantity(0.25,  'cm'), YTQuantity(0.75,  'cm')),
+                          (YTQuantity(0.125, 'cm'), YTQuantity(0.875, 'cm')),
+                          (YTQuantity(0.5,   'cm'), YTQuantity(0.75,  'cm'))])
 
     def test_set_width_one(self):
         assert_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
@@ -144,24 +156,20 @@ class TestSetWidth(unittest.TestCase):
                          [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)], 15)
 
     def test_twoargs_eq(self):
-        self.slc.set_width(15, 'kpc')
-        self._assert_15kpc()
+        self.slc.set_width(0.5, 'cm')
+        self._assert_05cm()
 
     def test_tuple_eq(self):
-        self.slc.set_width((15, 'kpc'))
-        self._assert_15kpc()
+        self.slc.set_width((0.5, 'cm'))
+        self._assert_05cm()
 
     def test_tuple_of_tuples_neq(self):
-        self.slc.set_width(((15, 'kpc'), (10, 'kpc')))
-        self._assert_15_10kpc()
+        self.slc.set_width(((0.5, 'cm'), (0.75, 'cm')))
+        self._assert_05_075cm()
 
-    def test_tuple_of_tuples_neq2(self):
-        self.slc.set_width(((15, 'kpc'), (10000, 'pc')))
-        self._assert_15_10kpc()
-
-    def test_pair_of_tuples_neq(self):
-        self.slc.set_width((15, 'kpc'), (10000, 'pc'))
-        self._assert_15_10kpc()
+    def test_tuple_of_tuples_neq(self):
+        self.slc.set_width(((0.5, 'cm'), (0.0075, 'm')))
+        self._assert_05_075cm()
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -173,16 +181,21 @@ class TestPlotWindowSave(unittest.TestCase):
         ds_region = test_pf.h.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         projections = []
         projections_ds = []
+        projections_c = []
         for dim in range(3):
-            projections.append(ProjectionPlot(test_pf, dim, 'Density'))
-            projections_ds.append(ProjectionPlot(test_pf, dim, 'Density',
+            projections.append(ProjectionPlot(test_pf, dim, "density"))
+            projections_ds.append(ProjectionPlot(test_pf, dim, "density",
                                                  data_source=ds_region))
+        for center in CENTER_SPECS:
+            projections_c.append(ProjectionPlot(test_pf, dim, "density",
+                                                center=center))
 
-        cls.slices = [SlicePlot(test_pf, dim, 'Density') for dim in range(3)]
+        cls.slices = [SlicePlot(test_pf, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
-        cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, 'Density')
-        cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, 'Density')
+        cls.projections_c = projections_c
+        cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, "density")
+        cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, "density")
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
@@ -208,6 +221,10 @@ class TestPlotWindowSave(unittest.TestCase):
     @parameterized.expand([(0, ), (1, ), (2, )])
     def test_projection_plot_ds(self, dim):
         self.projections_ds[dim].save()
+
+    @parameterized.expand([(i, ) for i in range(len(CENTER_SPECS))])
+    def test_projection_plot_c(self, dim):
+        self.projections_c[dim].save()
 
     @parameterized.expand(
         param.explicit((fname, ))

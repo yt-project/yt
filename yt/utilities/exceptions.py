@@ -13,13 +13,14 @@ This is a library of yt-defined exceptions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+
 # We don't need to import 'exceptions'
 #import exceptions
 import os.path
 
 class YTException(Exception):
-    def __init__(self, pf = None):
-        Exception.__init__(self)
+    def __init__(self, message = None, pf = None):
+        Exception.__init__(self, message)
         self.pf = pf
 
 # Data access exceptions:
@@ -35,7 +36,7 @@ class YTOutputNotIdentified(YTException):
 
 class YTSphereTooSmall(YTException):
     def __init__(self, pf, radius, smallest_cell):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
         self.radius = radius
         self.smallest_cell = smallest_cell
 
@@ -119,7 +120,7 @@ class InvalidSimulationTimeSeries(YTException):
             
 class MissingParameter(YTException):
     def __init__(self, pf, parameter):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
         self.parameter = parameter
 
     def __str__(self):
@@ -128,7 +129,7 @@ class MissingParameter(YTException):
 
 class NoStoppingCondition(YTException):
     def __init__(self, pf):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
 
     def __str__(self):
         return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
@@ -162,6 +163,48 @@ class YTUnitNotRecognized(YTException):
     def __str__(self):
         return "This parameter file doesn't recognize %s" % self.unit
 
+class YTUnitOperationError(YTException):
+    def __init__(self, operation, unit1, unit2=None):
+        self.operation = operation
+        self.unit1 = unit1
+        self.unit2 = unit2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
+        if self.unit2 is not None:
+            err += "and (%s) " % self.unit2
+        err += "is not well defined."
+        return err
+
+class YTUnitConversionError(YTException):
+    def __init__(self, unit1, dimension1, unit2, dimension2):
+        self.unit1 = unit1
+        self.unit2 = unit2
+        self.dimension1 = dimension1
+        self.dimension2 = dimension2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "Unit dimensionalities do not match. Tried to convert between " \
+          "%s (dim %s) and %s (dim %s)." \
+          % (self.unit1, self.dimension1, self.unit2, self.dimension2)
+        return err
+
+class YTUfuncUnitError(YTException):
+    def __init__(self, ufunc, unit1, unit2):
+        self.ufunc = ufunc
+        self.unit1 = unit1
+        self.unit2 = unit2
+        YTException.__init__(self)
+
+    def __str__(self):
+        err = "The NumPy %s operation is only allowed on objects with " \
+        "identical units. Convert one of the arrays to the other\'s " \
+        "units first. Received units (%s) and (%s)." % \
+        (self.ufunc, self.unit1, self.unit2)
+        return err
+
 class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \
@@ -193,7 +236,7 @@ class YTCloudError(YTException):
 
 class YTEllipsoidOrdering(YTException):
     def __init__(self, pf, A, B, C):
-        YTException.__init__(self, pf)
+        YTException.__init__(self, pf=pf)
         self._A = A
         self._B = B
         self._C = C
@@ -311,3 +354,25 @@ class YTRockstarMultiMassNotSupported(YTException):
         v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
             self.ma)
         return v
+
+class YTFITSHeaderNotUnderstood(YTException):
+    def __str__(self):
+        return "This FITS header is not recognizable in its current form.\n" + \
+                "If you would like to force loading, specify: \n" + \
+                "ignore_unit_names = True"
+
+class YTEmptyProfileData(Exception):
+    pass
+
+class YTDuplicateFieldInProfile(Exception):
+    def __init__(self, field, new_spec, old_spec):
+        self.field = field
+        self.new_spec = new_spec
+        self.old_spec = old_spec
+
+    def __str__(self):
+        r = """Field %s already exists with field spec:
+               %s
+               But being asked to add it with:
+               %s""" % (self.field, self.old_spec, self.new_spec)
+        return r

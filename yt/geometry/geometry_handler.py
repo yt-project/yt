@@ -26,10 +26,10 @@ import copy
 
 from yt.funcs import *
 from yt.config import ytcfg
-from yt.data_objects.field_info_container import \
-    NullFunc
-from yt.data_objects.particle_fields import \
-    particle_deposition_functions
+from yt.data_objects.data_containers import \
+    data_object_registry
+from yt.units.yt_array import \
+    uconcatenate
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -45,6 +45,7 @@ class Index(ParallelAnalysisInterface):
     _global_mesh = True
 
     def __init__(self, pf, dataset_type):
+        self.filtered_particle_types = []
         ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
@@ -84,6 +85,7 @@ def cached_property(func):
         else:
             tr = func(self)
         if self._cache:
+        
             setattr(self, n, tr)
         return tr
     return property(cached_func)
@@ -107,13 +109,19 @@ class YTDataChunk(object):
         for obj in self.objs:
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
-        arrs = np.concatenate(arrs)
+        if method == "dtcoords":
+            arrs = [arr[0] for arr in arrs]
+        elif method == "tcoords":
+            arrs = [arr[1] for arr in arrs]
+        arrs = uconcatenate(arrs)
         self.data_size = arrs.shape[0]
         return arrs
 
     @cached_property
     def fcoords(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
+        ci = YTArray(ci, input_units = "code_length",
+                     registry = self.dobj.pf.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -138,6 +146,8 @@ class YTDataChunk(object):
     @cached_property
     def fwidth(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
+        ci = YTArray(ci, input_units = "code_length",
+                     registry = self.dobj.pf.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -172,7 +182,7 @@ class YTDataChunk(object):
         if self.data_size == 0: return cdt
         ind = 0
         for obj in self.objs:
-            gdt, gt = obj.tcoords(self.dobj)
+            gdt, gt = obj.select_tcoords(self.dobj)
             if gt.shape == 0: continue
             ct[ind:ind+gt.size] = gt
             cdt[ind:ind+gdt.size] = gdt

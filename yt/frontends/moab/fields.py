@@ -11,7 +11,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, \
     FieldInfo, \
     ValidateParameter, \
@@ -21,7 +21,6 @@ from yt.data_objects.field_info_container import \
     ValidateGridType, \
     NullFunc, \
     TranslationFunc
-import yt.fields.universal_fields
 
 log_translation_dict = {"Density": "density",
                         "Pressure": "pressure"}

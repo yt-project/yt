@@ -299,7 +299,7 @@ class ExtractedHierarchy(GridIndex):
     def _convert_coords(self, val):
         return (val - self.left_edge_offset)*self.mult_factor
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         self.field_list = self.base_pf.h.field_list[:]
 
     def _setup_unknown_fields(self):

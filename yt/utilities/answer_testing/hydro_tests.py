@@ -172,7 +172,7 @@ class TestGasDistribution(DatasetTest):
 
 # Now we create all our tests, but we're only going to check the binning
 # against Density for now.
-for field in ["Temperature", "x-velocity"]:
+for field in ["Temperature", "velocity_x"]:
     create_test(TestGasDistribution, "profile_density_test_%s" % field,
                 field_x = "Density", field_y = field)
 

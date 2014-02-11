@@ -7,7 +7,7 @@ def test_ortho_ray():
 
     axes = ['x', 'y', 'z']
     for ax, an in enumerate(axes):
-        ocoord = np.random.random(2)
+        ocoord = pf.arr(np.random.random(2), 'code_length')
 
         my_oray = pf.h.ortho_ray(ax, ocoord)
 
@@ -21,5 +21,5 @@ def test_ortho_ray():
                    (np.abs(my_all[axes[my_axes[1]]] - ocoord[1]) <= 
                     0.5 * dx[my_axes[1]])
 
-        yield assert_equal, my_oray['Density'].sum(), \
-                            my_all['Density'][my_cells].sum()
+        yield assert_equal, my_oray['density'].sum(), \
+                            my_all['density'][my_cells].sum()

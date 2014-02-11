@@ -124,7 +124,7 @@ class RadMC3DWriter:
     
     >>> writer.write_amr_grid()
     >>> writer.write_line_file("NumberDensityCO", "numberdens_co.inp")
-    >>> velocity_fields = ["x-velocity", "y-velocity", "z-velocity"]
+    >>> velocity_fields = ["velocity_x", "velocity_y", "velocity_z"]
     >>> writer.write_line_file(velocity_fields, "gas_velocity.inp") 
 
     '''

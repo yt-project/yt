@@ -59,7 +59,9 @@ def save_field(pf, field_name, field_parameters=None):
         A dictionary of field parameters to set.
     """
 
-    field_obj = pf.field_info[field_name]
+    if isinstance(field_name, tuple):
+        field_name = field_name[1]
+    field_obj = pf._get_field_info(field_name)
     if field_obj.particle_type:
         print( "Saving particle fields currently not supported." )
         return
@@ -84,6 +86,9 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
     # add field info to field_types group
     g = fhandle["field_types"]
     # create the subgroup with the field's name
+    if isinstance(field_name, tuple):
+        field_name = field_name[1]
+    fi = pf._get_field_info(field_name)
     try:
         sg = g.create_group(field_name)
     except ValueError:
@@ -91,8 +96,8 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
         sys.exit(1)
         
     # grab the display name and units from the field info container.
-    display_name = pf.field_info[field_name].display_name
-    units = pf.field_info[field_name].get_units()
+    display_name = fi.display_name
+    units = fi.get_units()
 
     # check that they actually contain something...
     if display_name:
@@ -122,9 +127,8 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
         pt_group = particles_group[particle_type_name]
         # add the field data to the grid group
         # Check if this is a real field or particle data.
-        field_obj = pf.field_info[field_name]
         grid.get_data(field_name)
-        if field_obj.particle_type:  # particle data
+        if fi.particle_type:  # particle data
             pt_group[field_name] = grid[field_name]
         else:  # a field
             grid_group[field_name] = grid[field_name]

@@ -27,7 +27,7 @@ from yt.data_objects.data_containers import \
     YTDataContainer, \
     YTSelectionContainer
 from yt.utilities.definitions import x_dict, y_dict
-from .field_info_container import \
+from yt.fields.field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \
@@ -45,7 +45,12 @@ class AMRGridPatch(YTSelectionContainer):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
-    _container_fields = ("dx", "dy", "dz")
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
     OverlappingSiblings = None
 
     def __init__(self, id, filename=None, hierarchy=None):
@@ -74,11 +79,12 @@ class AMRGridPatch(YTSelectionContainer):
         if self.Parent is None:
             left = self.LeftEdge - self.pf.domain_left_edge
             start_index = left / self.dds
-            return np.rint(start_index).astype('int64').ravel()
+            return np.rint(start_index).astype('int64').ravel().view(np.ndarray)
 
-        pdx = self.Parent.dds
-        start_index = (self.Parent.get_global_startindex()) + \
-                       np.rint((self.LeftEdge - self.Parent.LeftEdge) / pdx)
+        pdx = self.Parent.dds.ndarray_view()
+        di = np.rint( (self.LeftEdge.ndarray_view() -
+                       self.Parent.LeftEdge.ndarray_view()) / pdx)
+        start_index = self.Parent.get_global_startindex() + di
         self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
@@ -112,25 +118,35 @@ class AMRGridPatch(YTSelectionContainer):
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.hierarchy._identify_base_chunk(self)
-        if field == "dx":
-            return self._current_chunk.fwidth[:,0]
-        elif field == "dy":
-            return self._current_chunk.fwidth[:,1]
-        elif field == "dz":
-            return self._current_chunk.fwidth[:,2]
+        if field == ("index", "dx"):
+            tr = self._current_chunk.fwidth[:,0]
+        elif field == ("index", "dy"):
+            tr = self._current_chunk.fwidth[:,1]
+        elif field == ("index", "dz"):
+            tr = self._current_chunk.fwidth[:,2]
+        elif field == ("index", "x"):
+            tr = self._current_chunk.fcoords[:,0]
+        elif field == ("index", "y"):
+            tr = self._current_chunk.fcoords[:,1]
+        elif field == ("index", "z"):
+            tr = self._current_chunk.fcoords[:,2]
+        return self._reshape_vals(tr)
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
-            self.dds = self.Parent.dds / self.pf.refine_by
+            self.dds = self.Parent.dds.ndarray_view() / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
-            self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
-        if self.pf.dimensionality < 3: self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
+            self.dds = (RE - LE) / self.ActiveDimensions
+        if self.pf.dimensionality < 2:
+            self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
+        if self.pf.dimensionality < 3:
+            self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
+        self.dds = self.pf.arr(self.dds, "code_length")
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
@@ -259,7 +275,7 @@ class AMRGridPatch(YTSelectionContainer):
             new_field[1:,1:,:-1] += of
             new_field[1:,1:,1:] += of
             np.multiply(new_field, 0.125, new_field)
-            finfo = self.pf._get_field_info(field)
+            finfo = self.pf._get_field_info(*field)
             if finfo.take_log:
                 new_field = np.log10(new_field)
 
@@ -317,7 +333,7 @@ class AMRGridPatch(YTSelectionContainer):
         coords[:] = self.Level
         return coords
 
-    def tcoords(self, dobj):
+    def select_tcoords(self, dobj):
         dt, t = dobj.selector.get_dt(self)
         return dt, t
 

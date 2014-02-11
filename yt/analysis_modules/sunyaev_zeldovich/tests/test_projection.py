@@ -42,7 +42,7 @@ def full_szpack3d(pf, xo):
     dn = np.zeros((nx,ny,nz))
     Dtau = sigma_thompson*data["Density"]/(mh*mue)*dz
     Te = data["Temperature"]/K_per_keV
-    betac = data["z-velocity"]/clight
+    betac = data["velocity_z"]/clight
     pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx)
     for i in xrange(nx):
         pbar.update(i)
@@ -82,9 +82,9 @@ def setup_cluster():
     data = {}
     data["Density"] = dens
     data["Temperature"] = temp
-    data["x-velocity"] = np.zeros(ddims)
-    data["y-velocity"] = np.zeros(ddims)
-    data["z-velocity"] = velz
+    data["velocity_x"] = np.zeros(ddims)
+    data["velocity_y"] = np.zeros(ddims)
+    data["velocity_z"] = velz
 
     bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 
