@@ -31,8 +31,8 @@ from yt.data_objects.particle_unions import \
     ParticleUnion
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.static_output import \
-    ParticleFile
+from yt.data_objects.dataset import \
+    Dataset, ParticleFile
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.grid_geometry_handler import \
@@ -50,9 +50,7 @@ from yt.fields.particle_fields import \
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredMeshIndex
-from yt.data_objects.dataset import \
-    Dataset
+     UnstructuredMeshIndex
 from yt.utilities.logger import ytLogger as mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -649,7 +647,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
 
     # Now figure out where the particles go
     if number_of_particles > 0 :
@@ -802,7 +800,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
     return spf
 
 def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
@@ -1079,7 +1077,7 @@ class StreamHexahedralMesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
 
-class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
+class StreamHexahedralHierarchy(UnstructuredMeshIndex):
 
     def __init__(self, pf, data_style = None):
         self.stream_handler = pf.stream_handler
@@ -1100,7 +1098,7 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
-class StreamHexahedralStaticOutput(StreamStaticOutput):
+class StreamHexahedralStaticOutput(StreamDataset):
     _hierarchy_class = StreamHexahedralHierarchy
     _field_info_class = StreamFieldInfo
     _data_style = "stream_hexahedral"

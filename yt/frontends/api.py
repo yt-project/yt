@@ -16,22 +16,21 @@ API for yt.frontends
 import importlib
 
 _frontends = [
-    'enzo',
-    'castro',
-    'nyx',
-    'orion',
-    'flash',
-    'tiger',
-    'artio',
-    'ramses',
-    'chombo',
-    'gdf',
-    'moab',
-    'athena',
-    'art',
-    'pluto',
-    'stream',
-    'sph',
+    "enzo",
+    "boxlib",
+    "flash",
+    "artio",
+    "ramses",
+    "halo_catalogs",
+    #"chombo",
+    #"gdf",
+    #"moab",
+    "athena",
+    #"art",
+    #"pluto",
+    "stream",
+    "sph",
+    "fits",
 ]
 
 class _frontend_container:

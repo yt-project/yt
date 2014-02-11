@@ -15,7 +15,7 @@ API for yt.frontends.halo_catalogs
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      RockstarStaticOutput
+      RockstarDataset
 
 from .io import \
       IOHandlerRockstarBinary
