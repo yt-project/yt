@@ -134,7 +134,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return (kboltz*data[ftype, "temperature"]).in_units("keV")
     registry.add_field((ftype, "kT"),
                        function=_kT,
-                       units="keV")
+                       units="keV",
+                       display_name="Temperature")
 
     def _entropy(field, data):
         mw = data.get_field_parameter("mu")
