@@ -846,7 +846,7 @@ class ProfileND(ParallelAnalysisInterface):
         return [(k,self[k]) for k in self.field_data.keys()]
     
     def __iter__(self):
-        return sorted(self.field_data.items())
+        return sorted(self.items())
 
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:

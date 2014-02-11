@@ -648,10 +648,7 @@ class PhasePlot(ImagePlotContainer):
             y_log = profile.y_log
         else:
             y_log = self.y_log
-        print field_z, self.z_log
         if field_z in self.z_log:
-            print "help"
-            print field_z
             z_log = self.z_log[field_z]
         else:
             z_log = zfi.take_log
@@ -659,7 +656,7 @@ class PhasePlot(ImagePlotContainer):
         return scales[x_log], scales[y_log], scales[z_log]
 
     def _setup_plots(self):
-        for f, data in self.profile.field_data.items():
+        for f, data in self.profile.items():
             fig = None
             axes = None
             cax = None
@@ -672,14 +669,11 @@ class PhasePlot(ImagePlotContainer):
             size = (self.figure_size, self.figure_size)
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
-            if f in self.plots:
-                zlim = [self.plots[f].zmin, self.plots[f].zmax]
+            if z_scale == 'log':
+                zmin = data[data > 0.0].min()
             else:
-                if z_scale == 'log':
-                    zmin = data[data > 0.0].min()
-                else:
-                    zmin = data.min()
-                zlim = [zmin, data.max()]                
+                zmin = data.min()
+            zlim = [zmin, data.max()]
             
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
@@ -707,6 +701,7 @@ class PhasePlot(ImagePlotContainer):
                   [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
                 for label in labels:
                     label.set_color(self._font_color)
+        self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
@@ -798,7 +793,7 @@ class PhasePlot(ImagePlotContainer):
 
     @invalidate_plot
     def set_unit(self, field, unit):
-        fields = [field[1] for field in self.profile.field_data]
+        fields = [fd[1] for fd in self.profile.field_data]
         if field == self.profile.x_field[1]:
             self.profile.set_x_unit(unit)
         elif field == self.profile.y_field[1]:
