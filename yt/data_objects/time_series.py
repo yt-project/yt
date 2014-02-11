@@ -53,6 +53,19 @@ def get_pf_prop(propname):
                 dict(eval = _eval, _params = tuple()))
     return cls
 
+def get_filenames_from_glob_pattern(filenames):
+    filenames = glob.glob(filenames)
+    if len(filenames) == 0:
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        pattern = os.path.join(data_dir, filenames)
+        td_filenames = glob.glob(pattern)
+        if len(td_filenames) > 0:
+            filenames = td_filenames
+        else:
+            raise YTOutputNotIdentified(filenames, {})
+    return sorted(filenames)
+
+
 attrs = ("refine_by", "dimensionality", "current_time",
          "domain_dimensions", "domain_left_edge",
          "domain_right_edge", "unique_identifier",
@@ -90,6 +103,16 @@ class TimeSeriesData(object):
     ...     SlicePlot(pf, "x", "Density").save()
 
     """
+    def __new__(cls, outputs, *args, **kwargs):
+        if isinstance(outputs, basestring):
+            outputs = get_filenames_from_glob_pattern(outputs)
+        ret = super(TimeSeriesData, cls).__new__(cls, outputs, *args, **kwargs)
+        try:
+            ret._pre_outputs = outputs[:]
+        except TypeError:
+            raise YTOutputNotIdentified(outputs, {})
+        return ret
+
     def __init__(self, outputs, parallel = True, setup_function = None,
                  **kwargs):
         self.tasks = AnalysisTaskProxy(self)
@@ -97,7 +120,6 @@ class TimeSeriesData(object):
         if setup_function is None:
             setup_function = lambda a: None
         self._setup_function = setup_function
-        self._pre_outputs = outputs[:]
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
@@ -128,6 +150,10 @@ class TimeSeriesData(object):
 
     def __len__(self):
         return len(self._pre_outputs)
+
+    @property
+    def outputs(self):
+        return self._pre_outputs
 
     def piter(self, storage = None):
         r"""Iterate over time series components in parallel.
@@ -271,17 +297,7 @@ class TimeSeriesData(object):
         """
         
         if isinstance(filenames, types.StringTypes):
-            if len(glob.glob(filenames)) == 0:
-                data_dir = ytcfg.get("yt", "test_data_dir")
-                pattern = os.path.join(data_dir, filenames)
-                td_filenames = glob.glob(pattern)
-                if len(td_filenames) > 0:
-                    filenames = td_filenames
-                else:
-                    raise YTOutputNotIdentified(filenames, {})
-            else:
-                filenames = glob.glob(filenames)
-            filenames.sort()
+            filenames = get_filenames_from_glob_pattern(filenames)
         obj = cls(filenames[:], parallel = parallel,
                   setup_function = setup_function, **kwargs)
         return obj
