@@ -788,7 +788,7 @@ class ProfileND(ParallelAnalysisInterface):
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(fd, new_unit):
-            self.field_units[f[1]] = Unit(u)
+            self.field_units[f] = Unit(u)
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here

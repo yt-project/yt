@@ -446,10 +446,8 @@ class ProfilePlot(object):
         for profile in self.profiles:
             if field == profile.x_field[1]:
                 profile.set_x_unit(unit)
-            elif field in profile.field_data:
-                profile.set_field_unit(field, unit)
             else:
-                raise KeyError("Field %s not in profiles!" % (field))
+                profile.set_field_unit(field, unit)
         return self
 
     def _get_field_log(self, field_y, profile):
@@ -599,8 +597,7 @@ class PhasePlot(ImagePlotContainer):
                accumulation=accumulation,
                fractional=fractional)
         self.profile = profile
-        ImagePlotContainer.__init__(self, data_source, profile.field_data.keys(),
-                                    figure_size, fontsize)
+        ImagePlotContainer.__init__(self, data_source, figure_size, fontsize)
         # This is a fallback, in case we forget.
         self._setup_plots()
         self._initfinished = True
@@ -785,10 +782,9 @@ class PhasePlot(ImagePlotContainer):
             Log on/off.
         """
         if field == "all":
-            fields = [field[1] for field in self.fields]
+            fields = [field[1] for field in self.profile.field_data]
             fields.append(self.profile.x_field[1])
             fields.append(self.profile.y_field[1])
-            print fields
         else:
             fields = [field]
         for field in fields:
@@ -802,14 +798,13 @@ class PhasePlot(ImagePlotContainer):
 
     @invalidate_plot
     def set_unit(self, field, unit):
+        fields = [field[1] for field in self.profile.field_data]
         if field == self.profile.x_field[1]:
             self.profile.set_x_unit(unit)
         elif field == self.profile.y_field[1]:
             self.profile.set_y_unit(unit)
-        elif field in self.fields:
+        elif field in fields:
             self.profile.set_field_unit(field, unit)
-        else:
-            raise KeyError("Field %s not in profile!" % (field))
         return self
 
     def run_callbacks(self, *args):
