@@ -430,11 +430,10 @@ class ProfilePlot(object):
             Log on/off.
         """
         if field == "all":
-            fields = self.profiles[0].field_data.keys()
-            fields.append(self.profiles[0].x_field[1])
+            self.x_log = log
+            for field in self.profiles[0].field_data.keys():
+                self.y_log[field] = log
         else:
-            fields = [field]
-        for field in fields:
             if field == self.profiles[0].x_field[1]:
                 self.x_log = log
             else:
@@ -777,18 +776,17 @@ class PhasePlot(ImagePlotContainer):
             Log on/off.
         """
         if field == "all":
-            fields = [field[1] for field in self.profile.field_data]
-            fields.append(self.profile.x_field[1])
-            fields.append(self.profile.y_field[1])
+            self.x_log = log
+            self.y_log = log
+            for field in self.profile.field_data:
+                self.z_log[field] = log
         else:
-            fields = [field]
-        for field in fields:
             if field == self.profile.x_field[1]:
                 self.x_log = log
             elif field == self.profile.y_field[1]:
                 self.y_log = log
-            else:
-                self.z_log[field] = log
+            elif field in self.profile.field_map:
+                self.z_log[self.profile.field_map[field]] = log
         return self
 
     @invalidate_plot
