@@ -161,6 +161,7 @@ def test_all_fields():
         else:
             fname = field
         if field[0] == "deposit": continue
+        if field[1].find("beta_p") > -1: continue
         if finfo.particle_type: continue
         for nproc in [1, 4, 8]:
             test_all_fields.__name__ = "%s_%s" % (field, nproc)
