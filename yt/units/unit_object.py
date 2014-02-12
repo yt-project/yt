@@ -100,6 +100,7 @@ def auto_positive_symbol(tokens, local_dict, global_dict):
     return result
 
 unit_text_transform = (auto_positive_symbol, rationalize, auto_number)
+
 class Unit(Expr):
     """
     A symbolic unit, using sympy functionality. We only add "dimensions" so
@@ -159,6 +160,8 @@ class Unit(Expr):
         if registry is None:
             # Caller did not set the registry, so use the default.
             registry = default_unit_registry
+
+        # done with argument checking...
 
         # see if the unit is atomic.
         is_atomic = False
