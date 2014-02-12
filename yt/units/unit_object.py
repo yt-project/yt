@@ -14,23 +14,19 @@ A class that represents a unit symbol.
 
 from sympy import Expr, Mul, Number, Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
-from sympy import nsimplify, posify, sympify, latex, powsimp
+from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
-    parse_expr, auto_symbol, auto_number, rationalize
-from sympy.parsing.sympy_tokenize import generate_tokens
-from collections import defaultdict
+    parse_expr, auto_number, rationalize
 from keyword import iskeyword
 from yt.units import dimensions as dimensions_mod
 from yt.units.unit_lookup_table import \
-    default_unit_symbol_lut, latex_symbol_lut, \
-    unit_prefixes, prefixable_units, cgs_base_units
+    latex_symbol_lut, unit_prefixes, \
+    prefixable_units, cgs_base_units
 from yt.units.unit_registry import UnitRegistry
 
 import copy
 import string
 import token
-import itertools
-import numpy as np
 
 class UnitParseError(Exception):
     pass
