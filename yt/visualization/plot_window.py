@@ -653,7 +653,7 @@ class PWViewerMPL(PlotWindow):
         else:
             fields = self._frb.keys()
         self._colorbar_valid = True
-        for f in self.data_source._determine_fields(self.fields):
+        for f in self.data_source._determine_fields(fields):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
