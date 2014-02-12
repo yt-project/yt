@@ -546,6 +546,6 @@ def test_ufuncs():
         c = YTArray([.1, .2, .3], 'm')
         d = YTArray([.1, .2, .3], 'g')
         e = YTArray([.1, .2, .3], 'erg/m**3')
-        
+
         for pair in itertools.product([a,b,c,d,e], repeat=2):
             yield binary_ufunc_comparison, ufunc, pair[0], pair[1]
