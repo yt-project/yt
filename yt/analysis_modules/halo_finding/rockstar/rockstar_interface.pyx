@@ -190,7 +190,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     dd = pf.h.all_data()
 
     # Add particle type filter if not defined
-    if rh.particle_type not in pf.particle_types:
+    if rh.particle_type not in pf.particle_types and rh.particle_type != 'all':
         pf.add_particle_filter(rh.particle_type)
 
     if NUM_BLOCKS > 1:
