@@ -131,7 +131,8 @@ class HaloCatalog(ParallelAnalysisInterface):
                 elif action_type == "quantity":
                     key, quantity = action
                     if quantity in self.halos_pf.field_info:
-                        new_halo.quantities[key] = self.data_source[quantity][int(i)]
+                        new_halo.quantities[key] = \
+                          self.data_source[quantity][int(i)].in_cgs()
                     elif callable(quantity):
                         new_halo.quantities[key] = quantity(new_halo)
                 else:
@@ -151,25 +152,29 @@ class HaloCatalog(ParallelAnalysisInterface):
     def save_catalog(self):
         "Write out hdf5 file with all halo quantities."
 
-        if len(self.catalog) < 1:
-            mylog.info("Halo list is empty.  Nothing will be written.")
-            return
-        
-        filename = os.path.join(self.output_dir, "%s.%04d" %
+        filename = os.path.join(self.output_dir, "%s.%04d.h5" %
                                 (self.output_prefix, self.comm.rank))
-        mylog.info("Saving halo catalog (%d halos) to %s." %
-                   (len(self.catalog), os.path.join(self.output_dir, self.output_prefix)))
-        out_file = h5py.File(filename, 'w')
         n_halos = len(self.catalog)
-        field_data = np.empty(n_halos)
-        for key in self.quantities:
-            units = ""
-            if hasattr(self.catalog[0][key], "units"):
-                units = str(self.catalog[0][key].units)
-            for i in xrange(n_halos):
-                field_data[i] = self.catalog[i][key]
-            dataset = out_file.create_dataset(str(key), data=field_data)
-            dataset.attrs["units"] = units
+        mylog.info("Saving halo catalog (%d halos) to %s." %
+                   (n_halos, os.path.join(self.output_dir, 
+                                         self.output_prefix)))
+        out_file = h5py.File(filename, 'w')
+        for attr in ["current_time", "domain_dimensions",
+                     "domain_left_edge", "domain_right_edge",
+                     "cosmological_simulation", "omega_lambda",
+                     "omega_matter", "hubble_constant"]:
+            out_file.attrs[attr] = getattr(self.halos_pf, attr)
+        out_file.attrs["n_halos"] = n_halos
+        if n_halos > 0:
+            field_data = np.empty(n_halos)
+            for key in self.quantities:
+                units = ""
+                if hasattr(self.catalog[0][key], "units"):
+                    units = str(self.catalog[0][key].units)
+                for i in xrange(n_halos):
+                    field_data[i] = self.catalog[i][key]
+                dataset = out_file.create_dataset(str(key), data=field_data)
+                dataset.attrs["units"] = units
         out_file.close()
 
     def add_default_quantities(self):

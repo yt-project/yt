@@ -330,10 +330,6 @@ def virial_quantities(halo, fields, critical_overdensity=200,
                halo.quantities["particle_identifier"])
 
     fields = ensure_list(fields)
-    for field in fields:
-        q_tuple = "%s_%d" % (field, critical_overdensity)
-        if q_tuple not in halo.halo_catalog.quantities:
-            halo.halo_catalog.quantities.append(q_tuple)
     
     dpf = halo.halo_catalog.data_pf
     profile_data = getattr(halo, profile_storage)
@@ -343,11 +339,21 @@ def virial_quantities(halo, fields, critical_overdensity=200,
 
     overdensity = profile_data[("gas", "overdensity")]
     dfilter = np.isfinite(overdensity) & profile_data["used"] & (overdensity > 0)
-    
-    vquantities = dict([("%s_%d" % (field, critical_overdensity),
+
+    v_fields = {}
+    for field in fields:
+        if isinstance(field, tuple):
+            my_field = field[-1]
+        else:
+            my_field = field
+        v_fields[field] = my_field
+        v_field = "%s_%d" % (my_field, critical_overdensity)
+        if v_field not in halo.halo_catalog.quantities:
+            halo.halo_catalog.quantities.append(v_field)
+    vquantities = dict([("%s_%d" % (v_fields[field], critical_overdensity),
                          dpf.quan(0, profile_data[field].units)) \
                         for field in fields])
-                        
+
     if dfilter.sum() < 2:
         halo.quantities.update(vquantities)
         return
@@ -379,7 +385,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
         value = dpf.quan(np.exp(slope * np.log(critical_overdensity / 
                                                vod[index])) * v_prof[index],
                          profile_data[field].units).in_cgs()
-        vquantities["%s_%d" % (field, critical_overdensity)] = value
+        vquantities["%s_%d" % (v_fields[field], critical_overdensity)] = value
 
     halo.quantities.update(vquantities)
 
