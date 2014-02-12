@@ -521,7 +521,7 @@ def binary_ufunc_comparison(ufunc, a, b):
                    np.logical_xor):
         assert_true(not isinstance(ret, YTArray) and isinstance(ret, np.ndarray))
     assert_array_equal(ret, out)
-    assert_array_equal(ret, ufunc(a.to_ndarray(), b.to_ndarray()))
+    assert_array_equal(ret, ufunc(np.array(a), np.array(b)))
 
 def test_ufuncs():
     for ufunc in unary_operators:
