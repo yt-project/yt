@@ -12,11 +12,15 @@ A class that represents a unit symbol.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from sympy import Expr, Mul, Number, Pow, Symbol, Integer, Float, sqrt
-from sympy import nsimplify, posify, sympify, latex
-from sympy.parsing.sympy_parser import parse_expr
+from sympy import Expr, Mul, Number, Pow, Symbol, Integer, \
+    Float, Basic, Rational, sqrt
+from sympy import nsimplify, posify, sympify, latex, powsimp
+from sympy.parsing.sympy_parser import \
+    parse_expr, auto_symbol, auto_number, rationalize
+from sympy.parsing.sympy_tokenize import generate_tokens
 from collections import defaultdict
-from yt.units import dimensions
+from keyword import iskeyword
+from yt.units import dimensions as dimensions_mod
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, latex_symbol_lut, \
     unit_prefixes, prefixable_units, cgs_base_units
@@ -24,6 +28,8 @@ from yt.units.unit_registry import UnitRegistry
 
 import copy
 import string
+import token
+import itertools
 import numpy as np
 
 class UnitParseError(Exception):
@@ -40,9 +46,60 @@ global_dict = {
     'Symbol': Symbol,
     'Integer': Integer,
     'Float': Float,
+    'Rational': Rational,
     'sqrt': sqrt
 }
 
+def auto_positive_symbol(tokens, local_dict, global_dict):
+    """
+    Inserts calls to ``Symbol`` for undefined variables.
+    Passes in positive=True as a keyword argument.
+    Adapted from sympy.sympy.parsing.sympy_parser.auto_symbol
+    """
+    result = []
+    prevTok = (None, None)
+
+    tokens.append((None, None))  # so zip traverses all tokens
+    for tok, nextTok in zip(tokens, tokens[1:]):
+        tokNum, tokVal = tok
+        nextTokNum, nextTokVal = nextTok
+        if tokNum == token.NAME:
+            name = tokVal
+
+            if (name in ['True', 'False', 'None']
+                or iskeyword(name)
+                or name in local_dict
+                # Don't convert attribute access
+                or (prevTok[0] == token.OP and prevTok[1] == '.')
+                # Don't convert keyword arguments
+                or (prevTok[0] == token.OP and prevTok[1] in ('(', ',')
+                    and nextTokNum == token.OP and nextTokVal == '=')):
+                result.append((token.NAME, name))
+                continue
+            elif name in global_dict:
+                obj = global_dict[name]
+                if isinstance(obj, (Basic, type)) or callable(obj):
+                    result.append((token.NAME, name))
+                    continue
+
+            result.extend([
+                (token.NAME, 'Symbol'),
+                (token.OP, '('),
+                (token.NAME, repr(str(name))),
+                (token.OP, ','),
+                (token.NAME, 'positive'),
+                (token.OP, '='),
+                (token.NAME, 'True'),
+                (token.OP, ')'),
+            ])
+        else:
+            result.append((tokNum, tokVal))
+
+        prevTok = (tokNum, tokVal)
+
+    return result
+
+unit_text_transform = (auto_positive_symbol, rationalize, auto_number)
 class Unit(Expr):
     """
     A symbolic unit, using sympy functionality. We only add "dimensions" so
@@ -88,7 +145,8 @@ class Unit(Expr):
                     # Bug catch...
                     # if unit_expr is an empty string, parse_expr fails hard...
                     unit_expr = "1"
-                unit_expr = parse_expr(unit_expr, global_dict=global_dict)
+                unit_expr = parse_expr(unit_expr, global_dict=global_dict,
+                                       transformations=unit_text_transform)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
@@ -101,15 +159,6 @@ class Unit(Expr):
         if registry is None:
             # Caller did not set the registry, so use the default.
             registry = default_unit_registry
-
-        # done with argument checking...
-
-        # sympify, make positive symbols, and nsimplify the expr
-        if unit_expr != sympy_one:
-            unit_expr = sympify(unit_expr)
-            unit_expr = _make_symbols_positive(unit_expr)
-            if any([atom.is_Float for atom in unit_expr.atoms()]):
-                unit_expr = nsimplify(unit_expr)
 
         # see if the unit is atomic.
         is_atomic = False
@@ -130,15 +179,10 @@ class Unit(Expr):
                                      % (cgs_value, type(cgs_value)) )
 
             # check that dimensions is valid
-            validate_dimensions( sympify(dimensions) )
+            validate_dimensions(dimensions)
         else:
             # lookup the unit symbols
             cgs_value, dimensions = _get_unit_data_from_expr(unit_expr, registry.lut)
-
-        # Sympy trick to get dimensions powers as Rationals
-        if not dimensions.is_Atom:
-            if any([atom.is_Float for atom in dimensions.atoms()]):
-                dimensions = nsimplify(dimensions)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -217,7 +261,7 @@ class Unit(Expr):
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
-            p = sympify(p)
+            p = nsimplify(sympify(p))
         except ValueError:
             raise InvalidUnitOperation("Tried to take a Unit object to the " \
                                        "power '%s' (type %s). Failed to cast " \
@@ -360,22 +404,6 @@ def convert_values(values, old_units, new_units):
 # Helper functions
 #
 
-def _make_symbols_positive(expr):
-    """
-    Grabs all symbols from expr, makes new positive symbols with the same names,
-    and substitutes them back into the expression.
-
-    """
-    expr_symbols = expr.atoms(Symbol)  # grab all symbols
-
-    # Replace one at a time
-    for s in expr_symbols:
-        # replace this symbol with a positive version
-        if not s.is_positive:
-            expr = expr.subs(s, Symbol(s.name, positive=True))
-
-    return expr
-
 def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
     """
     Grabs the total cgs_value and dimensions from a valid unit expression.
@@ -461,35 +489,10 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
     raise UnitParseError("Could not find unit symbol '%s' in the provided " \
                          "symbols." % symbol_str)
 
-# @todo: simpler method that doesn't use recursion would be better...
-# We could check if dimensions.atoms are all numbers or symbols, but we should
-# check the functions also...
-def validate_dimensions(d):
-    """
-    Make sure that `d` is a valid dimension expression. It must consist of only
-    the base dimension symbols, to powers, multiplied together. If valid, return
-    the simplified expression. If not, raise an Exception.
-
-    """
-    # in the case of a Number of Symbol, we can just return
-    if isinstance(d, Number):
-        return d
-    elif isinstance(d, Symbol):
-        if d in dimensions.base_dimensions:
-            return d
-        else:
+def validate_dimensions(dimensions):
+    if not isinstance(dimensions, Basic):
+        raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
+    elif isinstance(dimensions, Symbol):
+        if dimensions not in dimensions_mod.base_dimensions:
             raise UnitParseError("dimensionality expression contains an "
-                                 "unknown symbol '%s'." % d)
-
-    # validate args of a Pow or Mul separately
-    elif isinstance(d, Pow):
-        return validate_dimensions(d.args[0])**validate_dimensions(d.args[1])
-
-    elif isinstance(d, Mul):
-        total_mul = 1
-        for arg in d.args:
-            total_mul *= validate_dimensions(arg)
-        return total_mul
-
-    # should never get here
-    raise UnitParseError("Bad dimensionality expression '%s'." % d)
+                                 "unknown symbol '%s'." % dimensions)
