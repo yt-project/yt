@@ -266,6 +266,7 @@ class Unit(Expr):
             raise InvalidUnitOperation("Tried to take a Unit object to the " \
                                        "power '%s' (type %s). Failed to cast " \
                                        "it to a float." % (p, type(p)) )
+        
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
                     dimensions=(self.dimensions**p), registry=self.registry)
 
