@@ -264,7 +264,7 @@ class Unit(Expr):
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
-            p = nsimplify(sympify(p))
+            p = Rational(str(p)).limit_denominator()
         except ValueError:
             raise InvalidUnitOperation("Tried to take a Unit object to the " \
                                        "power '%s' (type %s). Failed to cast " \
