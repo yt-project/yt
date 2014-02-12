@@ -436,17 +436,31 @@ class ProfilePlot(object):
         else:
             if field == self.profiles[0].x_field[1]:
                 self.x_log = log
-            else:
+            elif field in self.profiles[0].field_map:
                 self.y_log[field] = log
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
         return self
 
     @invalidate_plot
     def set_unit(self, field, unit):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
         for profile in self.profiles:
             if field == profile.x_field[1]:
                 profile.set_x_unit(unit)
-            else:
+            elif field in self.profiles[0].field_map:
                 profile.set_field_unit(field, unit)
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
         return self
 
     def _get_field_log(self, field_y, profile):
@@ -787,10 +801,22 @@ class PhasePlot(ImagePlotContainer):
                 self.y_log = log
             elif field in self.profile.field_map:
                 self.z_log[self.profile.field_map[field]] = log
+            else:
+                raise KeyError("Field %s not in phase plot!" % (field))
         return self
 
     @invalidate_plot
     def set_unit(self, field, unit):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
         fields = [fd[1] for fd in self.profile.field_data]
         if field == self.profile.x_field[1]:
             self.profile.set_x_unit(unit)
@@ -798,6 +824,8 @@ class PhasePlot(ImagePlotContainer):
             self.profile.set_y_unit(unit)
         elif field in fields:
             self.profile.set_field_unit(field, unit)
+        else:
+            raise KeyError("Field %s not in phase plot!" % (field))
         return self
 
     def run_callbacks(self, *args):
