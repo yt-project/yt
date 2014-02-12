@@ -530,11 +530,23 @@ def test_ufuncs():
         yield unary_ufunc_comparison, ufunc, YTArray([2, 4, -6], 'erg/m**3')
 
     for ufunc in binary_operators:
+
+        # arr**arr is undefined for arrays with units because
+        # each element of the result would have different units.
+        if ufunc is np.power:
+            a = YTArray([.3, .4, .5], 'cm')
+            b = YTArray([.1, .2, .3], 'dimensionless')
+            c = np.array(b)
+            yield binary_ufunc_comparison, ufunc, a, b
+            yield binary_ufunc_comparison, ufunc, a, c
+            continue
+
         a = YTArray([.3, .4, .5], 'cm')
         b = YTArray([.1, .2, .3], 'cm')
         c = YTArray([.1, .2, .3], 'm')
         d = YTArray([.1, .2, .3], 'g')
         e = YTArray([.1, .2, .3], 'erg/m**3')
+        f = np.array([.1, .2, .3])
 
         for pair in itertools.product([a,b,c,d,e], repeat=2):
             yield binary_ufunc_comparison, ufunc, pair[0], pair[1]
