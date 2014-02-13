@@ -94,7 +94,11 @@ class HaloCatalog(ParallelAnalysisInterface):
             ensure_dir(os.path.join(self.output_dir, kwargs["output_dir"]))
         self.actions.append(("callback", callback))
 
-    def add_quantity(self, key, field_type=None, *args, **kwargs):
+    def add_quantity(self, key, *args, **kwargs):
+        if "field_type" in kwargs:
+            field_type = kwargs.pop("field_type")
+        else:
+            field_type = None
         if field_type is None:
             quantity = quantity_registry.find(key, *args, **kwargs)
         elif (field_type, key) in self.halos_pf.field_info:
