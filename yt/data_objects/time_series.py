@@ -89,15 +89,39 @@ class TimeSeriesData(object):
     primarily expressed through iteration, but can also be constructed via
     analysis tasks (see :ref:`time-series-analysis`).
 
-    The best method to construct TimeSeriesData objects is through 
-    :meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.
-
+    Parameters
+    ----------
+    filenames : list or pattern
+        This can either be a list of filenames (such as ["DD0001/DD0001",
+        "DD0002/DD0002"]) or a pattern to match, such as
+        "DD*/DD*.hierarchy").  If it's the former, they will be loaded in
+        order.  The latter will be identified with the glob module and then
+        sorted.
+    parallel : True, False or int
+        This parameter governs the behavior when .piter() is called on the
+        resultant TimeSeriesData object.  If this is set to False, the time
+        series will not iterate in parallel when .piter() is called.  If
+        this is set to either True or an integer, it will be iterated with
+        1 or that integer number of processors assigned to each parameter
+        file provided to the loop.
+    setup_function : callable, accepts a pf
+        This function will be called whenever a parameter file is loaded.
 
     Examples
     --------
 
-    >>> ts = TimeSeriesData.from_filenames(
+    >>> ts = TimeSeriesData(
             "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+    >>> for pf in ts:
+    ...     SlicePlot(pf, "x", "Density").save()
+    ...
+    >>> def print_time(pf):
+    ...     print pf.current_time
+    ...
+    >>> ts = TimeSeriesData(
+    ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
+    ...      setup_function = print_time)
+    ...
     >>> for pf in ts:
     ...     SlicePlot(pf, "x", "Density").save()
 
@@ -188,7 +212,7 @@ class TimeSeriesData(object):
         Here is an example of iteration when the results do not need to be
         stored.  One processor will be assigned to each parameter file.
 
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy")
+        >>> ts = TimeSeriesData("DD*/DD*.hierarchy")
         >>> for pf in ts.piter():
         ...    SlicePlot(pf, "x", "Density").save()
         ...
@@ -198,7 +222,7 @@ class TimeSeriesData(object):
         >>> def print_time(pf):
         ...     print pf.current_time
         ...
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy",
+        >>> ts = TimeSeriesData("DD*/DD*.hierarchy",
         ...             setup_function = print_time )
         ...
         >>> my_storage = {}
@@ -212,7 +236,7 @@ class TimeSeriesData(object):
 
         This shows how to dispatch 4 processors to each dataset:
 
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy",
+        >>> ts = TimeSeriesData("DD*/DD*.hierarchy",
         ...                     parallel = 4)
         >>> for pf in ts.piter():
         ...     ProjectionPlot(pf, "x", "Density").save()
