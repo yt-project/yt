@@ -54,16 +54,16 @@ def get_pf_prop(propname):
     return cls
 
 def get_filenames_from_glob_pattern(filenames):
-    filenames = glob.glob(filenames)
+    file_list = glob.glob(filenames)
     if len(filenames) == 0:
         data_dir = ytcfg.get("yt", "test_data_dir")
         pattern = os.path.join(data_dir, filenames)
         td_filenames = glob.glob(pattern)
         if len(td_filenames) > 0:
-            filenames = td_filenames
+            file_list = td_filenames
         else:
             raise YTOutputNotIdentified(filenames, {})
-    return sorted(filenames)
+    return sorted(file_list)
 
 attrs = ("refine_by", "dimensionality", "current_time",
          "domain_dimensions", "domain_left_edge",
