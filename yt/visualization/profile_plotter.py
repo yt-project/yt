@@ -434,9 +434,10 @@ class ProfilePlot(object):
             for field in self.profiles[0].field_data.keys():
                 self.y_log[field] = log
         else:
-            if field == self.profiles[0].x_field[1]:
+            field, = self.profiles[0].data_source._determine_fields([field])
+            if field == self.profiles[0].x_field:
                 self.x_log = log
-            elif field in self.profiles[0].field_map:
+            elif field in self.profiles[0].field_data:
                 self.y_log[field] = log
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
