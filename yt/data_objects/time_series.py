@@ -55,7 +55,7 @@ def get_pf_prop(propname):
 
 def get_filenames_from_glob_pattern(filenames):
     file_list = glob.glob(filenames)
-    if len(filenames) == 0:
+    if len(file_list) == 0:
         data_dir = ytcfg.get("yt", "test_data_dir")
         pattern = os.path.join(data_dir, filenames)
         td_filenames = glob.glob(pattern)
