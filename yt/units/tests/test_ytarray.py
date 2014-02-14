@@ -521,7 +521,7 @@ def binary_ufunc_comparison(ufunc, a, b):
                    np.logical_xor):
         assert_true(not isinstance(ret, YTArray) and isinstance(ret, np.ndarray))
     assert_array_equal(ret, out)
-    assert_array_equal(ret, ufunc(a.to_ndarray(), b.to_ndarray()))
+    assert_array_equal(ret, ufunc(np.array(a), np.array(b)))
 
 def test_ufuncs():
     for ufunc in unary_operators:
@@ -530,6 +530,17 @@ def test_ufuncs():
         yield unary_ufunc_comparison, ufunc, YTArray([2, 4, -6], 'erg/m**3')
 
     for ufunc in binary_operators:
+
+        # arr**arr is undefined for arrays with units because
+        # each element of the result would have different units.
+        if ufunc is np.power:
+            a = YTArray([.3, .4, .5], 'cm')
+            b = YTArray([.1, .2, .3], 'dimensionless')
+            c = np.array(b)
+            yield binary_ufunc_comparison, ufunc, a, b
+            yield binary_ufunc_comparison, ufunc, a, c
+            continue
+
         a = YTArray([.3, .4, .5], 'cm')
         b = YTArray([.1, .2, .3], 'cm')
         c = YTArray([.1, .2, .3], 'm')
