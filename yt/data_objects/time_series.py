@@ -53,6 +53,18 @@ def get_pf_prop(propname):
                 dict(eval = _eval, _params = tuple()))
     return cls
 
+def get_filenames_from_glob_pattern(filenames):
+    filenames = glob.glob(filenames)
+    if len(filenames) == 0:
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        pattern = os.path.join(data_dir, filenames)
+        td_filenames = glob.glob(pattern)
+        if len(td_filenames) > 0:
+            filenames = td_filenames
+        else:
+            raise YTOutputNotIdentified(filenames, {})
+    return sorted(filenames)
+
 attrs = ("refine_by", "dimensionality", "current_time",
          "domain_dimensions", "domain_left_edge",
          "domain_right_edge", "unique_identifier",
@@ -77,19 +89,53 @@ class TimeSeriesData(object):
     primarily expressed through iteration, but can also be constructed via
     analysis tasks (see :ref:`time-series-analysis`).
 
-    The best method to construct TimeSeriesData objects is through 
-    :meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.
-
+    Parameters
+    ----------
+    filenames : list or pattern
+        This can either be a list of filenames (such as ["DD0001/DD0001",
+        "DD0002/DD0002"]) or a pattern to match, such as
+        "DD*/DD*.hierarchy").  If it's the former, they will be loaded in
+        order.  The latter will be identified with the glob module and then
+        sorted.
+    parallel : True, False or int
+        This parameter governs the behavior when .piter() is called on the
+        resultant TimeSeriesData object.  If this is set to False, the time
+        series will not iterate in parallel when .piter() is called.  If
+        this is set to either True or an integer, it will be iterated with
+        1 or that integer number of processors assigned to each parameter
+        file provided to the loop.
+    setup_function : callable, accepts a pf
+        This function will be called whenever a parameter file is loaded.
 
     Examples
     --------
 
-    >>> ts = TimeSeriesData.from_filenames(
+    >>> ts = TimeSeriesData(
             "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+    >>> for pf in ts:
+    ...     SlicePlot(pf, "x", "Density").save()
+    ...
+    >>> def print_time(pf):
+    ...     print pf.current_time
+    ...
+    >>> ts = TimeSeriesData(
+    ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
+    ...      setup_function = print_time)
+    ...
     >>> for pf in ts:
     ...     SlicePlot(pf, "x", "Density").save()
 
     """
+    def __new__(cls, outputs, *args, **kwargs):
+        if isinstance(outputs, basestring):
+            outputs = get_filenames_from_glob_pattern(outputs)
+        ret = super(TimeSeriesData, cls).__new__(cls, outputs, *args, **kwargs)
+        try:
+            ret._pre_outputs = outputs[:]
+        except TypeError:
+            raise YTOutputNotIdentified(outputs, {})
+        return ret
+
     def __init__(self, outputs, parallel = True, setup_function = None,
                  **kwargs):
         self.tasks = AnalysisTaskProxy(self)
@@ -97,7 +143,6 @@ class TimeSeriesData(object):
         if setup_function is None:
             setup_function = lambda a: None
         self._setup_function = setup_function
-        self._pre_outputs = outputs[:]
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
                 TimeSeriesDataObject, self, type_name))
@@ -128,6 +173,10 @@ class TimeSeriesData(object):
 
     def __len__(self):
         return len(self._pre_outputs)
+
+    @property
+    def outputs(self):
+        return self._pre_outputs
 
     def piter(self, storage = None):
         r"""Iterate over time series components in parallel.
@@ -163,7 +212,7 @@ class TimeSeriesData(object):
         Here is an example of iteration when the results do not need to be
         stored.  One processor will be assigned to each parameter file.
 
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy")
+        >>> ts = TimeSeriesData("DD*/DD*.hierarchy")
         >>> for pf in ts.piter():
         ...    SlicePlot(pf, "x", "Density").save()
         ...
@@ -173,7 +222,7 @@ class TimeSeriesData(object):
         >>> def print_time(pf):
         ...     print pf.current_time
         ...
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy",
+        >>> ts = TimeSeriesData("DD*/DD*.hierarchy",
         ...             setup_function = print_time )
         ...
         >>> my_storage = {}
@@ -187,7 +236,7 @@ class TimeSeriesData(object):
 
         This shows how to dispatch 4 processors to each dataset:
 
-        >>> ts = TimeSeriesData.from_filenames("DD*/DD*.hierarchy",
+        >>> ts = TimeSeriesData("DD*/DD*.hierarchy",
         ...                     parallel = 4)
         >>> for pf in ts.piter():
         ...     ProjectionPlot(pf, "x", "Density").save()
@@ -271,17 +320,7 @@ class TimeSeriesData(object):
         """
         
         if isinstance(filenames, types.StringTypes):
-            if len(glob.glob(filenames)) == 0:
-                data_dir = ytcfg.get("yt", "test_data_dir")
-                pattern = os.path.join(data_dir, filenames)
-                td_filenames = glob.glob(pattern)
-                if len(td_filenames) > 0:
-                    filenames = td_filenames
-                else:
-                    raise YTOutputNotIdentified(filenames, {})
-            else:
-                filenames = glob.glob(filenames)
-            filenames.sort()
+            filenames = get_filenames_from_glob_pattern(filenames)
         obj = cls(filenames[:], parallel = parallel,
                   setup_function = setup_function, **kwargs)
         return obj
