@@ -15,10 +15,12 @@ API for yt.frontends.halo_catalogs
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
+      HaloCatalogStaticOutput, \
       RockstarStaticOutput
 
 from .io import \
       IOHandlerRockstarBinary
 
 from .fields import \
+      HaloCatalogFieldInfo, \
       RockstarFieldInfo
