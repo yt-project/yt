@@ -188,6 +188,26 @@ def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
 
     return (bounds, center)
 
+def get_axes_unit(width, pf):
+    r"""
+    Infers the axes unit names from the input width specification
+    """
+    if iterable(width):
+        if isinstance(width[1], basestring):
+            axes_unit = (width[1], width[1])
+        elif iterable(width[1]):
+            axes_unit = (width[0][1], width[1][1])
+        elif isinstance(width[0], YTArray):
+            axes_unit = (str(width[0].units), str(width[1].unit))
+        else:
+            axes_unit = None
+    else:
+        elif isinstance(width, YTArray):
+            axes_unit = (str(width.units), str(width.unit))
+        else:
+            axes_unit = None
+    return axes_unit
+
 class PlotWindow(ImagePlotContainer):
     r"""
     A ploting mechanism based around the concept of a window into a
@@ -439,8 +459,11 @@ class PlotWindow(ImagePlotContainer):
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
         """
-        if width is not None:
+        if unit is not None:
             set_axes_unit = True
+        elif iterable(width):
+            if isinstance(width[1], basestring) or isinstance(width[0], YTArray):
+                set_axes_unit = True
         else:
             set_axes_unit = False
 
@@ -462,6 +485,9 @@ class PlotWindow(ImagePlotContainer):
             mw = np.max([width[0], width[1]])
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
+
+        if set_axes_unit:
+            self.set_axes_unit((str(width[0].units), str(width[1].units)))
 
         return self
 
@@ -568,7 +594,9 @@ class PlotWindow(ImagePlotContainer):
             if isinstance(unit_name, basestring):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
-                if un not in self.pf.unit_registry:
+                try:
+                    self.pf.length_unit.in_units(un)
+                except (YTUnitConversionError, UnitParseError):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self
@@ -923,6 +951,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields)
+        if axes_unit is None:
+            axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
 
 class ProjectionPlot(PWViewerMPL):
@@ -1047,6 +1077,8 @@ class ProjectionPlot(PWViewerMPL):
                          field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize)
+        if axes_unit is None:
+            axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
 
 class OffAxisSlicePlot(PWViewerMPL):
@@ -1128,6 +1160,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
                              oblique=True, fontsize=fontsize)
+        if axes_unit is None:
+            axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
 
 class OffAxisProjectionDummyDataSource(object):
@@ -1236,11 +1270,11 @@ class OffAxisProjectionPlot(PWViewerMPL):
         (bounds, center_rot) = \
           GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
         fields = ensure_list(fields)[:]
-        width = pf.arr((bounds[1] - bounds[0],
-                        bounds[3] - bounds[2],
-                        bounds[5] - bounds[4]))
+        oap_width = pf.arr((bounds[1] - bounds[0],
+                            bounds[3] - bounds[2],
+                            bounds[5] - bounds[4]))
         OffAxisProj = OffAxisProjectionDummyDataSource(
-            center_rot, pf, normal, width, fields, interpolated,
+            center_rot, pf, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector)
         # Hard-coding the origin keyword since the other two options
@@ -1248,6 +1282,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
             periodic=False, oblique=True, fontsize=fontsize)
+        if axes_unit is None:
+            axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
 
     def _recreate_frb(self):
