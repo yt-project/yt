@@ -163,11 +163,13 @@ class HaloCatalog(ParallelAnalysisInterface):
                    (n_halos, os.path.join(self.output_dir, 
                                          self.output_prefix)))
         out_file = h5py.File(filename, 'w')
-        for attr in ["current_time", "domain_dimensions",
+        for attr in ["current_redshift", "current_time",
+                     "domain_dimensions",
                      "domain_left_edge", "domain_right_edge",
                      "cosmological_simulation", "omega_lambda",
                      "omega_matter", "hubble_constant"]:
             out_file.attrs[attr] = getattr(self.halos_pf, attr)
+        out_file.attrs["data_type"] = "halo_catalog"
         out_file.attrs["n_halos"] = n_halos
         if n_halos > 0:
             field_data = np.empty(n_halos)
