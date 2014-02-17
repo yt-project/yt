@@ -12,8 +12,11 @@ A class that represents a unit symbol.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from sympy import Expr, Mul, Number, Pow, Symbol, Integer, \
+from sympy import \
+    Expr, Mul, Add, Number, \
+    Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
+from sympy.core.numbers import One
 from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
@@ -126,7 +129,7 @@ class Unit(Expr):
             The unit's value in cgs.
         dimensions : sympy.core.expr.Expr
             A sympy expression representing the dimensionality of this unit.
-            It must contain only mass, length, time, and temperature symbols.
+            It must contain only mass, length, time, temperature and angle symbols.
         registry : UnitRegistry object
             The unit registry we use to interpret unit symbols.
 
@@ -430,6 +433,8 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
     if isinstance(unit_expr, Pow):
         unit_data = _get_unit_data_from_expr(unit_expr.args[0], unit_symbol_lut)
         power = unit_expr.args[1]
+        if isinstance(power, Symbol):
+            raise UnitParseError("Invalid unit expression '%s'." % unit_expr)
         conv = float(unit_data[0]**power)
         unit = unit_data[1]**power
         return (conv, unit)
@@ -489,9 +494,21 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
                          "symbols." % symbol_str)
 
 def validate_dimensions(dimensions):
-    if not isinstance(dimensions, Basic):
-        raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
+    if isinstance(dimensions, Mul):
+        for dim in dimensions.args:
+            validate_dimensions(dim)
     elif isinstance(dimensions, Symbol):
         if dimensions not in dimensions_mod.base_dimensions:
-            raise UnitParseError("dimensionality expression contains an "
+            raise UnitParseError("Dimensionality expression contains an "
                                  "unknown symbol '%s'." % dimensions)
+    elif isinstance(dimensions, Pow):
+        if not isinstance(dimensions.args[1], Number):
+            raise UnitParseError("Dimensionality expression '%s' contains a "
+                                 "unit symbol as a power." % dimensions)
+    elif isinstance(dimensions, (Add, Number)):
+        if not isinstance(dimensions, One):
+            raise UnitParseError("Only dimensions that are instances of Pow, "
+                                 "Mul, or symbols in the base dimensions are "
+                                 "allowed.  Got dimensions '%s'" % dimensions)
+    elif not isinstance(dimensions, Basic):
+        raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
