@@ -108,7 +108,7 @@ def validate_iterable_width(width, pf, unit=None):
             return (pf.quan(width[0], fix_unitary(width[1])),
                     pf.quan(width[0], fix_unitary(width[1])))
 
-def StandardWidth(axis, width, depth, pf):
+def get_sanitized_width(axis, width, depth, pf):
     if width is None:
         # Default to code units
         if not iterable(axis):
@@ -144,7 +144,7 @@ def StandardWidth(axis, width, depth, pf):
         return width + depth
     return width
 
-def StandardCenter(center, pf):
+def get_sanitized_center(center, pf):
     if isinstance(center, basestring):
         if center.lower() == "m" or center.lower() == "max":
             v, center = pf.h.find_max("density")
@@ -164,18 +164,18 @@ def StandardCenter(center, pf):
         raise RuntimeError("center keyword \"%s\" not recognized" % center)
     return center
 
-def GetWindowParameters(axis, center, width, pf):
-    width = StandardWidth(axis, width, None, pf)
-    center = StandardCenter(center, pf)
+def get_window_parameters(axis, center, width, pf):
+    width = get_sanitized_width(axis, width, None, pf)
+    center = get_sanitized_center(center, pf)
     bounds = (center[x_dict[axis]]-width[0] / 2,
               center[x_dict[axis]]+width[0] / 2,
               center[y_dict[axis]]-width[1] / 2,
               center[y_dict[axis]]+width[1] / 2)
     return (bounds, center)
 
-def GetObliqueWindowParameters(normal, center, width, pf, depth=None):
-    width = StandardWidth(normal, width, depth, pf)
-    center = StandardCenter(center, pf)
+def get_oblique_window_parameters(normal, center, width, pf, depth=None):
+    width = get_sanitized_width(normal, width, depth, pf)
+    center = get_sanitized_center(center, pf)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
@@ -202,7 +202,7 @@ def get_axes_unit(width, pf):
         else:
             axes_unit = None
     else:
-        elif isinstance(width, YTArray):
+        if isinstance(width, YTArray):
             axes_unit = (str(width.units), str(width.unit))
         else:
             axes_unit = None
@@ -472,7 +472,7 @@ class PlotWindow(ImagePlotContainer):
         elif iterable(width):
             width = validate_iterable_width(width, self.data_source.pf, unit)
 
-        width = StandardWidth(self._frb.axis, width, None, self.pf)
+        width = get_sanitized_width(self._frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.
@@ -944,7 +944,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         self.ts = ts
         pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds, center) = GetWindowParameters(axis, center, width, pf)
+        (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         slc = pf.h.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
@@ -1070,7 +1070,7 @@ class ProjectionPlot(PWViewerMPL):
         self.ts = ts
         pf = self.pf = ts[0]
         axis = fix_axis(axis)
-        (bounds, center) = GetWindowParameters(axis, center, width, pf)
+        (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         proj = pf.h.proj(fields, axis, weight_field=weight_field,
                          center=center, data_source=data_source,
@@ -1150,7 +1150,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     def __init__(self, pf, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, fontsize=18,
                  field_parameters=None):
-        (bounds, center_rot) = GetObliqueWindowParameters(normal,center,width,pf)
+        (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,pf)
         if field_parameters is None: field_parameters = {}
         cutting = pf.h.cutting(normal, center, north_vector = north_vector,
                               field_parameters = field_parameters)
@@ -1268,7 +1268,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
                  max_level=None, north_vector=None, volume=None, no_ghost=False,
                  le=None, re=None, interpolated=False, fontsize=18):
         (bounds, center_rot) = \
-          GetObliqueWindowParameters(normal,center,width,pf,depth=depth)
+          get_oblique_window_parameters(normal,center,width,pf,depth=depth)
         fields = ensure_list(fields)[:]
         oap_width = pf.arr((bounds[1] - bounds[0],
                             bounds[3] - bounds[2],

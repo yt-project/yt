@@ -27,7 +27,6 @@ from yt.utilities.definitions import inv_axis_names
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
-from yt.visualization.plot_window import StandardCenter
 from yt import units
 
 import numpy as np
