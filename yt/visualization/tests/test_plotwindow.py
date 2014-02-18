@@ -17,9 +17,11 @@ import os
 import tempfile
 import shutil
 import unittest
+from nose.tools import assert_true
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
-    fake_random_pf, assert_equal, assert_rel_equal, assert_array_equal
+    fake_random_pf, assert_equal, assert_rel_equal, assert_array_equal, \
+    assert_array_almost_equal
 from yt.utilities.answer_testing.framework import \
     requires_pf, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
@@ -84,17 +86,60 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "zoom": [((10, ), {})]}
 
 
-CENTER_SPECS = ("m",
-                "M",
-                "max",
-                "Max",
-                "c",
-                "C",
-                "center",
-                "Center",
-                [0.5, 0.5, 0.5],
-                [[0.2, 0.3, 0.4], "cm"],
-                YTArray([0.3, 0.4, 0.7], "cm"))
+CENTER_SPECS = (
+    "m",
+    "M",
+    "max",
+    "Max",
+    "c",
+    "C",
+    "center",
+    "Center",
+    [0.5, 0.5, 0.5],
+    [[0.2, 0.3, 0.4], "cm"],
+    YTArray([0.3, 0.4, 0.7], "cm")
+)
+
+WIDTH_SPECS = {
+    # Width choices map to xlim, ylim, width, axes_unit_name 4-tuples
+    None   : (
+        (YTQuantity(0, 'code_length'), YTQuantity(1, 'code_length')),
+        (YTQuantity(0, 'code_length'), YTQuantity(1, 'code_length')),
+        (YTQuantity(1, 'code_length'), YTQuantity(1, 'code_length')),
+        None,
+    ),
+    0.2 : (
+        (YTQuantity(0.4, 'code_length'), YTQuantity(0.6, 'code_length')),
+        (YTQuantity(0.4, 'code_length'), YTQuantity(0.6, 'code_length')),
+        (YTQuantity(0.2, 'code_length'), YTQuantity(0.2, 'code_length')),
+        None,
+    ),
+    (0.4, 0.3) : (
+        (YTQuantity(0.3, 'code_length'), YTQuantity(0.7, 'code_length')),
+        (YTQuantity(0.35, 'code_length'), YTQuantity(0.65, 'code_length')),
+        (YTQuantity(0.4, 'code_length'), YTQuantity(0.3, 'code_length')),
+        None,
+    ),
+    (1.2, 'cm') : (
+        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
+        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
+        (YTQuantity(1.2,  'code_length'), YTQuantity(1.2, 'code_length')),
+        ('cm', 'cm'),
+    ),
+    ((1.2, 'cm'), (2.0, 'cm')) : (
+        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
+        (YTQuantity(-0.5, 'code_length'), YTQuantity(1.5, 'code_length')),
+        (YTQuantity(1.2,  'code_length'), YTQuantity(2.0, 'code_length')),
+        ('cm', 'cm'),
+    ),
+    ((1.2, 'cm'), (0.02, 'm')) : (
+        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
+        (YTQuantity(-0.5, 'code_length'), YTQuantity(1.5, 'code_length')),
+        (YTQuantity(1.2,  'code_length'), YTQuantity(2.0, 'code_length')),
+        ('cm', 'm'),
+    ),
+}
+
 
 @requires_pf(M7)
 def test_attributes():
@@ -149,27 +194,33 @@ class TestSetWidth(unittest.TestCase):
     def test_set_width_one(self):
         assert_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                      [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)])
+        assert_true(self.slc._axes_unit_names == None)
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
         assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                          [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)], 15)
+        assert_true(self.slc._axes_unit_names == None)
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, 'cm')
         self._assert_05cm()
+        assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
 
     def test_tuple_eq(self):
         self.slc.set_width((0.5, 'cm'))
         self._assert_05cm()
+        assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, 'cm'), (0.75, 'cm')))
         self._assert_05_075cm()
+        assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, 'cm'), (0.0075, 'm')))
         self._assert_05_075cm()
+        assert_true(self.slc._axes_unit_names == ('cm', 'm'))
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -182,6 +233,7 @@ class TestPlotWindowSave(unittest.TestCase):
         projections = []
         projections_ds = []
         projections_c = []
+        projections_w = {}
         for dim in range(3):
             projections.append(ProjectionPlot(test_pf, dim, "density"))
             projections_ds.append(ProjectionPlot(test_pf, dim, "density",
@@ -189,11 +241,15 @@ class TestPlotWindowSave(unittest.TestCase):
         for center in CENTER_SPECS:
             projections_c.append(ProjectionPlot(test_pf, dim, "density",
                                                 center=center))
+        for width in WIDTH_SPECS:
+            projections_w[width] = ProjectionPlot(test_pf, dim, 'density',
+                                                  width=width)
 
         cls.slices = [SlicePlot(test_pf, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
         cls.projections_c = projections_c
+        cls.projections_w = projections_w
         cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, "density")
         cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, "density")
 
@@ -237,3 +293,14 @@ class TestPlotWindowSave(unittest.TestCase):
         for fname in TEST_FLNMS)
     def test_offaxis_projection_plot(self, fname):
         assert assert_fname(self.offaxis_proj.save(fname)[0])
+
+    @parameterized.expand(
+        param.explicit((width, ))
+        for width in WIDTH_SPECS)
+    def test_creation_with_width(self, width):
+        xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
+        plot = self.projections_w[width]
+        [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
+        [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
+        [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+        assert_true(aun == plot._axes_unit_names)

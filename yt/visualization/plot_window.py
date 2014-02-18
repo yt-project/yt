@@ -428,7 +428,7 @@ class PlotWindow(ImagePlotContainer):
             mylog.info("zlim = %f %f" %self.zlim)
 
     @invalidate_data
-    def set_width(self, width, unit = 'code_length'):
+    def set_width(self, width, unit = None):
         """set the width of the plot window
 
         parameters
@@ -459,13 +459,15 @@ class PlotWindow(ImagePlotContainer):
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
         """
-        if unit is not None:
+        set_axes_unit = False
+        if isinstance(unit, basestring):
             set_axes_unit = True
         elif iterable(width):
             if isinstance(width[1], basestring) or isinstance(width[0], YTArray):
                 set_axes_unit = True
-        else:
-            set_axes_unit = False
+            elif iterable(width[1]):
+                if isinstance(width[0][1], basestring):
+                    set_axes_unit = True
 
         if isinstance(width, Number):
             width = (width, unit)
