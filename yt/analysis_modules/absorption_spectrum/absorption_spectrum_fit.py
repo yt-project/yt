@@ -5,7 +5,7 @@ from yt.analysis_modules.absorption_spectrum.absorption_line \
         import voigt
 
 def generate_total_fit(x, fluxData, orderFits, speciesDicts, 
-        minError=None, complexLim=.995,
+        minError=1E-4, complexLim=.995,
         fitLim=.97, minLength=3, 
         maxLength=1000, splitLim=.99,
         output_file=None):
