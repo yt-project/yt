@@ -194,13 +194,13 @@ class TestSetWidth(unittest.TestCase):
     def test_set_width_one(self):
         assert_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                      [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)])
-        assert_true(self.slc._axes_unit_names == None)
+        assert_true(self.slc._axes_unit_names is None)
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
         assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                          [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)], 15)
-        assert_true(self.slc._axes_unit_names == None)
+        assert_true(self.slc._axes_unit_names is None)
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, 'cm')

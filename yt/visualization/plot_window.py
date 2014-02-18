@@ -198,12 +198,12 @@ def get_axes_unit(width, pf):
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
-            axes_unit = (str(width[0].units), str(width[1].unit))
+            axes_unit = (str(width[0].units), str(width[1].units))
         else:
             axes_unit = None
     else:
         if isinstance(width, YTArray):
-            axes_unit = (str(width.units), str(width.unit))
+            axes_unit = (str(width.units), str(width.units))
         else:
             axes_unit = None
     return axes_unit
@@ -459,20 +459,13 @@ class PlotWindow(ImagePlotContainer):
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
         """
-        set_axes_unit = False
-        if isinstance(unit, basestring):
-            set_axes_unit = True
-        elif iterable(width):
-            if isinstance(width[1], basestring) or isinstance(width[0], YTArray):
-                set_axes_unit = True
-            elif iterable(width[1]):
-                if isinstance(width[0][1], basestring):
-                    set_axes_unit = True
-
         if isinstance(width, Number):
-            width = (width, unit)
-        elif iterable(width):
-            width = validate_iterable_width(width, self.data_source.pf, unit)
+            if unit is None:
+                width = (width, 'code_length')
+            else:
+                width = (width, unit)
+
+        axes_unit = get_axes_unit(width, self.pf)
 
         width = get_sanitized_width(self._frb.axis, width, None, self.pf)
 
@@ -488,8 +481,7 @@ class PlotWindow(ImagePlotContainer):
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
 
-        if set_axes_unit:
-            self.set_axes_unit((str(width[0].units), str(width[1].units)))
+        self.set_axes_unit(axes_unit)
 
         return self
 
@@ -750,9 +742,13 @@ class PWViewerMPL(PlotWindow):
             comoving = False
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
-                expr = self.pf.quan(1.0, un).units.expr
-                h_expr = self.pf.quan(1.0, 'h').units.expr
-                h_power = expr.as_coeff_exponent(Unit('h').expr)[1]
+                # Use sympy to factor h out of the unit.  In this context 'un'
+                # is a string, so we call the Unit constructor.
+                expr = Unit(un).expr
+                h_expr = Unit('h').expr
+                # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
+                h_power = expr.as_coeff_exponent(h_expr)[1]
+                # un is now the original unit, but with h factored out.
                 un = str(expr*h_expr**(-1*h_power))
                 if str(un).endswith('cm') and un != 'cm':
                     comoving = True
@@ -760,9 +756,9 @@ class PWViewerMPL(PlotWindow):
                 # no length units besides code_length end in h so this is safe
                 if h_power == -1:
                     hinv = True
-                else:
-                    # Does it make sense to scale a position by
-                    # anything other than h^-1?
+                elif h_power != 0:
+                    # It doesn't make sense to scale a position by anything
+                    # other than h**-1
                     raise RuntimeError
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
