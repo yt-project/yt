@@ -252,17 +252,17 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 add_callback("profile", profile)
 
 @parallel_root_only
-def write_profiles(halo, storage="profiles", filename=None,
-                   output_dir="profiles"):
+def save_profiles(halo, storage="profiles", filename=None,
+                  output_dir="."):
     r"""
-    Write out profile data.
+    Save profile data to disk.
 
     Parameters
     ----------
     halo : Halo object
         The Halo object to be provided by the HaloCatalog.
     storage : string
-        Name of the dictionary to store profiles.
+        Name of the dictionary attribute containing the profile data to be written.
         Default: "profiles"
     filename : string
         The name of the file to be written.  The final filename will be 
@@ -284,7 +284,7 @@ def write_profiles(halo, storage="profiles", filename=None,
     output_file = os.path.join(halo.halo_catalog.output_dir, output_dir,
                                "%s_%06d.h5" % (filename, 
                                                halo.quantities["particle_identifier"]))
-    mylog.info("Writing halo %d profile data to %s." %
+    mylog.info("Saving halo %d profile data to %s." %
                (halo.quantities["particle_identifier"], output_file))
 
     out_file = h5py.File(output_file, "w")
@@ -302,8 +302,62 @@ def write_profiles(halo, storage="profiles", filename=None,
         dataset.attrs["units"] = units
     out_file.close()
 
-add_callback("write_profiles", write_profiles)
+add_callback("save_profiles", save_profiles)
+
+def load_profiles(halo, storage="profiles", fields=None,
+                  filename=None, output_dir="."):
+    r"""
+    Load profile data from disk.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    storage : string
+        Name of the dictionary attribute to store profile data.
+        Default: "profiles"
+    fields : string or list of strings
+        The fields to be loaded.  If None, all fields present will be loaded.
+        Default : None
+    filename : string
+        The name of the file to be loaded.  The final filename will be 
+        "<filename>_<id>.h5".  If None, filename is set to the value given 
+        by the storage keyword.
+        Default: None
+    output_dir : string
+        Name of directory where profile data will be read.  The full path will be
+        the output_dir of the halo catalog concatenated with this directory.
+        Default : "."
     
+    """
+
+    if filename is None:
+        filename = storage
+    output_file = os.path.join(halo.halo_catalog.output_dir, output_dir,
+                               "%s_%06d.h5" % (filename, 
+                                               halo.quantities["particle_identifier"]))
+    if not os.path.exists(output_file):
+        raise RuntimeError("Profile file not found: %s." % output_file)
+    mylog.info("Loading halo %d profile data from %s." %
+               (halo.quantities["particle_identifier"], output_file))
+
+    out_file = h5py.File(output_file, "r")
+    my_profile = {}
+    if fields is None:
+        fields = out_file.keys()
+    for field in fields:
+        if field not in out_file:
+            raise RuntimeError("%s field not present in %s." % (field, output_file))
+        units = ""
+        if "units" in out_file[field].attrs:
+            units = out_file[field].attrs["units"]
+        if units == "dimensionless": units = ""
+        my_profile[field] = halo.halo_catalog.halos_pf.arr(out_file[field].value, units)
+    out_file.close()
+    setattr(halo, storage, my_profile)
+
+add_callback("load_profiles", load_profiles)
+
 def virial_quantities(halo, fields, critical_overdensity=200,
                       profile_storage="profiles"):
     r"""

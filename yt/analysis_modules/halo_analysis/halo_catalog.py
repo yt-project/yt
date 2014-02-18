@@ -112,8 +112,14 @@ class HaloCatalog(ParallelAnalysisInterface):
         halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
         self.actions.append(("filter", halo_filter))
 
+    def create(self, save_halos=False, save_catalog=True, njobs=-1, dynamic=False):
+        self._run(save_halos, save_catalog, njobs=njobs, dynamic=dynamic)
+
+    def load(self, save_halos=True, save_catalog=False, njobs=-1, dynamic=False):
+        self._run(save_halos, save_catalog, njobs=njobs, dynamic=dynamic)
+        
     @parallel_blocking_call
-    def run(self, njobs=-1, dynamic=False, save_halos=False):
+    def _run(self, save_halos, save_catalog, njobs=-1, dynamic=False):
         self.catalog = []
         if save_halos: self.halo_list = []
 
@@ -151,7 +157,8 @@ class HaloCatalog(ParallelAnalysisInterface):
                 del new_halo
 
         self.catalog.sort(key=lambda a:a['particle_identifier'].to_ndarray())
-        self.save_catalog()
+        if save_catalog:
+            self.save_catalog()
 
     def save_catalog(self):
         "Write out hdf5 file with all halo quantities."
