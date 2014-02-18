@@ -112,6 +112,6 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         return {'halos': data_file.header['num_halos']}
 
     def _identify_fields(self, data_file):
-        fields = [("halos", f) for f in halo_dt.fields if
-                  "padding" not in f]
+        with h5py.File(data_file.filename, "r") as f:
+            fields = [("halos", field) for field in f]
         return fields
