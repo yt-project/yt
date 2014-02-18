@@ -750,13 +750,20 @@ class PWViewerMPL(PlotWindow):
             comoving = False
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
-                if un.endswith('cm') and un != 'cm':
+                expr = self.pf.quan(1.0, un).units.expr
+                h_expr = self.pf.quan(1.0, 'h').units.expr
+                h_power = expr.as_coeff_exponent(Unit('h').expr)[1]
+                un = str(expr*h_expr**(-1*h_power))
+                if str(un).endswith('cm') and un != 'cm':
                     comoving = True
                     un = un[:-2]
                 # no length units besides code_length end in h so this is safe
-                if un.endswith('h') and un != 'code_length':
+                if h_power == -1:
                     hinv = True
-                    un = un[:-1]
+                else:
+                    # Does it make sense to scale a position by
+                    # anything other than h^-1?
+                    raise RuntimeError
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 if un not in ['1', 'u', 'unitary']:
