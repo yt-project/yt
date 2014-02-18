@@ -156,7 +156,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     def save_catalog(self):
         "Write out hdf5 file with all halo quantities."
 
-        filename = os.path.join(self.output_dir, "%s.%04d.h5" %
+        filename = os.path.join(self.output_dir, "%s.%d.h5" %
                                 (self.output_prefix, self.comm.rank))
         n_halos = len(self.catalog)
         mylog.info("Saving halo catalog (%d halos) to %s." %
@@ -165,12 +165,13 @@ class HaloCatalog(ParallelAnalysisInterface):
         out_file = h5py.File(filename, 'w')
         for attr in ["current_redshift", "current_time",
                      "domain_dimensions",
-                     "domain_left_edge", "domain_right_edge",
                      "cosmological_simulation", "omega_lambda",
                      "omega_matter", "hubble_constant"]:
             out_file.attrs[attr] = getattr(self.halos_pf, attr)
+        for attr in ["domain_left_edge", "domain_right_edge"]:
+            out_file.attrs[attr] = getattr(self.halos_pf, attr).in_cgs()
         out_file.attrs["data_type"] = "halo_catalog"
-        out_file.attrs["n_halos"] = n_halos
+        out_file.attrs["num_halos"] = n_halos
         if n_halos > 0:
             field_data = np.empty(n_halos)
             for key in self.quantities:
