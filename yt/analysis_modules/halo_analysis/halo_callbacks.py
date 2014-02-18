@@ -291,13 +291,11 @@ def save_profiles(halo, storage="profiles", filename=None,
     my_profile = getattr(halo, storage)
     for field in my_profile:
         # Don't write code units because we might not know those later.
-        if hasattr(my_profile[field], "units"):
+        if isinstance(my_profile[field], YTArray):
             my_profile[field].convert_to_cgs()
         dataset = out_file.create_dataset(str(field), data=my_profile[field])
-        # Why is isinstance(my_profile[field], YTArray) always returning False?
-        # Something is wrong.
         units = ""
-        if hasattr(my_profile[field], "units"):
+        if isinstance(my_profile[field], YTArray):
             units = str(my_profile[field].units)
         dataset.attrs["units"] = units
     out_file.close()
